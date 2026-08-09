@@ -1,0 +1,604 @@
+package org.finos.morphir.mill.toolchain
+
+import java.io.{BufferedInputStream, InputStream}
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.nio.channels.FileChannel
+import java.nio.file.Files
+import java.nio.file.StandardOpenOption
+import scala.util.Using
+import scala.util.control.NonFatal
+
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
+
+private[toolchain] object ArchivePreflight {
+  private val ZipEndSignature       = 0x06054b50
+  private val Zip64EndSignature     = 0x06064b50
+  private val Zip64Locator          = 0x07064b50
+  private val ZipCentralHeader      = 0x02014b50
+  private val ZipDigitalSignature   = 0x05054b50
+  private val ZipEndMinimumBytes    = 22
+  private val ZipMaximumComment     = 65535
+  private val ZipCentralHeaderBytes = 46
+  private val TarBlockBytes         = 512
+  private val TarSizeOffset         = 124
+  private val TarSizeLength         = 12
+  private val TarChecksumOffset     = 148
+  private val TarChecksumLength     = 8
+  private val TarTypeOffset         = 156
+  private val GzipInputBufferBytes  = 8192
+  // One additional input buffer keeps the streaming ratio check independent of exactly when
+  // the inflater requests its next read; the completed stream is checked without this allowance.
+  private val GzipStreamingSlackBytes = GzipInputBufferBytes.toLong
+
+  def tarGz(
+      archive: os.Path,
+      limits: ArchiveLimits,
+      gzipConstructedObserver: () => Unit = () => ()
+  ): Unit = {
+    val snapshotBytes = Files.size(archive.toNIO)
+    try {
+      prevalidateGzipHeader(archive, limits.maxGzipHeaderBytes.toBytes)
+      Using
+        .Manager { use =>
+          val raw      = use(Files.newInputStream(archive.toNIO))
+          val buffered = use(new BufferedInputStream(raw, GzipInputBufferBytes))
+          // Only a single gzip member is accepted. The mark-capable wrapper lets Commons
+          // rewind inflater lookahead so getCompressedCount identifies the member boundary.
+          val gzip = use(
+            GzipCompressorInputStream
+              .builder()
+              .setInputStream(buffered)
+              .setDecompressConcatenated(false)
+              .get()
+          )
+          gzipConstructedObserver()
+          val decompressedBytes =
+            try scanTar(gzip, archive, limits, () => gzip.getCompressedCount)
+            catch {
+              case error: IllegalArgumentException
+                  if Option(error.getMessage).exists(_.startsWith("Malformed or truncated TAR")) &&
+                    gzip.getCompressedCount < snapshotBytes =>
+                throw new IllegalArgumentException(
+                  singleGzipMemberMessage(gzip.getCompressedCount, snapshotBytes, archive),
+                  error
+                )
+            }
+          val memberBytes = gzip.getCompressedCount
+          if (memberBytes != snapshotBytes)
+            fail(singleGzipMemberMessage(memberBytes, snapshotBytes, archive))
+          if (decompressedBytes > saturatedRatioLimit(memberBytes, limits.maxCompressionRatio))
+            fail(s"TAR.GZ preflight compression ratio exceeds limit ${limits.maxCompressionRatio}: $archive")
+        }
+        .get
+    } catch {
+      case error: IllegalArgumentException => throw error
+      case NonFatal(error)                 =>
+        throw new IllegalArgumentException(
+          s"Malformed gzip member stream, trailing non-member bytes, or truncated TAR archive: $archive",
+          error
+        )
+    }
+  }
+
+  private def singleGzipMemberMessage(memberBytes: Long, snapshotBytes: Long, archive: os.Path): String =
+    s"Only a single gzip member is supported; member bytes $memberBytes do not match " +
+      s"verified archive size $snapshotBytes: $archive"
+
+  private def prevalidateGzipHeader(archive: os.Path, maxHeaderBytes: Long): Unit =
+    Using.resource(Files.newInputStream(archive.toNIO)) { input =>
+      val reader = new GzipHeaderReader(input, archive, maxHeaderBytes)
+      val id1    = reader.read("magic")
+      val id2    = reader.read("magic")
+      if (id1 != 0x1f || id2 != 0x8b) fail(s"Invalid gzip magic: $archive")
+      val method = reader.read("compression method")
+      if (method != 8) fail(s"Unsupported gzip compression method $method: $archive")
+      val flags = reader.read("flags")
+      if ((flags & 0xe0) != 0) fail(s"Reserved gzip flags are set: $archive")
+      reader.discard(6, "fixed header")
+      if ((flags & 0x04) != 0) {
+        val low         = reader.read("FEXTRA length")
+        val high        = reader.read("FEXTRA length")
+        val extraLength = low | (high << 8)
+        reader.discard(extraLength, "FEXTRA")
+      }
+      if ((flags & 0x08) != 0) reader.discardZeroTerminated("FNAME")
+      if ((flags & 0x10) != 0) reader.discardZeroTerminated("FCOMMENT")
+      if ((flags & 0x02) != 0) reader.discard(2, "FHCRC")
+    }
+
+  private final class GzipHeaderReader(
+      input: InputStream,
+      archive: os.Path,
+      maxHeaderBytes: Long
+  ) {
+    private var bytesRead = 0L
+
+    def read(field: String): Int = {
+      if (bytesRead >= maxHeaderBytes)
+        fail(s"gzip header byte limit $maxHeaderBytes exceeded while reading $field: $archive")
+      val byte = input.read()
+      if (byte < 0) fail(s"Truncated gzip $field: $archive")
+      bytesRead += 1
+      byte
+    }
+
+    def discard(count: Int, field: String): Unit = {
+      var remaining = count
+      while (remaining > 0) {
+        read(field)
+        remaining -= 1
+      }
+    }
+
+    def discardZeroTerminated(field: String): Unit =
+      while (read(field) != 0) ()
+  }
+
+  def zip(archive: os.Path, limits: ArchiveLimits): Unit =
+    Using.resource(FileChannel.open(archive.toNIO, StandardOpenOption.READ)) { channel =>
+      val fileSize = channel.size()
+      if (fileSize < ZipEndMinimumBytes)
+        fail(s"ZIP is too short to contain an end-of-central-directory record: $archive")
+      val tailSize  = math.min(fileSize, ZipEndMinimumBytes.toLong + ZipMaximumComment).toInt
+      val tailStart = fileSize - tailSize
+      val tail      = ByteBuffer.allocate(tailSize).order(ByteOrder.LITTLE_ENDIAN)
+      readFully(channel, tail, tailStart, "ZIP end-of-central-directory")
+      val endOffset = locateZipEnd(tail, tailStart, fileSize, archive)
+      val relative  = (endOffset - tailStart).toInt
+      val disk      = unsignedShort(tail, relative + 4)
+      val startDisk = unsignedShort(tail, relative + 6)
+      val diskCount = unsignedShort(tail, relative + 8)
+      val count     = unsignedShort(tail, relative + 10)
+      if (disk != 0 || startDisk != 0)
+        fail(s"Multi-disk ZIP archives are not supported: $archive")
+      val centralBytes  = unsignedInt(tail, relative + 12)
+      val centralOffset = unsignedInt(tail, relative + 16)
+      val zip64Required =
+        diskCount == 0xffff || count == 0xffff || centralBytes == 0xffffffffL || centralOffset == 0xffffffffL
+      val directory =
+        if (zip64Required) readZip64(channel, endOffset, fileSize, archive)
+        else {
+          if (diskCount != count) fail(s"Multi-disk ZIP archives are not supported: $archive")
+          ZipDirectory(count.toLong, centralBytes, centralOffset, endOffset)
+        }
+      validateZipDirectory(directory, fileSize, archive, limits)
+      val actualEntries = scanZipDirectory(channel, directory, archive, limits)
+      if (actualEntries != directory.entries)
+        fail(
+          s"ZIP central directory declares ${directory.entries} entries but contains $actualEntries: $archive"
+        )
+    }
+
+  private def scanZipDirectory(
+      channel: FileChannel,
+      directory: ZipDirectory,
+      archive: os.Path,
+      limits: ArchiveLimits
+  ): Long = {
+    val end      = directory.offset + directory.bytes
+    var position = directory.offset
+    var entries  = 0L
+    while (position < end) {
+      val remaining = end - position
+      if (remaining < 4)
+        fail(s"ZIP central directory has truncated trailing bytes: $archive")
+      val signature = readBuffer(channel, position, 4, "ZIP central-directory signature").getInt(0)
+      if (signature == ZipCentralHeader) {
+        if (remaining < ZipCentralHeaderBytes)
+          fail(s"ZIP central-directory file header is truncated: $archive")
+        val header = readBuffer(
+          channel,
+          position,
+          ZipCentralHeaderBytes,
+          "ZIP central-directory file header"
+        )
+        val nameBytes     = unsignedShort(header, 28)
+        val extraBytes    = unsignedShort(header, 30)
+        val commentBytes  = unsignedShort(header, 32)
+        val variableBytes = checkedAdd(
+          checkedAdd(nameBytes.toLong, extraBytes.toLong, "ZIP central-directory variable fields", archive),
+          commentBytes.toLong,
+          "ZIP central-directory variable fields",
+          archive
+        )
+        val recordBytes = checkedAdd(
+          ZipCentralHeaderBytes.toLong,
+          variableBytes,
+          "ZIP central-directory record length",
+          archive
+        )
+        if (recordBytes > remaining)
+          fail(s"ZIP central-directory file header lengths exceed its bounded extent: $archive")
+        entries += 1
+        if (entries > limits.maxEntries)
+          fail(s"ZIP entry count $entries exceeds limit ${limits.maxEntries}: $archive")
+        position += recordBytes
+      } else if (signature == ZipDigitalSignature) {
+        if (remaining < 6)
+          fail(s"ZIP central-directory digital signature is truncated: $archive")
+        val header      = readBuffer(channel, position, 6, "ZIP central-directory digital signature")
+        val recordBytes = 6L + unsignedShort(header, 4)
+        if (recordBytes != remaining)
+          fail(s"ZIP central-directory digital signature has trailing or truncated bytes: $archive")
+        position = end
+      } else
+        fail(
+          f"ZIP central directory contains unsupported record signature 0x${Integer.toUnsignedLong(signature)}%08x: $archive"
+        )
+    }
+    entries
+  }
+
+  private def scanTar(
+      input: InputStream,
+      archive: os.Path,
+      limits: ArchiveLimits,
+      compressedCount: () => Long
+  ): Long = {
+    val header                     = new Array[Byte](TarBlockBytes)
+    val skipBuffer                 = new Array[Byte](8192)
+    val maxStreamBytes             = derivedTarStreamLimit(limits)
+    var streamBytes                = 0L
+    var entryCount                 = 0L
+    var contentBytes               = 0L
+    var metadataBytes              = 0L
+    var consecutiveMetadataEntries = 0L
+    var previousZeroBlock          = false
+    var finished                   = false
+
+    while (!finished) {
+      readExactly(input, header, 0, header.length, "TAR header", archive)
+      streamBytes = recordTarStreamBytes(
+        streamBytes,
+        header.length,
+        maxStreamBytes,
+        compressedCount(),
+        limits.maxCompressionRatio,
+        archive
+      )
+      val zero = header.forall(_ == 0)
+      if (zero && previousZeroBlock) finished = true
+      else if (zero) previousZeroBlock = true
+      else {
+        if (previousZeroBlock)
+          fail(s"Malformed TAR archive has an entry after an end marker: $archive")
+        validateTarChecksum(header, archive)
+        entryCount = addWithin(entryCount, 1L, limits.maxEntries, "TAR header and pseudo-entry count", archive)
+        val size      = parseTarNumber(header, TarSizeOffset, TarSizeLength, "TAR entry size", archive)
+        val entryType = header(TarTypeOffset)
+        if (isTarMetadata(entryType)) {
+          consecutiveMetadataEntries += 1
+          if (consecutiveMetadataEntries > limits.maxConsecutiveMetadataEntries)
+            fail(
+              s"TAR consecutive metadata entry limit ${limits.maxConsecutiveMetadataEntries} exceeded: $archive"
+            )
+          if (size > limits.maxMetadataEntryBytes.toBytes)
+            fail(
+              s"TAR metadata entry byte limit ${limits.maxMetadataEntryBytes.show} exceeded by $size bytes: $archive"
+            )
+          metadataBytes = addWithin(
+            metadataBytes,
+            size,
+            limits.maxArchiveMetadataBytes.toBytes,
+            "TAR aggregate metadata bytes",
+            archive
+          )
+        } else {
+          consecutiveMetadataEntries = 0
+          if (size > limits.maxEntryUncompressedBytes.toBytes)
+            fail(s"TAR per-entry uncompressed byte limit ${limits.maxEntryUncompressedBytes.show} exceeded: $archive")
+          contentBytes = addWithin(
+            contentBytes,
+            size,
+            limits.maxTotalUncompressedBytes.toBytes,
+            "TAR total uncompressed bytes",
+            archive
+          )
+        }
+        val padding = (TarBlockBytes - size % TarBlockBytes) % TarBlockBytes
+        val body    = checkedAdd(size, padding, "TAR entry body and padding", archive)
+        streamBytes = skipExactly(
+          input,
+          body,
+          skipBuffer,
+          streamBytes,
+          maxStreamBytes,
+          compressedCount,
+          limits.maxCompressionRatio,
+          archive
+        )
+      }
+    }
+
+    var read = input.read(skipBuffer)
+    while (read >= 0) {
+      if (read > 0) {
+        streamBytes = recordTarStreamBytes(
+          streamBytes,
+          read.toLong,
+          maxStreamBytes,
+          compressedCount(),
+          limits.maxCompressionRatio,
+          archive
+        )
+        var index = 0
+        while (index < read) {
+          if (skipBuffer(index) != 0)
+            fail(s"Malformed TAR archive has non-zero bytes after its end markers: $archive")
+          index += 1
+        }
+      }
+      read = input.read(skipBuffer)
+    }
+    streamBytes
+  }
+
+  private def validateTarChecksum(header: Array[Byte], archive: os.Path): Unit = {
+    val stored      = parseTarOctal(header, TarChecksumOffset, TarChecksumLength, "TAR checksum", archive)
+    var unsignedSum = 0L
+    var signedSum   = 0L
+    var index       = 0
+    while (index < header.length) {
+      val unsigned = if (index >= TarChecksumOffset && index < TarChecksumOffset + TarChecksumLength) 32
+      else header(index) & 0xff
+      val signed = if (index >= TarChecksumOffset && index < TarChecksumOffset + TarChecksumLength) 32
+      else header(index).toInt
+      unsignedSum += unsigned
+      signedSum += signed
+      index += 1
+    }
+    if (stored != unsignedSum && stored != signedSum)
+      fail(s"Malformed TAR header checksum: $archive")
+  }
+
+  private def parseTarNumber(
+      bytes: Array[Byte],
+      offset: Int,
+      length: Int,
+      label: String,
+      archive: os.Path
+  ): Long =
+    if ((bytes(offset) & 0x80) != 0) parseTarBase256(bytes, offset, length, label, archive)
+    else parseTarOctal(bytes, offset, length, label, archive)
+
+  private def parseTarBase256(
+      bytes: Array[Byte],
+      offset: Int,
+      length: Int,
+      label: String,
+      archive: os.Path
+  ): Long = {
+    if ((bytes(offset) & 0x40) != 0) fail(s"Negative $label is not supported: $archive")
+    var value = (bytes(offset) & 0x3f).toLong
+    var index = offset + 1
+    while (index < offset + length) {
+      if (value > (Long.MaxValue - (bytes(index) & 0xff)) / 256)
+        fail(s"$label exceeds the supported signed 64-bit range: $archive")
+      value = value * 256 + (bytes(index) & 0xff)
+      index += 1
+    }
+    value
+  }
+
+  private def parseTarOctal(
+      bytes: Array[Byte],
+      offset: Int,
+      length: Int,
+      label: String,
+      archive: os.Path
+  ): Long = {
+    val end   = offset + length
+    var index = offset
+    while (index < end && (bytes(index) == 0 || bytes(index) == ' '.toByte)) index += 1
+    var value      = 0L
+    var sawDigit   = false
+    var terminated = false
+    while (index < end) {
+      val byte = bytes(index)
+      if (byte >= '0'.toByte && byte <= '7'.toByte && !terminated) {
+        val digit = byte - '0'.toByte
+        if (value > (Long.MaxValue - digit) / 8)
+          fail(s"$label exceeds the supported signed 64-bit range: $archive")
+        value = value * 8 + digit
+        sawDigit = true
+      } else if (byte == 0 || byte == ' '.toByte) terminated = true
+      else fail(s"Malformed octal $label: $archive")
+      index += 1
+    }
+    if (!sawDigit) 0L else value
+  }
+
+  private def isTarMetadata(entryType: Byte): Boolean =
+    entryType == 'L'.toByte || entryType == 'K'.toByte || entryType == 'x'.toByte || entryType == 'g'.toByte
+
+  private def readExactly(
+      input: InputStream,
+      bytes: Array[Byte],
+      offset: Int,
+      length: Int,
+      label: String,
+      archive: os.Path
+  ): Unit = {
+    var position = offset
+    val end      = offset + length
+    while (position < end) {
+      val read = input.read(bytes, position, end - position)
+      if (read < 0) fail(s"Malformed or truncated $label: $archive")
+      if (read == 0) fail(s"Unable to read $label: $archive")
+      position += read
+    }
+  }
+
+  private def skipExactly(
+      input: InputStream,
+      count: Long,
+      buffer: Array[Byte],
+      initialStreamBytes: Long,
+      maxStreamBytes: Long,
+      compressedCount: () => Long,
+      ratio: Double,
+      archive: os.Path
+  ): Long = {
+    var remaining   = count
+    var streamBytes = initialStreamBytes
+    while (remaining > 0) {
+      val requested = math.min(remaining, buffer.length.toLong).toInt
+      val read      = input.read(buffer, 0, requested)
+      if (read < 0) fail(s"Malformed or truncated TAR entry body: $archive")
+      if (read == 0) fail(s"Unable to read TAR entry body: $archive")
+      streamBytes = recordTarStreamBytes(
+        streamBytes,
+        read.toLong,
+        maxStreamBytes,
+        compressedCount(),
+        ratio,
+        archive
+      )
+      remaining -= read
+    }
+    streamBytes
+  }
+
+  private def derivedTarStreamLimit(limits: ArchiveLimits): Long = {
+    val headerAndPadding = saturatingMultiply(limits.maxEntries, 1023L)
+    saturatingAdd(
+      saturatingAdd(limits.maxTotalUncompressedBytes.toBytes, limits.maxArchiveMetadataBytes.toBytes),
+      saturatingAdd(headerAndPadding, 1024L)
+    )
+  }
+
+  private def saturatedRatioLimit(compressedBytes: Long, ratio: Double): Long = {
+    val expanded = compressedBytes.toDouble * ratio
+    if (!expanded.isFinite || expanded >= Long.MaxValue.toDouble) Long.MaxValue
+    else math.floor(expanded).toLong
+  }
+
+  private def recordTarStreamBytes(
+      current: Long,
+      increment: Long,
+      maxStreamBytes: Long,
+      compressedBytes: Long,
+      ratio: Double,
+      archive: os.Path
+  ): Long = {
+    val updated              = addWithin(current, increment, maxStreamBytes, "TAR decompressed stream", archive)
+    val streamingDenominator = saturatingAdd(math.max(1L, compressedBytes), GzipStreamingSlackBytes)
+    val maxRatioBytes        = saturatedRatioLimit(streamingDenominator, ratio)
+    if (updated > maxRatioBytes)
+      fail(s"TAR.GZ preflight compression ratio exceeds limit $ratio: $archive")
+    updated
+  }
+
+  private def saturatingMultiply(left: Long, right: Long): Long =
+    if (left > Long.MaxValue / right) Long.MaxValue else left * right
+
+  private def saturatingAdd(left: Long, right: Long): Long =
+    if (left > Long.MaxValue - right) Long.MaxValue else left + right
+
+  private def checkedAdd(left: Long, right: Long, label: String, archive: os.Path): Long =
+    if (left > Long.MaxValue - right) fail(s"$label exceeds the supported signed 64-bit range: $archive")
+    else left + right
+
+  private def addWithin(current: Long, increment: Long, limit: Long, label: String, archive: os.Path): Long =
+    if (increment > limit - current) fail(s"$label exceeds limit $limit: $archive")
+    else current + increment
+
+  private final case class ZipDirectory(entries: Long, bytes: Long, offset: Long, structuralOffset: Long)
+
+  private def readZip64(
+      channel: FileChannel,
+      endOffset: Long,
+      fileSize: Long,
+      archive: os.Path
+  ): ZipDirectory = {
+    val locatorOffset = endOffset - 20
+    if (locatorOffset < 0) fail(s"ZIP64 locator is missing: $archive")
+    val locator = readBuffer(channel, locatorOffset, 20, "ZIP64 locator")
+    if (locator.getInt(0) != Zip64Locator) fail(s"ZIP64 locator is missing or malformed: $archive")
+    val zip64Disk   = unsignedInt(locator, 4)
+    val zip64Offset = unsignedLong(locator, 8, "ZIP64 end record offset")
+    val totalDisks  = unsignedInt(locator, 16)
+    if (zip64Disk != 0 || totalDisks != 1)
+      fail(s"Multi-disk ZIP64 archives are not supported: $archive")
+    if (zip64Offset > fileSize - 56)
+      fail(s"ZIP64 end-of-central-directory offset is outside the archive: $archive")
+    val record     = readBuffer(channel, zip64Offset, 56, "ZIP64 end-of-central-directory record")
+    val signature  = record.getInt(0)
+    val recordSize = unsignedLong(record, 4, "ZIP64 end record size")
+    if (signature != Zip64EndSignature || recordSize < 44)
+      fail(s"ZIP64 end-of-central-directory record is malformed: $archive")
+    if (recordSize > locatorOffset - zip64Offset - 12 || zip64Offset + 12 + recordSize != locatorOffset)
+      fail(s"ZIP64 end-of-central-directory record has an invalid size: $archive")
+    val disk        = unsignedInt(record, 16)
+    val startDisk   = unsignedInt(record, 20)
+    val diskEntries = unsignedLong(record, 24, "ZIP64 disk entry count")
+    val entries     = unsignedLong(record, 32, "ZIP64 total entry count")
+    val bytes       = unsignedLong(record, 40, "ZIP64 central-directory size")
+    val offset      = unsignedLong(record, 48, "ZIP64 central-directory offset")
+    if (disk != 0 || startDisk != 0 || diskEntries != entries)
+      fail(s"Multi-disk ZIP64 archives are not supported: $archive")
+    ZipDirectory(entries, bytes, offset, zip64Offset)
+  }
+
+  private def locateZipEnd(tail: ByteBuffer, tailStart: Long, fileSize: Long, archive: os.Path): Long = {
+    var index = tail.limit() - ZipEndMinimumBytes
+    while (index >= 0) {
+      if (tail.getInt(index) == ZipEndSignature) {
+        val commentBytes = unsignedShort(tail, index + 20)
+        val absolute     = tailStart + index
+        if (absolute + ZipEndMinimumBytes + commentBytes == fileSize) return absolute
+      }
+      index -= 1
+    }
+    fail(s"ZIP end-of-central-directory record is missing or malformed: $archive")
+  }
+
+  private def validateZipDirectory(
+      directory: ZipDirectory,
+      fileSize: Long,
+      archive: os.Path,
+      limits: ArchiveLimits
+  ): Unit = {
+    if (directory.entries > limits.maxEntries)
+      fail(s"ZIP entry count ${directory.entries} exceeds limit ${limits.maxEntries}: $archive")
+    if (directory.bytes > limits.maxCentralDirectoryBytes.toBytes)
+      fail(
+        s"ZIP central-directory byte size ${directory.bytes} exceeds limit ${limits.maxCentralDirectoryBytes.show}: $archive"
+      )
+    if (directory.offset > fileSize || directory.bytes > fileSize - directory.offset)
+      fail(s"ZIP central-directory range is outside the archive: $archive")
+    if (directory.offset + directory.bytes > directory.structuralOffset)
+      fail(s"ZIP central-directory overlaps its end records: $archive")
+  }
+
+  private def readBuffer(channel: FileChannel, position: Long, size: Int, label: String): ByteBuffer = {
+    val buffer = ByteBuffer.allocate(size).order(ByteOrder.LITTLE_ENDIAN)
+    readFully(channel, buffer, position, label)
+    buffer
+  }
+
+  private def readFully(channel: FileChannel, buffer: ByteBuffer, position: Long, label: String): Unit = {
+    var offset = position
+    while (buffer.hasRemaining) {
+      val read = channel.read(buffer, offset)
+      if (read < 0) fail(s"Truncated $label")
+      if (read == 0) fail(s"Unable to read $label")
+      offset += read
+    }
+    buffer.flip()
+  }
+
+  private def unsignedShort(buffer: ByteBuffer, offset: Int): Int = buffer.getShort(offset) & 0xffff
+
+  private def unsignedInt(buffer: ByteBuffer, offset: Int): Long =
+    Integer.toUnsignedLong(buffer.getInt(offset))
+
+  private def unsignedLong(buffer: ByteBuffer, offset: Int, label: String): Long = {
+    val value = buffer.getLong(offset)
+    if (value < 0) fail(s"$label exceeds the supported signed 64-bit range")
+    value
+  }
+
+  private def fail(message: String): Nothing = throw new IllegalArgumentException(message)
+}

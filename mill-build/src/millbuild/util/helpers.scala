@@ -49,9 +49,10 @@ object Jvm {
   def runSubprocess(
       commandArgs: Seq[String],
       envArgs: Map[String, String],
-      workingDir: os.Path
+      workingDir: os.Path,
+      propagateEnv: Boolean = true
   ): Unit = {
-    val result = os.proc(commandArgs).call(cwd = workingDir, env = envArgs)
+    val result = os.proc(commandArgs).call(cwd = workingDir, env = envArgs, propagateEnv = propagateEnv)
     if (result.exitCode != 0) {
       throw new Exception(s"Subprocess failed with exit code ${result.exitCode}")
     }

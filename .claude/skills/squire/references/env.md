@@ -1,7 +1,7 @@
 # Squire AI Env Info — Sandbox/Network Detection
 
 `squire ai env info` reports whether the current session is actually restricted
-(network sockets, `/var/folders` writes) as structured JSON, so other skills and
+(network sockets, effective JVM-temp writes) as structured JSON, so other skills and
 build scripts can make a data-driven decision instead of guessing from
 `CLAUDE_CODE_*` env vars — those only tell you "running under Claude Code", not
 "sandboxed". Whether a session is restricted depends on the `sandbox` config in
@@ -61,7 +61,7 @@ independently of Claude, e.g. from a terminal or CI):
   not on `PATH`). This is the authoritative, live-probed signal.
 - **`sandboxed`** — convenience top-level bool, mirrors `checks.jvm_network.ok ==
   false` (the check most consumers — mill wrappers — care about). Consumers with
-  a different concern (cellar's `/var/folders` writes, say) should read the
+  a different concern (cellar's JVM-temp writes, say) should read the
   specific check rather than this bool.
 - **`claude_settings`** — best-effort static context from `sandbox.enabled` /
   `sandbox.network.*` across the settings files Claude Code merges. Informational

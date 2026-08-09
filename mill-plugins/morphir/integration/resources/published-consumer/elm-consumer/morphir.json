@@ -1,0 +1,7 @@
+{
+  "name": "Unpublished.Consumer",
+  "sourceDirectory": "src",
+  "exposedModules": [
+    "Main"
+  ]
+}

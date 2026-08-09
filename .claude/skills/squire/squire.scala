@@ -22,16 +22,21 @@ final case class CellarGetOpts(
     @HelpMessage("Fully qualified symbol") symbol: String,
     @HelpMessage("Hide inherited members") hideInherited: Boolean = false,
     @HelpMessage("Group inherited members") groupInherited: Boolean = false,
-    @HelpMessage("Maximum number of results") limit: Option[Int] = None
+    @HelpMessage("Maximum number of results") limit: Option[Int] = None,
+    @HelpMessage("Absolute writable temp directory for Cellar") tempDirectory: Option[String] = None
 )
 
 final case class CellarSearchOpts(
     @HelpMessage("Maven coordinate or project alias") coordinate: String,
     @HelpMessage("Symbol-name substring") query: String,
-    @HelpMessage("Maximum number of results") limit: Option[Int] = None
+    @HelpMessage("Maximum number of results") limit: Option[Int] = None,
+    @HelpMessage("Absolute writable temp directory for Cellar") tempDirectory: Option[String] = None
 )
 
-final case class CellarDepsOpts(@HelpMessage("Maven coordinate or project alias") coordinate: String)
+final case class CellarDepsOpts(
+    @HelpMessage("Maven coordinate or project alias") coordinate: String,
+    @HelpMessage("Absolute writable temp directory for Cellar") tempDirectory: Option[String] = None
+)
 
 final case class ReferenceRepoAddOpts(
     @HelpMessage("Git URL or local repository path") urlOrPath: String,
@@ -186,9 +191,10 @@ object SquireCli:
       runner: ProcessRunner,
       platform: SquirePlatform,
       output: String => Unit,
-      errorOutput: String => Unit
+      errorOutput: String => Unit,
+      tempDirectory: Option[String] = None
   ): Int < (Async & Abort[SquireError]) =
-    SquireCellar.run(action, root, runner, platform).map { result =>
+    SquireCellar.run(action, root, runner, platform, tempDirectory).map { result =>
       if result.stdout.nonEmpty then output(result.stdout)
       if result.stderr.nonEmpty then errorOutput(result.stderr)
       result.exitCode
@@ -571,7 +577,8 @@ object SquireApp extends CommandsEntryPoint:
             LiveProcessRunner,
             LiveSquirePlatform,
             java.lang.System.out.print,
-            java.lang.System.err.print
+            java.lang.System.err.print,
+            options.tempDirectory
           )
         }
       )
@@ -589,7 +596,8 @@ object SquireApp extends CommandsEntryPoint:
             LiveProcessRunner,
             LiveSquirePlatform,
             java.lang.System.out.print,
-            java.lang.System.err.print
+            java.lang.System.err.print,
+            options.tempDirectory
           )
         }
       )
@@ -607,7 +615,8 @@ object SquireApp extends CommandsEntryPoint:
             LiveProcessRunner,
             LiveSquirePlatform,
             java.lang.System.out.print,
-            java.lang.System.err.print
+            java.lang.System.err.print,
+            options.tempDirectory
           )
         }
       )

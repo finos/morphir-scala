@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# MISE description="Run non-classic JVM platform tests"
+
+set -euo pipefail
+
+./mill -i Alias/run testJVMPlatform

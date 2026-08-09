@@ -50,6 +50,7 @@ object SquireEnv:
     def home: Path
     def managedSettingsCandidates: Chunk[Path]
     def varFolders: Path
+    def jvmTempDirectory: Maybe[Path] = Present(varFolders)
     def now: Instant
     def zone: ZoneId = ZoneId.systemDefault()
     def probeJvmNetwork(timeout: Duration): CheckResult
@@ -72,6 +73,11 @@ object SquireEnv:
       )
 
     def varFolders: Path = Path("/var/folders")
+
+    override def jvmTempDirectory: Maybe[Path] =
+      Option(java.lang.System.getProperty("java.io.tmpdir")).filter(_.nonEmpty) match
+        case Some(value) => Present(Path(value).toJava.toAbsolutePath.normalize).map(path => Path(path.toString))
+        case None        => Absent
 
     def now: Instant = Instant.now()
 
@@ -170,26 +176,28 @@ object SquireEnv:
 
   private def checkVarFolders(platform: Platform): CheckResult < Sync =
     Sync.defer {
-      if !Files.exists(platform.varFolders.toJava) then
-        CheckResult(Absent, "/var/folders does not exist on this platform — check skipped", 0.0)
-      else
-        val probe = platform.varFolders / ".squire-env-probe"
-        var result: CheckResult = CheckResult(Present(false), "write probe did not complete", 0.0)
-        var cleanupFailure: Maybe[String] = Absent
-        try
-          platform.writeProbe(probe)
-          result = CheckResult(Present(true), "write probe succeeded", 0.0)
-        catch
-          case error: java.io.IOException => result = CheckResult(Present(false), s"${error.getClass.getSimpleName}: ${error.getMessage}", 0.0)
-          case error: SecurityException    => result = CheckResult(Present(false), s"${error.getClass.getSimpleName}: ${error.getMessage}", 0.0)
-        finally if Files.exists(probe.toJava) then
-          try platform.deleteProbe(probe)
+      platform.jvmTempDirectory match
+        case Absent => CheckResult(Absent, "effective JVM temp directory is unavailable — check skipped", 0.0)
+        case Present(directory) if !Files.isDirectory(directory.toJava) =>
+          CheckResult(Present(false), s"effective JVM temp directory does not exist: $directory", 0.0)
+        case Present(directory) =>
+          val probe = directory / ".squire-env-probe"
+          var result: CheckResult = CheckResult(Present(false), "write probe did not complete", 0.0)
+          var cleanupFailure: Maybe[String] = Absent
+          try
+            platform.writeProbe(probe)
+            result = CheckResult(Present(true), s"JVM temp write probe succeeded at $directory", 0.0)
           catch
-            case error: java.io.IOException => cleanupFailure = Present(s"could not clean probe file: ${error.getClass.getSimpleName}: ${error.getMessage}")
-            case error: SecurityException    => cleanupFailure = Present(s"could not clean probe file: ${error.getClass.getSimpleName}: ${error.getMessage}")
-        cleanupFailure match
-          case Present(detail) => CheckResult(Present(false), detail, 0.0)
-          case Absent          => result
+            case error: java.io.IOException => result = CheckResult(Present(false), s"${error.getClass.getSimpleName}: ${error.getMessage}", 0.0)
+            case error: SecurityException    => result = CheckResult(Present(false), s"${error.getClass.getSimpleName}: ${error.getMessage}", 0.0)
+          finally if Files.exists(probe.toJava) then
+            try platform.deleteProbe(probe)
+            catch
+              case error: java.io.IOException => cleanupFailure = Present(s"could not clean probe file: ${error.getClass.getSimpleName}: ${error.getMessage}")
+              case error: SecurityException    => cleanupFailure = Present(s"could not clean probe file: ${error.getClass.getSimpleName}: ${error.getMessage}")
+          cleanupFailure match
+            case Present(detail) => CheckResult(Present(false), detail, 0.0)
+            case Absent          => result
     }
 
   private def claudeEnvironmentDetected(environment: Map[String, String]): Boolean =

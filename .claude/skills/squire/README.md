@@ -9,6 +9,7 @@ Squire is invoked as a slash command within Claude Code. It routes each maintain
 ```text
 /squire ai env info          — Report sandbox/network status as structured JSON
 /squire doctor               — Run a full environment diagnostic
+/squire mill morphir         — Develop and diagnose the Mill Morphir plugins
 /squire reference repo ...   — Manage repositories under .refs/
 /squire branch refresh       — Refresh develop from main after a squash merge
 /squire tracking ...         — Resolve and maintain optional beads tracking
@@ -52,6 +53,7 @@ The skill is structured in layers to keep each file focused:
 │   ├── cellar.md         # JVM dependency API inspection
 │   ├── doctor.md         # Full diagnostic procedure and issue catalogue
 │   ├── env.md            # ai env info — sandbox/network detection reference
+│   ├── mill-morphir.md   # Fast and published-plugin dogfood workflows
 │   ├── repo.md           # Reference repository management
 │   ├── spec-sync.md      # Morphir IR import/export workflow
 │   └── tracking.md       # Optional beads tracking configuration
@@ -67,6 +69,7 @@ of `squire ai env info` — see [references/env.md](references/env.md).
 | Area | Command or entry point | Full reference |
 |------|-------------------------|----------------|
 | Environment | `/squire ai env info`, `/squire doctor` | `references/env.md`, `references/doctor.md` |
+| Mill Morphir plugins | `/squire mill morphir` | `references/mill-morphir.md` |
 | Reference repos | `/squire reference repo add\|list\|status\|remove` | `references/repo.md` |
 | Branch lifecycle | `/squire branch refresh` | `references/branch.md` |
 | Task tracking | `/squire tracking status\|sync\|doctor` | `references/tracking.md` |
@@ -76,17 +79,22 @@ of `squire ai env info` — see [references/env.md](references/env.md).
 
 ### `/squire doctor`
 
-When invoked, Claude reads `references/doctor.md` then runs `${CLAUDE_PLUGIN_ROOT}/squire doctor`. The typed diagnostic performs four checks:
+When invoked, Claude reads `references/doctor.md` then runs `${CLAUDE_PLUGIN_ROOT}/squire doctor`. The typed diagnostic covers these areas:
 
 1. **Mill daemon connectivity** — Reads the daemon port from `out/mill-daemon/socketPort` (if present) or parses `out/mill-daemon/server.log` for `listening on port N`. It probes with the same JVM socket mechanism Mill uses and reports `PORT_OPEN`, `SANDBOX`, `REFUSED`, or `NO_DAEMON`.
 
-2. **`/var/folders` access** — Attempts a real write/delete probe at `/var/folders/.squire-env-probe`. This is ground truth: if the write succeeds, Cellar can write its temporary `.tasty` files there. Reports `OK` or `BLOCKED` with remediation steps.
+2. **Effective JVM temp access** — Reads the running JVM's `java.io.tmpdir`, then writes and removes a bounded probe there. Reports `OK`, `BLOCKED`, or `UNAVAILABLE` without assuming another runtime uses the same path.
 
-3. **Project configuration** — Checks two project-level invariants:
-   - The `ELM_TOOLING_INSTALL` guard in `.config/mise/tasks/setup` (prevents elm binary downloads in restricted networks)
-   - The `Task { }` wrapper on `mainClass` in `morphir/package.mill` (prevents mill assembly introspection warning)
+3. **Project configuration** — Checks project-level invariants:
+   - Mise setup skips workspace postinstall hooks and leaves Morphir Elm provisioning to Mill
+   - The `mainClass` entry in `morphir/package.mill.yaml`
+   - All Mill Morphir plugin modules are present
+   - Published-plugin tests resolve from their task-local repository
+   - Machine acquisition cache state is usable or intentionally disabled
+   - Metabuild output is newer than its inputs
+   - effective JVM temp write access via the same typed Scala probe
 
-4. **Typed report** — Returns one finding per area, preserving the existing blocker codes while keeping all diagnostic logic in the Scala command.
+4. **Typed report** — Returns one finding per area, preserving actionable blocker codes while keeping all diagnostic logic in the Scala command.
 
 Claude reports each result as ✅ or ⚠️ and applies fixes from `references/doctor.md`.
 
@@ -96,8 +104,11 @@ Claude reports each result as ✅ or ⚠️ and applies fixes from `references/d
 |-------|-------------|
 | Mill daemon TCP blocked by sandbox | `squire doctor` |
 | Mill assembly `mainClass` introspection warning | `squire doctor` |
-| `cellar` temp file write blocked | `squire doctor` |
-| `mise run setup` elm-tooling 504 failures (CI) | `squire doctor` |
+| Effective JVM temp file write blocked | `squire doctor` |
+| Mise setup bypassing Mill-owned Morphir Elm tooling | `squire doctor` |
+| Missing Mill Morphir plugin modules | `squire doctor` |
+| Broken task-local plugin repository wiring | `squire doctor` |
+| Invalid machine acquisition cache configuration | `squire doctor` |
 | Scalafmt lint failures | `references/doctor.md` (guidance only) |
 
 ## Important Caveats

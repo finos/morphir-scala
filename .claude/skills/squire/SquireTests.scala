@@ -588,11 +588,8 @@ class SquireMetaSpec extends Test[Any]:
   }
 
   "Mill version" - {
-    "matches the repository version" in {
-      val repositoryVersion =
-        Files.readString(skillDirectory.resolve("../../../.mill-version"), StandardCharsets.UTF_8).trim
-      assert(read(".mill-version").trim == repositoryVersion)
-    }
+    "keeps the approved standalone Squire pin" in
+      assert(read(".mill-version").trim == "1.2.0-RC1-24-042146")
   }
 
   "suite registry" - {
@@ -676,6 +673,27 @@ class SquireCiPolicySpec extends Test[Any]:
       assert(mutations.forall((_, mutation) => rejects(assertSquireCiPolicy, mutation)))
     }
 
+    "keeps Mill Morphir dogfood and generated-runtime work in ordered CI jobs" in {
+      val required = List(
+        "mill-morphir-unit:"         -> "mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test",
+        "mill-morphir-integration:"  -> "mill-plugins.morphir.integration.test",
+        "morphir-elm-projects:"      -> "examples.morphir-elm-projects.__.morphirIR",
+        "runtime-generated-fixtures:" -> "morphir.runtime.classic.jvm.test.generatedRuntimeFixtures",
+        "runtime-tests:"             -> "morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery"
+      )
+      val dependencies = List(
+        "mill-morphir-integration:"  -> "needs: [mill-morphir-unit]",
+        "morphir-elm-projects:"      -> "needs: [mill-morphir-unit]",
+        "runtime-generated-fixtures:" -> "needs: [morphir-elm-projects]",
+        "runtime-tests:"             -> "needs: [runtime-generated-fixtures]"
+      )
+      assert(
+        required.forall((job, command) => indentedBlock(workflow, job, 2).contains(command)) &&
+          dependencies.forall((job, dependency) => indentedBlock(workflow, job, 2).contains(dependency)) &&
+          workflow.contains("path: ~/.cache/morphir-scala")
+      )
+    }
+
     "rejects representative branch snapshot and publish regressions" in {
       val pushWithExtraBranch = replaceOnce(
         workflow,
@@ -752,11 +770,9 @@ class SquireMisePolicySpec extends Test[Any]:
   private val repositoryRoot = skillDirectory / ".." / ".." / ".."
   private val miseExecutable = Option(java.lang.System.getenv("SQUIRE_MISE_BIN")).filter(_.nonEmpty).getOrElse("mise")
   private val expectedDependencies = List(
-    "setup",
     "lint",
     "test:squire",
-    "build:morphir-elm",
-    "test:jvm",
+    "test:jvm-platform",
     "test:js",
     "test:native"
   )
@@ -2224,6 +2240,7 @@ object SquireFixtures:
       home: Option[Path] = None,
       managed: Chunk[Path] = Chunk.empty,
       varFolders: Option[Path] = None,
+      jvmTempDirectory: Maybe[Path] = Absent,
       daemonProbe: Int => SquireEnv.DaemonProbe = _ => SquireEnv.DaemonProbe.Open,
       writeProbe: Path => Unit = path => Files.writeString(path.toJava, "squire probe"),
       deleteProbe: Path => Unit = path => Files.deleteIfExists(path.toJava)
@@ -2233,6 +2250,7 @@ object SquireFixtures:
       home.getOrElse(root / "home"),
       managed,
       varFolders.getOrElse(root),
+      jvmTempDirectory.orElse(Present(varFolders.getOrElse(root))),
       _ => jvmResult,
       daemonProbe,
       writeProbe,
@@ -2695,6 +2713,28 @@ class SquireCellarSpec extends Test[Any]:
             Chunk("dev.zio:zio_3:2.1.26", "provide", "--limit", "7")) &&
           SquireCellar.command(CellarAction.Deps("mill-scalalib"), CellarSettings(), "cellar") ==
           ProcessRequest(Chunk("cellar", "deps", "com.lihaoyi:mill-scalalib_3:0.12.0"))
+      )
+    }
+
+    "validates an absolute writable temp directory and passes it to the native process" in {
+      for
+        root <- SquireFixtures.scratch("cellar-temp")
+        relative = Path("relative-temp")
+        missing  = root / "missing"
+        valid    <- SquireCellar.validateTempDirectory(Some(root.toString))
+        invalidRelative <- Abort.run[SquireError](SquireCellar.validateTempDirectory(Some(relative.toString)))
+        invalidMissing  <- Abort.run[SquireError](SquireCellar.validateTempDirectory(Some(missing.toString)))
+      yield assert(
+        valid == Present(root) && invalidRelative.isFailure && invalidMissing.isFailure &&
+          SquireCellar.command(CellarAction.Deps("mill-scalalib"), CellarSettings(), "cellar", valid) ==
+          ProcessRequest(
+            Chunk(
+              "cellar",
+              s"-Djava.io.tmpdir=$root",
+              "deps",
+              "com.lihaoyi:mill-scalalib_3:0.12.0"
+            )
+          )
       )
     }
 
@@ -3554,7 +3594,7 @@ class SquireEnvSpec extends Test[Any]:
       yield assert(success && !failure && !timeout)
     }
 
-    "skips an absent var folders directory and cleans a successful probe" in {
+    "probes the effective JVM temp directory and cleans a successful probe" in {
       for
         root   <- SquireFixtures.scratch("env-var-folders")
         absent <- SquireEnv.check(
@@ -3563,7 +3603,7 @@ class SquireEnvSpec extends Test[Any]:
           SquireFixtures.platform(
             root,
             SquireEnv.CheckResult(Present(true), "ok", 0.0),
-            varFolders = Some(root / "absent")
+            jvmTempDirectory = Present(root / "absent")
           )
         )
         writable <- SquireEnv.check(
@@ -3572,7 +3612,20 @@ class SquireEnvSpec extends Test[Any]:
           SquireFixtures.platform(root, SquireEnv.CheckResult(Present(true), "ok", 0.0), varFolders = Some(root))
         )
         probeExists <- (root / ".squire-env-probe").exists
-      yield assert(absent && writable && !probeExists)
+        report <- SquireEnv.report(
+          1.seconds,
+          SquireFixtures.platform(
+            root,
+            SquireEnv.CheckResult(Present(true), "ok", 0.0),
+            jvmTempDirectory = Present(root)
+          ),
+          root
+        )
+      yield assert(
+        !absent && writable && !probeExists &&
+          report.checks("var_folders_writable").detail.contains(root.toString) &&
+          !report.checks("var_folders_writable").detail.contains("/var/folders")
+      )
     }
 
     "reports a blocked var folders write without leaving a probe" in {
@@ -3673,17 +3726,32 @@ class SquireDoctorSpec extends Test[Any]:
   }
 
   "project diagnostics" - {
-    "checks elm tooling guard main class task wrapper and var folders access" in {
+    "accepts Mill-owned setup YAML main class plugin wiring and effective JVM temp" in {
       for
         root <- SquireFixtures.scratch("doctor-project")
         _    <- Sync.defer {
           Files.createDirectories((root / ".config" / "mise" / "tasks").toJava)
           Files.createDirectories((root / "morphir").toJava)
-          Files.writeString((root / ".config" / "mise" / "tasks" / "setup").toJava, "ELM_TOOLING_INSTALL=1")
+          Files.writeString((root / ".config" / "mise" / "tasks" / "setup").toJava, "bun install --ignore-scripts\n")
+          Files.writeString((root / "package.json").toJava, "{}\n")
           Files.writeString(
-            (root / "morphir" / "package.mill").toJava,
-            "override def mainClass = Task { Some(\"main\") }"
+            (root / "morphir" / "package.mill.yaml").toJava,
+            "mainClass: org.finos.morphir.Main\n"
           )
+          val plugin = root / "mill-plugins" / "morphir"
+          val modules = List("toolchain", "javascript", "elm-tooling", "core", "elm", "integration")
+          modules.foreach(name => Files.createDirectories((plugin / name).toJava))
+          Files.writeString(
+            (plugin / "package.mill").toJava,
+            modules.map(name => s"object ${if name.contains('-') then s"`$name`" else name} extends Module\n").mkString +
+              "publishLocalTestRepo publishedPluginRepositories\n"
+          )
+          val integration = plugin / "integration" / "test" / "src" / "org" / "finos" / "morphir" / "mill" / "PublishedPluginIntegrationTests.scala"
+          Files.createDirectories(integration.parent.get.toJava)
+          Files.writeString(integration.toJava, "COURSIER_REPOSITORIES millExecutable\n")
+          val consumer = plugin / "integration" / "resources" / "published-consumer" / "build.mill"
+          Files.createDirectories(consumer.parent.get.toJava)
+          Files.writeString(consumer.toJava, "MORPHIR_PUBLISHED_TEST_REPOSITORIES\n")
         }
         report <- SquireDoctor.run(
           root,
@@ -3691,9 +3759,90 @@ class SquireDoctorSpec extends Test[Any]:
           SquireFixtures.platform(root, SquireEnv.CheckResult(Present(true), "ok", 0.0))
         )
       yield assert(
-        report.finding("elm_tooling_guard").exists(_.code == "OK") &&
+        report.finding("setup").exists(_.code == "OK") &&
           report.finding("main_class_task").exists(_.code == "OK") &&
-          report.finding("var_folders").exists(_.code == "OK")
+          report.finding("mill_morphir").exists(_.code == "OK") &&
+          report.finding("jvm_temp").exists(_.code == "OK")
+      )
+    }
+
+    "blocks missing Mill Morphir modules and a relative acquisition cache override" in {
+      for
+        root <- SquireFixtures.scratch("doctor-project-invalid")
+        platform = SquireFixtures.platform(
+          root,
+          SquireEnv.CheckResult(Present(true), "ok", 0.0),
+          environment = Map("MORPHIR_NODE_CACHE" -> "relative-cache")
+        )
+        report <- SquireDoctor.run(root, RecordingRunner(Chunk.empty), platform)
+      yield assert(
+        report.finding("mill_morphir").exists(finding => finding.blocked && finding.message.contains("plugin modules")) &&
+          report.finding("acquisition_cache").exists(finding => finding.blocked && finding.message.contains("absolute"))
+      )
+    }
+
+    "detects corrupt acquisition cache content and stale metabuild output" in {
+      for
+        root <- SquireFixtures.scratch("doctor-cache-metabuild")
+        cache = root / "cache"
+        digest = "0" * 64
+        source = root / "build.mill"
+        compiled = root / "out" / "mill-build" / "compile.dest" / "classes" / "build.class"
+        _ <- Sync.defer {
+          Files.createDirectories((cache / "sha256").toJava)
+          Files.writeString((cache / "sha256" / digest).toJava, "not the named digest")
+          Files.createDirectories(compiled.parent.get.toJava)
+          Files.writeString(compiled.toJava, "compiled")
+          Files.writeString(source.toJava, "package build\n")
+          Files.setLastModifiedTime(compiled.toJava, java.nio.file.attribute.FileTime.fromMillis(1_700_000_000_000L))
+          Files.setLastModifiedTime(source.toJava, java.nio.file.attribute.FileTime.fromMillis(1_700_000_060_000L))
+        }
+        report <- SquireDoctor.run(
+          root,
+          RecordingRunner(Chunk.empty),
+          SquireFixtures.platform(
+            root,
+            SquireEnv.CheckResult(Present(true), "ok", 0.0),
+            environment = Map("MORPHIR_NODE_CACHE" -> cache.toString)
+          )
+        )
+      yield assert(
+        report.finding("acquisition_cache").exists(finding => finding.blocked && finding.code == "CORRUPT") &&
+          report.finding("metabuild").exists(finding => finding.blocked && finding.code == "STALE")
+      )
+    }
+
+    "bounds oversized acquisition cache diagnostics without declaring content corrupt" in {
+      for
+        root <- SquireFixtures.scratch("doctor-cache-bounded")
+        cache = root / "cache"
+        digest = "0" * 64
+        _ <- Sync.defer {
+          val entry = cache / "sha256" / digest
+          Files.createDirectories(entry.parent.get.toJava)
+          val channel = Files.newByteChannel(
+            entry.toJava,
+            java.nio.file.StandardOpenOption.CREATE_NEW,
+            java.nio.file.StandardOpenOption.WRITE
+          )
+          try
+            channel.position(65L * 1024 * 1024 - 1L)
+            channel.write(java.nio.ByteBuffer.wrap(Array[Byte](0)))
+          finally channel.close()
+        }
+        report <- SquireDoctor.run(
+          root,
+          RecordingRunner(Chunk.empty),
+          SquireFixtures.platform(
+            root,
+            SquireEnv.CheckResult(Present(true), "ok", 0.0),
+            environment = Map("MORPHIR_NODE_CACHE" -> cache.toString)
+          )
+        )
+      yield assert(
+        report.finding("acquisition_cache").exists(finding =>
+          !finding.blocked && finding.code == "NOTICE" && finding.message.contains("oversized entry")
+        )
       )
     }
   }
@@ -3903,6 +4052,7 @@ final class TestEnvPlatform(
     val home: Path,
     val managedSettingsCandidates: Chunk[Path],
     val varFolders: Path,
+    override val jvmTempDirectory: Maybe[Path],
     val jvmProbe: Duration => SquireEnv.CheckResult,
     val daemonProbe: Int => SquireEnv.DaemonProbe,
     val writeProbeFn: Path => Unit,

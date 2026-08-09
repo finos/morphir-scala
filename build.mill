@@ -7,19 +7,22 @@
 //| - com.carlosedp::mill-aliases::1.1.0
 //| - com.github.lolgab::mill-mima::0.2.0
 //| - io.eleven19.mill-github-dependency-graph::mill-github-dependency-graph:0.0.2
+//| - org.apache.commons:commons-compress:1.28.0
 
 package build
 
 import millbuild.{Deps, MillVersions, Versions => Vers, ScalaVersions => ScalaVers}
 import millbuild.docs.{Docusaurus2Module, MDocModule}
+import millbuild.runtime.RuntimeTestDiscovery
 import mill.scalalib.publish.PublishInfo
 import mill.local.plugins.ci.release.ReleaseSetupModule
 import com.carlosedp.aliases.*
 import millbuild.*
 import millbuild.crossplatform.*
 import millbuild.jsruntime.*
-import org.finos.millmorphir.*
-import org.finos.millmorphir.elm.*
+import org.finos.millmorphir.elm.{MorphirElmToolModule => RepositoryMorphirElmToolModule}
+import org.finos.millmorphir.toolchain.*
+import org.finos.morphir.mill.*
 import mill.*, mill.scalalib.*, mill.scalajslib.*, mill.scalanativelib.*, scalafmt.*
 import mill.javalib.SonatypeCentralPublishModule
 import mill.scalajslib.api.ModuleKind
@@ -84,6 +87,11 @@ trait MorphirPublishModule extends PublishModule with JavaModule with Mima with 
 trait MorphirIntelligencePublishModule extends MorphirPublishModule {
   import mill.scalalib.publish.*
   override def pomSettings = super.pomSettings().copy(organization = "org.finos.morphir.intelligence")
+}
+
+trait MorphirMillPublishModule extends MorphirPublishModule {
+  import mill.scalalib.publish.*
+  override def pomSettings = super.pomSettings().copy(organization = "org.finos.morphir.mill")
 }
 
 trait MorphirCommonModule extends ScalaModule with CommonScalaModule {
@@ -256,16 +264,48 @@ trait EmptyDocJar extends JavaModule {
   }
 }
 
-/** `runtime`'s test module: sources its JSON test fixtures from the compiled `evaluator-tests` Elm project. */
-trait RuntimeTests extends TestModule.ZioTest {
-  def morphirTestSources = Task {
-    examples.`morphir-elm-projects`.`evaluator-tests`.distOutputDirs()
+/** Generates typed JVM-only paths to the seven Morphir IR fixtures used by the classic runtime tests. */
+trait ClassicRuntimeTestFixtures extends ScalaModule {
+  def generatedRuntimeFixtures: T[PathRef] = Task {
+    val evaluator = build.examples.`morphir-elm-projects`.`evaluator-tests`.morphirIR()
+    val defaults  = build.examples.`morphir-elm-projects`.`defaults-tests`.morphirIR()
+    val unitTestFramework = build.`morphir-elm`.sdks.`morphir-unit-test`.morphirIR()
+    val unitTestExample =
+      build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project`.morphirIR()
+    val unitTestFailing =
+      build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project-tests`.morphirIR()
+    val unitTestPassing =
+      build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project-tests-passing`.morphirIR()
+    val unitTestIncomplete =
+      build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project-tests-incomplete`.morphirIR()
+
+    val fixtures = ClassicRuntimeFixtureSet(
+      evaluator = evaluator,
+      defaults = defaults,
+      unitTestFramework = unitTestFramework,
+      unitTestExample = unitTestExample,
+      unitTestFailing = unitTestFailing,
+      unitTestPassing = unitTestPassing,
+      unitTestIncomplete = unitTestIncomplete
+    )
+    val packageDirectory = Task.dest / "org" / "finos" / "morphir" / "runtime" / "fixtures"
+    os.makeDir.all(packageDirectory)
+    os.write.over(
+      packageDirectory / "GeneratedRuntimeFixtures.scala",
+      ClassicRuntimeFixtureSource.render(fixtures)
+    )
+    PathRef(Task.dest)
   }
 
-  def morphirTestSourceFiles = Task {
-    Lib.findSourceFiles(morphirTestSources(), Seq("json")).collect {
-      case path if path.last.startsWith("morphir-") => PathRef(path)
-    }
+  override def generatedSources: T[Seq[PathRef]] = Task {
+    super.generatedSources() :+ generatedRuntimeFixtures()
+  }
+}
+
+/** Fails fast when any generated-fixture-backed classic runtime suite drops out of Mill test discovery. */
+trait ClassicRuntimeTestDiscovery extends mill.javalib.TestModule {
+  def verifyRuntimeTestDiscovery: T[Unit] = Task {
+    RuntimeTestDiscovery.requireAllDiscovered(discoveredTestClasses())
   }
 }
 
@@ -278,7 +318,7 @@ trait RuntimeTests extends TestModule.ZioTest {
   */
 trait LoweringRealIrFixture extends JavaModule {
   def realIrFixtureSource: T[PathRef] = Task.Source(
-    examples.`morphir-elm-projects`.`evaluator-tests`.moduleDir / "morphir-ir2.json"
+    build.examples.`morphir-elm-projects`.`evaluator-tests`.moduleDir / "morphir-ir2.json"
   )
 
   override def resources: T[Seq[PathRef]] = Task {
@@ -524,44 +564,29 @@ trait MorphirLangkitItestElmPackages extends JavaModule {
   }
 }
 
-// The following modules are morphir-elm modules that have been setup to be built using mill
-// Morphir Elm Projects/Modules:
-object examples extends Module {
-  object `morphir-elm-projects` extends Module {
-    object finance extends MorphirElmModule
-
-    object `evaluator-tests`     extends MorphirElmModule
-    object `unit-test-framework` extends Module {
-      object `example-project` extends MorphirElmModule {
-        def morphirModuleDeps = Seq(`morphir-elm`.sdks.`morphir-unit-test`)
-      }
-
-      object `example-project-tests` extends MorphirElmModule {
-        def morphirModuleDeps = Seq(
-          `morphir-elm`.sdks.`morphir-unit-test`,
-          `example-project`
-        )
-      }
-      object `example-project-tests-incomplete` extends MorphirElmModule {
-        def morphirModuleDeps = Seq(
-          `morphir-elm`.sdks.`morphir-unit-test`,
-          `example-project`
-        )
-      }
-      object `example-project-tests-passing` extends MorphirElmModule {
-        def morphirModuleDeps = Seq(
-          `morphir-elm`.sdks.`morphir-unit-test`,
-          `example-project`
-        )
-      }
-    }
+object toolchains extends Module {
+  object node extends NodeToolchainModule
+  object morphirElm extends RepositoryMorphirElmToolModule {
+    def nodeToolchain = toolchains.node
   }
 }
 
-object `morphir-elm` extends Module {
-  object sdks extends Module {
-    object `morphir-unit-test` extends MorphirElmModule
-  }
+/** Repository tool-module reference that declarative Morphir Elm projects cannot express in Mill RC1 YAML. */
+trait RepositoryMorphirElmToolReference extends Module {
+  def morphirElmTool = toolchains.morphirElm
+}
+
+/** Exact local IR inputs shared by the three unit-test example consumers.
+  *
+  * Mill 1.2.0-RC1 cannot override the non-task `morphirModuleDeps` member from YAML, so this deliberately narrow
+  * reference trait carries only those two module references. Project declarations and identity stay colocated in
+  * each project's `package.mill.yaml`.
+  */
+trait ExampleProjectTestMorphirDependencies extends MorphirModule {
+  override def morphirModuleDeps = Seq(
+    build.`morphir-elm`.sdks.`morphir-unit-test`,
+    build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project`
+  )
 }
 
 // ci module removed - using Mill's built-in mill.scalalib.PublishModule/ for publishing
@@ -574,6 +599,14 @@ object MyAliases extends Aliases {
   def deps          = alias("mill.scalalib.Dependency/showUpdates")
   def testall       = alias("__.test")
   def testJVM       = alias("morphir.__.jvm.__.test")
+  def testJVMPlatform = alias(
+    "morphir.jvm.__.compile",
+    "morphir.{contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,lib.interop,model,model.lowering,naming,testing.generators,testing.zio,tests,tools}.jvm.__.compile",
+    "morphir.jvm.publishArtifacts",
+    "morphir.{contrib.knowledge,extensibility,interop.borer,interop.zio.json,lib.interop,model,model.lowering,naming,tests,tools}.jvm.publishArtifacts",
+    "morphir.{contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,model,model.lowering,tests}.jvm.test",
+    "morphir.langkit.itest.testCached"
+  )
   def testJVMCached = alias("morphir.__.jvm.__.testCached")
   def compileall    = alias("__.compile")
   def comptestall   = alias("__.compile", "__.test")

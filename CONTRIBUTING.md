@@ -45,6 +45,34 @@ resolution and availability follow the snapshot repository's behavior.
 Publication from `main`, `0.4.x`, and tags continues to use the ordinary VCS-derived milestone and release flow. The
 snapshot environment is configured only for `develop`, never for `main` or tags.
 
+### Mill Morphir plugin workflow
+
+Mill owns Node, Elm, and Morphir Elm acquisition for Morphir builds. `mise run setup` installs developer
+dependencies only; it does not install a second Morphir toolchain.
+
+- Run fast plugin tests with
+  `./mill -i -k 'mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test'`.
+- Run the dogfood boundary with `./mill -i mill-plugins.morphir.integration.test`. It publishes local `SNAPSHOT`
+  artifacts and resolves them from a fresh consumer build.
+- Generate every configured Elm project with `mise run build:elm`.
+- Run generated classic-runtime fixtures and tests with `mise run test:runtime-jvm`.
+
+Tool downloads use an optional, verified machine cache. For Node-based tools:
+
+- Set `MORPHIR_NODE_CACHE` to an absolute path to override the cache location.
+- Set `MORPHIR_NODE_DISABLE_MACHINE_CACHE=1` to use only the Mill task-local cache.
+- Set `MORPHIR_NODE_OFFLINE=1` or pass Mill's offline mode to require verified cached content.
+
+The focused CI jobs are:
+
+- `mill-morphir-unit`
+- `mill-morphir-integration`
+- `morphir-elm-projects`
+- `runtime-generated-fixtures`
+- `runtime-tests`
+
+The cache changes performance only. A disabled or empty cache must not change build results.
+
 ### Promoting `develop` to `main`
 
 Maintainers open a `develop`-to-`main` release pull request and **MUST squash-merge it**. Confirming the squash merge

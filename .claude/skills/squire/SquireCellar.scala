@@ -111,33 +111,65 @@ object SquireCellar:
           case Absent         =>
             Result.Failure(SquireError.Failure("cellar", "cellar not found on PATH"))
 
-  def command(action: CellarAction, settings: CellarSettings, executable: String): ProcessRequest =
+  def validateTempDirectory(value: Option[String]): Maybe[Path] < Abort[SquireError] =
+    value match
+      case None => Absent
+      case Some(rendered) =>
+        val path = Path(rendered)
+        if !path.toJava.isAbsolute then
+          Abort.fail(SquireError.Failure("cellar", "temp directory must be an absolute path"))
+        else if !Files.isDirectory(path.toJava) then
+          Abort.fail(SquireError.Failure("cellar", "temp directory must be an existing directory", Present(rendered)))
+        else
+          val probe = path / s".squire-cellar-probe-${java.util.UUID.randomUUID()}"
+          try
+            Files.writeString(probe.toJava, "probe")
+            Files.delete(probe.toJava)
+            Present(path)
+          catch
+            case error: java.io.IOException =>
+              try Files.deleteIfExists(probe.toJava)
+              catch case _: java.io.IOException => ()
+              Abort.fail(SquireError.Failure("cellar", "temp directory must be writable", Present(error.getMessage)))
+            case error: SecurityException =>
+              Abort.fail(SquireError.Failure("cellar", "temp directory must be writable", Present(error.getMessage)))
+
+  def command(
+      action: CellarAction,
+      settings: CellarSettings,
+      executable: String,
+      tempDirectory: Maybe[Path] = Absent
+  ): ProcessRequest =
     val repositories = repositoryFlags(settings)
+    val nativeOptions = tempDirectory.map(path => Chunk(s"-Djava.io.tmpdir=$path")).getOrElse(Chunk.empty)
     val argv         = action match
       case CellarAction.Get(coordinate, symbol, hideInherited, groupInherited, limit) =>
-        Chunk(executable, "get-external") ++ repositories ++ Chunk(resolveCoordinate(coordinate), symbol) ++
+        Chunk(executable) ++ nativeOptions ++ Chunk("get-external") ++ repositories ++ Chunk(resolveCoordinate(coordinate), symbol) ++
           optionFlag(hideInherited, "--hide-inherited") ++
           optionFlag(groupInherited, "--group-inherited") ++
           valueFlag(limit, "--limit")
       case CellarAction.Search(coordinate, query, limit) =>
-        Chunk(executable, "search-external") ++ repositories ++ Chunk(resolveCoordinate(coordinate), query) ++
+        Chunk(executable) ++ nativeOptions ++ Chunk("search-external") ++ repositories ++ Chunk(resolveCoordinate(coordinate), query) ++
           valueFlag(limit, "--limit")
       case CellarAction.Deps(coordinate) =>
-        Chunk(executable, "deps") ++ repositories ++ Chunk(resolveCoordinate(coordinate))
+        Chunk(executable) ++ nativeOptions ++ Chunk("deps") ++ repositories ++ Chunk(resolveCoordinate(coordinate))
     ProcessRequest(argv)
 
   def run(
       action: CellarAction,
       root: Path,
       runner: ProcessRunner,
-      platform: SquirePlatform
+      platform: SquirePlatform,
+      tempDirectory: Option[String] = None
   ): ProcessResult < (Async & Abort[SquireError]) =
-    loadSettings(root) match
-      case Result.Failure(error)    => Abort.fail(error)
-      case Result.Success(settings) =>
-        executable(settings, platform) match
-          case Result.Failure(error)  => Abort.fail(error)
-          case Result.Success(binary) => runner.run(command(action, settings, binary))
+    validateTempDirectory(tempDirectory).flatMap { validatedTemp =>
+      loadSettings(root) match
+        case Result.Failure(error)    => Abort.fail(error)
+        case Result.Success(settings) =>
+          executable(settings, platform) match
+            case Result.Failure(error)  => Abort.fail(error)
+            case Result.Success(binary) => runner.run(command(action, settings, binary, validatedTemp))
+    }
 
   private def optionFlag(enabled: Boolean, flag: String): Chunk[String] =
     if enabled then Chunk(flag) else Chunk.empty

@@ -1,0 +1,6 @@
+extends:
+  - org.finos.morphir.mill.elm.morphir.MorphirElmModule
+  - build.RepositoryMorphirElmToolReference
+  - build.ExampleProjectTestMorphirDependencies
+indentJson: false
+typesOnly: false

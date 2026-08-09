@@ -1,24 +1,11 @@
 #!/usr/bin/env bash
 # MISE description="Build all Elm projects"
 
-set -e
+set -euo pipefail
 
 echo "Building Elm projects..."
-
-ELM_PROJECT_DIRS=(
-    "examples/morphir-elm-projects/evaluator-tests"
-    "examples/morphir-elm-projects/defaults-tests"
-    "examples/morphir-elm-projects/finance"
-    "morphir-elm/sdks/morphir-unit-test"
-)
-
-for dir in "${ELM_PROJECT_DIRS[@]}"; do
-    if [ -f "$dir/morphir.json" ]; then
-        echo "  Building $dir..."
-        (cd "$dir" && morphir-elm make)
-    else
-        echo "  Skipping $dir (no morphir.json)"
-    fi
-done
+./mill --ticker false -k \
+    "examples.morphir-elm-projects.__.morphirIR" \
+    + "morphir-elm.sdks.__.morphirIR"
 
 echo "Elm build completed successfully"
