@@ -4270,6 +4270,170 @@ class SquireDoctorSpec extends Test[Any]:
         )
       )
     }
+
+    "validates a relative cache override before honoring disabled mode and skips corrupt cache content" in {
+      for
+        root <- SquireFixtures.scratch("doctor-cache-disabled")
+        cache = root / "cache"
+        digest = "0" * 64
+        _ <- Sync.defer {
+          Files.createDirectories((cache / "sha256").toJava)
+          Files.writeString((cache / "sha256" / digest).toJava, "not the named digest")
+        }
+        disabled <- SquireDoctor.run(
+          root,
+          RecordingRunner(Chunk.empty),
+          SquireFixtures.platform(
+            root,
+            SquireEnv.CheckResult(Present(true), "ok", 0.0),
+            environment = Map(
+              "MORPHIR_NODE_CACHE" -> cache.toString,
+              "MORPHIR_NODE_DISABLE_MACHINE_CACHE" -> "true"
+            )
+          )
+        )
+        relativeDisabled <- SquireDoctor.run(
+          root,
+          RecordingRunner(Chunk.empty),
+          SquireFixtures.platform(
+            root,
+            SquireEnv.CheckResult(Present(true), "ok", 0.0),
+            environment = Map(
+              "MORPHIR_NODE_CACHE" -> "relative-cache",
+              "MORPHIR_NODE_DISABLE_MACHINE_CACHE" -> "true"
+            )
+          )
+        )
+      yield assert(
+        disabled.finding("acquisition_cache").exists(finding => !finding.blocked && finding.code == "DISABLED") &&
+          relativeDisabled.finding("acquisition_cache").exists(finding => finding.blocked && finding.code == "INVALID")
+      )
+    }
+
+    "bounds acquisition cache inspection at 256 directory entries" in {
+      for
+        root <- SquireFixtures.scratch("doctor-cache-entry-limit")
+        cache = root / "cache"
+        _ <- Sync.defer {
+          val digestRoot = cache / "sha256"
+          Files.createDirectories(digestRoot.toJava)
+          (1 to 257).foreach(index => Files.writeString((digestRoot / f"entry-$index%03d").toJava, "fixture"))
+        }
+        report <- SquireDoctor.run(
+          root,
+          RecordingRunner(Chunk.empty),
+          SquireFixtures.platform(
+            root,
+            SquireEnv.CheckResult(Present(true), "ok", 0.0),
+            environment = Map("MORPHIR_NODE_CACHE" -> cache.toString)
+          )
+        )
+      yield assert(
+        report.finding("acquisition_cache").exists(finding =>
+          !finding.blocked && finding.code == "NOTICE" && finding.message.contains("directory entry limit reached (256)")
+        )
+      )
+    }
+
+    "blocks non-regular digest entries and bounds unreadable valid entries" in {
+      val emptyDigest = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      for
+        root <- SquireFixtures.scratch("doctor-cache-unreadable")
+        cache = root / "cache"
+        digestRoot = cache / "sha256"
+        unreadable = digestRoot / emptyDigest
+        _ <- Sync.defer {
+          Files.createDirectories((digestRoot / ("1" * 64)).toJava)
+          Files.writeString(unreadable.toJava, "")
+        }
+        structural <- SquireDoctor.run(
+          root,
+          RecordingRunner(Chunk.empty),
+          SquireFixtures.platform(
+            root,
+            SquireEnv.CheckResult(Present(true), "ok", 0.0),
+            environment = Map("MORPHIR_NODE_CACHE" -> cache.toString)
+          )
+        )
+        _ <- Sync.defer(Files.delete((digestRoot / ("1" * 64)).toJava))
+        report <- Scope.run {
+          for
+            permissions <- Scope.acquireRelease(
+              Sync.defer {
+                val original = Files.getPosixFilePermissions(unreadable.toJava)
+                Files.setPosixFilePermissions(
+                  unreadable.toJava,
+                  java.util.EnumSet.noneOf(classOf[java.nio.file.attribute.PosixFilePermission])
+                )
+                original
+              }
+            )(original => Sync.defer(Files.setPosixFilePermissions(unreadable.toJava, original)))
+            report <- SquireDoctor.run(
+              root,
+              RecordingRunner(Chunk.empty),
+              SquireFixtures.platform(
+                root,
+                SquireEnv.CheckResult(Present(true), "ok", 0.0),
+                environment = Map("MORPHIR_NODE_CACHE" -> cache.toString)
+              )
+            )
+          yield report
+        }
+      yield assert(
+        structural.finding("acquisition_cache").exists(finding => finding.blocked && finding.code == "CORRUPT") &&
+          report.finding("acquisition_cache").exists(finding =>
+            !finding.blocked && finding.code == "NOTICE" && finding.message.contains("unreadable or changed during inspection")
+          )
+      )
+    }
+
+    "bounds acquisition cache hashing after 256 MiB" in {
+      val entryBytes = 64L * 1024 * 1024
+      for
+        root <- SquireFixtures.scratch("doctor-cache-total-budget")
+        cache = root / "cache"
+        _ <- Sync.defer {
+          val digestRoot = cache / "sha256"
+          Files.createDirectories(digestRoot.toJava)
+          (1 to 5).foreach { index =>
+            val entry = digestRoot / s"entry-$index"
+            val channel = Files.newByteChannel(
+              entry.toJava,
+              java.nio.file.StandardOpenOption.CREATE_NEW,
+              java.nio.file.StandardOpenOption.WRITE
+            )
+            try
+              channel.write(java.nio.ByteBuffer.wrap(Array(index.toByte)))
+              channel.position(entryBytes - 1L)
+              channel.write(java.nio.ByteBuffer.wrap(Array[Byte](0)))
+            finally channel.close()
+            val digest = java.security.MessageDigest.getInstance("SHA-256")
+            digest.update(index.toByte)
+            val zeroes = Array.ofDim[Byte](1024 * 1024)
+            var remaining = entryBytes - 1L
+            while remaining > 0L do
+              val count = math.min(remaining, zeroes.length.toLong).toInt
+              digest.update(zeroes, 0, count)
+              remaining -= count
+            val name = digest.digest().map(byte => f"${byte & 0xff}%02x").mkString
+            Files.move(entry.toJava, (digestRoot / name).toJava)
+          }
+        }
+        report <- SquireDoctor.run(
+          root,
+          RecordingRunner(Chunk.empty),
+          SquireFixtures.platform(
+            root,
+            SquireEnv.CheckResult(Present(true), "ok", 0.0),
+            environment = Map("MORPHIR_NODE_CACHE" -> cache.toString)
+          )
+        )
+      yield assert(
+        report.finding("acquisition_cache").exists(finding =>
+          !finding.blocked && finding.code == "NOTICE" && finding.message.contains("total hash budget reached (268435456 bytes)")
+        )
+      )
+    }
   }
 
 class SquireTrackingSpec extends Test[Any]:
