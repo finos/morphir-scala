@@ -2202,8 +2202,8 @@ class SquireProcessSpec extends Test[Any]:
         result = outcome match
           case Result.Success(value) =>
             value.exitCode == 7 &&
-            value.stdout == "o".repeat(outputBytes) &&
-            // Java launchers may prepend inherited option notices (for example JDK_JAVA_OPTIONS in CI).
+            // Java launchers may prepend inherited option diagnostics to either stream in CI.
+            value.stdout.endsWith("o".repeat(outputBytes)) &&
             value.stderr.endsWith("e".repeat(outputBytes))
           case Result.Failure(_) => false
       yield assert(result)
