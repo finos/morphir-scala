@@ -190,69 +190,127 @@ object SquireCiPolicy:
     }
 
   def assertJvmPlatformPolicy(workflow: String, buildMill: String, task: String): Unit =
-    expect(
-      indentedBlock(workflow, "test-jvm:", 2).contains("run: mise run test:jvm-platform"),
-      "generic JVM CI must use test:jvm-platform"
-    )
+    val testJvm = indentedBlock(workflow, "test-jvm:", 2)
+    val runJvm  = indentedBlock(testJvm, "- name: Run JVM tests", 6)
+    expect(scalar(runJvm, "run") == "mise run test:jvm-platform", "generic JVM CI must use test:jvm-platform")
     expect(
       task.linesIterator.map(_.trim).contains("./mill -i Alias/run testJVMPlatform"),
       "test:jvm-platform must invoke Alias/run testJVMPlatform"
     )
-    val aliasStart = buildMill.indexOf("def testJVMPlatform")
-    val aliasEnd   = buildMill.indexOf("def testJVMCached", aliasStart)
-    expect(aliasStart >= 0 && aliasEnd > aliasStart, "missing testJVMPlatform alias")
-    val alias = buildMill.substring(aliasStart, aliasEnd)
-    List(
+    val expectedMembers = List(
       "morphir.jvm.__.compile",
       "morphir.{contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,lib.interop,model,model.lowering,naming,testing.generators,testing.zio,tests,tools}.jvm.__.compile",
+      "morphir.jvm.publishArtifacts",
+      "morphir.{contrib.knowledge,extensibility,interop.borer,interop.zio.json,lib.interop,model,model.lowering,naming,tests,tools}.jvm.publishArtifacts",
       "morphir.{contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,model,model.lowering,tests}.jvm.test",
       "morphir.langkit.itest.testCached"
-    ).foreach(selector => expect(alias.contains(selector), s"JVM alias missing $selector"))
-    expect(!alias.contains("morphir.runtime.classic"), "JVM platform alias must exclude classic runtime")
+    )
+    val definitions = "(?m)^\\s*def testJVMPlatform\\b".r.findAllMatchIn(buildMill).size
+    expect(definitions == 1, s"build must provide exactly one testJVMPlatform alias, found $definitions")
+    val aliasPattern = "(?ms)^\\s*def testJVMPlatform\\s*=\\s*alias\\(\\s*\\n(.*?)^\\s*\\)\\s*$".r
+    val aliasBody = aliasPattern.findFirstMatchIn(buildMill).map(_.group(1))
+      .getOrElse(fail("testJVMPlatform must have a parseable alias body"))
+    val memberPattern = "^\\s*\"([^\"]+)\"(,?)\\s*$".r
+    val lines         = aliasBody.linesIterator.toList
+    val members = lines.zipWithIndex.map { case (line, index) =>
+      line match
+        case memberPattern(member, comma) =>
+          val expectedComma = if index < lines.size - 1 then "," else ""
+          expect(comma == expectedComma, "testJVMPlatform members must use canonical separators")
+          member
+        case _ => fail("testJVMPlatform contains a non-literal member")
+    }
+    expect(members == expectedMembers, s"unexpected testJVMPlatform members: $members")
+
+  def assertJvmTargetInventory(inventory: Map[String, Set[String]]): Unit =
+    val classicPrefix = "morphir.runtime.classic.jvm"
+    val compileSelectors = List(
+      "morphir.jvm.__.compile",
+      "morphir.{contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,lib.interop,model,model.lowering,naming,testing.generators,testing.zio,tests,tools}.jvm.__.compile"
+    )
+    val publishSelectors = List(
+      "morphir.jvm.publishArtifacts",
+      "morphir.{contrib.knowledge,extensibility,interop.borer,interop.zio.json,lib.interop,model,model.lowering,naming,tests,tools}.jvm.publishArtifacts"
+    )
+    val testSelectors = List(
+      "morphir.{contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,model,model.lowering,tests}.jvm.test"
+    )
+
+    def targets(selector: String): Set[String] =
+      inventory.getOrElse(selector, fail(s"missing resolved JVM selector: $selector"))
+
+    def selected(selectors: List[String]): Set[String] = selectors.iterator.flatMap(targets).toSet
+
+    def assertParity(kind: String, broadSelector: String, selectors: List[String]): Unit =
+      val broad    = targets(broadSelector)
+      val expected = broad.filterNot(_.startsWith(classicPrefix))
+      val actual   = selected(selectors)
+      expect(actual == expected, s"JVM $kind selectors differ from current non-classic targets")
+      expect(!actual.exists(_.startsWith(classicPrefix)), s"JVM $kind selectors must exclude classic runtime")
+
+    assertParity("compile", "morphir.__.jvm.__.compile", compileSelectors)
+    assertParity("publish", "morphir.__.jvm.publishArtifacts", publishSelectors)
+    assertParity("test", "morphir.__.jvm.__.test", testSelectors)
+    expect(
+      targets("morphir.__.jvm.__.test").contains("morphir.runtime.classic.jvm.test"),
+      "broad JVM test inventory must include the separately gated classic runtime target"
+    )
 
   def assertMorphirCachePolicy(workflow: String): Unit =
-    List(
-      "mill-morphir-unit:",
-      "mill-morphir-integration:",
-      "morphir-elm-projects:",
-      "runtime-generated-fixtures:",
-      "runtime-tests:"
-    ).foreach { job =>
-      expect(
-        indentedBlock(workflow, job, 2).contains("path: ~/.cache/morphir-scala"),
-        s"$job must cache verified Morphir downloads"
-      )
-    }
-    val unit = indentedBlock(workflow, "mill-morphir-unit:", 2)
-    val unitCache = indentedBlock(unit, "- name: Cache Mill capability outputs", 6)
-    val unitOutputs = indentedBlock(unitCache, "path: |", 10).linesIterator
-      .map(_.trim)
-      .filter(_.nonEmpty)
-      .toList
-    expect(
-      unitOutputs == List(
-        "out/mill-plugins/morphir/",
-        "!out/mill-plugins/morphir/**/testForked.dest/**",
-        "!out/mill-plugins/morphir/**/testOnly.dest/**"
+    val pluginOutputs = List(
+      "out/mill-plugins/morphir/",
+      "!out/mill-plugins/morphir/**/testForked.dest/**",
+      "!out/mill-plugins/morphir/**/testOnly.dest/**"
+    )
+    val generatedOutputs = List("out/examples/morphir-elm-projects/", "out/morphir-elm/")
+    val runtimeOutputs   = List("out/morphir/runtime/classic/jvm/test/")
+    val expected = List(
+      "mill-morphir-unit:" -> List(
+        "Cache verified Morphir tool downloads" -> List("~/.cache/morphir-scala"),
+        "Cache Mill capability outputs"         -> pluginOutputs
       ),
-      s"Mill unit cache must contain exactly reusable capability outputs: $unitOutputs"
-    )
-    val projects = indentedBlock(workflow, "morphir-elm-projects:", 2)
-    val projectCache = indentedBlock(projects, "- name: Cache Mill capability outputs", 6)
-    val projectOutputs = indentedBlock(projectCache, "path: |", 10).linesIterator
-      .map(_.trim)
-      .filter(_.nonEmpty)
-      .toList
-    expect(
-      projectOutputs == List("out/examples/morphir-elm-projects/", "out/morphir-elm/"),
-      s"project cache must contain exactly generated IR outputs: $projectOutputs"
-    )
-    List("runtime-generated-fixtures:", "runtime-tests:").foreach { job =>
-      expect(
-        indentedBlock(workflow, job, 2).contains("out/morphir/runtime/classic/jvm/test/"),
-        s"$job must use the classic runtime fixture output cache"
+      "mill-morphir-integration:" -> List(
+        "Cache verified Morphir tool downloads" -> List("~/.cache/morphir-scala"),
+        "Cache Mill capability outputs"         -> pluginOutputs
+      ),
+      "morphir-elm-projects:" -> List(
+        "Cache verified Morphir tool downloads" -> List("~/.cache/morphir-scala"),
+        "Restore Mill plugin outputs"           -> List("out/mill-plugins/morphir/"),
+        "Cache Mill capability outputs"         -> generatedOutputs
+      ),
+      "runtime-generated-fixtures:" -> List(
+        "Cache verified Morphir tool downloads" -> List("~/.cache/morphir-scala"),
+        "Restore generated Morphir IR outputs"  -> generatedOutputs,
+        "Cache Mill capability outputs"         -> runtimeOutputs
+      ),
+      "runtime-tests:" -> List(
+        "Cache verified Morphir tool downloads" -> List("~/.cache/morphir-scala"),
+        "Restore generated Morphir IR outputs"  -> generatedOutputs,
+        "Cache Mill capability outputs"         -> runtimeOutputs
       )
+    )
+    expected.foreach { case (jobName, expectedSteps) =>
+      val job         = indentedBlock(workflow, jobName, 2)
+      val actualSteps = namedActionCacheSteps(job)
+      expect(actualSteps == expectedSteps, s"$jobName cache paths were $actualSteps")
     }
+
+  private def namedActionCacheSteps(job: String): List[(String, List[String])] =
+    job.linesIterator.collect {
+      case line if line.startsWith("      - name: ") => line.stripPrefix("      - name: ")
+    }.flatMap { name =>
+      val step = indentedBlock(job, s"- name: $name", 6)
+      val cacheAction = step.linesIterator.map(_.trim).exists(line =>
+        line.startsWith("uses: actions/cache@") || line.startsWith("uses: actions/cache/restore@")
+      )
+      if cacheAction then Some(name -> cachePaths(step)) else None
+    }.toList
+
+  private def cachePaths(step: String): List[String] =
+    scalar(step, "path") match
+      case "|" =>
+        indentedBlock(step, "path: |", 10).linesIterator.map(_.trim).filter(_.nonEmpty).toList
+      case path => List(path)
 
   def assertSquireCiPolicy(workflow: String): Unit =
     val stepName = "Test Squire and release policy"
@@ -725,6 +783,7 @@ class SquireCiPolicySpec extends Test[Any]:
   import SquireCiPolicy.*
 
   private val skillDirectory = java.nio.file.Paths.get(java.lang.System.getProperty("user.dir"))
+  private val repositoryRoot = Path(skillDirectory.resolve("../../..").normalize.toString)
   private val workflow       = Files.readString(
     skillDirectory.resolve("../../../.github/workflows/ci.yml").normalize,
     StandardCharsets.UTF_8
@@ -737,6 +796,40 @@ class SquireCiPolicySpec extends Test[Any]:
     skillDirectory.resolve("../../../.config/mise/tasks/test/jvm-platform").normalize,
     StandardCharsets.UTF_8
   )
+  private val jvmTargetSelectors = List(
+    "morphir.__.jvm.__.compile",
+    "morphir.jvm.__.compile",
+    "morphir.{contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,lib.interop,model,model.lowering,naming,testing.generators,testing.zio,tests,tools}.jvm.__.compile",
+    "morphir.__.jvm.publishArtifacts",
+    "morphir.jvm.publishArtifacts",
+    "morphir.{contrib.knowledge,extensibility,interop.borer,interop.zio.json,lib.interop,model,model.lowering,naming,tests,tools}.jvm.publishArtifacts",
+    "morphir.__.jvm.__.test",
+    "morphir.{contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,model,model.lowering,tests}.jvm.test"
+  )
+
+  private def resolveJvmTarget(selector: String): Set[String] < (Async & Abort[SquireError]) =
+    LiveProcessRunner.run(
+      ProcessRequest(
+        Chunk((repositoryRoot / "mill").toString, "--ticker", "false", "resolve", selector),
+        Present(repositoryRoot)
+      )
+    ).flatMap {
+      case ProcessResult(_, 0, stdout, _) =>
+        stdout.linesIterator.filter(_.startsWith("morphir.")).toSet
+      case result =>
+        Abort.fail(
+          SquireError.Failure(
+            "ci-policy",
+            s"could not resolve JVM selector $selector (exit ${result.exitCode})",
+            Present(result.stderr.trim)
+          )
+        )
+    }
+
+  private def resolveJvmTargetInventory: Map[String, Set[String]] < (Async & Abort[SquireError]) =
+    Kyo.foreach(Chunk.from(jvmTargetSelectors)) { selector =>
+      resolveJvmTarget(selector).map(selector -> _)
+    }.map(_.toList.toMap)
 
   "hosted CI policy" - {
     "targets the exact supported pull-request and push branches" in {
@@ -804,6 +897,23 @@ class SquireCiPolicySpec extends Test[Any]:
     "keeps generic JVM CI on the non-classic platform alias" in {
       assertJvmPlatformPolicy(workflow, buildMill, jvmPlatformTask)
 
+      val missingPublishAliasMutation = replaceOnce(
+        buildMill,
+        "    \"morphir.jvm.publishArtifacts\",\n",
+        ""
+      )
+      val addedAliasMutation = replaceOnce(
+        buildMill,
+        "    \"morphir.langkit.itest.testCached\"",
+        "    \"morphir.future.jvm.test\",\n    \"morphir.langkit.itest.testCached\""
+      )
+      val reorderedAliasMutation = replaceOnce(
+        buildMill,
+        "    \"morphir.jvm.__.compile\",\n" +
+          "    \"morphir.{contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,lib.interop,model,model.lowering,naming,testing.generators,testing.zio,tests,tools}.jvm.__.compile\",",
+        "    \"morphir.{contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,lib.interop,model,model.lowering,naming,testing.generators,testing.zio,tests,tools}.jvm.__.compile\",\n" +
+          "    \"morphir.jvm.__.compile\","
+      )
       val runtimeAliasMutation = replaceOnce(
         buildMill,
         "\"morphir.langkit.itest.testCached\"",
@@ -814,8 +924,39 @@ class SquireCiPolicySpec extends Test[Any]:
         "./mill -i Alias/run testJVMPlatform",
         "./mill -i Alias/run testJVM"
       )
-      assert(rejects(assertJvmPlatformPolicy(workflow, _, jvmPlatformTask), runtimeAliasMutation))
+      val aliasMutations = List(
+        missingPublishAliasMutation,
+        addedAliasMutation,
+        reorderedAliasMutation,
+        runtimeAliasMutation
+      )
+      aliasMutations.zipWithIndex.foreach { case (mutation, index) =>
+        assert(
+          rejects(assertJvmPlatformPolicy(workflow, _, jvmPlatformTask), mutation),
+          s"JVM alias mutation $index must be rejected"
+        )
+      }
       assert(rejects(assertJvmPlatformPolicy(workflow, buildMill, _), taskMutation))
+    }
+
+    "resolves every current non-classic JVM compile publish and test target" in {
+      val selectedCompile = jvmTargetSelectors(2)
+      val broadCompile    = jvmTargetSelectors.head
+      for
+        inventory <- resolveJvmTargetInventory
+        _         <- Sync.defer(assertJvmTargetInventory(inventory))
+        missingSelectedTarget = inventory.updated(
+          selectedCompile,
+          inventory(selectedCompile) - "morphir.model.jvm.compile"
+        )
+        addedCurrentTarget = inventory.updated(
+          broadCompile,
+          inventory(broadCompile) + "morphir.future.jvm.compile"
+        )
+      yield assert(
+        scala.util.Try(assertJvmTargetInventory(missingSelectedTarget)).isFailure &&
+          scala.util.Try(assertJvmTargetInventory(addedCurrentTarget)).isFailure
+      )
     }
 
     "keeps Morphir caches scoped to reusable capability outputs" in {
@@ -831,6 +972,16 @@ class SquireCiPolicySpec extends Test[Any]:
       val downloadCacheMutations = morphirJobs.map { job =>
         replaceInJob(workflow, job, "path: ~/.cache/morphir-scala", "path: ~/.cache/unverified-morphir")
       }
+      val approvedDownloadPathOutsideNamedStep = morphirJobs.map { job =>
+        replaceInJob(
+          replaceInJob(workflow, job, "path: ~/.cache/morphir-scala", "path: ~/.cache/unverified-morphir"),
+          job,
+          "- name: Run capability",
+          "- name: Document approved cache path\n" +
+            "        run: echo 'path: ~/.cache/morphir-scala'\n" +
+            "      - name: Run capability"
+        )
+      }
       val movedRuntimeOutput = replaceInJob(
         replaceInJob(
           workflow,
@@ -842,12 +993,57 @@ class SquireCiPolicySpec extends Test[Any]:
         "out/morphir-elm/",
         "out/morphir-elm/\n            out/morphir/runtime/classic/jvm/test/"
       )
-      val cacheMutations = downloadCacheMutations ++ List(
+      val integrationExtraOutput = replaceInJob(
+        workflow,
+        "mill-morphir-integration:",
+        "            out/mill-plugins/morphir/\n",
+        "            out/mill-plugins/morphir/\n            out/\n"
+      )
+      val runtimeGeneratedExtraOutput = replaceInJob(
+        workflow,
+        "runtime-generated-fixtures:",
+        "path: out/morphir/runtime/classic/jvm/test/",
+        "path: |\n            out/morphir/runtime/classic/jvm/test/\n            out/"
+      )
+      val runtimeTestsExtraOutput = replaceInJob(
+        workflow,
+        "runtime-tests:",
+        "path: out/morphir/runtime/classic/jvm/test/",
+        "path: |\n            out/morphir/runtime/classic/jvm/test/\n            out/"
+      )
+      val runtimeGeneratedOutputOutsideStep = replaceInJob(
+        replaceInJob(
+          workflow,
+          "runtime-generated-fixtures:",
+          "path: out/morphir/runtime/classic/jvm/test/",
+          "path: out/"
+        ),
+        "runtime-generated-fixtures:",
+        "run: ./mill -i morphir.runtime.classic.jvm.test.generatedRuntimeFixtures",
+        "run: |\n          echo out/morphir/runtime/classic/jvm/test/\n          ./mill -i morphir.runtime.classic.jvm.test.generatedRuntimeFixtures"
+      )
+      val runtimeTestsOutputOutsideStep = replaceInJob(
+        replaceInJob(
+          workflow,
+          "runtime-tests:",
+          "path: out/morphir/runtime/classic/jvm/test/",
+          "path: out/"
+        ),
+        "runtime-tests:",
+        "./mill -i morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery",
+        "echo out/morphir/runtime/classic/jvm/test/\n          ./mill -i morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery"
+      )
+      val cacheMutations = downloadCacheMutations ++ approvedDownloadPathOutsideNamedStep ++ List(
         replaceInJob(workflow, "mill-morphir-unit:", "out/mill-plugins/morphir/", "out/"),
         replaceInJob(workflow, "mill-morphir-unit:", "!out/mill-plugins/morphir/**/testForked.dest/**\n", ""),
         replaceInJob(workflow, "mill-morphir-unit:", "!out/mill-plugins/morphir/**/testOnly.dest/**\n", ""),
         replaceInJob(workflow, "morphir-elm-projects:", "out/examples/morphir-elm-projects/", "out/examples/"),
         replaceInJob(workflow, "morphir-elm-projects:", "out/morphir-elm/", "out/"),
+        integrationExtraOutput,
+        runtimeGeneratedExtraOutput,
+        runtimeTestsExtraOutput,
+        runtimeGeneratedOutputOutsideStep,
+        runtimeTestsOutputOutsideStep,
         movedRuntimeOutput
       )
       cacheMutations.zipWithIndex.foreach { case (mutation, index) =>
@@ -1019,53 +1215,85 @@ class SquireMisePolicySpec extends Test[Any]:
   private def runMise(arguments: String*): ProcessResult < (Async & Abort[SquireError]) =
     LiveProcessRunner.run(ProcessRequest(Chunk(miseExecutable) ++ Chunk.from(arguments), Present(repositoryRoot)))
 
+  private def validateTaskScript(scriptText: String): Either[SquireError, Unit] =
+    val executableText = scriptText.linesIterator.zipWithIndex.collect {
+      case (line, index) if index > 0 && !line.trim.startsWith("#") => line
+    }.mkString("\n")
+    val absoluteReference = "(?<![A-Za-z0-9_.-])(/[^\\s\\\"';&|]+|\\.\\./[^\\s\\\"';&|]+)".r
+      .findFirstMatchIn(executableText).map(_.group(1))
+    absoluteReference match
+      case Some(reference) =>
+        Left(
+          SquireError.Failure(
+            "mise-policy",
+            s"task preflight rejected absolute program reference: $reference",
+            Present(reference)
+          )
+        )
+      case None if "(?m)(?:^|[;&|]\\s*)command\\s+-p\\b".r.findFirstIn(executableText).nonEmpty =>
+        Left(
+          SquireError.Failure(
+            "mise-policy",
+            "task preflight rejected command -p PATH escape",
+            Present("command -p")
+          )
+        )
+      case None => Right(())
+
   private def runTaskScript(
       script: Path,
       scriptText: String,
-      expectedPrograms: Set[String]
+      expectedPrograms: Set[String],
+      executionStarted: () => Unit = () => ()
   ): Chunk[TaskInvocation] < (Async & Sync & Abort[SquireError]) =
-    for
-      root <- SquireFixtures.scratch(s"task-${script.toJava.getFileName}")
-      log <- Sync.defer {
-        val bin = root / "bin"
-        val log = root / "task-invocations.bin"
-        Files.createDirectories(bin.toJava)
-        SquireLauncherFixtures.executable((root / "task-script").toJava, scriptText)
-        SquireLauncherFixtures.executable((root / "mill").toJava, fakeTaskTool("mill"))
-        List("bun", "npm", "npx").foreach(program =>
-          SquireLauncherFixtures.executable((bin / program).toJava, fakeTaskTool(program))
-        )
-        SquireLauncherFixtures.executable((bin / "bash").toJava, "#!/bin/sh\nexec /usr/bin/bash \"$@\"\n")
-        log
-      }
-      result <- LiveProcessRunner.run(
-        ProcessRequest(
-          Chunk(
-            "/usr/bin/env",
-            s"PATH=${(root / "bin").toString}",
-            s"SQUIRE_TASK_LOG=${log.toString}",
-            s"SQUIRE_APPROVED_TASK_PROGRAMS=${expectedPrograms.toList.sorted.mkString(",")}",
-            "bash",
-            (root / "task-script").toString
-          ),
-          Present(root)
-        )
-      )
-      _ <- result match
-        case ProcessResult(_, 0, _, _) => Sync.defer(())
-        case _ =>
-          Abort.fail(
-            SquireError.Failure(
-              "mise-policy",
-              s"task script ${script.toString} failed with exit ${result.exitCode}: ${result.stderr.trim}",
-              Present(result.stderr.trim)
+    validateTaskScript(scriptText) match
+      case Left(error) => Abort.fail(error)
+      case Right(_) =>
+        Scope.run {
+          for
+            root <- SquireFixtures.scopedScratch(s"task-${script.toJava.getFileName}")
+            log <- Sync.defer {
+              val bin = root / "bin"
+              val log = root / "task-invocations.bin"
+              Files.createDirectories(bin.toJava)
+              SquireLauncherFixtures.executable((root / "task-script").toJava, scriptText)
+              SquireLauncherFixtures.executable((root / "mill").toJava, fakeTaskTool("mill"))
+              List("bun", "npm", "npx").foreach(program =>
+                SquireLauncherFixtures.executable((bin / program).toJava, fakeTaskTool(program))
+              )
+              SquireLauncherFixtures.executable((bin / "bash").toJava, "#!/bin/sh\nexec /usr/bin/bash \"$@\"\n")
+              log
+            }
+            _ <- Sync.defer(executionStarted())
+            result <- LiveProcessRunner.run(
+              ProcessRequest(
+                Chunk(
+                  "/usr/bin/env",
+                  s"PATH=${(root / "bin").toString}",
+                  s"SQUIRE_TASK_LOG=${log.toString}",
+                  s"SQUIRE_APPROVED_TASK_PROGRAMS=${expectedPrograms.toList.sorted.mkString(",")}",
+                  "bash",
+                  (root / "task-script").toString
+                ),
+                Present(root)
+              )
             )
-          )
-      decoded <- Sync.defer(decodeTaskInvocations(log))
-      invocations <- decoded match
-        case Right(value) => Sync.defer(value)
-        case Left(error)  => Abort.fail(error)
-    yield invocations
+            _ <- result match
+              case ProcessResult(_, 0, _, _) => Sync.defer(())
+              case _ =>
+                Abort.fail(
+                  SquireError.Failure(
+                    "mise-policy",
+                    s"task script ${script.toString} failed with exit ${result.exitCode}: ${result.stderr.trim}",
+                    Present(result.stderr.trim)
+                  )
+                )
+            decoded <- Sync.defer(decodeTaskInvocations(log))
+            invocations <- decoded match
+              case Right(value) => Sync.defer(value)
+              case Left(error)  => Abort.fail(error)
+          yield invocations
+        }
 
   private def fakeTaskTool(program: String): String =
     s"""#!/bin/sh
@@ -1112,6 +1340,15 @@ esac
     outcome match
       case Result.Failure(error) => fragments.forall(error.getMessage.contains)
       case Result.Success(_)     => false
+
+  private def taskScratchRoots(scriptName: String): Set[Path] =
+    val temporaryRoot = java.nio.file.Path.of(java.lang.System.getProperty("java.io.tmpdir"))
+    val prefix        = s"squire-task-$scriptName-"
+    val stream        = Files.list(temporaryRoot)
+    try
+      stream.iterator.asScala.filter(path => path.getFileName.toString.startsWith(prefix))
+        .map(path => Path(path.toString)).toSet
+    finally stream.close()
 
   private def morphirElmManifests: List[Path] =
     val examples = repositoryRoot / "examples" / "morphir-elm-projects"
@@ -1218,6 +1455,59 @@ esac
           collapsedInvocations != expectedLocalCi &&
           hooksEnabled != expectedSetup
       )
+    }
+
+    "cleans task harness scratch after success and Abort" in {
+      val successName = "cleanup-success"
+      val abortName   = "cleanup-abort"
+      for
+        successBefore <- Sync.defer(taskScratchRoots(successName))
+        success <- runTaskScript(
+          Path(successName),
+          "#!/usr/bin/env bash\n./mill clean\n",
+          Set("mill")
+        )
+        successAfter <- Sync.defer(taskScratchRoots(successName))
+        abortBefore  <- Sync.defer(taskScratchRoots(abortName))
+        aborted <- Abort.run[SquireError](
+          runTaskScript(
+            Path(abortName),
+            "#!/usr/bin/env bash\nnpm install\n",
+            Set("mill")
+          )
+        )
+        abortAfter = taskScratchRoots(abortName)
+        successLeaks = successAfter -- successBefore
+        abortLeaks   = abortAfter -- abortBefore
+        _ <- Sync.defer((successLeaks ++ abortLeaks).foreach(SquireFixtures.deleteRecursively))
+      yield assert(
+        success == Chunk(TaskInvocation("mill", Chunk("clean"))) &&
+          aborted.isFailure && successLeaks.isEmpty && abortLeaks.isEmpty
+      )
+    }
+
+    "rejects absolute package-tool escapes before execution or recording" in {
+      for
+        escapes = Chunk(
+          ("npm", "/usr/bin/npm"),
+          ("bun", "/home/linuxbrew/.linuxbrew/bin/bun"),
+          ("npx", "/usr/bin/npx")
+        )
+        proofs <- Kyo.foreach(escapes) { case (program, absoluteProgram) =>
+          val scriptName = s"absolute-$program"
+          val scriptText = s"#!/usr/bin/env bash\n$absoluteProgram --version\n"
+          val preflight = validateTaskScript(scriptText)
+          var executionStarted = false
+          for
+            before <- Sync.defer(taskScratchRoots(scriptName))
+            result <- Abort.run[SquireError](
+              runTaskScript(Path(scriptName), scriptText, Set(program), () => executionStarted = true)
+            )
+            after <- Sync.defer(taskScratchRoots(scriptName))
+          yield preflight.isLeft && failureContains(result, "absolute program reference", program) &&
+            !executionStarted && after == before
+        }
+      yield assert(proofs.forall(identity))
     }
 
     "semantically rejects forbidden Morphir Elm package manifest fields" in {
@@ -4270,22 +4560,58 @@ class SquireDoctorSpec extends Test[Any]:
     }
 
     "bounds oversized acquisition cache diagnostics without declaring content corrupt" in {
+      var allocatedRoot = Option.empty[Path]
       for
-        root <- SquireFixtures.scratch("doctor-cache-bounded")
+        report <- Scope.run {
+          for
+            root <- SquireFixtures.scopedScratch("doctor-cache-bounded")
+            _    <- Sync.defer { allocatedRoot = Some(root) }
+            cache = root / "cache"
+            digest = "0" * 64
+            _ <- Sync.defer {
+              val entry = cache / "sha256" / digest
+              Files.createDirectories(entry.parent.get.toJava)
+              val channel = Files.newByteChannel(
+                entry.toJava,
+                java.nio.file.StandardOpenOption.CREATE_NEW,
+                java.nio.file.StandardOpenOption.WRITE
+              )
+              try
+                channel.position(65L * 1024 * 1024 - 1L)
+                channel.write(java.nio.ByteBuffer.wrap(Array[Byte](0)))
+              finally channel.close()
+            }
+            report <- SquireDoctor.run(
+              root,
+              RecordingRunner(Chunk.empty),
+              SquireFixtures.platform(
+                root,
+                SquireEnv.CheckResult(Present(true), "ok", 0.0),
+                environment = Map("MORPHIR_NODE_CACHE" -> cache.toString)
+              )
+            )
+          yield report
+        }
+        rootRemoved <- Sync.defer(allocatedRoot.exists(root => !Files.exists(root.toJava)))
+        _           <- Sync.defer(allocatedRoot.foreach(SquireFixtures.deleteRecursively))
+      yield assert(
+        report.finding("acquisition_cache").exists(finding =>
+          !finding.blocked && finding.code == "NOTICE" && finding.message.contains("oversized entry")
+        ) && rootRemoved
+      )
+    }
+
+    "treats a digest-named symlink to matching external content as corrupt" in Scope.run {
+      for
+        externalRoot <- SquireFixtures.scopedScratch("doctor-cache-symlink-external")
+        root         <- SquireFixtures.scopedScratch("doctor-cache-symlink")
         cache = root / "cache"
-        digest = "0" * 64
+        digest = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        externalTarget = externalRoot / "matching-content"
         _ <- Sync.defer {
-          val entry = cache / "sha256" / digest
-          Files.createDirectories(entry.parent.get.toJava)
-          val channel = Files.newByteChannel(
-            entry.toJava,
-            java.nio.file.StandardOpenOption.CREATE_NEW,
-            java.nio.file.StandardOpenOption.WRITE
-          )
-          try
-            channel.position(65L * 1024 * 1024 - 1L)
-            channel.write(java.nio.ByteBuffer.wrap(Array[Byte](0)))
-          finally channel.close()
+          Files.writeString(externalTarget.toJava, "")
+          Files.createDirectories((cache / "sha256").toJava)
+          Files.createSymbolicLink((cache / "sha256" / digest).toJava, externalTarget.toJava)
         }
         report <- SquireDoctor.run(
           root,
@@ -4296,10 +4622,10 @@ class SquireDoctorSpec extends Test[Any]:
             environment = Map("MORPHIR_NODE_CACHE" -> cache.toString)
           )
         )
+        externalTargetIntact <- Sync.defer(Files.isRegularFile(externalTarget.toJava))
       yield assert(
-        report.finding("acquisition_cache").exists(finding =>
-          !finding.blocked && finding.code == "NOTICE" && finding.message.contains("oversized entry")
-        )
+        report.finding("acquisition_cache").exists(finding => finding.blocked && finding.code == "CORRUPT") &&
+          externalTargetIntact
       )
     }
 
