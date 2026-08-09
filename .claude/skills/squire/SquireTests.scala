@@ -2658,6 +2658,15 @@ object SquireFixtures:
   def scratch(name: String): Path < Sync =
     Sync.defer(Path(java.nio.file.Files.createTempDirectory(s"squire-$name-").toString))
 
+  def deleteRecursively(root: Path): Unit =
+    if Files.exists(root.toJava) then
+      val stream = Files.walk(root.toJava)
+      try stream.iterator.asScala.toList.reverse.foreach(Files.deleteIfExists)
+      finally stream.close()
+
+  def scopedScratch(name: String): Path < (Scope & Sync) =
+    Scope.acquireRelease(scratch(name))(root => Sync.defer(deleteRecursively(root)))
+
   def platform(
       root: Path,
       jvmResult: SquireEnv.CheckResult,
@@ -4271,9 +4280,37 @@ class SquireDoctorSpec extends Test[Any]:
       )
     }
 
-    "validates a relative cache override before honoring disabled mode and skips corrupt cache content" in {
+    "requires scoped cleanup for cache fixtures after success and abort" in {
+      var completedRoot = Option.empty[Path]
+      var abortedRoot   = Option.empty[Path]
       for
-        root <- SquireFixtures.scratch("doctor-cache-disabled")
+        _ <- Scope.run {
+          for
+            root <- SquireFixtures.scopedScratch("doctor-cache-clean-success")
+            _    <- Sync.defer { completedRoot = Some(root) }
+          yield ()
+        }
+        completedRemoved <- Sync.defer(completedRoot.exists(root => !Files.exists(root.toJava)))
+        aborted <- Abort.run[String](
+          Scope.run {
+            for
+              root <- SquireFixtures.scopedScratch("doctor-cache-clean-abort")
+              _    <- Sync.defer { abortedRoot = Some(root) }
+              _    <- Abort.fail("deliberate cleanup regression")
+            yield ()
+          }
+        )
+        abortedRemoved <- Sync.defer(abortedRoot.exists(root => !Files.exists(root.toJava)))
+        _ <- Sync.defer {
+          completedRoot.foreach(SquireFixtures.deleteRecursively)
+          abortedRoot.foreach(SquireFixtures.deleteRecursively)
+        }
+      yield assert(completedRemoved && aborted.isFailure && abortedRemoved)
+    }
+
+    "validates a relative cache override before honoring disabled mode and skips corrupt cache content" in Scope.run {
+      for
+        root <- SquireFixtures.scopedScratch("doctor-cache-disabled")
         cache = root / "cache"
         digest = "0" * 64
         _ <- Sync.defer {
@@ -4310,9 +4347,9 @@ class SquireDoctorSpec extends Test[Any]:
       )
     }
 
-    "bounds acquisition cache inspection at 256 directory entries" in {
+    "bounds acquisition cache inspection at 256 directory entries" in Scope.run {
       for
-        root <- SquireFixtures.scratch("doctor-cache-entry-limit")
+        root <- SquireFixtures.scopedScratch("doctor-cache-entry-limit")
         cache = root / "cache"
         _ <- Sync.defer {
           val digestRoot = cache / "sha256"
@@ -4335,10 +4372,10 @@ class SquireDoctorSpec extends Test[Any]:
       )
     }
 
-    "blocks non-regular digest entries and bounds unreadable valid entries" in {
+    "blocks non-regular digest entries and bounds unreadable valid entries" in Scope.run {
       val emptyDigest = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       for
-        root <- SquireFixtures.scratch("doctor-cache-unreadable")
+        root <- SquireFixtures.scopedScratch("doctor-cache-unreadable")
         cache = root / "cache"
         digestRoot = cache / "sha256"
         unreadable = digestRoot / emptyDigest
@@ -4356,29 +4393,25 @@ class SquireDoctorSpec extends Test[Any]:
           )
         )
         _ <- Sync.defer(Files.delete((digestRoot / ("1" * 64)).toJava))
-        report <- Scope.run {
-          for
-            permissions <- Scope.acquireRelease(
-              Sync.defer {
-                val original = Files.getPosixFilePermissions(unreadable.toJava)
-                Files.setPosixFilePermissions(
-                  unreadable.toJava,
-                  java.util.EnumSet.noneOf(classOf[java.nio.file.attribute.PosixFilePermission])
-                )
-                original
-              }
-            )(original => Sync.defer(Files.setPosixFilePermissions(unreadable.toJava, original)))
-            report <- SquireDoctor.run(
-              root,
-              RecordingRunner(Chunk.empty),
-              SquireFixtures.platform(
-                root,
-                SquireEnv.CheckResult(Present(true), "ok", 0.0),
-                environment = Map("MORPHIR_NODE_CACHE" -> cache.toString)
-              )
+        _ <- Scope.acquireRelease(
+          Sync.defer {
+            val original = Files.getPosixFilePermissions(unreadable.toJava)
+            Files.setPosixFilePermissions(
+              unreadable.toJava,
+              java.util.EnumSet.noneOf(classOf[java.nio.file.attribute.PosixFilePermission])
             )
-          yield report
-        }
+            original
+          }
+        )(original => Sync.defer(Files.setPosixFilePermissions(unreadable.toJava, original)))
+        report <- SquireDoctor.run(
+          root,
+          RecordingRunner(Chunk.empty),
+          SquireFixtures.platform(
+            root,
+            SquireEnv.CheckResult(Present(true), "ok", 0.0),
+            environment = Map("MORPHIR_NODE_CACHE" -> cache.toString)
+          )
+        )
       yield assert(
         structural.finding("acquisition_cache").exists(finding => finding.blocked && finding.code == "CORRUPT") &&
           report.finding("acquisition_cache").exists(finding =>
@@ -4387,10 +4420,10 @@ class SquireDoctorSpec extends Test[Any]:
       )
     }
 
-    "bounds acquisition cache hashing after 256 MiB" in {
+    "bounds acquisition cache hashing after 256 MiB" in Scope.run {
       val entryBytes = 64L * 1024 * 1024
       for
-        root <- SquireFixtures.scratch("doctor-cache-total-budget")
+        root <- SquireFixtures.scopedScratch("doctor-cache-total-budget")
         cache = root / "cache"
         _ <- Sync.defer {
           val digestRoot = cache / "sha256"
