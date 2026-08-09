@@ -224,16 +224,28 @@ object SquireCiPolicy:
       )
     }
     val unit = indentedBlock(workflow, "mill-morphir-unit:", 2)
+    val unitCache = indentedBlock(unit, "- name: Cache Mill capability outputs", 6)
+    val unitOutputs = indentedBlock(unitCache, "path: |", 10).linesIterator
+      .map(_.trim)
+      .filter(_.nonEmpty)
+      .toList
     expect(
-      unit.contains("out/mill-plugins/morphir/") &&
-        unit.contains("!out/mill-plugins/morphir/**/testForked.dest/**") &&
-        unit.contains("!out/mill-plugins/morphir/**/testOnly.dest/**"),
-      "Mill unit cache must contain only reusable capability outputs"
+      unitOutputs == List(
+        "out/mill-plugins/morphir/",
+        "!out/mill-plugins/morphir/**/testForked.dest/**",
+        "!out/mill-plugins/morphir/**/testOnly.dest/**"
+      ),
+      s"Mill unit cache must contain exactly reusable capability outputs: $unitOutputs"
     )
     val projects = indentedBlock(workflow, "morphir-elm-projects:", 2)
+    val projectCache = indentedBlock(projects, "- name: Cache Mill capability outputs", 6)
+    val projectOutputs = indentedBlock(projectCache, "path: |", 10).linesIterator
+      .map(_.trim)
+      .filter(_.nonEmpty)
+      .toList
     expect(
-      projects.contains("out/examples/morphir-elm-projects/") && projects.contains("out/morphir-elm/"),
-      "project cache must contain generated IR outputs"
+      projectOutputs == List("out/examples/morphir-elm-projects/", "out/morphir-elm/"),
+      s"project cache must contain exactly generated IR outputs: $projectOutputs"
     )
     List("runtime-generated-fixtures:", "runtime-tests:").foreach { job =>
       expect(
@@ -838,7 +850,9 @@ class SquireCiPolicySpec extends Test[Any]:
         replaceInJob(workflow, "morphir-elm-projects:", "out/morphir-elm/", "out/"),
         movedRuntimeOutput
       )
-      assert(cacheMutations.forall(rejects(assertMorphirCachePolicy, _)))
+      cacheMutations.zipWithIndex.foreach { case (mutation, index) =>
+        assert(rejects(assertMorphirCachePolicy, mutation), s"cache mutation $index must be rejected")
+      }
     }
 
     "runs Squire policy once immediately after lint" in {
