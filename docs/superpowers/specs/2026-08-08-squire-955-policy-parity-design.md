@@ -69,3 +69,43 @@ The final parity matrix will map every PR #955 Python test name to its Scala tes
 - Each new regression was observed failing before its implementation or validator change.
 - `mise run test:squire`, `mise run lint`, and `mise run ci:local` exit successfully.
 - The Squire Mill pin is unchanged and the worktree diff is cleanly formatted.
+
+## PR #955 Python-to-Scala Parity Matrix
+
+The source column is the exact Python test name added by
+`c331b2cd^..c331b2cd`. Each row names the current Scala suite and test group
+that protects the same contract; rows are intentionally not collapsed.
+
+| Python test | Scala suite and test group | Parity |
+| --- | --- | --- |
+| `test_morphir_elm_tooling_is_owned_by_mill` | `SquireMisePolicySpec` — `runs Elm build and setup scripts through only their approved tools` | Mill-only build wrappers and `bun install --ignore-scripts` setup |
+| `test_morphir_capabilities_are_separate_ordered_jobs` | `SquireCiPolicySpec` — `keeps Mill Morphir dogfood and generated-runtime work in ordered CI jobs` | Separate jobs, selectors, and dependency order |
+| `test_workflow_defaults_to_read_only_contents_permission` | `SquireCiPolicySpec` — `restricts workflow permissions to read-only contents` | Exact read-only `contents` default |
+| `test_workflow_permissions_reject_additional_write_capabilities` | `SquireCiPolicySpec` — `restricts workflow permissions to read-only contents` | Mutations reject `contents: write` and added write permissions |
+| `test_morphir_unit_selector_excludes_published_plugin_integration` | `SquireCiPolicySpec` — `preserves the Morphir CI capability graph` | Mutation rejects the broad unit selector |
+| `test_generic_jvm_ci_uses_the_non_classic_platform_task` | `SquireCiPolicySpec` — `keeps generic JVM CI on the non-classic platform alias` | `test:jvm-platform` delegation |
+| `test_build_exposes_the_named_non_classic_jvm_aggregate` | `SquireCiPolicySpec` — `keeps generic JVM CI on the non-classic platform alias` | Named `testJVMPlatform` aggregate |
+| `test_jvm_platform_aggregate_rejects_an_injected_classic_runtime_member` | `SquireCiPolicySpec` — `keeps generic JVM CI on the non-classic platform alias` | Mutation rejects a classic runtime member |
+| `test_jvm_platform_selectors_cover_every_non_classic_target` | `SquireCiPolicySpec` — `keeps generic JVM CI on the non-classic platform alias` | Exact non-classic selector membership |
+| `test_morphir_jobs_cache_only_verified_tools_and_useful_mill_outputs` | `SquireCiPolicySpec` — `keeps Morphir caches scoped to reusable capability outputs` | Job-by-job cache-path mutations |
+| `test_mise_build_commands_are_compatibility_delegates` | `SquireMisePolicySpec` — `runs Elm build and setup scripts through only their approved tools` | Exact Mill IR build invocations |
+| `test_morphir_elm_policy_is_narrow_and_allows_generic_node_and_mise_steps` | `SquireMisePolicySpec` — `rejects executed task mutations that add package tooling or change the approved invocation sequences` | Only approved task programs and invocations run |
+| `test_local_ci_keeps_plugin_integration_and_classic_runtime_in_dedicated_steps` | `SquireMisePolicySpec` — `runs every local-CI Morphir capability through its dedicated Mill invocation` | Exact separate local-CI Mill invocations |
+| `test_morphir_elm_build_wrappers_delegate_only_to_mill_ir_tasks` | `SquireMisePolicySpec` — `runs Elm build and setup scripts through only their approved tools` | Exact wrapper command sequences |
+| `test_setup_and_elm_projects_do_not_install_a_second_morphir_elm_tool` | `SquireMisePolicySpec` — `semantically rejects forbidden Morphir Elm package manifest fields` | No `morphir-elm` dependency or `make` script |
+| `test_project_checker_accepts_yaml_owned_main_class` | `SquireDoctorSpec` — `accepts Mill-owned setup YAML main class plugin wiring and effective JVM temp` | YAML `mainClass` is accepted |
+| `test_project_checker_diagnoses_missing_plugin_modules_with_a_mill_verification` | `SquireDoctorSpec` — `blocks missing Mill Morphir modules and a relative acquisition cache override` | Missing-plugin finding is blocking |
+| `test_project_checker_diagnoses_broken_task_local_repository_resolution` | `SquireDoctorSpec` — `accepts Mill-owned setup YAML main class plugin wiring and effective JVM temp` | Valid task-local repository wiring is required for the OK finding |
+| `test_project_checker_diagnoses_corrupt_acquisition_cache_content` | `SquireDoctorSpec` — `detects corrupt acquisition cache content and stale metabuild output` | Digest mismatch is `CORRUPT` and blocking |
+| `test_project_checker_reports_disabled_machine_cache_without_failing` | `SquireDoctorSpec` — `validates a relative cache override before honoring disabled mode and skips corrupt cache content` | Disabled cache is non-blocking and skips content inspection |
+| `test_project_checker_rejects_relative_cache_override_even_when_cache_is_disabled` | `SquireDoctorSpec` — `validates a relative cache override before honoring disabled mode and skips corrupt cache content` | Relative override remains `INVALID` and blocking |
+| `test_project_checker_bounds_hashing_of_oversized_cache_entries` | `SquireDoctorSpec` — `bounds oversized acquisition cache diagnostics without declaring content corrupt` | Oversized entries produce a non-blocking notice |
+| `test_project_checker_catches_inaccessible_cache_entry` | `SquireDoctorSpec` — `blocks non-regular digest entries and bounds unreadable valid entries` | Unreadable entries produce a bounded non-blocking notice |
+| `test_project_checker_bounds_total_cache_directory_entries` | `SquireDoctorSpec` — `bounds acquisition cache inspection at 256 directory entries` | Entry-count bound is explicit |
+| `test_temp_diagnostics_probe_effective_jvm_temp_not_python_temp` | `SquireEnvSpec` — `probes the effective JVM temp directory and cleans a successful probe` | Uses the JVM temp boundary, not Python temp state |
+| `test_temp_diagnostics_report_missing_and_unwritable_jvm_paths` | `SquireEnvSpec` — `probes the effective JVM temp directory and cleans a successful probe`; `reports a blocked var folders write without leaving a probe` | Missing and unwritable effective JVM temp paths fail safely |
+| `test_temp_diagnostics_handle_missing_java_without_crashing` | Deliberately inapplicable: the unified `squire` launcher invokes `mill`, which itself requires a JVM, so it cannot run a no-Java diagnostic. `SquireEnvSpec` — `probes the effective JVM temp directory and cleans a successful probe` covers an absent `java.io.tmpdir`; `SquireEnv.scala` also represents an absent property as an unavailable check. | JVM-launcher boundary, with absent-temp coverage retained |
+| `test_doctor_jvm_temp_remedy_rechecks_and_retries_cellar` | `SquireDoctorSpec` — `accepts Mill-owned setup YAML main class plugin wiring and effective JVM temp`; `SquireCellarSpec` — `validates an absolute writable temp directory and passes it to the native process` | Doctor’s JVM-temp finding and validated Cellar retry boundary |
+| `test_cellar_wrapper_passes_validated_temp_to_native_command` | `SquireCellarSpec` — `validates an absolute writable temp directory and passes it to the native process` | Validated path becomes `-Djava.io.tmpdir=...` |
+| `test_project_checker_diagnoses_stale_metabuild_compilation` | `SquireDoctorSpec` — `detects corrupt acquisition cache content and stale metabuild output` | Stale output is `STALE` and blocking |
+| `test_mill_morphir_reference_has_short_fast_and_dogfood_routes` | `SquireCiPolicySpec` — `keeps Mill Morphir dogfood and generated-runtime work in ordered CI jobs`; `SquireMisePolicySpec` — `runs every local-CI Morphir capability through its dedicated Mill invocation` | Fast/unit and dogfood/generated-runtime command routes |
