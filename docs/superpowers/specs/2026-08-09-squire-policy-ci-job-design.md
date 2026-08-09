@@ -13,7 +13,7 @@ enforced by the Scala Squire CI policy suite.
 Create a top-level `squire-policy` job that runs in parallel with `lint` and
 the other independent CI jobs. The job will:
 
-1. Check out the current branch with full history.
+1. Check out the current branch with the default shallow checkout.
 2. Install the configured Java version.
 3. Restore Coursier dependencies.
 4. Install Mise.
@@ -26,6 +26,11 @@ part of the aggregate gate without being mislabeled as lint.
 `squire-policy` will have no `needs` declaration. It can therefore run in
 parallel with lint, knowledge-base validation, platform tests, and the first
 Mill Morphir capability job.
+
+The job will not set `fetch-depth: 0`. Squire branch tests construct their own
+temporary Git repositories, snapshot-version tests use synthetic version
+state, and the remaining policy checks only need the checked-out files or the
+current worktree root. None of them reads repository history.
 
 ## Policy Validation
 
