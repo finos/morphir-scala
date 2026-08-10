@@ -318,22 +318,38 @@ object SquireCiPolicy:
       case path => List(path)
 
   def assertSquireCiPolicy(workflow: String): Unit =
+    val jobName  = "squire-policy:"
     val stepName = "Test Squire and release policy"
     expect(
-      workflow.linesIterator.count(_ == s"      - name: $stepName") == 1,
-      s"workflow must contain exactly one $stepName step"
+      workflow.linesIterator.count(_ == s"  $jobName") == 1,
+      "workflow must contain exactly one squire-policy job"
     )
-    val lint        = indentedBlock(workflow, "lint:", 2)
-    val stepHeaders = lint.linesIterator.collect { case line if line.startsWith("      - ") => line.drop(8) }.toList
-    val lintIndex   = stepHeaders.indexOf("name: Lint code")
-    if lintIndex < 0 then fail("lint job must contain the Lint code step")
+    val lint = indentedBlock(workflow, "lint:", 2)
+    expect(!lint.contains("mise run test:squire"), "lint must not run Squire policy")
+
+    val policy = indentedBlock(workflow, jobName, 2)
+    val headers = policy.linesIterator.collect {
+      case line if line.startsWith("      - name: ") => line.stripPrefix("      - name: ")
+    }.toList
     expect(
-      stepHeaders.slice(lintIndex + 1, lintIndex + 2) == List(s"name: $stepName"),
-      s"$stepName must immediately follow Lint code"
+      headers == List(
+        "Checkout current branch",
+        "Setup Scala and Java",
+        "Cache scala dependencies",
+        "Setup mise",
+        stepName
+      ),
+      s"unexpected squire-policy steps: $headers"
     )
-    val step = indentedBlock(lint, s"- name: $stepName", 6)
-    expect(scalar(step, "run") == "mise run test:squire", s"$stepName must run mise run test:squire exactly")
+    expect(!policy.linesIterator.exists(_.trim.startsWith("needs:")), "squire-policy must run in parallel")
+    expect(!policy.contains("fetch-depth:"), "squire-policy must use the default shallow checkout")
+
+    val step = indentedBlock(policy, s"- name: $stepName", 6)
+    expect(scalar(step, "run") == "mise run test:squire", s"$stepName must run test:squire exactly")
     expect(count(workflow, "mise run test:squire") == 1, "workflow must invoke test:squire exactly once")
+
+    val aggregate = inlineList(indentedBlock(workflow, "ci:", 2), "needs")
+    expect(aggregate.count(_ == "squire-policy") == 1, "ci must depend on squire-policy exactly once")
 
   def replaceInJob(workflow: String, jobName: String, oldValue: String, newValue: String): String =
     val job = indentedBlock(workflow, jobName, 2)
@@ -1080,26 +1096,58 @@ class SquireCiPolicySpec extends Test[Any]:
       assert(acceptedUnnamedMutations.isEmpty, s"unnamed cache mutations accepted: $acceptedUnnamedMutations")
     }
 
-    "runs Squire policy once immediately after lint" in {
+    "runs Squire policy in a dedicated parallel CI job" in {
       assertSquireCiPolicy(workflow)
 
-      val policyStep =
-        "      - name: Test Squire and release policy\n" +
-          "        run: mise run test:squire\n"
+      val policy     = indentedBlock(workflow, "squire-policy:", 2)
+      val policyJob  = s"  squire-policy:\n$policy"
+      val policyStep = s"      - name: Test Squire and release policy\n" +
+        indentedBlock(policy, "- name: Test Squire and release policy", 6)
+      val checkout = "      - name: Checkout current branch\n" +
+        "        uses: actions/checkout@v7.0.1"
+      val aggregate      = inlineList(indentedBlock(workflow, "ci:", 2), "needs")
+      val aggregateNeeds = s"needs: [${aggregate.mkString(", ")}]"
       val mutations = List(
-        "duplicate step"            -> replaceOnce(workflow, policyStep, policyStep + policyStep),
-        "unnamed intermediate step" -> replaceOnce(
-          workflow,
-          policyStep,
-          "      - run: echo intermediate\n" + policyStep
+        "missing job" -> replaceOnce(workflow, policyJob, ""),
+        "duplicate job" -> replaceOnce(workflow, policyJob, s"$policyJob\n$policyJob"),
+        "step moved into lint" -> replaceOnce(
+          replaceOnce(workflow, policyStep, ""),
+          "      - name: Lint code\n        run: mise run lint",
+          "      - name: Lint code\n        run: mise run lint\n" + policyStep
         ),
-        "step in another job" -> (replaceOnce(workflow, policyStep, "") +
+        "step moved into another job" -> (replaceOnce(workflow, policyStep, "") +
           "\n  bypass-policy:\n" +
           "    runs-on: ubuntu-latest\n" +
           "    steps:\n" +
-          policyStep)
+          policyStep),
+        "changed command" -> {
+          val changedPolicy = replaceOnce(policyJob, "mise run test:squire", "mise run lint")
+          replaceOnce(workflow, policyJob, changedPolicy)
+        },
+        "job dependency added" -> replaceOnce(
+          workflow,
+          "  squire-policy:\n",
+          "  squire-policy:\n    needs: [lint]\n"
+        ),
+        "full-history checkout added" -> replaceOnce(
+          workflow,
+          policyJob,
+          replaceOnce(policyJob, checkout, s"$checkout\n        with:\n          fetch-depth: 0")
+        ),
+        "aggregate dependency removed" -> replaceOnce(
+          workflow,
+          aggregateNeeds,
+          s"needs: [${aggregate.filterNot(_ == "squire-policy").mkString(", ")}]"
+        ),
+        "aggregate dependency duplicated" -> replaceOnce(
+          workflow,
+          aggregateNeeds,
+          s"needs: [${aggregate.flatMap(name => if name == "squire-policy" then List(name, name) else List(name)).mkString(", ")}]"
+        )
       )
-      assert(mutations.forall((_, mutation) => rejects(assertSquireCiPolicy, mutation)))
+      mutations.foreach { case (name, mutation) =>
+        assert(rejects(assertSquireCiPolicy, mutation), s"$name must be rejected")
+      }
     }
 
     "keeps Mill Morphir dogfood and generated-runtime work in ordered CI jobs" in {
