@@ -36,7 +36,13 @@ Named alternatives such as `--coordinate`, `--symbol`, `--url-or-path`, and `--n
 
 ## Acquisition-cache design
 
-Expose the current operating-system name through `SquireEnv.Platform` so doctor logic remains deterministic in tests. `LivePlatform` reads `os.name`; test platforms inject it.
+Expose the current operating-system name through `SquireEnv.Platform` so platform logic remains deterministic in tests. `LivePlatform` reads `os.name`; test platforms inject it. Normalize that value once and derive three final convenience predicates on the platform boundary:
+
+- `isWindows`;
+- `isMacOS`;
+- `isLinux`.
+
+Deriving the booleans from one operating-system value prevents inconsistent test or production states in which multiple platform flags are true. Doctor uses `isWindows` and `isMacOS` for their distinct cache rules. Linux and other operating systems use the XDG-compatible fallback; `isLinux` remains available to future platform-specific checks without repeating string parsing.
 
 When `MORPHIR_NODE_CACHE` is non-empty, preserve it as the explicit cache root and retain the existing absolute-path validation. Otherwise derive the default exactly like `AcquisitionSettings.defaultCacheRoot`:
 
@@ -58,6 +64,6 @@ CLI coverage will prove:
 - generated help describes the positional arguments;
 - the supported launcher no longer emits Case App missing-option failures for documented positional forms.
 
-Doctor coverage will inject Linux, macOS, and Windows platforms and place corrupt cache entries at the expected default root. Each test must prove doctor inspects the platform-correct directory. Additional cases cover absolute environment overrides and relative environment-path fallback.
+Doctor coverage will inject Linux, macOS, and Windows operating-system names, assert the derived platform predicates, and place corrupt cache entries at the expected default root. Each test must prove doctor inspects the platform-correct directory. Additional cases cover absolute environment overrides and relative environment-path fallback.
 
 After focused RED/GREEN verification, run formatting, the complete Squire suite, lint, and full local CI before committing and pushing. Keep Mill pinned to `1.2.0-RC1-24-042146`, introduce no Python or TypeScript runtime, and preserve the PR's draft state.
