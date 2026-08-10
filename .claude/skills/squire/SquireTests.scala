@@ -4986,6 +4986,55 @@ class SquireDoctorSpec extends Test[Any]:
       )
     }
 
+    "falls back from malformed Windows and XDG cache homes without aborting" in Scope.run {
+      def corrupt(root: Path): Unit = {
+        val digestRoot = root / "sha256"
+        Files.createDirectories(digestRoot.toJava)
+        Files.writeString((digestRoot / ("0" * 64)).toJava, "not the zero digest")
+      }
+
+      for
+        root <- SquireFixtures.scopedScratch("doctor-malformed-cache-homes")
+        windowsHome = root / "windows-home"
+        windowsFallback = windowsHome / "AppData" / "Local" / "morphir-scala" / "Cache"
+        linuxHome = root / "linux-home"
+        linuxFallback = linuxHome / ".cache" / "morphir-scala"
+        _ <- Sync.defer {
+          corrupt(windowsFallback)
+          corrupt(linuxFallback)
+        }
+        windows <- Abort.run[SquireError](
+          SquireDoctor.run(
+            root,
+            RecordingRunner(Chunk.empty),
+            SquireFixtures.platform(
+              root,
+              SquireEnv.CheckResult(Present(true), "ok", 0.0),
+              environment = Map("LOCALAPPDATA" -> "\u0000"),
+              osName = "Windows 11",
+              home = Some(windowsHome)
+            )
+          )
+        )
+        linux <- Abort.run[SquireError](
+          SquireDoctor.run(
+            root,
+            RecordingRunner(Chunk.empty),
+            SquireFixtures.platform(
+              root,
+              SquireEnv.CheckResult(Present(true), "ok", 0.0),
+              environment = Map("XDG_CACHE_HOME" -> "\u0000"),
+              osName = "Linux",
+              home = Some(linuxHome)
+            )
+          )
+        )
+      yield assert(
+        windows.exists(_.finding("acquisition_cache").exists(finding => finding.blocked && finding.code == "CORRUPT")) &&
+          linux.exists(_.finding("acquisition_cache").exists(finding => finding.blocked && finding.code == "CORRUPT"))
+      )
+    }
+
     "prefers an absolute acquisition cache override to a clean platform default" in Scope.run {
       def corrupt(root: Path): Unit = {
         val digestRoot = root / "sha256"

@@ -6,6 +6,7 @@ import java.security.MessageDigest
 import scala.jdk.CollectionConverters.*
 import kyo.*
 import scala.util.matching.Regex
+import scala.util.Try
 
 object SquireDoctor:
   final case class Finding(area: String, code: String, message: String, blocked: Boolean)
@@ -116,7 +117,7 @@ object SquireDoctor:
         case None => Finding("acquisition_cache", "OK", s"acquisition cache has no corrupt content: $path", false)
 
   private def absoluteEnvironmentPath(platform: SquireEnv.Platform, name: String): Option[Path] =
-    platform.environment.get(name).filter(_.nonEmpty).map(Path(_)).filter(_.toJava.isAbsolute)
+    platform.environment.get(name).filter(_.nonEmpty).flatMap(value => Try(Path(value)).toOption).filter(_.toJava.isAbsolute)
 
   private def defaultAcquisitionCacheRoot(platform: SquireEnv.Platform): Path =
     if platform.isMacOS then platform.home / "Library" / "Caches" / "morphir-scala"
