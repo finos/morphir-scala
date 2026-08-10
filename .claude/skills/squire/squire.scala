@@ -17,29 +17,33 @@ final case class AiEnvInfoOpts(
 
 final case class DoctorOpts()
 
+@ArgsName("<coordinate> <symbol>")
 final case class CellarGetOpts(
-    @HelpMessage("Maven coordinate or project alias") coordinate: String,
-    @HelpMessage("Fully qualified symbol") symbol: String,
+    @HelpMessage("Maven coordinate or project alias") coordinate: Option[String] = None,
+    @HelpMessage("Fully qualified symbol") symbol: Option[String] = None,
     @HelpMessage("Hide inherited members") hideInherited: Boolean = false,
     @HelpMessage("Group inherited members") groupInherited: Boolean = false,
     @HelpMessage("Maximum number of results") limit: Option[Int] = None,
     @HelpMessage("Absolute writable temp directory for Cellar") tempDirectory: Option[String] = None
 )
 
+@ArgsName("<coordinate> <query>")
 final case class CellarSearchOpts(
-    @HelpMessage("Maven coordinate or project alias") coordinate: String,
-    @HelpMessage("Symbol-name substring") query: String,
+    @HelpMessage("Maven coordinate or project alias") coordinate: Option[String] = None,
+    @HelpMessage("Symbol-name substring") query: Option[String] = None,
     @HelpMessage("Maximum number of results") limit: Option[Int] = None,
     @HelpMessage("Absolute writable temp directory for Cellar") tempDirectory: Option[String] = None
 )
 
+@ArgsName("<coordinate>")
 final case class CellarDepsOpts(
-    @HelpMessage("Maven coordinate or project alias") coordinate: String,
+    @HelpMessage("Maven coordinate or project alias") coordinate: Option[String] = None,
     @HelpMessage("Absolute writable temp directory for Cellar") tempDirectory: Option[String] = None
 )
 
+@ArgsName("<url-or-path>")
 final case class ReferenceRepoAddOpts(
-    @HelpMessage("Git URL or local repository path") urlOrPath: String,
+    @HelpMessage("Git URL or local repository path") urlOrPath: Option[String] = None,
     @HelpMessage("Override the repository name") name: Option[String] = None,
     @HelpMessage("Branch, tag, or commit to check out") ref: Option[String] = None,
     @HelpMessage("Reference repository strategy") strategy: String = "clone",
@@ -49,9 +53,11 @@ final case class ReferenceRepoAddOpts(
 )
 
 final case class ReferenceRepoListOpts(@HelpMessage("Output the raw manifest as JSON") json: Boolean = false)
+@ArgsName("<name>")
 final case class ReferenceRepoStatusOpts(@HelpMessage("Repository name") name: Option[String] = None)
+@ArgsName("<name>")
 final case class ReferenceRepoRemoveOpts(
-    @HelpMessage("Repository name") name: String,
+    @HelpMessage("Repository name") name: Option[String] = None,
     @HelpMessage("Leave checkout files in place") keepFiles: Boolean = false
 )
 
@@ -111,6 +117,39 @@ final case class SchemasValidateOpts(
 
 object SquireCli:
   private val ExitFileEnvironment = "SQUIRE_EXIT_FILE"
+
+  private def cliFailure[A](command: String, message: String): A < Abort[SquireError] =
+    Abort.fail(SquireError.Failure("cli", s"$command: $message"))
+
+  def resolveRequiredArguments(
+      command: String,
+      fields: List[(String, Option[String])],
+      positional: Seq[String],
+      unparsed: Seq[String]
+  ): List[String] < Abort[SquireError] =
+    if unparsed.nonEmpty then cliFailure(command, s"arguments after -- are not supported: ${unparsed.mkString(" ")}")
+    else
+      val remaining = scala.collection.mutable.Queue.from(positional)
+      val resolved = fields.map { case (name, named) => name -> named.orElse(remaining.dequeueFirst(_ => true)) }
+      resolved.collectFirst { case (name, None) => name } match
+        case Some(name) => cliFailure(command, s"missing required argument <$name>")
+        case None if remaining.nonEmpty => cliFailure(command, s"unexpected positional arguments: ${remaining.mkString(" ")}")
+        case None => resolved.flatMap(_._2)
+
+  def resolveOptionalArgument(
+      command: String,
+      field: String,
+      named: Option[String],
+      positional: Seq[String],
+      unparsed: Seq[String]
+  ): Option[String] < Abort[SquireError] =
+    if unparsed.nonEmpty then cliFailure(command, s"arguments after -- are not supported: ${unparsed.mkString(" ")}")
+    else
+      val resolved = named.orElse(positional.headOption)
+      val consumed = if named.isDefined then 0 else math.min(1, positional.size)
+      val extra = positional.drop(consumed)
+      if extra.nonEmpty then cliFailure(command, s"unexpected positional arguments: ${extra.mkString(" ")}")
+      else resolved
 
   def runCommand[S](
       operation: Int < (S & Abort[SquireError]),
@@ -201,6 +240,7 @@ object SquireCli:
     }
 
   def runReferenceAdd(
+      urlOrPath: String,
       options: ReferenceRepoAddOpts,
       root: Path,
       runner: ProcessRunner,
@@ -210,7 +250,7 @@ object SquireCli:
     SquireRepo
       .add(
         ReferenceAdd(
-          options.urlOrPath,
+          urlOrPath,
           options.name,
           options.ref,
           options.strategy,
@@ -240,25 +280,26 @@ object SquireCli:
     }
 
   def runReferenceStatus(
-      options: ReferenceRepoStatusOpts,
+      name: Option[String],
       root: Path,
       runner: ProcessRunner,
       output: String => Unit
   ): Int < (Async & Sync & Abort[SquireError]) =
-    SquireRepo.status(root, options.name, runner).map { report =>
+    SquireRepo.status(root, name, runner).map { report =>
       output(report.output)
       report.exitCode
     }
 
   def runReferenceRemove(
-      options: ReferenceRepoRemoveOpts,
+      name: String,
+      keepFiles: Boolean,
       root: Path,
       runner: ProcessRunner,
       platform: SquirePlatform,
       output: String => Unit
   ): Int < (Async & Sync & Abort[SquireError]) =
-    SquireRepo.remove(options.name, options.keepFiles, root, runner, platform).map { _ =>
-      output(s"Removed '${options.name}' from manifest.\n")
+    SquireRepo.remove(name, keepFiles, root, runner, platform).map { _ =>
+      output(s"Removed '$name' from manifest.\n")
       0
     }
 
@@ -562,24 +603,26 @@ object SquireApp extends CommandsEntryPoint:
   object CellarGetCmd extends KyoCommand[CellarGetOpts]:
     override def name  = "cellar get"
     override def names = List(List("cellar", "get"))
-    run { options =>
+    run { (options, remaining) =>
       SquireCli.runCommand(
-        SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
-          SquireCli.runCellar(
-            CellarAction.Get(
-              options.coordinate,
-              options.symbol,
-              options.hideInherited,
-              options.groupInherited,
-              options.limit
-            ),
-            root,
-            LiveProcessRunner,
-            LiveSquirePlatform,
-            java.lang.System.out.print,
-            java.lang.System.err.print,
-            options.tempDirectory
-          )
+        SquireCli.resolveRequiredArguments(
+          "cellar get",
+          List("coordinate" -> options.coordinate, "symbol" -> options.symbol),
+          remaining.remaining,
+          remaining.unparsed
+        ).flatMap { values =>
+          val coordinate :: symbol :: Nil = values: @unchecked
+          SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+            SquireCli.runCellar(
+              CellarAction.Get(coordinate, symbol, options.hideInherited, options.groupInherited, options.limit),
+              root,
+              LiveProcessRunner,
+              LiveSquirePlatform,
+              java.lang.System.out.print,
+              java.lang.System.err.print,
+              options.tempDirectory
+            )
+          }
         }
       )
     }
@@ -587,18 +630,26 @@ object SquireApp extends CommandsEntryPoint:
   object CellarSearchCmd extends KyoCommand[CellarSearchOpts]:
     override def name  = "cellar search"
     override def names = List(List("cellar", "search"))
-    run { options =>
+    run { (options, remaining) =>
       SquireCli.runCommand(
-        SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
-          SquireCli.runCellar(
-            CellarAction.Search(options.coordinate, options.query, options.limit),
-            root,
-            LiveProcessRunner,
-            LiveSquirePlatform,
-            java.lang.System.out.print,
-            java.lang.System.err.print,
-            options.tempDirectory
-          )
+        SquireCli.resolveRequiredArguments(
+          "cellar search",
+          List("coordinate" -> options.coordinate, "query" -> options.query),
+          remaining.remaining,
+          remaining.unparsed
+        ).flatMap { values =>
+          val coordinate :: query :: Nil = values: @unchecked
+          SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+            SquireCli.runCellar(
+              CellarAction.Search(coordinate, query, options.limit),
+              root,
+              LiveProcessRunner,
+              LiveSquirePlatform,
+              java.lang.System.out.print,
+              java.lang.System.err.print,
+              options.tempDirectory
+            )
+          }
         }
       )
     }
@@ -606,18 +657,26 @@ object SquireApp extends CommandsEntryPoint:
   object CellarDepsCmd extends KyoCommand[CellarDepsOpts]:
     override def name  = "cellar deps"
     override def names = List(List("cellar", "deps"))
-    run { options =>
+    run { (options, remaining) =>
       SquireCli.runCommand(
-        SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
-          SquireCli.runCellar(
-            CellarAction.Deps(options.coordinate),
-            root,
-            LiveProcessRunner,
-            LiveSquirePlatform,
-            java.lang.System.out.print,
-            java.lang.System.err.print,
-            options.tempDirectory
-          )
+        SquireCli.resolveRequiredArguments(
+          "cellar deps",
+          List("coordinate" -> options.coordinate),
+          remaining.remaining,
+          remaining.unparsed
+        ).flatMap { values =>
+          val coordinate :: Nil = values: @unchecked
+          SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+            SquireCli.runCellar(
+              CellarAction.Deps(coordinate),
+              root,
+              LiveProcessRunner,
+              LiveSquirePlatform,
+              java.lang.System.out.print,
+              java.lang.System.err.print,
+              options.tempDirectory
+            )
+          }
         }
       )
     }
@@ -625,10 +684,25 @@ object SquireApp extends CommandsEntryPoint:
   object ReferenceRepoAddCmd extends KyoCommand[ReferenceRepoAddOpts]:
     override def name  = "reference repo add"
     override def names = List(List("reference", "repo", "add"))
-    run { options =>
+    run { (options, remaining) =>
       SquireCli.runCommand(
-        SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
-          SquireCli.runReferenceAdd(options, root, LiveProcessRunner, LiveSquirePlatform, java.lang.System.out.print)
+        SquireCli.resolveRequiredArguments(
+          "reference repo add",
+          List("url-or-path" -> options.urlOrPath),
+          remaining.remaining,
+          remaining.unparsed
+        ).flatMap { values =>
+          val urlOrPath :: Nil = values: @unchecked
+          SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+            SquireCli.runReferenceAdd(
+              urlOrPath,
+              options,
+              root,
+              LiveProcessRunner,
+              LiveSquirePlatform,
+              java.lang.System.out.print
+            )
+          }
         }
       )
     }
@@ -647,10 +721,18 @@ object SquireApp extends CommandsEntryPoint:
   object ReferenceRepoStatusCmd extends KyoCommand[ReferenceRepoStatusOpts]:
     override def name  = "reference repo status"
     override def names = List(List("reference", "repo", "status"))
-    run { options =>
+    run { (options, remaining) =>
       SquireCli.runCommand(
-        SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
-          SquireCli.runReferenceStatus(options, root, LiveProcessRunner, java.lang.System.out.print)
+        SquireCli.resolveOptionalArgument(
+          "reference repo status",
+          "name",
+          options.name,
+          remaining.remaining,
+          remaining.unparsed
+        ).flatMap { name =>
+          SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+            SquireCli.runReferenceStatus(name, root, LiveProcessRunner, java.lang.System.out.print)
+          }
         }
       )
     }
@@ -658,10 +740,25 @@ object SquireApp extends CommandsEntryPoint:
   object ReferenceRepoRemoveCmd extends KyoCommand[ReferenceRepoRemoveOpts]:
     override def name  = "reference repo remove"
     override def names = List(List("reference", "repo", "remove"))
-    run { options =>
+    run { (options, remaining) =>
       SquireCli.runCommand(
-        SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
-          SquireCli.runReferenceRemove(options, root, LiveProcessRunner, LiveSquirePlatform, java.lang.System.out.print)
+        SquireCli.resolveRequiredArguments(
+          "reference repo remove",
+          List("name" -> options.name),
+          remaining.remaining,
+          remaining.unparsed
+        ).flatMap { values =>
+          val name :: Nil = values: @unchecked
+          SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+            SquireCli.runReferenceRemove(
+              name,
+              options.keepFiles,
+              root,
+              LiveProcessRunner,
+              LiveSquirePlatform,
+              java.lang.System.out.print
+            )
+          }
         }
       )
     }

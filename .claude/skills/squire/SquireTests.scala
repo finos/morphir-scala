@@ -8,6 +8,7 @@
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
+import caseapp.core.Scala3Helpers.HelpWithOps
 import caseapp.core.parser.Parser
 import kyo.*
 import kyo.test.*
@@ -409,6 +410,149 @@ class SquireCliSpec extends Test[Any]:
       )
 
       assert(SquireApp.commands.flatMap(_.names).toSet == expected)
+    }
+
+    "accepts every documented positional command through RemainingArgs" in {
+      val cases = List(
+        SquireApp.CellarGetCmd.parser.detailedParse(Seq("org.example:demo:1", "demo.Symbol")) -> List(
+          "org.example:demo:1",
+          "demo.Symbol"
+        ),
+        SquireApp.CellarSearchCmd.parser.detailedParse(Seq("org.example:demo:1", "Symbol")) -> List(
+          "org.example:demo:1",
+          "Symbol"
+        ),
+        SquireApp.CellarDepsCmd.parser.detailedParse(Seq("org.example:demo:1")) -> List("org.example:demo:1"),
+        SquireApp.ReferenceRepoAddCmd.parser.detailedParse(Seq("https://example.test/repo")) -> List(
+          "https://example.test/repo"
+        ),
+        SquireApp.ReferenceRepoStatusCmd.parser.detailedParse(Seq("mill")) -> List("mill"),
+        SquireApp.ReferenceRepoRemoveCmd.parser.detailedParse(Seq("mill")) -> List("mill")
+      )
+      assert(cases.forall { case (Right((_, remaining)), expected) => remaining.remaining == expected; case _ => false })
+    }
+
+    "resolves documented named and positional argument contracts strictly" in {
+      def failureContains[A](outcome: Result[SquireError, A], fragments: String*): Boolean = outcome match
+        case Result.Failure(error) => fragments.forall(error.getMessage.contains)
+        case Result.Success(_)     => false
+
+      val mixed = Abort.run[SquireError](
+        SquireCli.resolveRequiredArguments(
+          "cellar get",
+          List("coordinate" -> Some("org.example:demo:1"), "symbol" -> None),
+          Seq("demo.Symbol"),
+          Seq.empty
+        )
+      )
+      val duplicate = Abort.run[SquireError](
+        SquireCli.resolveRequiredArguments(
+          "cellar deps",
+          List("coordinate" -> Some("org.example:demo:1")),
+          Seq("other:coordinate:1"),
+          Seq.empty
+        )
+      )
+      val missing = Abort.run[SquireError](
+        SquireCli.resolveRequiredArguments("reference repo remove", List("name" -> None), Seq.empty, Seq.empty)
+      )
+      val excess = Abort.run[SquireError](
+        SquireCli.resolveRequiredArguments(
+          "cellar deps",
+          List("coordinate" -> None),
+          Seq("org.example:demo:1", "extra"),
+          Seq.empty
+        )
+      )
+      val afterDoubleDash = Abort.run[SquireError](
+        SquireCli.resolveRequiredArguments("cellar deps", List("coordinate" -> None), Seq.empty, Seq("org.example:demo:1"))
+      )
+      val absentOptional = Abort.run[SquireError](
+        SquireCli.resolveOptionalArgument("reference repo status", "name", None, Seq.empty, Seq.empty)
+      )
+      val positionalOptional = Abort.run[SquireError](
+        SquireCli.resolveOptionalArgument("reference repo status", "name", None, Seq("mill"), Seq.empty)
+      )
+      val duplicateOptional = Abort.run[SquireError](
+        SquireCli.resolveOptionalArgument("reference repo status", "name", Some("mill"), Seq("other"), Seq.empty)
+      )
+      for
+        mixedResult             <- mixed
+        duplicateResult         <- duplicate
+        missingResult           <- missing
+        excessResult            <- excess
+        afterDoubleDashResult   <- afterDoubleDash
+        absentOptionalResult    <- absentOptional
+        positionalOptionalResult <- positionalOptional
+        duplicateOptionalResult <- duplicateOptional
+      yield assert(
+        mixedResult == Result.Success(List("org.example:demo:1", "demo.Symbol")) &&
+          failureContains(duplicateResult, "cellar deps", "unexpected positional") &&
+          failureContains(missingResult, "reference repo remove", "missing required argument <name>") &&
+          failureContains(excessResult, "cellar deps", "unexpected positional") &&
+          failureContains(afterDoubleDashResult, "cellar deps", "arguments after -- are not supported") &&
+          absentOptionalResult == Result.Success(None) &&
+          positionalOptionalResult == Result.Success(Some("mill")) &&
+          failureContains(duplicateOptionalResult, "reference repo status", "unexpected positional")
+      )
+    }
+
+    "renders the documented positional contracts in generated help" in {
+      val helpFormat = caseapp.core.help.HelpFormat.default(ansiColors = false)
+      val cellarHelp = SquireApp.CellarGetCmd.finalHelp.withProgName("squire cellar get").help(helpFormat, showHidden = false)
+      val addHelp = SquireApp.ReferenceRepoAddCmd.finalHelp
+        .withProgName("squire reference repo add")
+        .help(helpFormat, showHidden = false)
+      val statusHelp = SquireApp.ReferenceRepoStatusCmd.finalHelp
+        .withProgName("squire reference repo status")
+        .help(helpFormat, showHidden = false)
+      assert(
+        cellarHelp.contains("<coordinate> <symbol>") && addHelp.contains("<url-or-path>") &&
+          statusHelp.contains("[<name>]") && !statusHelp.contains("[[<name>]]")
+      )
+    }
+
+    "rejects invalid routed arguments before downstream work" in {
+      var duplicateInvoked      = false
+      var missingInvoked        = false
+      var excessInvoked         = false
+      var afterDoubleDashInvoked = false
+      val duplicate = Abort.run[SquireError](
+        SquireCli
+          .resolveRequiredArguments(
+            "reference repo remove",
+            List("name" -> Some("mill")),
+            Seq("duplicate"),
+            Seq.empty
+          )
+          .flatMap(_ => Sync.defer { duplicateInvoked = true })
+      )
+      val missing = Abort.run[SquireError](
+        SquireCli
+          .resolveRequiredArguments("reference repo remove", List("name" -> None), Seq.empty, Seq.empty)
+          .flatMap(_ => Sync.defer { missingInvoked = true })
+      )
+      val excess = Abort.run[SquireError](
+        SquireCli
+          .resolveRequiredArguments("cellar deps", List("coordinate" -> None), Seq("one", "two"), Seq.empty)
+          .flatMap(_ => Sync.defer { excessInvoked = true })
+      )
+      val afterDoubleDash = Abort.run[SquireError](
+        SquireCli
+          .resolveRequiredArguments("cellar deps", List("coordinate" -> None), Seq.empty, Seq("one"))
+          .flatMap(_ => Sync.defer { afterDoubleDashInvoked = true })
+      )
+      for
+        duplicateResult       <- duplicate
+        missingResult         <- missing
+        excessResult          <- excess
+        afterDoubleDashResult <- afterDoubleDash
+      yield assert(
+        duplicateResult.isFailure && !duplicateInvoked &&
+          missingResult.isFailure && !missingInvoked &&
+          excessResult.isFailure && !excessInvoked &&
+          afterDoubleDashResult.isFailure && !afterDoubleDashInvoked
+      )
     }
   }
 
