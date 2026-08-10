@@ -497,6 +497,32 @@ class SquireCliSpec extends Test[Any]:
       )
     }
 
+    "resolves documented sparse continuations and rejects unrelated extras" in {
+      def failureContains[A](outcome: Result[SquireError, A], fragments: String*): Boolean = outcome match
+        case Result.Failure(error) => fragments.forall(error.getMessage.contains)
+        case Result.Success(_)     => false
+
+      val documented = Abort.run[SquireError](
+        SquireCli.resolveRepoAddArguments(
+          None,
+          List("docs"),
+          Seq("https://github.com/finos/morphir", "website", "tests/bdd", "wit"),
+          Seq.empty
+        )
+      )
+      val unrelated = Abort.run[SquireError](
+        SquireCli.resolveRepoAddArguments(None, Nil, Seq("https://example.test/repo", "extra"), Seq.empty)
+      )
+      for
+        documentedResult <- documented
+        unrelatedResult  <- unrelated
+      yield assert(
+        documentedResult == Result.Success(
+          "https://github.com/finos/morphir" -> List("docs", "website", "tests/bdd", "wit")
+        ) && failureContains(unrelatedResult, "reference repo add", "unexpected positional")
+      )
+    }
+
     "renders the documented positional contracts in generated help" in {
       val helpFormat = caseapp.core.help.HelpFormat.default(ansiColors = false)
       val cellarHelp = SquireApp.CellarGetCmd.finalHelp.withProgName("squire cellar get").help(helpFormat, showHidden = false)
