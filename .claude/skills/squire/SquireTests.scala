@@ -898,7 +898,17 @@ class SquireMetaSpec extends Test[Any]:
         Seq.empty,
         Map("SQUIRE_TEST_MILL_EXIT" -> "23")
       )
-      assert(recorded == List(0, 1, 2, 7) && millFailure.exitCode == 23)
+      val help = SquireLauncherFixtures.run(root, Seq("cellar", "get", "--help"))
+      val missingHandoff = SquireLauncherFixtures.run(root, Seq("cellar", "get"))
+      val malformedHelpHandoff = SquireLauncherFixtures.run(
+        root,
+        Seq("cellar", "get", "--help"),
+        Map("SQUIRE_TEST_RECORDED_EXIT" -> "invalid", "SQUIRE_TEST_MILL_EXIT" -> "0")
+      )
+      assert(
+        recorded == List(0, 1, 2, 7) && millFailure.exitCode == 23 && help.exitCode == 0 &&
+          missingHandoff.exitCode == 1 && malformedHelpHandoff.exitCode == 1
+      )
     }
 
     "defines the same validated temporary exit-file contract on Windows" in {

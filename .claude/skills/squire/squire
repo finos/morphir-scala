@@ -15,10 +15,24 @@ cleanup() {
 trap cleanup EXIT
 
 cd "$DIR"
+SQUIRE_HELP_REQUESTED=0
+for SQUIRE_ARGUMENT in "$@"; do
+  case "$SQUIRE_ARGUMENT" in
+    --) break ;;
+    --help|-h|-help|--usage)
+      SQUIRE_HELP_REQUESTED=1
+      break
+      ;;
+  esac
+done
 set +e
 "$DIR/mill" --no-server --ticker false squire.scala "$@"
 SQUIRE_MILL_EXIT=$?
 set -e
+
+if [ "$SQUIRE_MILL_EXIT" -eq 0 ] && [ "$SQUIRE_HELP_REQUESTED" -eq 1 ] && [ ! -s "$SQUIRE_EXIT_FILE" ]; then
+  printf '%s\n' 0 > "$SQUIRE_EXIT_FILE"
+fi
 
 SQUIRE_RECORDED_EXIT=""
 if IFS= read -r SQUIRE_RECORDED_EXIT < "$SQUIRE_EXIT_FILE"; then
