@@ -911,13 +911,17 @@ class SquireMetaSpec extends Test[Any]:
       )
     }
 
-    "defines the same validated temporary exit-file contract on Windows" in {
+    "preserves successful Windows help handoff semantics" in {
       val launcher = read("squire.bat")
       assert(
         launcher.contains("SQUIRE_EXIT_FILE") && launcher.contains("SQUIRE_RECORDED_EXIT") &&
           launcher.contains("SQUIRE_MILL_EXIT") && launcher.contains("del /q") &&
           launcher.contains("goto no_recorded_exit") &&
-          launcher.contains("--no-server --ticker false squire.scala")
+          launcher.contains("--no-server --ticker false squire.scala") &&
+          launcher.contains("set \"SQUIRE_HELP_REQUESTED=0\"") &&
+          launcher.contains("if \"%1\"==\"\" goto run_squire") &&
+          launcher.contains("if \"%~1\"==\"--\" goto run_squire") &&
+          launcher.contains("if \"%SQUIRE_MILL_EXIT%\"==\"0\" if \"%SQUIRE_HELP_REQUESTED%\"==\"1\"")
       )
     }
   }

@@ -13,10 +13,27 @@ if not exist "%SQUIRE_EXIT_FILE%" (
   exit /b 1
 )
 
+:scan_squire_arguments
+set "SQUIRE_HELP_REQUESTED=0"
+:next_squire_argument
+if "%1"=="" goto run_squire
+if "%~1"=="--" goto run_squire
+if "%~1"=="--help" set "SQUIRE_HELP_REQUESTED=1"
+if "%~1"=="-h" set "SQUIRE_HELP_REQUESTED=1"
+if "%~1"=="-help" set "SQUIRE_HELP_REQUESTED=1"
+if "%~1"=="--usage" set "SQUIRE_HELP_REQUESTED=1"
+shift
+goto next_squire_argument
+
+:run_squire
 pushd "%SQUIRE_SKILL_DIR%"
 call "%SQUIRE_SKILL_DIR%mill.bat" --no-server --ticker false squire.scala %*
 set "SQUIRE_MILL_EXIT=%ERRORLEVEL%"
 popd
+
+if "%SQUIRE_MILL_EXIT%"=="0" if "%SQUIRE_HELP_REQUESTED%"=="1" (
+  for %%F in ("%SQUIRE_EXIT_FILE%") do if %%~zF EQU 0 > "%SQUIRE_EXIT_FILE%" echo 0
+)
 
 set "SQUIRE_RECORDED_EXIT="
 %SystemRoot%\System32\findstr.exe /r /x "[0-9][0-9]*" "%SQUIRE_EXIT_FILE%" >nul 2>&1
