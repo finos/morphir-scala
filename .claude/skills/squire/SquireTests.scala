@@ -2768,6 +2768,31 @@ class SquireSpecSpec extends Test[Any]:
       )
     }
 
+    "preserves failed text-mode kb check stdout and stderr" in {
+      for
+        root <- preparedRoot("spec-check-diagnostics")
+        report <- SquireSpec.sync(
+          SpecSyncOptions(noFetch = true),
+          root,
+          syncRunner(
+            root,
+            checkExit = 1,
+            checkOutput = "ERROR invalid knowledge entry\n",
+            checkError = Some("schema path: kb/example.yaml\n")
+          ),
+          TestSpecPlatform()
+        )
+        detail = report.steps.find(_.step == "check").map(_.detail).getOrElse("")
+        rendered = SquireSpec.renderText(report)
+      yield assert(
+        !report.ok && detail.contains("check --no-provenance") &&
+          detail.contains("ERROR invalid knowledge entry") &&
+          detail.contains("schema path: kb/example.yaml") &&
+          rendered.contains("ERROR invalid knowledge entry") &&
+          rendered.contains("schema path: kb/example.yaml")
+      )
+    }
+
     "fails closed on repository sparse dirty and kb status probe failures" in {
       for
         headRoot <- preparedRoot("spec-head-probe")
@@ -3460,7 +3485,9 @@ object SquireSpecFixtures:
       sparseError: String = "",
       dirtyExit: Int = 0,
       dirtyError: String = "",
-      statusExit: Int = 0
+      statusExit: Int = 0,
+      checkOutput: String = "{\"findings\":[]}",
+      checkError: Option[String] = None
   ): RuleRunner =
     val checkout = root / SquireSpec.CheckoutRel
     RuleRunner { request =>
@@ -3477,7 +3504,7 @@ object SquireSpecFixtures:
       else if argv.take(3) == kb(root, "sync", "pull").take(3) then
         ProcessResult(request, pullExit, "{\"actions\":[]}", if pullExit == 0 then "" else "pull failed")
       else if argv.take(2) == kb(root, "check").take(2) then
-        ProcessResult(request, checkExit, "{\"findings\":[]}", if checkExit == 0 then "" else "check failed")
+        ProcessResult(request, checkExit, checkOutput, checkError.getOrElse(if checkExit == 0 then "" else "check failed"))
       else unexpected(request)
     }
 

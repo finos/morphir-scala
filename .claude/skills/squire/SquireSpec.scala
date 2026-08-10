@@ -459,10 +459,13 @@ object SquireSpec:
     runner.run(ProcessRequest(Chunk((root / KbRel).toString) ++ arguments, Present(root))).map { process =>
       val status = if process.exitCode == 0 then "ok" else "failed"
       val result = if json then parseJson(process.stdout).map(Present(_)).getOrElse(Absent) else Absent
+      val baseDetail = arguments.mkString(" ")
+      val diagnostics = if process.exitCode != 0 && !json then processDiagnostics(process) else ""
+      val detail = if diagnostics.nonEmpty then s"$baseDetail\n$diagnostics" else baseDetail
       SpecReport(
         "spec-sync",
         ok = process.exitCode == 0,
-        steps :+ SpecStep("check", status, arguments.mkString(" "), result = result)
+        steps :+ SpecStep("check", status, detail, result = result)
       )
     }
 
@@ -874,3 +877,6 @@ object SquireSpec:
   private def lastDetail(result: ProcessResult): String =
     val combined = if result.stderr.trim.nonEmpty then result.stderr.trim else result.stdout.trim
     combined.linesIterator.toList.lastOption.getOrElse("no output")
+
+  private def processDiagnostics(result: ProcessResult): String =
+    List(result.stdout.trim, result.stderr.trim).filter(_.nonEmpty).mkString("\n")
