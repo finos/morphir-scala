@@ -157,17 +157,12 @@ object SquireCli:
       positional: Seq[String],
       unparsed: Seq[String]
   ): (String, List[String]) < Abort[SquireError] =
-    if unparsed.nonEmpty then
-      cliFailure("reference repo add", s"arguments after -- are not supported: ${unparsed.mkString(" ")}")
-    else
-      val (url, remaining) = namedUrl match
-        case Some(value) => Some(value) -> positional
-        case None        => positional.headOption -> positional.drop(1)
-      url match
-        case None => cliFailure("reference repo add", "missing required argument <url-or-path>")
-        case Some(_) if sparse.isEmpty && remaining.nonEmpty =>
-          cliFailure("reference repo add", s"unexpected positional arguments: ${remaining.mkString(" ")}")
-        case Some(value) => value -> (sparse ++ remaining)
+    resolveRequiredArguments(
+      "reference repo add",
+      List("url-or-path" -> namedUrl),
+      positional,
+      unparsed
+    ).map(values => values.head -> sparse)
 
   def runCommand[S](
       operation: Int < (S & Abort[SquireError]),

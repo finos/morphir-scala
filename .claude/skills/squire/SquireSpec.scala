@@ -460,8 +460,7 @@ object SquireSpec:
       val status = if process.exitCode == 0 then "ok" else "failed"
       val result = if json then parseJson(process.stdout).map(Present(_)).getOrElse(Absent) else Absent
       val baseDetail = arguments.mkString(" ")
-      val diagnostics = if process.exitCode != 0 && !json then processDiagnostics(process) else ""
-      val detail = if diagnostics.nonEmpty then s"$baseDetail\n$diagnostics" else baseDetail
+      val detail = if process.exitCode != 0 && !json then processDiagnostics(baseDetail, process) else baseDetail
       SpecReport(
         "spec-sync",
         ok = process.exitCode == 0,
@@ -843,7 +842,7 @@ object SquireSpec:
   private def ownsSchemas(written: List[String]): Boolean = written.exists(_.startsWith(SchemaRel))
 
   private def addCommand: String =
-    s"squire reference repo add $UpstreamUrl --sparse ${SparsePaths.mkString(" ")}"
+    s"squire reference repo add $UpstreamUrl ${SparsePaths.map(path => s"--sparse $path").mkString(" ")}"
 
   private def git(checkout: Path, args: String*): ProcessRequest =
     ProcessRequest(Chunk("git", "-C", checkout.toString) ++ Chunk.from(args))
@@ -878,5 +877,8 @@ object SquireSpec:
     val combined = if result.stderr.trim.nonEmpty then result.stderr.trim else result.stdout.trim
     combined.linesIterator.toList.lastOption.getOrElse("no output")
 
-  private def processDiagnostics(result: ProcessResult): String =
-    List(result.stdout.trim, result.stderr.trim).filter(_.nonEmpty).mkString("\n")
+  private def processDiagnostics(baseDetail: String, result: ProcessResult): String =
+    List(result.stdout, result.stderr).filter(_.nonEmpty).foldLeft(baseDetail) { (detail, stream) =>
+      if detail.endsWith("\n") || stream.startsWith("\n") then detail + stream
+      else s"$detail\n$stream"
+    }

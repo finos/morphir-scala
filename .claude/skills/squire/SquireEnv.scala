@@ -2,7 +2,10 @@
 //| moduleDeps: [SquireModel.scala]
 
 import java.net.{InetAddress, InetSocketAddress, ServerSocket, Socket, SocketException}
-import java.nio.file.{Files, Path as JavaPath}
+import java.nio.ByteBuffer
+import java.nio.channels.SeekableByteChannel
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Files, LinkOption, Path as JavaPath, StandardOpenOption}
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -60,7 +63,18 @@ object SquireEnv:
     def zone: ZoneId = ZoneId.systemDefault()
     def probeJvmNetwork(timeout: Duration): CheckResult
     def probeDaemon(port: Int): DaemonProbe
-    def writeProbe(path: Path): Unit = Files.writeString(path.toJava, "squire probe")
+    def probePath(directory: Path): Path = directory / s".squire-env-probe-${java.util.UUID.randomUUID()}"
+    def createProbe(path: Path): SeekableByteChannel =
+      Files.newByteChannel(
+        path.toJava,
+        StandardOpenOption.CREATE_NEW,
+        StandardOpenOption.WRITE,
+        LinkOption.NOFOLLOW_LINKS
+      )
+    def writeProbe(path: Path, channel: SeekableByteChannel): Unit =
+      val bytes = ByteBuffer.wrap("squire probe".getBytes(StandardCharsets.UTF_8))
+      while bytes.hasRemaining do channel.write(bytes)
+    def closeProbe(channel: SeekableByteChannel): Unit = channel.close()
     def deleteProbe(path: Path): Unit = Files.deleteIfExists(path.toJava)
 
   object LivePlatform extends Platform:
@@ -188,20 +202,29 @@ object SquireEnv:
         case Present(directory) if !Files.isDirectory(directory.toJava) =>
           CheckResult(Present(false), s"effective JVM temp directory does not exist: $directory", 0.0)
         case Present(directory) =>
-          val probe = directory / ".squire-env-probe"
+          var ownedProbe: Maybe[(Path, SeekableByteChannel)] = Absent
           var result: CheckResult = CheckResult(Present(false), "write probe did not complete", 0.0)
           var cleanupFailure: Maybe[String] = Absent
           try
-            platform.writeProbe(probe)
+            val path    = platform.probePath(directory)
+            val channel = platform.createProbe(path)
+            ownedProbe = Present(path -> channel)
+            platform.writeProbe(path, channel)
             result = CheckResult(Present(true), s"JVM temp write probe succeeded at $directory", 0.0)
           catch
             case error: java.io.IOException => result = CheckResult(Present(false), s"${error.getClass.getSimpleName}: ${error.getMessage}", 0.0)
             case error: SecurityException    => result = CheckResult(Present(false), s"${error.getClass.getSimpleName}: ${error.getMessage}", 0.0)
-          finally if Files.exists(probe.toJava) then
-            try platform.deleteProbe(probe)
-            catch
-              case error: java.io.IOException => cleanupFailure = Present(s"could not clean probe file: ${error.getClass.getSimpleName}: ${error.getMessage}")
-              case error: SecurityException    => cleanupFailure = Present(s"could not clean probe file: ${error.getClass.getSimpleName}: ${error.getMessage}")
+          finally ownedProbe match
+            case Present((path, channel)) =>
+              try platform.closeProbe(channel)
+              catch
+                case error: java.io.IOException => cleanupFailure = Present(s"could not clean probe file: ${error.getClass.getSimpleName}: ${error.getMessage}")
+                case error: SecurityException    => cleanupFailure = Present(s"could not clean probe file: ${error.getClass.getSimpleName}: ${error.getMessage}")
+              try platform.deleteProbe(path)
+              catch
+                case error: java.io.IOException => cleanupFailure = Present(s"could not clean probe file: ${error.getClass.getSimpleName}: ${error.getMessage}")
+                case error: SecurityException    => cleanupFailure = Present(s"could not clean probe file: ${error.getClass.getSimpleName}: ${error.getMessage}")
+            case Absent => ()
           cleanupFailure match
             case Present(detail) => CheckResult(Present(false), detail, 0.0)
             case Absent          => result

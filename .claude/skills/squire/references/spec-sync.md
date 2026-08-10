@@ -28,7 +28,7 @@ Both halves need a checkout of upstream at `.refs/finos/morphir`. Morphir is a l
 
 ```bash
 ${CLAUDE_PLUGIN_ROOT}/squire reference repo add https://github.com/finos/morphir \
-  --sparse docs website tests/bdd wit
+  --sparse docs --sparse website --sparse tests/bdd --sparse wit
 ```
 
 - `docs/` — the specification prose, the design documents behind it, and the ADRs

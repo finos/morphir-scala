@@ -26,7 +26,7 @@ ${CLAUDE_PLUGIN_ROOT}/squire reference repo add https://github.com/com-lihaoyi/m
 ${CLAUDE_PLUGIN_ROOT}/squire reference repo add https://github.com/com-lihaoyi/mill --full
 
 # Sparse clone — only these subtrees land on disk
-${CLAUDE_PLUGIN_ROOT}/squire reference repo add https://github.com/finos/morphir --sparse docs website wit
+${CLAUDE_PLUGIN_ROOT}/squire reference repo add https://github.com/finos/morphir --sparse docs --sparse website --sparse wit
 
 # Symlink an existing local repo (saves disk space)
 ${CLAUDE_PLUGIN_ROOT}/squire reference repo add /path/to/local/mill --strategy symlink
@@ -46,13 +46,15 @@ ${CLAUDE_PLUGIN_ROOT}/squire reference repo add https://github.com/com-lihaoyi/m
 
 **Sparse checkouts:**
 
-`--sparse PATH [PATH ...]` clones partially (`--filter=blob:none`) and sparsely (`--sparse`), then applies the paths with `git sparse-checkout set`. Only those subtrees materialise; everything else stays in the object store, unfetched. It composes with `--depth`/`--full` and `--ref`, and with the `gh repo clone` path — the flags are forwarded verbatim after `--`.
+Repeat `--sparse PATH` once for every sparse-checkout path. The command clones partially (`--filter=blob:none`) and sparsely (`--sparse`), then applies the ordered paths with `git sparse-checkout set`. Only those subtrees materialise; everything else stays in the object store, unfetched. It composes with `--depth`/`--full` and `--ref`, and with the `gh repo clone` path — the Git flags are forwarded verbatim after `--`.
+
+Only the repository URL or local path may be positional. A bare token after it is rejected; it never becomes a sparse path implicitly.
 
 Reach for it when the upstream repo is large and only a fraction of it is interesting. The spec-sync loop is the motivating case — see [spec-sync.md](spec-sync.md), which owns the authoritative path list:
 
 ```bash
 ${CLAUDE_PLUGIN_ROOT}/squire reference repo add https://github.com/finos/morphir \
-  --sparse docs website tests/bdd wit
+  --sparse docs --sparse website --sparse tests/bdd --sparse wit
 ```
 
 Clone strategy only — `--sparse` with `symlink` or `worktree` is an error. The paths are recorded in the manifest entry as `"sparse": [...]`, so `repo list` can mark the checkout `[sparse]` and `repo status` can print it. That marker matters: a file "missing" from a sparse checkout is not missing upstream, it is simply not checked out. Widen the set with `git -C .refs/<org>/<name> sparse-checkout set <paths...>` (the manifest is not rewritten by that, so update it by hand or re-add the repo).

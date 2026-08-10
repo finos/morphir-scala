@@ -2,39 +2,50 @@
 
 ## Context
 
-PR #956 documents `squire reference repo add <url> --sparse PATH [PATH ...]`, but Case App 2.1.0 consumes only one value for each `List[String]` option occurrence. The remaining sparse paths arrive through `RemainingArgs` and the generic required-argument resolver rejects them. Separately, a failing text-mode `squire spec sync` discards the stdout and stderr from `kb check`, leaving users without the validation findings needed to repair the knowledge base.
+Final review of PR #956 identified three independent boundary defects:
 
-## CLI argument resolution
+1. the JVM temp-directory health check reused a predictable `.squire-env-probe` path, so it could overwrite, follow, or delete an entry that it did not create;
+2. `reference repo add` treated extra positional tokens as sparse paths when `--sparse` was present, weakening the CLI boundary and conflicting with Case App's native repeated-list syntax; and
+3. failed text-mode `spec sync` reports trimmed `kb check` stdout and stderr, changing diagnostics that should be preserved byte-for-byte.
 
-Keep the existing Case App command tree and the documented positional URL. Add a repository-add-specific resolver that:
+The approved sparse contract is native Case App repetition: every sparse path has its own flag, for example:
 
-- rejects arguments after `--`;
-- resolves the required URL from the named option or the first positional token;
-- preserves values Case App already decoded into `options.sparse`;
-- treats remaining positional tokens as continuations of `--sparse` only when at least one sparse value was decoded;
-- rejects unrelated extra positional tokens when `--sparse` was not supplied.
+```bash
+squire reference repo add URL --sparse docs --sparse website --sparse tests/bdd --sparse wit
+```
 
-The command passes the resolved URL and complete sparse-path list to `SquireRepo.add`. Other commands continue using the strict generic resolvers.
+## JVM temp-directory probe ownership
 
-This preserves the documented one-flag, multiple-path form and also keeps repeated `--sparse` options working. Rewriting every caller to repeat the flag would preserve stricter duplicate detection, but would make the public CLI less natural and invalidate existing documentation and generated guidance. A custom Case App parser would add complexity without improving the user-facing contract.
+Generate a UUID-suffixed probe candidate inside the effective JVM temp directory. Open it atomically with `CREATE_NEW`, `WRITE`, and `NOFOLLOW_LINKS`, retain the opened channel, and write the probe bytes through that channel. The probe is owned only after the atomic create succeeds.
 
-## `kb check` diagnostics
+Close the owned channel and delete only the owned path in the finalizer. A write failure still triggers cleanup; a cleanup failure remains a failed check with the existing report semantics. A pre-existing legacy sentinel or symlink is never opened, changed, or removed, and overlapping checks receive distinct owned paths.
 
-When text-mode `kb check` fails, retain its complete non-empty stdout and stderr in the failed `SpecStep.detail`, following the command description. JSON mode keeps its structured result handling and does not embed JSON stdout into the text detail.
+## Strict CLI argument resolution
 
-The existing report renderer and CLI error emitter will therefore expose the actual validation findings without adding a second output channel or changing successful reports.
+Keep the existing Case App command tree. `ReferenceRepoAddOpts.sparse: List[String]` receives one value for each repeated `--sparse PATH` occurrence and preserves occurrence order. The URL remains available in positional and named forms.
 
-## Error handling and safety
+Use the strict required-argument resolver for the URL boundary:
 
-Argument resolution still completes before project-root discovery or process execution. A malformed invocation cannot clone, fetch, or write repository state. Diagnostic preservation is read-only and does not change the `kb check` exit status or gating behavior.
+- reject arguments after `--`;
+- accept exactly one URL or local path, from either the named option or the sole positional token;
+- reject a positional URL when a named URL was also supplied;
+- reject every unrelated extra positional token; and
+- pass the already-decoded sparse list through unchanged.
+
+Resolution completes before project-root discovery, filesystem access, or process execution. There is no positional continuation or alternate variadic parser.
+
+## Exact `kb check` diagnostics
+
+When text-mode `kb check` fails, append its complete non-empty stdout and stderr to the command detail without trimming either stream. Insert only a separator newline when the preceding content does not end with one and the following stream does not begin with one. This preserves leading indentation, trailing spaces, and trailing newlines exactly.
+
+JSON mode retains structured result handling and never embeds raw JSON stdout or stderr in the text detail. Successful reports and exit-status gating are unchanged.
 
 ## Tests and verification
 
-Regression tests will first demonstrate:
+Each finding follows a separate red/green cycle:
 
-1. the documented URL plus one `--sparse` flag and four paths resolves to the complete sparse list;
-2. unrelated extra positionals remain rejected when `--sparse` is absent;
-3. a failed text-mode `kb check` retains both stdout and stderr in the report and rendered output;
-4. successful and JSON-mode behavior remains unchanged.
+- temp probing: preserve a legacy sentinel byte-for-byte, preserve a symlink and its target, force two overlapping probes to coexist without collision or cross-deletion, and verify cleanup after success and write failure;
+- parsing: traverse the real Case App parser and handler boundary for repeated sparse flags in exact order, accidental extra positional input, named/positional URL duplication, input after `--`, missing URL, and both supported URL forms; and
+- diagnostics: compare the exact failed step detail and rendered text, including indentation and final newlines, while proving JSON mode excludes raw process output.
 
-After the focused red/green cycle, run the complete Squire suite, formatting, lint, and local CI. Push the focused commit to PR #956, reply to and resolve the two review threads, then check again for new review feedback.
+Use scoped scratch fixtures for filesystem cases. After focused red/green evidence, run formatting, the full Squire suite, repository constraints, lint, and local aggregate CI sequentially. Then commit once as Damian Reeves, push the existing PR branch, monitor hosted checks, and confirm that no unresolved review thread remains.

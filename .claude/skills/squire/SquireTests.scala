@@ -497,29 +497,125 @@ class SquireCliSpec extends Test[Any]:
       )
     }
 
-    "resolves documented sparse continuations and rejects unrelated extras" in {
+    "parses repeated sparse flags and rejects every extra positional before downstream work" in {
       def failureContains[A](outcome: Result[SquireError, A], fragments: String*): Boolean = outcome match
         case Result.Failure(error) => fragments.forall(error.getMessage.contains)
         case Result.Success(_)     => false
 
-      val documented = Abort.run[SquireError](
+      val Right((repeatedOptions, repeatedRemaining)) = SquireApp.ReferenceRepoAddCmd.parser.detailedParse(
+        Seq(
+          "https://github.com/finos/morphir",
+          "--sparse",
+          "docs",
+          "--sparse",
+          "website",
+          "--sparse",
+          "tests/bdd",
+          "--sparse",
+          "wit"
+        )
+      ): @unchecked
+      val repeated = Abort.run[SquireError](
         SquireCli.resolveRepoAddArguments(
-          None,
-          List("docs"),
-          Seq("https://github.com/finos/morphir", "website", "tests/bdd", "wit"),
-          Seq.empty
+          repeatedOptions.urlOrPath,
+          repeatedOptions.sparse,
+          repeatedRemaining.remaining,
+          repeatedRemaining.unparsed
         )
       )
-      val unrelated = Abort.run[SquireError](
-        SquireCli.resolveRepoAddArguments(None, Nil, Seq("https://example.test/repo", "extra"), Seq.empty)
+      val Right((accidentalOptions, accidentalRemaining)) = SquireApp.ReferenceRepoAddCmd.parser.detailedParse(
+        Seq("https://example.test/repo", "accidental", "--sparse", "docs")
+      ): @unchecked
+      var accidentalInvoked = false
+      val accidental = Abort.run[SquireError](
+        SquireCli
+          .resolveRepoAddArguments(
+            accidentalOptions.urlOrPath,
+            accidentalOptions.sparse,
+            accidentalRemaining.remaining,
+            accidentalRemaining.unparsed
+          )
+          .flatMap(result => Sync.defer { accidentalInvoked = true; result })
+      )
+      val Right((duplicateOptions, duplicateRemaining)) = SquireApp.ReferenceRepoAddCmd.parser.detailedParse(
+        Seq("--url-or-path", "https://example.test/repo", "duplicate", "--sparse", "docs")
+      ): @unchecked
+      var duplicateInvoked = false
+      val duplicate = Abort.run[SquireError](
+        SquireCli
+          .resolveRepoAddArguments(
+            duplicateOptions.urlOrPath,
+            duplicateOptions.sparse,
+            duplicateRemaining.remaining,
+            duplicateRemaining.unparsed
+          )
+          .flatMap(result => Sync.defer { duplicateInvoked = true; result })
+      )
+      val Right((postDashOptions, postDashRemaining)) = SquireApp.ReferenceRepoAddCmd.parser.detailedParse(
+        Seq("https://example.test/repo", "--sparse", "docs", "--", "after")
+      ): @unchecked
+      val postDash = Abort.run[SquireError](
+        SquireCli.resolveRepoAddArguments(
+          postDashOptions.urlOrPath,
+          postDashOptions.sparse,
+          postDashRemaining.remaining,
+          postDashRemaining.unparsed
+        )
+      )
+      val Right((missingOptions, missingRemaining)) = SquireApp.ReferenceRepoAddCmd.parser.detailedParse(
+        Seq("--sparse", "docs")
+      ): @unchecked
+      val missing = Abort.run[SquireError](
+        SquireCli.resolveRepoAddArguments(
+          missingOptions.urlOrPath,
+          missingOptions.sparse,
+          missingRemaining.remaining,
+          missingRemaining.unparsed
+        )
+      )
+      val Right((positionalOptions, positionalRemaining)) = SquireApp.ReferenceRepoAddCmd.parser.detailedParse(
+        Seq("https://example.test/positional", "--sparse", "docs")
+      ): @unchecked
+      val positional = Abort.run[SquireError](
+        SquireCli.resolveRepoAddArguments(
+          positionalOptions.urlOrPath,
+          positionalOptions.sparse,
+          positionalRemaining.remaining,
+          positionalRemaining.unparsed
+        )
+      )
+      val Right((namedOptions, namedRemaining)) = SquireApp.ReferenceRepoAddCmd.parser.detailedParse(
+        Seq("--url-or-path", "https://example.test/named", "--sparse", "docs")
+      ): @unchecked
+      val named = Abort.run[SquireError](
+        SquireCli.resolveRepoAddArguments(
+          namedOptions.urlOrPath,
+          namedOptions.sparse,
+          namedRemaining.remaining,
+          namedRemaining.unparsed
+        )
       )
       for
-        documentedResult <- documented
-        unrelatedResult  <- unrelated
+        repeatedResult   <- repeated
+        accidentalResult <- accidental
+        duplicateResult  <- duplicate
+        postDashResult   <- postDash
+        missingResult    <- missing
+        positionalResult <- positional
+        namedResult      <- named
       yield assert(
-        documentedResult == Result.Success(
+        repeatedOptions.sparse == List("docs", "website", "tests/bdd", "wit") &&
+          repeatedResult == Result.Success(
           "https://github.com/finos/morphir" -> List("docs", "website", "tests/bdd", "wit")
-        ) && failureContains(unrelatedResult, "reference repo add", "unexpected positional")
+        ) &&
+          failureContains(accidentalResult, "reference repo add", "unexpected positional", "accidental") &&
+          !accidentalInvoked &&
+          failureContains(duplicateResult, "reference repo add", "unexpected positional", "duplicate") &&
+          !duplicateInvoked &&
+          failureContains(postDashResult, "reference repo add", "arguments after -- are not supported", "after") &&
+          failureContains(missingResult, "reference repo add", "missing required argument <url-or-path>") &&
+          positionalResult == Result.Success("https://example.test/positional" -> List("docs")) &&
+          namedResult == Result.Success("https://example.test/named" -> List("docs"))
       )
     }
 
@@ -2663,7 +2759,7 @@ class SquireSpecSpec extends Test[Any]:
               step.detail.contains("no reference checkout of finos/morphir") &&
               step.hint.exists(
                 _ ==
-                  "add one with:\n    squire reference repo add https://github.com/finos/morphir --sparse docs website tests/bdd wit"
+                  "add one with:\n    squire reference repo add https://github.com/finos/morphir --sparse docs --sparse website --sparse tests/bdd --sparse wit"
               )
           ) && safe(runner)
       )
@@ -2768,28 +2864,51 @@ class SquireSpecSpec extends Test[Any]:
       )
     }
 
-    "preserves failed text-mode kb check stdout and stderr" in {
+    "preserves exact failed text diagnostics and excludes raw JSON output" in {
       for
-        root <- preparedRoot("spec-check-diagnostics")
-        report <- SquireSpec.sync(
+        textRoot <- preparedRoot("spec-check-diagnostics")
+        textReport <- SquireSpec.sync(
           SpecSyncOptions(noFetch = true),
-          root,
+          textRoot,
           syncRunner(
-            root,
+            textRoot,
             checkExit = 1,
-            checkOutput = "ERROR invalid knowledge entry\n",
-            checkError = Some("schema path: kb/example.yaml\n")
+            checkOutput = "  ERROR invalid knowledge entry\nstdout tail  \n",
+            checkError = Some("\tschema path: kb/example.yaml\nstderr tail\n\n")
           ),
           TestSpecPlatform()
         )
-        detail = report.steps.find(_.step == "check").map(_.detail).getOrElse("")
-        rendered = SquireSpec.renderText(report)
+        textDetail   = textReport.steps.find(_.step == "check").map(_.detail).getOrElse("")
+        textRendered = SquireSpec.renderText(textReport)
+        expectedDetail =
+          "check --no-provenance\n  ERROR invalid knowledge entry\nstdout tail  \n" +
+            "\tschema path: kb/example.yaml\nstderr tail\n\n"
+        expectedRendered =
+          s"[1/5] reference checkout\n  ok: $textRoot/${SquireSpec.CheckoutRel}\n" +
+            "[2/5] refresh finos/morphir\n  skipped: --no-fetch\n" +
+            "[3/5] sync status\n  ok: kb sync status\n" +
+            "[4/5] sync pull\n  ok: sync pull\n" +
+            "[5/5] kb check\n  ERROR: " + expectedDetail +
+            "\n\nWorkflow failed.\n"
+        jsonRoot <- preparedRoot("spec-check-json-diagnostics")
+        jsonReport <- SquireSpec.sync(
+          SpecSyncOptions(noFetch = true, json = true),
+          jsonRoot,
+          syncRunner(
+            jsonRoot,
+            checkExit = 1,
+            checkOutput = "{\"findings\":[{\"message\":\"raw-json-marker\"}]}\n",
+            checkError = Some("json stderr marker\n")
+          ),
+          TestSpecPlatform()
+        )
+        jsonDetail   = jsonReport.steps.find(_.step == "check").map(_.detail).getOrElse("")
+        jsonRendered = SquireSpec.renderText(jsonReport)
       yield assert(
-        !report.ok && detail.contains("check --no-provenance") &&
-          detail.contains("ERROR invalid knowledge entry") &&
-          detail.contains("schema path: kb/example.yaml") &&
-          rendered.contains("ERROR invalid knowledge entry") &&
-          rendered.contains("schema path: kb/example.yaml")
+        !textReport.ok && textDetail == expectedDetail && textRendered == expectedRendered &&
+          !jsonReport.ok && jsonDetail == "check --no-provenance --json" &&
+          !jsonDetail.contains("raw-json-marker") && !jsonRendered.contains("raw-json-marker") &&
+          !jsonDetail.contains("json stderr marker") && !jsonRendered.contains("json stderr marker")
       )
     }
 
@@ -3332,6 +3451,11 @@ object SquireFixtures:
   def scopedScratch(name: String): Path < (Scope & Sync) =
     Scope.acquireRelease(scratch(name))(root => Sync.defer(deleteRecursively(root)))
 
+  def probeFiles(root: Path): List[String] =
+    val stream = Files.list(root.toJava)
+    try stream.iterator.asScala.map(_.getFileName.toString).filter(_.startsWith(".squire-env-probe")).toList
+    finally stream.close()
+
   def platform(
       root: Path,
       jvmResult: SquireEnv.CheckResult,
@@ -3342,8 +3466,9 @@ object SquireFixtures:
       varFolders: Option[Path] = None,
       jvmTempDirectory: Maybe[Path] = Absent,
       daemonProbe: Int => SquireEnv.DaemonProbe = _ => SquireEnv.DaemonProbe.Open,
-      writeProbe: Path => Unit = path => Files.writeString(path.toJava, "squire probe"),
-      deleteProbe: Path => Unit = path => Files.deleteIfExists(path.toJava)
+      probePath: Maybe[Path => Path] = Absent,
+      writeProbe: Maybe[Path => Unit] = Absent,
+      deleteProbe: Maybe[Path => Unit] = Absent
   ): TestEnvPlatform =
     TestEnvPlatform(
       environment,
@@ -3353,6 +3478,7 @@ object SquireFixtures:
       jvmTempDirectory.orElse(Present(varFolders.getOrElse(root))),
       _ => jvmResult,
       daemonProbe,
+      probePath,
       writeProbe,
       deleteProbe,
       osName
@@ -4714,9 +4840,9 @@ class SquireEnvSpec extends Test[Any]:
       yield assert(success && !failure && !timeout)
     }
 
-    "probes the effective JVM temp directory and cleans a successful probe" in {
+    "probes the effective JVM temp directory and cleans a successful probe" in Scope.run {
       for
-        root   <- SquireFixtures.scratch("env-var-folders")
+        root   <- SquireFixtures.scopedScratch("env-var-folders")
         absent <- SquireEnv.check(
           SquireEnv.CheckKind.VarFolders,
           1.seconds,
@@ -4731,7 +4857,6 @@ class SquireEnvSpec extends Test[Any]:
           1.seconds,
           SquireFixtures.platform(root, SquireEnv.CheckResult(Present(true), "ok", 0.0), varFolders = Some(root))
         )
-        probeExists <- (root / ".squire-env-probe").exists
         report <- SquireEnv.report(
           1.seconds,
           SquireFixtures.platform(
@@ -4741,16 +4866,76 @@ class SquireEnvSpec extends Test[Any]:
           ),
           root
         )
+        leftovers <- Sync.defer(SquireFixtures.probeFiles(root))
       yield assert(
-        !absent && writable && !probeExists &&
+        !absent && writable && leftovers.isEmpty &&
           report.checks("var_folders_writable").detail.contains(root.toString) &&
           !report.checks("var_folders_writable").detail.contains("/var/folders")
       )
     }
 
-    "reports an unavailable check when the JVM temp property is absent" in {
+    "leaves the legacy probe sentinel byte-for-byte intact" in Scope.run {
       for
-        root <- SquireFixtures.scratch("env-var-folders-unavailable")
+        root <- SquireFixtures.scopedScratch("env-var-folders-sentinel")
+        sentinel = root / ".squire-env-probe"
+        expected = "  sentinel contents\nwith trailing space  \n".getBytes(java.nio.charset.StandardCharsets.UTF_8)
+        _ <- Sync.defer(Files.write(sentinel.toJava, expected))
+        writable <- SquireEnv.check(
+          SquireEnv.CheckKind.VarFolders,
+          1.seconds,
+          SquireFixtures.platform(root, SquireEnv.CheckResult(Present(true), "ok", 0.0))
+        )
+        actual <- Sync.defer {
+          if Files.exists(sentinel.toJava) then Some(Files.readAllBytes(sentinel.toJava)) else None
+        }
+      yield assert(writable && actual.exists(_.sameElements(expected)))
+    }
+
+    "does not follow a legacy probe symlink or alter its target" in Scope.run {
+      for
+        root         <- SquireFixtures.scopedScratch("env-var-folders-symlink")
+        externalRoot <- SquireFixtures.scopedScratch("env-var-folders-symlink-target")
+        target = externalRoot / "target.txt"
+        link   = root / ".squire-env-probe"
+        expected = "external target\n".getBytes(java.nio.charset.StandardCharsets.UTF_8)
+        _ <- Sync.defer {
+          Files.write(target.toJava, expected)
+          Files.createSymbolicLink(link.toJava, target.toJava)
+        }
+        writable <- SquireEnv.check(
+          SquireEnv.CheckKind.VarFolders,
+          1.seconds,
+          SquireFixtures.platform(root, SquireEnv.CheckResult(Present(true), "ok", 0.0))
+        )
+        actual <- Sync.defer(Files.readAllBytes(target.toJava))
+      yield assert(writable && Files.isSymbolicLink(link.toJava) && actual.sameElements(expected))
+    }
+
+    "uses distinct owned files for overlapping probes in one temp directory" in Scope.run {
+      for
+        root <- SquireFixtures.scopedScratch("env-var-folders-overlap")
+        paths   = java.util.concurrent.ConcurrentHashMap.newKeySet[String]()
+        barrier = new java.util.concurrent.CyclicBarrier(2)
+        platform = SquireFixtures.platform(
+          root,
+          SquireEnv.CheckResult(Present(true), "ok", 0.0),
+          writeProbe = Present(path => {
+            paths.add(path.toString)
+            Files.writeString(path.toJava, "squire probe")
+            barrier.await(5, java.util.concurrent.TimeUnit.SECONDS)
+          })
+        )
+        first  <- Fiber.init(SquireEnv.check(SquireEnv.CheckKind.VarFolders, 1.seconds, platform))
+        second <- Fiber.init(SquireEnv.check(SquireEnv.CheckKind.VarFolders, 1.seconds, platform))
+        firstResult  <- first.get
+        secondResult <- second.get
+        leftovers <- Sync.defer(SquireFixtures.probeFiles(root))
+      yield assert(firstResult && secondResult && paths.size() == 2 && leftovers.isEmpty)
+    }
+
+    "reports an unavailable check when the JVM temp property is absent" in Scope.run {
+      for
+        root <- SquireFixtures.scopedScratch("env-var-folders-unavailable")
         platform = TestEnvPlatform(
           Map.empty,
           root / "home",
@@ -4759,8 +4944,9 @@ class SquireEnvSpec extends Test[Any]:
           Absent,
           _ => SquireEnv.CheckResult(Present(true), "ok", 0.0),
           _ => SquireEnv.DaemonProbe.Open,
-          path => Files.writeString(path.toJava, "squire probe"),
-          path => Files.deleteIfExists(path.toJava)
+          Absent,
+          Absent,
+          Absent
         )
         check <- SquireEnv.check(SquireEnv.CheckKind.VarFolders, 1.seconds, platform)
         report <- SquireEnv.report(1.seconds, platform, root)
@@ -4771,41 +4957,41 @@ class SquireEnvSpec extends Test[Any]:
       )
     }
 
-    "reports a blocked var folders write without leaving a probe" in {
+    "reports a blocked var folders write without leaving a probe" in Scope.run {
       for
-        root <- SquireFixtures.scratch("env-var-folders-blocked")
+        root <- SquireFixtures.scopedScratch("env-var-folders-blocked")
         platform = SquireFixtures.platform(
           root,
           SquireEnv.CheckResult(Present(true), "ok", 0.0),
-          writeProbe = _ => throw java.nio.file.AccessDeniedException("/var/folders/.squire-env-probe")
+          writeProbe = Present(_ => throw java.nio.file.AccessDeniedException("/var/folders/.squire-env-probe"))
         )
-        blocked     <- SquireEnv.check(SquireEnv.CheckKind.VarFolders, 1.seconds, platform)
-        probeExists <- (root / ".squire-env-probe").exists
-      yield assert(!blocked && !probeExists)
+        blocked   <- SquireEnv.check(SquireEnv.CheckKind.VarFolders, 1.seconds, platform)
+        leftovers <- Sync.defer(SquireFixtures.probeFiles(root))
+      yield assert(!blocked && leftovers.isEmpty)
     }
 
-    "cleans a probe created before a write failure" in {
+    "cleans a probe created before a write failure" in Scope.run {
       for
-        root <- SquireFixtures.scratch("env-var-folders-partial")
+        root <- SquireFixtures.scopedScratch("env-var-folders-partial")
         platform = SquireFixtures.platform(
           root,
           SquireEnv.CheckResult(Present(true), "ok", 0.0),
-          writeProbe = path => {
+          writeProbe = Present(path => {
             Files.writeString(path.toJava, "partial"); throw java.nio.file.AccessDeniedException(path.toString)
-          }
+          })
         )
-        partial <- SquireEnv.check(SquireEnv.CheckKind.VarFolders, 1.seconds, platform)
-        removed <- (root / ".squire-env-probe").exists
-      yield assert(!partial && !removed)
+        partial   <- SquireEnv.check(SquireEnv.CheckKind.VarFolders, 1.seconds, platform)
+        leftovers <- Sync.defer(SquireFixtures.probeFiles(root))
+      yield assert(!partial && leftovers.isEmpty)
     }
 
-    "reports a delete probe failure without throwing" in {
+    "reports a delete probe failure without throwing" in Scope.run {
       for
-        root <- SquireFixtures.scratch("env-var-folders-delete")
+        root <- SquireFixtures.scopedScratch("env-var-folders-delete")
         platform = SquireFixtures.platform(
           root,
           SquireEnv.CheckResult(Present(true), "ok", 0.0),
-          deleteProbe = _ => throw java.nio.file.AccessDeniedException("/var/folders/.squire-env-probe")
+          deleteProbe = Present(_ => throw java.nio.file.AccessDeniedException("/var/folders/.squire-env-probe"))
         )
         check  <- SquireEnv.check(SquireEnv.CheckKind.VarFolders, 1.seconds, platform)
         report <- SquireEnv.report(1.seconds, platform, root)
@@ -5589,8 +5775,9 @@ final class TestEnvPlatform(
     override val jvmTempDirectory: Maybe[Path],
     val jvmProbe: Duration => SquireEnv.CheckResult,
     val daemonProbe: Int => SquireEnv.DaemonProbe,
-    val writeProbeFn: Path => Unit,
-    val deleteProbeFn: Path => Unit,
+    val probePathFn: Maybe[Path => Path],
+    val writeProbeFn: Maybe[Path => Unit],
+    val deleteProbeFn: Maybe[Path => Unit],
     val osName: String = "Linux"
 ) extends SquireEnv.Platform:
   var daemonPorts: Chunk[Int] = Chunk.empty
@@ -5604,5 +5791,14 @@ final class TestEnvPlatform(
     daemonPorts = daemonPorts.append(port)
     daemonProbe(port)
 
-  override def writeProbe(path: Path): Unit  = writeProbeFn(path)
-  override def deleteProbe(path: Path): Unit = deleteProbeFn(path)
+  override def probePath(directory: Path): Path = probePathFn match
+    case Present(value) => value(directory)
+    case Absent         => super.probePath(directory)
+
+  override def writeProbe(path: Path, channel: java.nio.channels.SeekableByteChannel): Unit = writeProbeFn match
+    case Present(value) => value(path)
+    case Absent         => super.writeProbe(path, channel)
+
+  override def deleteProbe(path: Path): Unit = deleteProbeFn match
+    case Present(value) => value(path)
+    case Absent         => super.deleteProbe(path)
