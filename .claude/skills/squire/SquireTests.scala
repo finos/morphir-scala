@@ -97,6 +97,12 @@ object SquireCiPolicy:
       case _                                         => false
     }
 
+  def yamlSequenceEntries(block: String, indent: Int): List[String] =
+    block.linesIterator.filter { line =>
+      val item = line.drop(indent)
+      leadingSpaces(line) == indent && (item == "-" || item.startsWith("- "))
+    }.toList
+
   def replaceOnce(text: String, oldValue: String, newValue: String): String =
     val index = text.indexOf(oldValue)
     if index < 0 then fail(s"mutation target not found: $oldValue")
@@ -336,7 +342,7 @@ object SquireCiPolicy:
     expect(!lint.contains("mise run test:squire"), "lint must not run Squire policy")
 
     val policy = indentedBlock(workflow, jobName, 2)
-    val stepStarts = policy.linesIterator.filter(_.startsWith("      - ")).toList
+    val stepStarts = yamlSequenceEntries(policy, 6)
     val headers = policy.linesIterator.collect {
       case line if line.startsWith("      - name: ") => line.stripPrefix("      - name: ")
     }.toList
@@ -364,8 +370,9 @@ object SquireCiPolicy:
     expect(scalar(ci, "if") == "${{ always() }}", "ci must always run after its dependencies")
     val aggregateStep = indentedBlock(ci, "- name: Verify required CI jobs succeeded", 6)
     val requiredResults = aggregate.map(job => s"test \"$${{ needs.$job.result }}\" = \"success\"")
+    val resultAssertions = aggregateStep.linesIterator.map(_.trim).filter(_.startsWith("test ")).toList
     expect(
-      requiredResults.forall(aggregateStep.contains),
+      resultAssertions == requiredResults,
       "ci must fail unless every required job result is success"
     )
 
@@ -1163,6 +1170,11 @@ class SquireCiPolicySpec extends Test[Any]:
           policyJob,
           s"$policyJob\n      - uses: actions/checkout@v7.0.1"
         ),
+        "dash-only unnamed run step added" -> replaceOnce(
+          workflow,
+          policyJob,
+          s"$policyJob\n      -\n        run: echo bypass"
+        ),
         "quoted policy dependency added" -> replaceOnce(
           workflow,
           "  squire-policy:\n",
@@ -1199,6 +1211,16 @@ class SquireCiPolicySpec extends Test[Any]:
           workflow,
           requiredResult("squire-policy"),
           s"test \"$${{ needs.squire-policy.result }}\" != \"failure\""
+        ),
+        "squire-policy failure guard weakened with || true" -> replaceOnce(
+          workflow,
+          requiredResult("squire-policy"),
+          s"${requiredResult("squire-policy")} || true"
+        ),
+        "squire-policy failure guard weakened with ; true" -> replaceOnce(
+          workflow,
+          requiredResult("squire-policy"),
+          s"${requiredResult("squire-policy")}; true"
         )
       )
       mutations.foreach { case (name, mutation) =>
