@@ -21,7 +21,10 @@ the other independent CI jobs. The job will:
 
 The `lint` job will retain only `mise run lint`. The aggregate `ci` job will
 add `squire-policy` to its `needs` list, so Squire policy remains a required
-part of the aggregate gate without being mislabeled as lint.
+part of the aggregate gate without being mislabeled as lint. The aggregate
+uses job-level `${{ always() }}` so it is evaluated even when a required job
+fails, is cancelled, or is skipped. Its first step explicitly requires every
+`needs.<job>.result` to be `success`; every other result fails the aggregate.
 
 `squire-policy` will have no `needs` declaration. It can therefore run in
 parallel with lint, knowledge-base validation, platform tests, and the first
@@ -43,17 +46,21 @@ convenient step location. It will require:
 - no `mise run test:squire` invocation in `lint` or any other job;
 - no `needs` declaration on `squire-policy`;
 - `squire-policy` to appear exactly once in the aggregate `ci.needs` list.
+- an always-evaluated aggregate job that fails unless every listed dependency,
+  including `squire-policy`, has result `success`.
 
 Mutation tests will reject a missing or duplicate job, a policy step moved
 back into lint or another job, a changed command, a dependency added to the
-policy job, and removal or duplication of the aggregate dependency.
+policy job, removal or duplication of the aggregate dependency, weakening the
+aggregate failure guard, unnamed policy steps, and quoted or spaced YAML key
+forms that attempt to add a policy dependency or full-history checkout.
 
 ## Scope
 
-This change modifies only `.github/workflows/ci.yml` and the Scala Squire CI
-policy tests. It does not change `mise run lint`, `mise run test:squire`, the
-standalone Squire Mill pin, release behavior, product test selectors, or any
-Python/Bun tooling.
+This change modifies `.github/workflows/ci.yml`, the Scala Squire CI policy
+tests, and this approved design record. It does not change `mise run lint`,
+`mise run test:squire`, the standalone Squire Mill pin, release behavior,
+product test selectors, or any Python/Bun tooling.
 
 ## Verification
 

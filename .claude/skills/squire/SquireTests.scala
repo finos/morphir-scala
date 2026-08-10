@@ -89,6 +89,14 @@ object SquireCiPolicy:
       if index < 0 then -1 else text.indexOf(needle, index + needle.length)
     }.takeWhile(_ >= 0).size
 
+  private val YamlKey = """^\s*(?:\"([^\"]+)\"|'([^']+)'|([A-Za-z][A-Za-z0-9_-]*))\s*:.*$""".r
+
+  def hasYamlKey(block: String, key: String): Boolean =
+    block.linesIterator.exists {
+      case YamlKey(doubleQuoted, singleQuoted, bare) => List(doubleQuoted, singleQuoted, bare).contains(key)
+      case _                                         => false
+    }
+
   def replaceOnce(text: String, oldValue: String, newValue: String): String =
     val index = text.indexOf(oldValue)
     if index < 0 then fail(s"mutation target not found: $oldValue")
@@ -328,9 +336,11 @@ object SquireCiPolicy:
     expect(!lint.contains("mise run test:squire"), "lint must not run Squire policy")
 
     val policy = indentedBlock(workflow, jobName, 2)
+    val stepStarts = policy.linesIterator.filter(_.startsWith("      - ")).toList
     val headers = policy.linesIterator.collect {
       case line if line.startsWith("      - name: ") => line.stripPrefix("      - name: ")
     }.toList
+    expect(stepStarts.size == 5, s"unexpected squire-policy step count: ${stepStarts.size}")
     expect(
       headers == List(
         "Checkout current branch",
@@ -341,15 +351,23 @@ object SquireCiPolicy:
       ),
       s"unexpected squire-policy steps: $headers"
     )
-    expect(!policy.linesIterator.exists(_.trim.startsWith("needs:")), "squire-policy must run in parallel")
-    expect(!policy.contains("fetch-depth:"), "squire-policy must use the default shallow checkout")
+    expect(!hasYamlKey(policy, "needs"), "squire-policy must run in parallel")
+    expect(!hasYamlKey(policy, "fetch-depth"), "squire-policy must use the default shallow checkout")
 
     val step = indentedBlock(policy, s"- name: $stepName", 6)
     expect(scalar(step, "run") == "mise run test:squire", s"$stepName must run test:squire exactly")
     expect(count(workflow, "mise run test:squire") == 1, "workflow must invoke test:squire exactly once")
 
-    val aggregate = inlineList(indentedBlock(workflow, "ci:", 2), "needs")
+    val ci        = indentedBlock(workflow, "ci:", 2)
+    val aggregate = inlineList(ci, "needs")
     expect(aggregate.count(_ == "squire-policy") == 1, "ci must depend on squire-policy exactly once")
+    expect(scalar(ci, "if") == "${{ always() }}", "ci must always run after its dependencies")
+    val aggregateStep = indentedBlock(ci, "- name: Verify required CI jobs succeeded", 6)
+    val requiredResults = aggregate.map(job => s"test \"$${{ needs.$job.result }}\" = \"success\"")
+    expect(
+      requiredResults.forall(aggregateStep.contains),
+      "ci must fail unless every required job result is success"
+    )
 
   def replaceInJob(workflow: String, jobName: String, oldValue: String, newValue: String): String =
     val job = indentedBlock(workflow, jobName, 2)
@@ -1107,6 +1125,7 @@ class SquireCiPolicySpec extends Test[Any]:
         "        uses: actions/checkout@v7.0.1"
       val aggregate      = inlineList(indentedBlock(workflow, "ci:", 2), "needs")
       val aggregateNeeds = s"needs: [${aggregate.mkString(", ")}]"
+      val requiredResult = (job: String) => s"test \"$${{ needs.$job.result }}\" = \"success\""
       val mutations = List(
         "missing job" -> replaceOnce(workflow, policyJob, ""),
         "duplicate job" -> replaceOnce(workflow, policyJob, s"$policyJob\n$policyJob"),
@@ -1134,6 +1153,36 @@ class SquireCiPolicySpec extends Test[Any]:
           policyJob,
           replaceOnce(policyJob, checkout, s"$checkout\n        with:\n          fetch-depth: 0")
         ),
+        "unnamed run step added" -> replaceOnce(
+          workflow,
+          policyJob,
+          s"$policyJob\n      - run: echo bypass"
+        ),
+        "unnamed uses step added" -> replaceOnce(
+          workflow,
+          policyJob,
+          s"$policyJob\n      - uses: actions/checkout@v7.0.1"
+        ),
+        "quoted policy dependency added" -> replaceOnce(
+          workflow,
+          "  squire-policy:\n",
+          "  squire-policy:\n    \"needs\": [lint]\n"
+        ),
+        "spaced policy dependency added" -> replaceOnce(
+          workflow,
+          "  squire-policy:\n",
+          "  squire-policy:\n    needs : [lint]\n"
+        ),
+        "quoted full-history checkout added" -> replaceOnce(
+          workflow,
+          policyJob,
+          replaceOnce(policyJob, checkout, s"$checkout\n        with:\n          \"fetch-depth\": 0")
+        ),
+        "spaced full-history checkout added" -> replaceOnce(
+          workflow,
+          policyJob,
+          replaceOnce(policyJob, checkout, s"$checkout\n        with:\n          fetch-depth : 0")
+        ),
         "aggregate dependency removed" -> replaceOnce(
           workflow,
           aggregateNeeds,
@@ -1143,6 +1192,13 @@ class SquireCiPolicySpec extends Test[Any]:
           workflow,
           aggregateNeeds,
           s"needs: [${aggregate.flatMap(name => if name == "squire-policy" then List(name, name) else List(name)).mkString(", ")}]"
+        ),
+        "aggregate always removed" -> replaceOnce(workflow, "    if: ${{ always() }}\n", ""),
+        "squire-policy failure guard removed" -> replaceOnce(workflow, requiredResult("squire-policy"), ""),
+        "squire-policy result handling weakened" -> replaceOnce(
+          workflow,
+          requiredResult("squire-policy"),
+          s"test \"$${{ needs.squire-policy.result }}\" != \"failure\""
         )
       )
       mutations.foreach { case (name, mutation) =>

@@ -467,8 +467,22 @@ jobs:
           mise run publish:sonatype
 
   ci:
+    if: ${{ always() }}
     runs-on: ubuntu-latest
     needs: [lint, squire-policy, knowledge-base, test-js, test-jvm, test-native, mill-morphir-unit, mill-morphir-integration, morphir-elm-projects, runtime-generated-fixtures, runtime-tests]
     steps:
+      - name: Verify required CI jobs succeeded
+        run: |
+          test "${{ needs.lint.result }}" = "success"
+          test "${{ needs.squire-policy.result }}" = "success"
+          test "${{ needs.knowledge-base.result }}" = "success"
+          test "${{ needs.test-js.result }}" = "success"
+          test "${{ needs.test-jvm.result }}" = "success"
+          test "${{ needs.test-native.result }}" = "success"
+          test "${{ needs.mill-morphir-unit.result }}" = "success"
+          test "${{ needs.mill-morphir-integration.result }}" = "success"
+          test "${{ needs.morphir-elm-projects.result }}" = "success"
+          test "${{ needs.runtime-generated-fixtures.result }}" = "success"
+          test "${{ needs.runtime-tests.result }}" = "success"
       - name: Aggregate of lint, and all tests
         run: echo "ci passed"
