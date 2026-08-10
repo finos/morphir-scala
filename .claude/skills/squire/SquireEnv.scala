@@ -47,6 +47,11 @@ object SquireEnv:
 
   trait Platform:
     def environment: Map[String, String]
+    def osName: String
+    private final def normalizedOsName: String = osName.toLowerCase(java.util.Locale.ROOT)
+    final def isWindows: Boolean = normalizedOsName.startsWith("windows")
+    final def isMacOS: Boolean   = normalizedOsName.startsWith("mac") || normalizedOsName == "darwin"
+    final def isLinux: Boolean   = normalizedOsName.startsWith("linux")
     def home: Path
     def managedSettingsCandidates: Chunk[Path]
     def varFolders: Path
@@ -63,6 +68,8 @@ object SquireEnv:
       case (values, entry: java.util.Map.Entry[String @unchecked, String @unchecked]) => values.updated(entry.getKey, entry.getValue)
       case (values, _)                                                                  => values
     }
+
+    def osName: String = java.lang.System.getProperty("os.name", "")
 
     def home: Path = Path(java.lang.System.getProperty("user.home"))
 

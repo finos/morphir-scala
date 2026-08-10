@@ -101,10 +101,7 @@ object SquireDoctor:
 
   private def acquisitionCacheFinding(platform: SquireEnv.Platform): Finding =
     val configured = platform.environment.get("MORPHIR_NODE_CACHE").filter(_.nonEmpty)
-    val path = configured.map(Path(_)).getOrElse {
-      val base = platform.environment.get("XDG_CACHE_HOME").filter(_.nonEmpty).map(Path(_)).getOrElse(platform.home / ".cache")
-      base / "morphir-scala"
-    }
+    val path = configured.map(Path(_)).getOrElse(defaultAcquisitionCacheRoot(platform))
     if !path.toJava.isAbsolute then
       Finding("acquisition_cache", "INVALID", s"MORPHIR_NODE_CACHE must be absolute: $path", true)
     else if environmentEnabled(platform.environment.get("MORPHIR_NODE_DISABLE_MACHINE_CACHE")) then
@@ -117,6 +114,18 @@ object SquireDoctor:
         case None if inspection.bounded.nonEmpty =>
           Finding("acquisition_cache", "NOTICE", s"acquisition cache diagnostic was bounded: ${inspection.bounded.mkString("; ")}", false)
         case None => Finding("acquisition_cache", "OK", s"acquisition cache has no corrupt content: $path", false)
+
+  private def absoluteEnvironmentPath(platform: SquireEnv.Platform, name: String): Option[Path] =
+    platform.environment.get(name).filter(_.nonEmpty).map(Path(_)).filter(_.toJava.isAbsolute)
+
+  private def defaultAcquisitionCacheRoot(platform: SquireEnv.Platform): Path =
+    if platform.isMacOS then platform.home / "Library" / "Caches" / "morphir-scala"
+    else if platform.isWindows then
+      absoluteEnvironmentPath(platform, "LOCALAPPDATA")
+        .getOrElse(platform.home / "AppData" / "Local") / "morphir-scala" / "Cache"
+    else
+      absoluteEnvironmentPath(platform, "XDG_CACHE_HOME")
+        .getOrElse(platform.home / ".cache") / "morphir-scala"
 
   private def environmentEnabled(value: Option[String]): Boolean =
     value.exists(rendered => Set("1", "true", "yes", "on").contains(rendered.toLowerCase))

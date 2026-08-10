@@ -3281,6 +3281,7 @@ object SquireFixtures:
       root: Path,
       jvmResult: SquireEnv.CheckResult,
       environment: Map[String, String] = Map.empty,
+      osName: String = "Linux",
       home: Option[Path] = None,
       managed: Chunk[Path] = Chunk.empty,
       varFolders: Option[Path] = None,
@@ -3298,7 +3299,8 @@ object SquireFixtures:
       _ => jvmResult,
       daemonProbe,
       writeProbe,
-      deleteProbe
+      deleteProbe,
+      osName
     )
 
   def writeDaemonFiles(root: Path, portFile: Option[Int], logPort: Option[Int]): Unit < Sync =
@@ -4613,6 +4615,23 @@ class SquireEnvSpec extends Test[Any]:
     }
   }
 
+  "platform predicates" - {
+    "normalizes Windows macOS Darwin and Linux names" in {
+      for root <- SquireFixtures.scratch("env-platform-predicates")
+      yield
+        val ok      = SquireEnv.CheckResult(Present(true), "ok", 0.0)
+        val windows = SquireFixtures.platform(root, ok, osName = "Windows 11")
+        val mac     = SquireFixtures.platform(root, ok, osName = "Mac OS X")
+        val darwin  = SquireFixtures.platform(root, ok, osName = "Darwin")
+        val linux   = SquireFixtures.platform(root, ok, osName = "Linux")
+        assert(
+          windows.isWindows && !windows.isMacOS && !windows.isLinux &&
+            mac.isMacOS && darwin.isMacOS && !mac.isWindows &&
+            linux.isLinux && !linux.isWindows && !linux.isMacOS
+        )
+    }
+  }
+
   "checks" - {
     "returns JVM loopback success failure and timeout outcomes" in {
       for
@@ -4876,6 +4895,124 @@ class SquireDoctorSpec extends Test[Any]:
       yield assert(
         report.finding("acquisition_cache").exists(finding => finding.blocked && finding.code == "CORRUPT") &&
           report.finding("metabuild").exists(finding => finding.blocked && finding.code == "STALE")
+      )
+    }
+
+    "inspects corrupt default acquisition caches at each platform root" in Scope.run {
+      def corrupt(root: Path): Unit = {
+        val digestRoot = root / "sha256"
+        Files.createDirectories(digestRoot.toJava)
+        Files.writeString((digestRoot / ("0" * 64)).toJava, "not the zero digest")
+      }
+
+      for
+        root <- SquireFixtures.scopedScratch("doctor-platform-cache-roots")
+        macHome = root / "mac-home"
+        macCache = macHome / "Library" / "Caches" / "morphir-scala"
+        windowsHome = root / "windows-home"
+        localAppData = root / "local-app-data"
+        windowsAbsoluteCache = localAppData / "morphir-scala" / "Cache"
+        windowsRelativeCache = windowsHome / "AppData" / "Local" / "morphir-scala" / "Cache"
+        linuxHome = root / "linux-home"
+        xdgCacheHome = root / "xdg-cache"
+        linuxAbsoluteCache = xdgCacheHome / "morphir-scala"
+        linuxRelativeCache = linuxHome / ".cache" / "morphir-scala"
+        _ <- Sync.defer {
+          corrupt(macCache)
+          corrupt(windowsAbsoluteCache)
+          corrupt(windowsRelativeCache)
+          corrupt(linuxAbsoluteCache)
+          corrupt(linuxRelativeCache)
+        }
+        mac <- SquireDoctor.run(
+          root,
+          RecordingRunner(Chunk.empty),
+          SquireFixtures.platform(
+            root,
+            SquireEnv.CheckResult(Present(true), "ok", 0.0),
+            environment = Map("XDG_CACHE_HOME" -> (root / "ignored").toString),
+            osName = "Mac OS X",
+            home = Some(macHome)
+          )
+        )
+        windowsAbsolute <- SquireDoctor.run(
+          root,
+          RecordingRunner(Chunk.empty),
+          SquireFixtures.platform(
+            root,
+            SquireEnv.CheckResult(Present(true), "ok", 0.0),
+            environment = Map("LOCALAPPDATA" -> localAppData.toString),
+            osName = "Windows 11",
+            home = Some(windowsHome)
+          )
+        )
+        windowsRelative <- SquireDoctor.run(
+          root,
+          RecordingRunner(Chunk.empty),
+          SquireFixtures.platform(
+            root,
+            SquireEnv.CheckResult(Present(true), "ok", 0.0),
+            environment = Map("LOCALAPPDATA" -> "relative-local-app-data"),
+            osName = "Windows 11",
+            home = Some(windowsHome)
+          )
+        )
+        linuxAbsolute <- SquireDoctor.run(
+          root,
+          RecordingRunner(Chunk.empty),
+          SquireFixtures.platform(
+            root,
+            SquireEnv.CheckResult(Present(true), "ok", 0.0),
+            environment = Map("XDG_CACHE_HOME" -> xdgCacheHome.toString),
+            osName = "Linux",
+            home = Some(linuxHome)
+          )
+        )
+        linuxRelative <- SquireDoctor.run(
+          root,
+          RecordingRunner(Chunk.empty),
+          SquireFixtures.platform(
+            root,
+            SquireEnv.CheckResult(Present(true), "ok", 0.0),
+            environment = Map("XDG_CACHE_HOME" -> "relative-xdg-cache"),
+            osName = "Linux",
+            home = Some(linuxHome)
+          )
+        )
+      yield assert(
+        List(mac, windowsAbsolute, windowsRelative, linuxAbsolute, linuxRelative).forall(
+          _.finding("acquisition_cache").exists(finding => finding.blocked && finding.code == "CORRUPT")
+        )
+      )
+    }
+
+    "prefers an absolute acquisition cache override to a clean platform default" in Scope.run {
+      def corrupt(root: Path): Unit = {
+        val digestRoot = root / "sha256"
+        Files.createDirectories(digestRoot.toJava)
+        Files.writeString((digestRoot / ("0" * 64)).toJava, "not the zero digest")
+      }
+
+      for
+        root <- SquireFixtures.scopedScratch("doctor-cache-override-precedence")
+        home = root / "mac-home"
+        overrideCache = root / "override-cache"
+        _ <- Sync.defer(corrupt(overrideCache))
+        report <- SquireDoctor.run(
+          root,
+          RecordingRunner(Chunk.empty),
+          SquireFixtures.platform(
+            root,
+            SquireEnv.CheckResult(Present(true), "ok", 0.0),
+            environment = Map("MORPHIR_NODE_CACHE" -> overrideCache.toString),
+            osName = "Mac OS X",
+            home = Some(home)
+          )
+        )
+      yield assert(
+        report.finding("acquisition_cache").exists(finding =>
+          finding.blocked && finding.code == "CORRUPT" && finding.message.contains(overrideCache.toString)
+        )
       )
     }
 
@@ -5347,7 +5484,8 @@ final class TestEnvPlatform(
     val jvmProbe: Duration => SquireEnv.CheckResult,
     val daemonProbe: Int => SquireEnv.DaemonProbe,
     val writeProbeFn: Path => Unit,
-    val deleteProbeFn: Path => Unit
+    val deleteProbeFn: Path => Unit,
+    val osName: String = "Linux"
 ) extends SquireEnv.Platform:
   var daemonPorts: Chunk[Int] = Chunk.empty
 
