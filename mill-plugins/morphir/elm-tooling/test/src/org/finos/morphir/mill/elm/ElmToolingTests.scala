@@ -25,6 +25,12 @@ object ElmToolingTests extends TestSuite {
 
   private def success[A](result: Either[ExecResult.Failing[A], UnitTester.Result[A]]): A = successResult(result).value
 
+  private def npmElmBinarySupported(osName: String, osArch: String): Boolean = {
+    val supportedOs = Seq("linux", "windows", "mac").exists(osName.toLowerCase(java.util.Locale.ROOT).startsWith)
+    val normalizedArch = osArch.toLowerCase(java.util.Locale.ROOT)
+    supportedOs && (normalizedArch == "amd64" || normalizedArch == "x86_64")
+  }
+
   private final class CommandBuild(workspace: os.Path) extends TestRootModule(workspace) { outer =>
     lazy val millDiscover = mill.api.Discover[this.type]
 
@@ -104,6 +110,16 @@ object ElmToolingTests extends TestSuite {
   }
 
   val tests = Tests {
+    test("npm Elm integration recognizes the platforms with published binaries") {
+      assert(npmElmBinarySupported("Linux", "amd64"))
+      assert(npmElmBinarySupported("Linux", "x86_64"))
+      assert(npmElmBinarySupported("Windows 11", "amd64"))
+      assert(npmElmBinarySupported("Mac OS X", "x86_64"))
+      assert(!npmElmBinarySupported("Linux", "aarch64"))
+      assert(!npmElmBinarySupported("Linux", "arm64"))
+      assert(!npmElmBinarySupported("FreeBSD", "amd64"))
+    }
+
     test("Elm tooling exposes neutral package-manager APIs and an authoritative compile task") {
       val errors = typeCheckErrors(
         """
@@ -326,7 +342,7 @@ object ElmToolingTests extends TestSuite {
     }
 
     test("provisioned Elm compiles a real minimal application without ambient tools") {
-      withTempDir { root =>
+      if (npmElmBinarySupported(System.getProperty("os.name"), System.getProperty("os.arch"))) withTempDir { root =>
         val sources = root / "sources"
         os.write(
           sources / "tools" / "package.json",

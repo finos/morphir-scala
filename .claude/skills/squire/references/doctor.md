@@ -6,33 +6,29 @@ Full catalogue of known environment blockers and the step-by-step diagnostic pro
 
 ## Diagnostic Workflow
 
-Run these checks in order and report each as ✅ (no action needed) or ⚠️ (blocker present) with the specific fix to apply.
+Run the unified diagnostic and report each finding as ✅ (no action needed) or ⚠️ (blocker present) with the specific fix to apply:
+
+```bash
+${CLAUDE_PLUGIN_ROOT}/squire doctor
+```
+
+The command prints blocked findings as `ISSUE - <CODE> - <message>` and exits 1 when any finding is blocked.
+Healthy findings, `NO_DAEMON`, and `REFUSED` are informational and do not make the command fail; when those are the
+only findings, it exits 0.
 
 ### 1. Mill daemon TCP connectivity
 
-```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/check-mill-daemon.py
-```
-
-- `PORT_OPEN` → daemon port responds to Python. **This does not guarantee JVM socket success** — the sandbox may still block `java.net.Socket`. If `./mill` subsequently fails with `Operation not permitted`, follow [Mill daemon blocked](#1-mill-daemon-tcp-socket-blocked-sandbox).
-- `SANDBOX` → both Python and JVM sockets blocked; use `--no-server`.
+- `PORT_OPEN` → daemon port responds to the same JVM socket mechanism Mill uses.
+- `SANDBOX` → the JVM socket is blocked; use `--no-server`.
 - `REFUSED` or `NO_DAEMON` → daemon not running; plain `./mill` will start one, or use `./morphir-local`.
 
 ### 2. Effective JVM temp write access (cellar)
-
-```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/check-var-folders.py
-```
 
 - `OK` → cellar can write temp files under the reported `java.io.tmpdir`.
 - `BLOCKED` → see [cellar temp file error](#3-cellar-temp-file-permission-error).
 - `UNAVAILABLE` → Java is missing or its bounded property query failed; no path was assumed.
 
 ### 3. Project configuration checks
-
-```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/check-project-config.py
-```
 
 Checks:
 
@@ -106,8 +102,8 @@ If the warning reappears, verify the YAML entry is still present.
 **Fix:** Probe a writable path, then pass it directly to the native Cellar process:
 
 ```bash
-JAVA_TOOL_OPTIONS="-Djava.io.tmpdir=<writable-temp>" python3 .claude/skills/squire/scripts/check-var-folders.py
-python3 .claude/skills/squire/scripts/cellar-query.py --temp-directory "<writable-temp>" CELLAR_COMMAND CELLAR_COORDINATE CELLAR_ARGUMENTS
+JAVA_TOOL_OPTIONS="-Djava.io.tmpdir=<writable-temp>" .claude/skills/squire/squire ai env info --check var-folders
+.claude/skills/squire/squire cellar CELLAR_COMMAND CELLAR_COORDINATE CELLAR_ARGUMENTS --temp-directory "<writable-temp>"
 ```
 
 `JAVA_TOOL_OPTIONS` configures the Java probe. Cellar is a native executable, so its wrapper passes the temp setting as a native runtime option.

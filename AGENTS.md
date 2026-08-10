@@ -327,7 +327,7 @@ This project tracks multi-session work in [beads](https://github.com/steveyegge/
 **Before tracking anything, resolve the mode** — do not assume beads is in play:
 
 ```bash
-python3 .claude/skills/squire/scripts/tracking-status.py --quiet
+.claude/skills/squire/squire tracking status --quiet
 ```
 
 - `beads` — use `bd` for work that outlives the session (anything with dependencies, or that

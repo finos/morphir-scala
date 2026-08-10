@@ -4,61 +4,6 @@
 
 set -uo pipefail
 
-SOURCES="kb/bundles/morphir/morphir-upstream/sources"
-GENERATED=".dev/out/squire/schemas"
-
-echo "Checking schema metadata..."
-
-# Conformance of the schemas themselves. jsonschema reads YAML for this, so it runs against the mirror directly.
-# These are reported rather than enforced: at the pinned commit morphir-ir-v4-document-tree-files.yaml does not
-# satisfy its own metaschema, which is upstream's defect to fix and not a reason to fail every local run.
-if command -v jsonschema >/dev/null 2>&1; then
-  for f in "$SOURCES"/website/static/schemas/morphir-*.yaml; do
-    if jsonschema metaschema "$f" >/dev/null 2>&1; then
-      printf '  ok    %s\n' "$(basename "$f")"
-    else
-      printf '  FAIL  %s — does not satisfy its own metaschema\n' "$(basename "$f")"
-    fi
-  done
-else
-  echo "  jsonschema is not on PATH — run 'mise install' first"
-  exit 1
-fi
-
-echo ""
-echo "Validating mirrored documents against the generated schemas..."
-
-# Every complete IR document the mirror carries: the published examples and the BDD distribution fixture. The other
-# fixtures are fragments keyed by example name rather than whole documents, so they have no formatVersion and are
-# skipped — the same rule upstream's own examples:validate task uses.
-failures=0
-checked=0
-while IFS= read -r f; do
-  version=$(python3 -c "
-import json, sys
-try:
-    d = json.load(open(sys.argv[1]))
-except Exception:
-    sys.exit(0)
-if isinstance(d, dict) and 'formatVersion' in d:
-    print(str(d['formatVersion']).split('.')[0])
-" "$f")
-  [ -z "$version" ] && continue
-  schema="$GENERATED/morphir-ir-v${version}.json"
-  [ -f "$schema" ] || continue
-  checked=$((checked + 1))
-  if jsonschema validate "$schema" "$f" >/dev/null 2>&1; then
-    printf '  ok    %s\n' "${f#"$SOURCES"/}"
-  else
-    failures=$((failures + 1))
-    printf '  FAIL  %s (against v%s)\n' "${f#"$SOURCES"/}" "$version"
-  fi
-done < <(find "$SOURCES/website/static/ir/examples" "$SOURCES/tests/bdd/fixtures" -name '*.json' | sort)
-
-echo ""
-echo "$checked document(s) checked, $failures failing"
-
-# Reported, not enforced. At the pinned commit every complete v4 document upstream publishes fails against upstream's
-# own v4 schema — the AccessControlled encoding in the examples matches none of the five arms the schema allows. That
-# is recorded in the morphir-ir-v4-draft bundle as a finding to resolve and send back, not a gate to go red on daily.
-echo "Schema check completed successfully"
+# Squire reports schema metaschema findings and validates every complete mirrored document. Known upstream v4
+# incompatibilities remain findings rather than a daily gate, matching the policy this task has always enforced.
+.claude/skills/squire/squire schemas validate "$@"

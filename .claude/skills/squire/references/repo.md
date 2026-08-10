@@ -8,34 +8,34 @@ A manifest at `.refs/manifest.json` tracks every entry.
 
 ## Sub-commands
 
-### `squire repo add`
+### `squire reference repo add`
 
 Add a reference repo.
 
 ```bash
 # Clone from GitHub (shallow, depth 1, default branch)
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repo-add.py https://github.com/com-lihaoyi/mill
+${CLAUDE_PLUGIN_ROOT}/squire reference repo add https://github.com/com-lihaoyi/mill
 
 # Clone a specific tag (shallow, depth 1, just that tag)
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repo-add.py https://github.com/com-lihaoyi/mill --ref 0.12.0
+${CLAUDE_PLUGIN_ROOT}/squire reference repo add https://github.com/com-lihaoyi/mill --ref 0.12.0
 
 # Deeper shallow clone (e.g. need recent history)
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repo-add.py https://github.com/com-lihaoyi/mill --depth 50
+${CLAUDE_PLUGIN_ROOT}/squire reference repo add https://github.com/com-lihaoyi/mill --depth 50
 
 # Full clone, complete history
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repo-add.py https://github.com/com-lihaoyi/mill --full
+${CLAUDE_PLUGIN_ROOT}/squire reference repo add https://github.com/com-lihaoyi/mill --full
 
 # Sparse clone — only these subtrees land on disk
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repo-add.py https://github.com/finos/morphir --sparse docs website wit
+${CLAUDE_PLUGIN_ROOT}/squire reference repo add https://github.com/finos/morphir --sparse docs --sparse website --sparse wit
 
 # Symlink an existing local repo (saves disk space)
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repo-add.py /path/to/local/mill --strategy symlink
+${CLAUDE_PLUGIN_ROOT}/squire reference repo add /path/to/local/mill --strategy symlink
 
 # Worktree from a local repo at a specific ref (isolated, ref-based snapshot)
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repo-add.py /path/to/local/mill --strategy worktree --ref 0.12.0
+${CLAUDE_PLUGIN_ROOT}/squire reference repo add /path/to/local/mill --strategy worktree --ref 0.12.0
 
 # Override the name/slug
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repo-add.py https://github.com/com-lihaoyi/mill --name mill-upstream
+${CLAUDE_PLUGIN_ROOT}/squire reference repo add https://github.com/com-lihaoyi/mill --name mill-upstream
 ```
 
 **Strategy guide:**
@@ -46,45 +46,47 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repo-add.py https://github.com/com-lihaoyi
 
 **Sparse checkouts:**
 
-`--sparse PATH [PATH ...]` clones partially (`--filter=blob:none`) and sparsely (`--sparse`), then applies the paths with `git sparse-checkout set`. Only those subtrees materialise; everything else stays in the object store, unfetched. It composes with `--depth`/`--full` and `--ref`, and with the `gh repo clone` path — the flags are forwarded verbatim after `--`.
+Repeat `--sparse PATH` once for every sparse-checkout path. The command clones partially (`--filter=blob:none`) and sparsely (`--sparse`), then applies the ordered paths with `git sparse-checkout set`. Only those subtrees materialise; everything else stays in the object store, unfetched. It composes with `--depth`/`--full` and `--ref`, and with the `gh repo clone` path — the Git flags are forwarded verbatim after `--`.
+
+Only the repository URL or local path may be positional. A bare token after it is rejected; it never becomes a sparse path implicitly.
 
 Reach for it when the upstream repo is large and only a fraction of it is interesting. The spec-sync loop is the motivating case — see [spec-sync.md](spec-sync.md), which owns the authoritative path list:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repo-add.py https://github.com/finos/morphir \
-  --sparse docs website tests/bdd wit
+${CLAUDE_PLUGIN_ROOT}/squire reference repo add https://github.com/finos/morphir \
+  --sparse docs --sparse website --sparse tests/bdd --sparse wit
 ```
 
 Clone strategy only — `--sparse` with `symlink` or `worktree` is an error. The paths are recorded in the manifest entry as `"sparse": [...]`, so `repo list` can mark the checkout `[sparse]` and `repo status` can print it. That marker matters: a file "missing" from a sparse checkout is not missing upstream, it is simply not checked out. Widen the set with `git -C .refs/<org>/<name> sparse-checkout set <paths...>` (the manifest is not rewritten by that, so update it by hand or re-add the repo).
 
-### `squire repo list`
+### `squire reference repo list`
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repo-list.py
+${CLAUDE_PLUGIN_ROOT}/squire reference repo list
 ```
 
 Shows a table of all entries: name, strategy, ref, and current disk status.
 
-### `squire repo status`
+### `squire reference repo status`
 
 ```bash
 # All repos
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repo-status.py
+${CLAUDE_PLUGIN_ROOT}/squire reference repo status
 
 # Single repo
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repo-status.py mill
+${CLAUDE_PLUGIN_ROOT}/squire reference repo status mill
 ```
 
 Reports drift between the manifest's recorded commit and the current HEAD, plus whether the working tree is dirty. Exits non-zero if any repo is out of sync.
 
-### `squire repo remove`
+### `squire reference repo remove`
 
 ```bash
 # Remove from manifest and delete from disk
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repo-remove.py mill
+${CLAUDE_PLUGIN_ROOT}/squire reference repo remove mill
 
 # Remove from manifest only (keep files)
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/repo-remove.py mill --keep-files
+${CLAUDE_PLUGIN_ROOT}/squire reference repo remove mill --keep-files
 ```
 
 For worktrees, the `git worktree remove` is issued against the source repo. For symlinks, the link is unlinked. For clones, the directory is deleted.
@@ -174,7 +176,7 @@ plain clone/symlink of the same repo.
 ```
 
 The manifest is still keyed by `name` alone. If two repos would share the
-same `name` (regardless of org), `repo-add.py` errors — pass `--name` to
+same `name` (regardless of org), `reference repo add` errors — pass `--name` to
 disambiguate them, which also becomes the leaf directory name.
 
 `.refs/` is gitignored — nothing here is ever committed.

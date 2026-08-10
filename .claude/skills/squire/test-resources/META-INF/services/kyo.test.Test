@@ -1,0 +1,15 @@
+SquireCliSpec
+SquireCiPolicySpec
+SquireMisePolicySpec
+SquireMigrationSpec
+SquireMetaSpec
+SquireModelSpec
+SquireProcessSpec
+SquireEnvSpec
+SquireDoctorSpec
+SquireCellarSpec
+SquireRepoSpec
+SquireBranchSpec
+SquireTrackingSpec
+SquireSchemasSpec
+SquireSpecSpec

@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+if command -v jsonschema >/dev/null 2>&1; then
+  export SQUIRE_JSONSCHEMA_BIN
+  SQUIRE_JSONSCHEMA_BIN="$(command -v jsonschema)"
+fi
+
+SQUIRE_EXIT_FILE="$(mktemp "${TMPDIR:-/tmp}/squire-exit.XXXXXXXXXX")"
+export SQUIRE_EXIT_FILE
+cleanup() {
+  rm -f -- "$SQUIRE_EXIT_FILE"
+}
+trap cleanup EXIT
+
+cd "$DIR"
+SQUIRE_HELP_REQUESTED=0
+for SQUIRE_ARGUMENT in "$@"; do
+  case "$SQUIRE_ARGUMENT" in
+    --) break ;;
+    --help|-h|-help|--usage)
+      SQUIRE_HELP_REQUESTED=1
+      break
+      ;;
+  esac
+done
+set +e
+"$DIR/mill" --no-server --ticker false squire.scala "$@"
+SQUIRE_MILL_EXIT=$?
+set -e
+
+if [ "$SQUIRE_MILL_EXIT" -eq 0 ] && [ "$SQUIRE_HELP_REQUESTED" -eq 1 ] && [ ! -s "$SQUIRE_EXIT_FILE" ]; then
+  printf '%s\n' 0 > "$SQUIRE_EXIT_FILE"
+fi
+
+SQUIRE_RECORDED_EXIT=""
+if IFS= read -r SQUIRE_RECORDED_EXIT < "$SQUIRE_EXIT_FILE"; then
+  case "$SQUIRE_RECORDED_EXIT" in
+    ""|*[!0-9]*) ;;
+    *)
+      if [ "$SQUIRE_RECORDED_EXIT" -le 255 ] 2>/dev/null; then
+        exit "$SQUIRE_RECORDED_EXIT"
+      fi
+      ;;
+  esac
+fi
+
+if [ "$SQUIRE_MILL_EXIT" -ne 0 ]; then
+  exit "$SQUIRE_MILL_EXIT"
+fi
+
+echo "ERROR [launcher]: Squire completed without a valid exit-code handoff" >&2
+exit 1

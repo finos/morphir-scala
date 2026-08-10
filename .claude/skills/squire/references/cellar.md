@@ -40,10 +40,10 @@ Then add your Maven mirror URLs to `settings.local.yaml` — it is gitignored. T
 
 ## Using the wrapper
 
-All cellar queries for this project should go through `cellar-query.py`, which automatically adds the internal Maven repositories and supports coordinate aliases for common project dependencies.
+All Cellar queries for this project should go through Squire, which automatically adds the internal Maven repositories and supports coordinate aliases for common project dependencies.
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/cellar-query.py [--temp-directory "/absolute/path"] <command> <coordinate> [args]
+${CLAUDE_PLUGIN_ROOT}/squire cellar <command> <coordinate> [args] [--temp-directory "/absolute/path"]
 ```
 
 ### Commands
@@ -51,21 +51,21 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/cellar-query.py [--temp-directory "/absolu
 **`get`** — Get all members of a type:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/cellar-query.py get <coordinate> <fully.qualified.Symbol>
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/cellar-query.py get <coordinate> <fully.qualified.Symbol> --hide-inherited
+${CLAUDE_PLUGIN_ROOT}/squire cellar get <coordinate> <fully.qualified.Symbol>
+${CLAUDE_PLUGIN_ROOT}/squire cellar get <coordinate> <fully.qualified.Symbol> --hide-inherited
 ```
 
 **`search`** — Substring search for symbol names:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/cellar-query.py search <coordinate> <query>
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/cellar-query.py search <coordinate> <query> --limit 20
+${CLAUDE_PLUGIN_ROOT}/squire cellar search <coordinate> <query>
+${CLAUDE_PLUGIN_ROOT}/squire cellar search <coordinate> <query> --limit 20
 ```
 
 **`deps`** — Show the dependency tree:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/cellar-query.py deps <coordinate>
+${CLAUDE_PLUGIN_ROOT}/squire cellar deps <coordinate>
 ```
 
 ---
@@ -88,7 +88,7 @@ The wrapper accepts short aliases for common project dependencies:
 Full Maven coordinates are also accepted directly:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/cellar-query.py get "dev.zio:zio_3:2.1.26" "zio.ZIO"
+${CLAUDE_PLUGIN_ROOT}/squire cellar get "dev.zio:zio_3:2.1.26" "zio.ZIO"
 ```
 
 ---
@@ -99,37 +99,37 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/cellar-query.py get "dev.zio:zio_3:2.1.26"
 
 ```bash
 # All members of CommandsEntryPoint (the entry point base class)
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/cellar-query.py get case-app:2.1.0 caseapp.core.app.CommandsEntryPoint
+${CLAUDE_PLUGIN_ROOT}/squire cellar get case-app:2.1.0 caseapp.core.app.CommandsEntryPoint
 
 # Help[T] — what methods are available for customising help output
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/cellar-query.py get case-app:2.1.0 caseapp.core.help.Help --hide-inherited
+${CLAUDE_PLUGIN_ROOT}/squire cellar get case-app:2.1.0 caseapp.core.help.Help --hide-inherited
 
 # Search for annotation types (HelpMessage, Name, AppName, etc.)
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/cellar-query.py search case-app:2.1.0 "AppName"
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/cellar-query.py search case-app:2.1.0 "HelpMessage"
+${CLAUDE_PLUGIN_ROOT}/squire cellar search case-app:2.1.0 "AppName"
+${CLAUDE_PLUGIN_ROOT}/squire cellar search case-app:2.1.0 "HelpMessage"
 ```
 
 ### kyo — Effect system and CLI
 
 ```bash
 # KyoCommand — the base class for CLI commands
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/cellar-query.py get kyo-case-app "kyo.KyoCommand"
+${CLAUDE_PLUGIN_ROOT}/squire cellar get kyo-case-app "kyo.KyoCommand"
 
 # What run overloads are available
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/cellar-query.py search kyo-case-app "run"
+${CLAUDE_PLUGIN_ROOT}/squire cellar search kyo-case-app "run"
 
 # Dependency tree — what kyo-case-app pulls in
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/cellar-query.py deps kyo-case-app
+${CLAUDE_PLUGIN_ROOT}/squire cellar deps kyo-case-app
 ```
 
 ### ZIO — Effect system
 
 ```bash
 # ZIO type members
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/cellar-query.py get "zio:2.1.26" "zio.ZIO"
+${CLAUDE_PLUGIN_ROOT}/squire cellar get "zio:2.1.26" "zio.ZIO"
 
 # Search for a specific method
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/cellar-query.py search "zio:2.1.26" "provide"
+${CLAUDE_PLUGIN_ROOT}/squire cellar search "zio:2.1.26" "provide"
 ```
 
 ---

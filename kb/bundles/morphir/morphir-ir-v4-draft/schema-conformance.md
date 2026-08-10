@@ -58,7 +58,7 @@ mirror in the sibling `morphir/morphir-upstream` bundle and against a reference 
 
 | Check | Command | Result |
 | ----- | ------- | ------ |
-| YAML→JSON generation | `schemas-to-json.ts --check` against upstream's committed `.json` | 5 of 5 **identical** |
+| YAML→JSON generation | `.claude/skills/squire/squire schemas compare --from .refs/finos/morphir/website/static/schemas` against upstream's committed `.json` | 5 of 5 **identical** |
 | Schemas against their metaschema | `jsonschema metaschema website/static/schemas/*.yaml` | 6 of 7 pass; `morphir-ir-v4-document-tree-files.yaml` **fails** |
 | Complete v4 documents against `morphir-ir-v4.json` | `jsonschema validate` | 0 of 3 pass |
 | Complete v3 documents against `morphir-ir-v3.yaml` | upstream's `examples:validate` | 4 of 4 pass |

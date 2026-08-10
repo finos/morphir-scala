@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 #MISE description="Test Squire commands and build/release policy"
 set -euo pipefail
-python3 -m unittest discover -s .claude/skills/squire/tests -p 'test_*.py' -v
+SQUIRE_MISE_BIN="$(command -v mise)"
+export SQUIRE_MISE_BIN
+(cd .claude/skills/squire && ./mill --no-server --ticker false SquireTests.scala)
 ./mill --ticker false mill-build/test/SnapshotVersionTests.scala
 ./mill --ticker false mill-build/test/NodeToolchainTests.scala
 ./mill --ticker false mill-build/test/MorphirElmToolTests.scala

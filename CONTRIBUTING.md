@@ -93,12 +93,12 @@ Stop if the remote is not the canonical `finos/morphir-scala` repository or the 
 and perform it:
 
 ```bash
-python3 .claude/skills/squire/scripts/branch-refresh.py --dry-run
-python3 .claude/skills/squire/scripts/branch-refresh.py
+.claude/skills/squire/squire branch refresh --dry-run
+.claude/skills/squire/squire branch refresh
 ```
 
 The equivalent assisted workflow is `/squire branch refresh`. The command defaults to `develop`; for a different
-integration branch, pass `--target <branch>` to both Python invocations. It fetches remote-tracking refs but does not
+integration branch, pass `--target <branch>` to both invocations. It fetches remote-tracking refs but does not
 check out a branch or mutate the working tree. Before updating the remote target, it requires the target SHA to match
 the merged pull request's exact head and requires that pull request's merge commit to be an ancestor of
 `origin/main`. It therefore refuses to refresh if `develop` advanced after the matching pull request. The only remote

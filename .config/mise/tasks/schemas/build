@@ -8,10 +8,10 @@ echo "Generating JSON schemas from the mirrored YAML..."
 # The knowledge base mirrors the YAML only. Upstream generates the .json siblings during its Netlify build with
 # website/scripts/yaml-to-json-schemas.js, so the JSON is derived and belongs in build output, not in the mirror.
 #
-# This reproduces that generator exactly rather than reformatting: byte-identical output is what lets the result be
-# written back into a checkout without the next deploy rewriting it. Notably, none of upstream's committed JSON is
-# canonical by `jsonschema fmt` — so tidying the output here would guarantee permanent churn.
-bun .claude/skills/squire/scripts/schemas-to-json.ts "$@"
+# Squire reproduces that generator exactly rather than reformatting: byte-identical output is what lets the result
+# be written back into a checkout without the next deploy rewriting it. Notably, none of upstream's committed JSON
+# is canonical by `jsonschema fmt` — so tidying the output here would guarantee permanent churn.
+.claude/skills/squire/squire schemas build "$@"
 
 echo ""
 echo "Schema generation completed successfully"
