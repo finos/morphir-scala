@@ -1,12 +1,12 @@
 extends: Module
 
 object jvm:
-  extends: [build.MorphirJVMModule, build.MorphirKyoCoreMvnDeps]
+  extends: [build.MorphirJVMModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps]
   object test:
     extends: [ScalaTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps]
 
 object js:
-  extends: [build.MorphirJSModule, build.MorphirKyoCoreMvnDeps]
+  extends: [build.MorphirJSModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps]
   object test:
     extends: [ScalaJSTests, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
 
@@ -20,7 +20,7 @@ object wasm:
     extends: [ScalaJSTests, build.MorphirWasmTests, millbuild.KyoTestWasm, build.MorphirKyoTestMvnDeps]
 
 object native:
-  extends: [build.MorphirNativeModule, build.MorphirKyoCoreMvnDeps]
+  extends: [build.MorphirNativeModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps]
   object test:
     extends: [ScalaNativeTests, millbuild.KyoTestNative, build.MorphirKyoTestMvnDeps]
     mvnDeps: !append
