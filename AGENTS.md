@@ -218,6 +218,15 @@ Two-platform directory names are sorted and shared by both targets. See
   - Leverage algebraic data types
   - Prefer newtypes via opaque types over stringly typed or non-intention-revealing primitives
   - Use named tuples, especially where they make public signatures easier to read
+- In Kyo-based modules (`langkit`, `kit`, `buildkit`, `model`):
+  - Prefer `kyo.Maybe` over `Option` in public APIs. ZIO-side modules do not carry `Maybe` and are out of scope.
+  - Prefer `kyo.Result` over `Either`. `Result[E, A]` is unboxed, carries panics as a third arm alongside success
+    and typed failure, and integrates with `Abort`; `Either` remains for boundaries that demand interop.
+- Named methods over symbolic operators, matching Kyo's own API policy: every public operation has a descriptive
+  named method, and a symbolic operator may exist only as a documented thin alias for one (`Stage.andThen` with
+  `>>>` is the pattern). Symbolic names mangle for Java and polyglot consumers, and named methods read better.
+  Declare `infix` only where the infix form is the domain notation — composition methods like `andThen` qualify;
+  ordinary accessors do not.
 
 #### `sealed case class` — legacy idiom, prefer `final case class`
 
