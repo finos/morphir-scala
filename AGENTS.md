@@ -224,6 +224,9 @@ Two-platform directory names are sorted and shared by both targets. See
   - Prefer `kyo.Result` over `Either` in public APIs. `Result[E, A]` is unboxed, carries panics as a third arm
     alongside success and typed failure, and integrates with `Abort`; `Either` remains for boundaries that demand
     interop.
+  - Hide implementation machinery in an `internal` sub-package with restricted visibility
+    (`private[<module>]`), kyo-style; public packages expose only the intended surface, and no public
+    signature names an internal type. `morphir.buildkit.internal` is the pattern.
   - Flag new `Option`/`Either` in these modules as change requests; convert existing occurrences only when the file
     is already being touched for another reason — do not open standalone sweeps.
 - Named methods over symbolic operators, matching Kyo's own API policy: every public operation has a descriptive
@@ -280,6 +283,9 @@ that capability is invisible to downstream consumers.
     only set the framework class, so each test block must also declare the kyo-test dependencies itself.
   - **ZIO Test** elsewhere — use `ZIOSpecDefault` with `TestModule.ZioTest`.
 - Test files go in `test/src/` directories
+- Test classes use the `Tests` suffix (`StageTests`, `PipelineTests`), not `Spec`. Existing `*Spec` classes in
+  other modules convert only when the file is already being touched for another reason — do not open standalone
+  renaming sweeps.
 - Run tests with `mise run test:jvm` / `test:js` / `test:native`, or a specific module such as
   `./mill morphir.tests.jvm.test`
 - `morphir.langkit.itest` is a Cucumber/JUnit5 suite rather than a `<module>.jvm` one; its task is
