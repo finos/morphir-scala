@@ -26,7 +26,12 @@ enum Stage[-I, +O, S]:
   /** A stage carrying [[StageMeta]]; the wrapper adds context and delegates execution unchanged. */
   case Named[I2, O2, S2](stageMeta: StageMeta, stage: Stage[I2, O2, S2]) extends Stage[I2, O2, S2]
 
-  /** Run this stage on `input`. */
+  /**
+   * Run this stage on `input`.
+   *
+   * This is the plain interpreter: it executes the tree with no observability — no progress reporting, no provenance
+   * tracking. Observable execution arrives as separate interpreters in the pipeline layer.
+   */
   def run(input: I): O < S =
     this match
       case Run(f)               => f(input)
@@ -43,12 +48,14 @@ enum Stage[-I, +O, S]:
     AndThen(this, next)
 
   /** Alias for [[andThen]], for readers arriving from ZIO's `>>>` on pipeline-like types. */
-  final def >>>[O2, S2](next: Stage[O, O2, S2]): Stage[I, O2, S & S2] =
+  def >>>[O2, S2](next: Stage[O, O2, S2]): Stage[I, O2, S & S2] =
     andThen(next)
 
-  /** Attach a label (and optionally a description) to this stage. The outermost label wins. */
+  /** Attach a label (and optionally a description) to this stage, replacing any existing one. */
   def named(label: String, description: Maybe[String] = Absent): Stage[I, O, S] =
-    Named(StageMeta(label, description), this)
+    this match
+      case Named(_, inner) => Named(StageMeta(label, description), inner)
+      case _               => Named(StageMeta(label, description), this)
 
   /** The metadata of the outermost [[Stage.Named]] wrapper, if any. */
   def meta: Maybe[StageMeta] =
@@ -60,12 +67,18 @@ enum Stage[-I, +O, S]:
   def label: Maybe[String] =
     meta.map(_.label)
 
-  /** Render this stage's structure: labels where present, `<anonymous>` where not. */
+  /**
+   * Render this stage's structure: labels where present, `<anonymous>` where not.
+   *
+   * A label is taken to *summarize* its subtree: a [[Stage.Named]] renders as its label alone, hiding the inner
+   * structure it wraps. Richer tree rendering — one that shows a labelled stage's inner structure alongside its label —
+   * belongs to later interpreters in the pipeline layer, not to this baseline renderer.
+   */
   def describe: String =
     this match
       case Run(_)               => "<anonymous>"
       case AndThen(left, right) => s"${left.describe} andThen ${right.describe}"
-      case Named(m, _)          => m.label
+      case Named(m, _)          => if m.label.isBlank then "<anonymous>" else m.label
 
 end Stage
 

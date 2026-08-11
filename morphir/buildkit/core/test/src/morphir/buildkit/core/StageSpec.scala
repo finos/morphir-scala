@@ -78,8 +78,14 @@ class StageSpec extends Test[Any]:
       assert(identityStage.describe == "<anonymous>")
       assert((identityStage andThen pureStage).describe == "<anonymous> andThen <anonymous>")
     }
-    "the outermost label wins" in {
+    "renaming replaces the label" in {
       val relabelled = pureStage.named("inner").named("outer")
       assert(relabelled.label == Present("outer"))
+      val isSingleWrapper = relabelled match
+        case Stage.Named(_, Stage.Run(_)) => true
+        case _                            => false
+      assert(isSingleWrapper)
     }
+    "a blank label renders as anonymous" in
+      assert(pureStage.named("").describe == "<anonymous>")
   }
