@@ -28,6 +28,14 @@ private[buildkit] enum NodeChain[-I, +O, S]:
     this match
       case Single(_)       => 1
       case Append(init, _) => init.size + 1
+
+  /**
+   * Render the chain: stage descriptions joined with `andThen`. Shared by [[morphir.buildkit.PipelineDef#describe]] and
+   * [[morphir.buildkit.SealedPipeline#describe]] so the two cannot drift — the expression can't live on the public
+   * `Pipeline` trait without naming this internal type.
+   */
+  def describe: String =
+    summaries.map((_, _, description) => description).mkString(" andThen ")
 end NodeChain
 
 private[buildkit] object Sealing:

@@ -28,7 +28,12 @@ object Pipeline:
   def stage[I, O, S](id: String, s: Stage[I, O, S]): PipelineDef[I, O, S] =
     new PipelineDef(NodeChain.Single(PipelineNode(Present(id), s)))
 
-  /** Entry point with a pre-validated node id (typically a `nodeId"..."` literal). */
+  /**
+   * Entry point with a pre-validated node id (typically a `nodeId"..."` literal).
+   *
+   * Stores `id.render` as the explicit-id string: safe only while `NodeId` is always a single segment, as it is in this
+   * slice. When multi-segment ids become constructible, revisit so a path is not flattened through `render`.
+   */
   def stage[I, O, S](id: NodeId, s: Stage[I, O, S]): PipelineDef[I, O, S] =
     new PipelineDef(NodeChain.Single(PipelineNode(Present(id.render), s)))
 end Pipeline
@@ -49,7 +54,12 @@ final class PipelineDef[-I, +O, S] private[buildkit] (
   infix def andThen[O2, S2](id: String, next: Stage[O, O2, S2]): PipelineDef[I, O2, S & S2] =
     new PipelineDef(NodeChain.Append(chain, PipelineNode(Present(id), next)))
 
-  /** Append a stage with a pre-validated node id (typically a `nodeId"..."` literal). */
+  /**
+   * Append a stage with a pre-validated node id (typically a `nodeId"..."` literal).
+   *
+   * Stores `id.render` as the explicit-id string: safe only while `NodeId` is always a single segment, as it is in this
+   * slice. When multi-segment ids become constructible, revisit so a path is not flattened through `render`.
+   */
   infix def andThen[O2, S2](id: NodeId, next: Stage[O, O2, S2]): PipelineDef[I, O2, S & S2] =
     new PipelineDef(NodeChain.Append(chain, PipelineNode(Present(id.render), next)))
 
@@ -75,8 +85,7 @@ final class PipelineDef[-I, +O, S] private[buildkit] (
       case Present(errors) => Result.fail(errors)
       case Absent          => Result.succeed(new SealedPipeline(chain, ids))
 
-  def describe: String =
-    chain.summaries.map((_, _, description) => description).mkString(" andThen ")
+  def describe: String = chain.describe
 end PipelineDef
 
 /**
@@ -90,8 +99,7 @@ final class SealedPipeline[-I, +O, S] private[buildkit] (
 
   def seal: Result[SealErrors, SealedPipeline[I, O, S]] = Result.succeed(this)
 
-  def describe: String =
-    chain.summaries.map((_, _, description) => description).mkString(" andThen ")
+  def describe: String = chain.describe
 
   /**
    * Run the plan sequentially, emitting [[StageEvent]]s. Deterministic: nodes run in definition order and events are

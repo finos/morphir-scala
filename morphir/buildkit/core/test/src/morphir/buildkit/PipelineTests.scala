@@ -5,8 +5,9 @@ import kyo.test.*
 
 class PipelineTests extends Test[Any]:
 
-  private def inc  = Stage.pure((i: Int) => i + 1).named("inc")
-  private def show = Stage.pure((i: Int) => i.toString).named("show")
+  private def inc    = Stage.pure((i: Int) => i + 1).named("inc")
+  private def double = Stage.pure((i: Int) => i * 2).named("double")
+  private def show   = Stage.pure((i: Int) => i.toString).named("show")
 
   private def sealOrFail[I, O, S](p: Pipeline[I, O, S]): SealedPipeline[I, O, S] =
     p.seal match
@@ -88,6 +89,26 @@ class PipelineTests extends Test[Any]:
       val (ev1, r1) = Emit.run(plan.execute(1)).eval
       val (ev2, r2) = Emit.run(plan.execute(41)).eval
       assert(r1 == "2" && r2 == "42" && ev1.size == 4 && ev2.size == 4)
+    }
+    "a three-node chain executes and emits in order, with correct ids" in {
+      val plan             = sealOrFail(Pipeline.stage(inc).andThen(double).andThen(show))
+      val (events, result) = Emit.run(plan.execute(3)).eval
+      val rendered         = events.map {
+        case StageEvent.Entered(id, _)      => s"enter:${id.render}"
+        case StageEvent.Exited(id, outcome) => s"exit:${id.render}:$outcome"
+        case StageEvent.Skipped(id, _)      => s"skip:${id.render}"
+      }
+      assert(result == "8")
+      assert(
+        rendered == Chunk(
+          "enter:inc",
+          "exit:inc:Succeeded",
+          "enter:double",
+          "exit:double:Succeeded",
+          "enter:show",
+          "exit:show:Succeeded"
+        )
+      )
     }
   }
 
