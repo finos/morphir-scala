@@ -1,4 +1,4 @@
-package morphir.buildkit.core
+package morphir.buildkit
 
 import kyo.*
 

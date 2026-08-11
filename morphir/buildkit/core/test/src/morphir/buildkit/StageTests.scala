@@ -1,9 +1,9 @@
-package morphir.buildkit.core
+package morphir.buildkit
 
 import kyo.*
 import kyo.test.*
 
-class StageSpec extends Test[Any]:
+class StageTests extends Test[Any]:
 
   private val identityStage: Stage[Int, Int, Any] =
     Stage.identity[Int]
