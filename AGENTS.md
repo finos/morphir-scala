@@ -65,6 +65,37 @@ One exception worth knowing: the Scala.js version is pinned in two places that m
 - Use slugs for folder names so that content/work/spikes are organized and searchable.
 - Place outputs created by agentic tools or their helper scripts in an `out/` sub-folder at an appropriate location in the `.dev/` hierarchy.
 
+#### One-off plans and designs are never committed
+
+A plan or design document written to drive a single piece of work — an implementation plan, a design doc or spec, a
+task brief, a review package, an agent handoff note — belongs under `.dev/`, which is gitignored. **Do not commit
+these, and do not add them to a pull request.** This holds however the document was produced, and whatever a skill's
+own instructions say about where to save it: some agent skills default to writing plans and specs into a tracked
+`docs/` path, and that default is overridden here. Write them to `.dev/.sdlc/<slug>/` instead. `docs/superpowers/` is
+gitignored precisely so that a skill following its own default does not quietly add files to a commit.
+
+What *is* committed is durable knowledge, and it goes in the knowledge base under `kb/`, not in a scratch document:
+
+- an **Intent** record for work the project means to do, with its lifecycle — see the `intent` skill;
+- a **Design Note** for a design that is still evolving, and a **Decision Record** for one that has settled;
+- a **Capability** document for what the system does today.
+
+The test is durability, not formality. If the document stops being true the moment the branch merges, it is scratch —
+keep it in `.dev/`. If a reader six months from now needs it to understand why the code is the way it is, write it
+into `kb/` in the appropriate register. See [kb/AGENTS.md](./kb/AGENTS.md).
+
+**This rule does not touch task tracking.** Work that must outlive a session still belongs in beads (`bd`), and this
+is not an instruction to stop using it or to keep tasks in a scratch file instead. Beads is exempt because it already
+solves the problem this rule is about: it has its own storage, and none of it lands on your branch. The issue
+database is an embedded Dolt store under `.beads/embeddeddolt/`, excluded by `.beads/.gitignore`, and it syncs over a
+git-compatible protocol into `refs/dolt/data` — a ref outside `refs/heads/*`, so issue history never appears in a
+branch's diff and never conflicts with a merge. What *is* committed under `.beads/` is a handful of small
+configuration files (`config.yaml`, `metadata.json`, the upstream README, the inert hook scripts and the append-only
+`interactions.jsonl` audit log), which are deliberate and stay. Full detail:
+[docs/task-tracking.md](./docs/task-tracking.md).
+
+So: track the work in beads, keep the scratch prose in `.dev/`, and write what endures into `kb/`.
+
 
 ### Project Structure
 
