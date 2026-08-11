@@ -29,6 +29,11 @@ class PipelineTests extends Test[Any]:
       val plan     = sealOrFail(Pipeline.stage(labelled))
       assert(plan.nodeIds.map(_.render) == Chunk("parse-elm-source"))
     }
+    "slugifies uppercase 'I' without locale-dependent case folding" in {
+      val labelled = Stage.pure((i: Int) => i).named("Parse IR")
+      val plan     = sealOrFail(Pipeline.stage(labelled))
+      assert(plan.nodeIds.map(_.render) == Chunk("parse-ir"))
+    }
     "rejects duplicate ids" in {
       Pipeline.stage(inc).andThen(Stage.pure((i: Int) => i * 2).named("inc")).seal match
         case Result.Failure(errors) =>
@@ -78,7 +83,7 @@ class PipelineTests extends Test[Any]:
     }
     "a stage can read its provenance" in {
       val observing = Stage
-        .fromKyo[Int, String, Any](i => Pipeline.provenance.get.map(path => path.map(_.label).mkString(",")))
+        .fromKyo[Int, String, Any](i => Pipeline.provenance.map(path => path.map(_.label).mkString(",")))
         .named("observer")
       val plan        = sealOrFail(Pipeline.stage(observing))
       val (_, result) = Emit.run(plan.execute(0)).eval

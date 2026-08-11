@@ -39,7 +39,22 @@ private[buildkit] enum NodeChain[-I, +O, S]:
 end NodeChain
 
 private[buildkit] object Sealing:
-  /** Lowercase; runs of non-alphanumerics become single `-`; trimmed. `Absent` when nothing survives. */
+  /**
+   * Lowercase (ASCII only — folding through the JVM default locale is unsafe: Turkish locales map `I` to `ı`, not `i`,
+   * and js/native runtimes can differ again); runs of non-alphanumerics become single `-`; trimmed. `Absent` when
+   * nothing survives.
+   */
   def slugify(label: String): Maybe[String] =
-    val slug = label.toLowerCase.replaceAll("[^a-z0-9]+", "-").stripPrefix("-").stripSuffix("-")
+    val lowered = label.map(c => if c >= 'A' && c <= 'Z' then (c + 32).toChar else c)
+    val slug    = lowered.replaceAll("[^a-z0-9]+", "-").stripPrefix("-").stripSuffix("-")
     if slug.isEmpty then Absent else Present(slug)
+
+  /** Pairs `chain` with `ids` (one per node, in definition order) into a [[SealedChain]]. */
+  def seal[I, O, S](chain: NodeChain[I, O, S], ids: Chunk[NodeId]): SealedChain[I, O, S] =
+    def loop[I2, O2, S2](c: NodeChain[I2, O2, S2], length: Int): SealedChain[I2, O2, S2] =
+      c match
+        case NodeChain.Single(node) =>
+          SealedChain.Single(SealedNode(ids(length - 1), node))
+        case NodeChain.Append(init, last) =>
+          SealedChain.Append(loop(init, length - 1), SealedNode(ids(length - 1), last))
+    loop(chain, chain.size)

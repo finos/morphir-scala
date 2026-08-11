@@ -18,7 +18,15 @@ sealed trait Pipeline[-I, +O, S]:
 object Pipeline:
 
   /** The provenance path of the currently executing pipeline run, outermost node first. */
-  private[buildkit] val provenance: Local[Chunk[StageMeta]] = Local.init(Chunk.empty)
+  private[buildkit] val provenanceLocal: Local[Chunk[StageMeta]] = Local.init(Chunk.empty)
+
+  /**
+   * The provenance path of the currently executing pipeline run, outermost node first.
+   *
+   * A stage reads this during its own execution to see the labelled ancestors that ran before it. Outside pipeline
+   * execution — including in a stage that runs standalone, never wrapped in a [[Pipeline]] — it is empty.
+   */
+  def provenance: Chunk[StageMeta] < Any = provenanceLocal.get
 
   /** Entry point: a single-node pipeline whose node id derives from the stage's label, or position. */
   def stage[I, O, S](s: Stage[I, O, S]): PipelineDef[I, O, S] =
@@ -51,7 +59,7 @@ final class PipelineDef[-I, +O, S] private[buildkit] (
     new PipelineDef(NodeChain.Append(chain, PipelineNode(Absent, next)))
 
   /** Append a stage with an explicit node id, validated at seal. */
-  infix def andThen[O2, S2](id: String, next: Stage[O, O2, S2]): PipelineDef[I, O2, S & S2] =
+  def andThen[O2, S2](id: String, next: Stage[O, O2, S2]): PipelineDef[I, O2, S & S2] =
     new PipelineDef(NodeChain.Append(chain, PipelineNode(Present(id), next)))
 
   /**
@@ -60,7 +68,7 @@ final class PipelineDef[-I, +O, S] private[buildkit] (
    * Stores `id.render` as the explicit-id string: safe only while `NodeId` is always a single segment, as it is in this
    * slice. When multi-segment ids become constructible, revisit so a path is not flattened through `render`.
    */
-  infix def andThen[O2, S2](id: NodeId, next: Stage[O, O2, S2]): PipelineDef[I, O2, S & S2] =
+  def andThen[O2, S2](id: NodeId, next: Stage[O, O2, S2]): PipelineDef[I, O2, S & S2] =
     new PipelineDef(NodeChain.Append(chain, PipelineNode(Present(id.render), next)))
 
   def seal: Result[SealErrors, SealedPipeline[I, O, S]] =
@@ -78,12 +86,15 @@ final class PipelineDef[-I, +O, S] private[buildkit] (
     val segmentErrors = assigned.collect { case Result.Failure(error) => error }
     val ids           = assigned.collect { case Result.Success(id) => id }
     val duplicates    =
-      ids.groupBy(_.render).filter((_, group) => group.size > 1).keys.toSeq.sorted.map { rendered =>
-        SealError.DuplicateNodeId(ids.find(_.render == rendered).get)
-      }
+      ids
+        .groupBy(_.render)
+        .toSeq
+        .collect { case (rendered, group) if group.size > 1 => (rendered, group) }
+        .sortBy(_._1)
+        .map((_, group) => SealError.DuplicateNodeId(group.head))
     SealErrors(segmentErrors ++ Chunk.from(duplicates)) match
       case Present(errors) => Result.fail(errors)
-      case Absent          => Result.succeed(new SealedPipeline(chain, ids))
+      case Absent          => Result.succeed(new SealedPipeline(Sealing.seal(chain, ids)))
 
   def describe: String = chain.describe
 end PipelineDef
@@ -93,13 +104,15 @@ end PipelineDef
  * may run concurrently.
  */
 final class SealedPipeline[-I, +O, S] private[buildkit] (
-    private[buildkit] val chain: NodeChain[I, O, S],
-    val nodeIds: Chunk[NodeId]
+    private[buildkit] val sealedChain: SealedChain[I, O, S]
 ) extends Pipeline[I, O, S]:
+
+  /** Node ids of this plan, in definition order. */
+  def nodeIds: Chunk[NodeId] = sealedChain.nodeIds
 
   def seal: Result[SealErrors, SealedPipeline[I, O, S]] = Result.succeed(this)
 
-  def describe: String = chain.describe
+  def describe: String = sealedChain.describe
 
   /**
    * Run the plan sequentially, emitting [[StageEvent]]s. Deterministic: nodes run in definition order and events are
@@ -107,7 +120,7 @@ final class SealedPipeline[-I, +O, S] private[buildkit] (
    * executor-owned halting and conditional branches.
    */
   def execute(input: I): O < (S & Emit[StageEvent]) =
-    SealedPipeline.executeChain(chain, nodeIds, nodeIds.size, input)
+    SealedPipeline.executeChain(sealedChain, input)
 
 object SealedPipeline:
 
@@ -119,20 +132,18 @@ object SealedPipeline:
     for
       _   <- Emit.value(StageEvent.Entered(id, node.stage.meta))
       out <- node.stage.meta match
-        case Present(meta) => Pipeline.provenance.update(_.append(meta))(node.stage.run(input))
+        case Present(meta) => Pipeline.provenanceLocal.update(_.append(meta))(node.stage.run(input))
         case Absent        => node.stage.run(input)
       _ <- Emit.value(StageEvent.Exited(id, StageOutcome.Succeeded))
     yield out
 
   private def executeChain[A, B, S2](
-      chain: NodeChain[A, B, S2],
-      ids: Chunk[NodeId],
-      length: Int,
+      chain: SealedChain[A, B, S2],
       input: A
   ): B < (S2 & Emit[StageEvent]) =
     chain match
-      case NodeChain.Single(node) =>
-        executeNode(node, ids(length - 1), input)
-      case NodeChain.Append(init, last) =>
-        executeChain(init, ids, length - 1, input).map(mid => executeNode(last, ids(length - 1), mid))
+      case SealedChain.Single(node) =>
+        executeNode(node.node, node.id, input)
+      case SealedChain.Append(init, last) =>
+        executeChain(init, input).map(mid => executeNode(last.node, last.id, mid))
 end SealedPipeline

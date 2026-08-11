@@ -19,17 +19,54 @@ class NodeIdTests extends Test[Any]:
         case Result.Failure(SealError.InvalidSegment(value, _)) => assert(value == "a/b")
         case _                                                  => assert(false)
     }
+    "rejects a segment equal to '.'" in {
+      NodeId.segment(".") match
+        case Result.Failure(SealError.InvalidSegment(value, _)) => assert(value == ".")
+        case _                                                  => assert(false)
+    }
+    "rejects a segment equal to '..'" in {
+      NodeId.segment("..") match
+        case Result.Failure(SealError.InvalidSegment(value, _)) => assert(value == "..")
+        case _                                                  => assert(false)
+    }
+    "rejects a segment containing a backslash" in {
+      NodeId.segment("a\\b") match
+        case Result.Failure(SealError.InvalidSegment(value, _)) => assert(value == "a\\b")
+        case _                                                  => assert(false)
+    }
+    "rejects a segment containing a control character" in {
+      NodeId.segment("a\u0007b") match
+        case Result.Failure(SealError.InvalidSegment(value, _)) => assert(value == "a\u0007b")
+        case _                                                  => assert(false)
+    }
   }
 
   "nodeId interpolator" - {
     "builds a validated id from a literal" in
       assert(nodeId"parse".render == "parse")
+    "typechecks a valid literal (positive control)" in
+      assert(scala.compiletime.testing.typeChecks(""" nodeId"ok" """))
     "rejects an invalid literal at compile time" in {
       assert(!scala.compiletime.testing.typeChecks(""" nodeId"a/b" """))
       assert(!scala.compiletime.testing.typeChecks(""" nodeId" " """))
+      val errors: List[scala.compiletime.testing.Error] =
+        scala.compiletime.testing.typeCheckErrors(""" nodeId"a/b" """)
+      assert(errors.exists(_.message.contains("invalid node id segment")))
     }
-    "rejects interpolated arguments at compile time" in
+    "rejects '.', '..' and a backslash at compile time" in {
+      assert(!scala.compiletime.testing.typeChecks(""" nodeId"." """))
+      assert(!scala.compiletime.testing.typeChecks(""" nodeId".." """))
+      assert(!scala.compiletime.testing.typeChecks(""" nodeId"a\\b" """))
+      val errors: List[scala.compiletime.testing.Error] =
+        scala.compiletime.testing.typeCheckErrors(""" nodeId"." """)
+      assert(errors.exists(_.message.contains("invalid node id segment")))
+    }
+    "rejects interpolated arguments at compile time" in {
       assert(!scala.compiletime.testing.typeChecks(""" val x = "p"; nodeId"$x" """))
+      val errors: List[scala.compiletime.testing.Error] =
+        scala.compiletime.testing.typeCheckErrors(""" val x = "p"; nodeId"$x" """)
+      assert(errors.exists(_.message.contains("accepts no interpolated arguments")))
+    }
   }
 
   "SealErrors" - {
