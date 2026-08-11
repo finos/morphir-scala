@@ -4,8 +4,8 @@
 
 * **Update**: Moved [intent 0008](/0008-buildkit-core-task-graph.md) into InProgress and delivered its first slice —
   the cross-platform `morphir/buildkit/core` module, the generic `Stage` relocated out of the Elm compiler API, and
-  published jvm, js and native coordinates. The `Pipeline` graph, sealing validation and the sequential executor
-  remain outstanding.
+  the jvm, js and native variants wired to publish as `morphir-buildkit-core`. The `Pipeline` graph, sealing
+  validation and the sequential executor remain outstanding.
 
 ## 2026-08-07
 

@@ -56,8 +56,9 @@ registries, and materialization evolve separately in the
 
 - `ElmParse` is an Elm-specific Kyo effect. Its operations expose Elm parse options and frontend-internal diagnostic,
   reporting, and fatality policy; it is not currently a language-neutral phase contract.
-- The reusable `Stage` abstraction currently lives under the Elm compiler API even though sequencing typed input and
-  output values is not intrinsically Elm-specific.
+- The reusable `Stage` abstraction lived under the Elm compiler API even though sequencing typed input and output
+  values is not intrinsically Elm-specific. It has since moved to `morphir/buildkit/core` (package
+  `morphir.buildkit.core`).
 - Existing draft Morphir configuration knowledge gives `morphir.toml` responsibility for workspace members, tasks,
   workflows, outputs, and toolchain policy. It does not erase `elm.json`, `morphir.json`, or future native manifests.
 - Morphir transforms projects rather than isolated files. A frontend needs normalized project inputs and resolved
@@ -104,7 +105,7 @@ diagnostics, how they are reported internally, and which are fatal before return
 boundary, buildkit propagates and aggregates the returned diagnostics, schedules subsequent phases, and applies
 shared stop-or-continue policy without reinterpreting frontend semantics.
 
-The generic `Stage` moves toward buildkit core. Its contract must remain cross-platform and must not acquire an Elm,
+The generic `Stage` has moved to buildkit core. Its contract must remain cross-platform and must not acquire an Elm,
 filesystem, process, or network dependency.
 
 ### Workspace ownership and normalization

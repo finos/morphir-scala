@@ -41,7 +41,7 @@ morphir-scala provides Scala language bindings and JVM-based tooling for Morphir
 - **ZIO** - Effect system and testing
 - **Kyo** - Effect system used by the newer modules (kyo-core, kyo-prelude, kyo-test, kyo-case-app, kyo-schema, kyo-zio)
 - **ScalaJS** - JavaScript compilation target, plus a WebAssembly link variant
-- **Scala Native** - Native compilation target, currently scoped to the `langkit` and `kit` modules
+- **Scala Native** - Native compilation target, currently scoped to the `langkit`, `kit` and `buildkit` modules
 
 ### Versions
 
@@ -89,6 +89,7 @@ morphir-scala/
 │   ├── jvm/src/             # JVM-specific sources
 │   ├── js/src/              # ScalaJS-specific sources
 │   ├── native/src/          # Scala Native-specific sources
+│   ├── buildkit/            # Frontend-neutral buildkit core, currently holding the generic pipeline Stage
 │   ├── contrib/             # Contributed modules
 │   ├── interop/             # Interoperability modules (borer, zio-json)
 │   ├── kit/                 # Kits: extensions and bridges per upstream library (e.g. kit/kyo)
