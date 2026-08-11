@@ -1,4 +1,4 @@
-package morphir.langkit.elm.compiler
+package morphir.buildkit.core
 
 import kyo.*
 import kyo.test.*

@@ -1,0 +1,27 @@
+extends: Module
+
+object jvm:
+  extends: [build.MorphirJVMModule, build.MorphirKyoCoreMvnDeps]
+  object test:
+    extends: [ScalaTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps]
+
+object js:
+  extends: [build.MorphirJSModule, build.MorphirKyoCoreMvnDeps]
+  object test:
+    extends: [ScalaJSTests, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
+
+# WebAssembly linker variant. Compiles the same sources as `js` — only the Scala.js link output differs. Deliberately
+# not a publish module: the Scala.js ecosystem's `_sjs1-wasm` coordinate is available, but Kyo made WebAssembly a
+# test-only platform in its pull request 1725 to stay inside Maven Central's per-namespace publishing limits, and this
+# module has no wasm-specific sources for a separate artifact to carry. See the design note for the full reasoning.
+object wasm:
+  extends: [build.MorphirWasmModule, build.MorphirKyoCoreMvnDeps]
+  object test:
+    extends: [ScalaJSTests, build.MorphirWasmTests, millbuild.KyoTestWasm, build.MorphirKyoTestMvnDeps]
+
+object native:
+  extends: [build.MorphirNativeModule, build.MorphirKyoCoreMvnDeps]
+  object test:
+    extends: [ScalaNativeTests, millbuild.KyoTestNative, build.MorphirKyoTestMvnDeps]
+    mvnDeps: !append
+    - org.scala-native::test-interface::0.5.12
