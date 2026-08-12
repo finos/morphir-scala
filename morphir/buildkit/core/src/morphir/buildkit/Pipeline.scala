@@ -161,30 +161,37 @@ final class PipelineDef[-I, +O, S] private[buildkit] (
   ): PipelineDef[I1, z.Out, S & S2] =
     new PipelineDef(NodeChain.Single(DefElem.ParElem(chain, other.definitionChain, z.zip)))
 
+  /**
+   * Run `each` once per element of this pipeline's output — an `O` that is itself a `Chunk[A]` — pairing the
+   * per-element results back into a `Chunk[B]`. The fan-out node's own id derives like any node: explicit id, else
+   * position — there is no label case, since a pipeline (unlike a `Stage`) carries no `StageMeta` to slugify. `each` is
+   * sealed once, at this pipeline's own `seal`, and then run once per element at execution.
+   *
+   * `ev: O <:< Chunk[A]` witnesses that this pipeline's chain, `NodeChain[I, O, S]`, is already a
+   * `NodeChain[I, Chunk[A], S]` by `NodeChain`'s own covariance in `O` — `substituteCo` makes that widening explicit
+   * since the compiler cannot see through the abstract `O` on its own.
+   */
+  def fanOut[A, B, S2](each: Pipeline[A, B, S2])(using ev: O <:< Chunk[A]): PipelineDef[I, Chunk[B], S & S2] =
+    new PipelineDef(
+      NodeChain.Append(
+        ev.substituteCo[[X] =>> NodeChain[I, X, S]](chain),
+        DefElem.FanOutElem(Absent, each.definitionChain)
+      )
+    )
+
+  /** [[fanOut]] with an explicit node id, validated at seal. */
+  def fanOut[A, B, S2](id: String, each: Pipeline[A, B, S2])(using
+      ev: O <:< Chunk[A]
+  ): PipelineDef[I, Chunk[B], S & S2] =
+    new PipelineDef(
+      NodeChain.Append(
+        ev.substituteCo[[X] =>> NodeChain[I, X, S]](chain),
+        DefElem.FanOutElem(Present(id), each.definitionChain)
+      )
+    )
+
   def seal: Result[SealErrors, SealedPipeline[I, O, S]] =
-    val summaries                                  = chain.summaries
-    val assigned: Chunk[Result[SealError, NodeId]] =
-      summaries.zipWithIndex.map { case ((explicit, meta, _), index) =>
-        explicit match
-          case Present(value) => NodeId.segment(value)
-          case Absent         =>
-            val slug: Maybe[String] = meta.map(_.label).flatMap(Sealing.slugify)
-            slug match
-              case Present(value) => Result.succeed(NodeId.unsafe(Chunk(value)))
-              case Absent         => Result.succeed(NodeId.unsafe(Chunk(s"node-$index")))
-      }
-    val segmentErrors = assigned.collect { case Result.Failure(error) => error }
-    val ids           = assigned.collect { case Result.Success(id) => id }
-    val duplicates    =
-      ids
-        .groupBy(_.render)
-        .toSeq
-        .collect { case (rendered, group) if group.size > 1 => (rendered, group) }
-        .sortBy(_._1)
-        .map((_, group) => SealError.DuplicateNodeId(group.head))
-    SealErrors(segmentErrors ++ Chunk.from(duplicates)) match
-      case Present(errors) => Result.fail(errors)
-      case Absent          => Result.succeed(new SealedPipeline(Sealing.seal(chain, ids)))
+    Sealing.sealChain(chain).map(new SealedPipeline(_))
 
   def describe: String = chain.describe
 
@@ -215,7 +222,7 @@ final class SealedPipeline[-I, +O, S] private[buildkit] (
    * conditional branches.
    */
   def execute(input: I): O < (S & Emit[StageEvent]) =
-    SealedPipeline.executeChain(sealedChain, input)
+    SealedPipeline.executeChain(sealedChain, Chunk.empty, input)
 
 object SealedPipeline:
 
@@ -228,30 +235,50 @@ object SealedPipeline:
     elem match
       case SealedElem.StageNode(id, stage)      => DefElem.StageElem(Present(id.render), stage)
       case SealedElem.ParNode(left, right, zip) => DefElem.ParElem(toNodeChain(left), toNodeChain(right), zip)
+      case SealedElem.FanOutNode(id, each)      => DefElem.FanOutElem(Present(id.render), toNodeChain(each))
 
+  /**
+   * Run `elem` on `input`, qualifying every event id it emits with `prefix` — the segments of every enclosing fan-out
+   * node, outermost first. A plain top-level run passes `Chunk.empty`; a `FanOutNode` extends `prefix` with its own
+   * segment and the running element's index before running `each` on that element, so a doubly-nested fan-out's event
+   * ids carry the full path.
+   */
   private def executeElem[A, B, S2](
       elem: SealedElem[A, B, S2],
+      prefix: Chunk[String],
       input: A
   ): B < (S2 & Emit[StageEvent]) =
     elem match
       case SealedElem.StageNode(id, stage) =>
+        val eventId = NodeId.unsafe(prefix ++ id.segments)
         for
-          _   <- Emit.value(StageEvent.Entered(id, stage.meta))
+          _   <- Emit.value(StageEvent.Entered(eventId, stage.meta))
           out <- stage.meta match
             case Present(meta) => Pipeline.provenanceLocal.update(_.append(meta))(stage.run(input))
             case Absent        => stage.run(input)
-          _ <- Emit.value(StageEvent.Exited(id, StageOutcome.Succeeded))
+          _ <- Emit.value(StageEvent.Exited(eventId, StageOutcome.Succeeded))
         yield out
       case SealedElem.ParNode(left, right, zip) =>
-        executeChain(left, input).map(l => executeChain(right, input).map(r => zip(l, r)))
+        executeChain(left, prefix, input).map(l => executeChain(right, prefix, input).map(r => zip(l, r)))
+      case SealedElem.FanOutNode(id, each) =>
+        val eventId     = NodeId.unsafe(prefix ++ id.segments)
+        val childPrefix = prefix ++ id.segments
+        for
+          _      <- Emit.value(StageEvent.Entered(eventId, Absent))
+          result <- Kyo.foreach(input.zipWithIndex) { case (element, index) =>
+            executeChain(each, childPrefix :+ index.toString, element)
+          }
+          _ <- Emit.value(StageEvent.Exited(eventId, StageOutcome.Succeeded))
+        yield result
 
   private def executeChain[A, B, S2](
       chain: SealedChain[A, B, S2],
+      prefix: Chunk[String],
       input: A
   ): B < (S2 & Emit[StageEvent]) =
     chain match
       case SealedChain.Single(elem) =>
-        executeElem(elem, input)
+        executeElem(elem, prefix, input)
       case SealedChain.Append(init, last) =>
-        executeChain(init, input).map(mid => executeElem(last, mid))
+        executeChain(init, prefix, input).map(mid => executeElem(last, prefix, mid))
 end SealedPipeline

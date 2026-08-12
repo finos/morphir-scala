@@ -172,3 +172,39 @@ class PipelineTests extends Test[Any]:
         case _ => assert(false)
     }
   }
+
+  "fanOut" - {
+    def sources = Stage.pure((n: Int) => Chunk.from(0 until n).map(_.toString)).named("sources")
+    def parse   = Stage.pure((s: String) => s.length).named("parse")
+
+    "maps every element through the child pipeline" in {
+      val plan        = sealOrFail(Pipeline.stage(sources).fanOut(Pipeline.stage(parse)))
+      val (_, result) = Emit.run(plan.execute(3)).eval
+      assert(result == Chunk(1, 1, 1))
+    }
+    "zero elements yield an empty chunk and no child events" in {
+      val plan        = sealOrFail(Pipeline.stage(sources).fanOut(Pipeline.stage(parse)))
+      val (events, r) = Emit.run(plan.execute(0)).eval
+      assert(r == Chunk.empty[Int])
+      assert(!events.exists {
+        case StageEvent.Entered(id, _) => id.render.contains("/")
+        case _                         => false
+      })
+    }
+    "child event ids carry the element path" in {
+      val plan        = sealOrFail(Pipeline.stage(sources).fanOut("parse-all", Pipeline.stage(parse)))
+      val (events, _) = Emit.run(plan.execute(2)).eval
+      val childIds    = events.collect { case StageEvent.Entered(id, _) if id.render.contains("/") => id.render }
+      assert(childIds == Chunk("parse-all/0/parse", "parse-all/1/parse"))
+    }
+    "a child that fails to seal surfaces path-qualified in the parent aggregate" in {
+      val dup = Pipeline.stage(parse).andThen(Stage.pure((i: Int) => i).named("parse"))
+      Pipeline.stage(sources).fanOut("parse-all", dup).seal match
+        case Result.Failure(errors) =>
+          assert(errors.errors.exists {
+            case SealError.DuplicateNodeId(id) => id.render == "parse-all/parse"
+            case _                             => false
+          })
+        case _ => assert(false)
+    }
+  }

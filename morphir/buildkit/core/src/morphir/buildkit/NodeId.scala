@@ -38,6 +38,14 @@ object NodeId:
 
     /** The underlying segments, outermost first. */
     def segments: Chunk[String] = id
+
+    /**
+     * Prepend `segment` onto this id's path, growing it the same direction as the executor's provenance path —
+     * outermost first. Used to path-qualify a nested fan-out's own seal errors at seal time, and mirrored (not reused)
+     * by the executor at run time, which additionally interleaves the per-element index between the parent and child
+     * segments.
+     */
+    private[buildkit] def prefixed(segment: String): NodeId = Chunk(segment) ++ id
 end NodeId
 
 /**
