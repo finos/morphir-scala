@@ -434,4 +434,21 @@ class PipelineTests extends Test[Any]:
       val plan = sealOrFail(Pipeline.stage(inc).andThen(show))
       assert(plan.toMermaid == plan.toMermaid)
     }
+    "sanitizes an explicit id with spaces and brackets into a valid mermaid id" in {
+      val plan = sealOrFail(Pipeline.stage("weird id [x]", Stage.pure((i: Int) => i).named("w")))
+      val src  = plan.toMermaid
+      assert(src.contains("weird_id__x_[\"w\"]"))
+      assert(!src.contains("weird id [x]"))
+    }
+    "disambiguates two distinct ids that sanitize to the same mermaid id" in {
+      val plan = sealOrFail(
+        Pipeline
+          .stage("a[1]", Stage.pure((i: Int) => i).named("first"))
+          .andThen("a 1 ", Stage.pure((i: Int) => i).named("second"))
+      )
+      val src = plan.toMermaid
+      assert(src.contains("a_1_[\"first\"]"))
+      assert(src.contains("a_1__2[\"second\"]"))
+      assert(src.contains("a_1_ --> a_1__2"))
+    }
   }
