@@ -128,3 +128,47 @@ class PipelineTests extends Test[Any]:
     "renders the chain" in
       assert(Pipeline.stage(inc).andThen(show).describe == "inc andThen show")
   }
+
+  "par" - {
+    "runs both sides on the same input and pairs results" in {
+      val plan        = sealOrFail(Pipeline.stage(inc).par(Pipeline.stage(show)))
+      val (_, result) = Emit.run(plan.execute(4)).eval
+      assert(result == (5, "4"))
+    }
+    "flattens across chained pars" in {
+      val len         = Stage.pure((i: Int) => i.toLong).named("long")
+      val plan        = sealOrFail(Pipeline.stage(inc).par(Pipeline.stage(show)).par(Pipeline.stage(len)))
+      val (_, result) = Emit.run(plan.execute(4)).eval
+      assert(result == (5, "4", 4L))
+    }
+    "emits branch events left then right under the sequential executor" in {
+      val plan        = sealOrFail(Pipeline.stage(inc).par(Pipeline.stage(show)))
+      val (events, _) = Emit.run(plan.execute(1)).eval
+      val entered     = events.collect { case StageEvent.Entered(id, _) => id.render }
+      assert(entered == Chunk("inc", "show"))
+    }
+    "par2 pairs two peer pipelines" in {
+      val plan        = sealOrFail(Pipeline.par2(Pipeline.stage(inc), Pipeline.stage(show)))
+      val (_, result) = Emit.run(plan.execute(4)).eval
+      assert(result == (5, "4"))
+    }
+    "par3 and par4 yield flat tuples" in {
+      val len = Stage.pure((i: Int) => i.toLong).named("long")
+      val neg = Stage.pure((i: Int) => -i).named("neg")
+      val p3  = sealOrFail(Pipeline.par3(Pipeline.stage(inc), Pipeline.stage(show), Pipeline.stage(len)))
+      val p4  =
+        sealOrFail(Pipeline.par4(Pipeline.stage(inc), Pipeline.stage(show), Pipeline.stage(len), Pipeline.stage(neg)))
+      val (_, r3) = Emit.run(p3.execute(4)).eval
+      val (_, r4) = Emit.run(p4.execute(4)).eval
+      assert(r3 == (5, "4", 4L) && r4 == (5, "4", 4L, -4))
+    }
+    "rejects duplicate ids across sides at seal" in {
+      Pipeline.stage(inc).par(Pipeline.stage(Stage.pure((i: Int) => i).named("inc"))).seal match
+        case Result.Failure(errors) =>
+          assert(errors.errors.exists {
+            case SealError.DuplicateNodeId(id) => id.render == "inc"
+            case _                             => false
+          })
+        case _ => assert(false)
+    }
+  }
