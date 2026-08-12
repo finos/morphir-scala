@@ -252,6 +252,13 @@ final class SealedPipeline[-I, +O, S] private[buildkit] (
 
   def describe: String = sealedChain.describe
 
+  /**
+   * Render this plan as Mermaid `flowchart TD` source: stages as labelled nodes, branches as decision diamonds with
+   * both arms drawn, fan-outs as subgraphs annotated per element. See [[morphir.buildkit.internal.MermaidRenderer]] for
+   * the full layout contract.
+   */
+  def toMermaid: String = MermaidRenderer.render(sealedChain)
+
   private[buildkit] def definitionChain: NodeChain[I, O, S] = SealedPipeline.toNodeChain(sealedChain)
 
   /**

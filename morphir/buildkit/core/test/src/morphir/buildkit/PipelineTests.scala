@@ -395,3 +395,43 @@ class PipelineTests extends Test[Any]:
       assert(rendered == Chunk("enter:inc", "exit:inc:Succeeded", "enter:boom", "exit:boom:Failed"))
     }
   }
+
+  "toMermaid" - {
+    "renders a linear plan" in {
+      val plan = sealOrFail(Pipeline.stage(inc).andThen(show))
+      assert(plan.toMermaid ==
+        """flowchart TD
+          |  inc["inc"]
+          |  show["show"]
+          |  inc --> show""".stripMargin)
+    }
+    "renders a branch as a decision with both arms" in {
+      val plan = sealOrFail(
+        Pipeline.stage(inc).branch(_ > 10)(
+          Pipeline.stage(Stage.pure((i: Int) => s"b:$i").named("big")),
+          Pipeline.stage(Stage.pure((i: Int) => s"s:$i").named("small"))
+        )
+      )
+      val src = plan.toMermaid
+      assert(src.contains("{\"?\"}"))
+      assert(src.contains("-->|true| big") && src.contains("-->|false| small"))
+    }
+    "renders a fanOut as a subgraph annotated per element" in {
+      val plan = sealOrFail(
+        Pipeline
+          .stage(Stage.pure((n: Int) => Chunk.from(0 until n).map(_.toString)).named("sources"))
+          .fanOut("parse-all", Pipeline.stage(Stage.pure((s: String) => s.length).named("parse")))
+      )
+      val src = plan.toMermaid
+      assert(src.contains("subgraph parse-all"))
+      assert(src.contains("|per element|"))
+    }
+    "escapes quotes in labels" in {
+      val plan = sealOrFail(Pipeline.stage(Stage.pure((i: Int) => i).named("say \"hi\"")))
+      assert(plan.toMermaid.contains("say #quot;hi#quot;"))
+    }
+    "is deterministic" in {
+      val plan = sealOrFail(Pipeline.stage(inc).andThen(show))
+      assert(plan.toMermaid == plan.toMermaid)
+    }
+  }
