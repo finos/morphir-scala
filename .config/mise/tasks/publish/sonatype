@@ -234,6 +234,7 @@ run_publish() {
         morphir.contrib.__
         morphir.tests.__
         morphir.buildkit.__
+        morphir.prelude.__
     )
 
     local publish_selectors=""

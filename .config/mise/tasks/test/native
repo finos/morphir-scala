@@ -6,7 +6,7 @@ set -e
 echo "Running Native tests..."
 
 # Native support is currently scoped to the langkit and kit modules ported from
-# krueger, plus buildkit/core, so this globs those rather than all of
+# krueger, plus buildkit/core and prelude, so this globs those rather than all of
 # `morphir.__` — every other module is jvm/js only and would resolve to
 # nothing.
 #

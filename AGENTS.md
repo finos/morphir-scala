@@ -41,7 +41,7 @@ morphir-scala provides Scala language bindings and JVM-based tooling for Morphir
 - **ZIO** - Effect system and testing
 - **Kyo** - Effect system used by the newer modules (kyo-core, kyo-prelude, kyo-test, kyo-case-app, kyo-schema, kyo-zio)
 - **ScalaJS** - JavaScript compilation target, plus a WebAssembly link variant
-- **Scala Native** - Native compilation target, currently scoped to the `langkit`, `kit` and `buildkit` modules
+- **Scala Native** - Native compilation target, currently scoped to the `langkit`, `kit`, `buildkit` and `prelude` modules
 
 ### Versions
 
@@ -120,7 +120,8 @@ morphir-scala/
 │   ├── jvm/src/             # JVM-specific sources
 │   ├── js/src/              # ScalaJS-specific sources
 │   ├── native/src/          # Scala Native-specific sources
-│   ├── buildkit/            # Frontend-neutral buildkit core, currently holding the generic pipeline Stage
+│   ├── buildkit/            # Frontend-neutral buildkit core: the pipeline Stage and typed task graph
+│   ├── prelude/             # Shared package-morphir types (MorphirException, Zippable) at the dependency bottom
 │   ├── contrib/             # Contributed modules
 │   ├── interop/             # Interoperability modules (borer, zio-json)
 │   ├── kit/                 # Kits: extensions and bridges per upstream library (e.g. kit/kyo)
@@ -219,7 +220,7 @@ Two-platform directory names are sorted and shared by both targets. See
   - Prefer newtypes via opaque types over stringly typed or non-intention-revealing primitives
   - Use named tuples, especially where they make public signatures easier to read
 - In Kyo-based modules — those whose Mill config extends a `MorphirKyo*MvnDeps` trait (currently `langkit`, `kit`,
-  `buildkit`, `model`, `intelligence`, and `contrib/knowledge`):
+  `buildkit`, `prelude`, `model`, `intelligence`, and `contrib/knowledge`):
   - Prefer `kyo.Maybe` over `Option` in public APIs. ZIO-side modules do not carry `Maybe` and are out of scope.
   - Prefer `kyo.Result` over `Either` in public APIs. `Result[E, A]` is unboxed, carries panics as a third arm
     alongside success and typed failure, and integrates with `Abort`; `Either` remains for boundaries that demand

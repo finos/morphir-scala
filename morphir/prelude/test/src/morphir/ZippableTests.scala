@@ -1,8 +1,7 @@
-package morphir.buildkit
+package morphir
 
 import kyo.*
 import kyo.test.*
-import morphir.Zippable
 
 class ZippableTests extends Test[Any]:
 

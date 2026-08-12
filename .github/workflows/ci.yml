@@ -323,7 +323,7 @@ jobs:
           key: ${{ runner.os }}-mill-js-${{matrix.java}}-${{ github.sha }}
 
   # Scala Native is currently scoped to the langkit and kit modules ported from
-  # krueger, plus buildkit/core. It gets its own job rather than riding along
+  # krueger, plus buildkit/core and prelude. It gets its own job rather than riding along
   # with test-jvm because it needs libuv and links a binary per test module,
   # which is slower than the JVM run and unrelated to it — a native linker
   # failure should be legible on its own.
