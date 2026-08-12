@@ -39,6 +39,16 @@ class NodeIdTests extends Test[Any]:
         case Result.Failure(SealError.InvalidSegment(value, _)) => assert(value == "a\u0007b")
         case _                                                  => assert(false)
     }
+    "rejects a segment containing DEL (0x7F)" in {
+      NodeId.segment("a\u007Fb") match
+        case Result.Failure(SealError.InvalidSegment(value, _)) => assert(value == "a\u007Fb")
+        case _                                                  => assert(false)
+    }
+    "rejects a segment containing a C1 control character (0x80–0x9F)" in {
+      NodeId.segment("a\u0080b") match
+        case Result.Failure(SealError.InvalidSegment(value, _)) => assert(value == "a\u0080b")
+        case _                                                  => assert(false)
+    }
   }
 
   "nodeId interpolator" - {

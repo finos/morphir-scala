@@ -25,7 +25,8 @@ object NodeId:
     else if value == ".." then Result.fail(SealError.InvalidSegment(value, "is '..'"))
     else if value.contains("/") then Result.fail(SealError.InvalidSegment(value, "contains '/'"))
     else if value.contains("\\") then Result.fail(SealError.InvalidSegment(value, "contains '\\'"))
-    else if value.exists(_ < 0x20) then Result.fail(SealError.InvalidSegment(value, "contains a control character"))
+    else if value.exists(Character.isISOControl) then
+      Result.fail(SealError.InvalidSegment(value, "contains a control character"))
     else Result.succeed(Chunk(value))
 
   /** Trusted constructor for segments the sealer has already produced or validated. */
@@ -64,7 +65,7 @@ private[buildkit] object NodeIdMacros:
     if literal == ".." then report.errorAndAbort(s"invalid node id segment '$literal': is '..'")
     if literal.contains("/") then report.errorAndAbort(s"invalid node id segment '$literal': contains '/'")
     if literal.contains("\\") then report.errorAndAbort(s"invalid node id segment '$literal': contains '\\'")
-    if literal.exists(_ < 0x20) then
+    if literal.exists(Character.isISOControl) then
       report.errorAndAbort(s"invalid node id segment '$literal': contains a control character")
     '{ NodeId.unsafe(Chunk(${ Expr(literal) })) }
 end NodeIdMacros

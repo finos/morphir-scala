@@ -30,3 +30,8 @@ class VisibilityTests extends Test[Any]:
     "NodeId.unsafe does not typecheck outside morphir.buildkit" in
       assert(!scala.compiletime.testing.typeChecks(""" morphir.buildkit.NodeId.unsafe(kyo.Chunk("x")) """))
   }
+
+  "nodeId interpolator" - {
+    "expands and typechecks at a foreign-package expansion site" in
+      assert(nodeId"outside".render == "outside")
+  }
