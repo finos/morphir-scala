@@ -105,16 +105,22 @@ private[buildkit] object Sealing:
     if slug.isEmpty then Absent else Present(slug)
 
   /**
-   * Assign ids to `chain`'s own elements and validate the result into a [[SealedChain]], accumulating every failure: an
-   * invalid explicit id, a duplicate id among this level's own nodes, or — for a `FanOutElem` — its child chain failing
-   * to seal.
+   * Assign ids to `chain`'s own elements and validate the result into a [[SealedChain]], accumulating every failure —
+   * everywhere in the (possibly nested) graph, not just at this level: an invalid explicit id, a duplicate id among
+   * this level's own nodes, ''and'' a `FanOutElem`'s child chain failing to seal, whether or not a sibling at this
+   * level also failed.
    *
    * A `ParElem`'s two sides share this level's id namespace, so duplicates across sides are caught here (unchanged from
    * before `fanOut` existed). A `FanOutElem`'s child chain does not share it: its ids are validated by a nested call to
-   * this same function, so they may repeat ids used elsewhere in the enclosing chain. When that nested call fails, its
-   * errors re-enter this level's aggregate with this node's own assigned id segment prefixed onto each
-   * [[SealError.DuplicateNodeId]] — an [[SealError.InvalidSegment]] names the raw string that failed validation, which
-   * has no path to prefix, so it passes through unchanged.
+   * this same function, so they may repeat ids used elsewhere in the enclosing chain. That nested call is attempted for
+   * ''every'' fan-out whose own id assigned successfully, even when some other, unrelated element at this level failed
+   * — a sibling's own-level problem must never hide a fan-out's independent child failure, or one seal could no longer
+   * promise "every error, everywhere" in a single pass. Only a fan-out whose own id itself failed skips its child seal:
+   * there is no sound id to prefix the child's errors with, so reporting the parent's own error and leaving the
+   * (already-unreachable, since this fan-out can never be constructed) child unqueried is the narrower, defensible half
+   * of the guarantee. When a nested call fails, its errors re-enter this level's aggregate with this node's own
+   * assigned id segment prefixed onto each [[SealError.DuplicateNodeId]] — an [[SealError.InvalidSegment]] names the
+   * raw string that failed validation, which has no path to prefix, so it passes through unchanged.
    */
   def sealChain[I, O, S](chain: NodeChain[I, O, S]): Result[SealErrors, SealedChain[I, O, S]] =
     val summaries                                  = chain.summaries
@@ -138,9 +144,58 @@ private[buildkit] object Sealing:
         .sortBy(_._1)
         .map((_, group) => SealError.DuplicateNodeId(group.head))
 
-    if segmentErrors.nonEmpty || duplicates.nonEmpty then
-      Result.fail(SealErrors.unsafe(segmentErrors ++ Chunk.from(duplicates)))
-    else pairChain(chain, ids)
+    // Attempted unconditionally — not gated on `segmentErrors`/`duplicates` being empty — so a fan-out's own child
+    // seal failure is never masked by an unrelated sibling error at this level.
+    val nestedErrors: Chunk[SealError] = nestedFanOutErrors(chain, assigned)
+
+    SealErrors(segmentErrors ++ Chunk.from(duplicates) ++ nestedErrors) match
+      case Present(errors) => Result.fail(errors)
+      case Absent          => pairChain(chain, ids)
+
+  /**
+   * Walk `chain` the same way [[NodeChain#summaries]]/[[NodeChain#size]] do — depth-first, splitting `assigned`
+   * positionally by each element's own `size` — collecting every `FanOutElem`'s own child-seal failure, path-qualified
+   * by that fan-out's own assigned id. Unlike [[pairChain]], this never builds anything and never itself fails: it only
+   * surfaces errors, so it can run before this level's own ids are known to be entirely valid.
+   */
+  private def nestedFanOutErrors[I2, O2, S2](
+      c: NodeChain[I2, O2, S2],
+      assigned: Chunk[Result[SealError, NodeId]]
+  ): Chunk[SealError] =
+    c match
+      case NodeChain.Single(elem)       => nestedFanOutErrorsElem(elem, assigned)
+      case NodeChain.Append(init, last) =>
+        val initSize = init.size
+        nestedFanOutErrors(init, assigned.take(initSize)) ++ nestedFanOutErrorsElem(last, assigned.drop(initSize))
+
+  private def nestedFanOutErrorsElem[I2, O2, S2](
+      e: DefElem[I2, O2, S2],
+      assigned: Chunk[Result[SealError, NodeId]]
+  ): Chunk[SealError] =
+    e match
+      case DefElem.StageElem(_, _)         => Chunk.empty
+      case DefElem.ParElem(left, right, _) =>
+        val leftSize = left.size
+        nestedFanOutErrors(left, assigned.take(leftSize)) ++ nestedFanOutErrors(right, assigned.drop(leftSize))
+      case DefElem.FanOutElem(_, each) =>
+        assigned(0) match
+          case Result.Success(ownId) => errorsOf(sealChain(each)).map(prefixNested(_, ownId))
+          // No sound id to prefix the child's errors with — this fan-out can never be constructed regardless, so
+          // its own-level error alone (already in `segmentErrors`) is reported; the narrow half of the guarantee.
+          case Result.Failure(_) => Chunk.empty
+          case Result.Panic(_)   => Chunk.empty
+
+  /**
+   * The errors of a failed seal, or none. `Success` and `Panic` both fold to empty here: a `Panic` genuinely never
+   * happens in this deterministic construction, and even if it somehow did, this function only feeds error
+   * ''collection'' — the later [[pairChain]]/[[pairElem]] pass re-seals the same fan-out on the happy path and
+   * propagates a real panic properly there, via [[combine]].
+   */
+  private def errorsOf[A](r: Result[SealErrors, A]): Chunk[SealError] =
+    r match
+      case Result.Failure(errors) => errors.errors
+      case Result.Success(_)      => Chunk.empty
+      case Result.Panic(_)        => Chunk.empty
 
   /**
    * Pairs `chain` with `ids` (one per own-level element, in definition order) into a [[SealedChain]], recursing through

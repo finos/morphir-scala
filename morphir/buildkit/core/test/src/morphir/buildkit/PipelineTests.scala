@@ -207,4 +207,50 @@ class PipelineTests extends Test[Any]:
           })
         case _ => assert(false)
     }
+    "sibling errors do not mask a fan-out child's seal failure" in {
+      val dup = Pipeline.stage(parse).andThen(Stage.pure((i: Int) => i).named("parse"))
+      // "bad/segment" fails its own-level id validation; the fan-out's child independently fails to seal on its own
+      // duplicate "parse" id. Both must surface from a single `seal` call — one sibling's failure must not swallow
+      // the other, unrelated failure nested inside the fan-out.
+      Pipeline.stage("bad/segment", sources).fanOut("parse-all", dup).seal match
+        case Result.Failure(errors) =>
+          assert(errors.errors.exists {
+            case SealError.InvalidSegment(value, _) => value == "bad/segment"
+            case _                                  => false
+          })
+          assert(errors.errors.exists {
+            case SealError.DuplicateNodeId(id) => id.render == "parse-all/parse"
+            case _                             => false
+          })
+        case _ => assert(false)
+    }
+    "the fan-out node's own Entered/Exited bracket the per-element events" in {
+      val plan        = sealOrFail(Pipeline.stage(sources).fanOut("fo", Pipeline.stage(parse)))
+      val (events, _) = Emit.run(plan.execute(2)).eval
+      val rendered    = events.collect {
+        case StageEvent.Entered(id, _) => s"enter:${id.render}"
+        case StageEvent.Exited(id, _)  => s"exit:${id.render}"
+      }
+      assert(
+        rendered == Chunk(
+          "enter:sources",
+          "exit:sources",
+          "enter:fo",
+          "enter:fo/0/parse",
+          "exit:fo/0/parse",
+          "enter:fo/1/parse",
+          "exit:fo/1/parse",
+          "exit:fo"
+        )
+      )
+    }
+    "the fan-out node's own bracket still fires with zero elements" in {
+      val plan        = sealOrFail(Pipeline.stage(sources).fanOut("fo", Pipeline.stage(parse)))
+      val (events, _) = Emit.run(plan.execute(0)).eval
+      val rendered    = events.collect {
+        case StageEvent.Entered(id, _) => s"enter:${id.render}"
+        case StageEvent.Exited(id, _)  => s"exit:${id.render}"
+      }
+      assert(rendered == Chunk("enter:sources", "exit:sources", "enter:fo", "exit:fo"))
+    }
   }

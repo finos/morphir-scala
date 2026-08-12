@@ -15,6 +15,14 @@ private[buildkit] enum SealedElem[-I, +O, S]:
       right: SealedChain[I2, O2, S2],
       zip: (O1, O2) => Z
   ) extends SealedElem[I2, Z, S1 & S2]
+
+  /**
+   * A fan-out node: its own id, structurally paired with its child chain, already fully sealed on that child's own,
+   * independent id namespace. At execution ([[morphir.buildkit.SealedPipeline]]) this node's id brackets the whole
+   * per-element loop with its own `Entered`/`Exited` events — the child chain runs once per element of the incoming
+   * `Chunk[A]`, each run's own events qualified with that element's index, and the bracket still fires with zero
+   * elements (`Entered` immediately followed by `Exited`, no child events between).
+   */
   case FanOutNode[A, B, S2](
       id: NodeId,
       each: SealedChain[A, B, S2]
@@ -40,9 +48,9 @@ end SealedElem
 
 /**
  * A typed non-empty cons-list of sealed elements, mirroring [[NodeChain]]'s GADT shape but pairing each stage with its
- * assigned id structurally, rather than through a parallel array indexed by position. Built once, by [[Sealing.seal]],
- * from a [[NodeChain]] and its assigned ids; the executor walks it with no index arithmetic, and an id can never
- * desynchronize from the node it names.
+ * assigned id structurally, rather than through a parallel array indexed by position. Built once, by
+ * [[Sealing.sealChain]], from a [[NodeChain]] and its assigned ids; the executor walks it with no index arithmetic, and
+ * an id can never desynchronize from the node it names.
  */
 private[buildkit] enum SealedChain[-I, +O, S]:
   case Single[I2, O2, S2](elem: SealedElem[I2, O2, S2]) extends SealedChain[I2, O2, S2]

@@ -242,6 +242,12 @@ object SealedPipeline:
    * node, outermost first. A plain top-level run passes `Chunk.empty`; a `FanOutNode` extends `prefix` with its own
    * segment and the running element's index before running `each` on that element, so a doubly-nested fan-out's event
    * ids carry the full path.
+   *
+   * A `FanOutNode` has an id of its own — unlike a `ParNode`'s two sides, which carry none — so it emits `Entered` and
+   * `Exited` around the whole per-element loop, bracketing every child event: `Entered(fo)`, then each element's own
+   * `Entered`/`Exited` pair under `fo/<index>/...`, then `Exited(fo)`. With zero elements the bracket still fires —
+   * `Entered(fo)` immediately followed by `Exited(fo)`, with no child events between — so a fan-out's own lifecycle is
+   * always observable even when it has nothing to iterate.
    */
   private def executeElem[A, B, S2](
       elem: SealedElem[A, B, S2],
