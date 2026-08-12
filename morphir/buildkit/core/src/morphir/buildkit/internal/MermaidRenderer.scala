@@ -80,7 +80,7 @@ private[buildkit] object MermaidRenderer:
    * together.
    */
   private def rawId(prefix: String, id: NodeId): String =
-    if prefix.isEmpty then id.render else s"${prefix}_${id.render}"
+    if prefix.isEmpty then id.render else s"$prefix/${id.render}"
 
   /**
    * Fold `raw` into a Mermaid-safe bareword: non-`[A-Za-z0-9_-]` characters become `_`, a leading digit gets `n_`. `-`

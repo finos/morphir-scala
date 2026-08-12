@@ -371,17 +371,17 @@ class PipelineTests extends Test[Any]:
       assert(rendered == Chunk("enter:inc", "exit:inc:Succeeded", "enter:boom", "exit:boom:Failed"))
     }
     // A typed `Abort[E]` failure never reaches `kyo.kernel.Effect.catching`'s `catch` block — it propagates through
-    // Kyo's own suspend/resume ArrowEffect protocol, not a JVM `throw`, so `bracketed` (which panics alone close)
-    // does not see it. Closing `Entered` for this case would need the executor to intercept a statically unknown
-    // `Abort[E]` for an abstract `E` inside an unconstrained `S2` and re-raise it with its original type; every
-    // candidate Kyo RC6 offers for that either fails to type-check against an abstract `S2` or requires widening
-    // `execute`'s public row in a way that breaks `.eval()` across the existing test suite. See the task-4 report
-    // for the full empirical evidence. Left `pendingUntilFixed` rather than dropped, so the moment Kyo (or a design
-    // change) makes this achievable, the suite itself flags it.
+    // Kyo's own suspend/resume ArrowEffect protocol, not a JVM `throw`, so `bracketed` (which only non-fatal panics
+    // close) does not see it. Closing `Entered` for this case would need the executor to intercept a statically
+    // unknown `Abort[E]` for an abstract `E` inside an unconstrained `S2` and re-raise it with its original type;
+    // every candidate Kyo RC6 offers for that either fails to type-check against an abstract `S2` or requires
+    // widening `execute`'s public row in a way that breaks `.eval()` across the existing test suite. See bead
+    // morphir-zdy.2 for the full empirical evidence. Left `pendingUntilFixed` rather than dropped, so the moment
+    // Kyo (or a design change) makes this achievable, the suite itself flags it.
     "a stage whose typed Abort short-circuits still closes its Entered with Exited(Failed)".pendingUntilFixed(
       "typed Abort[E] failures bypass kyo.kernel.Effect.catching (no JVM throw) and Kyo RC6 has no other " +
         "effect-row-preserving way to intercept an abstract S2's Abort and re-raise it with its original type; " +
-        "see task-4 report"
+        "see bead morphir-zdy.2"
     ) in {
       val boom              = Stage.fromKyo[Int, Int, Abort[String]](i => Abort.fail("boom")).named("boom")
       val plan              = sealOrFail(Pipeline.stage(inc).andThen(boom).andThen(show))
@@ -450,5 +450,34 @@ class PipelineTests extends Test[Any]:
       assert(src.contains("a_1_[\"first\"]"))
       assert(src.contains("a_1__2[\"second\"]"))
       assert(src.contains("a_1_ --> a_1__2"))
+    }
+    "a fan-out child's raw id does not collide with an unrelated explicit sibling id sharing its rendered prefix" in {
+      // Regression for the `rawId` join: a fan-out child qualified `fo` + `parse` must not collide, at the raw-id
+      // level, with an unrelated node explicitly id'd `fo_parse` — before the fix both joined on `_`, landing on the
+      // exact same raw string and colliding in `buildIdMap`, so the two nodes rendered as one wrong, shared box.
+      val plan = sealOrFail(
+        Pipeline
+          .stage(Stage.pure((n: Int) => Chunk.from(0 until n).map(_.toString)).named("sources"))
+          .fanOut("fo", Pipeline.stage("parse", Stage.pure((s: String) => s.length).named("child")))
+          .andThen("fo_parse", Stage.pure((cs: Chunk[Int]) => cs.sum).named("successor"))
+      )
+      val src         = plan.toMermaid
+      val declaredIds = src.linesIterator.collect {
+        case l if l.trim.startsWith("subgraph ")         => l.trim.stripPrefix("subgraph ").trim
+        case l if l.contains("[\"") || l.contains("{\"") => l.trim.takeWhile(c => c != '[' && c != '{')
+      }.toList
+      assert(declaredIds.distinct.size == 4)
+      assert(declaredIds.toSet == Set("sources", "fo", "fo_parse", "fo_parse_2"))
+      assert(src.contains("fo_parse[\"child\"]"))
+      assert(src.contains("fo_parse_2[\"successor\"]"))
+    }
+    "renders a par with reconverging edges into its successor" in {
+      val plan = sealOrFail(
+        Pipeline.stage(inc).par(Pipeline.stage(show)).andThen(Stage.pure((t: (Int, String)) => t._2).named("collect"))
+      )
+      val src = plan.toMermaid
+      assert(src.contains("inc[\"inc\"]") && src.contains("show[\"show\"]") && src.contains("collect[\"collect\"]"))
+      assert(src.contains("inc --> collect"))
+      assert(src.contains("show --> collect"))
     }
   }

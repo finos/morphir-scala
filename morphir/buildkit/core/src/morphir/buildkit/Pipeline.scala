@@ -219,6 +219,9 @@ final class PipelineDef[-I, +O, S] private[buildkit] (
    * Run `arm` when `pred` holds, yielding `Present` of its result; otherwise `Absent`, and `arm` never runs. Derived
    * from [[branch]]: the true arm is `arm` extended with a stage wrapping its result in `Present`, and the false arm is
    * a single stage that ignores its input and returns `Absent`. See [[branch]] for the `O1 >: O` parameter.
+   *
+   * These two derived wrapping stages are ordinary, unlabelled nodes like any other: they surface as anonymous `node-N`
+   * entries in [[SealedPipeline#nodeIds]], in emitted [[StageEvent]]s, and in `toMermaid` diagrams.
    */
   def when[O1 >: O, O2, S2](pred: O1 => Boolean)(arm: Pipeline[O1, O2, S2]): PipelineDef[I, Maybe[O2], S & S2] =
     val ifTrue: NodeChain[O1, Maybe[O2], S2] =
@@ -245,7 +248,11 @@ final class SealedPipeline[-I, +O, S] private[buildkit] (
     private[buildkit] val sealedChain: SealedChain[I, O, S]
 ) extends Pipeline[I, O, S]:
 
-  /** Node ids of this plan, in definition order. */
+  /**
+   * Node ids of this plan, in definition order. This lists the static plan's own nodes only — a `FanOutNode`
+   * contributes its own id, not one per element of whatever chunk it runs against at execution time; those per-element
+   * paths only appear in [[StageEvent]]s emitted by [[execute]], never here.
+   */
   def nodeIds: Chunk[NodeId] = sealedChain.nodeIds
 
   def seal: Result[SealErrors, SealedPipeline[I, O, S]] = Result.succeed(this)
@@ -268,20 +275,27 @@ final class SealedPipeline[-I, +O, S] private[buildkit] (
    *
    * '''Panics close their `Entered` with `Exited(id, Failed)`.''' Every bracketing node (a `StageNode`'s own run, a
    * `FanOutNode`'s whole per-element loop, a `BranchNode`'s decision and taken arm) is wrapped with
-   * `kyo.kernel.Effect.catching`: a raw thrown `Throwable` is caught, `Exited(id, Failed)` is emitted, and the
-   * exception is rethrown so the panic keeps propagating outward exactly as before — `Effect.catching` is
-   * effect-row-neutral (`B < (S & S2)` with `S2` fixed to `Emit[StageEvent]` here, which this method's own row already
-   * carries), so this needed no change to `execute`'s own signature.
+   * `kyo.kernel.Effect.catching`: a raw thrown non-fatal `Throwable` (`scala.util.control.NonFatal`, which
+   * `Effect.catching` itself filters on) is caught, `Exited(id, Failed)` is emitted, and the exception is rethrown so
+   * the panic keeps propagating outward exactly as before — `Effect.catching` is effect-row-neutral (`B < (S & S2)`
+   * with `S2` fixed to `Emit[StageEvent]` here, which this method's own row already carries), so this needed no change
+   * to `execute`'s own signature.
    *
-   * '''Known gap: a typed `Abort[E]` short-circuit still leaves its `Entered` unclosed.''' Unlike a panic, a typed
-   * `Abort` failure never reaches `Effect.catching`'s `catch` block — it propagates through Kyo's own suspend/resume
-   * `ArrowEffect` protocol, not a JVM `throw`. Closing `Entered` for that case would need the executor to intercept a
-   * statically unknown `Abort[E]` inside `S` for an abstract, unbounded `E` and re-raise it with its original type —
-   * every candidate Kyo RC6 offers for that (`Sync.ensure`, `Scope.ensure`, and every
-   * `Abort.run`/`fold`/`recover`/`tapError` shape, including the `Abort[Any]`-widened one) either fails to type-check
-   * against an abstract `S`, or requires widening `execute`'s own public row in a way that breaks direct `.eval()`
-   * calls across the existing test suite. See the task-4 implementation report for the full evidence. `Halted` remains
-   * unemitted for the same reason `Skipped` was before conditional branches: nothing yet triggers it.
+   * '''Known gaps: two cases still leave their `Entered` unclosed.'''
+   *
+   *   - '''A typed `Abort[E]` short-circuit.''' Unlike a panic, a typed `Abort` failure never reaches
+   *     `Effect.catching`'s `catch` block — it propagates through Kyo's own suspend/resume `ArrowEffect` protocol, not
+   *     a JVM `throw`. Closing `Entered` for that case would need the executor to intercept a statically unknown
+   *     `Abort[E]` inside `S` for an abstract, unbounded `E` and re-raise it with its original type — every candidate
+   *     Kyo RC6 offers for that (`Sync.ensure`, `Scope.ensure`, and every `Abort.run`/`fold`/`recover`/`tapError`
+   *     shape, including the `Abort[Any]`-widened one) either fails to type-check against an abstract `S`, or requires
+   *     widening `execute`'s own public row in a way that breaks direct `.eval()` calls across the existing test suite.
+   *     See bead morphir-zdy.2 for the full evidence.
+   *   - '''A fatal `Throwable`.''' `Effect.catching` filters on `scala.util.control.NonFatal`, so
+   *     `InterruptedException`, `VirtualMachineError`, `LinkageError`, and `ControlThrowable` are not caught, and leave
+   *     a dangling `Entered` the same way a typed `Abort` does.
+   *
+   * `Halted` remains unemitted for the same reason `Skipped` was before conditional branches: nothing yet triggers it.
    */
   def execute(input: I): O < (S & Emit[StageEvent]) =
     SealedPipeline.executeChain(sealedChain, Chunk.empty, input)
@@ -302,13 +316,15 @@ object SealedPipeline:
         DefElem.BranchElem(Present(id.render), pred, toNodeChain(ifTrue), toNodeChain(ifFalse))
 
   /**
-   * Run `v` — a bracketing node's own value-producing work — so that a raw panic closes `eventId`'s `Entered` with
-   * `Exited(id, Failed)` before continuing to propagate. `kyo.kernel.Effect.catching` is the one Kyo RC6 primitive that
-   * observes an arbitrary, statically unknown effect row's panic without needing to know anything about that row: its
-   * own `S2` is fixed here to `Emit[StageEvent]`, which `v`'s row already carries, so wrapping is row-neutral —
+   * Run `v` — a bracketing node's own value-producing work — so that a raw non-fatal panic closes `eventId`'s `Entered`
+   * with `Exited(id, Failed)` before continuing to propagate. `kyo.kernel.Effect.catching` is the one Kyo RC6 primitive
+   * that observes an arbitrary, statically unknown effect row's panic without needing to know anything about that row:
+   * its own `S2` is fixed here to `Emit[StageEvent]`, which `v`'s row already carries, so wrapping is row-neutral —
    * `A < (S2 & Emit[StageEvent])` in, `A < (S2 & Emit[StageEvent])` out, no change to the caller's own declared type.
-   * It does '''not''' see a typed `Abort[E]` failure — see [[SealedPipeline#execute]]'s own doc for why that half of
-   * the contract is still open.
+   * It filters on `scala.util.control.NonFatal` (a raw thrown non-fatal `Throwable`), so it does '''not''' see a fatal
+   * `Throwable` (`InterruptedException`, `VirtualMachineError`, `LinkageError`, `ControlThrowable`) any more than it
+   * sees a typed `Abort[E]` failure — see [[SealedPipeline#execute]]'s own doc for why both halves of the contract are
+   * still open.
    */
   private def bracketed[A, S3](eventId: NodeId)(v: => A < (S3 & Emit[StageEvent])): A < (S3 & Emit[StageEvent]) =
     Effect.catching(v) { (ex: Throwable) =>

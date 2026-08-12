@@ -3,9 +3,11 @@ package morphir.buildkit
 import kyo.*
 
 /**
- * How a node's execution concluded. `Failed` is emitted when a bracketing node's own work panics (a raw thrown
- * exception); a typed `Abort[E]` short-circuit does not yet produce it — see [[SealedPipeline#execute]]. `Halted`
- * becomes emittable when executor-owned halting arrives.
+ * How a node's execution concluded. `Failed` is emitted when a bracketing node's own work panics with a raw thrown
+ * non-fatal exception (`scala.util.control.NonFatal`, which `Effect.catching` itself filters on); neither a typed
+ * `Abort[E]` short-circuit nor a fatal `Throwable` (`InterruptedException`, `VirtualMachineError`, `LinkageError`,
+ * `ControlThrowable`) produces it yet — see [[SealedPipeline#execute]]. `Halted` becomes emittable when executor-owned
+ * halting arrives.
  */
 enum StageOutcome:
   case Succeeded, Failed, Halted
