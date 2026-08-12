@@ -289,16 +289,99 @@ class PipelineTests extends Test[Any]:
         case Result.Failure(errors) => assert(errors.errors.nonEmpty)
         case _                      => assert(false)
     }
+    "the branch node's own Entered/Exited bracket the taken arm and the skip events" in {
+      val wrap        = Pipeline.stage(Stage.pure((i: Int) => i.toString).named("wrap"))
+      val other       = Pipeline.stage(Stage.pure((i: Int) => i).named("other"))
+      val plan        = sealOrFail(Pipeline.stage(inc).branch(_ > 0)(wrap, other))
+      val (events, _) = Emit.run(plan.execute(1)).eval
+      val rendered    = events.map {
+        case StageEvent.Entered(id, _)      => s"enter:${id.render}"
+        case StageEvent.Exited(id, outcome) => s"exit:${id.render}:$outcome"
+        case StageEvent.Skipped(id, _)      => s"skip:${id.render}"
+      }
+      // The branch node itself has no explicit id and no label (a pipeline construct, not a `Stage`), so it falls
+      // back to its position — "node-1": index 0 is `inc`, index 1 is the branch's own slot (see `DefElem.BranchElem`
+      // and `Sealing.sealChain`'s position-fallback, unchanged by this task).
+      assert(
+        rendered == Chunk(
+          "enter:inc",
+          "exit:inc:Succeeded",
+          "enter:node-1",
+          "enter:wrap",
+          "exit:wrap:Succeeded",
+          "skip:other",
+          "exit:node-1:Succeeded"
+        )
+      )
+    }
+    "a nested fan-out inside an untaken arm emits exactly one Skipped for the fan-out node itself" in {
+      def sources = Stage.pure((n: Int) => Chunk.from(0 until n).map(_.toString)).named("sources")
+      def parse   = Stage.pure((s: String) => s.length).named("parse")
+
+      val takenArm    = Pipeline.stage(Stage.pure((i: Int) => Chunk.empty[Int]).named("empty"))
+      val untakenArm  = Pipeline.stage(sources).fanOut("parse-all", Pipeline.stage(parse))
+      val plan        = sealOrFail(Pipeline.stage(inc).branch(_ > 0)(takenArm, untakenArm))
+      val (events, _) = Emit.run(plan.execute(1)).eval
+      // Only the fan-out node's own id is skipped — its per-element child ("parse") lives in its own independent,
+      // nested seal namespace and was never counted, since it never ran.
+      assert(events.collect { case StageEvent.Skipped(id, _) => id.render } == Chunk("sources", "parse-all"))
+    }
+    "a fan-out nested in a branch arm still surfaces its own child seal failure, without a sibling error masking it" in {
+      def sources = Stage.pure((n: Int) => Chunk.from(0 until n).map(_.toString)).named("sources")
+      def parse   = Stage.pure((s: String) => s.length).named("parse")
+
+      val dup           = Pipeline.stage(parse).andThen(Stage.pure((i: Int) => i).named("parse"))
+      val armWithFanOut = Pipeline.stage(sources).fanOut("parse-all", dup)
+      val otherArm      = Pipeline.stage(Stage.pure((i: Int) => Chunk.empty[Int]))
+      // "bad/segment" fails its own-level id validation; the fan-out nested in the true arm independently fails to
+      // seal on its own duplicate "parse" id. Both must surface from a single `seal` call, mirroring the top-level
+      // "sibling errors do not mask a fan-out child's seal failure" fanOut test, now through a branch arm.
+      Pipeline.stage("bad/segment", inc).branch(_ > 0)(armWithFanOut, otherArm).seal match
+        case Result.Failure(errors) =>
+          assert(errors.errors.exists {
+            case SealError.InvalidSegment(value, _) => value == "bad/segment"
+            case _                                  => false
+          })
+          assert(errors.errors.exists {
+            case SealError.DuplicateNodeId(id) => id.render == "parse-all/parse"
+            case _                             => false
+          })
+        case _ => assert(false)
+    }
   }
 
   "event balance" - {
-    // Kyo RC6 provides no way to intercept an arbitrary, statically-unknown effect row's short-circuit and re-emit
-    // into the caller's own Emit[StageEvent] channel without either an unsafe cast or widening `execute`'s public
-    // effect row (breaking `.eval()` on every existing, effect-free pipeline test). See the task-4 report for the
-    // full empirical evidence. Left `pendingUntilFixed` rather than dropped, so the moment Kyo (or a design change)
-    // makes this achievable, the suite itself flags it.
-    "an aborting stage still closes its Entered with Exited(Failed)".pendingUntilFixed(
-      "Kyo RC6 has no effect-row-preserving finalization hook reachable from a fully generic (unbounded S2) executor; see task-4 report"
+    "a panicking stage still closes its Entered with Exited(Failed), and the panic keeps propagating" in {
+      val boom = Stage.pure((i: Int) => (throw new RuntimeException("boom")): Int).named("boom")
+      val plan = sealOrFail(Pipeline.stage(inc).andThen(boom).andThen(show))
+      // `Emit.run` outside `Abort.run[Nothing]`, same nesting as the typed-Abort case below: the inner boundary
+      // absorbs the panic into a `Result.Panic` value before `Emit.run` ever needs to observe a short-circuit, so
+      // the events accumulated up to the panic survive. `Abort.run` catches a raw panic regardless of the `E` it
+      // was asked to run — that is what "the panic keeps propagating" means here: nothing between the stage's own
+      // `bracketed` rethrow and this outer boundary silently swallowed it.
+      val (events, outcome) = Emit.run(Abort.run[Nothing](plan.execute(1))).eval
+      outcome match
+        case Result.Panic(ex) => assert(ex.getMessage == "boom")
+        case other            => assert(false, s"expected a panic, got $other")
+      val rendered = events.map {
+        case StageEvent.Entered(id, _)      => s"enter:${id.render}"
+        case StageEvent.Exited(id, outcome) => s"exit:${id.render}:$outcome"
+        case StageEvent.Skipped(id, _)      => s"skip:${id.render}"
+      }
+      assert(rendered == Chunk("enter:inc", "exit:inc:Succeeded", "enter:boom", "exit:boom:Failed"))
+    }
+    // A typed `Abort[E]` failure never reaches `kyo.kernel.Effect.catching`'s `catch` block — it propagates through
+    // Kyo's own suspend/resume ArrowEffect protocol, not a JVM `throw`, so `bracketed` (which panics alone close)
+    // does not see it. Closing `Entered` for this case would need the executor to intercept a statically unknown
+    // `Abort[E]` for an abstract `E` inside an unconstrained `S2` and re-raise it with its original type; every
+    // candidate Kyo RC6 offers for that either fails to type-check against an abstract `S2` or requires widening
+    // `execute`'s public row in a way that breaks `.eval()` across the existing test suite. See the task-4 report
+    // for the full empirical evidence. Left `pendingUntilFixed` rather than dropped, so the moment Kyo (or a design
+    // change) makes this achievable, the suite itself flags it.
+    "a stage whose typed Abort short-circuits still closes its Entered with Exited(Failed)".pendingUntilFixed(
+      "typed Abort[E] failures bypass kyo.kernel.Effect.catching (no JVM throw) and Kyo RC6 has no other " +
+        "effect-row-preserving way to intercept an abstract S2's Abort and re-raise it with its original type; " +
+        "see task-4 report"
     ) in {
       val boom              = Stage.fromKyo[Int, Int, Abort[String]](i => Abort.fail("boom")).named("boom")
       val plan              = sealOrFail(Pipeline.stage(inc).andThen(boom).andThen(show))

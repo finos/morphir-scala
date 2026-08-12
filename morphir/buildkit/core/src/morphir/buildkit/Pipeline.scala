@@ -1,6 +1,7 @@
 package morphir.buildkit
 
 import kyo.*
+import kyo.kernel.Effect
 import morphir.Zippable
 import morphir.buildkit.internal.*
 
@@ -258,14 +259,22 @@ final class SealedPipeline[-I, +O, S] private[buildkit] (
    * left side fully, then its right side, then pairs the results — and events are emitted in that same order. A
    * `branch`/`when` node's untaken arm emits `Skipped` for every static node it would have run.
    *
-   * '''Known gap: `Exited(id, Failed)`.''' A stage whose own effects short-circuit (an unhandled `Abort`, a panic)
-   * leaves its `Entered` unclosed today. This executor cannot generically intercept a statically unknown effect row `S`
-   * and re-emit into this same `Emit[StageEvent]` channel without either an unsafe cast or widening this method's own
-   * effect row — which would force every existing, effect-free caller of `execute` to additionally discharge that new
-   * effect before evaluating a result. Confirmed by exhausting every generic-finalization candidate Kyo RC6 offers
-   * (`Sync.ensure`, `Scope`/`Resource.ensure`, and every `Abort.run`/`fold`/`recover`/`tapError` shape) against an
-   * abstract `S`; see the task-4 implementation report for the full evidence. `Halted` remains unemitted for the same
-   * reason `Skipped` was before conditional branches: nothing yet triggers it.
+   * '''Panics close their `Entered` with `Exited(id, Failed)`.''' Every bracketing node (a `StageNode`'s own run, a
+   * `FanOutNode`'s whole per-element loop, a `BranchNode`'s decision and taken arm) is wrapped with
+   * `kyo.kernel.Effect.catching`: a raw thrown `Throwable` is caught, `Exited(id, Failed)` is emitted, and the
+   * exception is rethrown so the panic keeps propagating outward exactly as before — `Effect.catching` is
+   * effect-row-neutral (`B < (S & S2)` with `S2` fixed to `Emit[StageEvent]` here, which this method's own row already
+   * carries), so this needed no change to `execute`'s own signature.
+   *
+   * '''Known gap: a typed `Abort[E]` short-circuit still leaves its `Entered` unclosed.''' Unlike a panic, a typed
+   * `Abort` failure never reaches `Effect.catching`'s `catch` block — it propagates through Kyo's own suspend/resume
+   * `ArrowEffect` protocol, not a JVM `throw`. Closing `Entered` for that case would need the executor to intercept a
+   * statically unknown `Abort[E]` inside `S` for an abstract, unbounded `E` and re-raise it with its original type —
+   * every candidate Kyo RC6 offers for that (`Sync.ensure`, `Scope.ensure`, and every
+   * `Abort.run`/`fold`/`recover`/`tapError` shape, including the `Abort[Any]`-widened one) either fails to type-check
+   * against an abstract `S`, or requires widening `execute`'s own public row in a way that breaks direct `.eval()`
+   * calls across the existing test suite. See the task-4 implementation report for the full evidence. `Halted` remains
+   * unemitted for the same reason `Skipped` was before conditional branches: nothing yet triggers it.
    */
   def execute(input: I): O < (S & Emit[StageEvent]) =
     SealedPipeline.executeChain(sealedChain, Chunk.empty, input)
@@ -284,6 +293,20 @@ object SealedPipeline:
       case SealedElem.FanOutNode(id, each)      => DefElem.FanOutElem(Present(id.render), toNodeChain(each))
       case SealedElem.BranchNode(id, pred, ifTrue, ifFalse) =>
         DefElem.BranchElem(Present(id.render), pred, toNodeChain(ifTrue), toNodeChain(ifFalse))
+
+  /**
+   * Run `v` — a bracketing node's own value-producing work — so that a raw panic closes `eventId`'s `Entered` with
+   * `Exited(id, Failed)` before continuing to propagate. `kyo.kernel.Effect.catching` is the one Kyo RC6 primitive that
+   * observes an arbitrary, statically unknown effect row's panic without needing to know anything about that row: its
+   * own `S2` is fixed here to `Emit[StageEvent]`, which `v`'s row already carries, so wrapping is row-neutral —
+   * `A < (S2 & Emit[StageEvent])` in, `A < (S2 & Emit[StageEvent])` out, no change to the caller's own declared type.
+   * It does '''not''' see a typed `Abort[E]` failure — see [[SealedPipeline#execute]]'s own doc for why that half of
+   * the contract is still open.
+   */
+  private def bracketed[A, S3](eventId: NodeId)(v: => A < (S3 & Emit[StageEvent])): A < (S3 & Emit[StageEvent]) =
+    Effect.catching(v) { (ex: Throwable) =>
+      Emit.value(StageEvent.Exited(eventId, StageOutcome.Failed)).map(_ => throw ex)
+    }
 
   /**
    * Run `elem` on `input`, qualifying every event id it emits with `prefix` — the segments of every enclosing fan-out
@@ -307,9 +330,11 @@ object SealedPipeline:
         val eventId = NodeId.unsafe(prefix ++ id.segments)
         for
           _   <- Emit.value(StageEvent.Entered(eventId, stage.meta))
-          out <- stage.meta match
-            case Present(meta) => Pipeline.provenanceLocal.update(_.append(meta))(stage.run(input))
-            case Absent        => stage.run(input)
+          out <- bracketed(eventId) {
+            stage.meta match
+              case Present(meta) => Pipeline.provenanceLocal.update(_.append(meta))(stage.run(input))
+              case Absent        => stage.run(input)
+          }
           _ <- Emit.value(StageEvent.Exited(eventId, StageOutcome.Succeeded))
         yield out
       case SealedElem.ParNode(left, right, zip) =>
@@ -319,8 +344,10 @@ object SealedPipeline:
         val childPrefix = prefix ++ id.segments
         for
           _      <- Emit.value(StageEvent.Entered(eventId, Absent))
-          result <- Kyo.foreach(input.zipWithIndex) { case (element, index) =>
-            executeChain(each, childPrefix :+ index.toString, element)
+          result <- bracketed(eventId) {
+            Kyo.foreach(input.zipWithIndex) { case (element, index) =>
+              executeChain(each, childPrefix :+ index.toString, element)
+            }
           }
           _ <- Emit.value(StageEvent.Exited(eventId, StageOutcome.Succeeded))
         yield result
@@ -336,7 +363,7 @@ object SealedPipeline:
           }
         for
           _   <- Emit.value(StageEvent.Entered(eventId, Absent))
-          out <- if pred(input) then whenTrue else whenFalse
+          out <- bracketed(eventId)(if pred(input) then whenTrue else whenFalse)
           _   <- Emit.value(StageEvent.Exited(eventId, StageOutcome.Succeeded))
         yield out
 
