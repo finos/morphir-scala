@@ -16,6 +16,12 @@ import morphir.buildkit.*
  * `FanOutElem`'s own type parameters (`A`, `B`, `S2`) name the child chain's input/output/effect row directly, rather
  * than the enclosing element's `I`/`O`/`S`: the enclosing element's `I` is fixed to `Chunk[A]` and `O` to `Chunk[B]` by
  * the `extends` clause, mirroring how `ParElem` fixes its own `I`/`O` from its case type parameters.
+ *
+ * `BranchElem` picks one of two peer chains by a plain predicate on the incoming value, both fed the same input and
+ * producing the same output type. Unlike `FanOutElem`, its two arms do '''not''' get an independent, nested id
+ * namespace: only one arm ever runs, so both arms' node ids are flattened into this element's own leaf slots — the same
+ * namespace `ParElem`'s two sides already share — and `explicitId` names the branch node itself, which (like a
+ * `FanOutElem`) has its own identity even though it wraps no `Stage`.
  */
 private[buildkit] enum DefElem[-I, +O, S]:
   case StageElem(explicitId: Maybe[String], stage: Stage[I, O, S])
@@ -28,34 +34,47 @@ private[buildkit] enum DefElem[-I, +O, S]:
       explicitId: Maybe[String],
       each: NodeChain[A, B, S2]
   ) extends DefElem[Chunk[A], Chunk[B], S2]
+  case BranchElem[I2, O2, S1, S2](
+      explicitId: Maybe[String],
+      pred: I2 => Boolean,
+      ifTrue: NodeChain[I2, O2, S1],
+      ifFalse: NodeChain[I2, O2, S2]
+  ) extends DefElem[I2, O2, S1 & S2]
 
   /**
    * Number of leaf slots this element expands to, walked in definition order: `1` for a stage or a fan-out (a fan-out's
-   * own id-space is nested, not flattened into the enclosing chain's), both sides summed for a `ParElem`.
+   * own id-space is nested, not flattened into the enclosing chain's), both sides summed for a `ParElem`, and `1` (its
+   * own slot) plus both arms summed for a `BranchElem` — its arms share this element's own flattened namespace.
    */
   def size: Int =
     this match
-      case StageElem(_, _)         => 1
-      case ParElem(left, right, _) => left.size + right.size
-      case FanOutElem(_, _)        => 1
+      case StageElem(_, _)                   => 1
+      case ParElem(left, right, _)           => left.size + right.size
+      case FanOutElem(_, _)                  => 1
+      case BranchElem(_, _, ifTrue, ifFalse) => 1 + ifTrue.size + ifFalse.size
 
   /**
    * Leaf summaries, in definition order: one triple per stage, recursing through both sides of a `ParElem`. A fan-out
    * contributes exactly one triple for itself — no label, since a pipeline (unlike a `Stage`) carries no `StageMeta` —
-   * and does not recurse into its child chain, which is sealed independently.
+   * and does not recurse into its child chain, which is sealed independently. A branch contributes one triple for
+   * itself (also unlabeled), followed by both arms' own summaries flattened in — so a duplicate id between the two
+   * arms, or between an arm and a sibling outside the branch, surfaces the same way a `ParElem` side's duplicate does.
    */
   def summaries: Chunk[(Maybe[String], Maybe[StageMeta], String)] =
     this match
-      case StageElem(explicitId, stage) => Chunk((explicitId, stage.meta, stage.describe))
-      case ParElem(left, right, _)      => left.summaries ++ right.summaries
-      case FanOutElem(explicitId, _)    => Chunk((explicitId, Absent, describe))
+      case StageElem(explicitId, stage)               => Chunk((explicitId, stage.meta, stage.describe))
+      case ParElem(left, right, _)                    => left.summaries ++ right.summaries
+      case FanOutElem(explicitId, _)                  => Chunk((explicitId, Absent, describe))
+      case BranchElem(explicitId, _, ifTrue, ifFalse) =>
+        Chunk((explicitId, Absent, describe)) ++ ifTrue.summaries ++ ifFalse.summaries
 
   /** Render this element: a stage renders as its own description; a fork renders as `par(left, right)`. */
   def describe: String =
     this match
-      case StageElem(_, stage)     => stage.describe
-      case ParElem(left, right, _) => s"par(${left.describe}, ${right.describe})"
-      case FanOutElem(_, each)     => s"fanOut(${each.describe})"
+      case StageElem(_, stage)               => stage.describe
+      case ParElem(left, right, _)           => s"par(${left.describe}, ${right.describe})"
+      case FanOutElem(_, each)               => s"fanOut(${each.describe})"
+      case BranchElem(_, _, ifTrue, ifFalse) => s"branch(${ifTrue.describe}, ${ifFalse.describe})"
 end DefElem
 
 /**
@@ -168,6 +187,12 @@ private[buildkit] object Sealing:
         val initSize = init.size
         nestedFanOutErrors(init, assigned.take(initSize)) ++ nestedFanOutErrorsElem(last, assigned.drop(initSize))
 
+  /**
+   * A `BranchElem`'s own slot never itself nests a fan-out (its `explicitId` names the branch, not a stage), so this
+   * only needs to walk both arms — joining their own nested errors just as it joins their own-level duplicate ids via
+   * [[DefElem#summaries]], so a fan-out buried in either arm surfaces alongside a same-level duplicate rather than
+   * being masked by it.
+   */
   private def nestedFanOutErrorsElem[I2, O2, S2](
       e: DefElem[I2, O2, S2],
       assigned: Chunk[Result[SealError, NodeId]]
@@ -184,6 +209,10 @@ private[buildkit] object Sealing:
           // its own-level error alone (already in `segmentErrors`) is reported; the narrow half of the guarantee.
           case Result.Failure(_) => Chunk.empty
           case Result.Panic(_)   => Chunk.empty
+      case DefElem.BranchElem(_, _, ifTrue, ifFalse) =>
+        val rest     = assigned.drop(1)
+        val trueSize = ifTrue.size
+        nestedFanOutErrors(ifTrue, rest.take(trueSize)) ++ nestedFanOutErrors(ifFalse, rest.drop(trueSize))
 
   /**
    * The errors of a failed seal, or none. `Success` and `Panic` both fold to empty here: a `Panic` genuinely never
@@ -233,6 +262,13 @@ private[buildkit] object Sealing:
           case Result.Failure(errors)     =>
             Result.fail(SealErrors.unsafe(errors.errors.map(prefixNested(_, ownId))))
           case Result.Panic(ex) => Result.panic(ex)
+      case DefElem.BranchElem(_, pred, ifTrue, ifFalse) =>
+        val ownId    = slice(0)
+        val rest     = slice.drop(1)
+        val trueSize = ifTrue.size
+        combine(pairChain(ifTrue, rest.take(trueSize)), pairChain(ifFalse, rest.drop(trueSize)))(
+          SealedElem.BranchNode(ownId, pred, _, _)
+        )
 
   /**
    * Combine two seal results, accumulating errors from both sides when either (or both) fail. Neither side of this

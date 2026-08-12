@@ -190,6 +190,44 @@ final class PipelineDef[-I, +O, S] private[buildkit] (
       )
     )
 
+  /**
+   * Pick one of two peer pipelines by `pred`, both fed this pipeline's own output and producing the same output type.
+   * The untaken arm never runs: at execution, every static node reachable through it emits [[StageEvent.Skipped]]
+   * instead. The branch node's own id derives like any node: explicit id, else position.
+   *
+   * '''On the `O1 >: O` type parameter.''' Writing `ifTrue: Pipeline[O, O2, S1]` directly — reusing this class's own
+   * `O` — fails to compile for the mirror-image reason [[par]]'s own doc explains for `I1 <: I`: `Pipeline`'s second
+   * parameter is covariant, so nesting `O` inside a second use of `Pipeline[-I2, ...]` — where `O` fills the
+   * '''contravariant''' `I2` slot — doubles back into a contravariant occurrence of `PipelineDef`'s own covariant `O`,
+   * which `+O` forbids. A fresh, method-scoped `O1` bounded '''above''' by `O` (rather than below, as `par`'s `I1` is)
+   * sidesteps that: at the ordinary call site `O1` is inferred as exactly `O`, and `O1 >: O` makes the widening from
+   * `chain: NodeChain[I, O, S]`'s own `O` sound wherever `O1` is expected.
+   */
+  def branch[O1 >: O, O2, S1, S2](pred: O1 => Boolean)(
+      ifTrue: Pipeline[O1, O2, S1],
+      ifFalse: Pipeline[O1, O2, S2]
+  ): PipelineDef[I, O2, S & S1 & S2] =
+    new PipelineDef(
+      NodeChain.Append(
+        chain,
+        DefElem.BranchElem(Absent, pred, ifTrue.definitionChain, ifFalse.definitionChain)
+      )
+    )
+
+  /**
+   * Run `arm` when `pred` holds, yielding `Present` of its result; otherwise `Absent`, and `arm` never runs. Derived
+   * from [[branch]]: the true arm is `arm` extended with a stage wrapping its result in `Present`, and the false arm is
+   * a single stage that ignores its input and returns `Absent`. See [[branch]] for the `O1 >: O` parameter.
+   */
+  def when[O1 >: O, O2, S2](pred: O1 => Boolean)(arm: Pipeline[O1, O2, S2]): PipelineDef[I, Maybe[O2], S & S2] =
+    val ifTrue: NodeChain[O1, Maybe[O2], S2] =
+      NodeChain.Append(arm.definitionChain, DefElem.StageElem(Absent, Stage.pure((o2: O2) => Present(o2))))
+    val ifFalse: NodeChain[O1, Maybe[O2], Any] =
+      NodeChain.Single(DefElem.StageElem(Absent, Stage.pure((_: O1) => Absent)))
+    new PipelineDef(
+      NodeChain.Append(chain, DefElem.BranchElem(Absent, pred, ifTrue, ifFalse))
+    )
+
   def seal: Result[SealErrors, SealedPipeline[I, O, S]] =
     Sealing.sealChain(chain).map(new SealedPipeline(_))
 
@@ -217,9 +255,17 @@ final class SealedPipeline[-I, +O, S] private[buildkit] (
 
   /**
    * Run the plan sequentially, emitting [[StageEvent]]s. Deterministic: nodes run in definition order — a fork runs its
-   * left side fully, then its right side, then pairs the results — and events are emitted in that same order. This
-   * slice emits `Succeeded` outcomes only; `Failed`/`Halted`/`Skipped` become emittable with executor-owned halting and
-   * conditional branches.
+   * left side fully, then its right side, then pairs the results — and events are emitted in that same order. A
+   * `branch`/`when` node's untaken arm emits `Skipped` for every static node it would have run.
+   *
+   * '''Known gap: `Exited(id, Failed)`.''' A stage whose own effects short-circuit (an unhandled `Abort`, a panic)
+   * leaves its `Entered` unclosed today. This executor cannot generically intercept a statically unknown effect row `S`
+   * and re-emit into this same `Emit[StageEvent]` channel without either an unsafe cast or widening this method's own
+   * effect row — which would force every existing, effect-free caller of `execute` to additionally discharge that new
+   * effect before evaluating a result. Confirmed by exhausting every generic-finalization candidate Kyo RC6 offers
+   * (`Sync.ensure`, `Scope`/`Resource.ensure`, and every `Abort.run`/`fold`/`recover`/`tapError` shape) against an
+   * abstract `S`; see the task-4 implementation report for the full evidence. `Halted` remains unemitted for the same
+   * reason `Skipped` was before conditional branches: nothing yet triggers it.
    */
   def execute(input: I): O < (S & Emit[StageEvent]) =
     SealedPipeline.executeChain(sealedChain, Chunk.empty, input)
@@ -236,6 +282,8 @@ object SealedPipeline:
       case SealedElem.StageNode(id, stage)      => DefElem.StageElem(Present(id.render), stage)
       case SealedElem.ParNode(left, right, zip) => DefElem.ParElem(toNodeChain(left), toNodeChain(right), zip)
       case SealedElem.FanOutNode(id, each)      => DefElem.FanOutElem(Present(id.render), toNodeChain(each))
+      case SealedElem.BranchNode(id, pred, ifTrue, ifFalse) =>
+        DefElem.BranchElem(Present(id.render), pred, toNodeChain(ifTrue), toNodeChain(ifFalse))
 
   /**
    * Run `elem` on `input`, qualifying every event id it emits with `prefix` — the segments of every enclosing fan-out
@@ -276,6 +324,37 @@ object SealedPipeline:
           }
           _ <- Emit.value(StageEvent.Exited(eventId, StageOutcome.Succeeded))
         yield result
+      case SealedElem.BranchNode(id, pred, ifTrue, ifFalse) =>
+        val eventId                               = NodeId.unsafe(prefix ++ id.segments)
+        val whenTrue: B < (S2 & Emit[StageEvent]) =
+          executeChain(ifTrue, prefix, input).map { (result: B) =>
+            emitSkips(ifFalse, prefix, "predicate was true").map(_ => result)
+          }
+        val whenFalse: B < (S2 & Emit[StageEvent]) =
+          executeChain(ifFalse, prefix, input).map { (result: B) =>
+            emitSkips(ifTrue, prefix, "predicate was false").map(_ => result)
+          }
+        for
+          _   <- Emit.value(StageEvent.Entered(eventId, Absent))
+          out <- if pred(input) then whenTrue else whenFalse
+          _   <- Emit.value(StageEvent.Exited(eventId, StageOutcome.Succeeded))
+        yield out
+
+  /**
+   * Emit [[StageEvent.Skipped]] for every static node reachable through `chain` — its own [[SealedChain#nodeIds]],
+   * qualified with `prefix` the same way a live node's own event id would be. A nested fan-out contributes only its own
+   * id (not one per element: an unrun fan-out has no elements to count), and a nested branch contributes its own id
+   * followed by both of *its* arms' ids in turn, recursively — nothing under an untaken arm ever ran, all the way down,
+   * except through a fan-out's per-element children, whose count doesn't exist unexecuted.
+   */
+  private def emitSkips[A, B, S2](
+      chain: SealedChain[A, B, S2],
+      prefix: Chunk[String],
+      reason: String
+  ): Unit < Emit[StageEvent] =
+    Kyo.foreachDiscard(chain.nodeIds) { id =>
+      Emit.value(StageEvent.Skipped(NodeId.unsafe(prefix ++ id.segments), reason))
+    }
 
   private def executeChain[A, B, S2](
       chain: SealedChain[A, B, S2],

@@ -254,3 +254,61 @@ class PipelineTests extends Test[Any]:
       assert(rendered == Chunk("enter:sources", "exit:sources", "enter:fo", "exit:fo"))
     }
   }
+
+  "branch" - {
+    def big   = Pipeline.stage(Stage.pure((i: Int) => s"big:$i").named("big"))
+    def small = Pipeline.stage(Stage.pure((i: Int) => s"small:$i").named("small"))
+
+    "takes the true arm and skips the false arm's nodes" in {
+      val plan        = sealOrFail(Pipeline.stage(inc).branch(_ > 10)(big, small))
+      val (events, r) = Emit.run(plan.execute(100)).eval
+      assert(r == "big:101")
+      assert(events.contains(StageEvent.Skipped(
+        events.collect {
+          case StageEvent.Skipped(id, _) => id
+        }.head,
+        "predicate was true"
+      )))
+      assert(events.collect { case StageEvent.Skipped(id, _) => id.render } == Chunk("small"))
+    }
+    "takes the false arm and skips the true arm's nodes" in {
+      val plan        = sealOrFail(Pipeline.stage(inc).branch(_ > 10)(big, small))
+      val (events, r) = Emit.run(plan.execute(1)).eval
+      assert(r == "small:2")
+      assert(events.collect { case StageEvent.Skipped(id, _) => id.render } == Chunk("big"))
+    }
+    "when yields Present on the taken path and Absent otherwise" in {
+      val plan         = sealOrFail(Pipeline.stage(inc).when(_ > 10)(big))
+      val (_, taken)   = Emit.run(plan.execute(100)).eval
+      val (_, untaken) = Emit.run(plan.execute(1)).eval
+      assert(taken == Present("big:101") && untaken == Absent)
+    }
+    "duplicate ids across arms are rejected at seal" in {
+      val dupArm = Pipeline.stage(Stage.pure((i: Int) => s"x:$i").named("big"))
+      Pipeline.stage(inc).branch(_ > 10)(big, dupArm).seal match
+        case Result.Failure(errors) => assert(errors.errors.nonEmpty)
+        case _                      => assert(false)
+    }
+  }
+
+  "event balance" - {
+    // Kyo RC6 provides no way to intercept an arbitrary, statically-unknown effect row's short-circuit and re-emit
+    // into the caller's own Emit[StageEvent] channel without either an unsafe cast or widening `execute`'s public
+    // effect row (breaking `.eval()` on every existing, effect-free pipeline test). See the task-4 report for the
+    // full empirical evidence. Left `pendingUntilFixed` rather than dropped, so the moment Kyo (or a design change)
+    // makes this achievable, the suite itself flags it.
+    "an aborting stage still closes its Entered with Exited(Failed)".pendingUntilFixed(
+      "Kyo RC6 has no effect-row-preserving finalization hook reachable from a fully generic (unbounded S2) executor; see task-4 report"
+    ) in {
+      val boom              = Stage.fromKyo[Int, Int, Abort[String]](i => Abort.fail("boom")).named("boom")
+      val plan              = sealOrFail(Pipeline.stage(inc).andThen(boom).andThen(show))
+      val (events, outcome) = Emit.run(Abort.run[String](plan.execute(1))).eval
+      assert(outcome == Result.Failure("boom"))
+      val rendered = events.map {
+        case StageEvent.Entered(id, _)      => s"enter:${id.render}"
+        case StageEvent.Exited(id, outcome) => s"exit:${id.render}:$outcome"
+        case StageEvent.Skipped(id, _)      => s"skip:${id.render}"
+      }
+      assert(rendered == Chunk("enter:inc", "exit:inc:Succeeded", "enter:boom", "exit:boom:Failed"))
+    }
+  }

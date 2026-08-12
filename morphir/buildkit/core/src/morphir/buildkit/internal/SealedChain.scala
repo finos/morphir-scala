@@ -29,21 +29,40 @@ private[buildkit] enum SealedElem[-I, +O, S]:
   ) extends SealedElem[Chunk[A], Chunk[B], S2]
 
   /**
+   * A branch node: its own id, a plain predicate on the incoming value, and both arms fully sealed. Unlike
+   * `FanOutNode`'s child, both arms share this node's own flattened id namespace (see
+   * [[morphir.buildkit.internal.DefElem.BranchElem]]), since only one of them ever executes. At execution the node's
+   * own id brackets the whole decision with `Entered`/`Exited`: the taken arm runs normally, and every static node
+   * reachable through the untaken arm — found via that arm's own [[nodeIds]], so a nested fan-out contributes only its
+   * own id, unexpanded — emits `Skipped`.
+   */
+  case BranchNode[I2, O2, S1, S2](
+      id: NodeId,
+      pred: I2 => Boolean,
+      ifTrue: SealedChain[I2, O2, S1],
+      ifFalse: SealedChain[I2, O2, S2]
+  ) extends SealedElem[I2, O2, S1 & S2]
+
+  /**
    * Node ids, in definition order: one per leaf stage, recursing through both sides of a `ParNode`. A `FanOutNode`
-   * contributes only its own id — its child chain's ids live in a separate, nested namespace.
+   * contributes only its own id — its child chain's ids live in a separate, nested namespace. A `BranchNode`
+   * contributes its own id followed by both arms' own ids, flattened — the same namespace its arms already share at
+   * seal time.
    */
   def nodeIds: Chunk[NodeId] =
     this match
-      case StageNode(id, _)        => Chunk(id)
-      case ParNode(left, right, _) => left.nodeIds ++ right.nodeIds
-      case FanOutNode(id, _)       => Chunk(id)
+      case StageNode(id, _)                   => Chunk(id)
+      case ParNode(left, right, _)            => left.nodeIds ++ right.nodeIds
+      case FanOutNode(id, _)                  => Chunk(id)
+      case BranchNode(id, _, ifTrue, ifFalse) => Chunk(id) ++ ifTrue.nodeIds ++ ifFalse.nodeIds
 
   /** Render this element: a stage renders as its own description; a fork renders as `par(left, right)`. */
   def describe: String =
     this match
-      case StageNode(_, stage)     => stage.describe
-      case ParNode(left, right, _) => s"par(${left.describe}, ${right.describe})"
-      case FanOutNode(_, each)     => s"fanOut(${each.describe})"
+      case StageNode(_, stage)               => stage.describe
+      case ParNode(left, right, _)           => s"par(${left.describe}, ${right.describe})"
+      case FanOutNode(_, each)               => s"fanOut(${each.describe})"
+      case BranchNode(_, _, ifTrue, ifFalse) => s"branch(${ifTrue.describe}, ${ifFalse.describe})"
 end SealedElem
 
 /**

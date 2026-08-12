@@ -12,8 +12,10 @@ enum StageOutcome:
 /**
  * Lifecycle events emitted by pipeline executors through `Emit[StageEvent]`.
  *
- * Events describe lifecycle, not values — results flow through the pipeline itself. `Skipped` is part of the contract
- * now (intent 0008 names explicit skipped nodes) and becomes emittable when conditional branches arrive.
+ * Events describe lifecycle, not values — results flow through the pipeline itself. `Skipped` is emitted for every
+ * static node reachable through a `branch`/`when` arm the predicate did not take (intent 0008 names explicit skipped
+ * nodes). `Exited(id, Failed)` is part of the same contract but is not yet emittable for an arbitrary stage's own
+ * short-circuit — see [[SealedPipeline#execute]].
  */
 enum StageEvent:
   case Entered(id: NodeId, meta: Maybe[StageMeta])
