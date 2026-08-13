@@ -1,5 +1,12 @@
 # Log
 
+## 2026-08-12
+
+* **Creation**: Added [Kyo effect handlers and typed halting](/kyo-effect-handlers-and-typed-halting.md).
+* **Update**: Moved the [Scala 3 and Kyo implementation notes](/scala-3-and-kyo-implementation-notes.md) baseline
+  from Kyo 1.0.0-RC5 to 1.0.0-RC6 after re-verifying every Kyo claim against the RC6 tag; no claim broke. Repinned
+  its morphir-scala source URLs to the current main commit and added a `verified` trust entry.
+
 ## 2026-07-29
 
 * **Creation**: Bundle created.

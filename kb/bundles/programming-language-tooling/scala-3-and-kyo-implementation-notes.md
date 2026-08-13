@@ -4,33 +4,36 @@ title: Scala 3 and Kyo implementation notes
 description: Record versioned Scala 3 and Kyo implementation techniques that materially support typed language-tooling designs.
 tags: [scala-3, kyo, implementation]
 status: draft
-stale_after: 2026-10-29
+stale_after: 2026-11-12
+verified:
+  by: claude/fable-5
+  at: 2026-08-12T00:00:00Z
 implementation_baselines:
   scala: 3.8.4
   kyo:
-    version: 1.0.0-RC5
-    ref: 55d919dc0269a28fd936bc8ebe7a8cd07463ac30
+    version: 1.0.0-RC6
+    ref: 2e58c0550b209317b85a30fc5787c24b7e4dd63c
 sources:
   - id: project-dependencies
-    resource: https://github.com/finos/morphir-scala/blob/d2abf88838da641fb7944c8d1569c9068eebdf4c/mill-build/src/millbuild/deps.scala
+    resource: https://github.com/finos/morphir-scala/blob/dbf53136888fd7810b70a51e7f4622c5f519d18a/mill-build/src/millbuild/deps.scala
     title: morphir-scala dependency versions
   - id: scala-reference
     resource: https://docs.scala-lang.org/scala3/reference/
     title: Scala 3.8.4 Reference
-  - id: kyo-rc5
-    resource: https://github.com/getkyo/kyo/tree/55d919dc0269a28fd936bc8ebe7a8cd07463ac30
-    title: Kyo 1.0.0-RC5
+  - id: kyo-rc6
+    resource: https://github.com/getkyo/kyo/tree/2e58c0550b209317b85a30fc5787c24b7e4dd63c
+    title: Kyo 1.0.0-RC6
   - id: kyo-pending
-    resource: https://github.com/getkyo/kyo/blob/55d919dc0269a28fd936bc8ebe7a8cd07463ac30/kyo-kernel/shared/src/main/scala/kyo/kernel/Pending.scala
-    title: Kyo pending type at 1.0.0-RC5
+    resource: https://github.com/getkyo/kyo/blob/2e58c0550b209317b85a30fc5787c24b7e4dd63c/kyo-kernel/shared/src/main/scala/kyo/kernel/Pending.scala
+    title: Kyo pending type at 1.0.0-RC6
   - id: morphir-stage
-    resource: https://github.com/finos/morphir-scala/blob/d2abf88838da641fb7944c8d1569c9068eebdf4c/morphir/langkit/elm/compiler/api/src/morphir/langkit/elm/compiler/Stage.scala
+    resource: https://github.com/finos/morphir-scala/blob/dbf53136888fd7810b70a51e7f4622c5f519d18a/morphir/langkit/elm/compiler/api/src/morphir/langkit/elm/compiler/Stage.scala
     title: morphir-scala typed Stage
   - id: morphir-kyo-visitor
-    resource: https://github.com/finos/morphir-scala/blob/d2abf88838da641fb7944c8d1569c9068eebdf4c/morphir/langkit/trees/src/morphir/langkit/trees/query/KyoQueryVisitor.scala
+    resource: https://github.com/finos/morphir-scala/blob/dbf53136888fd7810b70a51e7f4622c5f519d18a/morphir/langkit/trees/src/morphir/langkit/trees/query/KyoQueryVisitor.scala
     title: morphir-scala KyoQueryVisitor
   - id: morphir-elm-parse
-    resource: https://github.com/finos/morphir-scala/blob/d2abf88838da641fb7944c8d1569c9068eebdf4c/morphir/langkit/elm/core/src/morphir/langkit/elm/ElmParse.scala
+    resource: https://github.com/finos/morphir-scala/blob/dbf53136888fd7810b70a51e7f4622c5f519d18a/morphir/langkit/elm/core/src/morphir/langkit/elm/ElmParse.scala
     title: morphir-scala ElmParse effect
 ---
 
@@ -48,8 +51,8 @@ their architectural arguments.
 | Component | Baseline used here | Source of truth |
 | --- | --- | --- |
 | Scala | `3.8.4` | `ScalaVersions.scala3` in `mill-build/src/millbuild/deps.scala`[^project-dependencies] |
-| Kyo | `1.0.0-RC5` | `Versions.kyo-case-app` in the same file[^project-dependencies] |
-| Kyo source | commit `55d919dc0269a28fd936bc8ebe7a8cd07463ac30` | annotated tag `v1.0.0-RC5`[^kyo-rc5] |
+| Kyo | `1.0.0-RC6` | `Versions.kyo` in the same file[^project-dependencies] |
+| Kyo source | commit `2e58c0550b209317b85a30fc5787c24b7e4dd63c` | annotated tag `v1.0.0-RC6`[^kyo-rc6] |
 
 The Kyo claims below apply to that commit. If the project Kyo version changes, treat them as provisional immediately,
 even before `stale_after`. Recheck signatures and semantics against the new tag, update the pinned reference, then
@@ -374,7 +377,7 @@ single cardinality descriptor. With separate `OptionalKey` and `ManyKey`, overlo
 `Vector[A]` directly, so an additional match-type algebra would be clever machinery without caller value. Prefer
 ordinary types until a measured API burden justifies more.
 
-## Kyo features at `1.0.0-RC5`
+## Kyo features at `1.0.0-RC6`
 
 ### The pending type keeps requirements in signatures
 
@@ -469,7 +472,7 @@ object AttributionProduction:
 
 The `AttributionContext` is scoped by an ordinary Scala `using` value at the stage or run boundary. That is enough
 to keep snapshot, producer, and layer out of every method argument and out of IR nodes; it makes no claim about a
-Kyo environment effect at RC5. A caller can supply callbacks whose handlers collect facts, validate and index them,
+Kyo environment effect at RC6. A caller can supply callbacks whose handlers collect facts, validate and index them,
 serialize selected facts, or discard them. A future direct `Emit`-style implementation is an interchangeable
 handler choice only after its exact pinned API has been verified.
 
@@ -505,10 +508,10 @@ evidence that graph construction should expose scheduler primitives or that the 
 The absence of a Kyo value in a row is deliberate. Pure data and pure transformations should remain independent of an
 effect library when Kyo adds no required capability.
 
-[^project-dependencies]: morphir-scala dependency versions at commit `d2abf888`.
+[^project-dependencies]: morphir-scala dependency versions at commit `dbf53136`.
 [^scala-reference]: Scala 3.8.4 Reference.
-[^kyo-rc5]: Kyo `v1.0.0-RC5` at commit `55d919dc`.
-[^kyo-pending]: Kyo pending type at `1.0.0-RC5`.
+[^kyo-rc6]: Kyo `v1.0.0-RC6` at commit `2e58c055`.
+[^kyo-pending]: Kyo pending type at `1.0.0-RC6`.
 [^morphir-stage]: morphir-scala typed Stage.
 [^morphir-kyo-visitor]: morphir-scala KyoQueryVisitor.
 [^morphir-elm-parse]: morphir-scala ElmParse effect.
