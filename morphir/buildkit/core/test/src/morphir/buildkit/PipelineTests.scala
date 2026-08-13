@@ -22,6 +22,16 @@ class PipelineTests extends Test[Any]:
   private def runPure[A, S](v: A < (Abort[Nothing] & S)): A < S =
     Abort.run[Nothing](v).map(_.getOrThrow)
 
+  /** Render an event trace as short tags, for compact equality assertions across this whole file. */
+  private def render(events: Chunk[PipelineEvent]): Chunk[String] =
+    events.map {
+      case PipelineEvent.RunStarted           => "run:started"
+      case PipelineEvent.RunFinished(ok)      => s"run:finished:$ok"
+      case PipelineEvent.NodeStarted(id, _)   => s"start:${id.render}"
+      case PipelineEvent.NodeFinished(id, st) => s"finish:${id.render}:$st"
+      case PipelineEvent.NodeProgress(id, m)  => s"progress:${id.render}:$m"
+    }
+
   "sealing" - {
     "assigns label-derived ids in order" in {
       val plan = sealOrFail(Pipeline.stage(inc).andThen(show))
@@ -81,15 +91,19 @@ class PipelineTests extends Test[Any]:
       val direct = Abort.run[Nothing]((inc andThen show).run(41)).eval.getOrThrow
       assert(viaPipeline == direct)
     }
-    "emits Entered and Exited per node, in order" in {
+    "emits NodeStarted and NodeFinished per node, bracketed by RunStarted/RunFinished, in order" in {
       val plan        = sealOrFail(Pipeline.stage(inc).andThen(show))
       val (events, _) = runPure(Emit.run(plan.execute(1))).eval
-      val rendered    = events.map {
-        case StageEvent.Entered(id, _)      => s"enter:${id.render}"
-        case StageEvent.Exited(id, outcome) => s"exit:${id.render}:$outcome"
-        case StageEvent.Skipped(id, _)      => s"skip:${id.render}"
-      }
-      assert(rendered == Chunk("enter:inc", "exit:inc:Succeeded", "enter:show", "exit:show:Succeeded"))
+      assert(
+        render(events) == Chunk(
+          "run:started",
+          "start:inc",
+          "finish:inc:Succeeded",
+          "start:show",
+          "finish:show:Succeeded",
+          "run:finished:true"
+        )
+      )
     }
     "a stage can read its provenance" in {
       val observing = Stage
@@ -103,25 +117,22 @@ class PipelineTests extends Test[Any]:
       val plan      = sealOrFail(Pipeline.stage(inc).andThen(show))
       val (ev1, r1) = runPure(Emit.run(plan.execute(1))).eval
       val (ev2, r2) = runPure(Emit.run(plan.execute(41))).eval
-      assert(r1 == "2" && r2 == "42" && ev1.size == 4 && ev2.size == 4)
+      assert(r1 == "2" && r2 == "42" && ev1.size == 6 && ev2.size == 6)
     }
     "a three-node chain executes and emits in order, with correct ids" in {
       val plan             = sealOrFail(Pipeline.stage(inc).andThen(double).andThen(show))
       val (events, result) = runPure(Emit.run(plan.execute(3))).eval
-      val rendered         = events.map {
-        case StageEvent.Entered(id, _)      => s"enter:${id.render}"
-        case StageEvent.Exited(id, outcome) => s"exit:${id.render}:$outcome"
-        case StageEvent.Skipped(id, _)      => s"skip:${id.render}"
-      }
       assert(result == "8")
       assert(
-        rendered == Chunk(
-          "enter:inc",
-          "exit:inc:Succeeded",
-          "enter:double",
-          "exit:double:Succeeded",
-          "enter:show",
-          "exit:show:Succeeded"
+        render(events) == Chunk(
+          "run:started",
+          "start:inc",
+          "finish:inc:Succeeded",
+          "start:double",
+          "finish:double:Succeeded",
+          "start:show",
+          "finish:show:Succeeded",
+          "run:finished:true"
         )
       )
     }
@@ -154,8 +165,8 @@ class PipelineTests extends Test[Any]:
     "emits branch events left then right under the sequential executor" in {
       val plan        = sealOrFail(Pipeline.stage(inc).par(Pipeline.stage(show)))
       val (events, _) = runPure(Emit.run(plan.execute(1))).eval
-      val entered     = events.collect { case StageEvent.Entered(id, _) => id.render }
-      assert(entered == Chunk("inc", "show"))
+      val started     = events.collect { case PipelineEvent.NodeStarted(id, _) => id.render }
+      assert(started == Chunk("inc", "show"))
     }
     "par2 pairs two peer pipelines" in {
       val plan        = sealOrFail(Pipeline.par2(Pipeline.stage(inc), Pipeline.stage(show)))
@@ -197,14 +208,15 @@ class PipelineTests extends Test[Any]:
       val (events, r) = runPure(Emit.run(plan.execute(0))).eval
       assert(r == Chunk.empty[Int])
       assert(!events.exists {
-        case StageEvent.Entered(id, _) => id.render.contains("/")
-        case _                         => false
+        case PipelineEvent.NodeStarted(id, _) => id.render.contains("/")
+        case _                                => false
       })
     }
     "child event ids carry the element path" in {
       val plan        = sealOrFail(Pipeline.stage(sources).fanOut("parse-all", Pipeline.stage(parse)))
       val (events, _) = runPure(Emit.run(plan.execute(2))).eval
-      val childIds    = events.collect { case StageEvent.Entered(id, _) if id.render.contains("/") => id.render }
+      val childIds    =
+        events.collect { case PipelineEvent.NodeStarted(id, _) if id.render.contains("/") => id.render }
       assert(childIds == Chunk("parse-all/0/parse", "parse-all/1/parse"))
     }
     "a child that fails to seal surfaces path-qualified in the parent aggregate" in {
@@ -234,23 +246,23 @@ class PipelineTests extends Test[Any]:
           })
         case _ => assert(false)
     }
-    "the fan-out node's own Entered/Exited bracket the per-element events" in {
+    "the fan-out node's own NodeStarted/NodeFinished bracket the per-element events" in {
       val plan        = sealOrFail(Pipeline.stage(sources).fanOut("fo", Pipeline.stage(parse)))
       val (events, _) = runPure(Emit.run(plan.execute(2))).eval
       val rendered    = events.collect {
-        case StageEvent.Entered(id, _) => s"enter:${id.render}"
-        case StageEvent.Exited(id, _)  => s"exit:${id.render}"
+        case PipelineEvent.NodeStarted(id, _)  => s"start:${id.render}"
+        case PipelineEvent.NodeFinished(id, _) => s"finish:${id.render}"
       }
       assert(
         rendered == Chunk(
-          "enter:sources",
-          "exit:sources",
-          "enter:fo",
-          "enter:fo/0/parse",
-          "exit:fo/0/parse",
-          "enter:fo/1/parse",
-          "exit:fo/1/parse",
-          "exit:fo"
+          "start:sources",
+          "finish:sources",
+          "start:fo",
+          "start:fo/0/parse",
+          "finish:fo/0/parse",
+          "start:fo/1/parse",
+          "finish:fo/1/parse",
+          "finish:fo"
         )
       )
     }
@@ -258,10 +270,10 @@ class PipelineTests extends Test[Any]:
       val plan        = sealOrFail(Pipeline.stage(sources).fanOut("fo", Pipeline.stage(parse)))
       val (events, _) = runPure(Emit.run(plan.execute(0))).eval
       val rendered    = events.collect {
-        case StageEvent.Entered(id, _) => s"enter:${id.render}"
-        case StageEvent.Exited(id, _)  => s"exit:${id.render}"
+        case PipelineEvent.NodeStarted(id, _)  => s"start:${id.render}"
+        case PipelineEvent.NodeFinished(id, _) => s"finish:${id.render}"
       }
-      assert(rendered == Chunk("enter:sources", "exit:sources", "enter:fo", "exit:fo"))
+      assert(rendered == Chunk("start:sources", "finish:sources", "start:fo", "finish:fo"))
     }
   }
 
@@ -273,19 +285,16 @@ class PipelineTests extends Test[Any]:
       val plan        = sealOrFail(Pipeline.stage(inc).branch(_ > 10)(big, small))
       val (events, r) = runPure(Emit.run(plan.execute(100))).eval
       assert(r == "big:101")
-      assert(events.contains(StageEvent.Skipped(
-        events.collect {
-          case StageEvent.Skipped(id, _) => id
-        }.head,
-        "predicate was true"
-      )))
-      assert(events.collect { case StageEvent.Skipped(id, _) => id.render } == Chunk("small"))
+      assert(events.contains(PipelineEvent.NodeFinished(nodeId"small", NodeStatus.Skipped)))
+      assert(
+        events.collect { case PipelineEvent.NodeFinished(id, NodeStatus.Skipped) => id.render } == Chunk("small")
+      )
     }
     "takes the false arm and skips the true arm's nodes" in {
       val plan        = sealOrFail(Pipeline.stage(inc).branch(_ > 10)(big, small))
       val (events, r) = runPure(Emit.run(plan.execute(1))).eval
       assert(r == "small:2")
-      assert(events.collect { case StageEvent.Skipped(id, _) => id.render } == Chunk("big"))
+      assert(events.collect { case PipelineEvent.NodeFinished(id, NodeStatus.Skipped) => id.render } == Chunk("big"))
     }
     "when yields Present on the taken path and Absent otherwise" in {
       val plan         = sealOrFail(Pipeline.stage(inc).when(_ > 10)(big))
@@ -299,28 +308,25 @@ class PipelineTests extends Test[Any]:
         case Result.Failure(errors) => assert(errors.errors.nonEmpty)
         case _                      => assert(false)
     }
-    "the branch node's own Entered/Exited bracket the taken arm and the skip events" in {
+    "the branch node's own NodeStarted/NodeFinished bracket the taken arm and the skip events" in {
       val wrap        = Pipeline.stage(Stage.pure((i: Int) => i.toString).named("wrap"))
       val other       = Pipeline.stage(Stage.pure((i: Int) => i).named("other"))
       val plan        = sealOrFail(Pipeline.stage(inc).branch(_ > 0)(wrap, other))
       val (events, _) = runPure(Emit.run(plan.execute(1))).eval
-      val rendered    = events.map {
-        case StageEvent.Entered(id, _)      => s"enter:${id.render}"
-        case StageEvent.Exited(id, outcome) => s"exit:${id.render}:$outcome"
-        case StageEvent.Skipped(id, _)      => s"skip:${id.render}"
-      }
       // The branch node itself has no explicit id and no label (a pipeline construct, not a `Stage`), so it falls
       // back to its position — "node-1": index 0 is `inc`, index 1 is the branch's own slot (see `DefElem.BranchElem`
       // and `Sealing.sealChain`'s position-fallback, unchanged by this task).
       assert(
-        rendered == Chunk(
-          "enter:inc",
-          "exit:inc:Succeeded",
-          "enter:node-1",
-          "enter:wrap",
-          "exit:wrap:Succeeded",
-          "skip:other",
-          "exit:node-1:Succeeded"
+        render(events) == Chunk(
+          "run:started",
+          "start:inc",
+          "finish:inc:Succeeded",
+          "start:node-1",
+          "start:wrap",
+          "finish:wrap:Succeeded",
+          "finish:other:Skipped",
+          "finish:node-1:Succeeded",
+          "run:finished:true"
         )
       )
     }
@@ -334,7 +340,10 @@ class PipelineTests extends Test[Any]:
       val (events, _) = runPure(Emit.run(plan.execute(1))).eval
       // Only the fan-out node's own id is skipped — its per-element child ("parse") lives in its own independent,
       // nested seal namespace and was never counted, since it never ran.
-      assert(events.collect { case StageEvent.Skipped(id, _) => id.render } == Chunk("sources", "parse-all"))
+      assert(
+        events.collect { case PipelineEvent.NodeFinished(id, NodeStatus.Skipped) => id.render } ==
+          Chunk("sources", "parse-all")
+      )
     }
     "a fan-out nested in a branch arm still surfaces its own child seal failure, without a sibling error masking it" in {
       def sources = Stage.pure((n: Int) => Chunk.from(0 until n).map(_.toString)).named("sources")
@@ -361,63 +370,75 @@ class PipelineTests extends Test[Any]:
   }
 
   "event balance" - {
-    "a panicking stage still closes its Entered with Exited(Failed), and the panic keeps propagating" in {
+    "a panicking stage still closes its NodeStarted with NodeFinished(Failed), and the panic keeps propagating" in {
       val boom = Stage.pure((i: Int) => (throw new RuntimeException("boom")): Int).named("boom")
       val plan = sealOrFail(Pipeline.stage(inc).andThen(boom).andThen(show))
       // `Emit.run` outside `Abort.run[Nothing]`, same nesting as the typed-Abort case below: the inner boundary
       // absorbs the panic into a `Result.Panic` value before `Emit.run` ever needs to observe a short-circuit, so
       // the events accumulated up to the panic survive. `Abort.run` catches a raw panic regardless of the `E` it
       // was asked to run — that is what "the panic keeps propagating" means here: nothing between the stage's own
-      // `bracketed` rethrow and this outer boundary silently swallowed it.
+      // `bracketed` rethrow, `execute`'s own outer `Effect.catching` rethrow, and this outer boundary silently
+      // swallowed it.
       val (events, outcome) = Emit.run(Abort.run[Nothing](plan.execute(1))).eval
       outcome match
         case Result.Panic(ex) => assert(ex.getMessage == "boom")
         case other            => assert(false, s"expected a panic, got $other")
-      val rendered = events.map {
-        case StageEvent.Entered(id, _)      => s"enter:${id.render}"
-        case StageEvent.Exited(id, outcome) => s"exit:${id.render}:$outcome"
-        case StageEvent.Skipped(id, _)      => s"skip:${id.render}"
-      }
-      assert(rendered == Chunk("enter:inc", "exit:inc:Succeeded", "enter:boom", "exit:boom:Failed"))
+      assert(
+        render(events) == Chunk(
+          "run:started",
+          "start:inc",
+          "finish:inc:Succeeded",
+          "start:boom",
+          "finish:boom:Failed",
+          "run:finished:false"
+        )
+      )
     }
-    // The typed row now compiles and is observable at `execute`'s own public boundary: `Abort[E]` is a first-class
-    // part of `execute`'s declared row (this task), so the failure surfaces to the caller with its original type,
-    // and the events emitted before the short-circuit (both `inc`'s own pair and `boom`'s own `Entered`) survive —
-    // `Emit.run` collects everything emitted up to the point Kyo's own suspend/resume `Abort` protocol unwinds the
-    // computation, the same way a panic's pre-failure events already survived in the case above.
-    "a stage whose typed Abort short-circuits surfaces the original error, with events up to that point intact" in {
-      val boom              = Stage.fromKyo[Int, Int, Abort[String]](i => Abort.fail("boom")).named("boom")
-      val plan              = sealOrFail(Pipeline.stage(inc).andThen(boom).andThen(show))
-      val (events, outcome) = Emit.run(Abort.run[String](plan.execute(1))).eval
+    "a stage whose typed Abort short-circuits surfaces the original error" in {
+      val boom: Stage[Int, Int, String, Any] = Stage((_: Int) => Abort.fail("boom")).named("boom")
+      val plan                               = sealOrFail(Pipeline.stage(inc).andThen(boom).andThen(show))
+      val (_, outcome)                       = Emit.run(Abort.run[String](plan.execute(1))).eval
       assert(outcome == Result.Failure("boom"))
-      val rendered = events.map {
-        case StageEvent.Entered(id, _)      => s"enter:${id.render}"
-        case StageEvent.Exited(id, outcome) => s"exit:${id.render}:$outcome"
-        case StageEvent.Skipped(id, _)      => s"skip:${id.render}"
-      }
-      assert(rendered == Chunk("enter:inc", "exit:inc:Succeeded", "enter:boom"))
     }
-    // A typed `Abort[E]` failure never reaches `kyo.kernel.Effect.catching`'s `catch` block — it propagates through
-    // Kyo's own suspend/resume ArrowEffect protocol, not a JVM `throw`, so `bracketed` (which only non-fatal panics
-    // close) does not see it, and `boom`'s own `Entered` above is left dangling (no matching `Exited`). Closing it
-    // is by design out of scope for `execute`'s own value-mode row (see its scaladoc): there is no report to record
-    // a partial run in. Task 5's report executor intercepts each node's own `Abort[E]` via `Abort.recover` and
-    // re-raises it, closing `Entered` with `Exited(Failed)` first, inside `bracketed`. Left `pendingUntilFixed`
-    // rather than dropped, so the moment that executor lands, the suite itself flags it.
-    "a stage whose typed Abort short-circuits still closes its Entered with Exited(Failed)".pendingUntilFixed(
-      "closing a node's Entered on a typed Abort[E] short-circuit needs the report executor (Task 5) to intercept " +
-        "it via Abort.recover and re-raise; execute's own value-mode row has no report to record a partial run in"
-    ) in {
-      val boom              = Stage.fromKyo[Int, Int, Abort[String]](i => Abort.fail("boom")).named("boom")
-      val plan              = sealOrFail(Pipeline.stage(inc).andThen(boom).andThen(show))
-      val (events, outcome) = Emit.run(Abort.run[String](plan.execute(1))).eval
+    // Closing `boom`'s own `NodeStarted` on a typed `Abort[E]` short-circuit cannot reuse the panic mechanism: a
+    // typed abort is not a JVM `throw`, so `kyo.kernel.Effect.catching` (which `bracketed` wraps every node with)
+    // never sees it — see `SealedPipeline#closeOpenNodes`'s own doc. `execute`'s single `Abort.tapError[E]`, wrapping
+    // the whole chain, closes every id the tracking `Var` still holds open before re-raising the same failure.
+    "a stage whose typed Abort short-circuits still closes its NodeStarted with NodeFinished(Failed)" in {
+      val boom: Stage[Int, Int, String, Any] = Stage((_: Int) => Abort.fail("boom")).named("boom")
+      val plan                               = sealOrFail(Pipeline.stage(inc).andThen(boom).andThen(show))
+      val (events, outcome)                  = Emit.run(Abort.run[String](plan.execute(1))).eval
       assert(outcome == Result.Failure("boom"))
-      val rendered = events.map {
-        case StageEvent.Entered(id, _)      => s"enter:${id.render}"
-        case StageEvent.Exited(id, outcome) => s"exit:${id.render}:$outcome"
-        case StageEvent.Skipped(id, _)      => s"skip:${id.render}"
-      }
-      assert(rendered == Chunk("enter:inc", "exit:inc:Succeeded", "enter:boom", "exit:boom:Failed"))
+      assert(
+        render(events) == Chunk(
+          "run:started",
+          "start:inc",
+          "finish:inc:Succeeded",
+          "start:boom",
+          "finish:boom:Failed",
+          "run:finished:false"
+        )
+      )
+    }
+    "every started node closes even when a later node aborts" in {
+      val ok: Stage[Int, Int, Nothing, Any]  = Stage((i: Int) => i + 1)
+      val boom: Stage[Int, Int, String, Any] = Stage((_: Int) => Abort.fail("halt"))
+      val plan                               = sealOrFail(Pipeline.stage(nodeId"ok", ok).andThen(nodeId"boom", boom))
+      val (events, _)                        = Emit.run(Abort.run[String](plan.execute(1))).eval
+      val started                            = events.collect { case PipelineEvent.NodeStarted(id, _) => id }
+      val finished                           = events.collect { case PipelineEvent.NodeFinished(id, _) => id }
+      assert(started.sorted(using Ordering.by(_.render)) == finished.sorted(using Ordering.by(_.render)))
+    }
+    "every started node closes even when a node nested in a taken branch arm aborts" in {
+      val boom: Stage[Int, Int, String, Any] = Stage((_: Int) => Abort.fail("halt"))
+      val takenArm                           = Pipeline.stage(nodeId"boom", boom)
+      val untakenArm                         = Pipeline.stage(Stage.pure((i: Int) => i).named("other"))
+      val plan                               = sealOrFail(Pipeline.stage(inc).branch(_ > 0)(takenArm, untakenArm))
+      val (events, outcome)                  = Emit.run(Abort.run[String](plan.execute(1))).eval
+      assert(outcome == Result.Failure("halt"))
+      val started  = events.collect { case PipelineEvent.NodeStarted(id, _) => id }
+      val finished = events.collect { case PipelineEvent.NodeFinished(id, _) => id }
+      assert(started.sorted(using Ordering.by(_.render)) == finished.sorted(using Ordering.by(_.render)))
     }
   }
 

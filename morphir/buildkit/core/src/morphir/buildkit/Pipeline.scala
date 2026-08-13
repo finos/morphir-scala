@@ -195,8 +195,9 @@ final class PipelineDef[-I, +O, E, S] private[buildkit] (
 
   /**
    * Pick one of two peer pipelines by `pred`, both fed this pipeline's own output and producing the same output type.
-   * The untaken arm never runs: at execution, every static node reachable through it emits [[StageEvent.Skipped]]
-   * instead. The branch node's own id derives like any node: explicit id, else position.
+   * The untaken arm never runs: at execution, every static node reachable through it emits
+   * `NodeFinished(id, NodeStatus.Skipped)` instead, with no matching `NodeStarted`. The branch node's own id derives
+   * like any node: explicit id, else position.
    *
    * '''On the `O1 >: O` type parameter.''' Writing `ifTrue: Pipeline[O, O2, E1, S1]` directly — reusing this class's
    * own `O` — fails to compile for the mirror-image reason [[par]]'s own doc explains for `I1 <: I`: `Pipeline`'s
@@ -223,7 +224,7 @@ final class PipelineDef[-I, +O, E, S] private[buildkit] (
    * a single stage that ignores its input and returns `Absent`. See [[branch]] for the `O1 >: O` parameter.
    *
    * These two derived wrapping stages are ordinary, unlabelled nodes like any other: they surface as anonymous `node-N`
-   * entries in [[SealedPipeline#nodeIds]], in emitted [[StageEvent]]s, and in `toMermaid` diagrams.
+   * entries in [[SealedPipeline#nodeIds]], in emitted [[PipelineEvent]]s, and in `toMermaid` diagrams.
    */
   def when[O1 >: O, O2, E2, S2](pred: O1 => Boolean)(arm: Pipeline[O1, O2, E2, S2])
       : PipelineDef[I, Maybe[O2], E | E2, S & S2] =
@@ -254,7 +255,7 @@ final class SealedPipeline[-I, +O, E, S] private[buildkit] (
   /**
    * Node ids of this plan, in definition order. This lists the static plan's own nodes only — a `FanOutNode`
    * contributes its own id, not one per element of whatever chunk it runs against at execution time; those per-element
-   * paths only appear in [[StageEvent]]s emitted by [[execute]], never here.
+   * paths only appear in [[PipelineEvent]]s emitted by [[execute]], never here.
    */
   def nodeIds: Chunk[NodeId] = sealedChain.nodeIds
 
@@ -272,36 +273,60 @@ final class SealedPipeline[-I, +O, E, S] private[buildkit] (
   private[buildkit] def definitionChain: NodeChain[I, O, E, S] = SealedPipeline.toNodeChain(sealedChain)
 
   /**
-   * Run the plan sequentially, emitting [[StageEvent]]s. Deterministic: nodes run in definition order — a fork runs its
-   * left side fully, then its right side, then pairs the results — and events are emitted in that same order. A
-   * `branch`/`when` node's untaken arm emits `Skipped` for every static node it would have run.
+   * Run the plan sequentially, emitting [[PipelineEvent]]s. Deterministic: nodes run in definition order — a fork runs
+   * its left side fully, then its right side, then pairs the results — and events are emitted in that same order. A
+   * `branch`/`when` node's untaken arm emits `NodeFinished(id, NodeStatus.Skipped)` for every static node it would have
+   * run, with no matching `NodeStarted` (see [[PipelineEvent]]'s own contract).
    *
-   * '''Panics close their `Entered` with `Exited(id, Failed)`.''' Every bracketing node (a `StageNode`'s own run, a
-   * `FanOutNode`'s whole per-element loop, a `BranchNode`'s decision and taken arm) is wrapped with
-   * `kyo.kernel.Effect.catching`: a raw thrown non-fatal `Throwable` (`scala.util.control.NonFatal`, which
-   * `Effect.catching` itself filters on) is caught, `Exited(id, Failed)` is emitted, and the exception is rethrown so
-   * the panic keeps propagating outward exactly as before — `Effect.catching` is effect-row-neutral (`B < (S3 & S2)`
-   * with `S2` fixed to `Emit[StageEvent]` here, which this method's own row already carries), so this needed no change
-   * to `execute`'s own signature.
+   * '''`RunStarted`/`RunFinished` bracket the whole stream.''' `RunStarted` is emitted before anything else; the run's
+   * own outcome — `RunFinished(true)` on success, `RunFinished(false)` on a typed abort or a panic — is always the last
+   * event.
    *
-   * '''`Abort[E]` is now a first-class part of this row.''' `execute`'s own declared row carries `Abort[E]` alongside
-   * `S` and `Emit[StageEvent]`: a node's typed abort surfaces to the caller with its original declared type, the same
-   * way [[morphir.buildkit.Stage#run]] already surfaced it. In ''value mode'' — calling `execute` directly, as every
-   * test in this suite does via `.eval()` — an `Abort[E]` failure still short-circuits the whole computation before any
-   * later `Emit` runs get to see it, by design: value mode has no report to record a partial run in, so there is
-   * nothing yet to close `Entered` against. The report executor that observes per-node outcomes even across an abort
-   * arrives in a later task, where it intercepts each node's own `Abort[E]` via `Abort.recover` and re-raises it —
-   * closing that node's `Entered` with `Exited(id, Failed)` first — inside [[SealedPipeline.bracketed]].
+   * '''Every `NodeStarted` closes with exactly one `NodeFinished`, including on halt and panic.''' Two independent
+   * mechanisms cooperate to guarantee this:
    *
-   * '''Known gap: a fatal `Throwable` still leaves its `Entered` unclosed.''' `Effect.catching` filters on
-   * `scala.util.control.NonFatal`, so `InterruptedException`, `VirtualMachineError`, `LinkageError`, and
-   * `ControlThrowable` are not caught, and leave a dangling `Entered` the same way a typed `Abort` did before this
-   * task. See bead morphir-zdy.2 for the fuller history of this row's evolution.
+   *   - '''Panics.''' Every bracketing node (a `StageNode`'s own run, a `FanOutNode`'s whole per-element loop, a
+   *     `BranchNode`'s decision and taken arm) is wrapped with `kyo.kernel.Effect.catching`
+   *     ([[SealedPipeline.bracketed]]): a raw thrown non-fatal `Throwable` (`scala.util.control.NonFatal`, which
+   *     `Effect.catching` itself filters on) is caught, `NodeFinished(id, NodeStatus.Failed)` is emitted, and the
+   *     exception is rethrown so the panic keeps propagating outward. Nesting composes: a panic deep inside a
+   *     `BranchNode`'s taken arm unwinds through every enclosing bracket in turn, each one closing its own id on the
+   *     way out.
+   *   - '''A typed `Abort[E]`, or a panic once it reaches this boundary.''' Unlike a panic still inside a `bracketed`
+   *     call, a typed abort is not a JVM `throw` — it resumes through Kyo's own suspend/resume protocol, so none of the
+   *     nested `bracketed` calls close on it by themselves, and a *dynamically scoped* mechanism (a `Local`) can't
+   *     stand in either: `Abort`'s own handling is a hard halt (it ignores the failing computation's continuation
+   *     entirely — see [[SealedPipeline.closeOpenNodes]] for why that specifically defeats `Local`'s
+   *     revert-on-completion scoping), so nothing downstream of the halt point ever gets to observe what a `Local` held
+   *     there. Instead, the tracked open ids live in a `Var`, not a `Local`: its own updates are ordinary
+   *     suspend/resume occurrences that a handler positioned outside the halt still processes one at a time as they
+   *     occur, so its state survives a hard halt intact — the same reason this row's own `Emit[PipelineEvent]` already
+   *     survives one (`Emit.run` outside `Abort.run` in every test in this suite). `execute` runs `Var.run` outermost,
+   *     wrapping a single `Abort.tapError[E]` around the whole chain: at the moment either kind of failure reaches it,
+   *     the var still holds every id that was pushed on entering a bracket and never popped on leaving one, and those
+   *     are closed (innermost first, mirroring how nested panics already closed on their own way out) before re-raising
+   *     the same failure unchanged — `Abort.tapError`'s own `onError` sees the full `Result.Error[E]` (a typed
+   *     `Failure[E]` or a `Panic`), so one handler covers both without needing a second, JVM-`throw`-based wrapper
+   *     here. A typed failure stays observable to the caller with its original declared type, the same way
+   *     [[morphir.buildkit.Stage#run]] already surfaced it; a panic that reaches this boundary re-raises as a `Panic`
+   *     the same way it always did.
    *
-   * `Halted` remains unemitted for the same reason `Skipped` was before conditional branches: nothing yet triggers it.
+   * '''Known gap: a fatal `Throwable` still leaves its `NodeStarted` unclosed.''' `Effect.catching`, used by
+   * `bracketed`'s own per-node panic handling, filters on `scala.util.control.NonFatal`, so `InterruptedException`,
+   * `VirtualMachineError`, `LinkageError`, and `ControlThrowable` are not caught there, and they are not typed
+   * `Abort[E]` failures either, so `Abort.tapError` does not observe them. See bead morphir-zdy.2 for the fuller
+   * history of this row's evolution.
    */
-  def execute(input: I): O < (Abort[E] & S & Emit[StageEvent]) =
-    SealedPipeline.executeChain(sealedChain, Chunk.empty, input)
+  def execute(input: I)(using ConcreteTag[E]): O < (Abort[E] & S & Emit[PipelineEvent]) =
+    Var.run(SealedPipeline.OpenNodes(Chunk.empty)) {
+      for
+        _   <- Emit.value(PipelineEvent.RunStarted)
+        out <- Abort.tapError[E] { (_: Result.Error[E]) =>
+          SealedPipeline.closeOpenNodes.andThen(Emit.value(PipelineEvent.RunFinished(false)))
+        }(SealedPipeline.executeChain(sealedChain, Chunk.empty, input))
+        _ <- Emit.value(PipelineEvent.RunFinished(true))
+      yield out
+    }
 
 object SealedPipeline:
 
@@ -321,19 +346,61 @@ object SealedPipeline:
         widenDefElem(DefElem.BranchElem(Present(id.render), pred, toNodeChain(ifTrue), toNodeChain(ifFalse)))
 
   /**
-   * Run `v` — a bracketing node's own value-producing work — so that a raw non-fatal panic closes `eventId`'s `Entered`
-   * with `Exited(id, Failed)` before continuing to propagate. `kyo.kernel.Effect.catching` is the one Kyo RC6 primitive
-   * that observes an arbitrary, statically unknown effect row's panic without needing to know anything about that row:
-   * its own `S2` is fixed here to `Emit[StageEvent]`, which `v`'s row already carries, so wrapping is row-neutral —
-   * `A < (S3 & Emit[StageEvent])` in, `A < (S3 & Emit[StageEvent])` out, no change to the caller's own declared type.
-   * It filters on `scala.util.control.NonFatal` (a raw thrown non-fatal `Throwable`), so it does '''not''' see a fatal
-   * `Throwable` (`InterruptedException`, `VirtualMachineError`, `LinkageError`, `ControlThrowable`) any more than it
-   * sees a typed `Abort[E]` failure — see [[SealedPipeline#execute]]'s own doc for why the `Abort[E]` half of that
-   * contract is by-design, not open, and the fatal-`Throwable` half remains an open gap.
+   * Wraps the open-node id list so it has a name of its own for `Var`'s `Tag` derivation to key on.
+   * `Var[Chunk[NodeId]]` directly crashes that macro at compile time: `NodeId` is `opaque type NodeId = Chunk[String]`,
+   * transparent within this defining package, so from the macro's own perspective the payload is `Chunk[Chunk[String]]`
+   * — a type constructor applied to itself one level down — which `kyo.internal.TagMacro`'s traversal does not handle.
+   * A one-field wrapper case class breaks that self-nesting without changing anything about what's tracked.
    */
-  private def bracketed[A, S3](eventId: NodeId)(v: => A < (S3 & Emit[StageEvent])): A < (S3 & Emit[StageEvent]) =
+  private final case class OpenNodes(ids: Chunk[NodeId])
+
+  /**
+   * The ids of every node whose bracket is currently open: pushed by [[executeElem]] right after emitting its own
+   * `NodeStarted`, popped either by [[executeElem]] itself (on a normal return) or by [[bracketed]] (on a panic) —
+   * whichever of the two closes that id first. Anything still here once [[execute]]'s own `Abort.tapError[E]`
+   * intercepts a failure was closed by neither, and gets closed from there.
+   *
+   * '''Why a `Var` and not a `Local`.''' A `Local` was the first thing tried here, and it does not work: `Local.let`/
+   * `update` only restores the outer value on the wrapped computation's own normal completion, by resuming into it —
+   * concretely, `ContextEffect.handle`'s own continuation, the code that would apply the restored value, runs only when
+   * something calls back into it. `Abort`'s own handling (`ArrowEffect.handleCatching`, underlying every
+   * `Abort.run`/`recover`/`tapError`) is a hard halt: on interception it returns a value directly and never invokes
+   * that continuation. So a `Local.update` scope wrapping a node that then aborts never gets to hand its value onward —
+   * `execute`'s own `onError` runs as a sibling to that scope, not inside it, and reading the local there observes its
+   * default, empty value, not whatever was pushed. A `Var` sidesteps this entirely: `Var.update` is an ordinary
+   * suspend/resume occurrence, so a `Var.run` handler positioned outside the halt (as `execute`'s own is) processes
+   * every occurrence as it happens and keeps the resulting state regardless of how the wrapped computation ends — the
+   * same reason this row's own `Emit[PipelineEvent]` already survives a halt (`Emit.run` outside `Abort.run` in every
+   * test in this suite; see the pitfall this mirrors in
+   * `kb/bundles/programming-language-tooling/kyo-effect-handlers-and-typed-halting.md`).
+   */
+  private def closeOpenNodes: Unit < (Emit[PipelineEvent] & Var[OpenNodes]) =
+    Var.get[OpenNodes].map { openNodes =>
+      val openIds = openNodes.ids
+      Kyo.foreachDiscard(openIds.reverse) { id =>
+        Emit.value(PipelineEvent.NodeFinished(id, NodeStatus.Failed))
+      }
+    }
+
+  /**
+   * Run `v` — a bracketing node's own value-producing work — so that a raw non-fatal panic pops `eventId` from the
+   * open-node `Var` (see [[SealedPipeline.closeOpenNodes]]) and closes its `NodeStarted` with
+   * `NodeFinished(id, Failed)` before continuing to propagate. `kyo.kernel.Effect.catching` is the one Kyo RC6
+   * primitive that observes an arbitrary, statically unknown effect row's panic without needing to know anything about
+   * that row: its own `S2` is fixed here to `Emit[PipelineEvent] & Var[OpenNodes]`, which `v`'s row already carries, so
+   * wrapping is row-neutral — no change to the caller's own declared type. It filters on `scala.util.control.NonFatal`
+   * (a raw thrown non-fatal `Throwable`), so it does '''not''' see a fatal `Throwable` (`InterruptedException`,
+   * `VirtualMachineError`, `LinkageError`, `ControlThrowable`) — that gap is documented on [[SealedPipeline#execute]].
+   * A typed `Abort[E]` closes through a different mechanism entirely, also documented there — this method plays no part
+   * in it.
+   */
+  private def bracketed[A, S3](eventId: NodeId)(
+      v: => A < (S3 & Emit[PipelineEvent] & Var[OpenNodes])
+  ): A < (S3 & Emit[PipelineEvent] & Var[OpenNodes]) =
     Effect.catching(v) { (ex: Throwable) =>
-      Emit.value(StageEvent.Exited(eventId, StageOutcome.Failed)).map(_ => throw ex)
+      Var.updateDiscard[OpenNodes](s => OpenNodes(s.ids.filterNot(_ == eventId))).andThen(
+        Emit.value(PipelineEvent.NodeFinished(eventId, NodeStatus.Failed)).map(_ => throw ex)
+      )
     }
 
   /**
@@ -342,28 +409,30 @@ object SealedPipeline:
    * segment and the running element's index before running `each` on that element, so a doubly-nested fan-out's event
    * ids carry the full path.
    *
-   * A `FanOutNode` has an id of its own — unlike a `ParNode`'s two sides, which carry none — so it emits `Entered` and
-   * `Exited` around the whole per-element loop, bracketing every child event: `Entered(fo)`, then each element's own
-   * `Entered`/`Exited` pair under `fo/<index>/...`, then `Exited(fo)`. With zero elements the bracket still fires —
-   * `Entered(fo)` immediately followed by `Exited(fo)`, with no child events between — so a fan-out's own lifecycle is
-   * always observable even when it has nothing to iterate.
+   * A `FanOutNode` has an id of its own — unlike a `ParNode`'s two sides, which carry none — so it emits `NodeStarted`
+   * and `NodeFinished` around the whole per-element loop, bracketing every child event: `NodeStarted(fo)`, then each
+   * element's own `NodeStarted`/`NodeFinished` pair under `fo/<index>/...`, then `NodeFinished(fo)`. With zero elements
+   * the bracket still fires — `NodeStarted(fo)` immediately followed by `NodeFinished(fo)`, with no child events
+   * between — so a fan-out's own lifecycle is always observable even when it has nothing to iterate.
    */
   private def executeElem[A, B, E2, S2](
       elem: SealedElem[A, B, E2, S2],
       prefix: Chunk[String],
       input: A
-  ): B < (Abort[E2] & S2 & Emit[StageEvent]) =
+  ): B < (Abort[E2] & S2 & Emit[PipelineEvent] & Var[OpenNodes]) =
     elem match
       case SealedElem.StageNode(id, stage) =>
         val eventId = NodeId.unsafe(prefix ++ id.segments)
         for
-          _   <- Emit.value(StageEvent.Entered(eventId, stage.meta))
+          _   <- Emit.value(PipelineEvent.NodeStarted(eventId, stage.meta))
+          _   <- Var.updateDiscard[OpenNodes](s => OpenNodes(s.ids :+ eventId))
           out <- bracketed(eventId) {
             stage.meta match
               case Present(meta) => Pipeline.provenanceLocal.update(_.append(meta))(stage.run(input))
               case Absent        => stage.run(input)
           }
-          _ <- Emit.value(StageEvent.Exited(eventId, StageOutcome.Succeeded))
+          _ <- Var.updateDiscard[OpenNodes](s => OpenNodes(s.ids.filterNot(_ == eventId)))
+          _ <- Emit.value(PipelineEvent.NodeFinished(eventId, NodeStatus.Succeeded))
         yield out
       case SealedElem.ParNode(left, right, zip) =>
         executeChain(left, prefix, input).map(l => executeChain(right, prefix, input).map(r => zip(l, r)))
@@ -371,51 +440,55 @@ object SealedPipeline:
         val eventId     = NodeId.unsafe(prefix ++ id.segments)
         val childPrefix = prefix ++ id.segments
         for
-          _      <- Emit.value(StageEvent.Entered(eventId, Absent))
+          _      <- Emit.value(PipelineEvent.NodeStarted(eventId, Absent))
+          _      <- Var.updateDiscard[OpenNodes](s => OpenNodes(s.ids :+ eventId))
           result <- bracketed(eventId) {
             Kyo.foreach(input.zipWithIndex) { case (element, index) =>
               executeChain(each, childPrefix :+ index.toString, element)
             }
           }
-          _ <- Emit.value(StageEvent.Exited(eventId, StageOutcome.Succeeded))
+          _ <- Var.updateDiscard[OpenNodes](s => OpenNodes(s.ids.filterNot(_ == eventId)))
+          _ <- Emit.value(PipelineEvent.NodeFinished(eventId, NodeStatus.Succeeded))
         yield result
       case SealedElem.BranchNode(id, pred, ifTrue, ifFalse) =>
-        val eventId                                           = NodeId.unsafe(prefix ++ id.segments)
-        val whenTrue: B < (Abort[E2] & S2 & Emit[StageEvent]) =
+        val eventId                                                               = NodeId.unsafe(prefix ++ id.segments)
+        val whenTrue: B < (Abort[E2] & S2 & Emit[PipelineEvent] & Var[OpenNodes]) =
           executeChain(ifTrue, prefix, input).map { (result: B) =>
-            emitSkips(ifFalse, prefix, "predicate was true").map(_ => result)
+            emitSkips(ifFalse, prefix).map(_ => result)
           }
-        val whenFalse: B < (Abort[E2] & S2 & Emit[StageEvent]) =
+        val whenFalse: B < (Abort[E2] & S2 & Emit[PipelineEvent] & Var[OpenNodes]) =
           executeChain(ifFalse, prefix, input).map { (result: B) =>
-            emitSkips(ifTrue, prefix, "predicate was false").map(_ => result)
+            emitSkips(ifTrue, prefix).map(_ => result)
           }
         for
-          _   <- Emit.value(StageEvent.Entered(eventId, Absent))
+          _   <- Emit.value(PipelineEvent.NodeStarted(eventId, Absent))
+          _   <- Var.updateDiscard[OpenNodes](s => OpenNodes(s.ids :+ eventId))
           out <- bracketed(eventId)(if pred(input) then whenTrue else whenFalse)
-          _   <- Emit.value(StageEvent.Exited(eventId, StageOutcome.Succeeded))
+          _   <- Var.updateDiscard[OpenNodes](s => OpenNodes(s.ids.filterNot(_ == eventId)))
+          _   <- Emit.value(PipelineEvent.NodeFinished(eventId, NodeStatus.Succeeded))
         yield out
 
   /**
-   * Emit [[StageEvent.Skipped]] for every static node reachable through `chain` — its own [[SealedChain#nodeIds]],
-   * qualified with `prefix` the same way a live node's own event id would be. A nested fan-out contributes only its own
-   * id (not one per element: an unrun fan-out has no elements to count), and a nested branch contributes its own id
-   * followed by both of *its* arms' ids in turn, recursively — nothing under an untaken arm ever ran, all the way down,
-   * except through a fan-out's per-element children, whose count doesn't exist unexecuted.
+   * Emit `NodeFinished(id, NodeStatus.Skipped)` for every static node reachable through `chain` — its own
+   * [[SealedChain#nodeIds]], qualified with `prefix` the same way a live node's own event id would be, with no matching
+   * `NodeStarted` (see [[PipelineEvent]]'s own contract). A nested fan-out contributes only its own id (not one per
+   * element: an unrun fan-out has no elements to count), and a nested branch contributes its own id followed by both of
+   * *its* arms' ids in turn, recursively — nothing under an untaken arm ever ran, all the way down, except through a
+   * fan-out's per-element children, whose count doesn't exist unexecuted.
    */
   private def emitSkips[A, B, E2, S2](
       chain: SealedChain[A, B, E2, S2],
-      prefix: Chunk[String],
-      reason: String
-  ): Unit < Emit[StageEvent] =
+      prefix: Chunk[String]
+  ): Unit < Emit[PipelineEvent] =
     Kyo.foreachDiscard(chain.nodeIds) { id =>
-      Emit.value(StageEvent.Skipped(NodeId.unsafe(prefix ++ id.segments), reason))
+      Emit.value(PipelineEvent.NodeFinished(NodeId.unsafe(prefix ++ id.segments), NodeStatus.Skipped))
     }
 
   private def executeChain[A, B, E2, S2](
       chain: SealedChain[A, B, E2, S2],
       prefix: Chunk[String],
       input: A
-  ): B < (Abort[E2] & S2 & Emit[StageEvent]) =
+  ): B < (Abort[E2] & S2 & Emit[PipelineEvent] & Var[OpenNodes]) =
     chain match
       case SealedChain.Single(elem) =>
         executeElem(elem, prefix, input)
