@@ -534,6 +534,43 @@ class PipelineTests extends Test[Any]:
       val finished = events.collect { case PipelineEvent.NodeFinished(id, _) => id }
       assert(started.sorted(using Ordering.by(_.render)) == finished.sorted(using Ordering.by(_.render)))
     }
+    // `Stage.apply`'s own scaladoc explains why this can't be forbidden statically: a caller can always pick
+    // `E := Nothing` and fold a real error into `S` instead. Before this fix, that let an `Abort` skip
+    // `execute`'s single `Abort.tapError[E]` boundary entirely — its own `ConcreteTag[E]` never accepted a value
+    // whose declared type wasn't part of the pipeline's own `E`, so it fell through unclosed and unbalanced. Now the
+    // boundary claims every `Abort` regardless of which one raised it (see `SealedPipeline.executeIntercepted`) and
+    // converts one the declared `E` doesn't accept into a contained panic instead.
+    "a stage that hides Abort[String] inside its declared S instead of its declared E still closes its own NodeStarted/NodeFinished and balances RunFinished(false), converting to a panic rather than escaping unhandled" in {
+      val hidden: Stage[Int, Int, Nothing, Abort[String]] =
+        Stage[Int, Int, Nothing, Abort[String]]((_: Int) => Abort.fail("boom")).named("hidden")
+      val plan              = sealOrFail(Pipeline.stage(hidden))
+      val (events, outcome) = Emit.run(Abort.run[Any](plan.execute(1))).eval
+      outcome match
+        case Result.Panic(ex: UndeclaredAbortException) => assert(ex.error == "boom")
+        case other => assert(false, s"expected a panic carrying UndeclaredAbortException, got $other")
+      assert(
+        render(events) == Chunk(
+          "run:started",
+          "start:hidden",
+          "finish:hidden:Failed",
+          "run:finished:false"
+        )
+      )
+    }
+    "a hidden Abort inside a fanOut child balances both the child's own NodeStarted/NodeFinished and the fan-out node's own bracket" in {
+      def sources = Stage.pure((n: Int) => Chunk.from(0 until n)).named("sources")
+      val hidden: Stage[Int, Int, Nothing, Abort[String]] =
+        Stage[Int, Int, Nothing, Abort[String]]((_: Int) => Abort.fail("boom")).named("hidden")
+      val plan              = sealOrFail(Pipeline.stage(sources).fanOut("fo", Pipeline.stage(hidden)))
+      val (events, outcome) = Emit.run(Abort.run[Any](plan.execute(2))).eval
+      outcome match
+        case Result.Panic(ex: UndeclaredAbortException) => assert(ex.error == "boom")
+        case other => assert(false, s"expected a panic carrying UndeclaredAbortException, got $other")
+      val started  = events.collect { case PipelineEvent.NodeStarted(id, _) => id }
+      val finished = events.collect { case PipelineEvent.NodeFinished(id, _) => id }
+      assert(started.sorted(using Ordering.by(_.render)) == finished.sorted(using Ordering.by(_.render)))
+      assert(started.map(_.render).contains("fo") && started.map(_.render).exists(_.startsWith("fo/0/")))
+    }
   }
 
   "typed pipelines" - {
