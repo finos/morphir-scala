@@ -98,6 +98,11 @@ object Stage:
    * A bare `Stage(...)` call with no expected type flowing in leaves `S` underconstrained, and inference defaults it to
    * `Nothing` rather than `Any` — a valid but unusable row. Ascribe the stage's type (`Stage[I, O, E, S]`) when
    * composing one standalone, rather than inline inside a pipeline where the expected type already pins `S`.
+   *
+   * This is the only lift for effectful functions: a `fromKyo`-style constructor that fixed the declared error to
+   * `Nothing` while accepting an arbitrary row let `Abort[E]` hide inside `S`, bypassing the executor's error cleanup
+   * and unbalancing the event stream. Declare the error type here instead; an infallible effectful function is simply
+   * `E = Nothing`.
    */
   def apply[I, O, E, S](f: I => O < (Abort[E] & S)): Stage[I, O, E, S] =
     Run(f)
@@ -109,10 +114,6 @@ object Stage:
   /** Lift a pure function into a stage with no effects. */
   def pure[A, B](f: A => B): Stage[A, B, Nothing, Any] =
     Run(a => f(a))
-
-  /** Lift an effect-tracked function into a stage with no declared error. */
-  def fromKyo[A, B, S](f: A => B < S): Stage[A, B, Nothing, S] =
-    Run(f)
 
   /** A stage that never aborts: its declared error is `Nothing`, so it composes into any pipeline's error row. */
   type Infallible[-I, +O, S] = Stage[I, O, Nothing, S]
