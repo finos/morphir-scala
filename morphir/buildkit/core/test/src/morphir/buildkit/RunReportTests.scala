@@ -131,6 +131,30 @@ class RunReportTests extends Test[Any]:
   }
 
   "branch" - {
+    "the branch node's own NodeFinished closes after its arm's events and the untaken arm's skips" in {
+      val plan = sealOrFail(
+        Pipeline
+          .stage(nodeId"a", inc)
+          .branch(_ > 100)(Pipeline.stage(nodeId"big", double), Pipeline.stage(nodeId"small", double))
+      )
+      val (events, _) = Emit.run(plan.runReport(1)).eval
+      // The same bracket shape `execute` emits (see `PipelineTests`'s own branch event assertion): a composite node's
+      // `NodeFinished` closes after every event its arms produced.
+      assert(
+        render(events) == Chunk(
+          "run:started",
+          "start:a",
+          "finish:a:Succeeded",
+          "start:node-1",
+          "start:small",
+          "finish:small:Succeeded",
+          "finish:big:Skipped",
+          "finish:node-1:Succeeded",
+          "run:finished:true"
+        )
+      )
+    }
+
     "a predicate that throws fails the branch node and blocks both arms" in {
       val plan = sealOrFail(
         Pipeline
@@ -206,7 +230,25 @@ class RunReportTests extends Test[Any]:
       val plan = sealOrFail(
         Pipeline.stage(nodeId"src", sources).fanOut("each", Pipeline.stage(nodeId"child", childBoom))
       )
-      val (_, report) = Emit.run(plan.runReport(3, RunMode.KeepGoing)).eval
+      val (events, report) = Emit.run(plan.runReport(3, RunMode.KeepGoing)).eval
+      // A composite that started and then produced nothing closes its own bracket with `Blocked` — the one Blocked
+      // that is paired with a `NodeStarted`. `PipelineEvent` and `NodeOutcome` both license this shape explicitly.
+      assert(
+        render(events) == Chunk(
+          "run:started",
+          "start:src",
+          "finish:src:Succeeded",
+          "start:each",
+          "start:each/0/child",
+          "finish:each/0/child:Succeeded",
+          "start:each/1/child",
+          "finish:each/1/child:Failed",
+          "start:each/2/child",
+          "finish:each/2/child:Succeeded",
+          "finish:each:Blocked",
+          "run:finished:false"
+        )
+      )
       assert(report.nodes.map(_.id.render) == Chunk("src", "each", "each/0/child", "each/1/child", "each/2/child"))
       assert(report.outcome(NodeId.unsafe(Chunk("each", "0", "child"))) ==
         Present(NodeOutcome.Succeeded(Provenance.Executed)))
@@ -218,6 +260,27 @@ class RunReportTests extends Test[Any]:
       assert(report.result.isEmpty)
       // Children have no ordinal of their own: they carry the fan-out node's, which collates them right after it.
       assert(report.nodes.map(_.ordinal) == Chunk(0, 1, 1, 1, 1))
+    }
+
+    "a multi-node child chain stays contiguous per element, ahead of the plan nodes that follow the fan-out" in {
+      val chunked: Stage[Int, Chunk[Int], Nothing, Any] = Stage((n: Int) => Chunk.from(0 until n))
+      val total: Stage[Chunk[Int], Int, Nothing, Any]   = Stage((cs: Chunk[Int]) => cs.sum)
+      val plan                                          = sealOrFail(
+        Pipeline
+          .stage(nodeId"src", chunked)
+          .fanOut("each", Pipeline.stage(nodeId"c1", inc).andThen(nodeId"c2", double))
+          .andThen(nodeId"tail", total)
+      )
+      val (_, report) = Emit.run(plan.runReport(2)).eval
+      // Every node of a child chain carries the parent's ordinal, so element 0's whole subtree precedes element 1's
+      // and neither spills past the fan-out into `tail`'s own slot.
+      assert(
+        report.nodes.map(_.id.render) ==
+          Chunk("src", "each", "each/0/c1", "each/0/c2", "each/1/c1", "each/1/c2", "tail")
+      )
+      assert(report.nodes.map(_.ordinal) == Chunk(0, 1, 1, 1, 1, 1, 2))
+      assert(plan.ordinals.map((id, o) => s"${id.render}:$o") == Chunk("src:0", "each:1", "tail:2"))
+      assert(report.result == Present(6))
     }
 
     "an unrun fan-out reports only its own node, blocked on its predecessor" in {

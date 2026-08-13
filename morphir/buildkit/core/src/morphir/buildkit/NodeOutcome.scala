@@ -27,6 +27,14 @@ enum SkipReason derives CanEqual:
  * The `Blocked` case maintains an invariant: both `blockedBy` and `rootCauses` are non-empty. The executor is
  * responsible for maintaining this invariant; it is documented here but not encoded in the type (kyo has no non-empty
  * chunk type).
+ *
+ * `Blocked` usually means "never started" — the ordinary case is a node downstream of a failure, which the executor
+ * closes with a lone `NodeFinished` and no `NodeStarted`. One case deliberately differs: a '''composite''' node that
+ * started, ran children, and produced nothing because they failed reports `Blocked` too, naming those children. A
+ * fan-out whose element runs failed is the instance today — it emits `NodeStarted`, brackets its children's events, and
+ * closes `NodeFinished(id, Blocked)`. It is not `Failed`: the typed cause belongs to the child that raised it, and
+ * duplicating it onto the parent would report one failure twice. Read `Blocked` as "produced nothing, and here is what
+ * is responsible", not as "never ran".
  */
 enum NodeOutcome[+E] derives CanEqual:
   case Succeeded(provenance: Provenance)
