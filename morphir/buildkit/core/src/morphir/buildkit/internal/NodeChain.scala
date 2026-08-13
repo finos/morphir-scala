@@ -25,6 +25,13 @@ import morphir.buildkit.*
  * namespace: only one arm ever runs, so both arms' node ids are flattened into this element's own leaf slots — the same
  * namespace `ParElem`'s two sides already share — and `explicitId` names the branch node itself, which (like a
  * `FanOutElem`) has its own identity even though it wraps no `Stage`.
+ *
+ * `FanOutKeyedElem` is `FanOutElem` with keyed, rather than positional, child identity: `key` renders each element's
+ * stable identifier, validated at run time (not at `seal` — a key is a function of runtime values, so `seal` never sees
+ * one) against the same rules an explicit node id already follows, and checked for per-parent uniqueness. Its own
+ * declared error unions the child's `E2` with [[morphir.buildkit.FanOutKeyError]] — the same technique `ParElem`/
+ * `BranchElem` already use to union two peer error channels — since a bad or duplicate key fails the fan-out node
+ * itself, not the child chain.
  */
 private[buildkit] enum DefElem[-I, +O, E, S]:
   case StageElem(explicitId: Maybe[String], stage: Stage[I, O, E, S])
@@ -37,6 +44,11 @@ private[buildkit] enum DefElem[-I, +O, E, S]:
       explicitId: Maybe[String],
       each: NodeChain[A, B, E2, S2]
   ) extends DefElem[Chunk[A], Chunk[B], E2, S2]
+  case FanOutKeyedElem[A, B, E2, S2](
+      explicitId: Maybe[String],
+      key: A => String,
+      each: NodeChain[A, B, E2, S2]
+  ) extends DefElem[Chunk[A], Chunk[B], E2 | FanOutKeyError, S2]
   case BranchElem[I2, O2, E1, E2, S1, S2](
       explicitId: Maybe[String],
       pred: I2 => Boolean,
@@ -54,6 +66,7 @@ private[buildkit] enum DefElem[-I, +O, E, S]:
       case StageElem(_, _)                   => 1
       case ParElem(left, right, _)           => left.size + right.size
       case FanOutElem(_, _)                  => 1
+      case FanOutKeyedElem(_, _, _)          => 1
       case BranchElem(_, _, ifTrue, ifFalse) => 1 + ifTrue.size + ifFalse.size
 
   /**
@@ -68,6 +81,7 @@ private[buildkit] enum DefElem[-I, +O, E, S]:
       case StageElem(explicitId, stage)               => Chunk((explicitId, stage.meta, stage.describe))
       case ParElem(left, right, _)                    => left.summaries ++ right.summaries
       case FanOutElem(explicitId, _)                  => Chunk((explicitId, Absent, describe))
+      case FanOutKeyedElem(explicitId, _, _)          => Chunk((explicitId, Absent, describe))
       case BranchElem(explicitId, _, ifTrue, ifFalse) =>
         Chunk((explicitId, Absent, describe)) ++ ifTrue.summaries ++ ifFalse.summaries
 
@@ -77,6 +91,7 @@ private[buildkit] enum DefElem[-I, +O, E, S]:
       case StageElem(_, stage)               => stage.describe
       case ParElem(left, right, _)           => s"par(${left.describe}, ${right.describe})"
       case FanOutElem(_, each)               => s"fanOut(${each.describe})"
+      case FanOutKeyedElem(_, _, each)       => s"fanOutKeyed(${each.describe})"
       case BranchElem(_, _, ifTrue, ifFalse) => s"branch(${ifTrue.describe}, ${ifFalse.describe})"
 end DefElem
 
@@ -240,6 +255,14 @@ private[buildkit] object Sealing:
           // its own-level error alone (already in `segmentErrors`) is reported; the narrow half of the guarantee.
           case Result.Failure(_) => Chunk.empty
           case Result.Panic(_)   => Chunk.empty
+      case DefElem.FanOutKeyedElem(_, _, each) =>
+        // The child chain seals the same way an unkeyed fan-out's does; `key` itself is a runtime function with
+        // nothing for `seal` to validate — a bad or duplicate rendered key surfaces at run time instead, as
+        // `FanOutKeyError`, never as a `SealError`.
+        assigned(0) match
+          case Result.Success(ownId) => errorsOf(sealChain(each)).map(prefixNested(_, ownId))
+          case Result.Failure(_)     => Chunk.empty
+          case Result.Panic(_)       => Chunk.empty
       case DefElem.BranchElem(_, _, ifTrue, ifFalse) =>
         val rest     = assigned.drop(1)
         val trueSize = ifTrue.size
@@ -292,6 +315,14 @@ private[buildkit] object Sealing:
         sealChain(each) match
           case Result.Success(sealedEach) => Result.succeed(SealedElem.FanOutNode(ownId, sealedEach))
           case Result.Failure(errors)     =>
+            Result.fail(SealErrors.unsafe(errors.errors.map(prefixNested(_, ownId))))
+          case Result.Panic(ex) => Result.panic(ex)
+      case DefElem.FanOutKeyedElem(_, key, each) =>
+        val ownId = slice(0)
+        sealChain(each) match
+          case Result.Success(sealedEach) =>
+            Result.succeed(widenSealedElem(SealedElem.FanOutKeyedNode(ownId, key, sealedEach)))
+          case Result.Failure(errors) =>
             Result.fail(SealErrors.unsafe(errors.errors.map(prefixNested(_, ownId))))
           case Result.Panic(ex) => Result.panic(ex)
       case DefElem.BranchElem(_, pred, ifTrue, ifFalse) =>

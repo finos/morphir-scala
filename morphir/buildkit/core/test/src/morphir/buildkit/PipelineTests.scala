@@ -291,6 +291,57 @@ class PipelineTests extends Test[Any]:
     }
   }
 
+  "fanOutKeyed" - {
+    def keyedSources = Stage.pure((n: Int) => Chunk.from(0 until n).map(i => s"item$i")).named("sources")
+    def parse        = Stage.pure((s: String) => s.length).named("parse")
+    def stripped     = (s: String) => s.stripPrefix("item")
+
+    "child event ids carry the rendered key instead of the index, and element order still drives the report" in {
+      val plan = sealOrFail(
+        Pipeline.stage(keyedSources).fanOutKeyed("fo", stripped)(Pipeline.stage(parse))
+      )
+      val (events, outcome) = Emit.run(Abort.run[FanOutKeyError](plan.execute(3))).eval
+      val childIds          =
+        events.collect { case PipelineEvent.NodeStarted(id, _) if id.render.contains("/") => id.render }
+      assert(childIds == Chunk("fo/0/parse", "fo/1/parse", "fo/2/parse"))
+      assert(outcome == Result.Success(Chunk(5, 5, 5)))
+    }
+    "a duplicate rendered key fails the fan-out node itself, with no child events" in {
+      val plan = sealOrFail(
+        Pipeline.stage(keyedSources).fanOutKeyed("fo", (_: String) => "same")(Pipeline.stage(parse))
+      )
+      val (events, outcome) = Emit.run(Abort.run[FanOutKeyError](plan.execute(2))).eval
+      outcome match
+        case Result.Failure(FanOutKeyError(parent, key, reason)) =>
+          assert(parent.render == "fo")
+          assert(key == "same")
+          assert(reason == "duplicate key")
+        case other => assert(false, s"expected a FanOutKeyError failure, got $other")
+      assert(!events.exists {
+        case PipelineEvent.NodeStarted(id, _) => id.render.contains("/")
+        case _                                => false
+      })
+      assert(events.contains(PipelineEvent.NodeFinished(nodeId"fo", NodeStatus.Failed)))
+    }
+    "a key containing '/' fails the fan-out node itself, with no child events" in {
+      val plan = sealOrFail(
+        Pipeline.stage(keyedSources).fanOutKeyed("fo", (s: String) => s"bad/$s")(Pipeline.stage(parse))
+      )
+      val (events, outcome) = Emit.run(Abort.run[FanOutKeyError](plan.execute(1))).eval
+      outcome match
+        case Result.Failure(FanOutKeyError(parent, key, reason)) =>
+          assert(parent.render == "fo")
+          assert(key == "bad/item0")
+          assert(reason == "contains '/'")
+        case other => assert(false, s"expected a FanOutKeyError failure, got $other")
+      assert(!events.exists {
+        case PipelineEvent.NodeStarted(id, _) => id.render.contains("/")
+        case _                                => false
+      })
+      assert(events.contains(PipelineEvent.NodeFinished(nodeId"fo", NodeStatus.Failed)))
+    }
+  }
+
   "branch" - {
     def big   = Pipeline.stage(Stage.pure((i: Int) => s"big:$i").named("big"))
     def small = Pipeline.stage(Stage.pure((i: Int) => s"small:$i").named("small"))

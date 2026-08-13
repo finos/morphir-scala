@@ -29,6 +29,19 @@ private[buildkit] enum SealedElem[-I, +O, E, S]:
   ) extends SealedElem[Chunk[A], Chunk[B], E2, S2]
 
   /**
+   * A keyed fan-out node: `FanOutNode` with per-element identity driven by `key`, rather than input position. Its own
+   * declared error unions the child's `E2` with [[morphir.buildkit.FanOutKeyError]] — mirroring
+   * `ParNode`/`BranchNode`'s own two-way unions — since a bad or duplicate rendered key fails this node itself, before
+   * any element of the child chain runs; see [[morphir.buildkit.internal.DefElem.FanOutKeyedElem]] for the fuller
+   * rationale. Element order (input position) still drives execution and report order — `key` is identity, not order.
+   */
+  case FanOutKeyedNode[A, B, E2, S2](
+      id: NodeId,
+      key: A => String,
+      each: SealedChain[A, B, E2, S2]
+  ) extends SealedElem[Chunk[A], Chunk[B], E2 | FanOutKeyError, S2]
+
+  /**
    * A branch node: its own id, a plain predicate on the incoming value, and both arms fully sealed. Unlike
    * `FanOutNode`'s child, both arms share this node's own flattened id namespace (see
    * [[morphir.buildkit.internal.DefElem.BranchElem]]), since only one of them ever executes. At execution the node's
@@ -54,6 +67,7 @@ private[buildkit] enum SealedElem[-I, +O, E, S]:
       case StageNode(_, _)                   => 1
       case ParNode(left, right, _)           => left.size + right.size
       case FanOutNode(_, _)                  => 1
+      case FanOutKeyedNode(_, _, _)          => 1
       case BranchNode(_, _, ifTrue, ifFalse) => 1 + ifTrue.size + ifFalse.size
 
   /**
@@ -67,6 +81,7 @@ private[buildkit] enum SealedElem[-I, +O, E, S]:
       case StageNode(id, _)                   => Chunk(id)
       case ParNode(left, right, _)            => left.nodeIds ++ right.nodeIds
       case FanOutNode(id, _)                  => Chunk(id)
+      case FanOutKeyedNode(id, _, _)          => Chunk(id)
       case BranchNode(id, _, ifTrue, ifFalse) => Chunk(id) ++ ifTrue.nodeIds ++ ifFalse.nodeIds
 
   /** Render this element: a stage renders as its own description; a fork renders as `par(left, right)`. */
@@ -75,6 +90,7 @@ private[buildkit] enum SealedElem[-I, +O, E, S]:
       case StageNode(_, stage)               => stage.describe
       case ParNode(left, right, _)           => s"par(${left.describe}, ${right.describe})"
       case FanOutNode(_, each)               => s"fanOut(${each.describe})"
+      case FanOutKeyedNode(_, _, each)       => s"fanOutKeyed(${each.describe})"
       case BranchNode(_, _, ifTrue, ifFalse) => s"branch(${ifTrue.describe}, ${ifFalse.describe})"
 end SealedElem
 

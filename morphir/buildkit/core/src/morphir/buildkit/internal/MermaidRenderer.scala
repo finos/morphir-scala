@@ -123,6 +123,9 @@ private[buildkit] object MermaidRenderer:
       case SealedElem.FanOutNode(id, each) =>
         val ownId = rawId(prefix, id)
         Chunk(ownId) ++ collectRawIds(flatten(each), ownId)
+      case SealedElem.FanOutKeyedNode(id, _, each) =>
+        val ownId = rawId(prefix, id)
+        Chunk(ownId) ++ collectRawIds(flatten(each), ownId)
       case SealedElem.BranchNode(id, _, ifTrue, ifFalse) =>
         Chunk(rawId(prefix, id)) ++ collectRawIds(flatten(ifTrue), prefix) ++ collectRawIds(flatten(ifFalse), prefix)
 
@@ -138,8 +141,9 @@ private[buildkit] object MermaidRenderer:
 
   private def isFanOut(e: SealedElem[?, ?, ?, ?]): Boolean =
     e match
-      case SealedElem.FanOutNode(_, _) => true
-      case _                           => false
+      case SealedElem.FanOutNode(_, _)         => true
+      case SealedElem.FanOutKeyedNode(_, _, _) => true
+      case _                                   => false
 
   private def declareChain(
       elems: Chunk[SealedElem[?, ?, ?, ?]],
@@ -167,6 +171,12 @@ private[buildkit] object MermaidRenderer:
         sb ++= s"  subgraph $ownId\n"
         declareChain(flatten(each), ownRawId, ids, sb)
         sb ++= "  end\n"
+      case SealedElem.FanOutKeyedNode(id, _, each) =>
+        val ownId    = mid(prefix, id, ids)
+        val ownRawId = rawId(prefix, id)
+        sb ++= s"  subgraph $ownId\n"
+        declareChain(flatten(each), ownRawId, ids, sb)
+        sb ++= "  end\n"
       case SealedElem.BranchNode(id, _, ifTrue, ifFalse) =>
         sb ++= s"  ${mid(prefix, id, ids)}{\"?\"}\n"
         declareChain(flatten(ifTrue), prefix, ids, sb)
@@ -175,17 +185,19 @@ private[buildkit] object MermaidRenderer:
   /** The Mermaid ids a predecessor's edge should target when connecting into `e`. */
   private def entryOf(e: SealedElem[?, ?, ?, ?], prefix: String, ids: Map[String, String]): Chunk[String] =
     e match
-      case SealedElem.StageNode(id, _)        => Chunk(mid(prefix, id, ids))
-      case SealedElem.ParNode(left, right, _) => entryOfChain(left, prefix, ids) ++ entryOfChain(right, prefix, ids)
-      case SealedElem.FanOutNode(id, _)       => Chunk(mid(prefix, id, ids))
-      case SealedElem.BranchNode(id, _, _, _) => Chunk(mid(prefix, id, ids))
+      case SealedElem.StageNode(id, _)          => Chunk(mid(prefix, id, ids))
+      case SealedElem.ParNode(left, right, _)   => entryOfChain(left, prefix, ids) ++ entryOfChain(right, prefix, ids)
+      case SealedElem.FanOutNode(id, _)         => Chunk(mid(prefix, id, ids))
+      case SealedElem.FanOutKeyedNode(id, _, _) => Chunk(mid(prefix, id, ids))
+      case SealedElem.BranchNode(id, _, _, _)   => Chunk(mid(prefix, id, ids))
 
   /** The Mermaid ids a successor's edge should originate from when connecting out of `e`. */
   private def exitOf(e: SealedElem[?, ?, ?, ?], prefix: String, ids: Map[String, String]): Chunk[String] =
     e match
-      case SealedElem.StageNode(id, _)        => Chunk(mid(prefix, id, ids))
-      case SealedElem.ParNode(left, right, _) => exitOfChain(left, prefix, ids) ++ exitOfChain(right, prefix, ids)
-      case SealedElem.FanOutNode(id, _)       => Chunk(mid(prefix, id, ids))
+      case SealedElem.StageNode(id, _)          => Chunk(mid(prefix, id, ids))
+      case SealedElem.ParNode(left, right, _)   => exitOfChain(left, prefix, ids) ++ exitOfChain(right, prefix, ids)
+      case SealedElem.FanOutNode(id, _)         => Chunk(mid(prefix, id, ids))
+      case SealedElem.FanOutKeyedNode(id, _, _) => Chunk(mid(prefix, id, ids))
       case SealedElem.BranchNode(_, _, ifTrue, ifFalse) =>
         exitOfChain(ifTrue, prefix, ids) ++ exitOfChain(ifFalse, prefix, ids)
 
@@ -246,6 +258,8 @@ private[buildkit] object MermaidRenderer:
         wireChain(flatten(left), prefix, ids, sb)
         wireChain(flatten(right), prefix, ids, sb)
       case SealedElem.FanOutNode(id, each) =>
+        wireChain(flatten(each), rawId(prefix, id), ids, sb)
+      case SealedElem.FanOutKeyedNode(id, _, each) =>
         wireChain(flatten(each), rawId(prefix, id), ids, sb)
       case SealedElem.BranchNode(id, _, ifTrue, ifFalse) =>
         val ownId = mid(prefix, id, ids)

@@ -309,4 +309,90 @@ class RunReportTests extends Test[Any]:
     }
   }
 
+  "fan-out keyed" - {
+    val keyedSources: Stage[Int, Chunk[String], Nothing, Any] =
+      Stage((n: Int) => Chunk.from(0 until n).map(i => s"item$i"))
+    val childOf: Stage[String, Int, Nothing, Any] = Stage((s: String) => s.length)
+    val stripped                                  = (s: String) => s.stripPrefix("item")
+
+    "children report under parent/<key>/<childId>, in input order" in {
+      val plan = sealOrFail(
+        Pipeline.stage(nodeId"src", keyedSources).fanOutKeyed("each", stripped)(Pipeline.stage(nodeId"child", childOf))
+      )
+      val (events, report) = Emit.run(plan.runReport(3)).eval
+      assert(
+        render(events) == Chunk(
+          "run:started",
+          "start:src",
+          "finish:src:Succeeded",
+          "start:each",
+          "start:each/0/child",
+          "finish:each/0/child:Succeeded",
+          "start:each/1/child",
+          "finish:each/1/child:Succeeded",
+          "start:each/2/child",
+          "finish:each/2/child:Succeeded",
+          "finish:each:Succeeded",
+          "run:finished:true"
+        )
+      )
+      assert(report.nodes.map(_.id.render) == Chunk("src", "each", "each/0/child", "each/1/child", "each/2/child"))
+      assert(report.result == Present(Chunk(5, 5, 5)))
+    }
+
+    "a duplicate rendered key fails the fan-out node itself, with children unstarted" in {
+      val plan = sealOrFail(
+        Pipeline.stage(nodeId"src", keyedSources).fanOutKeyed("each", (_: String) => "same")(
+          Pipeline.stage(nodeId"child", childOf)
+        )
+      )
+      val (events, report) = Emit.run(plan.runReport(2)).eval
+      assert(
+        render(events) == Chunk(
+          "run:started",
+          "start:src",
+          "finish:src:Succeeded",
+          "start:each",
+          "finish:each:Failed",
+          "run:finished:false"
+        )
+      )
+      report.outcome(nodeId"each") match
+        case Present(NodeOutcome.Failed(Result.Failure(FanOutKeyError(parent, key, reason)))) =>
+          assert(parent.render == "each")
+          assert(key == "same")
+          assert(reason == "duplicate key")
+        case other => assert(false, s"expected a FanOutKeyError failure, got $other")
+      assert(report.nodes.map(_.id.render) == Chunk("src", "each"))
+      assert(report.result.isEmpty)
+    }
+
+    "a key containing '/' fails the fan-out node itself, with children unstarted" in {
+      val plan = sealOrFail(
+        Pipeline.stage(nodeId"src", keyedSources).fanOutKeyed("each", (s: String) => s"bad/$s")(
+          Pipeline.stage(nodeId"child", childOf)
+        )
+      )
+      val (events, report) = Emit.run(plan.runReport(1)).eval
+      assert(
+        render(events) == Chunk(
+          "run:started",
+          "start:src",
+          "finish:src:Succeeded",
+          "start:each",
+          "finish:each:Failed",
+          "run:finished:false"
+        )
+      )
+      report.outcome(nodeId"each") match
+        case Present(NodeOutcome.Failed(Result.Failure(FanOutKeyError(parent, key, reason)))) =>
+          assert(parent.render == "each")
+          assert(key == "bad/item0")
+          assert(reason == "contains '/'")
+        case other => assert(false, s"expected a FanOutKeyError failure, got $other")
+      assert(report.nodes.map(_.id.render) == Chunk("src", "each"))
+      assert(report.result.isEmpty)
+    }
+  }
+
 final case class RunBoom(msg: String) derives CanEqual

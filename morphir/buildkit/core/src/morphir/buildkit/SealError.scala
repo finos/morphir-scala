@@ -28,3 +28,12 @@ object SealErrors:
    * re-proving what the caller already established.
    */
   private[buildkit] def unsafe(errors: Chunk[SealError]): SealErrors = new SealErrors(errors)
+
+/**
+ * A `fanOutKeyed` node's own run-time failure: `key` rendered a value that is not a safe [[NodeId]] segment (the same
+ * rules [[NodeId.segment]] enforces for an explicit id — blank, `.`, `..`, or containing `/`, `\`, or a control
+ * character), or two elements rendered the same key. Unlike [[SealError]], this is not a seal-time failure: a key is a
+ * function of runtime values, so `seal` cannot see it — it surfaces as the fan-out node itself failing, typed through
+ * the pipeline's own declared error channel like any other node failure.
+ */
+final case class FanOutKeyError(parent: NodeId, key: String, reason: String) derives CanEqual

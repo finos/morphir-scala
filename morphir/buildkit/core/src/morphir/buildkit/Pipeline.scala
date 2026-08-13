@@ -194,6 +194,38 @@ final class PipelineDef[-I, +O, E, S] private[buildkit] (
     )
 
   /**
+   * [[fanOut]] with keyed, rather than positional, child identity: `key` renders each element's stable identifier.
+   * Element order (input position) still drives execution and report order — `key` is identity, not order, matching
+   * Mill cross values and the survey's position-vs-key verdict. Each rendered key is validated at run time (never at
+   * `seal`: a key is a function of runtime values, so `seal` never sees one) against the same rules an explicit node id
+   * already follows ([[NodeId.segment]]), and checked for per-parent uniqueness. A bad or duplicate key fails the
+   * fan-out node itself — `Failed(Result.Failure(FanOutKeyError(...)))`, with every child unstarted — which is why this
+   * overload's declared error unions the child's `E2` with [[FanOutKeyError]], the same technique [[par]]/[[branch]]
+   * already use to union two peer error channels. Child event/report ids become `parent/<key>/<childId>`, in place of
+   * [[fanOut]]'s `parent/<index>/<childId>`.
+   */
+  def fanOutKeyed[A, B, E2, S2](key: A => String)(each: Pipeline[A, B, E2, S2])(using
+      ev: O <:< Chunk[A]
+  ): PipelineDef[I, Chunk[B], E | E2 | FanOutKeyError, S & S2] =
+    new PipelineDef(
+      NodeChain.Append(
+        ev.substituteCo[[X] =>> NodeChain[I, X, E, S]](chain),
+        DefElem.FanOutKeyedElem(Absent, key, each.definitionChain)
+      )
+    )
+
+  /** [[fanOutKeyed]] with an explicit node id, validated at seal. */
+  def fanOutKeyed[A, B, E2, S2](id: String, key: A => String)(each: Pipeline[A, B, E2, S2])(using
+      ev: O <:< Chunk[A]
+  ): PipelineDef[I, Chunk[B], E | E2 | FanOutKeyError, S & S2] =
+    new PipelineDef(
+      NodeChain.Append(
+        ev.substituteCo[[X] =>> NodeChain[I, X, E, S]](chain),
+        DefElem.FanOutKeyedElem(Present(id), key, each.definitionChain)
+      )
+    )
+
+  /**
    * Pick one of two peer pipelines by `pred`, both fed this pipeline's own output and producing the same output type.
    * The untaken arm never runs: at execution, every static node reachable through it emits
    * `NodeFinished(id, NodeStatus.Skipped)` instead, with no matching `NodeStarted`. The branch node's own id derives
@@ -446,7 +478,9 @@ object SealedPipeline:
       case SealedElem.StageNode(id, stage)      => DefElem.StageElem(Present(id.render), stage)
       case SealedElem.ParNode(left, right, zip) =>
         widenDefElem(DefElem.ParElem(toNodeChain(left), toNodeChain(right), zip))
-      case SealedElem.FanOutNode(id, each)                  => DefElem.FanOutElem(Present(id.render), toNodeChain(each))
+      case SealedElem.FanOutNode(id, each)           => DefElem.FanOutElem(Present(id.render), toNodeChain(each))
+      case SealedElem.FanOutKeyedNode(id, key, each) =>
+        widenDefElem(DefElem.FanOutKeyedElem(Present(id.render), key, toNodeChain(each)))
       case SealedElem.BranchNode(id, pred, ifTrue, ifFalse) =>
         widenDefElem(DefElem.BranchElem(Present(id.render), pred, toNodeChain(ifTrue), toNodeChain(ifFalse)))
 
@@ -509,6 +543,36 @@ object SealedPipeline:
     }
 
   /**
+   * Validate every already-rendered key — the same rules an explicit node id already follows
+   * ([[morphir.buildkit.NodeId#segment]]) — then check per-parent uniqueness in input order. Fails on the first
+   * [[morphir.buildkit.FanOutKeyError]] encountered: a bad segment before a duplicate, both checked element-by-element
+   * in input order, whichever comes first. Deliberately generic only over the rendered `String` keys, not the element
+   * type `A` they came from: [[executeElem]]'s own `FanOutKeyedNode` case matches an existential element type it cannot
+   * name (a fresh call to a function still parameterized over it fights inference the same way an un-widened
+   * `SealedElem`/`NodeChain` value does elsewhere in this file — see the `widen*` helpers' own doc), where rendering
+   * first via a plain `.map(key)` member call and validating the resulting `Chunk[String]` sidesteps that entirely.
+   * Both [[executeElem]] and [[reportFanOutKeyed]] render then validate this same way, so the two executors can never
+   * validate differently.
+   */
+  private def validateKeys(parent: NodeId, keys: Chunk[String]): Result[FanOutKeyError, Unit] =
+    val start: Result[FanOutKeyError, Set[String]] = Result.succeed(Set.empty[String])
+    keys.foldLeft(start) { (acc, rendered) =>
+      acc match
+        case Result.Success(seen) =>
+          NodeId.segment(rendered) match
+            case Result.Success(_) =>
+              if seen.contains(rendered) then Result.fail(FanOutKeyError(parent, rendered, "duplicate key"))
+              else Result.succeed(seen + rendered)
+            case Result.Failure(SealError.InvalidSegment(_, reason)) =>
+              Result.fail(FanOutKeyError(parent, rendered, reason))
+            case Result.Failure(SealError.DuplicateNodeId(dupId)) =>
+              Result.fail(FanOutKeyError(parent, rendered, s"duplicate node id: ${dupId.render}"))
+            case Result.Panic(ex) => Result.panic(ex)
+        case Result.Failure(err) => Result.fail(err)
+        case Result.Panic(ex)    => Result.panic(ex)
+    }.map(_ => ())
+
+  /**
    * Run `elem` on `input`, qualifying every event id it emits with `prefix` — the segments of every enclosing fan-out
    * node, outermost first. A plain top-level run passes `Chunk.empty`; a `FanOutNode` extends `prefix` with its own
    * segment and the running element's index before running `each` on that element, so a doubly-nested fan-out's event
@@ -551,6 +615,25 @@ object SealedPipeline:
             Kyo.foreach(input.zipWithIndex) { case (element, index) =>
               executeChain(each, childPrefix :+ index.toString, element)
             }
+          }
+          _ <- Var.updateDiscard[OpenNodes](s => OpenNodes(s.ids.filterNot(_ == eventId)))
+          _ <- Emit.value(PipelineEvent.NodeFinished(eventId, NodeStatus.Succeeded))
+        yield result
+      case SealedElem.FanOutKeyedNode(id, key, each) =>
+        val eventId     = NodeId.unsafe(prefix ++ id.segments)
+        val childPrefix = prefix ++ id.segments
+        for
+          _      <- Emit.value(PipelineEvent.NodeStarted(eventId, Absent))
+          _      <- Var.updateDiscard[OpenNodes](s => OpenNodes(s.ids :+ eventId))
+          result <- bracketed(eventId) {
+            val renderedKeys = input.map(key)
+            validateKeys(eventId, renderedKeys) match
+              case Result.Success(_) =>
+                Kyo.foreach(input.zip(renderedKeys)) { case (element, renderedKey) =>
+                  executeChain(each, childPrefix :+ renderedKey, element)
+                }
+              case Result.Failure(err) => Abort.fail(err)
+              case Result.Panic(ex)    => throw ex
           }
           _ <- Var.updateDiscard[OpenNodes](s => OpenNodes(s.ids.filterNot(_ == eventId)))
           _ <- Emit.value(PipelineEvent.NodeFinished(eventId, NodeStatus.Succeeded))
@@ -672,6 +755,19 @@ object SealedPipeline:
   private def attempt[A, E, S](body: => A < (Abort[E] & S))(using ConcreteTag[E], Frame): Result[E, A] < S =
     Effect.catching(Abort.run[E](body))((ex: Throwable) => Result.Panic(ex): Result[E, A])
 
+  /**
+   * Assert that a [[morphir.buildkit.FanOutKeyError]] conforms to a `reportFanOutKeyed` call's own top-level `E` — true
+   * by construction whenever this is reached, for the same reason the `widen*` family in [[morphir.buildkit.internal]]
+   * is sound: [[morphir.buildkit.internal.DefElem.FanOutKeyedElem]] unions `FanOutKeyError` into its own declared error
+   * the moment [[morphir.buildkit.PipelineDef#fanOutKeyed]] appends it, and that union folds into the pipeline's own
+   * flattened `E` the same way every other node's declared error already does. The GADT match that proves it — inside
+   * [[reportElem]], narrowing `SealedElem.FanOutKeyedNode`'s own `E2 | FanOutKeyError` against the outer `E` — does not
+   * survive into [[reportFanOutKeyed]]'s own separately generic signature (its `E` is a fresh method type parameter,
+   * not the narrowed one), so the proof is re-asserted here instead, the same "already established at construction, not
+   * mechanically visible this many calls removed" shape `widenSealedChain`/`widenSealedElem` already document.
+   */
+  private def widenFanOutKeyError[E](err: FanOutKeyError): E = err.asInstanceOf[E]
+
   /** Emit a node's closing event and pair its report with the gate it hands downstream. */
   private def closing[E, B](
       id: NodeId,
@@ -724,9 +820,11 @@ object SealedPipeline:
       gate: Gate[A]
   )(using ConcreteTag[E], Frame): (Chunk[NodeReport[E]], Gate[B]) < (S & Emit[PipelineEvent]) =
     elem match
-      case SealedElem.StageNode(id, stage)                  => reportStage(id, stage, prefix, base, gate)
-      case SealedElem.ParNode(left, right, zip)             => reportPar(left, right, zip, prefix, base, mode, gate)
-      case SealedElem.FanOutNode(id, each)                  => reportFanOut(id, each, prefix, base, mode, gate)
+      case SealedElem.StageNode(id, stage)           => reportStage(id, stage, prefix, base, gate)
+      case SealedElem.ParNode(left, right, zip)      => reportPar(left, right, zip, prefix, base, mode, gate)
+      case SealedElem.FanOutNode(id, each)           => reportFanOut(id, each, prefix, base, mode, gate)
+      case SealedElem.FanOutKeyedNode(id, key, each) =>
+        reportFanOutKeyed(id, key, each, prefix, base, mode, gate)
       case SealedElem.BranchNode(id, pred, ifTrue, ifFalse) =>
         reportBranch(id, pred, ifTrue, ifFalse, prefix, base, mode, gate)
 
@@ -864,6 +962,97 @@ object SealedPipeline:
       case Gate.Cancelled =>
         closing(eventId, ordinal, NodeOutcome.Cancelled, Gate.Cancelled)
   end reportFanOut
+
+  /**
+   * `reportFanOut` with keyed child identity: every rendered key is validated up front, via [[validateKeys]] — the same
+   * helper [[executeElem]]'s own `FanOutKeyedNode` case uses, so the two executors can never validate differently. A
+   * bad or duplicate key fails the fan-out node itself, exactly like a `StageNode`'s own body failing: it reports
+   * `Failed(Result.Failure(FanOutKeyError(...)))` and no child ever starts — no child reports, no child events. Only
+   * once every key validates does the per-element loop run, under `parent/<key>/<childId>` in place of
+   * `parent/<index>/<childId>`; element order (input position) still drives the loop and the report order, exactly as
+   * in [[reportFanOut]] — `key` is identity, not order.
+   */
+  private def reportFanOutKeyed[A, B, E, S](
+      id: NodeId,
+      key: A => String,
+      each: SealedChain[A, B, ?, ?],
+      prefix: Chunk[String],
+      ordinal: Int,
+      mode: RunMode,
+      gate: Gate[Chunk[A]]
+  )(using ConcreteTag[E], Frame): (Chunk[NodeReport[E]], Gate[Chunk[B]]) < (S & Emit[PipelineEvent]) =
+    val eventId     = NodeId.unsafe(prefix ++ id.segments)
+    val childPrefix = prefix ++ id.segments
+    val childChain  = widenSealedChain[A, B, E, S](each)
+    gate match
+      case Gate.Live(elements, _) =>
+        Emit.value(PipelineEvent.NodeStarted(eventId, Absent)).andThen {
+          val renderedKeys = elements.map(key)
+          validateKeys(eventId, renderedKeys) match
+            case Result.Failure(err) =>
+              closing(
+                eventId,
+                ordinal,
+                NodeOutcome.Failed(Result.Failure(widenFanOutKeyError[E](err))),
+                Gate.Blocked(Chunk(eventId), Chunk(eventId))
+              )
+            case Result.Panic(ex) =>
+              closing(
+                eventId,
+                ordinal,
+                NodeOutcome.Failed(Result.Panic(ex)),
+                Gate.Blocked(Chunk(eventId), Chunk(eventId))
+              )
+            case Result.Success(_) =>
+              Kyo.foldLeft(elements.zip(renderedKeys))(FanOutAcc[E, B](
+                Chunk.empty,
+                Chunk.empty,
+                Chunk.empty,
+                Chunk.empty
+              )) {
+                (acc, pair) =>
+                  val (element, renderedKey) = pair
+                  val childGate: Gate[A]     =
+                    if acc.rootCauses.nonEmpty && mode == RunMode.FailFast then Gate.Cancelled
+                    else Gate.Live(element, Chunk(eventId))
+                  // Same ordinal-pinning rationale as `reportFanOut`: one ordinal for the whole subtree, relying on
+                  // the collating sort's stability to keep each element's nodes contiguous and in input order.
+                  reportChain(childChain, childPrefix :+ renderedKey, 0, mode, childGate).map {
+                    (childReports, childOut) =>
+                      val merged = acc.copy(reports = acc.reports ++ childReports.map(_.copy(ordinal = ordinal)))
+                      childOut match
+                        case Gate.Live(produced, _)  => merged.copy(values = merged.values :+ produced)
+                        case Gate.Blocked(by, roots) =>
+                          merged.copy(
+                            blockedBy = (merged.blockedBy ++ by).distinct,
+                            rootCauses = (merged.rootCauses ++ roots).distinct
+                          )
+                        case Gate.Cancelled => merged
+                  }
+              }.map { acc =>
+                val outcome: NodeOutcome[E] =
+                  if acc.rootCauses.isEmpty then NodeOutcome.Succeeded(Provenance.Executed)
+                  else NodeOutcome.Blocked(acc.blockedBy, acc.rootCauses)
+                val out: Gate[Chunk[B]] =
+                  if acc.rootCauses.isEmpty then Gate.Live(acc.values, Chunk(eventId))
+                  else Gate.Blocked(Chunk(eventId), acc.rootCauses)
+                Emit.value(PipelineEvent.NodeFinished(eventId, outcome.status)).andThen(
+                  (Chunk(NodeReport(eventId, ordinal, outcome)) ++ acc.reports, out)
+                )
+              }
+        }
+      // An unrun fan-out has no elements to iterate — and so no keys to validate — so only its own node is reported,
+      // mirroring `reportFanOut`'s own unrun case.
+      case Gate.Blocked(blockedBy, rootCauses) =>
+        closing(
+          eventId,
+          ordinal,
+          NodeOutcome.Blocked(blockedBy, rootCauses),
+          Gate.Blocked(Chunk(eventId), rootCauses)
+        )
+      case Gate.Cancelled =>
+        closing(eventId, ordinal, NodeOutcome.Cancelled, Gate.Cancelled)
+  end reportFanOutKeyed
 
   /**
    * The branch node reports its own decision; the arm it picks reports for itself, and the arm it does not pick reports
