@@ -577,7 +577,7 @@ class PipelineTests extends Test[Any]:
     "a hidden Abort whose error toString throws still closes its own NodeStarted/NodeFinished and balances RunFinished(false)" in {
       final class ExplosiveToString:
         override def toString: String = throw new RuntimeException("toString boom")
-      val payload = new ExplosiveToString
+      val payload                                                    = new ExplosiveToString
       val hidden: Stage[Int, Int, Nothing, Abort[ExplosiveToString]] =
         Stage[Int, Int, Nothing, Abort[ExplosiveToString]]((_: Int) => Abort.fail(payload)).named("hidden")
       val plan              = sealOrFail(Pipeline.stage(hidden))

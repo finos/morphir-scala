@@ -111,7 +111,7 @@ class RunReportTests extends Test[Any]:
     "a hidden Abort whose error toString throws still folds into Failed(Panic), not a torn run" in {
       final class ExplosiveToString:
         override def toString: String = throw new RuntimeException("toString boom")
-      val payload = new ExplosiveToString
+      val payload                                                       = new ExplosiveToString
       val explosive: Stage[Int, Int, Nothing, Abort[ExplosiveToString]] =
         Stage[Int, Int, Nothing, Abort[ExplosiveToString]]((_: Int) => Abort.fail(payload)).named("hidden")
       val plan =
