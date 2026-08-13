@@ -6,6 +6,9 @@
 * **Update**: Moved the [Scala 3 and Kyo implementation notes](/scala-3-and-kyo-implementation-notes.md) baseline
   from Kyo 1.0.0-RC5 to 1.0.0-RC6 after re-verifying every Kyo claim against the RC6 tag; no claim broke. Repinned
   its morphir-scala source URLs to the current main commit and added a `verified` trust entry.
+* **Update**: Applied the bundle style cards to both Kyo documents through a writer and reviewer pass: banned
+  patterns removed, lookup-flow and handler-nesting Mermaid diagrams added, the QueryLogic implicit-bill and
+  Stage-composition descriptions corrected, and per-file citations added for the `LLM` and `Var` claims.
 
 ## 2026-07-29
 

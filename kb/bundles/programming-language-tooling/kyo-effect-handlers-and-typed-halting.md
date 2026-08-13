@@ -32,6 +32,12 @@ sources:
   - id: kyo-isolate
     resource: https://github.com/getkyo/kyo/blob/2e58c0550b209317b85a30fc5787c24b7e4dd63c/kyo-kernel/shared/src/main/scala/kyo/kernel/Isolate.scala
     title: Isolate at 1.0.0-RC6
+  - id: kyo-var
+    resource: https://github.com/getkyo/kyo/blob/2e58c0550b209317b85a30fc5787c24b7e4dd63c/kyo-prelude/shared/src/main/scala/kyo/Var.scala
+    title: Var at 1.0.0-RC6
+  - id: kyo-llm
+    resource: https://github.com/getkyo/kyo/blob/2e58c0550b209317b85a30fc5787c24b7e4dd63c/kyo-ai/shared/src/main/scala/kyo/LLM.scala
+    title: LLM effect at 1.0.0-RC6
   - id: kyo-readme
     resource: https://github.com/getkyo/kyo/blob/2e58c0550b209317b85a30fc5787c24b7e4dd63c/README.md
     title: Kyo README effect-ordering example
@@ -80,8 +86,8 @@ own type parameter):
 
 ```scala
 sealed trait Abort[-E] extends ArrowEffect[Const[Error[E]], Const[Unit]]
-sealed trait Emit[-V]  extends ArrowEffect[Const[V], Const[Unit]]
-sealed trait Choice   extends ArrowEffect[Seq, Id]
+sealed trait Emit[-V] extends ArrowEffect[Const[V], Const[Unit]]
+sealed trait Choice extends ArrowEffect[Seq, Id]
 ```
 
 Operations suspend through `ArrowEffect.suspend` (request only) or `suspendWith` (request fused with a transform of
@@ -89,9 +95,9 @@ the answer). Two encodings exist for a multi-operation effect:
 
 - An indexed GADT `Op[A]` with `Output = Id`. Each case fixes its own answer type, the compiler checks the handler
   match for exhaustiveness, and the continuation needs no cast beyond the standard `asInstanceOf[C]` idiom. Kyo's
-  own `LLM` effect and morphir-scala's `ElmParse` both use this.[^morphir-elm-parse]
-- An untagged union `Op[V]` disambiguated by runtime match, as `Var` does. The match is order-dependent and
-  unchecked; the GADT is the safer default for new effects.
+  own `LLM` effect[^kyo-llm] and morphir-scala's `ElmParse`[^morphir-elm-parse] both use this.
+- An untagged union `Op[V]` disambiguated by runtime match, as `Var` does.[^kyo-var] The match is order-dependent
+  and unchecked; the GADT is the safer default for new effects.
 
 An operation that must never resume declares its answer type as `Nothing`. `Abort.error` is the template: the
 suspend site returns `Nothing < Abort[E]` with an unreachable transform. This is legitimate precisely because the
@@ -150,10 +156,24 @@ is invisible to user code, and user code cannot corrupt it. Reserve `Var` for st
 ## Pitfalls
 
 - Handler nesting order is a semantic decision. `Var.runTuple(0)` outside `Abort.run` preserves state across an
-  abort; the reverse loses it. The same holds for `Emit` versus `Abort`: events emitted before a failure survive
-  only if the emit handler is outside the abort handler. An interpreter that must report partial progress across a
-  halt therefore sits **outside** `Abort.run`. When no nesting expresses the ordering needed, the 2–4-arity
-  `handle` interleaves the effects in one loop.[^kyo-readme]
+  abort; the reverse loses it.[^kyo-readme] The same mechanism extends to `Emit` versus `Abort`: events emitted
+  before a failure survive only if the emit handler is outside the abort handler, which is the nesting
+  morphir-scala's `QueryLogic` runner uses.[^morphir-query-logic] An interpreter that must report partial progress
+  across a halt therefore sits **outside** `Abort.run`. When no nesting expresses the ordering needed, the
+  2–4-arity `handle` interleaves the effects in one loop.
+
+  ```mermaid
+  flowchart LR
+    subgraph keeps["Emit.run outside: events survive a halt"]
+      EK["Emit.run"] -->|handles| AK["Abort.run"] -->|handles| CK["computation"]
+    end
+    subgraph loses["Abort.run outside: events die with the halt"]
+      AL["Abort.run"] -->|handles| EL["Emit.run"] -->|handles| CL["computation"]
+    end
+  ```
+
+  The outer handler survives the inner one's short-circuit: put the handler whose output must outlive a halt
+  outside the halting handler.
 - Short-circuiting effects must not provide `Isolate` instances. Kyo's own documentation says automatic isolation
   derivation over an effect that can halt produces order-dependent results. Provide isolation for the `Var`/`Emit`
   parts of a row only.[^kyo-isolate]
@@ -182,7 +202,8 @@ morphir-scala holds both shapes today. `ElmParse` is a single domain `ArrowEffec
 whole implicit bill is `(using Frame)`. Its test suite proves the design by writing a second interpreter that
 differs only in halt policy.[^morphir-elm-parse] `QueryLogic` is the alternative: a stacked
 `Var[State] & Emit[Log] & Abort[Err]` row whose runner nests three stock handlers and whose implicit bill is seven
-`using` parameters including `Tag`s for each member and `ConcreteTag[Err]`.[^morphir-query-logic] Both work. The
+`using` parameters: `Tag`s for the `Var` and `Emit` members and their element types, plus `ConcreteTag[Err]` and
+`Frame`.[^morphir-query-logic] Both work. The
 single-effect shape concentrates policy in one handler and keeps stage signatures to one capability name, at the
 cost of writing the handler yourself. Which trade a pipeline should take is a design question for the design
 notes, not this reference.
@@ -193,13 +214,16 @@ Handler mechanics do not decide graph semantics: node identity, readiness, join,
 deterministic ordering are contracts the executor must define before any of the machinery above interprets them
 ([Transformation pipelines](/transformation-pipelines.md),
 [Guidance for a Morphir toolchain](/morphir-toolchain-guidance.md)). The open design questions for the buildkit
-executor (outcome type, halt mechanism, skip propagation, stop-or-continue policy) live in the morphir-scala design
-note `kb/bundles/morphir/morphir-scala/design/pipeline-workspace-boundaries.md`, not here.
+executor (outcome type, halt mechanism, skip propagation, stop-or-continue policy) live in the morphir-scala
+[pipeline and workspace boundaries design note](../morphir/morphir-scala/design/pipeline-workspace-boundaries.md),
+not here.
 
 [^kyo-rc6]: Kyo 1.0.0-RC6 source tree.
 [^kyo-arrow-effect]: `kyo-kernel/shared/src/main/scala/kyo/kernel/ArrowEffect.scala` at 1.0.0-RC6.
 [^kyo-abort]: `kyo-prelude/shared/src/main/scala/kyo/Abort.scala` at 1.0.0-RC6.
 [^kyo-emit]: `kyo-prelude/shared/src/main/scala/kyo/Emit.scala` at 1.0.0-RC6.
+[^kyo-var]: `kyo-prelude/shared/src/main/scala/kyo/Var.scala` at 1.0.0-RC6.
+[^kyo-llm]: `kyo-ai/shared/src/main/scala/kyo/LLM.scala` at 1.0.0-RC6.
 [^kyo-stream]: `kyo-prelude/shared/src/main/scala/kyo/Stream.scala` at 1.0.0-RC6.
 [^kyo-choice]: `kyo-prelude/shared/src/main/scala/kyo/Choice.scala` at 1.0.0-RC6.
 [^kyo-isolate]: `kyo-kernel/shared/src/main/scala/kyo/kernel/Isolate.scala` scaladoc at 1.0.0-RC6.

@@ -77,7 +77,7 @@ def nodeCount(expr: Expr): Int =
     case Expr.Add(left, right) => 1 + nodeCount(left) + nodeCount(right)
 ```
 
-**Value:** adding a new enum case makes exhaustive matches review points. This is useful for typed AST, IR, and
+Value: a new enum case turns every exhaustive match into a review point. This is useful for typed AST, IR, and
 visitor dispatch code where silently ignoring a new node kind would be incorrect. Exhaustivity does not apply to an
 open plugin registry or a string-valued interchange node.
 
@@ -99,9 +99,9 @@ given TreeView[Expr] with
       case _                     => IndexedSeq.empty
 ```
 
-**Value:** CST, AST, and IR types retain their own inheritance and invariants while generic queries request only the
-capability they need. Separate givens can provide structural and position views independently. This is the mechanism
-used by morphir-scala's `QueryableTree`.
+Value: CST, AST, and IR types retain their own inheritance and invariants while generic queries request only the
+capability they need. Separate givens can provide structural and position views independently. Morphir-scala's
+`QueryableTree` uses this mechanism.
 
 ### Extension methods
 
@@ -112,7 +112,7 @@ extension [T](root: T)(using view: TreeView[T])
   def treeSize: Int = size(root)
 ```
 
-**Value:** callers get discoverable syntax without modifying third-party tree classes or creating wrapper nodes. The
+Value: callers get discoverable syntax without modifying third-party tree classes or creating wrapper nodes. The
 implementation remains a normal function selected through a given.
 
 ### Opaque types for identities and coordinate units
@@ -123,7 +123,7 @@ opaque type ByteOffset = Int
 opaque type Utf16Offset = Int
 ```
 
-**Value:** values with identical runtime representations cannot be mixed accidentally outside their defining scope.
+Value: the compiler stops code outside the defining scope from mixing values that share a runtime representation.
 That matters for node identity and source positions, where confusing byte, code-point, and UTF-16 offsets can produce
 valid-looking but incorrect locations.
 
@@ -131,13 +131,15 @@ valid-looking but incorrect locations.
 
 Morphir-scala declares `Stage[-I, +O, S]`: input is contravariant and output covariant.[^morphir-stage]
 
-**Value:** a stage able to accept a broader input can be used where a narrower input is expected, while a stage
-producing a narrower output can satisfy a broader output requirement. Effect type `S` remains explicit rather than
-being hidden in inheritance.
+Value: a stage that accepts a broader input can serve where a caller expects a narrower input. A stage that
+produces a narrower output can satisfy a broader output requirement. Effect type `S` remains explicit rather than
+hidden in inheritance.
 
 ### Intersection types for capability accumulation
 
-Scala 3 intersection types provide the syntax used by Kyo effect rows and the current stage composition:
+Scala 3 intersection types provide the syntax used by Kyo effect rows and by stage composition. The illustrative
+shape below renames for readability; the pinned `Stage` spells the operator `>>>` with signature
+`final def >>>[O2, S2](next: Stage[O, O2, S2]): Stage[I, O2, S & S2]`.[^morphir-stage]
 
 ```scala
 trait Stage[-Input, +Output, Effect]:
@@ -146,7 +148,7 @@ trait Stage[-Input, +Output, Effect]:
   ): Stage[Input, Next, Effect & NextEffect]
 ```
 
-**Value:** composition retains both stages' required capabilities in the result type. The intersection records
+Value: composition retains both stages' required capabilities in the result type. The intersection records
 membership, not handler order or execution order.
 
 ## Attribution implementation value
@@ -159,10 +161,14 @@ node identity, graph semantics, merge policy, or Morphir's intrinsic types.
 ### Scala 3: small types at the caller boundary
 
 The following illustrative block is deliberately smaller than a storage implementation. It shows where Scala 3
-adds concrete value: opaque identifier domains prevent accidental mixing; an enum closes preservation outcomes;
-contravariant key scopes allow a broader key to serve a narrower node; separate key classes encode cardinality;
-givens associate codecs and RDF vocabulary terms without adding fields to nodes; and extensions make lookup
-discoverable.[^scala-reference]
+adds concrete value:[^scala-reference]
+
+- Opaque identifier domains prevent accidental mixing.
+- An enum closes preservation outcomes.
+- Contravariant key scopes allow a broader key to serve a narrower node.
+- Separate key classes encode cardinality.
+- Givens associate codecs and RDF vocabulary terms without adding fields to nodes.
+- Extensions make lookup discoverable.
 
 ```scala
 object AttributionImplementation:
@@ -366,15 +372,28 @@ explicit but do not make the illustrative IRIs a Morphir standard.
 
 An `AttributionView` is scoped to its `AttributionContext`: one snapshot, layer, and producer. Its implementation
 includes all three identifiers in the logical lookup address and returns `SnapshotMismatch` for a reference from
-another snapshot. Before accessing storage, `get` and `values` use `SnapshotMembership.kindOf`: a missing
-snapshot-local reference returns `UnknownNode`, while a runtime kind rejected by the registered applicability
-witness returns `InapplicableKey`. These checks protect the dynamic import and stale-reference boundary even though
+another snapshot. Before accessing storage, `get` and `values` use `SnapshotMembership.kindOf`. The lookup returns `UnknownNode`
+for a missing snapshot-local reference, and returns `InapplicableKey` when the registered applicability witness
+rejects the runtime kind. These checks protect the dynamic import and stale-reference boundary even though
 ordinary Scala call sites remain cast-free. A resolved multi-layer view is a separate operation with a named
 deterministic merge policy, not an implicit behavior of these lookup extensions.
 
-Match types are useful only when they remove work at a public call site—for example, deriving a result type from a
+```mermaid
+flowchart TD
+    L["get / values on AttributionView"] -->|"reference from another snapshot"| SM["LookupError.SnapshotMismatch"]
+    L -->|"same snapshot"| K["SnapshotMembership.kindOf"]
+    K -->|"missing snapshot-local reference"| UN["LookupError.UnknownNode"]
+    K -->|"runtime kind found"| W["applicability witness check in get / values"]
+    W -->|"witness rejects kind"| IK["LookupError.InapplicableKey"]
+    W -->|"witness accepts kind"| ST["storage access"]
+```
+
+Every lookup validates the snapshot and the runtime node kind before it touches storage, and each check has a
+named failure.
+
+Match types are useful only when they remove work at a public call site, for example deriving a result type from a
 single cardinality descriptor. With separate `OptionalKey` and `ManyKey`, overloads already yield `Option[A]` and
-`Vector[A]` directly, so an additional match-type algebra would be clever machinery without caller value. Prefer
+`Vector[A]` directly. An additional match-type algebra would be clever machinery without caller value. Prefer
 ordinary types until a measured API burden justifies more.
 
 ## Kyo features at `1.0.0-RC6`
@@ -398,17 +417,17 @@ def inspect[S](tree: Expr)(
   )
 ```
 
-**Value:** the tree stays pure while a caller chooses whether inspection emits facts, collects state, aborts, logs,
+Value: the tree stays pure while a caller chooses whether inspection emits facts, collects state, aborts, logs,
 or performs another handled effect. Morphir-scala's `KyoQueryVisitor` uses this shape for pre-order visits and
 folds.[^morphir-kyo-visitor]
 
 ### Handlers separate policy from stage logic
 
-The effect row says which operations may occur; handlers decide how those operations are interpreted. At this
+The effect row says which operations may occur; handlers decide how to interpret those operations. At this
 baseline, Kyo's effects provide their own `run` operations, and handler order can affect the resulting value shape
 even though the intersection type itself is unordered.[^kyo-pending]
 
-**Value:** a parser can report a diagnostic as an operation while a CLI, test driver, or editor interpreter decides
+Value: a parser can report a diagnostic as an operation while a CLI, test driver, or editor interpreter decides
 whether to collect it, stop, or continue with a placeholder. This separation is useful only when consumers genuinely
 need different policies; a pure function returning a value is simpler when they do not.
 
@@ -417,7 +436,7 @@ need different policies; a pure function returning a value is simpler when they 
 Morphir-scala's `ElmParse` is an `ArrowEffect` with three domain operations: obtain parse options, report a
 diagnostic, and halt. Its shipped handler collects reports and controls whether a tree survives.[^morphir-elm-parse]
 
-**Value:** stage signatures name one domain capability instead of threading options, diagnostic accumulators, and
+Value: stage signatures name one domain capability instead of threading options, diagnostic accumulators, and
 early-return plumbing independently. The protocol remains Elm-specific; it does not establish that every buildkit
 operation needs a new custom effect.
 
@@ -426,7 +445,7 @@ operation needs a new custom effect.
 `KyoQueryVisitor` accepts a callback returning `Unit < S` or `A < S` and recursively threads the same row while the
 query AST remains an ordinary immutable model.[^morphir-kyo-visitor]
 
-**Value:** observation policy is attached to the traversal operation rather than stored inside AST nodes. Pure
+Value: the traversal operation carries the observation policy; AST nodes do not store it. Pure
 visitors remain available for callers that do not need effects.
 
 ### Attribution fact production stays effect-polymorphic
@@ -470,11 +489,11 @@ object AttributionProduction:
         ).map(Right(_))
 ```
 
-The `AttributionContext` is scoped by an ordinary Scala `using` value at the stage or run boundary. That is enough
+An ordinary Scala `using` value scopes the `AttributionContext` at the stage or run boundary. That is enough
 to keep snapshot, producer, and layer out of every method argument and out of IR nodes; it makes no claim about a
 Kyo environment effect at RC6. A caller can supply callbacks whose handlers collect facts, validate and index them,
-serialize selected facts, or discard them. A future direct `Emit`-style implementation is an interchangeable
-handler choice only after its exact pinned API has been verified.
+serialize selected facts, or discard them. Treat a future direct `Emit`-style implementation as an interchangeable
+handler choice only after verifying its exact pinned API.
 
 This callback shape is a **proposed application** of demonstrated pinned capabilities, not an existing
 morphir-scala attribution implementation. Kyo's pending type and `flatMap`/`map` composition are present at the
@@ -482,16 +501,16 @@ pinned commit,[^kyo-pending] while the attribution fact, context, key registry, 
 design candidates.
 
 Collection must preserve a specified fact order or canonicalize before indexing and serialization. Layer merge,
-single-value conflict, duplicate handling, and invalidation semantics must be deterministic before concurrency is
-introduced. Kyo may execute production and handling after those rules exist; it must not define node identity, graph
-semantics, merge policy, preservation outcomes, or Morphir IR types.
+single-value conflict, duplicate handling, and invalidation semantics must be deterministic before the design
+introduces concurrency. Kyo may execute production and handling after those rules exist; it must not define node
+identity, graph semantics, merge policy, preservation outcomes, or Morphir IR types.
 
 ### Concurrency does not replace graph semantics
 
 Kyo supplies asynchronous and concurrent capabilities at this baseline, but those APIs do not decide buildkit's node
 identity, readiness, join, skip, cancellation, or deterministic ordering contracts.
 
-**Value:** Kyo can implement a parallel executor after those graph semantics are defined. Its availability is not
+Value: Kyo can implement a parallel executor once those graph semantics exist. Its availability is not
 evidence that graph construction should expose scheduler primitives or that the first executor must be parallel.
 
 ## Sparse callout map
