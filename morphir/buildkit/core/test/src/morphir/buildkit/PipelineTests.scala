@@ -294,7 +294,6 @@ class PipelineTests extends Test[Any]:
   "fanOutKeyed" - {
     def keyedSources = Stage.pure((n: Int) => Chunk.from(0 until n).map(i => s"item$i")).named("sources")
     def parse        = Stage.pure((s: String) => s.length).named("parse")
-    def stripped     = (s: String) => s.stripPrefix("item")
 
     // Currency codes, deliberately out of alphabetical/positional order: "eur" is element 0, "gbp" is element 1,
     // "usd" is element 2. A rendered key equal to `index.toString` would make an implementation that silently fell

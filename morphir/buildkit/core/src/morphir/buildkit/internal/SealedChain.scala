@@ -19,9 +19,9 @@ private[buildkit] enum SealedElem[-I, +O, E, S]:
   /**
    * A fan-out node: its own id, structurally paired with its child chain, already fully sealed on that child's own,
    * independent id namespace. At execution ([[morphir.buildkit.SealedPipeline]]) this node's id brackets the whole
-   * per-element loop with its own `Entered`/`Exited` events — the child chain runs once per element of the incoming
-   * `Chunk[A]`, each run's own events qualified with that element's index, and the bracket still fires with zero
-   * elements (`Entered` immediately followed by `Exited`, no child events between).
+   * per-element loop with its own `NodeStarted`/`NodeFinished` events — the child chain runs once per element of the
+   * incoming `Chunk[A]`, each run's own events qualified with that element's index, and the bracket still fires with
+   * zero elements (`NodeStarted` immediately followed by `NodeFinished`, no child events between).
    */
   case FanOutNode[A, B, E2, S2](
       id: NodeId,
@@ -45,9 +45,9 @@ private[buildkit] enum SealedElem[-I, +O, E, S]:
    * A branch node: its own id, a plain predicate on the incoming value, and both arms fully sealed. Unlike
    * `FanOutNode`'s child, both arms share this node's own flattened id namespace (see
    * [[morphir.buildkit.internal.DefElem.BranchElem]]), since only one of them ever executes. At execution the node's
-   * own id brackets the whole decision with `Entered`/`Exited`: the taken arm runs normally, and every static node
-   * reachable through the untaken arm — found via that arm's own [[nodeIds]], so a nested fan-out contributes only its
-   * own id, unexpanded — emits `Skipped`.
+   * own id brackets the whole decision with `NodeStarted`/`NodeFinished`: the taken arm runs normally, and every static
+   * node reachable through the untaken arm — found via that arm's own [[nodeIds]], so a nested fan-out contributes only
+   * its own id, unexpanded — emits `Skipped`.
    */
   case BranchNode[I2, O2, E1, E2, S1, S2](
       id: NodeId,

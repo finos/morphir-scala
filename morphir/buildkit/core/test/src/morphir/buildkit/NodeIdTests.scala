@@ -112,7 +112,7 @@ class NodeIdTests extends Test[Any]:
         case other              => assert(false, s"expected a successful seal, got $other")
     }
 
-    "an explicit id colliding with anything is still a seal error" in {
+    "two explicit ids that collide are still a seal error" in {
       Pipeline.stage("dup", stage("a")(_ + 1)).andThen("dup", stage("b")(_ + 2)).seal match
         case Result.Failure(errors) =>
           assert(

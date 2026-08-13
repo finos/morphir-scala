@@ -112,6 +112,35 @@ class RunReportTests extends Test[Any]:
     }
   }
 
+  "par" - {
+    "both sides succeeding zips the value and reports both nodes Succeeded" in {
+      val plan        = sealOrFail(Pipeline.stage(nodeId"l", inc).par(Pipeline.stage(nodeId"r", double)))
+      val (_, report) = Emit.run(plan.runReport(3)).eval
+      assert(report.result == Present((4, 6)))
+      assert(report.isSuccess)
+      assert(report.outcome(nodeId"l") == Present(NodeOutcome.Succeeded(Provenance.Executed)))
+      assert(report.outcome(nodeId"r") == Present(NodeOutcome.Succeeded(Provenance.Executed)))
+    }
+
+    "one side failing blocks what follows, naming both par sides as the immediate predecessor" in {
+      // Locks the `leftExits ++ rightExits` merge `reportPar` computes for its own outgoing gate: `l` succeeds (its
+      // own exit is itself) and `r` fails (its own exit, on a `Blocked` gate, is also itself), so the node after the
+      // par sees both as its immediate predecessor, not just the one that failed.
+      val tail: Stage[(Int, Int), Int, Nothing, Any] = Stage.pure((t: (Int, Int)) => t._1 + t._2)
+      val plan                                       = sealOrFail(
+        Pipeline.stage(nodeId"l", inc).par(Pipeline.stage(nodeId"r", boom)).andThen(nodeId"tail", tail)
+      )
+      val (_, report) = Emit.run(plan.runReport(1)).eval
+      assert(report.outcome(nodeId"l") == Present(NodeOutcome.Succeeded(Provenance.Executed)))
+      assert(report.outcome(nodeId"r") == Present(NodeOutcome.Failed(Result.Failure(RunBoom("b failed")))))
+      assert(
+        report.outcome(nodeId"tail") ==
+          Present(NodeOutcome.Blocked(Chunk(nodeId"l", nodeId"r"), Chunk(nodeId"r")))
+      )
+      assert(report.result.isEmpty)
+    }
+  }
+
   "collation" - {
     "report order equals ordinal order and is identical across runs" in {
       // The false arm is taken, so execution order (branch, false arm, then the true arm's skips) differs from
@@ -173,7 +202,7 @@ class RunReportTests extends Test[Any]:
             Pipeline.stage(nodeId"small", double)
           )
       )
-      val (_, report) = Emit.run(plan.runReport(1)).eval
+      val (events, report) = Emit.run(plan.runReport(1)).eval
       report.outcome(nodeId"node-1") match
         case Present(NodeOutcome.Failed(Result.Panic(ex))) => assert(ex.getMessage == "bad predicate")
         case other                                         => assert(false, s"expected Failed(Panic), got $other")
@@ -181,6 +210,21 @@ class RunReportTests extends Test[Any]:
       assert(report.outcome(nodeId"big") == blockedOnBranch)
       assert(report.outcome(nodeId"small") == blockedOnBranch)
       assert(report.result.isEmpty)
+      // Locks the started-branch bracket shape: the node's own `NodeStarted` fires before the predicate runs, and
+      // since it started, its own `NodeFinished` closes *after* both arms' — the same "close after every event the
+      // arms produced" contract `reportBranch`'s own doc states for the `started = true` case.
+      assert(
+        render(events) == Chunk(
+          "run:started",
+          "start:a",
+          "finish:a:Succeeded",
+          "start:node-1",
+          "finish:big:Blocked",
+          "finish:small:Blocked",
+          "finish:node-1:Failed",
+          "run:finished:false"
+        )
+      )
     }
   }
 
@@ -322,7 +366,6 @@ class RunReportTests extends Test[Any]:
     val keyedSources: Stage[Int, Chunk[String], Nothing, Any] =
       Stage((n: Int) => Chunk.from(0 until n).map(i => s"item$i"))
     val childOf: Stage[String, Int, Nothing, Any] = Stage((s: String) => s.length)
-    val stripped                                  = (s: String) => s.stripPrefix("item")
 
     // Currency codes, deliberately out of alphabetical/positional order: "eur" is element 0, "gbp" is element 1,
     // "usd" is element 2. A rendered key equal to `index.toString` would make an implementation that silently fell

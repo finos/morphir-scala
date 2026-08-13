@@ -385,7 +385,7 @@ final class SealedPipeline[-I, +O, E, S] private[buildkit] (
    * `Abort[E]` failures either, so `Abort.tapError` does not observe them. See bead morphir-zdy.2 for the fuller
    * history of this row's evolution.
    */
-  def execute(input: I)(using ConcreteTag[E]): O < (Abort[E] & S & Emit[PipelineEvent]) =
+  def execute(input: I)(using ConcreteTag[E], Frame): O < (Abort[E] & S & Emit[PipelineEvent]) =
     Var.run(SealedPipeline.OpenNodes(Chunk.empty)) {
       for
         _   <- Emit.value(PipelineEvent.RunStarted)
@@ -406,7 +406,8 @@ final class SealedPipeline[-I, +O, E, S] private[buildkit] (
    * throw during the body's own eager evaluation is folded in too (see [[SealedPipeline.attempt]]). The three-way
    * `Result` folds to: `Success` → `Succeeded(Provenance.Executed)`, `Failure(e)` → `Failed(Result.Failure(e))`,
    * `Panic(t)` → `Failed(Result.Panic(t))`. A fatal `Throwable` still tears the run — the same gap [[execute]]
-   * documents, unchanged here.
+   * documents, unchanged here. An `Abort` carried inside `S` rather than the declared `E` is likewise not intercepted
+   * here and tears the run, visible in the return row's own `S`.
    *
    * '''Downstream of a failure.''' Every later node in the same chain reports `Blocked(blockedBy, rootCauses)`, where
    * `blockedBy` names its ''immediate'' predecessor(s) and `rootCauses` names the node(s) that actually failed,
@@ -775,6 +776,8 @@ object SealedPipeline:
    * not the narrowed one), so the proof is re-asserted here instead, the same "already established at construction, not
    * mechanically visible this many calls removed" shape `widenSealedChain`/`widenSealedElem` already document.
    */
+  // Sound only so long as reportElem's `FanOutKeyedNode` arm is this method's one and only caller — that call
+  // site is where the GADT match above actually proves the cast.
   private def widenFanOutKeyError[E](err: FanOutKeyError): E = err.asInstanceOf[E]
 
   /** Emit a node's closing event and pair its report with the gate it hands downstream. */

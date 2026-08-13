@@ -92,7 +92,13 @@ end Stage
 
 object Stage:
 
-  /** Lift an `Abort`/effect-tracked function into a stage — the direct constructor. */
+  /**
+   * Lift an `Abort`/effect-tracked function into a stage — the direct constructor.
+   *
+   * A bare `Stage(...)` call with no expected type flowing in leaves `S` underconstrained, and inference defaults it to
+   * `Nothing` rather than `Any` — a valid but unusable row. Ascribe the stage's type (`Stage[I, O, E, S]`) when
+   * composing one standalone, rather than inline inside a pipeline where the expected type already pins `S`.
+   */
   def apply[I, O, E, S](f: I => O < (Abort[E] & S)): Stage[I, O, E, S] =
     Run(f)
 
