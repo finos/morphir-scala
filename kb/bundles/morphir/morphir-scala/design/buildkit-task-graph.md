@@ -99,39 +99,64 @@ mechanics in [Kyo effect handlers and typed halting](../../../programming-langua
    inserting a same-named sibling renumbers, so nodes referenced by checkpoints should be named. Runtime
    fan-out children extend the parent with a domain key, unique per parent, validated at fan-out time as a
    structured error. Identity and display label are separate fields. Every surveyed system converged on
-   scope-plus-declared-leaf; none uses positional child identity.
+   scope-plus-declared-leaf; none uses positional child identity. Implemented in `morphir/buildkit/core` on
+   this branch: auto ids derive from the stage name with ordinal suffixes, explicit-vs-explicit collisions are
+   seal errors, and a derived id suffixes around an explicit owner instead of colliding with it. Fan-out
+   children key on the domain value through `fanOutKeyed` (`parent/<key>/<childId>`), with the positional form
+   as a fallback (`parent/<index>/<childId>`), and every child carries the parent's own ordinal.
 2. **Node outcome.** Five statuses:
    `Succeeded(value, provenance, diagnostics)`, `Failed(error, suppressed, diagnostics)`, `Cancelled`,
    `Skipped(reason)`, `Blocked(blockedBy, rootCauses)`. `provenance` starts as `Executed` and reserves the
    `UpToDate`/`FromCache` slots for incremental builds, keeping matches total when 0015 lands. `error` is
    Kyo-shaped: typed domain failure or defect, flat per node; the DAG already encodes composition between
    nodes. Splitting `Skipped` from `Blocked` corrects the conflation the survey identifies as the shared flaw
-   of GitHub Actions, GitLab, and Gradle.
+   of GitHub Actions, GitLab, and Gradle. Implemented in `morphir/buildkit/core` as `NodeOutcome[E]` and
+   `PipelineReport[E, O]`; diagnostics payloads are deferred to the reporting round. Composite nodes refine
+   the vocabulary beyond a single status: a branch node reports `Succeeded` once its predicate has run, even
+   when the arm it picked then fails (the arm's own node carries the `Failed`), and a fan-out node may close
+   `Blocked` after it has started, naming its failed children. The `Blocked` scaladoc licenses this composite
+   case explicitly.
 3. **Halt mechanism.** The node boundary is `I => O < (Abort[E] & S)` for a node-declared error type `E`. The
    executor runs `Abort` per node and folds the resulting `Result` (success, typed failure, panic) into the
    outcome and the finish event. A buildkit `halt` function is a plain veneer over `Abort.fail`, giving DSL
    ergonomics with no custom effect, no Tag, and no handler; a bespoke halting effect can still arrive later
-   if an operation appears that `Abort` cannot express.
+   if an operation appears that `Abort` cannot express. Implemented in `morphir/buildkit/core` with `E`
+   invariant and union composition across composed nodes: `Abort`'s own contravariance makes intersection
+   composition unsound, so the union is the carrier that type-checks. `runReport` and `execute` both take
+   `(using ConcreteTag[E])` to intercept that union at run time, and a keyed fan-out folds `FanOutKeyError`
+   into it alongside the child error.
 4. **Skip propagation.** `Blocked` records both the immediate blocking dependencies and the originating root
    causes, as `NodeId` references propagated down transitive chains without copying diagnostics: Bazel's
    reference-based root causes with stable identities, avoiding Buck2's documented-unstable cause indexes.
+   Implemented as specified in `morphir/buildkit/core`: `Blocked` carries the immediate blockers and the root
+   causes by reference, with no deviation.
 5. **Stop-or-continue policy.** Two knobs: a run mode, `FailFast` (remaining work closes as `Cancelled` or
    `Blocked`) or `KeepGoing` (independent branches continue), and a per-phase-boundary gate, `StopIfAnyFailed`
    or `Continue`, which is where the boundaries note places shared policy. Policy never rewrites a node's raw
-   outcome. Per-node tolerance is deferred; the outcome-versus-verdict separation keeps it addable.
+   outcome. Per-node tolerance is deferred; the outcome-versus-verdict separation keeps it addable. The run
+   mode shipped in `morphir/buildkit/core` as `RunMode` (`FailFast` | `KeepGoing`); the phase-boundary gate is
+   deferred to intent 0018, alongside the phase construct it belongs to.
 6. **Progress.** The executor emits `Emit[PipelineEvent]` with a minimal vocabulary: run started and finished,
    node started and finished with status, optional node progress. Every finish pairs with exactly one start
    and every started node closes even on halt, so events alone reconstruct final state. Events carry `NodeId`
    references and statuses only; diagnostics and values live solely in outcomes, so nothing double-reports.
-   The emit handler sits outside the halting handler, so events survive halts.
+   The emit handler sits outside the halting handler, so events survive halts. Implemented in
+   `morphir/buildkit/core`, with one refinement: events emit in execution order, which is deterministic, and a
+   branch's arm events emit inside their parent branch node's own bracket. Report collation, by contrast, is
+   strictly seal-ordinal. A parallel executor must therefore replay per-id pairing and ordinal collation, not
+   the byte-order of the interleaving.
 7. **Determinism.** Sealing assigns each node an ordinal from declaration order; fan-out children slot at the
    parent's ordinal ordered by input position while keeping key-based identity. The sequential executor picks
    ready nodes by lowest ordinal, and collation, diagnostics, and events follow the same order. Because the
    order derives from the sealed graph rather than scheduling, the parallel executor of 0016 can reproduce
-   the identical observable ordering.
+   the identical observable ordering. Implemented as specified in `morphir/buildkit/core`: fan-out children
+   slot at the parent's own ordinal, and a stable sort keeps each element's nodes contiguous in input-position
+   order.
 
 Still open, deliberately: the concrete Scala signatures (the slice's job), join value shapes for
-successful-subset collection, per-node tolerance, and checkpoint provenance semantics (0015). The
+successful-subset collection, per-node tolerance, and checkpoint provenance semantics (0015). `when`
+desugars to `branch` (see the implementation), so nothing distinguishes the two arms yet, and
+`SkipReason.ConditionFalse` stays unreachable until a branch-origin marker exists to produce it. The
 cross-capability open questions stay in the [boundaries note](/design/pipeline-workspace-boundaries.md). A
 pipeline Decision Record is gated on a working vertical slice; until then this note carries the position.
 

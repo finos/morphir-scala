@@ -2,6 +2,9 @@
 
 ## 2026-08-13
 
+* **Update**: Recorded the `morphir/buildkit/core` implementation of the seven current-position entries in
+  [Buildkit task-graph capability](/design/buildkit-task-graph.md), including deviations from the settled
+  positions and the still-unreachable `SkipReason.ConditionFalse`.
 * **Creation**: Added [Buildkit task-graph capability](/design/buildkit-task-graph.md).
 
 ## 2026-08-08
