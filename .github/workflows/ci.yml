@@ -196,8 +196,10 @@ jobs:
             out/morphir-elm/
           key: ${{ runner.os }}-mill-morphir-projects-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}-${{ github.sha }}
       - name: Run capability
+        # -j 1 serializes the morphirIR tasks: parallel morphir-elm 2.100.0 node
+        # processes crash with EBADF fd-close-on-GC on this runner (bead morphir-qki).
         run: |
-          ./mill -i -k "examples.morphir-elm-projects.__.morphirIR" \
+          ./mill -i -k -j 1 "examples.morphir-elm-projects.__.morphirIR" \
             + "morphir-elm.sdks.__.morphirIR"
 
   runtime-generated-fixtures:
