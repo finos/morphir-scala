@@ -31,10 +31,9 @@ Read, in order:
   link from the narrative home in the same change.
 - Where the content describes a flow, lifecycle, structure, or state machine, add a Mermaid diagram (or link an
   SVG asset) per diagrams.md instead of narrating the relationships in prose. Caption every figure with a
-  numbered caption paragraph directly after it (`<a id="figure-N" name="figure-N"></a>Figure N: what to
-  notice`), numbered
-  1..N in document order; cite figures from prose as `[Figure N](#figure-N)`. `kb check` enforces caption
-  presence, sequence, and anchor agreement.
+  numbered caption paragraph directly after it (`**Figure N:** what to notice`), numbered 1..N in document
+  order; cite figures from prose in text, "see Figure N", with no anchors or fragment links. `kb check`
+  enforces caption presence and sequence.
 - Mark anything unverified as unverified where the claim appears.
 
 ## After writing

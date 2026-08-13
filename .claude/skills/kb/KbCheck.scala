@@ -128,18 +128,15 @@ object KbCheck:
     fmErrors ++ kindErrors ++ conceptErrors ++ vendoredErrors ++ escapingLinks(where, d) ++ figureFindings(where, d)
 
   /** Figures — mermaid fences and standalone images — carry numbered captions: a paragraph directly after the
-    * figure starting `Figure N:`, numbered 1..N in document order. A caption may prefix an HTML anchor so prose
-    * can link the figure as `[Figure N](#figure-N)`; markdown gives paragraphs no automatic anchor. The portable
-    * form carries both attributes — `<a id="figure-N" name="figure-N"></a>` — because GitHub's sanitizer strips
-    * `id` but keeps `name`, while most other renderers pass raw HTML through and browsers navigate by `id`.
-    * Either attribute alone is accepted; every `figure-N` value present must carry the caption's number.
+    * figure starting `**Figure N:**`, numbered 1..N in document order. Prose cites a figure by number in text
+    * ("see Figure 2"); no HTML anchors are used, because no anchor form renders reliably across the renderers
+    * the kb meets. The bold prefix is the convention; an unbolded `Figure N:` is accepted.
     *
     * Only this flat per-document scheme is checked. Section-aware numbering (`Figure 2.1`) is deliberately out of
     * scope for now; a caption in such a scheme reports as out-of-sequence rather than passing unvalidated.
     */
   private val FigureCaption =
-    raw"""(?:(<a\b[^>]*>)\s*</a>\s*)?\*{0,2}[Ff]igure\s+(\d+)\*{0,2}\s*[:.].*""".r
-  private val AnchorNumber = raw"""(?:id|name)="figure-(\d+)"""".r
+    raw"""\*{0,2}[Ff]igure\s+(\d+)(?:\s*[:.]\s*\*{0,2}|\*{0,2}\s*[:.]).*""".r
 
   private def figureFindings(where: String, d: Doc): Seq[Finding] =
     if !d.isConcept || d.vendored then Nil
@@ -153,7 +150,7 @@ object KbCheck:
         var j = figureEndIdx + 1
         while j < lines.length && lines(j).trim.isEmpty do j += 1
         lines.lift(j).map(_.trim) match
-          case Some(FigureCaption(anchorTag, n)) =>
+          case Some(FigureCaption(n)) =>
             if n.toInt != expected then
               findings += Finding(
                 Severity.Warn,
@@ -163,19 +160,6 @@ object KbCheck:
                 s"$label caption is numbered Figure $n but this is figure $expected of the document",
                 Some("number figures 1..N in document order; section-aware schemes are not yet supported")
               )
-            val anchorNumbers =
-              if anchorTag == null then Nil
-              else AnchorNumber.findAllMatchIn(anchorTag).map(_.group(1)).toList
-            anchorNumbers.filter(_ != n).foreach { a =>
-              findings += Finding(
-                Severity.Warn,
-                "figure-anchor-mismatch",
-                where,
-                Some(j + 1 + offset),
-                s"""caption anchor "figure-$a" does not match its caption number Figure $n""",
-                Some(s"""use <a id="figure-$n" name="figure-$n"></a> so [Figure $n](#figure-$n) links resolve everywhere""")
-              )
-            }
           case _ =>
             findings += Finding(
               Severity.Warn,
@@ -183,7 +167,7 @@ object KbCheck:
               where,
               Some(figureEndIdx + 1 + offset),
               s"$label has no numbered caption",
-              Some(s"follow the figure with a caption paragraph: `Figure $expected: <what to notice>`")
+              Some(s"follow the figure with a caption paragraph: `**Figure $expected:** <what to notice>`")
             )
         expected += 1
 

@@ -172,7 +172,7 @@ is invisible to user code, and user code cannot corrupt it. Reserve `Var` for st
     end
   ```
 
-  <a id="figure-1" name="figure-1"></a>Figure 1: the outer handler survives the inner one's short-circuit; put the handler whose output must
+  **Figure 1:** the outer handler survives the inner one's short-circuit; put the handler whose output must
   outlive a halt outside the halting handler.
 - Short-circuiting effects must not provide `Isolate` instances. Kyo's own documentation says automatic isolation
   derivation over an effect that can halt produces order-dependent results. Provide isolation for the `Var`/`Emit`

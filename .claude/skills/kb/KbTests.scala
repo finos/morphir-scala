@@ -394,14 +394,13 @@ class KbCheckSpec extends Test[Any]:
   "figures" - {
     "numbered captions in order pass; missing and out-of-order captions are flagged" in {
       val good =
-        "---\ntype: Concept\ntitle: G\ndescription: Good figures.\n---\n\nIntro, see [Figure 1](#figure-1).\n\n" +
-          "```mermaid\nflowchart LR\n  a --> b\n```\n\n<a id=\"figure-1\" name=\"figure-1\"></a>Figure 1: a feeds b.\n\n" +
-          "![alt text](pic.svg)\n\n<a id=\"figure-2\"></a>Figure 2: the picture.\n"
+        "---\ntype: Concept\ntitle: G\ndescription: Good figures.\n---\n\nIntro, see Figure 1.\n\n" +
+          "```mermaid\nflowchart LR\n  a --> b\n```\n\n**Figure 1:** a feeds b.\n\n" +
+          "![alt text](pic.svg)\n\nFigure 2: the picture.\n"
       val bad =
         "---\ntype: Concept\ntitle: B\ndescription: Bad figures.\n---\n\n" +
           "```mermaid\nflowchart LR\n  a --> b\n```\n\nNot a caption.\n\n" +
-          "```mermaid\nflowchart LR\n  b --> c\n```\n\nFigure 5: wrong number.\n\n" +
-          "```mermaid\nflowchart LR\n  c --> d\n```\n\n<a name=\"figure-9\"></a>Figure 3: anchor disagrees.\n"
+          "```mermaid\nflowchart LR\n  b --> c\n```\n\n**Figure 5:** wrong number.\n"
       for
         kbRoot <- fixture(withIntent = false)
         kb0 <- KbStore.load(kbRoot)
@@ -417,10 +416,6 @@ class KbCheckSpec extends Test[Any]:
         assert(
           figs.exists(f => f.path.endsWith("bad.md") && f.check == "figure-number-out-of-sequence"),
           "misnumbered figure flagged"
-        )
-        assert(
-          figs.exists(f => f.path.endsWith("bad.md") && f.check == "figure-anchor-mismatch"),
-          "anchor id disagreeing with its caption number flagged"
         )
     }
     "regression: non-mermaid code fences and their contents are not figures" in {

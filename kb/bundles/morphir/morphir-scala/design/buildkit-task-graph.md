@@ -27,7 +27,7 @@ stateDiagram-v2
     [*] --> Skipped: a dependency halted (cause recorded)
 ```
 
-<a id="figure-1" name="figure-1"></a>Figure 1: the node outcomes the contract requires; the exact public outcome type is an open question below.
+**Figure 1:** the node outcomes the contract requires; the exact public outcome type is an open question below.
 
 Today none of this exists: the only pipeline abstraction is a linear `Stage[I, O, S]` inside the Elm compiler
 API, and the only halt semantics live inside `ElmParse`.
@@ -116,7 +116,7 @@ flowchart TD
     I0011 -->|unblocks| I0017["0017 CLI integration"]
 ```
 
-<a id="figure-2" name="figure-2"></a>Figure 2: the intent dependencies inside this capability; everything flows from the core task graph.
+**Figure 2:** the intent dependencies inside this capability; everything flows from the core task graph.
 
 The cross-capability blockers: 0012 workspace and manifest normalization, 0013 pluggable package resolution,
 and 0014 backend generation and artifact reconciliation all gate 0017, and 0012 also gates 0015.

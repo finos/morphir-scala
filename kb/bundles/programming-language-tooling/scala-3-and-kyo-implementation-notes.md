@@ -388,7 +388,7 @@ flowchart TD
     W -->|"witness accepts kind"| ST["storage access"]
 ```
 
-<a id="figure-1" name="figure-1"></a>Figure 1: every lookup validates the snapshot and the runtime node kind before it touches storage, and each
+**Figure 1:** every lookup validates the snapshot and the runtime node kind before it touches storage, and each
 check has a named failure.
 
 Match types are useful only when they remove work at a public call site, for example deriving a result type from a
