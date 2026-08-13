@@ -9,10 +9,18 @@ class PipelineTests extends Test[Any]:
   private def double = Stage.pure((i: Int) => i * 2).named("double")
   private def show   = Stage.pure((i: Int) => i.toString).named("show")
 
-  private def sealOrFail[I, O, S](p: Pipeline[I, O, S]): SealedPipeline[I, O, S] =
+  private def sealOrFail[I, O, E, S](p: Pipeline[I, O, E, S]): SealedPipeline[I, O, E, S] =
     p.seal match
       case Result.Success(sealed_) => sealed_
       case other                   => throw new AssertionError(s"seal failed: $other")
+
+  /**
+   * Strip a proven-empty `Abort[Nothing]` so an infallible fixture's `execute` result can reach `.eval` directly —
+   * every fixture stage in this file is pure, so `execute`'s own `E` infers as `Nothing`, and `Abort.run[Nothing]` is a
+   * zero-cost, always-succeeding strip of that proven-empty channel. Mirrors `StageTests`'s own `runPure`.
+   */
+  private def runPure[A, S](v: A < (Abort[Nothing] & S)): A < S =
+    Abort.run[Nothing](v).map(_.getOrThrow)
 
   "sealing" - {
     "assigns label-derived ids in order" in {
@@ -67,7 +75,7 @@ class PipelineTests extends Test[Any]:
   "execution" - {
     "matches the equivalent Stage composition" in {
       val plan             = sealOrFail(Pipeline.stage(inc).andThen(show))
-      val (_, viaPipeline) = Emit.run(plan.execute(41)).eval
+      val (_, viaPipeline) = runPure(Emit.run(plan.execute(41))).eval
       // `Stage.run` now returns `String < (Abort[Nothing] & Any)`: `inc`/`show` are pure fixtures pinned to
       // `E = Nothing`, so `Abort.run[Nothing]` is a zero-cost, always-succeeding strip of that proven-empty channel.
       val direct = Abort.run[Nothing]((inc andThen show).run(41)).eval.getOrThrow
@@ -75,7 +83,7 @@ class PipelineTests extends Test[Any]:
     }
     "emits Entered and Exited per node, in order" in {
       val plan        = sealOrFail(Pipeline.stage(inc).andThen(show))
-      val (events, _) = Emit.run(plan.execute(1)).eval
+      val (events, _) = runPure(Emit.run(plan.execute(1))).eval
       val rendered    = events.map {
         case StageEvent.Entered(id, _)      => s"enter:${id.render}"
         case StageEvent.Exited(id, outcome) => s"exit:${id.render}:$outcome"
@@ -88,18 +96,18 @@ class PipelineTests extends Test[Any]:
         .fromKyo[Int, String, Any](i => Pipeline.provenance.map(path => path.map(_.label).mkString(",")))
         .named("observer")
       val plan        = sealOrFail(Pipeline.stage(observing))
-      val (_, result) = Emit.run(plan.execute(0)).eval
+      val (_, result) = runPure(Emit.run(plan.execute(0))).eval
       assert(result == "observer")
     }
     "a sealed plan is reusable across runs" in {
       val plan      = sealOrFail(Pipeline.stage(inc).andThen(show))
-      val (ev1, r1) = Emit.run(plan.execute(1)).eval
-      val (ev2, r2) = Emit.run(plan.execute(41)).eval
+      val (ev1, r1) = runPure(Emit.run(plan.execute(1))).eval
+      val (ev2, r2) = runPure(Emit.run(plan.execute(41))).eval
       assert(r1 == "2" && r2 == "42" && ev1.size == 4 && ev2.size == 4)
     }
     "a three-node chain executes and emits in order, with correct ids" in {
       val plan             = sealOrFail(Pipeline.stage(inc).andThen(double).andThen(show))
-      val (events, result) = Emit.run(plan.execute(3)).eval
+      val (events, result) = runPure(Emit.run(plan.execute(3))).eval
       val rendered         = events.map {
         case StageEvent.Entered(id, _)      => s"enter:${id.render}"
         case StageEvent.Exited(id, outcome) => s"exit:${id.render}:$outcome"
@@ -134,24 +142,24 @@ class PipelineTests extends Test[Any]:
   "par" - {
     "runs both sides on the same input and pairs results" in {
       val plan        = sealOrFail(Pipeline.stage(inc).par(Pipeline.stage(show)))
-      val (_, result) = Emit.run(plan.execute(4)).eval
+      val (_, result) = runPure(Emit.run(plan.execute(4))).eval
       assert(result == (5, "4"))
     }
     "flattens across chained pars" in {
       val len         = Stage.pure((i: Int) => i.toLong).named("long")
       val plan        = sealOrFail(Pipeline.stage(inc).par(Pipeline.stage(show)).par(Pipeline.stage(len)))
-      val (_, result) = Emit.run(plan.execute(4)).eval
+      val (_, result) = runPure(Emit.run(plan.execute(4))).eval
       assert(result == (5, "4", 4L))
     }
     "emits branch events left then right under the sequential executor" in {
       val plan        = sealOrFail(Pipeline.stage(inc).par(Pipeline.stage(show)))
-      val (events, _) = Emit.run(plan.execute(1)).eval
+      val (events, _) = runPure(Emit.run(plan.execute(1))).eval
       val entered     = events.collect { case StageEvent.Entered(id, _) => id.render }
       assert(entered == Chunk("inc", "show"))
     }
     "par2 pairs two peer pipelines" in {
       val plan        = sealOrFail(Pipeline.par2(Pipeline.stage(inc), Pipeline.stage(show)))
-      val (_, result) = Emit.run(plan.execute(4)).eval
+      val (_, result) = runPure(Emit.run(plan.execute(4))).eval
       assert(result == (5, "4"))
     }
     "par3 and par4 yield flat tuples" in {
@@ -160,8 +168,8 @@ class PipelineTests extends Test[Any]:
       val p3  = sealOrFail(Pipeline.par3(Pipeline.stage(inc), Pipeline.stage(show), Pipeline.stage(len)))
       val p4  =
         sealOrFail(Pipeline.par4(Pipeline.stage(inc), Pipeline.stage(show), Pipeline.stage(len), Pipeline.stage(neg)))
-      val (_, r3) = Emit.run(p3.execute(4)).eval
-      val (_, r4) = Emit.run(p4.execute(4)).eval
+      val (_, r3) = runPure(Emit.run(p3.execute(4))).eval
+      val (_, r4) = runPure(Emit.run(p4.execute(4))).eval
       assert(r3 == (5, "4", 4L) && r4 == (5, "4", 4L, -4))
     }
     "rejects duplicate ids across sides at seal" in {
@@ -181,12 +189,12 @@ class PipelineTests extends Test[Any]:
 
     "maps every element through the child pipeline" in {
       val plan        = sealOrFail(Pipeline.stage(sources).fanOut(Pipeline.stage(parse)))
-      val (_, result) = Emit.run(plan.execute(3)).eval
+      val (_, result) = runPure(Emit.run(plan.execute(3))).eval
       assert(result == Chunk(1, 1, 1))
     }
     "zero elements yield an empty chunk and no child events" in {
       val plan        = sealOrFail(Pipeline.stage(sources).fanOut(Pipeline.stage(parse)))
-      val (events, r) = Emit.run(plan.execute(0)).eval
+      val (events, r) = runPure(Emit.run(plan.execute(0))).eval
       assert(r == Chunk.empty[Int])
       assert(!events.exists {
         case StageEvent.Entered(id, _) => id.render.contains("/")
@@ -195,7 +203,7 @@ class PipelineTests extends Test[Any]:
     }
     "child event ids carry the element path" in {
       val plan        = sealOrFail(Pipeline.stage(sources).fanOut("parse-all", Pipeline.stage(parse)))
-      val (events, _) = Emit.run(plan.execute(2)).eval
+      val (events, _) = runPure(Emit.run(plan.execute(2))).eval
       val childIds    = events.collect { case StageEvent.Entered(id, _) if id.render.contains("/") => id.render }
       assert(childIds == Chunk("parse-all/0/parse", "parse-all/1/parse"))
     }
@@ -228,7 +236,7 @@ class PipelineTests extends Test[Any]:
     }
     "the fan-out node's own Entered/Exited bracket the per-element events" in {
       val plan        = sealOrFail(Pipeline.stage(sources).fanOut("fo", Pipeline.stage(parse)))
-      val (events, _) = Emit.run(plan.execute(2)).eval
+      val (events, _) = runPure(Emit.run(plan.execute(2))).eval
       val rendered    = events.collect {
         case StageEvent.Entered(id, _) => s"enter:${id.render}"
         case StageEvent.Exited(id, _)  => s"exit:${id.render}"
@@ -248,7 +256,7 @@ class PipelineTests extends Test[Any]:
     }
     "the fan-out node's own bracket still fires with zero elements" in {
       val plan        = sealOrFail(Pipeline.stage(sources).fanOut("fo", Pipeline.stage(parse)))
-      val (events, _) = Emit.run(plan.execute(0)).eval
+      val (events, _) = runPure(Emit.run(plan.execute(0))).eval
       val rendered    = events.collect {
         case StageEvent.Entered(id, _) => s"enter:${id.render}"
         case StageEvent.Exited(id, _)  => s"exit:${id.render}"
@@ -263,7 +271,7 @@ class PipelineTests extends Test[Any]:
 
     "takes the true arm and skips the false arm's nodes" in {
       val plan        = sealOrFail(Pipeline.stage(inc).branch(_ > 10)(big, small))
-      val (events, r) = Emit.run(plan.execute(100)).eval
+      val (events, r) = runPure(Emit.run(plan.execute(100))).eval
       assert(r == "big:101")
       assert(events.contains(StageEvent.Skipped(
         events.collect {
@@ -275,14 +283,14 @@ class PipelineTests extends Test[Any]:
     }
     "takes the false arm and skips the true arm's nodes" in {
       val plan        = sealOrFail(Pipeline.stage(inc).branch(_ > 10)(big, small))
-      val (events, r) = Emit.run(plan.execute(1)).eval
+      val (events, r) = runPure(Emit.run(plan.execute(1))).eval
       assert(r == "small:2")
       assert(events.collect { case StageEvent.Skipped(id, _) => id.render } == Chunk("big"))
     }
     "when yields Present on the taken path and Absent otherwise" in {
       val plan         = sealOrFail(Pipeline.stage(inc).when(_ > 10)(big))
-      val (_, taken)   = Emit.run(plan.execute(100)).eval
-      val (_, untaken) = Emit.run(plan.execute(1)).eval
+      val (_, taken)   = runPure(Emit.run(plan.execute(100))).eval
+      val (_, untaken) = runPure(Emit.run(plan.execute(1))).eval
       assert(taken == Present("big:101") && untaken == Absent)
     }
     "duplicate ids across arms are rejected at seal" in {
@@ -295,7 +303,7 @@ class PipelineTests extends Test[Any]:
       val wrap        = Pipeline.stage(Stage.pure((i: Int) => i.toString).named("wrap"))
       val other       = Pipeline.stage(Stage.pure((i: Int) => i).named("other"))
       val plan        = sealOrFail(Pipeline.stage(inc).branch(_ > 0)(wrap, other))
-      val (events, _) = Emit.run(plan.execute(1)).eval
+      val (events, _) = runPure(Emit.run(plan.execute(1))).eval
       val rendered    = events.map {
         case StageEvent.Entered(id, _)      => s"enter:${id.render}"
         case StageEvent.Exited(id, outcome) => s"exit:${id.render}:$outcome"
@@ -323,7 +331,7 @@ class PipelineTests extends Test[Any]:
       val takenArm    = Pipeline.stage(Stage.pure((i: Int) => Chunk.empty[Int]).named("empty"))
       val untakenArm  = Pipeline.stage(sources).fanOut("parse-all", Pipeline.stage(parse))
       val plan        = sealOrFail(Pipeline.stage(inc).branch(_ > 0)(takenArm, untakenArm))
-      val (events, _) = Emit.run(plan.execute(1)).eval
+      val (events, _) = runPure(Emit.run(plan.execute(1))).eval
       // Only the fan-out node's own id is skipped — its per-element child ("parse") lives in its own independent,
       // nested seal namespace and was never counted, since it never ran.
       assert(events.collect { case StageEvent.Skipped(id, _) => id.render } == Chunk("sources", "parse-all"))
@@ -372,18 +380,33 @@ class PipelineTests extends Test[Any]:
       }
       assert(rendered == Chunk("enter:inc", "exit:inc:Succeeded", "enter:boom", "exit:boom:Failed"))
     }
+    // The typed row now compiles and is observable at `execute`'s own public boundary: `Abort[E]` is a first-class
+    // part of `execute`'s declared row (this task), so the failure surfaces to the caller with its original type,
+    // and the events emitted before the short-circuit (both `inc`'s own pair and `boom`'s own `Entered`) survive —
+    // `Emit.run` collects everything emitted up to the point Kyo's own suspend/resume `Abort` protocol unwinds the
+    // computation, the same way a panic's pre-failure events already survived in the case above.
+    "a stage whose typed Abort short-circuits surfaces the original error, with events up to that point intact" in {
+      val boom              = Stage.fromKyo[Int, Int, Abort[String]](i => Abort.fail("boom")).named("boom")
+      val plan              = sealOrFail(Pipeline.stage(inc).andThen(boom).andThen(show))
+      val (events, outcome) = Emit.run(Abort.run[String](plan.execute(1))).eval
+      assert(outcome == Result.Failure("boom"))
+      val rendered = events.map {
+        case StageEvent.Entered(id, _)      => s"enter:${id.render}"
+        case StageEvent.Exited(id, outcome) => s"exit:${id.render}:$outcome"
+        case StageEvent.Skipped(id, _)      => s"skip:${id.render}"
+      }
+      assert(rendered == Chunk("enter:inc", "exit:inc:Succeeded", "enter:boom"))
+    }
     // A typed `Abort[E]` failure never reaches `kyo.kernel.Effect.catching`'s `catch` block — it propagates through
     // Kyo's own suspend/resume ArrowEffect protocol, not a JVM `throw`, so `bracketed` (which only non-fatal panics
-    // close) does not see it. Closing `Entered` for this case would need the executor to intercept a statically
-    // unknown `Abort[E]` for an abstract `E` inside an unconstrained `S2` and re-raise it with its original type;
-    // every candidate Kyo RC6 offers for that either fails to type-check against an abstract `S2` or requires
-    // widening `execute`'s public row in a way that breaks `.eval()` across the existing test suite. See bead
-    // morphir-zdy.2 for the full empirical evidence. Left `pendingUntilFixed` rather than dropped, so the moment
-    // Kyo (or a design change) makes this achievable, the suite itself flags it.
+    // close) does not see it, and `boom`'s own `Entered` above is left dangling (no matching `Exited`). Closing it
+    // is by design out of scope for `execute`'s own value-mode row (see its scaladoc): there is no report to record
+    // a partial run in. Task 5's report executor intercepts each node's own `Abort[E]` via `Abort.recover` and
+    // re-raises it, closing `Entered` with `Exited(Failed)` first, inside `bracketed`. Left `pendingUntilFixed`
+    // rather than dropped, so the moment that executor lands, the suite itself flags it.
     "a stage whose typed Abort short-circuits still closes its Entered with Exited(Failed)".pendingUntilFixed(
-      "typed Abort[E] failures bypass kyo.kernel.Effect.catching (no JVM throw) and Kyo RC6 has no other " +
-        "effect-row-preserving way to intercept an abstract S2's Abort and re-raise it with its original type; " +
-        "see bead morphir-zdy.2"
+      "closing a node's Entered on a typed Abort[E] short-circuit needs the report executor (Task 5) to intercept " +
+        "it via Abort.recover and re-raise; execute's own value-mode row has no report to record a partial run in"
     ) in {
       val boom              = Stage.fromKyo[Int, Int, Abort[String]](i => Abort.fail("boom")).named("boom")
       val plan              = sealOrFail(Pipeline.stage(inc).andThen(boom).andThen(show))
@@ -395,6 +418,21 @@ class PipelineTests extends Test[Any]:
         case StageEvent.Skipped(id, _)      => s"skip:${id.render}"
       }
       assert(rendered == Chunk("enter:inc", "exit:inc:Succeeded", "enter:boom", "exit:boom:Failed"))
+    }
+  }
+
+  "typed pipelines" - {
+    "execute exposes the union of node error types in its row" in {
+      // Explicit type ascriptions pin `S` to `Any`: with no target type flowing into the bare `Stage(...)` calls,
+      // Scala's own inference leaves `S` underconstrained and defaults it to `Nothing` rather than `Any` — a valid,
+      // but unusable-by-`.eval` row (`.eval` requires exactly `Any`, and `Nothing` is not a subtype of it, since `S`
+      // is contravariant).
+      val double: Stage[Int, Int, Nothing, Any] = Stage((i: Int) => i * 2)
+      val guard: Stage[Int, Int, Overflow, Any] = Stage((i: Int) => if i > 100 then Abort.fail(Overflow(i)) else i)
+      val p                                     = Pipeline.stage(nodeId"double", double).andThen(nodeId"guard", guard)
+      val sealed_                               = sealOrFail(p)
+      val (_, outcome)                          = Emit.run(Abort.run[Overflow](sealed_.execute(60))).eval
+      assert(outcome == Result.fail(Overflow(120)))
     }
   }
 
@@ -483,3 +521,5 @@ class PipelineTests extends Test[Any]:
       assert(src.contains("show --> collect"))
     }
   }
+
+final case class Overflow(value: Int) derives CanEqual

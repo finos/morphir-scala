@@ -9,13 +9,16 @@ import morphir.buildkit.*
  * `par` and `fanOut` are the non-stage elements so far; a later task (branch) adds a case here.
  *
  * `ParElem`'s type parameters follow the same existential-middle technique as [[Stage.AndThen]]: `I2` is the shared
- * input to both branches, `Z` is the zipped result exposed as this element's `O`, and `S1 & S2` is the combined effect
- * row. `zip` is captured monomorphically at `par` call time (from a `Zippable` instance), so this GADT never carries
- * the typeclass itself.
+ * input to both branches, `Z` is the zipped result exposed as this element's `O`, `E1 | E2` is the combined declared
+ * error, and `S1 & S2` is the combined effect row. `zip` is captured monomorphically at `par` call time (from a
+ * `Zippable` instance), so this GADT never carries the typeclass itself.
  *
- * `FanOutElem`'s own type parameters (`A`, `B`, `S2`) name the child chain's input/output/effect row directly, rather
- * than the enclosing element's `I`/`O`/`S`: the enclosing element's `I` is fixed to `Chunk[A]` and `O` to `Chunk[B]` by
- * the `extends` clause, mirroring how `ParElem` fixes its own `I`/`O` from its case type parameters.
+ * `FanOutElem`'s own type parameters (`A`, `B`, `E2`, `S2`) name the child chain's input/output/error/effect row
+ * directly, rather than the enclosing element's `I`/`O`/`E`/`S`: the enclosing element's `I` is fixed to `Chunk[A]` and
+ * `O` to `Chunk[B]` by the `extends` clause, mirroring how `ParElem` fixes its own `I`/`O` from its case type
+ * parameters. Its own declared error is the child's `E2` alone, not unioned with anything else — the union with
+ * whatever came before this element in the chain happens once, at [[NodeChain.Append]], the same way its effect row
+ * already worked before `E` existed.
  *
  * `BranchElem` picks one of two peer chains by a plain predicate on the incoming value, both fed the same input and
  * producing the same output type. Unlike `FanOutElem`, its two arms do '''not''' get an independent, nested id
@@ -23,25 +26,23 @@ import morphir.buildkit.*
  * namespace `ParElem`'s two sides already share — and `explicitId` names the branch node itself, which (like a
  * `FanOutElem`) has its own identity even though it wraps no `Stage`.
  */
-private[buildkit] enum DefElem[-I, +O, S]:
-  // `Nothing` bridges the `Stage[I, O, E, S]` arity change (bead-tracked follow-up: threading `E` through `DefElem`
-  // is a later task); every stage wrapped here is still infallible or carries its abort inside the untyped `S` row.
-  case StageElem(explicitId: Maybe[String], stage: Stage[I, O, Nothing, S])
-  case ParElem[I2, O1, O2, Z, S1, S2](
-      left: NodeChain[I2, O1, S1],
-      right: NodeChain[I2, O2, S2],
+private[buildkit] enum DefElem[-I, +O, E, S]:
+  case StageElem(explicitId: Maybe[String], stage: Stage[I, O, E, S])
+  case ParElem[I2, O1, O2, Z, E1, E2, S1, S2](
+      left: NodeChain[I2, O1, E1, S1],
+      right: NodeChain[I2, O2, E2, S2],
       zip: (O1, O2) => Z
-  ) extends DefElem[I2, Z, S1 & S2]
-  case FanOutElem[A, B, S2](
+  ) extends DefElem[I2, Z, E1 | E2, S1 & S2]
+  case FanOutElem[A, B, E2, S2](
       explicitId: Maybe[String],
-      each: NodeChain[A, B, S2]
-  ) extends DefElem[Chunk[A], Chunk[B], S2]
-  case BranchElem[I2, O2, S1, S2](
+      each: NodeChain[A, B, E2, S2]
+  ) extends DefElem[Chunk[A], Chunk[B], E2, S2]
+  case BranchElem[I2, O2, E1, E2, S1, S2](
       explicitId: Maybe[String],
       pred: I2 => Boolean,
-      ifTrue: NodeChain[I2, O2, S1],
-      ifFalse: NodeChain[I2, O2, S2]
-  ) extends DefElem[I2, O2, S1 & S2]
+      ifTrue: NodeChain[I2, O2, E1, S1],
+      ifFalse: NodeChain[I2, O2, E2, S2]
+  ) extends DefElem[I2, O2, E1 | E2, S1 & S2]
 
   /**
    * Number of leaf slots this element expands to, walked in definition order: `1` for a stage or a fan-out (a fan-out's
@@ -84,12 +85,12 @@ end DefElem
  * `Stage.AndThen`. `Append`'s middle type `M` is carried as a case type parameter so walking the chain stays fully
  * typed with no casts.
  */
-private[buildkit] enum NodeChain[-I, +O, S]:
-  case Single[I2, O2, S2](elem: DefElem[I2, O2, S2]) extends NodeChain[I2, O2, S2]
-  case Append[I2, M, O2, S1, S2](
-      init: NodeChain[I2, M, S1],
-      last: DefElem[M, O2, S2]
-  ) extends NodeChain[I2, O2, S1 & S2]
+private[buildkit] enum NodeChain[-I, +O, E, S]:
+  case Single[I2, O2, E2, S2](elem: DefElem[I2, O2, E2, S2]) extends NodeChain[I2, O2, E2, S2]
+  case Append[I2, M, O2, E1, E2, S1, S2](
+      init: NodeChain[I2, M, E1, S1],
+      last: DefElem[M, O2, E2, S2]
+  ) extends NodeChain[I2, O2, E1 | E2, S1 & S2]
 
   /** Number of leaf stages in this chain, walked in definition order. */
   def size: Int =
@@ -143,7 +144,7 @@ private[buildkit] object Sealing:
    * assigned id segment prefixed onto each [[SealError.DuplicateNodeId]] — an [[SealError.InvalidSegment]] names the
    * raw string that failed validation, which has no path to prefix, so it passes through unchanged.
    */
-  def sealChain[I, O, S](chain: NodeChain[I, O, S]): Result[SealErrors, SealedChain[I, O, S]] =
+  def sealChain[I, O, E, S](chain: NodeChain[I, O, E, S]): Result[SealErrors, SealedChain[I, O, E, S]] =
     val summaries                                  = chain.summaries
     val assigned: Chunk[Result[SealError, NodeId]] =
       summaries.zipWithIndex.map { case ((explicit, meta, _), index) =>
@@ -179,8 +180,8 @@ private[buildkit] object Sealing:
    * by that fan-out's own assigned id. Unlike [[pairChain]], this never builds anything and never itself fails: it only
    * surfaces errors, so it can run before this level's own ids are known to be entirely valid.
    */
-  private def nestedFanOutErrors[I2, O2, S2](
-      c: NodeChain[I2, O2, S2],
+  private def nestedFanOutErrors[I2, O2, E2, S2](
+      c: NodeChain[I2, O2, E2, S2],
       assigned: Chunk[Result[SealError, NodeId]]
   ): Chunk[SealError] =
     c match
@@ -195,8 +196,8 @@ private[buildkit] object Sealing:
    * [[DefElem#summaries]], so a fan-out buried in either arm surfaces alongside a same-level duplicate rather than
    * being masked by it.
    */
-  private def nestedFanOutErrorsElem[I2, O2, S2](
-      e: DefElem[I2, O2, S2],
+  private def nestedFanOutErrorsElem[I2, O2, E2, S2](
+      e: DefElem[I2, O2, E2, S2],
       assigned: Chunk[Result[SealError, NodeId]]
   ): Chunk[SealError] =
     e match
@@ -234,21 +235,22 @@ private[buildkit] object Sealing:
    * `chain.size` entries — guaranteed by [[sealChain]], the only caller — each element consuming the slice matching its
    * own `size`.
    */
-  private def pairChain[I2, O2, S2](
-      c: NodeChain[I2, O2, S2],
+  private def pairChain[I2, O2, E2, S2](
+      c: NodeChain[I2, O2, E2, S2],
       slice: Chunk[NodeId]
-  ): Result[SealErrors, SealedChain[I2, O2, S2]] =
+  ): Result[SealErrors, SealedChain[I2, O2, E2, S2]] =
     c match
       case NodeChain.Single(elem) =>
         pairElem(elem, slice).map(SealedChain.Single(_))
       case NodeChain.Append(init, last) =>
         val initSize = init.size
         combine(pairChain(init, slice.take(initSize)), pairElem(last, slice.drop(initSize)))(SealedChain.Append(_, _))
+          .gadtWidenErrorUnion
 
-  private def pairElem[I2, O2, S2](
-      e: DefElem[I2, O2, S2],
+  private def pairElem[I2, O2, E2, S2](
+      e: DefElem[I2, O2, E2, S2],
       slice: Chunk[NodeId]
-  ): Result[SealErrors, SealedElem[I2, O2, S2]] =
+  ): Result[SealErrors, SealedElem[I2, O2, E2, S2]] =
     e match
       case DefElem.StageElem(_, stage) =>
         Result.succeed(SealedElem.StageNode(slice(0), stage))
@@ -256,7 +258,7 @@ private[buildkit] object Sealing:
         val leftSize = left.size
         combine(pairChain(left, slice.take(leftSize)), pairChain(right, slice.drop(leftSize)))(
           SealedElem.ParNode(_, _, zip)
-        )
+        ).gadtWidenErrorUnion
       case DefElem.FanOutElem(_, each) =>
         val ownId = slice(0)
         sealChain(each) match
@@ -270,7 +272,7 @@ private[buildkit] object Sealing:
         val trueSize = ifTrue.size
         combine(pairChain(ifTrue, rest.take(trueSize)), pairChain(ifFalse, rest.drop(trueSize)))(
           SealedElem.BranchNode(ownId, pred, _, _)
-        )
+        ).gadtWidenErrorUnion
 
   /**
    * Combine two seal results, accumulating errors from both sides when either (or both) fail. Neither side of this
@@ -302,3 +304,21 @@ private[buildkit] object Sealing:
       case SealError.DuplicateNodeId(id)     => SealError.DuplicateNodeId(id.prefixed(parentId.render))
       case invalid: SealError.InvalidSegment => invalid
 end Sealing
+
+/**
+ * Widen a freshly constructed `ParElem`/`ParNode`/`BranchElem`/`BranchNode` subcase — whose own `extends` clause unions
+ * two case-local error types with `|` — up to the abstract `E` a caller's own GADT match already proved equal to that
+ * union, by construction, not by assumption.
+ *
+ * `&`-shaped equalities (effect rows: `S1 & S2`) go through Dotty's ordinary GADT approximation unassisted — see
+ * [[Sealing.pairChain]]'s own `Append` case, and [[morphir.buildkit.SealedPipeline.toNodeChain]]'s, for the unassisted
+ * form this same shape otherwise takes. `|`-shaped ones (declared errors: `E1 | E2`) do not: Dotty's GADT constraint
+ * solver derives, from a pattern match on an invariant type parameter instantiated to a union in the case's own
+ * `extends` clause, only that each disjunct is a subtype of the outer type (`E1 <: E`, `E2 <: E`), never the reverse
+ * (`E <: E1 | E2`) needed to close the invariant-equality proof — a known asymmetry in how Dotty's GADT approximation
+ * handles `OrType` versus `AndType` argument positions. Every caller of this extension pairs it with a GADT match whose
+ * own `extends` clause is the actual proof; the widening this performs is always exactly the equality that match
+ * already established, never a genuinely unrelated cast.
+ */
+extension [A](self: A)
+  private[buildkit] def gadtWidenErrorUnion[B]: B = self.asInstanceOf[B]

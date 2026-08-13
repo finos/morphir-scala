@@ -8,16 +8,13 @@ import morphir.buildkit.*
  * assigned [[morphir.buildkit.NodeId]], a fork whose two sides each hold a fully sealed sub-chain, or a fan-out whose
  * child chain is fully sealed on its own, independent id namespace.
  */
-private[buildkit] enum SealedElem[-I, +O, S]:
-  // `Nothing` bridges the `Stage[I, O, E, S]` arity change (bead-tracked follow-up: threading `E` through
-  // `SealedElem` is a later task); every stage wrapped here is still infallible or carries its abort inside the
-  // untyped `S` row.
-  case StageNode(id: NodeId, stage: Stage[I, O, Nothing, S])
-  case ParNode[I2, O1, O2, Z, S1, S2](
-      left: SealedChain[I2, O1, S1],
-      right: SealedChain[I2, O2, S2],
+private[buildkit] enum SealedElem[-I, +O, E, S]:
+  case StageNode(id: NodeId, stage: Stage[I, O, E, S])
+  case ParNode[I2, O1, O2, Z, E1, E2, S1, S2](
+      left: SealedChain[I2, O1, E1, S1],
+      right: SealedChain[I2, O2, E2, S2],
       zip: (O1, O2) => Z
-  ) extends SealedElem[I2, Z, S1 & S2]
+  ) extends SealedElem[I2, Z, E1 | E2, S1 & S2]
 
   /**
    * A fan-out node: its own id, structurally paired with its child chain, already fully sealed on that child's own,
@@ -26,10 +23,10 @@ private[buildkit] enum SealedElem[-I, +O, S]:
    * `Chunk[A]`, each run's own events qualified with that element's index, and the bracket still fires with zero
    * elements (`Entered` immediately followed by `Exited`, no child events between).
    */
-  case FanOutNode[A, B, S2](
+  case FanOutNode[A, B, E2, S2](
       id: NodeId,
-      each: SealedChain[A, B, S2]
-  ) extends SealedElem[Chunk[A], Chunk[B], S2]
+      each: SealedChain[A, B, E2, S2]
+  ) extends SealedElem[Chunk[A], Chunk[B], E2, S2]
 
   /**
    * A branch node: its own id, a plain predicate on the incoming value, and both arms fully sealed. Unlike
@@ -39,12 +36,12 @@ private[buildkit] enum SealedElem[-I, +O, S]:
    * reachable through the untaken arm — found via that arm's own [[nodeIds]], so a nested fan-out contributes only its
    * own id, unexpanded — emits `Skipped`.
    */
-  case BranchNode[I2, O2, S1, S2](
+  case BranchNode[I2, O2, E1, E2, S1, S2](
       id: NodeId,
       pred: I2 => Boolean,
-      ifTrue: SealedChain[I2, O2, S1],
-      ifFalse: SealedChain[I2, O2, S2]
-  ) extends SealedElem[I2, O2, S1 & S2]
+      ifTrue: SealedChain[I2, O2, E1, S1],
+      ifFalse: SealedChain[I2, O2, E2, S2]
+  ) extends SealedElem[I2, O2, E1 | E2, S1 & S2]
 
   /**
    * Node ids, in definition order: one per leaf stage, recursing through both sides of a `ParNode`. A `FanOutNode`
@@ -74,12 +71,12 @@ end SealedElem
  * [[Sealing.sealChain]], from a [[NodeChain]] and its assigned ids; the executor walks it with no index arithmetic, and
  * an id can never desynchronize from the node it names.
  */
-private[buildkit] enum SealedChain[-I, +O, S]:
-  case Single[I2, O2, S2](elem: SealedElem[I2, O2, S2]) extends SealedChain[I2, O2, S2]
-  case Append[I2, M, O2, S1, S2](
-      init: SealedChain[I2, M, S1],
-      last: SealedElem[M, O2, S2]
-  ) extends SealedChain[I2, O2, S1 & S2]
+private[buildkit] enum SealedChain[-I, +O, E, S]:
+  case Single[I2, O2, E2, S2](elem: SealedElem[I2, O2, E2, S2]) extends SealedChain[I2, O2, E2, S2]
+  case Append[I2, M, O2, E1, E2, S1, S2](
+      init: SealedChain[I2, M, E1, S1],
+      last: SealedElem[M, O2, E2, S2]
+  ) extends SealedChain[I2, O2, E1 | E2, S1 & S2]
 
   /** Node ids, in definition order. */
   def nodeIds: Chunk[NodeId] =

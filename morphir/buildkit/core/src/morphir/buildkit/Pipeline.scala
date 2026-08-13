@@ -9,16 +9,16 @@ import morphir.buildkit.internal.*
  * A linear pipeline of stages: either a buildable definition ([[PipelineDef]]) or a validated, executable plan
  * ([[SealedPipeline]]). Construction starts at [[Pipeline.stage]]; validation happens once, at [[seal]].
  */
-sealed trait Pipeline[-I, +O, S]:
+sealed trait Pipeline[-I, +O, E, S]:
 
   /** Validate into an executable plan, accumulating every failure. A [[SealedPipeline]] returns itself. */
-  def seal: Result[SealErrors, SealedPipeline[I, O, S]]
+  def seal: Result[SealErrors, SealedPipeline[I, O, E, S]]
 
   /** Render the node chain: stage descriptions joined with `andThen`, forks rendered as `par(left, right)`. */
   def describe: String
 
   /** The element chain this pipeline is built from — a [[SealedPipeline]] rebuilds it from its sealed chain. */
-  private[buildkit] def definitionChain: NodeChain[I, O, S]
+  private[buildkit] def definitionChain: NodeChain[I, O, E, S]
 
 object Pipeline:
 
@@ -33,16 +33,12 @@ object Pipeline:
    */
   def provenance: Chunk[StageMeta] < Any = provenanceLocal.get
 
-  // Bridged for the `Stage[I, O, E, S]` arity change (bead-tracked follow-up: threading `E` through `Pipeline` is a
-  // later task). `Nothing` pins these entry points to infallible stages for now; every call site below wraps a
-  // stage whose abort, if any, still rides inside the untyped `S` row.
-
   /** Entry point: a single-node pipeline whose node id derives from the stage's label, or position. */
-  def stage[I, O, S](s: Stage[I, O, Nothing, S]): PipelineDef[I, O, S] =
+  def stage[I, O, E, S](s: Stage[I, O, E, S]): PipelineDef[I, O, E, S] =
     new PipelineDef(NodeChain.Single(DefElem.StageElem(Absent, s)))
 
   /** Entry point with an explicit node id, validated at seal. */
-  def stage[I, O, S](id: String, s: Stage[I, O, Nothing, S]): PipelineDef[I, O, S] =
+  def stage[I, O, E, S](id: String, s: Stage[I, O, E, S]): PipelineDef[I, O, E, S] =
     new PipelineDef(NodeChain.Single(DefElem.StageElem(Present(id), s)))
 
   /**
@@ -51,7 +47,7 @@ object Pipeline:
    * Stores `id.render` as the explicit-id string: safe only while `NodeId` is always a single segment, as it is in this
    * slice. When multi-segment ids become constructible, revisit so a path is not flattened through `render`.
    */
-  def stage[I, O, S](id: NodeId, s: Stage[I, O, Nothing, S]): PipelineDef[I, O, S] =
+  def stage[I, O, E, S](id: NodeId, s: Stage[I, O, E, S]): PipelineDef[I, O, E, S] =
     new PipelineDef(NodeChain.Single(DefElem.StageElem(Present(id.render), s)))
 
   /**
@@ -59,32 +55,32 @@ object Pipeline:
    * Permanent, arity-fixed companion to the instance [[PipelineDef#par]]: inference is guaranteed since no `Zippable`
    * search is involved.
    */
-  def par2[I, O1, O2, S1, S2](
-      a: Pipeline[I, O1, S1],
-      b: Pipeline[I, O2, S2]
-  ): PipelineDef[I, (O1, O2), S1 & S2] =
+  def par2[I, O1, O2, E1, E2, S1, S2](
+      a: Pipeline[I, O1, E1, S1],
+      b: Pipeline[I, O2, E2, S2]
+  ): PipelineDef[I, (O1, O2), E1 | E2, S1 & S2] =
     new PipelineDef(NodeChain.Single(DefElem.ParElem(a.definitionChain, b.definitionChain, (x: O1, y: O2) => (x, y))))
 
   /** Fork three peer pipelines on the same input `I`, pairing their results into a flat `(O1, O2, O3)`. */
-  def par3[I, O1, O2, O3, S1, S2, S3](
-      a: Pipeline[I, O1, S1],
-      b: Pipeline[I, O2, S2],
-      c: Pipeline[I, O3, S3]
-  ): PipelineDef[I, (O1, O2, O3), S1 & S2 & S3] =
-    // `ParElem`'s own case type parameters happen to share names (I2, O1, O2, S1, S2) with these method type
+  def par3[I, O1, O2, O3, E1, E2, E3, S1, S2, S3](
+      a: Pipeline[I, O1, E1, S1],
+      b: Pipeline[I, O2, E2, S2],
+      c: Pipeline[I, O3, E3, S3]
+  ): PipelineDef[I, (O1, O2, O3), E1 | E2 | E3, S1 & S2 & S3] =
+    // `ParElem`'s own case type parameters happen to share names (I2, O1, O2, E1, E2, S1, S2) with these method type
     // parameters; that's a naming coincidence, not a conflict, but it leaves Scala 3's bidirectional inference
-    // unable to decompose the nested `&` intersections when the expected result type is pushed down through several
-    // levels of `ParElem` nesting — it tries to unify the whole accumulated intersection against one branch's `S`,
-    // which fails because `NodeChain`/`DefElem` are invariant in `S`. Explicit type arguments on each `ParElem` call
-    // sidestep the guesswork entirely.
-    val ab: NodeChain[I, (O1, O2), S1 & S2] =
-      NodeChain.Single(DefElem.ParElem[I, O1, O2, (O1, O2), S1, S2](
+    // unable to decompose the nested `&`/`|` intersections and unions when the expected result type is pushed down
+    // through several levels of `ParElem` nesting — it tries to unify the whole accumulated intersection against one
+    // branch's `S` (or union against one branch's `E`), which fails because `NodeChain`/`DefElem` are invariant in
+    // both. Explicit type arguments on each `ParElem` call sidestep the guesswork entirely.
+    val ab: NodeChain[I, (O1, O2), E1 | E2, S1 & S2] =
+      NodeChain.Single(DefElem.ParElem[I, O1, O2, (O1, O2), E1, E2, S1, S2](
         a.definitionChain,
         b.definitionChain,
         (x: O1, y: O2) => (x, y)
       ))
     new PipelineDef(
-      NodeChain.Single(DefElem.ParElem[I, (O1, O2), O3, (O1, O2, O3), S1 & S2, S3](
+      NodeChain.Single(DefElem.ParElem[I, (O1, O2), O3, (O1, O2, O3), E1 | E2, E3, S1 & S2, S3](
         ab,
         c.definitionChain,
         (xy: (O1, O2), z: O3) => (xy._1, xy._2, z)
@@ -92,28 +88,28 @@ object Pipeline:
     )
 
   /** Fork four peer pipelines on the same input `I`, pairing their results into a flat `(O1, O2, O3, O4)`. */
-  def par4[I, O1, O2, O3, O4, S1, S2, S3, S4](
-      a: Pipeline[I, O1, S1],
-      b: Pipeline[I, O2, S2],
-      c: Pipeline[I, O3, S3],
-      d: Pipeline[I, O4, S4]
-  ): PipelineDef[I, (O1, O2, O3, O4), S1 & S2 & S3 & S4] =
+  def par4[I, O1, O2, O3, O4, E1, E2, E3, E4, S1, S2, S3, S4](
+      a: Pipeline[I, O1, E1, S1],
+      b: Pipeline[I, O2, E2, S2],
+      c: Pipeline[I, O3, E3, S3],
+      d: Pipeline[I, O4, E4, S4]
+  ): PipelineDef[I, (O1, O2, O3, O4), E1 | E2 | E3 | E4, S1 & S2 & S3 & S4] =
     // See the comment in `par3`: explicit type arguments on each `ParElem` call avoid a constraint-solver failure
     // from nesting `ParElem` constructions with an expected type pushed down from the outside.
-    val ab: NodeChain[I, (O1, O2), S1 & S2] =
-      NodeChain.Single(DefElem.ParElem[I, O1, O2, (O1, O2), S1, S2](
+    val ab: NodeChain[I, (O1, O2), E1 | E2, S1 & S2] =
+      NodeChain.Single(DefElem.ParElem[I, O1, O2, (O1, O2), E1, E2, S1, S2](
         a.definitionChain,
         b.definitionChain,
         (x: O1, y: O2) => (x, y)
       ))
-    val abc: NodeChain[I, (O1, O2, O3), S1 & S2 & S3] =
-      NodeChain.Single(DefElem.ParElem[I, (O1, O2), O3, (O1, O2, O3), S1 & S2, S3](
+    val abc: NodeChain[I, (O1, O2, O3), E1 | E2 | E3, S1 & S2 & S3] =
+      NodeChain.Single(DefElem.ParElem[I, (O1, O2), O3, (O1, O2, O3), E1 | E2, E3, S1 & S2, S3](
         ab,
         c.definitionChain,
         (xy: (O1, O2), z: O3) => (xy._1, xy._2, z)
       ))
     new PipelineDef(
-      NodeChain.Single(DefElem.ParElem[I, (O1, O2, O3), O4, (O1, O2, O3, O4), S1 & S2 & S3, S4](
+      NodeChain.Single(DefElem.ParElem[I, (O1, O2, O3), O4, (O1, O2, O3, O4), E1 | E2 | E3, E4, S1 & S2 & S3, S4](
         abc,
         d.definitionChain,
         (xyz: (O1, O2, O3), w: O4) => (xyz._1, xyz._2, xyz._3, w)
@@ -125,18 +121,16 @@ end Pipeline
  * A buildable, inert pipeline definition. Invalid states (duplicate ids) are representable here and rejected at
  * [[seal]].
  */
-final class PipelineDef[-I, +O, S] private[buildkit] (
-    private[buildkit] val chain: NodeChain[I, O, S]
-) extends Pipeline[I, O, S]:
-
-  // Same `Nothing` bridge as `Pipeline.stage` above: `E` is not yet threaded through `PipelineDef.andThen`.
+final class PipelineDef[-I, +O, E, S] private[buildkit] (
+    private[buildkit] val chain: NodeChain[I, O, E, S]
+) extends Pipeline[I, O, E, S]:
 
   /** Append a stage; its node id derives from the stage's label, or position. */
-  infix def andThen[O2, S2](next: Stage[O, O2, Nothing, S2]): PipelineDef[I, O2, S & S2] =
+  infix def andThen[O2, E2, S2](next: Stage[O, O2, E2, S2]): PipelineDef[I, O2, E | E2, S & S2] =
     new PipelineDef(NodeChain.Append(chain, DefElem.StageElem(Absent, next)))
 
   /** Append a stage with an explicit node id, validated at seal. */
-  def andThen[O2, S2](id: String, next: Stage[O, O2, Nothing, S2]): PipelineDef[I, O2, S & S2] =
+  def andThen[O2, E2, S2](id: String, next: Stage[O, O2, E2, S2]): PipelineDef[I, O2, E | E2, S & S2] =
     new PipelineDef(NodeChain.Append(chain, DefElem.StageElem(Present(id), next)))
 
   /**
@@ -145,7 +139,7 @@ final class PipelineDef[-I, +O, S] private[buildkit] (
    * Stores `id.render` as the explicit-id string: safe only while `NodeId` is always a single segment, as it is in this
    * slice. When multi-segment ids become constructible, revisit so a path is not flattened through `render`.
    */
-  def andThen[O2, S2](id: NodeId, next: Stage[O, O2, Nothing, S2]): PipelineDef[I, O2, S & S2] =
+  def andThen[O2, E2, S2](id: NodeId, next: Stage[O, O2, E2, S2]): PipelineDef[I, O2, E | E2, S & S2] =
     new PipelineDef(NodeChain.Append(chain, DefElem.StageElem(Present(id.render), next)))
 
   /**
@@ -156,16 +150,16 @@ final class PipelineDef[-I, +O, S] private[buildkit] (
    * far — `a.andThen(b).par(c)` forks the whole `a andThen b` against `c`, both fed the pipeline input `I`. That is the
    * natural reading of "fork": everything before the fork runs once per branch, not once total.
    *
-   * '''On the `I1 <: I` type parameter.''' Writing `other: Pipeline[I, O2, S2]` directly — reusing this class's own `I`
-   * — fails to compile: `Pipeline`'s own first parameter is contravariant, so nesting `I` inside a second use of
+   * '''On the `I1 <: I` type parameter.''' Writing `other: Pipeline[I, O2, E2, S2]` directly — reusing this class's own
+   * `I` — fails to compile: `Pipeline`'s own first parameter is contravariant, so nesting `I` inside a second use of
    * `Pipeline[-I2, ...]` doubles the contravariance back into a covariant occurrence of `PipelineDef`'s `I`, which `-I`
    * forbids. A fresh, method-scoped `I1` bounded by `I` sidesteps that: at the ordinary call site `I1` is inferred as
-   * exactly `I`, and `chain: NodeChain[I, O, S]` widens to `NodeChain[I1, O, S]` for free, since `I1 <: I` makes that
-   * widening exactly what contravariance already allows.
+   * exactly `I`, and `chain: NodeChain[I, O, E, S]` widens to `NodeChain[I1, O, E, S]` for free, since `I1 <: I` makes
+   * that widening exactly what contravariance already allows.
    */
-  infix def par[I1 <: I, O2, S2](other: Pipeline[I1, O2, S2])(using
+  infix def par[I1 <: I, O2, E2, S2](other: Pipeline[I1, O2, E2, S2])(using
       z: Zippable[O, O2]
-  ): PipelineDef[I1, z.Out, S & S2] =
+  ): PipelineDef[I1, z.Out, E | E2, S & S2] =
     new PipelineDef(NodeChain.Single(DefElem.ParElem(chain, other.definitionChain, z.zip)))
 
   /**
@@ -174,25 +168,27 @@ final class PipelineDef[-I, +O, S] private[buildkit] (
    * position — there is no label case, since a pipeline (unlike a `Stage`) carries no `StageMeta` to slugify. `each` is
    * sealed once, at this pipeline's own `seal`, and then run once per element at execution.
    *
-   * `ev: O <:< Chunk[A]` witnesses that this pipeline's chain, `NodeChain[I, O, S]`, is already a
-   * `NodeChain[I, Chunk[A], S]` by `NodeChain`'s own covariance in `O` — `substituteCo` makes that widening explicit
+   * `ev: O <:< Chunk[A]` witnesses that this pipeline's chain, `NodeChain[I, O, E, S]`, is already a
+   * `NodeChain[I, Chunk[A], E, S]` by `NodeChain`'s own covariance in `O` — `substituteCo` makes that widening explicit
    * since the compiler cannot see through the abstract `O` on its own.
    */
-  def fanOut[A, B, S2](each: Pipeline[A, B, S2])(using ev: O <:< Chunk[A]): PipelineDef[I, Chunk[B], S & S2] =
+  def fanOut[A, B, E2, S2](each: Pipeline[A, B, E2, S2])(using
+      ev: O <:< Chunk[A]
+  ): PipelineDef[I, Chunk[B], E | E2, S & S2] =
     new PipelineDef(
       NodeChain.Append(
-        ev.substituteCo[[X] =>> NodeChain[I, X, S]](chain),
+        ev.substituteCo[[X] =>> NodeChain[I, X, E, S]](chain),
         DefElem.FanOutElem(Absent, each.definitionChain)
       )
     )
 
   /** [[fanOut]] with an explicit node id, validated at seal. */
-  def fanOut[A, B, S2](id: String, each: Pipeline[A, B, S2])(using
+  def fanOut[A, B, E2, S2](id: String, each: Pipeline[A, B, E2, S2])(using
       ev: O <:< Chunk[A]
-  ): PipelineDef[I, Chunk[B], S & S2] =
+  ): PipelineDef[I, Chunk[B], E | E2, S & S2] =
     new PipelineDef(
       NodeChain.Append(
-        ev.substituteCo[[X] =>> NodeChain[I, X, S]](chain),
+        ev.substituteCo[[X] =>> NodeChain[I, X, E, S]](chain),
         DefElem.FanOutElem(Present(id), each.definitionChain)
       )
     )
@@ -202,18 +198,18 @@ final class PipelineDef[-I, +O, S] private[buildkit] (
    * The untaken arm never runs: at execution, every static node reachable through it emits [[StageEvent.Skipped]]
    * instead. The branch node's own id derives like any node: explicit id, else position.
    *
-   * '''On the `O1 >: O` type parameter.''' Writing `ifTrue: Pipeline[O, O2, S1]` directly — reusing this class's own
-   * `O` — fails to compile for the mirror-image reason [[par]]'s own doc explains for `I1 <: I`: `Pipeline`'s second
-   * parameter is covariant, so nesting `O` inside a second use of `Pipeline[-I2, ...]` — where `O` fills the
+   * '''On the `O1 >: O` type parameter.''' Writing `ifTrue: Pipeline[O, O2, E1, S1]` directly — reusing this class's
+   * own `O` — fails to compile for the mirror-image reason [[par]]'s own doc explains for `I1 <: I`: `Pipeline`'s
+   * second parameter is covariant, so nesting `O` inside a second use of `Pipeline[-I2, ...]` — where `O` fills the
    * '''contravariant''' `I2` slot — doubles back into a contravariant occurrence of `PipelineDef`'s own covariant `O`,
    * which `+O` forbids. A fresh, method-scoped `O1` bounded '''above''' by `O` (rather than below, as `par`'s `I1` is)
    * sidesteps that: at the ordinary call site `O1` is inferred as exactly `O`, and `O1 >: O` makes the widening from
-   * `chain: NodeChain[I, O, S]`'s own `O` sound wherever `O1` is expected.
+   * `chain: NodeChain[I, O, E, S]`'s own `O` sound wherever `O1` is expected.
    */
-  def branch[O1 >: O, O2, S1, S2](pred: O1 => Boolean)(
-      ifTrue: Pipeline[O1, O2, S1],
-      ifFalse: Pipeline[O1, O2, S2]
-  ): PipelineDef[I, O2, S & S1 & S2] =
+  def branch[O1 >: O, O2, E1, E2, S1, S2](pred: O1 => Boolean)(
+      ifTrue: Pipeline[O1, O2, E1, S1],
+      ifFalse: Pipeline[O1, O2, E2, S2]
+  ): PipelineDef[I, O2, E | E1 | E2, S & S1 & S2] =
     new PipelineDef(
       NodeChain.Append(
         chain,
@@ -229,30 +225,31 @@ final class PipelineDef[-I, +O, S] private[buildkit] (
    * These two derived wrapping stages are ordinary, unlabelled nodes like any other: they surface as anonymous `node-N`
    * entries in [[SealedPipeline#nodeIds]], in emitted [[StageEvent]]s, and in `toMermaid` diagrams.
    */
-  def when[O1 >: O, O2, S2](pred: O1 => Boolean)(arm: Pipeline[O1, O2, S2]): PipelineDef[I, Maybe[O2], S & S2] =
-    val ifTrue: NodeChain[O1, Maybe[O2], S2] =
+  def when[O1 >: O, O2, E2, S2](pred: O1 => Boolean)(arm: Pipeline[O1, O2, E2, S2])
+      : PipelineDef[I, Maybe[O2], E | E2, S & S2] =
+    val ifTrue: NodeChain[O1, Maybe[O2], E2, S2] =
       NodeChain.Append(arm.definitionChain, DefElem.StageElem(Absent, Stage.pure((o2: O2) => Present(o2))))
-    val ifFalse: NodeChain[O1, Maybe[O2], Any] =
+    val ifFalse: NodeChain[O1, Maybe[O2], Nothing, Any] =
       NodeChain.Single(DefElem.StageElem(Absent, Stage.pure((_: O1) => Absent)))
     new PipelineDef(
       NodeChain.Append(chain, DefElem.BranchElem(Absent, pred, ifTrue, ifFalse))
     )
 
-  def seal: Result[SealErrors, SealedPipeline[I, O, S]] =
+  def seal: Result[SealErrors, SealedPipeline[I, O, E, S]] =
     Sealing.sealChain(chain).map(new SealedPipeline(_))
 
   def describe: String = chain.describe
 
-  private[buildkit] def definitionChain: NodeChain[I, O, S] = chain
+  private[buildkit] def definitionChain: NodeChain[I, O, E, S] = chain
 end PipelineDef
 
 /**
  * A validated, immutable, shareable execution plan. Per-run state lives in the executor's handler scope, so one plan
  * may run concurrently.
  */
-final class SealedPipeline[-I, +O, S] private[buildkit] (
-    private[buildkit] val sealedChain: SealedChain[I, O, S]
-) extends Pipeline[I, O, S]:
+final class SealedPipeline[-I, +O, E, S] private[buildkit] (
+    private[buildkit] val sealedChain: SealedChain[I, O, E, S]
+) extends Pipeline[I, O, E, S]:
 
   /**
    * Node ids of this plan, in definition order. This lists the static plan's own nodes only — a `FanOutNode`
@@ -261,7 +258,7 @@ final class SealedPipeline[-I, +O, S] private[buildkit] (
    */
   def nodeIds: Chunk[NodeId] = sealedChain.nodeIds
 
-  def seal: Result[SealErrors, SealedPipeline[I, O, S]] = Result.succeed(this)
+  def seal: Result[SealErrors, SealedPipeline[I, O, E, S]] = Result.succeed(this)
 
   def describe: String = sealedChain.describe
 
@@ -272,7 +269,7 @@ final class SealedPipeline[-I, +O, S] private[buildkit] (
    */
   def toMermaid: String = MermaidRenderer.render(sealedChain)
 
-  private[buildkit] def definitionChain: NodeChain[I, O, S] = SealedPipeline.toNodeChain(sealedChain)
+  private[buildkit] def definitionChain: NodeChain[I, O, E, S] = SealedPipeline.toNodeChain(sealedChain)
 
   /**
    * Run the plan sequentially, emitting [[StageEvent]]s. Deterministic: nodes run in definition order — a fork runs its
@@ -283,70 +280,60 @@ final class SealedPipeline[-I, +O, S] private[buildkit] (
    * `FanOutNode`'s whole per-element loop, a `BranchNode`'s decision and taken arm) is wrapped with
    * `kyo.kernel.Effect.catching`: a raw thrown non-fatal `Throwable` (`scala.util.control.NonFatal`, which
    * `Effect.catching` itself filters on) is caught, `Exited(id, Failed)` is emitted, and the exception is rethrown so
-   * the panic keeps propagating outward exactly as before — `Effect.catching` is effect-row-neutral (`B < (S & S2)`
+   * the panic keeps propagating outward exactly as before — `Effect.catching` is effect-row-neutral (`B < (S3 & S2)`
    * with `S2` fixed to `Emit[StageEvent]` here, which this method's own row already carries), so this needed no change
    * to `execute`'s own signature.
    *
-   * '''Known gaps: two cases still leave their `Entered` unclosed.'''
+   * '''`Abort[E]` is now a first-class part of this row.''' `execute`'s own declared row carries `Abort[E]` alongside
+   * `S` and `Emit[StageEvent]`: a node's typed abort surfaces to the caller with its original declared type, the same
+   * way [[morphir.buildkit.Stage#run]] already surfaced it. In ''value mode'' — calling `execute` directly, as every
+   * test in this suite does via `.eval()` — an `Abort[E]` failure still short-circuits the whole computation before any
+   * later `Emit` runs get to see it, by design: value mode has no report to record a partial run in, so there is
+   * nothing yet to close `Entered` against. The report executor that observes per-node outcomes even across an abort
+   * arrives in a later task, where it intercepts each node's own `Abort[E]` via `Abort.recover` and re-raises it —
+   * closing that node's `Entered` with `Exited(id, Failed)` first — inside [[SealedPipeline.bracketed]].
    *
-   *   - '''A typed `Abort[E]` short-circuit.''' Unlike a panic, a typed `Abort` failure never reaches
-   *     `Effect.catching`'s `catch` block — it propagates through Kyo's own suspend/resume `ArrowEffect` protocol, not
-   *     a JVM `throw`. Closing `Entered` for that case would need the executor to intercept a statically unknown
-   *     `Abort[E]` inside `S` for an abstract, unbounded `E` and re-raise it with its original type — every candidate
-   *     Kyo RC6 offers for that (`Sync.ensure`, `Scope.ensure`, and every `Abort.run`/`fold`/`recover`/`tapError`
-   *     shape, including the `Abort[Any]`-widened one) either fails to type-check against an abstract `S`, or requires
-   *     widening `execute`'s own public row in a way that breaks direct `.eval()` calls across the existing test suite.
-   *     See bead morphir-zdy.2 for the full evidence.
-   *   - '''A fatal `Throwable`.''' `Effect.catching` filters on `scala.util.control.NonFatal`, so
-   *     `InterruptedException`, `VirtualMachineError`, `LinkageError`, and `ControlThrowable` are not caught, and leave
-   *     a dangling `Entered` the same way a typed `Abort` does.
+   * '''Known gap: a fatal `Throwable` still leaves its `Entered` unclosed.''' `Effect.catching` filters on
+   * `scala.util.control.NonFatal`, so `InterruptedException`, `VirtualMachineError`, `LinkageError`, and
+   * `ControlThrowable` are not caught, and leave a dangling `Entered` the same way a typed `Abort` did before this
+   * task. See bead morphir-zdy.2 for the fuller history of this row's evolution.
    *
    * `Halted` remains unemitted for the same reason `Skipped` was before conditional branches: nothing yet triggers it.
    */
-  def execute(input: I): O < (S & Emit[StageEvent]) =
+  def execute(input: I): O < (Abort[E] & S & Emit[StageEvent]) =
     SealedPipeline.executeChain(sealedChain, Chunk.empty, input)
 
 object SealedPipeline:
 
-  private def toNodeChain[I, O, S](chain: SealedChain[I, O, S]): NodeChain[I, O, S] =
+  private def toNodeChain[I, O, E, S](chain: SealedChain[I, O, E, S]): NodeChain[I, O, E, S] =
     chain match
       case SealedChain.Single(elem)       => NodeChain.Single(toDefElem(elem))
-      case SealedChain.Append(init, last) => NodeChain.Append(toNodeChain(init), toDefElem(last))
+      case SealedChain.Append(init, last) => NodeChain.Append(toNodeChain(init), toDefElem(last)).gadtWidenErrorUnion
 
-  private def toDefElem[I, O, S](elem: SealedElem[I, O, S]): DefElem[I, O, S] =
+  private def toDefElem[I, O, E, S](elem: SealedElem[I, O, E, S]): DefElem[I, O, E, S] =
     elem match
       case SealedElem.StageNode(id, stage)      => DefElem.StageElem(Present(id.render), stage)
-      case SealedElem.ParNode(left, right, zip) => DefElem.ParElem(toNodeChain(left), toNodeChain(right), zip)
-      case SealedElem.FanOutNode(id, each)      => DefElem.FanOutElem(Present(id.render), toNodeChain(each))
+      case SealedElem.ParNode(left, right, zip) =>
+        DefElem.ParElem(toNodeChain(left), toNodeChain(right), zip).gadtWidenErrorUnion
+      case SealedElem.FanOutNode(id, each)                  => DefElem.FanOutElem(Present(id.render), toNodeChain(each))
       case SealedElem.BranchNode(id, pred, ifTrue, ifFalse) =>
-        DefElem.BranchElem(Present(id.render), pred, toNodeChain(ifTrue), toNodeChain(ifFalse))
+        DefElem.BranchElem(Present(id.render), pred, toNodeChain(ifTrue), toNodeChain(ifFalse)).gadtWidenErrorUnion
 
   /**
    * Run `v` — a bracketing node's own value-producing work — so that a raw non-fatal panic closes `eventId`'s `Entered`
    * with `Exited(id, Failed)` before continuing to propagate. `kyo.kernel.Effect.catching` is the one Kyo RC6 primitive
    * that observes an arbitrary, statically unknown effect row's panic without needing to know anything about that row:
    * its own `S2` is fixed here to `Emit[StageEvent]`, which `v`'s row already carries, so wrapping is row-neutral —
-   * `A < (S2 & Emit[StageEvent])` in, `A < (S2 & Emit[StageEvent])` out, no change to the caller's own declared type.
+   * `A < (S3 & Emit[StageEvent])` in, `A < (S3 & Emit[StageEvent])` out, no change to the caller's own declared type.
    * It filters on `scala.util.control.NonFatal` (a raw thrown non-fatal `Throwable`), so it does '''not''' see a fatal
    * `Throwable` (`InterruptedException`, `VirtualMachineError`, `LinkageError`, `ControlThrowable`) any more than it
-   * sees a typed `Abort[E]` failure — see [[SealedPipeline#execute]]'s own doc for why both halves of the contract are
-   * still open.
+   * sees a typed `Abort[E]` failure — see [[SealedPipeline#execute]]'s own doc for why the `Abort[E]` half of that
+   * contract is by-design, not open, and the fatal-`Throwable` half remains an open gap.
    */
   private def bracketed[A, S3](eventId: NodeId)(v: => A < (S3 & Emit[StageEvent])): A < (S3 & Emit[StageEvent]) =
     Effect.catching(v) { (ex: Throwable) =>
       Emit.value(StageEvent.Exited(eventId, StageOutcome.Failed)).map(_ => throw ex)
     }
-
-  /**
-   * Drop a proven-empty `Abort[Nothing]` from `v`'s row. Bridges the `Stage[I, O, E, S]` arity change: every `Stage`
-   * wrapped by a [[SealedElem.StageNode]] is pinned to `E = Nothing` for now (see [[DefElem.StageElem]]), so
-   * [[morphir.buildkit.Stage#run]] returns `B < (Abort[Nothing] & S2)` rather than the `B < S2` this method's callers
-   * expect — `Abort[Nothing]` can never actually carry a failure, but the effect row still names it, so it needs an
-   * explicit (zero-cost) run to disappear from the type. `Result.getOrThrow` never actually throws here:
-   * `Result[Nothing, B]` has no inhabited `Failure` case to produce.
-   */
-  private def runInfallible[B, S2](v: B < (Abort[Nothing] & S2)): B < S2 =
-    Abort.run[Nothing](v).map(_.getOrThrow)
 
   /**
    * Run `elem` on `input`, qualifying every event id it emits with `prefix` — the segments of every enclosing fan-out
@@ -360,11 +347,11 @@ object SealedPipeline:
    * `Entered(fo)` immediately followed by `Exited(fo)`, with no child events between — so a fan-out's own lifecycle is
    * always observable even when it has nothing to iterate.
    */
-  private def executeElem[A, B, S2](
-      elem: SealedElem[A, B, S2],
+  private def executeElem[A, B, E2, S2](
+      elem: SealedElem[A, B, E2, S2],
       prefix: Chunk[String],
       input: A
-  ): B < (S2 & Emit[StageEvent]) =
+  ): B < (Abort[E2] & S2 & Emit[StageEvent]) =
     elem match
       case SealedElem.StageNode(id, stage) =>
         val eventId = NodeId.unsafe(prefix ++ id.segments)
@@ -372,8 +359,8 @@ object SealedPipeline:
           _   <- Emit.value(StageEvent.Entered(eventId, stage.meta))
           out <- bracketed(eventId) {
             stage.meta match
-              case Present(meta) => Pipeline.provenanceLocal.update(_.append(meta))(runInfallible(stage.run(input)))
-              case Absent        => runInfallible(stage.run(input))
+              case Present(meta) => Pipeline.provenanceLocal.update(_.append(meta))(stage.run(input))
+              case Absent        => stage.run(input)
           }
           _ <- Emit.value(StageEvent.Exited(eventId, StageOutcome.Succeeded))
         yield out
@@ -392,12 +379,12 @@ object SealedPipeline:
           _ <- Emit.value(StageEvent.Exited(eventId, StageOutcome.Succeeded))
         yield result
       case SealedElem.BranchNode(id, pred, ifTrue, ifFalse) =>
-        val eventId                               = NodeId.unsafe(prefix ++ id.segments)
-        val whenTrue: B < (S2 & Emit[StageEvent]) =
+        val eventId                                           = NodeId.unsafe(prefix ++ id.segments)
+        val whenTrue: B < (Abort[E2] & S2 & Emit[StageEvent]) =
           executeChain(ifTrue, prefix, input).map { (result: B) =>
             emitSkips(ifFalse, prefix, "predicate was true").map(_ => result)
           }
-        val whenFalse: B < (S2 & Emit[StageEvent]) =
+        val whenFalse: B < (Abort[E2] & S2 & Emit[StageEvent]) =
           executeChain(ifFalse, prefix, input).map { (result: B) =>
             emitSkips(ifTrue, prefix, "predicate was false").map(_ => result)
           }
@@ -414,8 +401,8 @@ object SealedPipeline:
    * followed by both of *its* arms' ids in turn, recursively — nothing under an untaken arm ever ran, all the way down,
    * except through a fan-out's per-element children, whose count doesn't exist unexecuted.
    */
-  private def emitSkips[A, B, S2](
-      chain: SealedChain[A, B, S2],
+  private def emitSkips[A, B, E2, S2](
+      chain: SealedChain[A, B, E2, S2],
       prefix: Chunk[String],
       reason: String
   ): Unit < Emit[StageEvent] =
@@ -423,11 +410,11 @@ object SealedPipeline:
       Emit.value(StageEvent.Skipped(NodeId.unsafe(prefix ++ id.segments), reason))
     }
 
-  private def executeChain[A, B, S2](
-      chain: SealedChain[A, B, S2],
+  private def executeChain[A, B, E2, S2](
+      chain: SealedChain[A, B, E2, S2],
       prefix: Chunk[String],
       input: A
-  ): B < (S2 & Emit[StageEvent]) =
+  ): B < (Abort[E2] & S2 & Emit[StageEvent]) =
     chain match
       case SealedChain.Single(elem) =>
         executeElem(elem, prefix, input)

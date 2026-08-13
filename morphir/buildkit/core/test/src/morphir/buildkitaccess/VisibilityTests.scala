@@ -14,19 +14,27 @@ class VisibilityTests extends Test[Any]:
     .fromKyo[Int, String, Any](i => Pipeline.provenance.map(path => path.map(_.label).mkString(",")))
     .named("observer")
 
+  /**
+   * Strip a proven-empty `Abort[Nothing]`: `observer` is a pure fixture, so `execute`'s own `E` infers as `Nothing`.
+   */
+  private def runPure[A, S](v: A < (Abort[Nothing] & S)): A < S =
+    Abort.run[Nothing](v).map(_.getOrThrow)
+
   "Pipeline.provenance" - {
     "is readable from a foreign package through the public reader alone" in {
       val plan = Pipeline.stage(observer).seal match
         case Result.Success(sealed_) => sealed_
         case other                   => throw new AssertionError(s"seal failed: $other")
-      val (_, result) = Emit.run(plan.execute(0)).eval
+      val (_, result) = runPure(Emit.run(plan.execute(0))).eval
       assert(result == "observer")
     }
   }
 
   "internal encapsulation" - {
     "morphir.buildkit.internal.NodeChain does not typecheck outside morphir.buildkit" in
-      assert(!scala.compiletime.testing.typeChecks(""" (???: morphir.buildkit.internal.NodeChain[Any, Any, Any]) """))
+      assert(
+        !scala.compiletime.testing.typeChecks(""" (???: morphir.buildkit.internal.NodeChain[Any, Any, Any, Any]) """)
+      )
     "NodeId.unsafe does not typecheck outside morphir.buildkit" in
       assert(!scala.compiletime.testing.typeChecks(""" morphir.buildkit.NodeId.unsafe(kyo.Chunk("x")) """))
   }
