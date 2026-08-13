@@ -6,8 +6,9 @@ set -e
 echo "Running Native tests..."
 
 # Native support is currently scoped to the langkit and kit modules ported from
-# krueger, so this globs those rather than all of `morphir.__` — every other
-# module is jvm/js only and would resolve to nothing.
+# krueger, plus buildkit/core and prelude, so this globs those rather than all of
+# `morphir.__` — every other module is jvm/js only and would resolve to
+# nothing.
 #
 # `-j 4` for the same reason as test:js: `nativeLink` runs inside the single Mill
 # daemon JVM, and each concurrent link holds a full linker working set, so the
@@ -19,6 +20,8 @@ echo "Running Native tests..."
 # setting.
 ./mill -i -k -j 4 \
     "morphir.__.native.__.compile" \
+    + \
+    "morphir.__.native.publishArtifacts" \
     + \
     "morphir.__.native.__.test"
 

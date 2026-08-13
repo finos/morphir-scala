@@ -2,11 +2,11 @@
 type: Intent
 title: Buildkit core task graph
 description: "Provide a Morphir-agnostic, Kyo-native task graph for composing and executing typed cross-platform pipelines."
-state: Backlog
+state: InProgress
 kind: feature
 breaking: false
 created: 2026-07-28
-state_since: 2026-07-28
+state_since: 2026-08-11
 issue: 932
 tags: [buildkit, pipeline, kyo]
 ---
@@ -37,6 +37,9 @@ processor state. Definition sealing validates duplicate node identities, missing
 incompatible stage placement before an execution plan can run.
 
 Parent: [0007 Multi-frontend Morphir transformation pipeline](/0007-multi-frontend-morphir-transformation-pipeline.md).
+
+The capability's narrative home, linking the research and open design questions behind this intent, is the
+[buildkit task-graph design note](../morphir/morphir-scala/design/buildkit-task-graph.md).
 
 The public plugin and preset composition API is delivered by
 [0018 Typed pipeline plugins and immutable presets](/0018-typed-pipeline-plugins-and-immutable-presets.md).

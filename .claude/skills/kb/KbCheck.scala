@@ -125,7 +125,66 @@ object KbCheck:
           )
         ).flatten ++ unknownKeys(where, d)
 
-    fmErrors ++ kindErrors ++ conceptErrors ++ vendoredErrors ++ escapingLinks(where, d)
+    fmErrors ++ kindErrors ++ conceptErrors ++ vendoredErrors ++ escapingLinks(where, d) ++ figureFindings(where, d)
+
+  /** Figures — mermaid fences and standalone images — carry numbered captions: a paragraph directly after the
+    * figure starting `**Figure N:**`, numbered 1..N in document order. Prose cites a figure by number in text
+    * ("see Figure 2"); no HTML anchors are used, because no anchor form renders reliably across the renderers
+    * the kb meets. The bold prefix is the convention; an unbolded `Figure N:` is accepted.
+    *
+    * Only this flat per-document scheme is checked. Section-aware numbering (`Figure 2.1`) is deliberately out of
+    * scope for now; a caption in such a scheme reports as out-of-sequence rather than passing unvalidated.
+    */
+  private val FigureCaption =
+    raw"""\*{0,2}[Ff]igure\s+(\d+)(?:\s*[:.]\s*\*{0,2}|\*{0,2}\s*[:.]).*""".r
+
+  private def figureFindings(where: String, d: Doc): Seq[Finding] =
+    if !d.isConcept || d.vendored then Nil
+    else
+      val lines = d.body.linesIterator.toVector
+      val offset = d.frontmatterLines
+      val findings = Vector.newBuilder[Finding]
+      var expected = 1
+
+      def checkCaption(figureEndIdx: Int, label: String): Unit =
+        var j = figureEndIdx + 1
+        while j < lines.length && lines(j).trim.isEmpty do j += 1
+        lines.lift(j).map(_.trim) match
+          case Some(FigureCaption(n)) =>
+            if n.toInt != expected then
+              findings += Finding(
+                Severity.Warn,
+                "figure-number-out-of-sequence",
+                where,
+                Some(j + 1 + offset),
+                s"$label caption is numbered Figure $n but this is figure $expected of the document",
+                Some("number figures 1..N in document order; section-aware schemes are not yet supported")
+              )
+          case _ =>
+            findings += Finding(
+              Severity.Warn,
+              "figure-caption-missing",
+              where,
+              Some(figureEndIdx + 1 + offset),
+              s"$label has no numbered caption",
+              Some(s"follow the figure with a caption paragraph: `**Figure $expected:** <what to notice>`")
+            )
+        expected += 1
+
+      var i = 0
+      var openFence: Option[String] = None
+      while i < lines.length do
+        val t = lines(i).trim
+        openFence match
+          case Some(info) =>
+            if t.startsWith("```") then
+              if info == "mermaid" then checkCaption(i, "mermaid diagram")
+              openFence = None
+          case None =>
+            if t.startsWith("```") then openFence = Some(t.drop(3).trim.takeWhile(!_.isWhitespace).toLowerCase)
+            else if t.startsWith("![") && t.endsWith(")") then checkCaption(i, "image")
+        i += 1
+      findings.result()
 
   /** A bundle-relative link starts at the bundle root, so a `..` segment in one can only take it outside the bundle.
     *

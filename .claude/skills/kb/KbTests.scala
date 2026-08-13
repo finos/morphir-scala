@@ -391,6 +391,52 @@ class KbCheckSpec extends Test[Any]:
     }
   }
 
+  "figures" - {
+    "numbered captions in order pass; missing and out-of-order captions are flagged" in {
+      val good =
+        "---\ntype: Concept\ntitle: G\ndescription: Good figures.\n---\n\nIntro, see Figure 1.\n\n" +
+          "```mermaid\nflowchart LR\n  a --> b\n```\n\n**Figure 1:** a feeds b.\n\n" +
+          "![alt text](pic.svg)\n\nFigure 2: the picture.\n"
+      val bad =
+        "---\ntype: Concept\ntitle: B\ndescription: Bad figures.\n---\n\n" +
+          "```mermaid\nflowchart LR\n  a --> b\n```\n\nNot a caption.\n\n" +
+          "```mermaid\nflowchart LR\n  b --> c\n```\n\n**Figure 5:** wrong number.\n"
+      for
+        kbRoot <- fixture(withIntent = false)
+        kb0 <- KbStore.load(kbRoot)
+        b0 = kb0.bundle("demo").get
+        _ <- (b0.root / "good.md").write(good)
+        _ <- (b0.root / "bad.md").write(bad)
+        kb <- KbStore.load(kbRoot)
+        findings <- KbCheck.run(kb, None, today)
+      yield
+        val figs = findings.filter(_.check.startsWith("figure-"))
+        assert(!figs.exists(_.path.endsWith("good.md")), s"good.md must be clean, got ${figs.map(_.check)}")
+        assert(figs.exists(f => f.path.endsWith("bad.md") && f.check == "figure-caption-missing"), "uncaptioned figure flagged")
+        assert(
+          figs.exists(f => f.path.endsWith("bad.md") && f.check == "figure-number-out-of-sequence"),
+          "misnumbered figure flagged"
+        )
+    }
+    "regression: non-mermaid code fences and their contents are not figures" in {
+      val doc =
+        "---\ntype: Concept\ntitle: C\ndescription: Code only.\n---\n\n" +
+          "```scala\nval image = \"![not a figure](x.png)\"\n```\n\nProse, not a caption.\n\n" +
+          "```text\n```mermaid is mentioned here\n```\n"
+      for
+        kbRoot <- fixture(withIntent = false)
+        kb0 <- KbStore.load(kbRoot)
+        b0 = kb0.bundle("demo").get
+        _ <- (b0.root / "code.md").write(doc)
+        kb <- KbStore.load(kbRoot)
+        findings <- KbCheck.run(kb, None, today)
+      yield assert(
+        !findings.exists(f => f.check.startsWith("figure-") && f.path.endsWith("code.md")),
+        s"code fences must not count as figures, got ${findings.filter(_.check.startsWith("figure-")).map(_.check)}"
+      )
+    }
+  }
+
   "index drift" - {
     "is detected, and repaired by refresh" in {
       for

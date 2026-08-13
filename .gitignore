@@ -470,6 +470,10 @@ build.user.yaml
 .worktrees/
 .superpowers/
 
+# One-off agent plans and design docs belong in `.dev/`, never in a commit. Some agent skills default to writing them
+# here; this entry stops that default from adding files to the repository. See "Helpers & Tools" in AGENTS.md.
+docs/superpowers/
+
 # NOTE: Python-related ignores are scoped to their own .gitignore files:
 #   scripts/.gitignore and .claude/.gitignore
 

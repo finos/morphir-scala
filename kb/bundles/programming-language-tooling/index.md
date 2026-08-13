@@ -44,6 +44,8 @@ than a prerequisite. Main concepts use short callouts only where those implement
 | Evaluate a Morphir architecture | [Guidance for a Morphir toolchain](/morphir-toolchain-guidance.md) |
 | Evaluate Morphir attribution strategies | [Typed attribution guidance for morphir-scala](/typed-attribution-guidance-for-morphir-scala.md) |
 | Check Scala 3 or Kyo implementation value | [Scala 3 and Kyo implementation notes](/scala-3-and-kyo-implementation-notes.md) |
+| Interpret a domain effect or halt one from a handler | [Kyo effect handlers and typed halting](/kyo-effect-handlers-and-typed-halting.md) |
+| See how other build systems settle executor semantics | [Task-graph comparative survey](/task-graph-comparative-survey.md) |
 
 ## Foundations
 
@@ -64,3 +66,5 @@ than a prerequisite. Main concepts use short callouts only where those implement
 ## Implementation companion
 
 * [Scala 3 and Kyo implementation notes](/scala-3-and-kyo-implementation-notes.md) - Record versioned Scala 3 and Kyo implementation techniques that materially support typed language-tooling designs.
+* [Kyo effect handlers and typed halting](/kyo-effect-handlers-and-typed-halting.md) - Record verified Kyo 1.0.0-RC6 ArrowEffect handler variants, typed-halting shapes, and executor-relevant pitfalls for task-graph interpreter design.
+* [Task-graph comparative survey](/task-graph-comparative-survey.md) - Compare outcome models, identity minting, progress schemas, and deterministic ordering across Bazel, Buck2, Gradle, GitHub Actions, GitLab CI, BSP, ZIO, and Kyo for task-graph executor design.
