@@ -198,7 +198,11 @@ jobs:
       - name: Run capability
         # morphir-elm's CLI intermittently dies with a fatal EBADF fd-close-on-GC crash
         # under Node 24 after generation succeeds (bead morphir-qki, finos/morphir-elm#1282).
+        # The preload shim swallows exactly that error shape; the trigger is run-scoped
+        # (a bad runner host fails all in-job retries), so retries alone do not cover it.
         # Mill caches successful tasks, so each retry re-runs only the crashed ones.
+        env:
+          NODE_OPTIONS: --require ${{ github.workspace }}/.github/scripts/ebadf-close-shim.cjs
         run: |
           for attempt in 1 2 3; do
             if ./mill -i -k "examples.morphir-elm-projects.__.morphirIR" \
