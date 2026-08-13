@@ -91,6 +91,12 @@ Every concept document starts with a YAML frontmatter block.
 - Use tables for comparisons that repeat the same fields.
 - Avoid repetitive framing and exhaustive prose when a link provides the detail.
 - Write each `description` as one short, standalone sentence.
+- Follow the style cards in [`.agents/skills/kb/styles/`](../.agents/skills/kb/styles/README.md): `voice.md`
+  and `diagrams.md` for every document, plus the register card (`article.md`, `whitepaper.md`, or
+  `reference.md`) that the document's `type` selects. The cards apply to new and touched content; do not sweep
+  existing prose.
+- Prefer a captioned Mermaid diagram (or an SVG asset) over prose narration when the subject is a flow,
+  lifecycle, structure, or state machine.
 
 ### Required
 

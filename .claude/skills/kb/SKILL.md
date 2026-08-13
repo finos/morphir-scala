@@ -51,6 +51,22 @@ yourself. The scaffold deliberately leaves a `TODO` comment rather than plausibl
 
 → [references/authoring.md](references/authoring.md) before writing the body.
 
+**Writing or reviewing prose.** Every concept body is written in one of three registers, chosen by its `type:`.
+The style cards are tool-neutral and live at [`.agents/skills/kb/styles/`](../../../.agents/skills/kb/styles/);
+`voice.md` there applies to all registers and includes the banned-pattern list (no em-dashes, no AI filler), and
+`diagrams.md` says when a Mermaid diagram or SVG should replace prose narration of a flow or structure.
+
+| `type:` | Register | Card |
+| ------- | -------- | ---- |
+| Playbook, tutorial, orientation, guidance | article | `styles/article.md` |
+| Design Note, Decision Record, Intent, synthesis | white-paper | `styles/whitepaper.md` |
+| Reference, Specification Section, version-pinned notes | reference | `styles/reference.md` |
+
+Delegate drafting to the `kb-writer` subagent and review to the `kb-reviewer` subagent
+(`.claude/agents/kb-writer.md`, `kb-reviewer.md`), naming the target file and register in the dispatch. Writing
+inline is fine for small edits; still apply the cards. Style applies to new and touched content only; do not
+sweep existing prose.
+
 **Creating a bundle.** Run `new-bundle`, then add it to the Bundles table in `kb/README.md` and to the group's
 `README.md` if it is in a group. The command reminds you; it does not edit those files, because their wording is a
 judgement call.
