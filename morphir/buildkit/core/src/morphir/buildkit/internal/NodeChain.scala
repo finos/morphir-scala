@@ -245,7 +245,7 @@ private[buildkit] object Sealing:
       case NodeChain.Append(init, last) =>
         val initSize = init.size
         combine(pairChain(init, slice.take(initSize)), pairElem(last, slice.drop(initSize)))(SealedChain.Append(_, _))
-          .gadtWidenErrorUnion
+          .map(sc => widenSealedChain(sc))
 
   private def pairElem[I2, O2, E2, S2](
       e: DefElem[I2, O2, E2, S2],
@@ -258,7 +258,7 @@ private[buildkit] object Sealing:
         val leftSize = left.size
         combine(pairChain(left, slice.take(leftSize)), pairChain(right, slice.drop(leftSize)))(
           SealedElem.ParNode(_, _, zip)
-        ).gadtWidenErrorUnion
+        ).map(se => widenSealedElem(se))
       case DefElem.FanOutElem(_, each) =>
         val ownId = slice(0)
         sealChain(each) match
@@ -272,7 +272,7 @@ private[buildkit] object Sealing:
         val trueSize = ifTrue.size
         combine(pairChain(ifTrue, rest.take(trueSize)), pairChain(ifFalse, rest.drop(trueSize)))(
           SealedElem.BranchNode(ownId, pred, _, _)
-        ).gadtWidenErrorUnion
+        ).map(se => widenSealedElem(se))
 
   /**
    * Combine two seal results, accumulating errors from both sides when either (or both) fail. Neither side of this
@@ -306,9 +306,10 @@ private[buildkit] object Sealing:
 end Sealing
 
 /**
- * Widen a freshly constructed `ParElem`/`ParNode`/`BranchElem`/`BranchNode` subcase — whose own `extends` clause unions
- * two case-local error types with `|` — up to the abstract `E` a caller's own GADT match already proved equal to that
- * union, by construction, not by assumption.
+ * Widen a freshly constructed `NodeChain.Append`/`DefElem.ParElem`/`DefElem.BranchElem`/`SealedChain.Append`/
+ * `SealedElem.ParNode`/`SealedElem.BranchNode` subcase — whose own `extends` clause unions two case-local error types
+ * with `|` — up to the abstract `E` a caller's own GADT match already proved equal to that union, by construction, not
+ * by assumption.
  *
  * `&`-shaped equalities (effect rows: `S1 & S2`) go through Dotty's ordinary GADT approximation unassisted — see
  * [[Sealing.pairChain]]'s own `Append` case, and [[morphir.buildkit.SealedPipeline.toNodeChain]]'s, for the unassisted
@@ -316,9 +317,26 @@ end Sealing
  * solver derives, from a pattern match on an invariant type parameter instantiated to a union in the case's own
  * `extends` clause, only that each disjunct is a subtype of the outer type (`E1 <: E`, `E2 <: E`), never the reverse
  * (`E <: E1 | E2`) needed to close the invariant-equality proof — a known asymmetry in how Dotty's GADT approximation
- * handles `OrType` versus `AndType` argument positions. Every caller of this extension pairs it with a GADT match whose
- * own `extends` clause is the actual proof; the widening this performs is always exactly the equality that match
- * already established, never a genuinely unrelated cast.
+ * handles `OrType` versus `AndType` argument positions.
+ *
+ * '''Deliberately four narrow helpers, not one generic `A => B` cast.''' Each is typed to one specific GADT family
+ * (`NodeChain`/`DefElem`/`SealedChain`/`SealedElem`) and pins its own `I`/`O` type parameters '''identically''' on both
+ * the parameter and the result — only the trailing `E`/`S` slots (the source's left as `?`, the result's bound to the
+ * caller's own type parameters) actually move. That means `widenNodeChain[Int, String, MyError, Any](someDefElem)`
+ * fails to compile before ever reaching the cast inside: the parameter type itself rejects a `DefElem`, and rejects a
+ * `NodeChain` whose `I`/`O` don't already match the target's. The only freedom these signatures leave the cast is
+ * exactly the freedom every call site actually needs — reassigning `E`/`S` on an already-correct container — not an
+ * arbitrary unrelated `A`-to-`B`. Every call site still sits directly beside the GADT match that is the actual proof;
+ * the widening performed is always exactly the equality that match already established.
  */
-extension [A](self: A)
-  private[buildkit] def gadtWidenErrorUnion[B]: B = self.asInstanceOf[B]
+private[buildkit] def widenNodeChain[I, O, E, S](chain: NodeChain[I, O, ?, ?]): NodeChain[I, O, E, S] =
+  chain.asInstanceOf[NodeChain[I, O, E, S]]
+
+private[buildkit] def widenDefElem[I, O, E, S](elem: DefElem[I, O, ?, ?]): DefElem[I, O, E, S] =
+  elem.asInstanceOf[DefElem[I, O, E, S]]
+
+private[buildkit] def widenSealedChain[I, O, E, S](chain: SealedChain[I, O, ?, ?]): SealedChain[I, O, E, S] =
+  chain.asInstanceOf[SealedChain[I, O, E, S]]
+
+private[buildkit] def widenSealedElem[I, O, E, S](elem: SealedElem[I, O, ?, ?]): SealedElem[I, O, E, S] =
+  elem.asInstanceOf[SealedElem[I, O, E, S]]

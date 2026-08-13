@@ -308,16 +308,17 @@ object SealedPipeline:
   private def toNodeChain[I, O, E, S](chain: SealedChain[I, O, E, S]): NodeChain[I, O, E, S] =
     chain match
       case SealedChain.Single(elem)       => NodeChain.Single(toDefElem(elem))
-      case SealedChain.Append(init, last) => NodeChain.Append(toNodeChain(init), toDefElem(last)).gadtWidenErrorUnion
+      case SealedChain.Append(init, last) =>
+        widenNodeChain(NodeChain.Append(toNodeChain(init), toDefElem(last)))
 
   private def toDefElem[I, O, E, S](elem: SealedElem[I, O, E, S]): DefElem[I, O, E, S] =
     elem match
       case SealedElem.StageNode(id, stage)      => DefElem.StageElem(Present(id.render), stage)
       case SealedElem.ParNode(left, right, zip) =>
-        DefElem.ParElem(toNodeChain(left), toNodeChain(right), zip).gadtWidenErrorUnion
+        widenDefElem(DefElem.ParElem(toNodeChain(left), toNodeChain(right), zip))
       case SealedElem.FanOutNode(id, each)                  => DefElem.FanOutElem(Present(id.render), toNodeChain(each))
       case SealedElem.BranchNode(id, pred, ifTrue, ifFalse) =>
-        DefElem.BranchElem(Present(id.render), pred, toNodeChain(ifTrue), toNodeChain(ifFalse)).gadtWidenErrorUnion
+        widenDefElem(DefElem.BranchElem(Present(id.render), pred, toNodeChain(ifTrue), toNodeChain(ifFalse)))
 
   /**
    * Run `v` — a bracketing node's own value-producing work — so that a raw non-fatal panic closes `eventId`'s `Entered`
