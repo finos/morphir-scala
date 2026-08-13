@@ -30,6 +30,9 @@ enum SkipReason derives CanEqual:
 sealed abstract case class Causes private (toChunk: Chunk[NodeId]) derives CanEqual
 
 object Causes:
+  /** Construct from at least one id; the arity carries the non-emptiness, so no validation is needed. */
+  def apply(first: NodeId, rest: NodeId*): Causes = new Causes(Chunk(first) ++ Chunk.from(rest)) {}
+
   /** Validate `ids` as non-empty; `Absent` when it is not. */
   def from(ids: Chunk[NodeId]): Maybe[Causes] = if ids.isEmpty then Absent else Present(new Causes(ids) {})
 

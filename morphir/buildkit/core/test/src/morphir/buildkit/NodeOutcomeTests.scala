@@ -11,7 +11,7 @@ class NodeOutcomeTests extends Test[Any]:
       NodeOutcome.Failed(Result.Failure("boom")),
       NodeOutcome.Cancelled,
       NodeOutcome.Skipped(SkipReason.ConditionFalse),
-      NodeOutcome.Blocked(Causes.unsafe(Chunk(nodeId"a")), Causes.unsafe(Chunk(nodeId"a")))
+      NodeOutcome.Blocked(Causes(nodeId"a"), Causes(nodeId"a"))
     )
     assert(all.map(_.status).distinct.size == 5)
   }
@@ -26,4 +26,6 @@ class NodeOutcomeTests extends Test[Any]:
     }
     "two Causes built from the same ids are equal" in
       assert(Causes.unsafe(Chunk(nodeId"a", nodeId"b")) == Causes.unsafe(Chunk(nodeId"a", nodeId"b")))
+    "the varargs constructor carries non-emptiness by arity and matches the validated path" in
+      assert(Causes(nodeId"a", nodeId"b") == Causes.unsafe(Chunk(nodeId"a", nodeId"b")))
   }
