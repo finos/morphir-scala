@@ -6,7 +6,7 @@ import kyo.test.*
 class StageTests extends Test[Any]:
 
   /** Strip a proven-empty `Abort[Nothing]` so an infallible fixture's result can reach `.eval` directly. */
-  private def runPure[A, S](v: A < (Abort[Nothing] & S))(using Frame): A < S =
+  private def runPure[A, S](v: A < (Abort[Nothing] & S)): A < S =
     Abort.run[Nothing](v).map(_.getOrThrow)
 
   private val identityStage: Stage[Int, Int, Nothing, Any] =
