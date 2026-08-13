@@ -2,6 +2,9 @@
 
 ## 2026-08-13
 
+* **Update**: CI now publishes branch snapshots from `main` and `develop` after the aggregate gate, as described in
+  [Continuous Integration](/continuous-integration.md); `0.4.x` and tags keep VCS-derived milestone and release
+  publishing.
 * **Update**: Recorded the `morphir/buildkit/core` implementation of the seven current-position entries in
   [Buildkit task-graph capability](/design/buildkit-task-graph.md), including deviations from the settled
   positions and the still-unreachable `SkipReason.ConditionFalse`.

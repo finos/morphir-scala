@@ -16,22 +16,29 @@ NOTE: All contributors must have a contributor license agreement (CLA) on file w
 ## Development and snapshot releases
 
 Feature and contributor pull requests target `develop`. Pull-request events run the validation jobs, but never
-publish artifacts. After a pull request is merged, a successful push to `develop` runs the full aggregate CI gate and
-then automatically publishes a traceable snapshot from the canonical `finos/morphir-scala` repository. Publication
-credentials remain in that repository's CI environment; contributors neither need nor receive them locally. An
-administrator must first enable snapshot support for the project's Sonatype namespace.
+publish artifacts. After a pull request is merged, a successful push to `main` or `develop` runs the full aggregate
+CI gate and then automatically publishes a traceable snapshot from the canonical `finos/morphir-scala` repository.
+Publication credentials remain in that repository's CI environment; contributors neither need nor receive them
+locally.
 
-Each snapshot uses an exact coordinate such as:
+Each snapshot uses an exact coordinate. On `main`, the coordinate is `$releaseLine-$distance-SNAPSHOT`, for example:
+
+```text
+0.5.0-M04-57-SNAPSHOT
+0.5.0-57-SNAPSHOT
+```
+
+On `develop`, the coordinate is `$releaseLine-$branch.$distance.g$abbrev-SNAPSHOT`, for example:
 
 ```text
 0.5.0-M04-develop.57.gbd4cd2-SNAPSHOT
 0.5.0-develop.57.gbd4cd2-SNAPSHOT
 ```
 
-The coordinate contains the release line (`0.5.0`), an optional release-line qualifier (`M04`), the branch
-(`develop`), the commit distance from the nearest version tag (`57`), a `g` followed by the first six hexadecimal
-characters of the Git revision (`bd4cd2`), and the terminal `SNAPSHOT` marker. Consumers must add the Sonatype
-snapshot repository and depend on the exact coordinate they intend to test:
+The release line may include a qualifier (`M04`). On `develop`, the coordinate also records the branch (`develop`),
+the commit distance from the nearest version tag (`57`), and a `g` followed by the first six hexadecimal characters
+of the Git revision (`bd4cd2`), before the terminal `SNAPSHOT` marker. Consumers must add the Sonatype snapshot
+repository and depend on the exact coordinate they intend to test:
 
 ```text
 https://central.sonatype.com/repository/maven-snapshots
@@ -42,8 +49,8 @@ The revision-bearing logical version is traceable, but its `-SNAPSHOT` artifact 
 are currently cleaned up after 90 days. Do not treat this coordinate as an immutable, reproducible-release lock;
 resolution and availability follow the snapshot repository's behavior.
 
-Publication from `main`, `0.4.x`, and tags continues to use the ordinary VCS-derived milestone and release flow. The
-snapshot environment is configured only for `develop`, never for `main` or tags.
+Publication from `0.4.x` and tags continues to use the ordinary VCS-derived milestone and release flow, with no
+snapshot environment.
 
 ### Mill Morphir plugin workflow
 

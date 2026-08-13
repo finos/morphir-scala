@@ -140,10 +140,10 @@ object SquireCiPolicy:
 
   def assertSnapshotPolicy(workflow: String): Unit =
     val publish  = publishBlock(workflow)
-    val snapshot = indentedBlock(publish, "- name: Configure develop snapshot version", 6)
+    val snapshot = indentedBlock(publish, "- name: Configure snapshot version", 6)
     expect(
-      scalar(snapshot, "if") == "github.ref == 'refs/heads/develop'",
-      "snapshot step must run only on develop"
+      scalar(snapshot, "if") == "github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'",
+      "snapshot step must run only on main and develop"
     )
     val lines    = snapshot.linesIterator.toList
     val runIndex = lines.indexWhere(_.trim == "run: |")
@@ -152,7 +152,7 @@ object SquireCiPolicy:
       .map(_.drop(10))
     expect(commands == SnapshotCommands, s"unexpected snapshot commands: $commands")
     expect(
-      publish.indexOf("- name: Configure develop snapshot version") < publish.indexOf("- name: Release"),
+      publish.indexOf("- name: Configure snapshot version") < publish.indexOf("- name: Release"),
       "snapshot configuration must precede Release"
     )
     List("MORPHIR_PUBLISH_MODE=snapshot", "MORPHIR_PUBLISH_BRANCH=${GITHUB_REF_NAME}").foreach { assignment =>
@@ -1168,7 +1168,7 @@ class SquireCiPolicySpec extends Test[Any]:
       assert(true)
     }
 
-    "scopes the exact snapshot configuration to develop" in {
+    "scopes the exact snapshot configuration to main and develop" in {
       assertSnapshotPolicy(workflow)
       assert(true)
     }
@@ -1537,8 +1537,8 @@ class SquireCiPolicySpec extends Test[Any]:
       )
       val broadSnapshotCondition = replaceOnce(
         workflow,
-        "        if: github.ref == 'refs/heads/develop'\n        run: |",
-        "        if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'\n        run: |"
+        "        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'\n        run: |",
+        "        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/feature'\n        run: |"
       )
       val extraSnapshotWrite = replaceOnce(
         workflow,
