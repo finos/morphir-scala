@@ -13,6 +13,9 @@ object ElmProcessEnvironment {
     "SSL_CERT_FILE",
     "SSL_CERT_DIR",
     "NODE_EXTRA_CA_CERTS",
+    // Lets CI inject a --require preload that neutralizes morphir-elm's fatal EBADF
+    // fd-close-on-GC crash (finos/morphir-elm#1282); remove when upstream fixes it.
+    "NODE_OPTIONS",
     "SYSTEMROOT",
     "SystemRoot",
     "WINDIR",
