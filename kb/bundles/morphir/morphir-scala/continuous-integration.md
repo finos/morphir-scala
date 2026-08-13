@@ -20,18 +20,20 @@ branches.
 | `test-jvm` | JVM tests, including the Cucumber/JUnit5 `langkit.itest` suite |
 | `test-js` | ScalaJS tests, including the WebAssembly link variants |
 | `test-native` | Scala Native tests |
-| `publish` | Sonatype publication on `main`, `0.4.x`, tags, and `develop` snapshots |
+| `publish` | Sonatype publication — branch snapshots on `main` and `develop`; VCS milestones and releases on `0.4.x` and tags |
 | `ci` | Aggregate gate — depends on lint, knowledge-base and all three test jobs |
 
 CI runs on pull requests into `main`, `0.4.x`, and `develop`; pushes to those same branches; published releases; and
 manual dispatch. Older runs of the same pull request are cancelled automatically.
 
-## Develop snapshots
+## Branch snapshots
 
-A push or merge to `develop` must pass the full aggregate `ci` gate before publishing. The resulting exact coordinate
-is branch-qualified and traceable, for example `0.5.0-M04-develop.57.gbd4cd2-SNAPSHOT` or
-`0.5.0-develop.57.gbd4cd2-SNAPSHOT`: the release line may have a qualifier, and the coordinate records `develop`, the
-distance from the nearest version tag, and a six-character Git abbreviation before the terminal `SNAPSHOT` marker.
+A push or merge to `main` or `develop` must pass the full aggregate `ci` gate before publishing. On `main`, the
+exact coordinate is `$releaseLine-$distance-SNAPSHOT`, for example `0.5.0-M04-57-SNAPSHOT` or `0.5.0-57-SNAPSHOT`.
+On `develop`, the coordinate is `$releaseLine-$branch.$distance.g$abbrev-SNAPSHOT`, for example
+`0.5.0-M04-develop.57.gbd4cd2-SNAPSHOT` or `0.5.0-develop.57.gbd4cd2-SNAPSHOT`: the release line may have a
+qualifier, and the coordinate records `develop`, the distance from the nearest version tag, and a six-character Git
+abbreviation before the terminal `SNAPSHOT` marker.
 
 Only non-PR runs in the canonical `finos/morphir-scala` repository can reach publication and its credentials. Pull
 requests validate without publishing, and contributors do not receive publication credentials locally. Consumers
@@ -39,8 +41,8 @@ add `https://central.sonatype.com/repository/maven-snapshots` and select the exa
 availability follow the snapshot repository's behavior. The revision-bearing logical version is traceable, but its
 `-SNAPSHOT` artifact is mutable and may be overwritten. Sonatype says snapshots are
 [currently cleaned up after 90 days](https://central.sonatype.org/publish/publish-portal-snapshots/), so the coordinate
-must not be treated as an immutable, reproducible-release lock. Publication from `main`, `0.4.x`, and tags keeps the
-ordinary VCS-derived milestone and release flow, with no snapshot environment on `main` or tags.
+must not be treated as an immutable, reproducible-release lock. Publication from `0.4.x` and tags keeps the ordinary
+VCS-derived milestone and release flow, with no snapshot environment.
 
 ## The knowledge-base job
 

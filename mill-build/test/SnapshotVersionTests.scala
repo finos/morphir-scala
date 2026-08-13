@@ -24,6 +24,30 @@ def state(
   )
 
   assertEquals(
+    SnapshotVersion.format(state(), "main"),
+    Right("0.5.0-M04-57-SNAPSHOT")
+  )
+  assertEquals(
+    SnapshotVersion.format(state(tag = Some("v0.5.0")), "main"),
+    Right("0.5.0-57-SNAPSHOT")
+  )
+  assertEquals(
+    SnapshotVersion.format(state(tag = None), "main"),
+    Right("0.0.0-57-SNAPSHOT")
+  )
+  assertEquals(
+    SnapshotVersion.format(state(distance = 0), "MAIN"),
+    Right("0.5.0-M04-0-SNAPSHOT")
+  )
+  assertEquals(
+    SnapshotVersion.select(
+      state(),
+      Map("MORPHIR_PUBLISH_MODE" -> "snapshot", "MORPHIR_PUBLISH_BRANCH" -> "main")
+    ),
+    Right("0.5.0-M04-57-SNAPSHOT")
+  )
+
+  assertEquals(
     SnapshotVersion.format(state(tag = Some("v0.5.0")), "develop"),
     Right("0.5.0-develop.57.gbd4cd2-SNAPSHOT")
   )

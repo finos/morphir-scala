@@ -42,8 +42,12 @@ object SnapshotVersion {
         case Some(tag) => Left(s"nearest tag '$tag' is not a semantic version")
       }
     } yield {
-      val revision = state.currentRevision.take(6).toLowerCase(Locale.ROOT)
-      s"$releaseLine-$normalizedBranch.${state.commitsSinceLastTag}.g$revision-SNAPSHOT"
+      if (normalizedBranch == "main")
+        s"$releaseLine-${state.commitsSinceLastTag}-SNAPSHOT"
+      else {
+        val revision = state.currentRevision.take(6).toLowerCase(Locale.ROOT)
+        s"$releaseLine-$normalizedBranch.${state.commitsSinceLastTag}.g$revision-SNAPSHOT"
+      }
     }
 
   def select(state: VcsVersion.State, env: Map[String, String]): Either[String, String] =

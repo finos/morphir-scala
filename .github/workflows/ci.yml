@@ -462,8 +462,8 @@ jobs:
             out/morphir/**/js/
           key: ${{ runner.os }}-mill-js-25-${{ github.sha }}
 
-      - name: Configure develop snapshot version
-        if: github.ref == 'refs/heads/develop'
+      - name: Configure snapshot version
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
         run: |
           echo "MORPHIR_PUBLISH_MODE=snapshot" >> "$GITHUB_ENV"
           echo "MORPHIR_PUBLISH_BRANCH=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
