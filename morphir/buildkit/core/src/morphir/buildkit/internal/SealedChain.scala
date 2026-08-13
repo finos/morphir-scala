@@ -44,6 +44,19 @@ private[buildkit] enum SealedElem[-I, +O, E, S]:
   ) extends SealedElem[I2, O2, E1 | E2, S1 & S2]
 
   /**
+   * Number of leaf slots this element occupies in its chain's own definition-order id space — by construction, exactly
+   * `nodeIds.size`, computed structurally so a walker can split a positional range without materializing the ids.
+   * Mirrors [[morphir.buildkit.internal.DefElem#size]], which [[Sealing.sealChain]] already uses to slice assigned ids
+   * per element; the report executor uses this one the same way to derive each node's ordinal.
+   */
+  def size: Int =
+    this match
+      case StageNode(_, _)                   => 1
+      case ParNode(left, right, _)           => left.size + right.size
+      case FanOutNode(_, _)                  => 1
+      case BranchNode(_, _, ifTrue, ifFalse) => 1 + ifTrue.size + ifFalse.size
+
+  /**
    * Node ids, in definition order: one per leaf stage, recursing through both sides of a `ParNode`. A `FanOutNode`
    * contributes only its own id — its child chain's ids live in a separate, nested namespace. A `BranchNode`
    * contributes its own id followed by both arms' own ids, flattened — the same namespace its arms already share at
@@ -77,6 +90,12 @@ private[buildkit] enum SealedChain[-I, +O, E, S]:
       init: SealedChain[I2, M, E1, S1],
       last: SealedElem[M, O2, E2, S2]
   ) extends SealedChain[I2, O2, E1 | E2, S1 & S2]
+
+  /** Number of leaf slots in this chain's own definition-order id space — by construction, exactly `nodeIds.size`. */
+  def size: Int =
+    this match
+      case Single(elem)       => elem.size
+      case Append(init, last) => init.size + last.size
 
   /** Node ids, in definition order. */
   def nodeIds: Chunk[NodeId] =

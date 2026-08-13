@@ -245,6 +245,19 @@ final class PipelineDef[-I, +O, E, S] private[buildkit] (
 end PipelineDef
 
 /**
+ * How a report run reacts to a node that did not produce a value.
+ *
+ * The mode only decides whether work that has '''not yet started''' still runs; it never rewrites an outcome. A node
+ * that failed reports `Failed` under either mode, and everything downstream of a failure in the same chain is `Blocked`
+ * under either mode — there is nothing left to feed it. The two modes differ only where independent work exists:
+ *
+ *   - `FailFast` — a `par` sibling, or a fan-out element, that had not started when its peer failed is `Cancelled`.
+ *   - `KeepGoing` — that same sibling or element runs, and reports its own outcome.
+ */
+enum RunMode derives CanEqual:
+  case FailFast, KeepGoing
+
+/**
  * A validated, immutable, shareable execution plan. Per-run state lives in the executor's handler scope, so one plan
  * may run concurrently.
  */
@@ -258,6 +271,20 @@ final class SealedPipeline[-I, +O, E, S] private[buildkit] (
    * paths only appear in [[PipelineEvent]]s emitted by [[execute]], never here.
    */
   def nodeIds: Chunk[NodeId] = sealedChain.nodeIds
+
+  /**
+   * Each node's id paired with its ordinal — its 0-based position in the seal's own definition-order walk, the same
+   * walk that assigned the ids. Ordinals are dense over [[nodeIds]] and stable for the life of the plan, so they order
+   * a [[PipelineReport]]'s nodes independently of the order the executor happened to reach them in (a `branch` runs one
+   * arm and skips the other, so execution order and definition order genuinely differ).
+   *
+   * [[runReport]] never looks an ordinal up here: it derives each node's own by the identical positional arithmetic the
+   * sealer already uses to slice assigned ids per element (`base + init.size`, see
+   * [[morphir.buildkit.internal.SealedChain#size]]), so an ordinal cannot desynchronize from the node it numbers. A
+   * fan-out's per-element children are '''not''' listed here — they are not static plan nodes; see [[runReport]] for
+   * the ordinal they report under.
+   */
+  def ordinals: Chunk[(NodeId, Int)] = sealedChain.nodeIds.zipWithIndex
 
   def seal: Result[SealErrors, SealedPipeline[I, O, E, S]] = Result.succeed(this)
 
@@ -327,6 +354,68 @@ final class SealedPipeline[-I, +O, E, S] private[buildkit] (
         _ <- Emit.value(PipelineEvent.RunFinished(true))
       yield out
     }
+
+  /**
+   * Run the plan sequentially and '''return''' what happened, rather than halting on it: every node contributes a
+   * [[NodeReport]], and a failure becomes data instead of a short-circuit. `Abort[E]` is therefore absent from the
+   * result row — this is where the typed interception happens, which is why `ConcreteTag[E]` (what `Abort.run` needs to
+   * recognize an `E` at runtime) surfaces once, here.
+   *
+   * '''Per node.''' The node body runs under `Abort.run[E]`, wrapped in `kyo.kernel.Effect.catching` so a raw non-fatal
+   * throw during the body's own eager evaluation is folded in too (see [[SealedPipeline.attempt]]). The three-way
+   * `Result` folds to: `Success` → `Succeeded(Provenance.Executed)`, `Failure(e)` → `Failed(Result.Failure(e))`,
+   * `Panic(t)` → `Failed(Result.Panic(t))`. A fatal `Throwable` still tears the run — the same gap [[execute]]
+   * documents, unchanged here.
+   *
+   * '''Downstream of a failure.''' Every later node in the same chain reports `Blocked(blockedBy, rootCauses)`, where
+   * `blockedBy` names its ''immediate'' predecessor(s) and `rootCauses` names the node(s) that actually failed,
+   * propagated by reference through the whole tail rather than re-derived: in `a andThen b andThen c andThen d` with
+   * `b` failing, `c` is `Blocked(Chunk(b), Chunk(b))` and `d` is `Blocked(Chunk(c), Chunk(b))`.
+   *
+   * '''Composite nodes report their own work, not their children's.''' A `branch` node reports `Succeeded` once its
+   * predicate evaluated (that is all the node itself does) even when the arm it chose then failed; the arm's own
+   * failing node carries the `Failed`. A `fanOut` node reports `Blocked` naming the child element runs that failed,
+   * since it genuinely produced no chunk — the typed `Failed` again lives on the child node that raised it. That keeps
+   * [[PipelineReport#failed]] pointing at origins and [[PipelineReport#blocked]] at consequences.
+   *
+   * '''Fan-out children.''' Each element's run contributes its own reports under `parent/<index>/<childId>`, in input
+   * order, carrying '''the parent fan-out node's ordinal''' — they are not static plan nodes, so they have no ordinal
+   * of their own, and sharing the parent's collates them immediately after it. Identity here is positional; keyed
+   * identity is a later task.
+   *
+   * '''Untaken branch arms''' report `Skipped(BranchNotTaken(branch))`, naming the branch node itself — the arm chains
+   * have no single id to name, and the branch node is what the reader looks up. `SkipReason.ConditionFalse` is not
+   * produced yet: `when` desugars to `branch` (see [[PipelineDef#when]]), so nothing distinguishes the two at this
+   * layer.
+   *
+   * '''Collation and events.''' `nodes` is sorted by ordinal — stably, so a fan-out's children keep their input order
+   * under their parent — and is therefore identical across two runs of the same plan on the same input. Events are
+   * emitted as the executor walks (the same order [[execute]] uses, which is definition order except that a branch's
+   * taken arm precedes the untaken arm's skips): `RunStarted` first, `RunFinished(result.isDefined)` last, one
+   * `NodeStarted`/`NodeFinished` pair per node that actually ran, and a lone `NodeFinished` for a node that did not
+   * (`Blocked`, `Cancelled`, `Skipped`) — exactly the [[PipelineEvent]] contract [[execute]] already keeps. No
+   * open-node tracking is needed here, unlike [[execute]]'s own `Var[OpenNodes]`: nothing escapes a node's own fold, so
+   * every `NodeStarted` is closed where it was opened.
+   *
+   * `result` is `Present` only when the terminal node produced a value.
+   */
+  def runReport(input: I, mode: RunMode = RunMode.FailFast)(using
+      ConcreteTag[E],
+      Frame
+  ): PipelineReport[E, O] < (S & Emit[PipelineEvent]) =
+    Emit.value(PipelineEvent.RunStarted).andThen {
+      SealedPipeline
+        .reportChain[I, O, E, S](sealedChain, Chunk.empty, 0, mode, SealedPipeline.Gate.Live(input, Chunk.empty))
+        .map { (reports, gate) =>
+          val result: Maybe[O] = gate match
+            case SealedPipeline.Gate.Live(value, _) => Present(value)
+            case _                                  => Absent
+          Emit.value(PipelineEvent.RunFinished(result.isDefined)).andThen(
+            PipelineReport(reports.sortBy(_.ordinal), result)
+          )
+        }
+    }
+end SealedPipeline
 
 object SealedPipeline:
 
@@ -494,4 +583,366 @@ object SealedPipeline:
         executeElem(elem, prefix, input)
       case SealedChain.Append(init, last) =>
         executeChain(init, prefix, input).map(mid => executeElem(last, prefix, mid))
+
+  // ---------------------------------------------------------------------------------------------------------------
+  // The report executor ([[SealedPipeline#runReport]]).
+  //
+  // Every helper below is typed at the *pipeline's* own `E`/`S`, never at a node's existential ones: a per-node
+  // `ConcreteTag[E2]` is not summonable inside a GADT match, so each recursive step widens the node it is about to run
+  // to the pipeline-level row first (the `widenSealed*` helpers, whose own doc explains why that widening is a proof
+  // rather than an assumption) and only then intercepts it with `Abort.run[E]` under `runReport`'s single, concrete
+  // `ConcreteTag[E]`.
+  // ---------------------------------------------------------------------------------------------------------------
+
+  /**
+   * What flows from one node to the next during a report run — the executor's whole per-node state, threaded as a value
+   * rather than held in a handler.
+   *
+   *   - `Live` carries the value produced so far and `exits`, the id(s) of the node(s) that produced it: the immediate
+   *     predecessor(s) of whatever runs next.
+   *   - `Blocked` carries what the next node's own `NodeOutcome.Blocked` must say — `blockedBy` (its immediate
+   *     predecessor, re-pointed at each step) and `rootCauses` (the originating failure(s), carried unchanged the whole
+   *     way down, never re-derived).
+   *   - `Cancelled` marks work that a `RunMode.FailFast` peer failure withdrew before it started.
+   */
+  private enum Gate[+A]:
+    case Live(value: A, exits: Chunk[NodeId])
+    case Blocked(blockedBy: Chunk[NodeId], rootCauses: Chunk[NodeId])
+    case Cancelled
+
+  private object Gate:
+    /** The id(s) a successor of this segment should name as its immediate predecessor(s). */
+    def exitsOf(gate: Gate[Any]): Chunk[NodeId] =
+      gate match
+        case Live(_, exits) => exits
+        case Blocked(by, _) => by
+        case Gate.Cancelled => Chunk.empty
+
+    /** The originating failure(s) behind this segment, if any. */
+    def rootsOf(gate: Gate[Any]): Chunk[NodeId] =
+      gate match
+        case Blocked(_, roots) => roots
+        case _                 => Chunk.empty
+
+    /**
+     * Join the two sides of a fork where at least one side produced no value: `Blocked` when either side traces back to
+     * a real failure (a cancelled side contributes no predecessor of its own, having never run), `Cancelled` only when
+     * neither does — which is exactly the case where the fork itself was withdrawn.
+     */
+    def join(left: Gate[Any], right: Gate[Any]): Gate[Nothing] =
+      val roots = (rootsOf(left) ++ rootsOf(right)).distinct
+      if roots.isEmpty then Cancelled
+      else Blocked((exitsOf(left) ++ exitsOf(right)).distinct, roots)
+  end Gate
+
+  /** A fan-out's per-element accumulation: child reports and values so far, plus what failed, if anything. */
+  private final case class FanOutAcc[E, B](
+      reports: Chunk[NodeReport[E]],
+      values: Chunk[B],
+      blockedBy: Chunk[NodeId],
+      rootCauses: Chunk[NodeId]
+  )
+
+  /**
+   * Run one node's own body and fold every way it can end into a `Result`.
+   *
+   * `Abort.run[E]` intercepts the typed channel and already renders a panic raised through it as `Result.Panic`. The
+   * `Effect.catching` wrapper covers what `Abort.run` alone cannot: `body` is forced ''while constructing'' the
+   * computation (a `Stage.Run`'s own function is applied eagerly), so a raw non-fatal throw from that application would
+   * otherwise escape the handler entirely and tear the run. Both paths land on the same `Result.Panic`, and the caller
+   * folds one shape. Fatal throwables remain uncaught — `Effect.catching` filters on `scala.util.control.NonFatal`, the
+   * gap [[SealedPipeline#execute]] documents.
+   */
+  private def attempt[A, E, S](body: => A < (Abort[E] & S))(using ConcreteTag[E], Frame): Result[E, A] < S =
+    Effect.catching(Abort.run[E](body))((ex: Throwable) => Result.Panic(ex): Result[E, A])
+
+  /** Emit a node's closing event and pair its report with the gate it hands downstream. */
+  private def closing[E, B](
+      id: NodeId,
+      ordinal: Int,
+      outcome: NodeOutcome[E],
+      out: Gate[B]
+  )(using Frame): (Chunk[NodeReport[E]], Gate[B]) < Emit[PipelineEvent] =
+    Emit.value(PipelineEvent.NodeFinished(id, outcome.status)).andThen(
+      (Chunk(NodeReport(id, ordinal, outcome)), out)
+    )
+
+  private def reportChain[A, B, E, S](
+      chain: SealedChain[A, B, E, S],
+      prefix: Chunk[String],
+      base: Int,
+      mode: RunMode,
+      gate: Gate[A]
+  )(using ConcreteTag[E], Frame): (Chunk[NodeReport[E]], Gate[B]) < (S & Emit[PipelineEvent]) =
+    chain match
+      case SealedChain.Single(elem)       => reportElem(elem, prefix, base, mode, gate)
+      case SealedChain.Append(init, last) => reportAppend(init, last, prefix, base, mode, gate)
+
+  /**
+   * The `Append` case, split out so the chain's existential middle type `M` can be named: `init` runs from `base`, and
+   * `last` from `base + init.size` — the same positional split [[morphir.buildkit.internal.Sealing.pairChain]] uses to
+   * hand each element its own assigned ids, which is what makes the ordinal derived here the one
+   * [[SealedPipeline#ordinals]] reports.
+   */
+  private def reportAppend[A, M, B, E, S](
+      init: SealedChain[A, M, ?, ?],
+      last: SealedElem[M, B, ?, ?],
+      prefix: Chunk[String],
+      base: Int,
+      mode: RunMode,
+      gate: Gate[A]
+  )(using ConcreteTag[E], Frame): (Chunk[NodeReport[E]], Gate[B]) < (S & Emit[PipelineEvent]) =
+    val initChain = widenSealedChain[A, M, E, S](init)
+    reportChain(initChain, prefix, base, mode, gate).map { (initReports, midGate) =>
+      reportElem(widenSealedElem[M, B, E, S](last), prefix, base + initChain.size, mode, midGate).map {
+        (lastReports, outGate) => (initReports ++ lastReports, outGate)
+      }
+    }
+  end reportAppend
+
+  private def reportElem[A, B, E, S](
+      elem: SealedElem[A, B, E, S],
+      prefix: Chunk[String],
+      base: Int,
+      mode: RunMode,
+      gate: Gate[A]
+  )(using ConcreteTag[E], Frame): (Chunk[NodeReport[E]], Gate[B]) < (S & Emit[PipelineEvent]) =
+    elem match
+      case SealedElem.StageNode(id, stage)                  => reportStage(id, stage, prefix, base, gate)
+      case SealedElem.ParNode(left, right, zip)             => reportPar(left, right, zip, prefix, base, mode, gate)
+      case SealedElem.FanOutNode(id, each)                  => reportFanOut(id, each, prefix, base, mode, gate)
+      case SealedElem.BranchNode(id, pred, ifTrue, ifFalse) =>
+        reportBranch(id, pred, ifTrue, ifFalse, prefix, base, mode, gate)
+
+  private def reportStage[A, B, E, S](
+      id: NodeId,
+      stage: Stage[A, B, E, S],
+      prefix: Chunk[String],
+      ordinal: Int,
+      gate: Gate[A]
+  )(using ConcreteTag[E], Frame): (Chunk[NodeReport[E]], Gate[B]) < (S & Emit[PipelineEvent]) =
+    val eventId = NodeId.unsafe(prefix ++ id.segments)
+    gate match
+      case Gate.Live(value, _) =>
+        Emit.value(PipelineEvent.NodeStarted(eventId, stage.meta)).andThen {
+          attempt[B, E, S] {
+            stage.meta match
+              case Present(meta) => Pipeline.provenanceLocal.update(_.append(meta))(stage.run(value))
+              case Absent        => stage.run(value)
+          }.map { ran =>
+            val (outcome, out): (NodeOutcome[E], Gate[B]) = ran match
+              case Result.Success(produced) =>
+                (NodeOutcome.Succeeded(Provenance.Executed), Gate.Live(produced, Chunk(eventId)))
+              case Result.Failure(error) =>
+                (NodeOutcome.Failed(Result.Failure(error)), Gate.Blocked(Chunk(eventId), Chunk(eventId)))
+              case Result.Panic(ex) =>
+                (NodeOutcome.Failed(Result.Panic(ex)), Gate.Blocked(Chunk(eventId), Chunk(eventId)))
+            closing(eventId, ordinal, outcome, out)
+          }
+        }
+      case Gate.Blocked(blockedBy, rootCauses) =>
+        closing(
+          eventId,
+          ordinal,
+          NodeOutcome.Blocked(blockedBy, rootCauses),
+          Gate.Blocked(Chunk(eventId), rootCauses)
+        )
+      case Gate.Cancelled =>
+        closing(eventId, ordinal, NodeOutcome.Cancelled, Gate.Cancelled)
+  end reportStage
+
+  /**
+   * Both sides of a fork see the same incoming gate — a fork feeds both branches the pipeline's own input, so the right
+   * side never depends on the left's result. The one thing the left side's outcome decides is whether the right side
+   * gets to run at all: under `FailFast`, a left failure withdraws a right side that had not started; under `KeepGoing`
+   * it does not.
+   */
+  private def reportPar[A, O1, O2, B, E, S](
+      left: SealedChain[A, O1, ?, ?],
+      right: SealedChain[A, O2, ?, ?],
+      zip: (O1, O2) => B,
+      prefix: Chunk[String],
+      base: Int,
+      mode: RunMode,
+      gate: Gate[A]
+  )(using ConcreteTag[E], Frame): (Chunk[NodeReport[E]], Gate[B]) < (S & Emit[PipelineEvent]) =
+    val leftChain = widenSealedChain[A, O1, E, S](left)
+    reportChain(leftChain, prefix, base, mode, gate).map { (leftReports, leftGate) =>
+      val rightGate: Gate[A] = (gate, leftGate) match
+        case (Gate.Live(_, _), Gate.Live(_, _))               => gate
+        case (Gate.Live(_, _), _) if mode == RunMode.FailFast => Gate.Cancelled
+        case _                                                => gate
+      reportChain(widenSealedChain[A, O2, E, S](right), prefix, base + leftChain.size, mode, rightGate).map {
+        (rightReports, rightOut) =>
+          val out: Gate[B] = (leftGate, rightOut) match
+            case (Gate.Live(l, leftExits), Gate.Live(r, rightExits)) => Gate.Live(zip(l, r), leftExits ++ rightExits)
+            case _                                                   => Gate.join(leftGate, rightOut)
+          (leftReports ++ rightReports, out)
+      }
+    }
+  end reportPar
+
+  /**
+   * The fan-out node's own report says whether it produced a chunk; each element's run reports separately, under
+   * `parent/<index>/<childId>` and at the parent's own ordinal. Under `FailFast` the first element that fails withdraws
+   * the elements after it; under `KeepGoing` every element runs and the parent collects them all.
+   */
+  private def reportFanOut[A, B, E, S](
+      id: NodeId,
+      each: SealedChain[A, B, ?, ?],
+      prefix: Chunk[String],
+      ordinal: Int,
+      mode: RunMode,
+      gate: Gate[Chunk[A]]
+  )(using ConcreteTag[E], Frame): (Chunk[NodeReport[E]], Gate[Chunk[B]]) < (S & Emit[PipelineEvent]) =
+    val eventId     = NodeId.unsafe(prefix ++ id.segments)
+    val childPrefix = prefix ++ id.segments
+    val childChain  = widenSealedChain[A, B, E, S](each)
+    gate match
+      case Gate.Live(elements, _) =>
+        Emit.value(PipelineEvent.NodeStarted(eventId, Absent)).andThen {
+          Kyo.foldLeft(elements.zipWithIndex)(FanOutAcc[E, B](Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty)) {
+            (acc, indexed) =>
+              val (element, index)   = indexed
+              val childGate: Gate[A] =
+                if acc.rootCauses.nonEmpty && mode == RunMode.FailFast then Gate.Cancelled
+                else Gate.Live(element, Chunk(eventId))
+              reportChain(childChain, childPrefix :+ index.toString, ordinal, mode, childGate).map {
+                (childReports, childOut) =>
+                  val merged = acc.copy(reports = acc.reports ++ childReports)
+                  childOut match
+                    case Gate.Live(produced, _)  => merged.copy(values = merged.values :+ produced)
+                    case Gate.Blocked(by, roots) =>
+                      merged.copy(
+                        blockedBy = (merged.blockedBy ++ by).distinct,
+                        rootCauses = (merged.rootCauses ++ roots).distinct
+                      )
+                    case Gate.Cancelled => merged
+              }
+          }.map { acc =>
+            val outcome: NodeOutcome[E] =
+              if acc.rootCauses.isEmpty then NodeOutcome.Succeeded(Provenance.Executed)
+              else NodeOutcome.Blocked(acc.blockedBy, acc.rootCauses)
+            val out: Gate[Chunk[B]] =
+              if acc.rootCauses.isEmpty then Gate.Live(acc.values, Chunk(eventId))
+              else Gate.Blocked(Chunk(eventId), acc.rootCauses)
+            Emit.value(PipelineEvent.NodeFinished(eventId, outcome.status)).andThen(
+              (Chunk(NodeReport(eventId, ordinal, outcome)) ++ acc.reports, out)
+            )
+          }
+        }
+      // An unrun fan-out has no elements to iterate, so only its own node is reported — the same reason an unrun
+      // fan-out contributes exactly one `Skipped` under `execute`'s own skip contract.
+      case Gate.Blocked(blockedBy, rootCauses) =>
+        closing(
+          eventId,
+          ordinal,
+          NodeOutcome.Blocked(blockedBy, rootCauses),
+          Gate.Blocked(Chunk(eventId), rootCauses)
+        )
+      case Gate.Cancelled =>
+        closing(eventId, ordinal, NodeOutcome.Cancelled, Gate.Cancelled)
+  end reportFanOut
+
+  /**
+   * The branch node reports its own decision; the arm it picks reports for itself, and the arm it does not pick reports
+   * `Skipped`. When the predicate itself fails, neither arm can be picked, so both report `Blocked` on this node.
+   */
+  private def reportBranch[A, B, E, S](
+      id: NodeId,
+      pred: A => Boolean,
+      ifTrue: SealedChain[A, B, ?, ?],
+      ifFalse: SealedChain[A, B, ?, ?],
+      prefix: Chunk[String],
+      base: Int,
+      mode: RunMode,
+      gate: Gate[A]
+  )(using ConcreteTag[E], Frame): (Chunk[NodeReport[E]], Gate[B]) < (S & Emit[PipelineEvent]) =
+    val eventId    = NodeId.unsafe(prefix ++ id.segments)
+    val trueChain  = widenSealedChain[A, B, E, S](ifTrue)
+    val falseChain = widenSealedChain[A, B, E, S](ifFalse)
+    val trueBase   = base + 1
+    val falseBase  = trueBase + trueChain.size
+
+    /** Report the node itself, then walk both arms under the same non-live gate — neither of them ever ran. */
+    def bothArms(
+        outcome: NodeOutcome[E],
+        armGate: Gate[A],
+        out: Gate[B]
+    ): (Chunk[NodeReport[E]], Gate[B]) < (S & Emit[PipelineEvent]) =
+      Emit.value(PipelineEvent.NodeFinished(eventId, outcome.status)).andThen {
+        reportChain(trueChain, prefix, trueBase, mode, armGate).map { (trueReports, _) =>
+          reportChain(falseChain, prefix, falseBase, mode, armGate).map { (falseReports, _) =>
+            (Chunk(NodeReport(eventId, base, outcome)) ++ trueReports ++ falseReports, out)
+          }
+        }
+      }
+
+    gate match
+      case Gate.Live(value, _) =>
+        Emit.value(PipelineEvent.NodeStarted(eventId, Absent)).andThen {
+          attempt[Boolean, E, S](pred(value): Boolean < (Abort[E] & S)).map {
+            case Result.Success(taken) =>
+              val own     = NodeReport[E](eventId, base, NodeOutcome.Succeeded(Provenance.Executed))
+              val armGate = Gate.Live(value, Chunk(eventId))
+              // Assembled in execution order — taken arm, then the untaken arm's skips — exactly as the events are
+              // emitted. Collating them back into definition order is `runReport`'s own single job, done once, by
+              // ordinal; doing it a second time here by hand is how the two would drift.
+              Emit.value(PipelineEvent.NodeFinished(eventId, NodeStatus.Succeeded)).andThen {
+                val (armChain, armBase, untakenChain, untakenBase) =
+                  if taken then (trueChain, trueBase, falseChain, falseBase)
+                  else (falseChain, falseBase, trueChain, trueBase)
+                reportChain(armChain, prefix, armBase, mode, armGate).map { (armReports, armOut) =>
+                  reportSkipped[E](untakenChain, prefix, untakenBase, eventId).map { skipped =>
+                    (Chunk(own) ++ armReports ++ skipped, armOut)
+                  }
+                }
+              }
+            case Result.Failure(error) =>
+              bothArms(
+                NodeOutcome.Failed(Result.Failure(error)),
+                Gate.Blocked(Chunk(eventId), Chunk(eventId)),
+                Gate.Blocked(Chunk(eventId), Chunk(eventId))
+              )
+            case Result.Panic(ex) =>
+              bothArms(
+                NodeOutcome.Failed(Result.Panic(ex)),
+                Gate.Blocked(Chunk(eventId), Chunk(eventId)),
+                Gate.Blocked(Chunk(eventId), Chunk(eventId))
+              )
+          }
+        }
+      case Gate.Blocked(blockedBy, rootCauses) =>
+        bothArms(
+          NodeOutcome.Blocked(blockedBy, rootCauses),
+          Gate.Blocked(Chunk(eventId), rootCauses),
+          Gate.Blocked(Chunk(eventId), rootCauses)
+        )
+      case Gate.Cancelled =>
+        bothArms(NodeOutcome.Cancelled, Gate.Cancelled, Gate.Cancelled)
+  end reportBranch
+
+  /**
+   * Report `Skipped(BranchNotTaken(branch))` for every static node reachable through an untaken arm, ordinal-numbered
+   * from `base` the same way [[morphir.buildkit.internal.SealedChain#nodeIds]] orders them, and emit one
+   * `NodeFinished(id, Skipped)` each with no matching `NodeStarted` — the same shape [[SealedPipeline.emitSkips]]
+   * already produces for [[SealedPipeline#execute]]. A nested fan-out contributes only its own id: unexecuted, it has
+   * no element count to expand.
+   */
+  private def reportSkipped[E](
+      chain: SealedChain[?, ?, ?, ?],
+      prefix: Chunk[String],
+      base: Int,
+      branch: NodeId
+  )(using Frame): Chunk[NodeReport[E]] < Emit[PipelineEvent] =
+    val reports = chain.nodeIds.zipWithIndex.map { (id, index) =>
+      NodeReport[E](
+        NodeId.unsafe(prefix ++ id.segments),
+        base + index,
+        NodeOutcome.Skipped(SkipReason.BranchNotTaken(branch))
+      )
+    }
+    Kyo.foreachDiscard(reports)(report => Emit.value(PipelineEvent.NodeFinished(report.id, NodeStatus.Skipped)))
+      .andThen(reports)
+  end reportSkipped
 end SealedPipeline

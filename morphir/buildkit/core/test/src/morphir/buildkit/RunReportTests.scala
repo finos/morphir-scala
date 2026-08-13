@@ -1,0 +1,249 @@
+package morphir.buildkit
+
+import kyo.*
+import kyo.test.*
+
+class RunReportTests extends Test[Any]:
+
+  private def sealOrFail[I, O, E, S](p: Pipeline[I, O, E, S]): SealedPipeline[I, O, E, S] =
+    p.seal match
+      case Result.Success(sealed_) => sealed_
+      case other                   => throw new AssertionError(s"seal failed: $other")
+
+  /** Render an event trace as short tags, for compact equality assertions. Mirrors `PipelineTests`'s own renderer. */
+  private def render(events: Chunk[PipelineEvent]): Chunk[String] =
+    events.map {
+      case PipelineEvent.RunStarted           => "run:started"
+      case PipelineEvent.RunFinished(ok)      => s"run:finished:$ok"
+      case PipelineEvent.NodeStarted(id, _)   => s"start:${id.render}"
+      case PipelineEvent.NodeFinished(id, st) => s"finish:${id.render}:$st"
+      case PipelineEvent.NodeProgress(id, m)  => s"progress:${id.render}:$m"
+    }
+
+  // Every fixture stage is ascribed: a bare `Stage(...)` with no expected type infers `S = Nothing`, a valid but
+  // unusable row (`.eval` needs exactly `Any`, and `S` is contravariant). See `PipelineTests`'s own note.
+  private val inc: Stage[Int, Int, Nothing, Any]     = Stage((i: Int) => i + 1)
+  private val double: Stage[Int, Int, Nothing, Any]  = Stage((i: Int) => i * 2)
+  private val boom: Stage[Int, Int, RunBoom, Any]    = Stage((_: Int) => Abort.fail(RunBoom("b failed")))
+  private val explode: Stage[Int, Int, Nothing, Any] = Stage((_: Int) => (throw new RuntimeException("kaboom")): Int)
+  private val stringify: Stage[Int, String, Nothing, Any] = Stage((i: Int) => i.toString)
+
+  /** `a` succeeds, `b` aborts with a typed error, `c` never runs. */
+  private def failingChain =
+    Pipeline.stage(nodeId"a", inc).andThen(nodeId"b", boom).andThen(nodeId"c", double)
+
+  "typed halting" - {
+    "a typed failure is folded into Failed, and everything downstream is Blocked with root causes" in {
+      val plan             = sealOrFail(failingChain)
+      val (events, report) = Emit.run(plan.runReport(1)).eval
+      assert(report.outcome(nodeId"a") == Present(NodeOutcome.Succeeded(Provenance.Executed)))
+      assert(report.outcome(nodeId"b") == Present(NodeOutcome.Failed(Result.Failure(RunBoom("b failed")))))
+      assert(report.outcome(nodeId"c") == Present(NodeOutcome.Blocked(Chunk(nodeId"b"), Chunk(nodeId"b"))))
+      assert(report.result.isEmpty)
+      assert(!report.isSuccess)
+      assert(report.failed.map(_.id.render) == Chunk("b"))
+      assert(report.blocked.map(_.id.render) == Chunk("c"))
+      assert(
+        render(events) == Chunk(
+          "run:started",
+          "start:a",
+          "finish:a:Succeeded",
+          "start:b",
+          "finish:b:Failed",
+          "finish:c:Blocked",
+          "run:finished:false"
+        )
+      )
+    }
+
+    "transitive blocking names the immediate predecessor but keeps the originating root cause" in {
+      val plan = sealOrFail(
+        Pipeline.stage(nodeId"a", inc).andThen(nodeId"b", boom).andThen(nodeId"c", double).andThen(nodeId"d", double)
+      )
+      val (_, report) = Emit.run(plan.runReport(1)).eval
+      assert(report.outcome(nodeId"c") == Present(NodeOutcome.Blocked(Chunk(nodeId"b"), Chunk(nodeId"b"))))
+      assert(report.outcome(nodeId"d") == Present(NodeOutcome.Blocked(Chunk(nodeId"c"), Chunk(nodeId"b"))))
+    }
+
+    "a panic in a node body becomes Failed(Panic), not a torn run" in {
+      val plan = sealOrFail(Pipeline.stage(nodeId"a", inc).andThen(nodeId"boom", explode).andThen(nodeId"c", double))
+      val (events, report) = Emit.run(plan.runReport(1)).eval
+      report.outcome(nodeId"boom") match
+        case Present(NodeOutcome.Failed(Result.Panic(ex))) => assert(ex.getMessage == "kaboom")
+        case other                                         => assert(false, s"expected Failed(Panic), got $other")
+      assert(report.outcome(nodeId"c") == Present(NodeOutcome.Blocked(Chunk(nodeId"boom"), Chunk(nodeId"boom"))))
+      assert(report.result.isEmpty)
+      assert(render(events).last == "run:finished:false")
+    }
+  }
+
+  "success" - {
+    "carries the value and Executed provenance for every node" in {
+      val plan = sealOrFail(Pipeline.stage(nodeId"a", inc).andThen(nodeId"b", double).andThen(nodeId"c", stringify))
+      val (events, report) = Emit.run(plan.runReport(3)).eval
+      assert(report.result == Present("8"))
+      assert(report.isSuccess)
+      assert(report.failed.isEmpty && report.blocked.isEmpty)
+      assert(report.nodes.map(_.outcome) == Chunk.fill(3)(NodeOutcome.Succeeded(Provenance.Executed)))
+      assert(report.nodes.map(_.id.render) == Chunk("a", "b", "c"))
+      assert(report.outcome(nodeId"b") == Present(NodeOutcome.Succeeded(Provenance.Executed)))
+      assert(report.outcome(nodeId"missing") == Absent)
+      assert(
+        render(events) == Chunk(
+          "run:started",
+          "start:a",
+          "finish:a:Succeeded",
+          "start:b",
+          "finish:b:Succeeded",
+          "start:c",
+          "finish:c:Succeeded",
+          "run:finished:true"
+        )
+      )
+    }
+  }
+
+  "collation" - {
+    "report order equals ordinal order and is identical across runs" in {
+      // The false arm is taken, so execution order (branch, false arm, then the true arm's skips) differs from
+      // definition order (branch, true arm, false arm) — collation must follow the seal-assigned ordinals.
+      val plan = sealOrFail(
+        Pipeline
+          .stage(nodeId"a", inc)
+          .branch(_ > 100)(
+            Pipeline.stage(nodeId"big", double),
+            Pipeline.stage(nodeId"small", double)
+          )
+          .andThen(nodeId"z", stringify)
+      )
+      assert(plan.ordinals.map((id, o) => s"${id.render}:$o") == Chunk("a:0", "node-1:1", "big:2", "small:3", "z:4"))
+      val (ev1, r1) = Emit.run(plan.runReport(1)).eval
+      val (ev2, r2) = Emit.run(plan.runReport(1)).eval
+      assert(r1.nodes == r2.nodes)
+      assert(render(ev1) == render(ev2))
+      assert(r1.nodes.map(_.id) == plan.nodeIds)
+      assert(r1.nodes.map(_.ordinal) == Chunk(0, 1, 2, 3, 4))
+      assert(r1.nodes.map(n => (n.id, n.ordinal)) == plan.ordinals)
+      assert(r1.outcome(nodeId"big") == Present(NodeOutcome.Skipped(SkipReason.BranchNotTaken(nodeId"node-1"))))
+      assert(r1.outcome(nodeId"small") == Present(NodeOutcome.Succeeded(Provenance.Executed)))
+      assert(r1.result == Present("4"))
+    }
+  }
+
+  "branch" - {
+    "a predicate that throws fails the branch node and blocks both arms" in {
+      val plan = sealOrFail(
+        Pipeline
+          .stage(nodeId"a", inc)
+          .branch(_ => throw new IllegalStateException("bad predicate"))(
+            Pipeline.stage(nodeId"big", double),
+            Pipeline.stage(nodeId"small", double)
+          )
+      )
+      val (_, report) = Emit.run(plan.runReport(1)).eval
+      report.outcome(nodeId"node-1") match
+        case Present(NodeOutcome.Failed(Result.Panic(ex))) => assert(ex.getMessage == "bad predicate")
+        case other                                         => assert(false, s"expected Failed(Panic), got $other")
+      val blockedOnBranch = Present(NodeOutcome.Blocked(Chunk(nodeId"node-1"), Chunk(nodeId"node-1")))
+      assert(report.outcome(nodeId"big") == blockedOnBranch)
+      assert(report.outcome(nodeId"small") == blockedOnBranch)
+      assert(report.result.isEmpty)
+    }
+  }
+
+  "run modes" - {
+    "FailFast cancels the unstarted par sibling; KeepGoing runs it" in {
+      var ran                                    = 0
+      val tracked: Stage[Int, Int, Nothing, Any] = Stage { (i: Int) =>
+        ran += 1
+        i
+      }
+      val plan =
+        sealOrFail(Pipeline.stage(nodeId"l", boom).par(Pipeline.stage(nodeId"r", tracked)))
+
+      val (ffEvents, failFast) = Emit.run(plan.runReport(1, RunMode.FailFast)).eval
+      assert(ran == 0)
+      assert(failFast.outcome(nodeId"r") == Present(NodeOutcome.Cancelled))
+      assert(render(ffEvents).contains("finish:r:Cancelled"))
+      assert(!render(ffEvents).contains("start:r"))
+
+      val (_, keepGoing) = Emit.run(plan.runReport(1, RunMode.KeepGoing)).eval
+      assert(ran == 1)
+      assert(keepGoing.outcome(nodeId"r") == Present(NodeOutcome.Succeeded(Provenance.Executed)))
+
+      // Mode never rewrites an outcome: `l` failed identically under both.
+      val failure = Present(NodeOutcome.Failed(Result.Failure(RunBoom("b failed"))))
+      assert(failFast.outcome(nodeId"l") == failure && keepGoing.outcome(nodeId"l") == failure)
+      assert(failFast.result.isEmpty && keepGoing.result.isEmpty)
+    }
+
+    "cancellation reaches every node of the withdrawn sibling, not just its first" in {
+      val plan = sealOrFail(
+        Pipeline
+          .stage(nodeId"l", boom)
+          .par(Pipeline.stage(nodeId"r1", inc).andThen(nodeId"r2", double))
+      )
+      val (_, report) = Emit.run(plan.runReport(1)).eval
+      assert(report.outcome(nodeId"r1") == Present(NodeOutcome.Cancelled))
+      assert(report.outcome(nodeId"r2") == Present(NodeOutcome.Cancelled))
+      // Locks the ordinal arithmetic a fork uses to number its right side (`base + left.size`) against the seal's own.
+      assert(report.nodes.map(n => (n.id, n.ordinal)) == plan.ordinals)
+    }
+
+    "a linear chain reports identically under both modes" in {
+      val plan    = sealOrFail(failingChain)
+      val (_, ff) = Emit.run(plan.runReport(1, RunMode.FailFast)).eval
+      val (_, kg) = Emit.run(plan.runReport(1, RunMode.KeepGoing)).eval
+      assert(ff.nodes == kg.nodes)
+    }
+  }
+
+  "fan-out" - {
+    "children report under parent/<index>/<childId>, and a child's typed failure blocks the parent" in {
+      val sources: Stage[Int, Chunk[Int], Nothing, Any] = Stage((n: Int) => Chunk.from(0 until n))
+      val childBoom: Stage[Int, Int, RunBoom, Any]      =
+        Stage((i: Int) => if i == 1 then Abort.fail(RunBoom("child")) else i)
+      val plan = sealOrFail(
+        Pipeline.stage(nodeId"src", sources).fanOut("each", Pipeline.stage(nodeId"child", childBoom))
+      )
+      val (_, report) = Emit.run(plan.runReport(3, RunMode.KeepGoing)).eval
+      assert(report.nodes.map(_.id.render) == Chunk("src", "each", "each/0/child", "each/1/child", "each/2/child"))
+      assert(report.outcome(NodeId.unsafe(Chunk("each", "0", "child"))) ==
+        Present(NodeOutcome.Succeeded(Provenance.Executed)))
+      assert(report.outcome(NodeId.unsafe(Chunk("each", "1", "child"))) ==
+        Present(NodeOutcome.Failed(Result.Failure(RunBoom("child")))))
+      assert(report.outcome(NodeId.unsafe(Chunk("each", "2", "child"))) ==
+        Present(NodeOutcome.Succeeded(Provenance.Executed)))
+      assert(report.outcome(nodeId"each").map(_.status) == Present(NodeStatus.Blocked))
+      assert(report.result.isEmpty)
+      // Children have no ordinal of their own: they carry the fan-out node's, which collates them right after it.
+      assert(report.nodes.map(_.ordinal) == Chunk(0, 1, 1, 1, 1))
+    }
+
+    "an unrun fan-out reports only its own node, blocked on its predecessor" in {
+      val chunked: Stage[Int, Chunk[Int], Nothing, Any] = Stage((n: Int) => Chunk.from(0 until n))
+      val failing: Stage[Int, Int, RunBoom, Any]        = Stage((_: Int) => Abort.fail(RunBoom("upstream")))
+      val plan                                          = sealOrFail(
+        Pipeline
+          .stage(nodeId"a", failing)
+          .andThen(nodeId"src", chunked)
+          .fanOut("each", Pipeline.stage(nodeId"child", inc))
+      )
+      val (_, report) = Emit.run(plan.runReport(1)).eval
+      assert(report.nodes.map(_.id.render) == Chunk("a", "src", "each"))
+      assert(report.outcome(nodeId"each") == Present(NodeOutcome.Blocked(Chunk(nodeId"src"), Chunk(nodeId"a"))))
+    }
+
+    "FailFast cancels the elements after a failing one" in {
+      val sources: Stage[Int, Chunk[Int], Nothing, Any] = Stage((n: Int) => Chunk.from(0 until n))
+      val childBoom: Stage[Int, Int, RunBoom, Any]      =
+        Stage((i: Int) => if i == 1 then Abort.fail(RunBoom("child")) else i)
+      val plan = sealOrFail(
+        Pipeline.stage(nodeId"src", sources).fanOut("each", Pipeline.stage(nodeId"child", childBoom))
+      )
+      val (_, report) = Emit.run(plan.runReport(3, RunMode.FailFast)).eval
+      assert(report.outcome(NodeId.unsafe(Chunk("each", "2", "child"))) == Present(NodeOutcome.Cancelled))
+    }
+  }
+
+final case class RunBoom(msg: String) derives CanEqual
