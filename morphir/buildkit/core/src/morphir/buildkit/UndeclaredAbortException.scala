@@ -16,8 +16,18 @@ import morphir.MorphirException
  * `error` is the original value the hidden `Abort` was raised with, preserved here (not just in the message string) for
  * a caller that wants to inspect it programmatically — [[NodeOutcome.Failed]] carries the whole [[kyo.Result.Panic]],
  * so this exception is reachable from a report the same way any other panic is.
+ *
+ * The message must never throw: `executeIntercepted` builds this exception while assembling the cleanup continuation,
+ * before `closeOpenNodes` / `RunFinished(false)` have run, so a throwing `error.toString` would escape and leave the
+ * event stream unbalanced again. Rendering therefore swallows any `Throwable` from `String.valueOf` / `toString`.
  */
 final class UndeclaredAbortException(val error: Any)
-    extends MorphirException(
-      s"a stage hid Abort(...) inside its declared effect row instead of its declared error channel: $error"
-    )
+    extends MorphirException(UndeclaredAbortException.message(error))
+
+object UndeclaredAbortException:
+  private def message(error: Any): String =
+    val rendered =
+      try String.valueOf(error)
+      catch
+        case t: Throwable => s"<error toString failed: ${t.getClass.getName}>"
+    s"a stage hid Abort(...) inside its declared effect row instead of its declared error channel: $rendered"

@@ -571,6 +571,31 @@ class PipelineTests extends Test[Any]:
       assert(started.sorted(using Ordering.by(_.render)) == finished.sorted(using Ordering.by(_.render)))
       assert(started.map(_.render).contains("fo") && started.map(_.render).exists(_.startsWith("fo/0/")))
     }
+    // `UndeclaredAbortException`'s message is built while `executeIntercepted` assembles the cleanup continuation —
+    // before `closeOpenNodes` / `RunFinished(false)` have run. A throwing `error.toString` used to escape there and
+    // unbalance the stream again; rendering must swallow that so containment still holds.
+    "a hidden Abort whose error toString throws still closes its own NodeStarted/NodeFinished and balances RunFinished(false)" in {
+      final class ExplosiveToString:
+        override def toString: String = throw new RuntimeException("toString boom")
+      val payload = new ExplosiveToString
+      val hidden: Stage[Int, Int, Nothing, Abort[ExplosiveToString]] =
+        Stage[Int, Int, Nothing, Abort[ExplosiveToString]]((_: Int) => Abort.fail(payload)).named("hidden")
+      val plan              = sealOrFail(Pipeline.stage(hidden))
+      val (events, outcome) = Emit.run(Abort.run[Any](plan.execute(1))).eval
+      outcome match
+        case Result.Panic(ex: UndeclaredAbortException) =>
+          assert(ex.error.asInstanceOf[AnyRef] eq payload)
+          assert(ex.getMessage.contains("toString failed"))
+        case other => assert(false, s"expected a panic carrying UndeclaredAbortException, got $other")
+      assert(
+        render(events) == Chunk(
+          "run:started",
+          "start:hidden",
+          "finish:hidden:Failed",
+          "run:finished:false"
+        )
+      )
+    }
   }
 
   "typed pipelines" - {

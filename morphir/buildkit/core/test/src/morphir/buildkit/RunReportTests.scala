@@ -108,6 +108,29 @@ class RunReportTests extends Test[Any]:
       assert(render(events).last == "run:finished:false")
     }
 
+    "a hidden Abort whose error toString throws still folds into Failed(Panic), not a torn run" in {
+      final class ExplosiveToString:
+        override def toString: String = throw new RuntimeException("toString boom")
+      val payload = new ExplosiveToString
+      val explosive: Stage[Int, Int, Nothing, Abort[ExplosiveToString]] =
+        Stage[Int, Int, Nothing, Abort[ExplosiveToString]]((_: Int) => Abort.fail(payload)).named("hidden")
+      val plan =
+        sealOrFail(Pipeline.stage(nodeId"a", inc).andThen(nodeId"hidden", explosive).andThen(nodeId"c", double))
+      val (events, outer) = Emit.run(Abort.run[Any](plan.runReport(1))).eval
+      outer match
+        case Result.Success(report) =>
+          report.outcome(nodeId"hidden") match
+            case Present(NodeOutcome.Failed(Result.Panic(ex: UndeclaredAbortException))) =>
+              assert(ex.error.asInstanceOf[AnyRef] eq payload)
+              assert(ex.getMessage.contains("toString failed"))
+            case other => assert(false, s"expected Failed(Panic(UndeclaredAbortException)), got $other")
+          assert(report.outcome(nodeId"c") ==
+            Present(NodeOutcome.Blocked(Causes.unsafe(Chunk(nodeId"hidden")), Causes.unsafe(Chunk(nodeId"hidden")))))
+          assert(report.result.isEmpty)
+        case other => assert(false, s"expected the outer Abort[Any] boundary to be unused, got $other")
+      assert(render(events).last == "run:finished:false")
+    }
+
     "Pipeline.halt inside a stage body yields Failed in the report" in {
       val halting: Stage[Int, Int, RunBoom, Any] = Stage((_: Int) => Pipeline.halt(RunBoom("halted")))
       val plan        = sealOrFail(Pipeline.stage(nodeId"a", inc).andThen(nodeId"h", halting))
