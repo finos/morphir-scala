@@ -53,8 +53,10 @@ yourself. The scaffold deliberately leaves a `TODO` comment rather than plausibl
 
 **Writing or reviewing prose.** Every concept body is written in one of three registers, chosen by its `type:`.
 The style cards are tool-neutral and live at [`.agents/skills/kb/styles/`](../../../.agents/skills/kb/styles/);
-`voice.md` there applies to all registers and includes the banned-pattern list (no em-dashes, no AI filler), and
-`diagrams.md` says when a Mermaid diagram or SVG should replace prose narration of a flow or structure.
+`voice.md` there applies to all registers and includes the banned-pattern list (no em-dashes, no AI filler),
+`diagrams.md` says when a Mermaid diagram or SVG should replace prose narration of a flow or structure, and
+`altitude.md` sizes documents to capability stories: one narrative-home Design Note per capability in flight,
+with every fine-grained concept reachable from it.
 
 | `type:` | Register | Card |
 | ------- | -------- | ---- |

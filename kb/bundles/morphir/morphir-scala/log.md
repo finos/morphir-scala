@@ -1,5 +1,9 @@
 # Log
 
+## 2026-08-13
+
+* **Creation**: Added [Buildkit task-graph capability](/design/buildkit-task-graph.md).
+
 ## 2026-08-08
 
 * **Update**: Implemented the five publishable Mill Morphir plugins and a fresh-consumer `SNAPSHOT` acceptance test.

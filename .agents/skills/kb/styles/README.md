@@ -6,6 +6,8 @@ apply them; nothing here depends on a specific AI tool.
 - [voice.md](./voice.md) applies to every register: sentence mechanics, vocabulary, and the banned-pattern list.
 - [diagrams.md](./diagrams.md) also applies to every register: when a Mermaid diagram or SVG clarifies a point
   better than prose, and the rules for using one.
+- [altitude.md](./altitude.md) also applies to every register: documents are sized to capability stories, each
+  capability in flight has one narrative home, and fine-grained concepts must be reachable from it.
 - [article.md](./article.md), [whitepaper.md](./whitepaper.md) and [reference.md](./reference.md) are register
   cards. A document gets exactly one, chosen by its `type:` frontmatter.
 

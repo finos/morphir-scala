@@ -38,5 +38,8 @@ incompatible stage placement before an execution plan can run.
 
 Parent: [0007 Multi-frontend Morphir transformation pipeline](/0007-multi-frontend-morphir-transformation-pipeline.md).
 
+The capability's narrative home, linking the research and open design questions behind this intent, is the
+[buildkit task-graph design note](../morphir/morphir-scala/design/buildkit-task-graph.md).
+
 The public plugin and preset composition API is delivered by
 [0018 Typed pipeline plugins and immutable presets](/0018-typed-pipeline-plugins-and-immutable-presets.md).

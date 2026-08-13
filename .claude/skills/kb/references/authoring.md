@@ -37,6 +37,10 @@ git -C .refs/finos/morphir rev-parse HEAD
 
 ## Writing the body
 
+**Place the document in its capability's story.** Per `altitude.md` in the style cards, every document either
+is a capability's narrative home or is linked from one. Before writing a new fine-grained concept, know which
+narrative links to it, and add that link in the same change.
+
 **Pick the register first.** The `type:` decides whether the body reads as an article, a white-paper, or a
 reference; the routing table is in [SKILL.md](../SKILL.md). Apply the matching card from
 `.agents/skills/kb/styles/`, and `voice.md` there in every case. The banned-pattern list in `voice.md`
