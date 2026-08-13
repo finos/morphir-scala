@@ -41,7 +41,7 @@ morphir-scala provides Scala language bindings and JVM-based tooling for Morphir
 - **ZIO** - Effect system and testing
 - **Kyo** - Effect system used by the newer modules (kyo-core, kyo-prelude, kyo-test, kyo-case-app, kyo-schema, kyo-zio)
 - **ScalaJS** - JavaScript compilation target, plus a WebAssembly link variant
-- **Scala Native** - Native compilation target, currently scoped to the `langkit` and `kit` modules
+- **Scala Native** - Native compilation target, currently scoped to the `langkit`, `kit`, `buildkit` and `prelude` modules
 
 ### Versions
 
@@ -64,6 +64,37 @@ One exception worth knowing: the Scala.js version is pinned in two places that m
 - When planning or designing features in the codebase place them in appropriate sub-folders of the `.dev/.sdlc/` sub-folder. As well as task tracking files.
 - Use slugs for folder names so that content/work/spikes are organized and searchable.
 - Place outputs created by agentic tools or their helper scripts in an `out/` sub-folder at an appropriate location in the `.dev/` hierarchy.
+
+#### One-off plans and designs are never committed
+
+A plan or design document written to drive a single piece of work — an implementation plan, a design doc or spec, a
+task brief, a review package, an agent handoff note — belongs under `.dev/`, which is gitignored. **Do not commit
+these, and do not add them to a pull request.** This holds however the document was produced, and whatever a skill's
+own instructions say about where to save it: some agent skills default to writing plans and specs into a tracked
+`docs/` path, and that default is overridden here. Write them to `.dev/.sdlc/<slug>/` instead. `docs/superpowers/` is
+gitignored precisely so that a skill following its own default does not quietly add files to a commit.
+
+What *is* committed is durable knowledge, and it goes in the knowledge base under `kb/`, not in a scratch document:
+
+- an **Intent** record for work the project means to do, with its lifecycle — see the `intent` skill;
+- a **Design Note** for a design that is still evolving, and a **Decision Record** for one that has settled;
+- a **Capability** document for what the system does today.
+
+The test is durability, not formality. If the document stops being true the moment the branch merges, it is scratch —
+keep it in `.dev/`. If a reader six months from now needs it to understand why the code is the way it is, write it
+into `kb/` in the appropriate register. See [kb/AGENTS.md](./kb/AGENTS.md).
+
+**This rule does not touch task tracking.** Work that must outlive a session still belongs in beads (`bd`), and this
+is not an instruction to stop using it or to keep tasks in a scratch file instead. Beads is exempt because it already
+solves the problem this rule is about: it has its own storage, and none of it lands on your branch. The issue
+database is an embedded Dolt store under `.beads/embeddeddolt/`, excluded by `.beads/.gitignore`, and it syncs over a
+git-compatible protocol into `refs/dolt/data` — a ref outside `refs/heads/*`, so issue history never appears in a
+branch's diff and never conflicts with a merge. What *is* committed under `.beads/` is a handful of small
+configuration files (`config.yaml`, `metadata.json`, the upstream README, the inert hook scripts and the append-only
+`interactions.jsonl` audit log), which are deliberate and stay. Full detail:
+[docs/task-tracking.md](./docs/task-tracking.md).
+
+So: track the work in beads, keep the scratch prose in `.dev/`, and write what endures into `kb/`.
 
 
 ### Project Structure
@@ -89,6 +120,8 @@ morphir-scala/
 │   ├── jvm/src/             # JVM-specific sources
 │   ├── js/src/              # ScalaJS-specific sources
 │   ├── native/src/          # Scala Native-specific sources
+│   ├── buildkit/            # Frontend-neutral buildkit core: the pipeline Stage and typed task graph
+│   ├── prelude/             # Shared package-morphir types (MorphirException, Zippable) at the dependency bottom
 │   ├── contrib/             # Contributed modules
 │   ├── interop/             # Interoperability modules (borer, zio-json)
 │   ├── kit/                 # Kits: extensions and bridges per upstream library (e.g. kit/kyo)
@@ -186,6 +219,22 @@ Two-platform directory names are sorted and shared by both targets. See
   - Leverage algebraic data types
   - Prefer newtypes via opaque types over stringly typed or non-intention-revealing primitives
   - Use named tuples, especially where they make public signatures easier to read
+- In Kyo-based modules — those whose Mill config extends a `MorphirKyo*MvnDeps` trait (currently `langkit`, `kit`,
+  `buildkit`, `prelude`, `model`, `intelligence`, and `contrib/knowledge`):
+  - Prefer `kyo.Maybe` over `Option` in public APIs. ZIO-side modules do not carry `Maybe` and are out of scope.
+  - Prefer `kyo.Result` over `Either` in public APIs. `Result[E, A]` is unboxed, carries panics as a third arm
+    alongside success and typed failure, and integrates with `Abort`; `Either` remains for boundaries that demand
+    interop.
+  - Hide implementation machinery in an `internal` sub-package with restricted visibility
+    (`private[<module>]`), kyo-style; public packages expose only the intended surface, and no public
+    signature names an internal type. `morphir.buildkit.internal` is the pattern.
+  - Flag new `Option`/`Either` in these modules as change requests; convert existing occurrences only when the file
+    is already being touched for another reason — do not open standalone sweeps.
+- Named methods over symbolic operators, matching Kyo's own API policy: every public operation has a descriptive
+  named method, and a symbolic operator may exist only as a documented thin alias for one (`Stage#andThen` with
+  `>>>` is the pattern). Symbolic names mangle for Java and polyglot consumers, and named methods read better.
+  Declare `infix` only where the infix form is the domain notation — composition methods like `andThen` qualify;
+  ordinary accessors do not.
 
 #### `sealed case class` — legacy idiom, prefer `final case class`
 
@@ -235,6 +284,9 @@ that capability is invisible to downstream consumers.
     only set the framework class, so each test block must also declare the kyo-test dependencies itself.
   - **ZIO Test** elsewhere — use `ZIOSpecDefault` with `TestModule.ZioTest`.
 - Test files go in `test/src/` directories
+- Test classes use the `Tests` suffix (`StageTests`, `PipelineTests`), not `Spec`. Existing `*Spec` classes in
+  other modules convert only when the file is already being touched for another reason — do not open standalone
+  renaming sweeps.
 - Run tests with `mise run test:jvm` / `test:js` / `test:native`, or a specific module such as
   `./mill morphir.tests.jvm.test`
 - `morphir.langkit.itest` is a Cucumber/JUnit5 suite rather than a `<module>.jvm` one; its task is

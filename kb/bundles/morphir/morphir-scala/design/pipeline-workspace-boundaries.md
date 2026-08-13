@@ -56,8 +56,9 @@ registries, and materialization evolve separately in the
 
 - `ElmParse` is an Elm-specific Kyo effect. Its operations expose Elm parse options and frontend-internal diagnostic,
   reporting, and fatality policy; it is not currently a language-neutral phase contract.
-- The reusable `Stage` abstraction currently lives under the Elm compiler API even though sequencing typed input and
-  output values is not intrinsically Elm-specific.
+- The reusable `Stage` abstraction lived under the Elm compiler API even though sequencing typed input and output
+  values is not intrinsically Elm-specific. It has since moved to `morphir/buildkit/core` (package
+  `morphir.buildkit`).
 - Existing draft Morphir configuration knowledge gives `morphir.toml` responsibility for workspace members, tasks,
   workflows, outputs, and toolchain policy. It does not erase `elm.json`, `morphir.json`, or future native manifests.
 - Morphir transforms projects rather than isolated files. A frontend needs normalized project inputs and resolved
@@ -104,8 +105,25 @@ diagnostics, how they are reported internally, and which are fatal before return
 boundary, buildkit propagates and aggregates the returned diagnostics, schedules subsequent phases, and applies
 shared stop-or-continue policy without reinterpreting frontend semantics.
 
-The generic `Stage` moves toward buildkit core. Its contract must remain cross-platform and must not acquire an Elm,
+The generic `Stage` has moved to buildkit core. Its contract must remain cross-platform and must not acquire an Elm,
 filesystem, process, or network dependency.
+
+Buildkit core now also carries the first `Pipeline` slice: a sealed trait whose public variants are a buildable
+`PipelineDef` and a validated `SealedPipeline`, with path-structured node identities assigned at seal time
+(explicit id, else label slug, else position), whole-chain error accumulation into a `MorphirException`-rooted
+`SealErrors`, and a deterministic sequential executor that emits `StageEvent`s and scopes a provenance `Local`
+per node. Fork, join, fan-out and conditional branches remain open design, and nothing in the linear slice
+prejudges the join representation.
+
+The graph shapes landed as structured combinators rather than a general DAG: `par` forks heterogeneously with
+Zippable tuple-flattening (package `morphir`), `fanOut` runs a nested sealed pipeline per element of a runtime
+Chunk with element-indexed id paths, and `branch`/`when` conditionals emit `Skipped` for the untaken arm's nodes.
+Joins are ordinary stages consuming the tuple or Chunk a shape yields. The sequential executor now guarantees
+event balance via `kyo.kernel.Effect.catching` — every `Entered` closes with an `Exited` (for non-fatal panics and
+normal completion), every node on an untaken arm emits a standalone `Skipped` without ever entering, and typed
+`Abort` short-circuits remain the documented gap, deferred with halting to the executor-as-handler design. Sealed
+pipelines render deterministic mermaid flowcharts through `toMermaid`. Typed halting and parallel execution remain
+open, deferred to the executor-as-handler design.
 
 ### Workspace ownership and normalization
 

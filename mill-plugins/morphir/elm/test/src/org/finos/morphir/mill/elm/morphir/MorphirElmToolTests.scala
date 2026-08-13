@@ -49,7 +49,7 @@ object MorphirElmToolTests extends TestSuite {
         """
       )
       assert(errors.isEmpty)
-      assert(MorphirElmTool.Version == "2.89.0")
+      assert(MorphirElmTool.Version == "2.100.0")
     }
 
     test("pinned production tool lock is strict before any process") {

@@ -2,11 +2,11 @@
 type: Intent
 title: Buildkit core task graph
 description: "Provide a Morphir-agnostic, Kyo-native task graph for composing and executing typed cross-platform pipelines."
-state: Backlog
+state: InProgress
 kind: feature
 breaking: false
 created: 2026-07-28
-state_since: 2026-07-28
+state_since: 2026-08-11
 issue: 932
 tags: [buildkit, pipeline, kyo]
 ---

@@ -11,10 +11,10 @@ def assertEquals[A](actual: A, expected: A): Unit =
   val lock          = ujson.read(os.read(toolDirectory / "package-lock.json"))
   val lockedPackage = lock("packages")("node_modules/morphir-elm")
 
-  assertEquals(MorphirElmTool.Version, "2.89.0")
+  assertEquals(MorphirElmTool.Version, "2.100.0")
   assertEquals(
     os.read(toolDirectory / "package.json").trim,
-    """{"name":"morphir-scala-morphir-elm-tool","private":true,"dependencies":{"morphir-elm":"2.89.0"}}"""
+    """{"name":"morphir-scala-morphir-elm-tool","private":true,"dependencies":{"morphir-elm":"2.100.0"}}"""
   )
   assertEquals(manifest("name").str, "morphir-scala-morphir-elm-tool")
   assert(manifest("private").bool)
@@ -23,11 +23,11 @@ def assertEquals[A](actual: A, expected: A): Unit =
   assertEquals(lock("lockfileVersion").num.toInt, 3)
   assertEquals(lock("packages")("")("dependencies")("morphir-elm").str, MorphirElmTool.Version)
   assertEquals(lockedPackage("version").str, MorphirElmTool.Version)
-  assertEquals(MorphirElmTool.Resolved, "https://registry.npmjs.org/morphir-elm/-/morphir-elm-2.89.0.tgz")
-  assertEquals(MorphirElmTool.Sha1, "120f53263928077575b2be8f12c9d668b561c1f1")
+  assertEquals(MorphirElmTool.Resolved, "https://registry.npmjs.org/morphir-elm/-/morphir-elm-2.100.0.tgz")
+  assertEquals(MorphirElmTool.Sha1, "b83b6ddfe3eb068f1e25160a8f2ea371a517fd2c")
   assertEquals(
     MorphirElmTool.Integrity,
-    "sha512-ZXvRC4YvGrbYhaC/rKbJ2wvqEN3RpjbRMuAozpvlSWA+dsuAPoK5rNEtG3Wj1zgBqVtUsE9Jo6G6vsQRVpoa1A=="
+    "sha512-0JFVV1CnxppfC90NrOqSlXS7LVqqTQCLCMpTvBTu95EHQoJwQgUkWbK3N2QwOnCI9fqt8jJJsqQ5fonU3PWpAQ=="
   )
   assertEquals(lockedPackage("resolved").str, MorphirElmTool.Resolved)
   assertEquals(lockedPackage("integrity").str, MorphirElmTool.Integrity)
