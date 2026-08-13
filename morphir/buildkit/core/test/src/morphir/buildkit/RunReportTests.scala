@@ -315,9 +315,18 @@ class RunReportTests extends Test[Any]:
     val childOf: Stage[String, Int, Nothing, Any] = Stage((s: String) => s.length)
     val stripped                                  = (s: String) => s.stripPrefix("item")
 
+    // Currency codes, deliberately out of alphabetical/positional order: "eur" is element 0, "gbp" is element 1,
+    // "usd" is element 2. A rendered key equal to `index.toString` would make an implementation that silently fell
+    // back to the unkeyed fan-out's own positional id indistinguishable from a correct keyed one; these never
+    // coincide with position, so the ids asserted below only hold if `key` actually drove identity.
+    val currencySources: Stage[Int, Chunk[String], Nothing, Any] = Stage((_: Int) => Chunk("eur", "gbp", "usd"))
+    val currencyCode                                             = (s: String) => s
+
     "children report under parent/<key>/<childId>, in input order" in {
       val plan = sealOrFail(
-        Pipeline.stage(nodeId"src", keyedSources).fanOutKeyed("each", stripped)(Pipeline.stage(nodeId"child", childOf))
+        Pipeline.stage(nodeId"src", currencySources).fanOutKeyed("each", currencyCode)(
+          Pipeline.stage(nodeId"child", childOf)
+        )
       )
       val (events, report) = Emit.run(plan.runReport(3)).eval
       assert(
@@ -326,18 +335,21 @@ class RunReportTests extends Test[Any]:
           "start:src",
           "finish:src:Succeeded",
           "start:each",
-          "start:each/0/child",
-          "finish:each/0/child:Succeeded",
-          "start:each/1/child",
-          "finish:each/1/child:Succeeded",
-          "start:each/2/child",
-          "finish:each/2/child:Succeeded",
+          "start:each/eur/child",
+          "finish:each/eur/child:Succeeded",
+          "start:each/gbp/child",
+          "finish:each/gbp/child:Succeeded",
+          "start:each/usd/child",
+          "finish:each/usd/child:Succeeded",
           "finish:each:Succeeded",
           "run:finished:true"
         )
       )
-      assert(report.nodes.map(_.id.render) == Chunk("src", "each", "each/0/child", "each/1/child", "each/2/child"))
-      assert(report.result == Present(Chunk(5, 5, 5)))
+      assert(
+        report.nodes.map(_.id.render) ==
+          Chunk("src", "each", "each/eur/child", "each/gbp/child", "each/usd/child")
+      )
+      assert(report.result == Present(Chunk(3, 3, 3)))
     }
 
     "a duplicate rendered key fails the fan-out node itself, with children unstarted" in {

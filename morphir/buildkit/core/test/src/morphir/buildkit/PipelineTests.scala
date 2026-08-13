@@ -296,15 +296,22 @@ class PipelineTests extends Test[Any]:
     def parse        = Stage.pure((s: String) => s.length).named("parse")
     def stripped     = (s: String) => s.stripPrefix("item")
 
+    // Currency codes, deliberately out of alphabetical/positional order: "eur" is element 0, "gbp" is element 1,
+    // "usd" is element 2. A rendered key equal to `index.toString` would make an implementation that silently fell
+    // back to `fanOut`'s own positional id indistinguishable from a correct keyed one; these never coincide with
+    // position, so the child ids asserted below only hold if `key` actually drove identity.
+    def currencySources = Stage.pure((_: Int) => Chunk("eur", "gbp", "usd")).named("sources")
+    def currencyCode    = (s: String) => s
+
     "child event ids carry the rendered key instead of the index, and element order still drives the report" in {
       val plan = sealOrFail(
-        Pipeline.stage(keyedSources).fanOutKeyed("fo", stripped)(Pipeline.stage(parse))
+        Pipeline.stage(currencySources).fanOutKeyed("fo", currencyCode)(Pipeline.stage(parse))
       )
       val (events, outcome) = Emit.run(Abort.run[FanOutKeyError](plan.execute(3))).eval
       val childIds          =
         events.collect { case PipelineEvent.NodeStarted(id, _) if id.render.contains("/") => id.render }
-      assert(childIds == Chunk("fo/0/parse", "fo/1/parse", "fo/2/parse"))
-      assert(outcome == Result.Success(Chunk(5, 5, 5)))
+      assert(childIds == Chunk("fo/eur/parse", "fo/gbp/parse", "fo/usd/parse"))
+      assert(outcome == Result.Success(Chunk(3, 3, 3)))
     }
     "a duplicate rendered key fails the fan-out node itself, with no child events" in {
       val plan = sealOrFail(
