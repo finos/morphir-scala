@@ -52,8 +52,14 @@ class PipelineTests extends Test[Any]:
       val plan     = sealOrFail(Pipeline.stage(labelled))
       assert(plan.nodeIds.map(_.render) == Chunk("parse-ir"))
     }
+    "two label-derived ids that collide suffix in declaration order instead of erroring" in {
+      val plan = sealOrFail(Pipeline.stage(inc).andThen(Stage.pure((i: Int) => i * 2).named("inc")))
+      assert(plan.nodeIds.map(_.render) == Chunk("inc", "inc-2"))
+    }
     "rejects duplicate ids" in {
-      Pipeline.stage(inc).andThen(Stage.pure((i: Int) => i * 2).named("inc")).seal match
+      // Both explicit: an explicit id is never renamed, so — unlike a label collision, which now suffixes — two
+      // explicit ids that collide remain unresolvable and still surface as `SealError.DuplicateNodeId`.
+      Pipeline.stage("inc", inc).andThen("inc", Stage.pure((i: Int) => i * 2)).seal match
         case Result.Failure(errors) =>
           assert(errors.errors.exists {
             case SealError.DuplicateNodeId(id) => id.render == "inc"
@@ -62,13 +68,15 @@ class PipelineTests extends Test[Any]:
         case _ => assert(false)
     }
     "accumulates every failure" in {
+      // Explicit-explicit collisions on "a" and "b", plus one invalid segment: label collisions alone would no
+      // longer error under the ordinal-suffix rule, so this exercises the still-erroring explicit-id path instead.
       val dupA = Stage.pure((i: Int) => i).named("a")
       val dupB = Stage.pure((i: Int) => i).named("b")
       Pipeline
-        .stage(dupA)
-        .andThen(Stage.pure((i: Int) => i).named("a"))
-        .andThen(dupB)
-        .andThen(Stage.pure((i: Int) => i).named("b"))
+        .stage("a", dupA)
+        .andThen("a", Stage.pure((i: Int) => i))
+        .andThen("b", dupB)
+        .andThen("b", Stage.pure((i: Int) => i))
         .andThen("bad/segment", Stage.pure((i: Int) => i))
         .seal match
         case Result.Failure(errors) => assert(errors.errors.size == 3)
@@ -183,8 +191,12 @@ class PipelineTests extends Test[Any]:
       val (_, r4) = runPure(Emit.run(p4.execute(4))).eval
       assert(r3 == (5, "4", 4L) && r4 == (5, "4", 4L, -4))
     }
-    "rejects duplicate ids across sides at seal" in {
-      Pipeline.stage(inc).par(Pipeline.stage(Stage.pure((i: Int) => i).named("inc"))).seal match
+    "a label collision across sides suffixes instead of erroring" in {
+      val plan = sealOrFail(Pipeline.stage(inc).par(Pipeline.stage(Stage.pure((i: Int) => i).named("inc"))))
+      assert(plan.nodeIds.map(_.render) == Chunk("inc", "inc-2"))
+    }
+    "rejects duplicate explicit ids across sides at seal" in {
+      Pipeline.stage("inc", inc).par(Pipeline.stage("inc", Stage.pure((i: Int) => i))).seal match
         case Result.Failure(errors) =>
           assert(errors.errors.exists {
             case SealError.DuplicateNodeId(id) => id.render == "inc"
@@ -220,7 +232,9 @@ class PipelineTests extends Test[Any]:
       assert(childIds == Chunk("parse-all/0/parse", "parse-all/1/parse"))
     }
     "a child that fails to seal surfaces path-qualified in the parent aggregate" in {
-      val dup = Pipeline.stage(parse).andThen(Stage.pure((i: Int) => i).named("parse"))
+      // Explicit-explicit: a label collision alone would now suffix instead of erroring, so the child's own failure
+      // is driven by an explicit id collision, which still errors.
+      val dup = Pipeline.stage("parse", parse).andThen("parse", Stage.pure((i: Int) => i))
       Pipeline.stage(sources).fanOut("parse-all", dup).seal match
         case Result.Failure(errors) =>
           assert(errors.errors.exists {
@@ -230,7 +244,7 @@ class PipelineTests extends Test[Any]:
         case _ => assert(false)
     }
     "sibling errors do not mask a fan-out child's seal failure" in {
-      val dup = Pipeline.stage(parse).andThen(Stage.pure((i: Int) => i).named("parse"))
+      val dup = Pipeline.stage("parse", parse).andThen("parse", Stage.pure((i: Int) => i))
       // "bad/segment" fails its own-level id validation; the fan-out's child independently fails to seal on its own
       // duplicate "parse" id. Both must surface from a single `seal` call — one sibling's failure must not swallow
       // the other, unrelated failure nested inside the fan-out.
@@ -302,9 +316,17 @@ class PipelineTests extends Test[Any]:
       val (_, untaken) = runPure(Emit.run(plan.execute(1))).eval
       assert(taken == Present("big:101") && untaken == Absent)
     }
-    "duplicate ids across arms are rejected at seal" in {
+    "a label collision across arms suffixes instead of erroring" in {
       val dupArm = Pipeline.stage(Stage.pure((i: Int) => s"x:$i").named("big"))
-      Pipeline.stage(inc).branch(_ > 10)(big, dupArm).seal match
+      val plan   = sealOrFail(Pipeline.stage(inc).branch(_ > 10)(big, dupArm))
+      // index 0 is `inc`, index 1 is the branch's own (label-less) slot — see the position-fallback comment below —
+      // and indices 2/3 are the two arms, both labelled "big".
+      assert(plan.nodeIds.map(_.render) == Chunk("inc", "node-1", "big", "big-2"))
+    }
+    "duplicate explicit ids across arms are rejected at seal" in {
+      val armA = Pipeline.stage("dup", Stage.pure((i: Int) => s"a:$i"))
+      val armB = Pipeline.stage("dup", Stage.pure((i: Int) => s"b:$i"))
+      Pipeline.stage(inc).branch(_ > 10)(armA, armB).seal match
         case Result.Failure(errors) => assert(errors.errors.nonEmpty)
         case _                      => assert(false)
     }
@@ -349,7 +371,7 @@ class PipelineTests extends Test[Any]:
       def sources = Stage.pure((n: Int) => Chunk.from(0 until n).map(_.toString)).named("sources")
       def parse   = Stage.pure((s: String) => s.length).named("parse")
 
-      val dup           = Pipeline.stage(parse).andThen(Stage.pure((i: Int) => i).named("parse"))
+      val dup           = Pipeline.stage("parse", parse).andThen("parse", Stage.pure((i: Int) => i))
       val armWithFanOut = Pipeline.stage(sources).fanOut("parse-all", dup)
       val otherArm      = Pipeline.stage(Stage.pure((i: Int) => Chunk.empty[Int]))
       // "bad/segment" fails its own-level id validation; the fan-out nested in the true arm independently fails to

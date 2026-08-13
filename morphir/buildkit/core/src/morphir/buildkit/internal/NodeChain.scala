@@ -127,6 +127,15 @@ private[buildkit] object Sealing:
     if slug.isEmpty then Absent else Present(slug)
 
   /**
+   * The first of `base`, `base-2`, `base-3`, … not already in `taken`. Used to resolve a derived (never an explicit)
+   * id's final string: `base` itself when free, otherwise the lowest free ordinal suffix, skipping past any ordinal
+   * that is itself already taken — by an earlier derived assignment or by a reserved explicit id.
+   */
+  private def freshName(base: String, taken: Set[String]): String =
+    if !taken.contains(base) then base
+    else Iterator.from(2).map(n => s"$base-$n").dropWhile(taken.contains).next()
+
+  /**
    * Assign ids to `chain`'s own elements and validate the result into a [[SealedChain]], accumulating every failure —
    * everywhere in the (possibly nested) graph, not just at this level: an invalid explicit id, a duplicate id among
    * this level's own nodes, ''and'' a `FanOutElem`'s child chain failing to seal, whether or not a sibling at this
@@ -143,19 +152,38 @@ private[buildkit] object Sealing:
    * of the guarantee. When a nested call fails, its errors re-enter this level's aggregate with this node's own
    * assigned id segment prefixed onto each [[SealError.DuplicateNodeId]] — an [[SealError.InvalidSegment]] names the
    * raw string that failed validation, which has no path to prefix, so it passes through unchanged.
+   *
+   * Explicit ids are fixed points: every one that validates successfully reserves its rendered string ''up front'',
+   * before any derived id at this level is resolved, regardless of declaration order — an explicit id is never mutated,
+   * so a derived id declared earlier still yields to one declared later. A derived id (a slugified label, or the
+   * positional `node-$index` fallback) that lands on an already-reserved name — another derived id's bare slug, or an
+   * explicit id's string — suffixes with `-2`, `-3`, … in declaration order, skipping past any ordinal that is itself
+   * already taken (e.g. an explicit id happens to be `normalize-2`). Two explicit ids that collide with each other
+   * cannot be resolved this way — neither may be renamed — so that case still surfaces as
+   * [[SealError.DuplicateNodeId]], via the same duplicate-render check as before: suffixing already guarantees every
+   * derived id's final string is unique, so a repeated render can only come from two explicit ids sharing a string.
    */
   def sealChain[I, O, E, S](chain: NodeChain[I, O, E, S]): Result[SealErrors, SealedChain[I, O, E, S]] =
-    val summaries                                  = chain.summaries
-    val assigned: Chunk[Result[SealError, NodeId]] =
-      summaries.zipWithIndex.map { case ((explicit, meta, _), index) =>
-        explicit match
-          case Present(value) => NodeId.segment(value)
-          case Absent         =>
-            val slug: Maybe[String] = meta.map(_.label).flatMap(slugify)
-            slug match
-              case Present(value) => Result.succeed(NodeId.unsafe(Chunk(value)))
-              case Absent         => Result.succeed(NodeId.unsafe(Chunk(s"node-$index")))
+    val summaries = chain.summaries
+
+    // Every explicit id that validates successfully reserves its rendered name before any derived id at this level
+    // is resolved, independent of where in `summaries` it appears.
+    val reserved: Set[String] =
+      summaries.collect { case (Present(value), _, _) => NodeId.segment(value) }
+        .collect { case Result.Success(id) => id.render }
+        .toSet
+
+    val (_, assigned): (Set[String], Chunk[Result[SealError, NodeId]]) =
+      summaries.zipWithIndex.foldLeft((reserved, Chunk.empty[Result[SealError, NodeId]])) {
+        case ((taken, acc), ((explicit, meta, _), index)) =>
+          explicit match
+            case Present(value) => (taken, acc :+ NodeId.segment(value))
+            case Absent         =>
+              val base = meta.map(_.label).flatMap(slugify).getOrElse(s"node-$index")
+              val name = freshName(base, taken)
+              (taken + name, acc :+ Result.succeed(NodeId.unsafe(Chunk(name))))
       }
+
     val segmentErrors = assigned.collect { case Result.Failure(error) => error }
     val ids           = assigned.collect { case Result.Success(id) => id }
     val duplicates    =
