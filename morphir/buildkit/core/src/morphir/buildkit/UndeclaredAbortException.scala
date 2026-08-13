@@ -17,17 +17,20 @@ import morphir.MorphirException
  * a caller that wants to inspect it programmatically — [[NodeOutcome.Failed]] carries the whole [[kyo.Result.Panic]],
  * so this exception is reachable from a report the same way any other panic is.
  *
- * The message must never throw: `executeIntercepted` builds this exception while assembling the cleanup continuation,
- * before `closeOpenNodes` / `RunFinished(false)` have run, so a throwing `error.toString` would escape and leave the
- * event stream unbalanced again. Rendering therefore swallows any `Throwable` from `String.valueOf` / `toString`.
+ * The core message is always present. Detail from `error` is appended when rendering succeeds; when `String.valueOf` /
+ * `toString` throws, that failure note is appended instead — never substituting away the core — because
+ * `executeIntercepted` builds this exception while assembling the cleanup continuation, before `closeOpenNodes` /
+ * `RunFinished(false)` have run, and a throw there would leave the event stream unbalanced again.
  */
 final class UndeclaredAbortException(val error: Any)
     extends MorphirException(UndeclaredAbortException.message(error))
 
 object UndeclaredAbortException:
+  private val coreMessage =
+    "a stage hid Abort(...) inside its declared effect row instead of its declared error channel"
+
   private def message(error: Any): String =
-    val rendered =
-      try String.valueOf(error)
-      catch
-        case t: Throwable => s"<error toString failed: ${t.getClass.getName}>"
-    s"a stage hid Abort(...) inside its declared effect row instead of its declared error channel: $rendered"
+    try s"$coreMessage: ${String.valueOf(error)}"
+    catch
+      case t: Throwable =>
+        s"$coreMessage: <error toString failed: ${t.getClass.getName}>"

@@ -122,6 +122,9 @@ class RunReportTests extends Test[Any]:
           report.outcome(nodeId"hidden") match
             case Present(NodeOutcome.Failed(Result.Panic(ex: UndeclaredAbortException))) =>
               assert(ex.error.asInstanceOf[AnyRef] eq payload)
+              assert(ex.getMessage.startsWith(
+                "a stage hid Abort(...) inside its declared effect row instead of its declared error channel"
+              ))
               assert(ex.getMessage.contains("toString failed"))
             case other => assert(false, s"expected Failed(Panic(UndeclaredAbortException)), got $other")
           assert(report.outcome(nodeId"c") ==

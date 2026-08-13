@@ -585,6 +585,9 @@ class PipelineTests extends Test[Any]:
       outcome match
         case Result.Panic(ex: UndeclaredAbortException) =>
           assert(ex.error.asInstanceOf[AnyRef] eq payload)
+          assert(ex.getMessage.startsWith(
+            "a stage hid Abort(...) inside its declared effect row instead of its declared error channel"
+          ))
           assert(ex.getMessage.contains("toString failed"))
         case other => assert(false, s"expected a panic carrying UndeclaredAbortException, got $other")
       assert(
