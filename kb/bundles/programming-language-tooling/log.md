@@ -1,5 +1,9 @@
 # Log
 
+## 2026-08-13
+
+* **Creation**: Added [Task-graph comparative survey](/task-graph-comparative-survey.md).
+
 ## 2026-08-12
 
 * **Creation**: Added [Kyo effect handlers and typed halting](/kyo-effect-handlers-and-typed-halting.md).
