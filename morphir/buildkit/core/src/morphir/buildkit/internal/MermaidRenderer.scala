@@ -56,7 +56,7 @@ import morphir.buildkit.*
 private[buildkit] object MermaidRenderer:
 
   /** Render `chain` as complete `flowchart TD` Mermaid source. See the layout rules on this object's own scaladoc. */
-  def render(chain: SealedChain[?, ?, ?]): String =
+  def render(chain: SealedChain[?, ?, ?, ?]): String =
     val elems = flatten(chain)
     val ids   = buildIdMap(collectRawIds(elems, ""))
     val nodes = StringBuilder()
@@ -67,7 +67,7 @@ private[buildkit] object MermaidRenderer:
     ("flowchart TD" :: lines).mkString("\n")
 
   /** This chain's own elements, in definition order — `Append`'s snoc shape unrolled into a flat sequence. */
-  private def flatten[I, O, S](chain: SealedChain[I, O, S]): Chunk[SealedElem[?, ?, ?]] =
+  private def flatten[I, O, E, S](chain: SealedChain[I, O, E, S]): Chunk[SealedElem[?, ?, ?, ?]] =
     chain match
       case SealedChain.Single(elem)       => Chunk(elem)
       case SealedChain.Append(init, last) => flatten(init) :+ last
@@ -112,15 +112,18 @@ private[buildkit] object MermaidRenderer:
     mapping
 
   /** Every element's own raw id, walked in exactly the order [[declareChain]] declares nodes in. */
-  private def collectRawIds(elems: Chunk[SealedElem[?, ?, ?]], prefix: String): Chunk[String] =
+  private def collectRawIds(elems: Chunk[SealedElem[?, ?, ?, ?]], prefix: String): Chunk[String] =
     elems.flatMap(e => collectRawIdsElem(e, prefix))
 
-  private def collectRawIdsElem(e: SealedElem[?, ?, ?], prefix: String): Chunk[String] =
+  private def collectRawIdsElem(e: SealedElem[?, ?, ?, ?], prefix: String): Chunk[String] =
     e match
       case SealedElem.StageNode(id, _)        => Chunk(rawId(prefix, id))
       case SealedElem.ParNode(left, right, _) =>
         collectRawIds(flatten(left), prefix) ++ collectRawIds(flatten(right), prefix)
       case SealedElem.FanOutNode(id, each) =>
+        val ownId = rawId(prefix, id)
+        Chunk(ownId) ++ collectRawIds(flatten(each), ownId)
+      case SealedElem.FanOutKeyedNode(id, _, each) =>
         val ownId = rawId(prefix, id)
         Chunk(ownId) ++ collectRawIds(flatten(each), ownId)
       case SealedElem.BranchNode(id, _, ifTrue, ifFalse) =>
@@ -131,25 +134,31 @@ private[buildkit] object MermaidRenderer:
 
   private def escape(label: String): String = label.replace("\"", "#quot;")
 
-  private def labelOf(stage: Stage[?, ?, ?]): String =
+  private def labelOf(stage: Stage[?, ?, ?, ?]): String =
     stage.label match
       case Present(l) => l
       case Absent     => "<anonymous>"
 
-  private def isFanOut(e: SealedElem[?, ?, ?]): Boolean =
+  private def isFanOut(e: SealedElem[?, ?, ?, ?]): Boolean =
     e match
-      case SealedElem.FanOutNode(_, _) => true
-      case _                           => false
+      case SealedElem.FanOutNode(_, _)         => true
+      case SealedElem.FanOutKeyedNode(_, _, _) => true
+      case _                                   => false
 
   private def declareChain(
-      elems: Chunk[SealedElem[?, ?, ?]],
+      elems: Chunk[SealedElem[?, ?, ?, ?]],
       prefix: String,
       ids: Map[String, String],
       sb: StringBuilder
   ): Unit =
     elems.foreach(e => declareElem(e, prefix, ids, sb))
 
-  private def declareElem(e: SealedElem[?, ?, ?], prefix: String, ids: Map[String, String], sb: StringBuilder): Unit =
+  private def declareElem(
+      e: SealedElem[?, ?, ?, ?],
+      prefix: String,
+      ids: Map[String, String],
+      sb: StringBuilder
+  ): Unit =
     e match
       case SealedElem.StageNode(id, stage) =>
         sb ++= s"  ${mid(prefix, id, ids)}[\"${escape(labelOf(stage))}\"]\n"
@@ -162,47 +171,55 @@ private[buildkit] object MermaidRenderer:
         sb ++= s"  subgraph $ownId\n"
         declareChain(flatten(each), ownRawId, ids, sb)
         sb ++= "  end\n"
+      case SealedElem.FanOutKeyedNode(id, _, each) =>
+        val ownId    = mid(prefix, id, ids)
+        val ownRawId = rawId(prefix, id)
+        sb ++= s"  subgraph $ownId\n"
+        declareChain(flatten(each), ownRawId, ids, sb)
+        sb ++= "  end\n"
       case SealedElem.BranchNode(id, _, ifTrue, ifFalse) =>
         sb ++= s"  ${mid(prefix, id, ids)}{\"?\"}\n"
         declareChain(flatten(ifTrue), prefix, ids, sb)
         declareChain(flatten(ifFalse), prefix, ids, sb)
 
   /** The Mermaid ids a predecessor's edge should target when connecting into `e`. */
-  private def entryOf(e: SealedElem[?, ?, ?], prefix: String, ids: Map[String, String]): Chunk[String] =
+  private def entryOf(e: SealedElem[?, ?, ?, ?], prefix: String, ids: Map[String, String]): Chunk[String] =
     e match
-      case SealedElem.StageNode(id, _)        => Chunk(mid(prefix, id, ids))
-      case SealedElem.ParNode(left, right, _) => entryOfChain(left, prefix, ids) ++ entryOfChain(right, prefix, ids)
-      case SealedElem.FanOutNode(id, _)       => Chunk(mid(prefix, id, ids))
-      case SealedElem.BranchNode(id, _, _, _) => Chunk(mid(prefix, id, ids))
+      case SealedElem.StageNode(id, _)          => Chunk(mid(prefix, id, ids))
+      case SealedElem.ParNode(left, right, _)   => entryOfChain(left, prefix, ids) ++ entryOfChain(right, prefix, ids)
+      case SealedElem.FanOutNode(id, _)         => Chunk(mid(prefix, id, ids))
+      case SealedElem.FanOutKeyedNode(id, _, _) => Chunk(mid(prefix, id, ids))
+      case SealedElem.BranchNode(id, _, _, _)   => Chunk(mid(prefix, id, ids))
 
   /** The Mermaid ids a successor's edge should originate from when connecting out of `e`. */
-  private def exitOf(e: SealedElem[?, ?, ?], prefix: String, ids: Map[String, String]): Chunk[String] =
+  private def exitOf(e: SealedElem[?, ?, ?, ?], prefix: String, ids: Map[String, String]): Chunk[String] =
     e match
-      case SealedElem.StageNode(id, _)        => Chunk(mid(prefix, id, ids))
-      case SealedElem.ParNode(left, right, _) => exitOfChain(left, prefix, ids) ++ exitOfChain(right, prefix, ids)
-      case SealedElem.FanOutNode(id, _)       => Chunk(mid(prefix, id, ids))
+      case SealedElem.StageNode(id, _)          => Chunk(mid(prefix, id, ids))
+      case SealedElem.ParNode(left, right, _)   => exitOfChain(left, prefix, ids) ++ exitOfChain(right, prefix, ids)
+      case SealedElem.FanOutNode(id, _)         => Chunk(mid(prefix, id, ids))
+      case SealedElem.FanOutKeyedNode(id, _, _) => Chunk(mid(prefix, id, ids))
       case SealedElem.BranchNode(_, _, ifTrue, ifFalse) =>
         exitOfChain(ifTrue, prefix, ids) ++ exitOfChain(ifFalse, prefix, ids)
 
-  private def firstElem[I, O, S](chain: SealedChain[I, O, S]): SealedElem[?, ?, ?] =
+  private def firstElem[I, O, E, S](chain: SealedChain[I, O, E, S]): SealedElem[?, ?, ?, ?] =
     chain match
       case SealedChain.Single(elem)    => elem
       case SealedChain.Append(init, _) => firstElem(init)
 
-  private def lastElem[I, O, S](chain: SealedChain[I, O, S]): SealedElem[?, ?, ?] =
+  private def lastElem[I, O, E, S](chain: SealedChain[I, O, E, S]): SealedElem[?, ?, ?, ?] =
     chain match
       case SealedChain.Single(elem)    => elem
       case SealedChain.Append(_, last) => last
 
-  private def entryOfChain[I, O, S](
-      chain: SealedChain[I, O, S],
+  private def entryOfChain[I, O, E, S](
+      chain: SealedChain[I, O, E, S],
       prefix: String,
       ids: Map[String, String]
   ): Chunk[String] =
     entryOf(firstElem(chain), prefix, ids)
 
-  private def exitOfChain[I, O, S](
-      chain: SealedChain[I, O, S],
+  private def exitOfChain[I, O, E, S](
+      chain: SealedChain[I, O, E, S],
       prefix: String,
       ids: Map[String, String]
   ): Chunk[String] =
@@ -214,7 +231,7 @@ private[buildkit] object MermaidRenderer:
       case Absent     => s"  $from --> $to\n"
 
   private def wireChain(
-      elems: Chunk[SealedElem[?, ?, ?]],
+      elems: Chunk[SealedElem[?, ?, ?, ?]],
       prefix: String,
       ids: Map[String, String],
       sb: StringBuilder
@@ -229,13 +246,20 @@ private[buildkit] object MermaidRenderer:
     }
 
   /** Edges internal to a composite element: a branch's own diamond-to-arm edges, and both kinds' nested chains. */
-  private def wireInternal(e: SealedElem[?, ?, ?], prefix: String, ids: Map[String, String], sb: StringBuilder): Unit =
+  private def wireInternal(
+      e: SealedElem[?, ?, ?, ?],
+      prefix: String,
+      ids: Map[String, String],
+      sb: StringBuilder
+  ): Unit =
     e match
       case SealedElem.StageNode(_, _)         => ()
       case SealedElem.ParNode(left, right, _) =>
         wireChain(flatten(left), prefix, ids, sb)
         wireChain(flatten(right), prefix, ids, sb)
       case SealedElem.FanOutNode(id, each) =>
+        wireChain(flatten(each), rawId(prefix, id), ids, sb)
+      case SealedElem.FanOutKeyedNode(id, _, each) =>
         wireChain(flatten(each), rawId(prefix, id), ids, sb)
       case SealedElem.BranchNode(id, _, ifTrue, ifFalse) =>
         val ownId = mid(prefix, id, ids)

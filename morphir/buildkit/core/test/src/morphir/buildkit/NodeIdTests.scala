@@ -101,3 +101,52 @@ class NodeIdTests extends Test[Any]:
       assert(caught)
     }
   }
+
+  "auto id ordinal suffixes" - {
+    def stage(label: String)(f: Int => Int) = Stage.pure(f).named(label)
+
+    "two unnamed nodes with the same label seal with ordinal suffixes" in {
+      val p = Pipeline.stage(stage("normalize")(_ + 1)).andThen(stage("normalize")(_ + 2))
+      p.seal match
+        case Result.Success(sp) => assert(sp.nodeIds.map(_.render) == Chunk("normalize", "normalize-2"))
+        case other              => assert(false, s"expected a successful seal, got $other")
+    }
+
+    "two explicit ids that collide are still a seal error" in {
+      Pipeline.stage("dup", stage("a")(_ + 1)).andThen("dup", stage("b")(_ + 2)).seal match
+        case Result.Failure(errors) =>
+          assert(
+            errors.errors.exists {
+              case SealError.DuplicateNodeId(id) => id.render == "dup"
+              case _                             => false
+            },
+            s"expected a DuplicateNodeId('dup') error, got $errors"
+          )
+        case other => assert(false, s"expected a failed seal, got $other")
+    }
+
+    "a derived slug colliding with an explicit id suffixes around it, never the other way" in {
+      val p = Pipeline.stage("normalize", stage("first")(_ + 1)).andThen(stage("normalize")(_ + 2))
+      p.seal match
+        case Result.Success(sp) => assert(sp.nodeIds.map(_.render) == Chunk("normalize", "normalize-2"))
+        case other              => assert(false, s"expected a successful seal, got $other")
+    }
+
+    "a derived id declared before a colliding explicit id still yields to it" in {
+      val p = Pipeline.stage(stage("normalize")(_ + 1)).andThen("normalize", stage("second")(_ + 2))
+      p.seal match
+        case Result.Success(sp) => assert(sp.nodeIds.map(_.render) == Chunk("normalize-2", "normalize"))
+        case other              => assert(false, s"expected a successful seal, got $other")
+    }
+
+    "the derived suffix skips an ordinal already taken by an explicit id" in {
+      val p = Pipeline
+        .stage(stage("normalize")(_ + 1))
+        .andThen("normalize-2", stage("second")(_ + 2))
+        .andThen(stage("normalize")(_ + 3))
+      p.seal match
+        case Result.Success(sp) =>
+          assert(sp.nodeIds.map(_.render) == Chunk("normalize", "normalize-2", "normalize-3"))
+        case other => assert(false, s"expected a successful seal, got $other")
+    }
+  }

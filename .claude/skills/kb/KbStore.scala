@@ -118,7 +118,8 @@ object KbStore:
       hasFrontmatterBlock = rawFm.isDefined,
       frontmatterError = parsed.collect { case Left(e) => e },
       body = body,
-      links = extractLinks(body, fmLines)
+      links = extractLinks(body, fmLines),
+      frontmatterLines = fmLines
     )
 
   // ------------------------------------------------------------------- I/O

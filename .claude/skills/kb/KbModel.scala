@@ -209,7 +209,9 @@ case class Doc(
     body: String,
     links: Seq[LinkRef],
     /** True when the file is mirrored from upstream rather than authored here. */
-    vendored: Boolean = false
+    vendored: Boolean = false,
+    /** Lines the stripped frontmatter block occupied, so body-relative line numbers can be shifted to file ones. */
+    frontmatterLines: Int = 0
 ):
   /** Bundle-relative path in OKF link form, e.g. `/design/annotations.md`. */
   def bundlePath: String = rel.mkString("/", "/", "").stripSuffix("/")

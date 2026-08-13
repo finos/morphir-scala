@@ -9,37 +9,52 @@ import morphir.buildkit.*
  * `par` and `fanOut` are the non-stage elements so far; a later task (branch) adds a case here.
  *
  * `ParElem`'s type parameters follow the same existential-middle technique as [[Stage.AndThen]]: `I2` is the shared
- * input to both branches, `Z` is the zipped result exposed as this element's `O`, and `S1 & S2` is the combined effect
- * row. `zip` is captured monomorphically at `par` call time (from a `Zippable` instance), so this GADT never carries
- * the typeclass itself.
+ * input to both branches, `Z` is the zipped result exposed as this element's `O`, `E1 | E2` is the combined declared
+ * error, and `S1 & S2` is the combined effect row. `zip` is captured monomorphically at `par` call time (from a
+ * `Zippable` instance), so this GADT never carries the typeclass itself.
  *
- * `FanOutElem`'s own type parameters (`A`, `B`, `S2`) name the child chain's input/output/effect row directly, rather
- * than the enclosing element's `I`/`O`/`S`: the enclosing element's `I` is fixed to `Chunk[A]` and `O` to `Chunk[B]` by
- * the `extends` clause, mirroring how `ParElem` fixes its own `I`/`O` from its case type parameters.
+ * `FanOutElem`'s own type parameters (`A`, `B`, `E2`, `S2`) name the child chain's input/output/error/effect row
+ * directly, rather than the enclosing element's `I`/`O`/`E`/`S`: the enclosing element's `I` is fixed to `Chunk[A]` and
+ * `O` to `Chunk[B]` by the `extends` clause, mirroring how `ParElem` fixes its own `I`/`O` from its case type
+ * parameters. Its own declared error is the child's `E2` alone, not unioned with anything else — the union with
+ * whatever came before this element in the chain happens once, at [[NodeChain.Append]], the same way its effect row
+ * already worked before `E` existed.
  *
  * `BranchElem` picks one of two peer chains by a plain predicate on the incoming value, both fed the same input and
  * producing the same output type. Unlike `FanOutElem`, its two arms do '''not''' get an independent, nested id
  * namespace: only one arm ever runs, so both arms' node ids are flattened into this element's own leaf slots — the same
  * namespace `ParElem`'s two sides already share — and `explicitId` names the branch node itself, which (like a
  * `FanOutElem`) has its own identity even though it wraps no `Stage`.
+ *
+ * `FanOutKeyedElem` is `FanOutElem` with keyed, rather than positional, child identity: `key` renders each element's
+ * stable identifier, validated at run time (not at `seal` — a key is a function of runtime values, so `seal` never sees
+ * one) against the same rules an explicit node id already follows, and checked for per-parent uniqueness. Its own
+ * declared error unions the child's `E2` with [[morphir.buildkit.FanOutKeyError]] — the same technique `ParElem`/
+ * `BranchElem` already use to union two peer error channels — since a bad or duplicate key fails the fan-out node
+ * itself, not the child chain.
  */
-private[buildkit] enum DefElem[-I, +O, S]:
-  case StageElem(explicitId: Maybe[String], stage: Stage[I, O, S])
-  case ParElem[I2, O1, O2, Z, S1, S2](
-      left: NodeChain[I2, O1, S1],
-      right: NodeChain[I2, O2, S2],
+private[buildkit] enum DefElem[-I, +O, E, S]:
+  case StageElem(explicitId: Maybe[String], stage: Stage[I, O, E, S])
+  case ParElem[I2, O1, O2, Z, E1, E2, S1, S2](
+      left: NodeChain[I2, O1, E1, S1],
+      right: NodeChain[I2, O2, E2, S2],
       zip: (O1, O2) => Z
-  ) extends DefElem[I2, Z, S1 & S2]
-  case FanOutElem[A, B, S2](
+  ) extends DefElem[I2, Z, E1 | E2, S1 & S2]
+  case FanOutElem[A, B, E2, S2](
       explicitId: Maybe[String],
-      each: NodeChain[A, B, S2]
-  ) extends DefElem[Chunk[A], Chunk[B], S2]
-  case BranchElem[I2, O2, S1, S2](
+      each: NodeChain[A, B, E2, S2]
+  ) extends DefElem[Chunk[A], Chunk[B], E2, S2]
+  case FanOutKeyedElem[A, B, E2, S2](
+      explicitId: Maybe[String],
+      key: A => String,
+      each: NodeChain[A, B, E2, S2]
+  ) extends DefElem[Chunk[A], Chunk[B], E2 | FanOutKeyError, S2]
+  case BranchElem[I2, O2, E1, E2, S1, S2](
       explicitId: Maybe[String],
       pred: I2 => Boolean,
-      ifTrue: NodeChain[I2, O2, S1],
-      ifFalse: NodeChain[I2, O2, S2]
-  ) extends DefElem[I2, O2, S1 & S2]
+      ifTrue: NodeChain[I2, O2, E1, S1],
+      ifFalse: NodeChain[I2, O2, E2, S2]
+  ) extends DefElem[I2, O2, E1 | E2, S1 & S2]
 
   /**
    * Number of leaf slots this element expands to, walked in definition order: `1` for a stage or a fan-out (a fan-out's
@@ -51,6 +66,7 @@ private[buildkit] enum DefElem[-I, +O, S]:
       case StageElem(_, _)                   => 1
       case ParElem(left, right, _)           => left.size + right.size
       case FanOutElem(_, _)                  => 1
+      case FanOutKeyedElem(_, _, _)          => 1
       case BranchElem(_, _, ifTrue, ifFalse) => 1 + ifTrue.size + ifFalse.size
 
   /**
@@ -65,6 +81,7 @@ private[buildkit] enum DefElem[-I, +O, S]:
       case StageElem(explicitId, stage)               => Chunk((explicitId, stage.meta, stage.describe))
       case ParElem(left, right, _)                    => left.summaries ++ right.summaries
       case FanOutElem(explicitId, _)                  => Chunk((explicitId, Absent, describe))
+      case FanOutKeyedElem(explicitId, _, _)          => Chunk((explicitId, Absent, describe))
       case BranchElem(explicitId, _, ifTrue, ifFalse) =>
         Chunk((explicitId, Absent, describe)) ++ ifTrue.summaries ++ ifFalse.summaries
 
@@ -74,6 +91,7 @@ private[buildkit] enum DefElem[-I, +O, S]:
       case StageElem(_, stage)               => stage.describe
       case ParElem(left, right, _)           => s"par(${left.describe}, ${right.describe})"
       case FanOutElem(_, each)               => s"fanOut(${each.describe})"
+      case FanOutKeyedElem(_, _, each)       => s"fanOutKeyed(${each.describe})"
       case BranchElem(_, _, ifTrue, ifFalse) => s"branch(${ifTrue.describe}, ${ifFalse.describe})"
 end DefElem
 
@@ -82,12 +100,12 @@ end DefElem
  * `Stage.AndThen`. `Append`'s middle type `M` is carried as a case type parameter so walking the chain stays fully
  * typed with no casts.
  */
-private[buildkit] enum NodeChain[-I, +O, S]:
-  case Single[I2, O2, S2](elem: DefElem[I2, O2, S2]) extends NodeChain[I2, O2, S2]
-  case Append[I2, M, O2, S1, S2](
-      init: NodeChain[I2, M, S1],
-      last: DefElem[M, O2, S2]
-  ) extends NodeChain[I2, O2, S1 & S2]
+private[buildkit] enum NodeChain[-I, +O, E, S]:
+  case Single[I2, O2, E2, S2](elem: DefElem[I2, O2, E2, S2]) extends NodeChain[I2, O2, E2, S2]
+  case Append[I2, M, O2, E1, E2, S1, S2](
+      init: NodeChain[I2, M, E1, S1],
+      last: DefElem[M, O2, E2, S2]
+  ) extends NodeChain[I2, O2, E1 | E2, S1 & S2]
 
   /** Number of leaf stages in this chain, walked in definition order. */
   def size: Int =
@@ -124,6 +142,15 @@ private[buildkit] object Sealing:
     if slug.isEmpty then Absent else Present(slug)
 
   /**
+   * The first of `base`, `base-2`, `base-3`, … not already in `taken`. Used to resolve a derived (never an explicit)
+   * id's final string: `base` itself when free, otherwise the lowest free ordinal suffix, skipping past any ordinal
+   * that is itself already taken — by an earlier derived assignment or by a reserved explicit id.
+   */
+  private def freshName(base: String, taken: Set[String]): String =
+    if !taken.contains(base) then base
+    else Iterator.from(2).map(n => s"$base-$n").dropWhile(taken.contains).next()
+
+  /**
    * Assign ids to `chain`'s own elements and validate the result into a [[SealedChain]], accumulating every failure —
    * everywhere in the (possibly nested) graph, not just at this level: an invalid explicit id, a duplicate id among
    * this level's own nodes, ''and'' a `FanOutElem`'s child chain failing to seal, whether or not a sibling at this
@@ -140,19 +167,38 @@ private[buildkit] object Sealing:
    * of the guarantee. When a nested call fails, its errors re-enter this level's aggregate with this node's own
    * assigned id segment prefixed onto each [[SealError.DuplicateNodeId]] — an [[SealError.InvalidSegment]] names the
    * raw string that failed validation, which has no path to prefix, so it passes through unchanged.
+   *
+   * Explicit ids are fixed points: every one that validates successfully reserves its rendered string ''up front'',
+   * before any derived id at this level is resolved, regardless of declaration order — an explicit id is never mutated,
+   * so a derived id declared earlier still yields to one declared later. A derived id (a slugified label, or the
+   * positional `node-$index` fallback) that lands on an already-reserved name — another derived id's bare slug, or an
+   * explicit id's string — suffixes with `-2`, `-3`, … in declaration order, skipping past any ordinal that is itself
+   * already taken (e.g. an explicit id happens to be `normalize-2`). Two explicit ids that collide with each other
+   * cannot be resolved this way — neither may be renamed — so that case still surfaces as
+   * [[SealError.DuplicateNodeId]], via the same duplicate-render check as before: suffixing already guarantees every
+   * derived id's final string is unique, so a repeated render can only come from two explicit ids sharing a string.
    */
-  def sealChain[I, O, S](chain: NodeChain[I, O, S]): Result[SealErrors, SealedChain[I, O, S]] =
-    val summaries                                  = chain.summaries
-    val assigned: Chunk[Result[SealError, NodeId]] =
-      summaries.zipWithIndex.map { case ((explicit, meta, _), index) =>
-        explicit match
-          case Present(value) => NodeId.segment(value)
-          case Absent         =>
-            val slug: Maybe[String] = meta.map(_.label).flatMap(slugify)
-            slug match
-              case Present(value) => Result.succeed(NodeId.unsafe(Chunk(value)))
-              case Absent         => Result.succeed(NodeId.unsafe(Chunk(s"node-$index")))
+  def sealChain[I, O, E, S](chain: NodeChain[I, O, E, S]): Result[SealErrors, SealedChain[I, O, E, S]] =
+    val summaries = chain.summaries
+
+    // Every explicit id that validates successfully reserves its rendered name before any derived id at this level
+    // is resolved, independent of where in `summaries` it appears.
+    val reserved: Set[String] =
+      summaries.collect { case (Present(value), _, _) => NodeId.segment(value) }
+        .collect { case Result.Success(id) => id.render }
+        .toSet
+
+    val (_, assigned): (Set[String], Chunk[Result[SealError, NodeId]]) =
+      summaries.zipWithIndex.foldLeft((reserved, Chunk.empty[Result[SealError, NodeId]])) {
+        case ((taken, acc), ((explicit, meta, _), index)) =>
+          explicit match
+            case Present(value) => (taken, acc :+ NodeId.segment(value))
+            case Absent         =>
+              val base = meta.map(_.label).flatMap(slugify).getOrElse(s"node-$index")
+              val name = freshName(base, taken)
+              (taken + name, acc :+ Result.succeed(NodeId.unsafe(Chunk(name))))
       }
+
     val segmentErrors = assigned.collect { case Result.Failure(error) => error }
     val ids           = assigned.collect { case Result.Success(id) => id }
     val duplicates    =
@@ -177,8 +223,8 @@ private[buildkit] object Sealing:
    * by that fan-out's own assigned id. Unlike [[pairChain]], this never builds anything and never itself fails: it only
    * surfaces errors, so it can run before this level's own ids are known to be entirely valid.
    */
-  private def nestedFanOutErrors[I2, O2, S2](
-      c: NodeChain[I2, O2, S2],
+  private def nestedFanOutErrors[I2, O2, E2, S2](
+      c: NodeChain[I2, O2, E2, S2],
       assigned: Chunk[Result[SealError, NodeId]]
   ): Chunk[SealError] =
     c match
@@ -193,8 +239,8 @@ private[buildkit] object Sealing:
    * [[DefElem#summaries]], so a fan-out buried in either arm surfaces alongside a same-level duplicate rather than
    * being masked by it.
    */
-  private def nestedFanOutErrorsElem[I2, O2, S2](
-      e: DefElem[I2, O2, S2],
+  private def nestedFanOutErrorsElem[I2, O2, E2, S2](
+      e: DefElem[I2, O2, E2, S2],
       assigned: Chunk[Result[SealError, NodeId]]
   ): Chunk[SealError] =
     e match
@@ -209,6 +255,14 @@ private[buildkit] object Sealing:
           // its own-level error alone (already in `segmentErrors`) is reported; the narrow half of the guarantee.
           case Result.Failure(_) => Chunk.empty
           case Result.Panic(_)   => Chunk.empty
+      case DefElem.FanOutKeyedElem(_, _, each) =>
+        // The child chain seals the same way an unkeyed fan-out's does; `key` itself is a runtime function with
+        // nothing for `seal` to validate — a bad or duplicate rendered key surfaces at run time instead, as
+        // `FanOutKeyError`, never as a `SealError`.
+        assigned(0) match
+          case Result.Success(ownId) => errorsOf(sealChain(each)).map(prefixNested(_, ownId))
+          case Result.Failure(_)     => Chunk.empty
+          case Result.Panic(_)       => Chunk.empty
       case DefElem.BranchElem(_, _, ifTrue, ifFalse) =>
         val rest     = assigned.drop(1)
         val trueSize = ifTrue.size
@@ -232,21 +286,22 @@ private[buildkit] object Sealing:
    * `chain.size` entries — guaranteed by [[sealChain]], the only caller — each element consuming the slice matching its
    * own `size`.
    */
-  private def pairChain[I2, O2, S2](
-      c: NodeChain[I2, O2, S2],
+  private def pairChain[I2, O2, E2, S2](
+      c: NodeChain[I2, O2, E2, S2],
       slice: Chunk[NodeId]
-  ): Result[SealErrors, SealedChain[I2, O2, S2]] =
+  ): Result[SealErrors, SealedChain[I2, O2, E2, S2]] =
     c match
       case NodeChain.Single(elem) =>
         pairElem(elem, slice).map(SealedChain.Single(_))
       case NodeChain.Append(init, last) =>
         val initSize = init.size
         combine(pairChain(init, slice.take(initSize)), pairElem(last, slice.drop(initSize)))(SealedChain.Append(_, _))
+          .map(sc => widenSealedChain(sc))
 
-  private def pairElem[I2, O2, S2](
-      e: DefElem[I2, O2, S2],
+  private def pairElem[I2, O2, E2, S2](
+      e: DefElem[I2, O2, E2, S2],
       slice: Chunk[NodeId]
-  ): Result[SealErrors, SealedElem[I2, O2, S2]] =
+  ): Result[SealErrors, SealedElem[I2, O2, E2, S2]] =
     e match
       case DefElem.StageElem(_, stage) =>
         Result.succeed(SealedElem.StageNode(slice(0), stage))
@@ -254,12 +309,20 @@ private[buildkit] object Sealing:
         val leftSize = left.size
         combine(pairChain(left, slice.take(leftSize)), pairChain(right, slice.drop(leftSize)))(
           SealedElem.ParNode(_, _, zip)
-        )
+        ).map(se => widenSealedElem(se))
       case DefElem.FanOutElem(_, each) =>
         val ownId = slice(0)
         sealChain(each) match
           case Result.Success(sealedEach) => Result.succeed(SealedElem.FanOutNode(ownId, sealedEach))
           case Result.Failure(errors)     =>
+            Result.fail(SealErrors.unsafe(errors.errors.map(prefixNested(_, ownId))))
+          case Result.Panic(ex) => Result.panic(ex)
+      case DefElem.FanOutKeyedElem(_, key, each) =>
+        val ownId = slice(0)
+        sealChain(each) match
+          case Result.Success(sealedEach) =>
+            Result.succeed(widenSealedElem(SealedElem.FanOutKeyedNode(ownId, key, sealedEach)))
+          case Result.Failure(errors) =>
             Result.fail(SealErrors.unsafe(errors.errors.map(prefixNested(_, ownId))))
           case Result.Panic(ex) => Result.panic(ex)
       case DefElem.BranchElem(_, pred, ifTrue, ifFalse) =>
@@ -268,7 +331,7 @@ private[buildkit] object Sealing:
         val trueSize = ifTrue.size
         combine(pairChain(ifTrue, rest.take(trueSize)), pairChain(ifFalse, rest.drop(trueSize)))(
           SealedElem.BranchNode(ownId, pred, _, _)
-        )
+        ).map(se => widenSealedElem(se))
 
   /**
    * Combine two seal results, accumulating errors from both sides when either (or both) fail. Neither side of this
@@ -300,3 +363,39 @@ private[buildkit] object Sealing:
       case SealError.DuplicateNodeId(id)     => SealError.DuplicateNodeId(id.prefixed(parentId.render))
       case invalid: SealError.InvalidSegment => invalid
 end Sealing
+
+/**
+ * Widen a freshly constructed `NodeChain.Append`/`DefElem.ParElem`/`DefElem.BranchElem`/`SealedChain.Append`/
+ * `SealedElem.ParNode`/`SealedElem.BranchNode` subcase — whose own `extends` clause unions two case-local error types
+ * with `|` — up to the abstract `E` a caller's own GADT match already proved equal to that union, by construction, not
+ * by assumption.
+ *
+ * `&`-shaped equalities (effect rows: `S1 & S2`) go through Dotty's ordinary GADT approximation unassisted — see
+ * [[Sealing.pairChain]]'s own `Append` case, and [[morphir.buildkit.SealedPipeline.toNodeChain]]'s, for the unassisted
+ * form this same shape otherwise takes. `|`-shaped ones (declared errors: `E1 | E2`) do not: Dotty's GADT constraint
+ * solver derives, from a pattern match on an invariant type parameter instantiated to a union in the case's own
+ * `extends` clause, only that each disjunct is a subtype of the outer type (`E1 <: E`, `E2 <: E`), never the reverse
+ * (`E <: E1 | E2`) needed to close the invariant-equality proof — a known asymmetry in how Dotty's GADT approximation
+ * handles `OrType` versus `AndType` argument positions.
+ *
+ * '''Deliberately four narrow helpers, not one generic `A => B` cast.''' Each is typed to one specific GADT family
+ * (`NodeChain`/`DefElem`/`SealedChain`/`SealedElem`) and pins its own `I`/`O` type parameters '''identically''' on both
+ * the parameter and the result — only the trailing `E`/`S` slots (the source's left as `?`, the result's bound to the
+ * caller's own type parameters) actually move. That means `widenNodeChain[Int, String, MyError, Any](someDefElem)`
+ * fails to compile before ever reaching the cast inside: the parameter type itself rejects a `DefElem`, and rejects a
+ * `NodeChain` whose `I`/`O` don't already match the target's. The only freedom these signatures leave the cast is
+ * exactly the freedom every call site actually needs — reassigning `E`/`S` on an already-correct container — not an
+ * arbitrary unrelated `A`-to-`B`. Every call site still sits directly beside the GADT match that is the actual proof;
+ * the widening performed is always exactly the equality that match already established.
+ */
+private[buildkit] def widenNodeChain[I, O, E, S](chain: NodeChain[I, O, ?, ?]): NodeChain[I, O, E, S] =
+  chain.asInstanceOf[NodeChain[I, O, E, S]]
+
+private[buildkit] def widenDefElem[I, O, E, S](elem: DefElem[I, O, ?, ?]): DefElem[I, O, E, S] =
+  elem.asInstanceOf[DefElem[I, O, E, S]]
+
+private[buildkit] def widenSealedChain[I, O, E, S](chain: SealedChain[I, O, ?, ?]): SealedChain[I, O, E, S] =
+  chain.asInstanceOf[SealedChain[I, O, E, S]]
+
+private[buildkit] def widenSealedElem[I, O, E, S](elem: SealedElem[I, O, ?, ?]): SealedElem[I, O, E, S] =
+  elem.asInstanceOf[SealedElem[I, O, E, S]]
