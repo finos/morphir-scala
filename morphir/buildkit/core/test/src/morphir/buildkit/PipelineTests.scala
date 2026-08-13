@@ -114,9 +114,9 @@ class PipelineTests extends Test[Any]:
       )
     }
     "a stage can read its provenance" in {
-      val observing = Stage
-        .fromKyo[Int, String, Any](i => Pipeline.provenance.map(path => path.map(_.label).mkString(",")))
-        .named("observer")
+      val observing =
+        Stage[Int, String, Nothing, Any](i => Pipeline.provenance.map(path => path.map(_.label).mkString(",")))
+          .named("observer")
       val plan        = sealOrFail(Pipeline.stage(observing))
       val (_, result) = runPure(Emit.run(plan.execute(0))).eval
       assert(result == "observer")

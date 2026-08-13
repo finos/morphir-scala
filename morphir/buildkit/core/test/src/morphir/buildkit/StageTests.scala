@@ -40,9 +40,9 @@ class StageTests extends Test[Any]:
       val out                                        = runPure(program).eval
       assert(out == "5")
     }
-    "fromKyo lifts an effectful function" in {
+    "apply lifts an effectful function" in {
       val effStage: Stage[Int, Int, Nothing, Any] =
-        Stage.fromKyo((i: Int) => (i * 2): Int < Any)
+        Stage[Int, Int, Nothing, Any]((i: Int) => (i * 2): Int < Any)
       val program = effStage.run(21)
       val out     = runPure(program).eval
       assert(out == 42)
