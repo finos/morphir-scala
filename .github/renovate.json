@@ -1,13 +1,22 @@
 {
   "automerge": true,
   "rebaseWhen": "conflicted",
-  "labels": ["type: dependencies"],
+  "labels": [
+    "type: dependencies"
+  ],
   "packageRules": [
     {
       "matchManagers": [
         "sbt"
       ],
       "enabled": false
+    },
+    {
+      "matchPackageNames": [
+        "morphir-elm"
+      ],
+      "allowedVersions": "!=2.100.0",
+      "description": "morphir-elm 2.100.0 crashes with a fatal EBADF fd-close-on-GC after successful generation (bead morphir-qki); later releases are welcome"
     }
   ]
 }
