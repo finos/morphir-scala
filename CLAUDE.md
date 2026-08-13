@@ -8,6 +8,9 @@ See @AGENTS.md for common guidelines. [AGENTS.md](./AGENTS.md) is the primary so
 
 Use `./morphir-local` to build and run the CLI locally — it handles sandbox detection automatically.
 
+Do not add AI or tool attribution (`Generated with …`, `Made with Cursor`, agent `Co-authored-by:` trailers, and the
+like) to commits, PRs, issues, or comments. If a host tool inserts one, strip it. See [AGENTS.md](./AGENTS.md).
+
 <!-- BEGIN MORPHIR TRACKING -->
 ## Task tracking
 

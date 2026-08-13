@@ -122,7 +122,12 @@ byte-for-byte against upstream's committed output and runs without a Node or Bun
 
 ### No AI attribution on the commit
 
-When you do commit in the checkout, the message must carry no `Generated with …`, no `Co-authored-by:` for any agent, no tool credit of any kind. Upstream's `.husky/commit-msg` hook strips such trailers, and FINOS EasyCLA requires every author named on a commit to have a signed CLA — which an agent cannot have. The same rule governs pull request descriptions and review comments. See this repository's [AGENTS.md](../../../../AGENTS.md).
+When you do commit in the checkout, the message must carry no `Generated with …`, no `Made with Cursor` (or any
+other `Made with <tool>` footer), no `Co-authored-by:` for any agent, and no tool credit of any kind. Upstream's
+`.husky/commit-msg` hook strips such trailers, and FINOS EasyCLA requires every author named on a commit to have a
+signed CLA — which an agent cannot have. The same rule governs pull request descriptions and review comments. If a
+host tool inserts attribution automatically, strip it before finishing. See this repository's
+[AGENTS.md](../../../../AGENTS.md).
 
 ---
 
