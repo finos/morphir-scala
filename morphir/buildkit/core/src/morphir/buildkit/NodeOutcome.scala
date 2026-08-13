@@ -19,14 +19,32 @@ enum SkipReason derives CanEqual:
   case ConditionFalse
 
 /**
+ * A non-empty chunk of node ids — the shape [[NodeOutcome.Blocked]] needs for both `blockedBy` and `rootCauses`, so the
+ * invariant a `Blocked` outcome carries is structural rather than merely documented.
+ *
+ * [[SealedPipeline]] is the one intended producer: every `Blocked` it reports is built from a chunk it has already
+ * established as non-empty — its own event id (`Chunk(eventId)`), or a chunk propagated from an upstream `Blocked` that
+ * was itself built the same way — so it constructs through [[unsafe]], its own trusted path. [[from]] is the public,
+ * validated path for anyone assembling a `Blocked` outcome by hand, tests included.
+ */
+sealed abstract case class Causes private (toChunk: Chunk[NodeId]) derives CanEqual
+
+object Causes:
+  /** Validate `ids` as non-empty; `Absent` when it is not. */
+  def from(ids: Chunk[NodeId]): Maybe[Causes] = if ids.isEmpty then Absent else Present(new Causes(ids) {})
+
+  /** Trusted constructor for a chunk the caller has already established is non-empty. */
+  private[buildkit] def unsafe(ids: Chunk[NodeId]): Causes = new Causes(ids) {}
+end Causes
+
+/**
  * Outcome of a single node's execution.
  *
  * Diagnostics are deliberately absent in this slice; when the diagnostics channel lands it extends outcomes, never
  * events (single-owner rule).
  *
- * The `Blocked` case maintains an invariant: both `blockedBy` and `rootCauses` are non-empty. The executor is
- * responsible for maintaining this invariant; it is documented here but not encoded in the type (kyo has no non-empty
- * chunk type).
+ * The `Blocked` case's non-empty invariant on `blockedBy` and `rootCauses` is structural: both are [[Causes]], which
+ * cannot be constructed empty.
  *
  * `Blocked` usually means "never started" — the ordinary case is a node downstream of a failure, which the executor
  * closes with a lone `NodeFinished` and no `NodeStarted`. One case deliberately differs: a '''composite''' node that
@@ -41,7 +59,7 @@ enum NodeOutcome[+E] derives CanEqual:
   case Failed(cause: Result.Error[E])
   case Cancelled
   case Skipped(reason: SkipReason)
-  case Blocked(blockedBy: Chunk[NodeId], rootCauses: Chunk[NodeId])
+  case Blocked(blockedBy: Causes, rootCauses: Causes)
 
   def status: NodeStatus = this match
     case _: Succeeded[?] => NodeStatus.Succeeded

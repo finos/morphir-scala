@@ -38,7 +38,8 @@ class RunReportTests extends Test[Any]:
       val (events, report) = Emit.run(plan.runReport(1)).eval
       assert(report.outcome(nodeId"a") == Present(NodeOutcome.Succeeded(Provenance.Executed)))
       assert(report.outcome(nodeId"b") == Present(NodeOutcome.Failed(Result.Failure(RunBoom("b failed")))))
-      assert(report.outcome(nodeId"c") == Present(NodeOutcome.Blocked(Chunk(nodeId"b"), Chunk(nodeId"b"))))
+      assert(report.outcome(nodeId"c") ==
+        Present(NodeOutcome.Blocked(Causes.unsafe(Chunk(nodeId"b")), Causes.unsafe(Chunk(nodeId"b")))))
       assert(report.result.isEmpty)
       assert(!report.isSuccess)
       assert(report.failed.map(_.id.render) == Chunk("b"))
@@ -61,8 +62,10 @@ class RunReportTests extends Test[Any]:
         Pipeline.stage(nodeId"a", inc).andThen(nodeId"b", boom).andThen(nodeId"c", double).andThen(nodeId"d", double)
       )
       val (_, report) = Emit.run(plan.runReport(1)).eval
-      assert(report.outcome(nodeId"c") == Present(NodeOutcome.Blocked(Chunk(nodeId"b"), Chunk(nodeId"b"))))
-      assert(report.outcome(nodeId"d") == Present(NodeOutcome.Blocked(Chunk(nodeId"c"), Chunk(nodeId"b"))))
+      assert(report.outcome(nodeId"c") ==
+        Present(NodeOutcome.Blocked(Causes.unsafe(Chunk(nodeId"b")), Causes.unsafe(Chunk(nodeId"b")))))
+      assert(report.outcome(nodeId"d") ==
+        Present(NodeOutcome.Blocked(Causes.unsafe(Chunk(nodeId"c")), Causes.unsafe(Chunk(nodeId"b")))))
     }
 
     "a panic in a node body becomes Failed(Panic), not a torn run" in {
@@ -71,7 +74,8 @@ class RunReportTests extends Test[Any]:
       report.outcome(nodeId"boom") match
         case Present(NodeOutcome.Failed(Result.Panic(ex))) => assert(ex.getMessage == "kaboom")
         case other                                         => assert(false, s"expected Failed(Panic), got $other")
-      assert(report.outcome(nodeId"c") == Present(NodeOutcome.Blocked(Chunk(nodeId"boom"), Chunk(nodeId"boom"))))
+      assert(report.outcome(nodeId"c") ==
+        Present(NodeOutcome.Blocked(Causes.unsafe(Chunk(nodeId"boom")), Causes.unsafe(Chunk(nodeId"boom")))))
       assert(report.result.isEmpty)
       assert(render(events).last == "run:finished:false")
     }
@@ -135,7 +139,7 @@ class RunReportTests extends Test[Any]:
       assert(report.outcome(nodeId"r") == Present(NodeOutcome.Failed(Result.Failure(RunBoom("b failed")))))
       assert(
         report.outcome(nodeId"tail") ==
-          Present(NodeOutcome.Blocked(Chunk(nodeId"l", nodeId"r"), Chunk(nodeId"r")))
+          Present(NodeOutcome.Blocked(Causes.unsafe(Chunk(nodeId"l", nodeId"r")), Causes.unsafe(Chunk(nodeId"r"))))
       )
       assert(report.result.isEmpty)
     }
@@ -206,7 +210,8 @@ class RunReportTests extends Test[Any]:
       report.outcome(nodeId"node-1") match
         case Present(NodeOutcome.Failed(Result.Panic(ex))) => assert(ex.getMessage == "bad predicate")
         case other                                         => assert(false, s"expected Failed(Panic), got $other")
-      val blockedOnBranch = Present(NodeOutcome.Blocked(Chunk(nodeId"node-1"), Chunk(nodeId"node-1")))
+      val blockedOnBranch =
+        Present(NodeOutcome.Blocked(Causes.unsafe(Chunk(nodeId"node-1")), Causes.unsafe(Chunk(nodeId"node-1"))))
       assert(report.outcome(nodeId"big") == blockedOnBranch)
       assert(report.outcome(nodeId"small") == blockedOnBranch)
       assert(report.result.isEmpty)
@@ -347,7 +352,8 @@ class RunReportTests extends Test[Any]:
       )
       val (_, report) = Emit.run(plan.runReport(1)).eval
       assert(report.nodes.map(_.id.render) == Chunk("a", "src", "each"))
-      assert(report.outcome(nodeId"each") == Present(NodeOutcome.Blocked(Chunk(nodeId"src"), Chunk(nodeId"a"))))
+      assert(report.outcome(nodeId"each") ==
+        Present(NodeOutcome.Blocked(Causes.unsafe(Chunk(nodeId"src")), Causes.unsafe(Chunk(nodeId"a")))))
     }
 
     "FailFast cancels the elements after a failing one" in {

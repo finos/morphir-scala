@@ -891,7 +891,7 @@ object SealedPipeline:
         closing(
           eventId,
           ordinal,
-          NodeOutcome.Blocked(blockedBy, rootCauses),
+          NodeOutcome.Blocked(Causes.unsafe(blockedBy), Causes.unsafe(rootCauses)),
           Gate.Blocked(Chunk(eventId), rootCauses)
         )
       case Gate.Cancelled =>
@@ -974,7 +974,7 @@ object SealedPipeline:
           }.map { acc =>
             val outcome: NodeOutcome[E] =
               if acc.rootCauses.isEmpty then NodeOutcome.Succeeded(Provenance.Executed)
-              else NodeOutcome.Blocked(acc.blockedBy, acc.rootCauses)
+              else NodeOutcome.Blocked(Causes.unsafe(acc.blockedBy), Causes.unsafe(acc.rootCauses))
             val out: Gate[Chunk[B]] =
               if acc.rootCauses.isEmpty then Gate.Live(acc.values, Chunk(eventId))
               else Gate.Blocked(Chunk(eventId), acc.rootCauses)
@@ -989,7 +989,7 @@ object SealedPipeline:
         closing(
           eventId,
           ordinal,
-          NodeOutcome.Blocked(blockedBy, rootCauses),
+          NodeOutcome.Blocked(Causes.unsafe(blockedBy), Causes.unsafe(rootCauses)),
           Gate.Blocked(Chunk(eventId), rootCauses)
         )
       case Gate.Cancelled =>
@@ -1064,7 +1064,7 @@ object SealedPipeline:
               }.map { acc =>
                 val outcome: NodeOutcome[E] =
                   if acc.rootCauses.isEmpty then NodeOutcome.Succeeded(Provenance.Executed)
-                  else NodeOutcome.Blocked(acc.blockedBy, acc.rootCauses)
+                  else NodeOutcome.Blocked(Causes.unsafe(acc.blockedBy), Causes.unsafe(acc.rootCauses))
                 val out: Gate[Chunk[B]] =
                   if acc.rootCauses.isEmpty then Gate.Live(acc.values, Chunk(eventId))
                   else Gate.Blocked(Chunk(eventId), acc.rootCauses)
@@ -1079,7 +1079,7 @@ object SealedPipeline:
         closing(
           eventId,
           ordinal,
-          NodeOutcome.Blocked(blockedBy, rootCauses),
+          NodeOutcome.Blocked(Causes.unsafe(blockedBy), Causes.unsafe(rootCauses)),
           Gate.Blocked(Chunk(eventId), rootCauses)
         )
       case Gate.Cancelled =>
@@ -1171,7 +1171,7 @@ object SealedPipeline:
         }
       case Gate.Blocked(blockedBy, rootCauses) =>
         bothArms(
-          NodeOutcome.Blocked(blockedBy, rootCauses),
+          NodeOutcome.Blocked(Causes.unsafe(blockedBy), Causes.unsafe(rootCauses)),
           Gate.Blocked(Chunk(eventId), rootCauses),
           Gate.Blocked(Chunk(eventId), rootCauses),
           started = false

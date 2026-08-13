@@ -11,7 +11,19 @@ class NodeOutcomeTests extends Test[Any]:
       NodeOutcome.Failed(Result.Failure("boom")),
       NodeOutcome.Cancelled,
       NodeOutcome.Skipped(SkipReason.ConditionFalse),
-      NodeOutcome.Blocked(Chunk(nodeId"a"), Chunk(nodeId"a"))
+      NodeOutcome.Blocked(Causes.unsafe(Chunk(nodeId"a")), Causes.unsafe(Chunk(nodeId"a")))
     )
     assert(all.map(_.status).distinct.size == 5)
+  }
+
+  "Causes" - {
+    "from an empty chunk is Absent" in
+      assert(Causes.from(Chunk.empty) == Absent)
+    "from a non-empty chunk is Present" in {
+      Causes.from(Chunk(nodeId"a")) match
+        case Present(causes) => assert(causes.toChunk == Chunk(nodeId"a"))
+        case Absent          => assert(false, "expected Present")
+    }
+    "two Causes built from the same ids are equal" in
+      assert(Causes.unsafe(Chunk(nodeId"a", nodeId"b")) == Causes.unsafe(Chunk(nodeId"a", nodeId"b")))
   }
