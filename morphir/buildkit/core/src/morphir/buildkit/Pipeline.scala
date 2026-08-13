@@ -115,6 +115,15 @@ object Pipeline:
         (xyz: (O1, O2, O3), w: O4) => (xyz._1, xyz._2, xyz._3, w)
       ))
     )
+
+  /**
+   * The DSL word for a node giving up: write `Pipeline.halt(error)` in a stage body in place of `Abort.fail(error)`. A
+   * plain veneer over `Abort.fail` — no custom effect, no `Tag`, no handler of its own — so the executor folds the
+   * resulting typed failure into `NodeOutcome.Failed` exactly as it would for any other `Abort[E]` failure raised
+   * directly. See "Halt mechanism" in `kb/bundles/morphir/morphir-scala/design/buildkit-task-graph.md` for why a
+   * bespoke halting effect is deferred rather than built now.
+   */
+  def halt[E](error: E)(using Frame): Nothing < Abort[E] = Abort.fail(error)
 end Pipeline
 
 /**

@@ -75,6 +75,15 @@ class RunReportTests extends Test[Any]:
       assert(report.result.isEmpty)
       assert(render(events).last == "run:finished:false")
     }
+
+    "Pipeline.halt inside a stage body yields Failed in the report" in {
+      val halting: Stage[Int, Int, RunBoom, Any] = Stage((_: Int) => Pipeline.halt(RunBoom("halted")))
+      val plan        = sealOrFail(Pipeline.stage(nodeId"a", inc).andThen(nodeId"h", halting))
+      val (_, report) = Emit.run(plan.runReport(1)).eval
+      assert(report.outcome(nodeId"h") == Present(NodeOutcome.Failed(Result.Failure(RunBoom("halted")))))
+      assert(report.outcome(nodeId"a") == Present(NodeOutcome.Succeeded(Provenance.Executed)))
+      assert(report.result.isEmpty)
+    }
   }
 
   "success" - {
