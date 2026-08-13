@@ -115,6 +115,32 @@ object Stage:
   def pure[A, B](f: A => B): Stage[A, B, Nothing, Any] =
     Run(a => f(a))
 
+  /**
+   * Lift an effectful function that declares no error — the ergonomic constructor for the common case, after
+   * `ZIO.succeed`'s role as the infallible-effect constructor. `E` is fixed to `Nothing` by the name rather than
+   * spelled at every call site; `S` still wants help where no expected type flows in (`Stage.succeed[Int, Int, Any]` or
+   * an ascribed lambda result), for the same underconstrained-row reason [[apply]] documents.
+   *
+   * "Succeed" is a claim, not a proof: Scala offers no negative evidence over effect rows, so an `Abort` smuggled
+   * inside `S` cannot be rejected here statically. The executors contain one at runtime instead, converting it to a
+   * panic carrying [[UndeclaredAbortException]] — the event stream stays balanced and `runReport` folds it as data.
+   * Code that can genuinely fail belongs in [[attempt]] (throws) or [[apply]] (a declared error type).
+   */
+  def succeed[A, B, S](f: A => B < S): Stage[A, B, Nothing, S] =
+    Run(f)
+
+  /**
+   * Lift a plain side-effecting function whose non-fatal throws become the declared error — after `ZIO.attempt`, fixing
+   * the error channel to `Throwable` so exception-throwing code fails typed instead of panicking. Fatal throwables
+   * (`VirtualMachineError`, `InterruptedException`, ...) are not caught, matching `kyo.Abort.catching`.
+   *
+   * The parameter is a plain function, as in ZIO: a Kyo-effectful computation that also throws is unusual enough to
+   * spell out with [[succeed]] or [[apply]] plus `Abort.catching` directly, and a `B < S` parameter here would let an
+   * underconstrained `S` collapse to `Nothing` at plain-lambda call sites.
+   */
+  def attempt[A, B](f: A => B): Stage[A, B, Throwable, Any] =
+    Run(a => Abort.catching[Throwable](f(a)))
+
   /** A stage that never aborts: its declared error is `Nothing`, so it composes into any pipeline's error row. */
   type Infallible[-I, +O, S] = Stage[I, O, Nothing, S]
 end Stage
