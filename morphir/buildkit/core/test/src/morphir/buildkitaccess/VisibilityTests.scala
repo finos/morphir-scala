@@ -11,7 +11,7 @@ import morphir.buildkit.*
 class VisibilityTests extends Test[Any]:
 
   private def observer =
-    Stage[Int, String, Nothing, Any](i => Pipeline.provenance.map(path => path.map(_.label).mkString(",")))
+    Stage.succeed[Int, String, Any](i => Pipeline.provenance.map(path => path.map(_.label).mkString(",")))
       .named("observer")
 
   /**

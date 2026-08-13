@@ -40,9 +40,25 @@ class StageTests extends Test[Any]:
       val out                                        = runPure(program).eval
       assert(out == "5")
     }
-    "apply lifts an effectful function" in {
+    "attempt turns a non-fatal throw into a typed Abort[Throwable]" in {
+      val boom = Stage.attempt((i: Int) => if i > 0 then throw new RuntimeException(s"boom-$i") else i)
+      Abort.run[Throwable](boom.run(3)).eval match
+        case Result.Failure(t) => assert(t.getMessage == "boom-3")
+        case _                 => assert(false)
+    }
+    "attempt succeeds when nothing throws" in {
+      val safe = Stage.attempt((i: Int) => i * 2)
+      assert(Abort.run[Throwable](safe.run(4)).eval == Result.Success(8))
+    }
+    "succeed composes into a declared-error pipeline" in {
+      val doubled = Stage.succeed[Int, Int, Any](i => i * 2)
+      val shown   = Stage.pure((i: Int) => i.toString)
+      val chained = doubled.andThen(shown)
+      assert(runPure(chained.run(21)).eval == "42")
+    }
+    "succeed lifts an effectful function" in {
       val effStage: Stage[Int, Int, Nothing, Any] =
-        Stage[Int, Int, Nothing, Any]((i: Int) => (i * 2): Int < Any)
+        Stage.succeed((i: Int) => (i * 2): Int < Any)
       val program = effStage.run(21)
       val out     = runPure(program).eval
       assert(out == 42)
