@@ -68,7 +68,9 @@ class PipelineTests extends Test[Any]:
     "matches the equivalent Stage composition" in {
       val plan             = sealOrFail(Pipeline.stage(inc).andThen(show))
       val (_, viaPipeline) = Emit.run(plan.execute(41)).eval
-      val direct           = (inc andThen show).run(41).eval
+      // `Stage.run` now returns `String < (Abort[Nothing] & Any)`: `inc`/`show` are pure fixtures pinned to
+      // `E = Nothing`, so `Abort.run[Nothing]` is a zero-cost, always-succeeding strip of that proven-empty channel.
+      val direct = Abort.run[Nothing]((inc andThen show).run(41)).eval.getOrThrow
       assert(viaPipeline == direct)
     }
     "emits Entered and Exited per node, in order" in {

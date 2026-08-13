@@ -131,7 +131,7 @@ private[buildkit] object MermaidRenderer:
 
   private def escape(label: String): String = label.replace("\"", "#quot;")
 
-  private def labelOf(stage: Stage[?, ?, ?]): String =
+  private def labelOf(stage: Stage[?, ?, ?, ?]): String =
     stage.label match
       case Present(l) => l
       case Absent     => "<anonymous>"

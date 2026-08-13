@@ -33,12 +33,16 @@ object Pipeline:
    */
   def provenance: Chunk[StageMeta] < Any = provenanceLocal.get
 
+  // Bridged for the `Stage[I, O, E, S]` arity change (bead-tracked follow-up: threading `E` through `Pipeline` is a
+  // later task). `Nothing` pins these entry points to infallible stages for now; every call site below wraps a
+  // stage whose abort, if any, still rides inside the untyped `S` row.
+
   /** Entry point: a single-node pipeline whose node id derives from the stage's label, or position. */
-  def stage[I, O, S](s: Stage[I, O, S]): PipelineDef[I, O, S] =
+  def stage[I, O, S](s: Stage[I, O, Nothing, S]): PipelineDef[I, O, S] =
     new PipelineDef(NodeChain.Single(DefElem.StageElem(Absent, s)))
 
   /** Entry point with an explicit node id, validated at seal. */
-  def stage[I, O, S](id: String, s: Stage[I, O, S]): PipelineDef[I, O, S] =
+  def stage[I, O, S](id: String, s: Stage[I, O, Nothing, S]): PipelineDef[I, O, S] =
     new PipelineDef(NodeChain.Single(DefElem.StageElem(Present(id), s)))
 
   /**
@@ -47,7 +51,7 @@ object Pipeline:
    * Stores `id.render` as the explicit-id string: safe only while `NodeId` is always a single segment, as it is in this
    * slice. When multi-segment ids become constructible, revisit so a path is not flattened through `render`.
    */
-  def stage[I, O, S](id: NodeId, s: Stage[I, O, S]): PipelineDef[I, O, S] =
+  def stage[I, O, S](id: NodeId, s: Stage[I, O, Nothing, S]): PipelineDef[I, O, S] =
     new PipelineDef(NodeChain.Single(DefElem.StageElem(Present(id.render), s)))
 
   /**
@@ -125,12 +129,14 @@ final class PipelineDef[-I, +O, S] private[buildkit] (
     private[buildkit] val chain: NodeChain[I, O, S]
 ) extends Pipeline[I, O, S]:
 
+  // Same `Nothing` bridge as `Pipeline.stage` above: `E` is not yet threaded through `PipelineDef.andThen`.
+
   /** Append a stage; its node id derives from the stage's label, or position. */
-  infix def andThen[O2, S2](next: Stage[O, O2, S2]): PipelineDef[I, O2, S & S2] =
+  infix def andThen[O2, S2](next: Stage[O, O2, Nothing, S2]): PipelineDef[I, O2, S & S2] =
     new PipelineDef(NodeChain.Append(chain, DefElem.StageElem(Absent, next)))
 
   /** Append a stage with an explicit node id, validated at seal. */
-  def andThen[O2, S2](id: String, next: Stage[O, O2, S2]): PipelineDef[I, O2, S & S2] =
+  def andThen[O2, S2](id: String, next: Stage[O, O2, Nothing, S2]): PipelineDef[I, O2, S & S2] =
     new PipelineDef(NodeChain.Append(chain, DefElem.StageElem(Present(id), next)))
 
   /**
@@ -139,7 +145,7 @@ final class PipelineDef[-I, +O, S] private[buildkit] (
    * Stores `id.render` as the explicit-id string: safe only while `NodeId` is always a single segment, as it is in this
    * slice. When multi-segment ids become constructible, revisit so a path is not flattened through `render`.
    */
-  def andThen[O2, S2](id: NodeId, next: Stage[O, O2, S2]): PipelineDef[I, O2, S & S2] =
+  def andThen[O2, S2](id: NodeId, next: Stage[O, O2, Nothing, S2]): PipelineDef[I, O2, S & S2] =
     new PipelineDef(NodeChain.Append(chain, DefElem.StageElem(Present(id.render), next)))
 
   /**
@@ -332,6 +338,17 @@ object SealedPipeline:
     }
 
   /**
+   * Drop a proven-empty `Abort[Nothing]` from `v`'s row. Bridges the `Stage[I, O, E, S]` arity change: every `Stage`
+   * wrapped by a [[SealedElem.StageNode]] is pinned to `E = Nothing` for now (see [[DefElem.StageElem]]), so
+   * [[morphir.buildkit.Stage#run]] returns `B < (Abort[Nothing] & S2)` rather than the `B < S2` this method's callers
+   * expect — `Abort[Nothing]` can never actually carry a failure, but the effect row still names it, so it needs an
+   * explicit (zero-cost) run to disappear from the type. `Result.getOrThrow` never actually throws here:
+   * `Result[Nothing, B]` has no inhabited `Failure` case to produce.
+   */
+  private def runInfallible[B, S2](v: B < (Abort[Nothing] & S2)): B < S2 =
+    Abort.run[Nothing](v).map(_.getOrThrow)
+
+  /**
    * Run `elem` on `input`, qualifying every event id it emits with `prefix` — the segments of every enclosing fan-out
    * node, outermost first. A plain top-level run passes `Chunk.empty`; a `FanOutNode` extends `prefix` with its own
    * segment and the running element's index before running `each` on that element, so a doubly-nested fan-out's event
@@ -355,8 +372,8 @@ object SealedPipeline:
           _   <- Emit.value(StageEvent.Entered(eventId, stage.meta))
           out <- bracketed(eventId) {
             stage.meta match
-              case Present(meta) => Pipeline.provenanceLocal.update(_.append(meta))(stage.run(input))
-              case Absent        => stage.run(input)
+              case Present(meta) => Pipeline.provenanceLocal.update(_.append(meta))(runInfallible(stage.run(input)))
+              case Absent        => runInfallible(stage.run(input))
           }
           _ <- Emit.value(StageEvent.Exited(eventId, StageOutcome.Succeeded))
         yield out

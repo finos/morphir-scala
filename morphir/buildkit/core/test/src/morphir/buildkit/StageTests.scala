@@ -5,52 +5,56 @@ import kyo.test.*
 
 class StageTests extends Test[Any]:
 
-  private val identityStage: Stage[Int, Int, Any] =
+  /** Strip a proven-empty `Abort[Nothing]` so an infallible fixture's result can reach `.eval` directly. */
+  private def runPure[A, S](v: A < (Abort[Nothing] & S))(using Frame): A < S =
+    Abort.run[Nothing](v).map(_.getOrThrow)
+
+  private val identityStage: Stage[Int, Int, Nothing, Any] =
     Stage.identity[Int]
 
-  private val pureStage: Stage[Int, String, Any] =
+  private val pureStage: Stage[Int, String, Nothing, Any] =
     Stage.pure((i: Int) => s"value=$i")
 
   "Stage" - {
     "identity returns the input unchanged" in {
-      val program: Int < Any = identityStage.run(42)
-      val out                = program.eval
+      val program: Int < Abort[Nothing] = identityStage.run(42)
+      val out                           = runPure(program).eval
       assert(out == 42)
     }
     "pure applies a pure function" in {
-      val program: String < Any = pureStage.run(7)
-      val out                   = program.eval
+      val program: String < Abort[Nothing] = pureStage.run(7)
+      val out                              = runPure(program).eval
       assert(out == "value=7")
     }
     ">>> composes two stages preserving effect rows" in {
-      val composed: Stage[Int, String, Any] = identityStage >>> pureStage
-      val program                           = composed.run(13)
-      val out                               = program.eval
+      val composed: Stage[Int, String, Nothing, Any] = identityStage >>> pureStage
+      val program                                    = composed.run(13)
+      val out                                        = runPure(program).eval
       assert(out == "value=13")
     }
     "composition order is left-to-right" in {
-      val plusOne: Stage[Int, Int, Any]     = Stage.pure((i: Int) => i + 1)
-      val toStr: Stage[Int, String, Any]    = Stage.pure((i: Int) => i.toString)
-      val pipeline: Stage[Int, String, Any] = plusOne >>> toStr
-      val program                           = pipeline.run(4)
-      val out                               = program.eval
+      val plusOne: Stage[Int, Int, Nothing, Any]     = Stage.pure((i: Int) => i + 1)
+      val toStr: Stage[Int, String, Nothing, Any]    = Stage.pure((i: Int) => i.toString)
+      val pipeline: Stage[Int, String, Nothing, Any] = plusOne >>> toStr
+      val program                                    = pipeline.run(4)
+      val out                                        = runPure(program).eval
       assert(out == "5")
     }
     "fromKyo lifts an effectful function" in {
-      val effStage: Stage[Int, Int, Any] =
+      val effStage: Stage[Int, Int, Nothing, Any] =
         Stage.fromKyo((i: Int) => (i * 2): Int < Any)
       val program = effStage.run(21)
-      val out     = program.eval
+      val out     = runPure(program).eval
       assert(out == 42)
     }
     "andThen composes like >>>" in {
-      val viaOperator = (identityStage >>> pureStage).run(13).eval
-      val viaMethod   = identityStage.andThen(pureStage).run(13).eval
+      val viaOperator = runPure((identityStage >>> pureStage).run(13)).eval
+      val viaMethod   = runPure(identityStage.andThen(pureStage).run(13)).eval
       assert(viaOperator == viaMethod)
     }
     "andThen is callable infix" in {
       val composed = identityStage andThen pureStage
-      assert(composed.run(7).eval == "value=7")
+      assert(runPure(composed.run(7)).eval == "value=7")
     }
     "named attaches a label" in {
       val labelled = pureStage.named("show")
@@ -67,7 +71,7 @@ class StageTests extends Test[Any]:
     "named preserves run semantics" in {
       val bare     = Stage.pure((i: Int) => i * 2)
       val labelled = bare.named("double")
-      assert(bare.run(21).eval == labelled.run(21).eval)
+      assert(runPure(bare.run(21)).eval == runPure(labelled.run(21)).eval)
     }
     "labels survive composition on both sides" in {
       val inc  = Stage.pure((i: Int) => i + 1).named("inc")
@@ -88,4 +92,17 @@ class StageTests extends Test[Any]:
     }
     "a blank label renders as anonymous" in
       assert(pureStage.named("").describe == "<anonymous>")
+    "typed error channel" - {
+      "a stage may abort with its declared error and the row records it" in {
+        val s: Stage[Int, Int, String, Any] =
+          Stage((i: Int) => if i < 0 then Abort.fail("negative") else i * 2)
+        Abort.run[String](s.run(-1)).map(r => assert(r == Result.fail("negative")))
+      }
+      "an infallible stage composes into a fallible pipeline row" in {
+        val pure: Stage[Int, Int, Nothing, Any] = Stage((i: Int) => i + 1)
+        val fall: Stage[Int, Int, String, Any]  = Stage((i: Int) => if i > 10 then Abort.fail("big") else i)
+        val both: Stage[Int, Int, String, Any]  = pure >>> fall
+        Abort.run[String](both.run(1)).map(r => assert(r == Result.succeed(2)))
+      }
+    }
   }

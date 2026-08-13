@@ -24,7 +24,9 @@ import morphir.buildkit.*
  * `FanOutElem`) has its own identity even though it wraps no `Stage`.
  */
 private[buildkit] enum DefElem[-I, +O, S]:
-  case StageElem(explicitId: Maybe[String], stage: Stage[I, O, S])
+  // `Nothing` bridges the `Stage[I, O, E, S]` arity change (bead-tracked follow-up: threading `E` through `DefElem`
+  // is a later task); every stage wrapped here is still infallible or carries its abort inside the untyped `S` row.
+  case StageElem(explicitId: Maybe[String], stage: Stage[I, O, Nothing, S])
   case ParElem[I2, O1, O2, Z, S1, S2](
       left: NodeChain[I2, O1, S1],
       right: NodeChain[I2, O2, S2],
