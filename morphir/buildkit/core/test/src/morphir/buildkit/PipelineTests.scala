@@ -346,6 +346,21 @@ class PipelineTests extends Test[Any]:
       })
       assert(events.contains(PipelineEvent.NodeFinished(nodeId"fo", NodeStatus.Failed)))
     }
+    "a key function that throws on the second element still closes the fan-out node's own NodeStarted/NodeFinished, and the throwable propagates" in {
+      val throwingKey: String => String = s => if s == "item1" then throw new RuntimeException("bad key") else s
+      val plan                          = sealOrFail(
+        Pipeline.stage(keyedSources).fanOutKeyed("fo", throwingKey)(Pipeline.stage(parse))
+      )
+      val (events, outcome) = Emit.run(Abort.run[FanOutKeyError](plan.execute(2))).eval
+      outcome match
+        case Result.Panic(ex) => assert(ex.getMessage == "bad key")
+        case other            => assert(false, s"expected a panic, got $other")
+      assert(!events.exists {
+        case PipelineEvent.NodeStarted(id, _) => id.render.contains("/")
+        case _                                => false
+      })
+      assert(events.contains(PipelineEvent.NodeFinished(nodeId"fo", NodeStatus.Failed)))
+    }
   }
 
   "branch" - {

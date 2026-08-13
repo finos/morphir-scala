@@ -5,6 +5,8 @@ import kyo.kernel.Effect
 import morphir.Zippable
 import morphir.buildkit.internal.*
 
+import scala.util.control.NonFatal
+
 /**
  * A linear pipeline of stages: either a buildable definition ([[PipelineDef]]) or a validated, executable plan
  * ([[SealedPipeline]]). Construction starts at [[Pipeline.stage]]; validation happens once, at [[seal]].
@@ -583,6 +585,26 @@ object SealedPipeline:
     }.map(_ => ())
 
   /**
+   * Render every element through `key` and validate the result via [[validateKeys]], as one step: `key` is an ordinary
+   * Scala function supplied by a pipeline author, so a synchronous throw from it (a bug in the key function, not a Kyo
+   * effect) must fold into `Result.Panic` here rather than escape as a raw exception. Rendering happens ''before'' any
+   * Kyo effect is constructed, so neither executor's own per-node interception reaches it on its own — `bracketed`'s
+   * `Effect.catching` in [[executeElem]] only wraps the computation `key` already finished producing, and `attempt`'s
+   * `Effect.catching` in [[reportStage]] guards a stage body, not this fan-out's own key-rendering step. This is the
+   * shared choke point both [[executeElem]] and [[reportFanOutKeyed]] route every key through instead, the same reason
+   * [[validateKeys]] itself is shared: the two executors can never diverge on either step.
+   */
+  private def renderAndValidateKeys[A](
+      parent: NodeId,
+      key: A => String,
+      elements: Chunk[A]
+  ): Result[FanOutKeyError, Chunk[String]] =
+    try
+      val renderedKeys = elements.map(key)
+      validateKeys(parent, renderedKeys).map(_ => renderedKeys)
+    catch case NonFatal(ex) => Result.panic(ex)
+
+  /**
    * Run `elem` on `input`, qualifying every event id it emits with `prefix` — the segments of every enclosing fan-out
    * node, outermost first. A plain top-level run passes `Chunk.empty`; a `FanOutNode` extends `prefix` with its own
    * segment and the running element's index before running `each` on that element, so a doubly-nested fan-out's event
@@ -636,9 +658,8 @@ object SealedPipeline:
           _      <- Emit.value(PipelineEvent.NodeStarted(eventId, Absent))
           _      <- Var.updateDiscard[OpenNodes](s => OpenNodes(s.ids :+ eventId))
           result <- bracketed(eventId) {
-            val renderedKeys = input.map(key)
-            validateKeys(eventId, renderedKeys) match
-              case Result.Success(_) =>
+            renderAndValidateKeys(eventId, key, input) match
+              case Result.Success(renderedKeys) =>
                 Kyo.foreach(input.zip(renderedKeys)) { case (element, renderedKey) =>
                   executeChain(each, childPrefix :+ renderedKey, element)
                 }
@@ -999,8 +1020,7 @@ object SealedPipeline:
     gate match
       case Gate.Live(elements, _) =>
         Emit.value(PipelineEvent.NodeStarted(eventId, Absent)).andThen {
-          val renderedKeys = elements.map(key)
-          validateKeys(eventId, renderedKeys) match
+          renderAndValidateKeys(eventId, key, elements) match
             case Result.Failure(err) =>
               closing(
                 eventId,
@@ -1015,7 +1035,7 @@ object SealedPipeline:
                 NodeOutcome.Failed(Result.Panic(ex)),
                 Gate.Blocked(Chunk(eventId), Chunk(eventId))
               )
-            case Result.Success(_) =>
+            case Result.Success(renderedKeys) =>
               Kyo.foldLeft(elements.zip(renderedKeys))(FanOutAcc[E, B](
                 Chunk.empty,
                 Chunk.empty,

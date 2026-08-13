@@ -457,6 +457,31 @@ class RunReportTests extends Test[Any]:
       assert(report.nodes.map(_.id.render) == Chunk("src", "each"))
       assert(report.result.isEmpty)
     }
+
+    "a key function that throws on the second element reports the fan-out node Failed(Panic), not a torn run" in {
+      val throwingKey: String => String = s => if s == "item1" then throw new RuntimeException("bad key") else s
+      val plan                          = sealOrFail(
+        Pipeline.stage(nodeId"src", keyedSources).fanOutKeyed("each", throwingKey)(
+          Pipeline.stage(nodeId"child", childOf)
+        )
+      )
+      val (events, report) = Emit.run(plan.runReport(2)).eval
+      report.outcome(nodeId"each") match
+        case Present(NodeOutcome.Failed(Result.Panic(ex))) => assert(ex.getMessage == "bad key")
+        case other                                         => assert(false, s"expected Failed(Panic), got $other")
+      assert(report.nodes.map(_.id.render) == Chunk("src", "each"))
+      assert(report.result.isEmpty)
+      assert(!report.isSuccess)
+      // Every started node closes with a matching finish — the run is not torn.
+      val started  = events.collect { case PipelineEvent.NodeStarted(id, _) => id }
+      val finished = events.collect { case PipelineEvent.NodeFinished(id, _) => id }
+      assert(started.sorted(using Ordering.by(_.render)) == finished.sorted(using Ordering.by(_.render)))
+      assert(!events.exists {
+        case PipelineEvent.NodeStarted(id, _) => id.render.contains("/")
+        case _                                => false
+      })
+      assert(render(events).last == "run:finished:false")
+    }
   }
 
 final case class RunBoom(msg: String) derives CanEqual
