@@ -6,6 +6,10 @@
   [Buildkit task-graph capability](/design/buildkit-task-graph.md), including deviations from the settled
   positions and the still-unreachable `SkipReason.ConditionFalse`.
 * **Creation**: Added [Buildkit task-graph capability](/design/buildkit-task-graph.md).
+* **Update**: Renamed `StageEvent`/`Entered`/`Exited` to the shipped `PipelineEvent`/`NodeStarted`/`NodeFinished`
+  names throughout the [multi-frontend pipeline and workspace Design Note](/design/pipeline-workspace-boundaries.md),
+  and recorded that typed halting is now closed by the report executor on this branch, with parallel execution the
+  remaining open item.
 
 ## 2026-08-08
 
