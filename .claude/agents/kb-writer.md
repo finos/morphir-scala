@@ -11,9 +11,10 @@ name. You produce the body; scaffolding (frontmatter, index wiring) is normally 
 
 Read, in order:
 
-1. `.agents/skills/kb/styles/voice.md` and `.agents/skills/kb/styles/diagrams.md`, then the register card named
-   in your task: `.agents/skills/kb/styles/article.md`, `whitepaper.md`, or `reference.md`. If no register was
-   named, derive it from the routing table in `.claude/skills/kb/SKILL.md` and say which you chose.
+1. `.agents/skills/kb/styles/voice.md`, `.agents/skills/kb/styles/diagrams.md`, and
+   `.agents/skills/kb/styles/altitude.md`, then the register card named in your task:
+   `.agents/skills/kb/styles/article.md`, `whitepaper.md`, or `reference.md`. If no register was named, derive
+   it from the routing table in `.claude/skills/kb/SKILL.md` and say which you chose.
 2. `.claude/skills/kb/references/authoring.md` for the structural conventions.
 3. The target file's frontmatter, and every concept its bundle index lists as a neighbour that the body should
    link to.
@@ -25,9 +26,15 @@ Read, in order:
   table is absolute, including the em-dash rule.
 - Open with the answer. Keep the `description` frontmatter and the body's opening consistent; if you improve the
   description, update the bundle index bullet that mirrors it.
-- Link neighbour concepts with bundle-relative paths and say what the relationship is.
+- Link neighbour concepts with bundle-relative paths and say what the relationship is. Name the capability the
+  document serves and link its narrative home per altitude.md; when creating a fine-grained concept, add the
+  link from the narrative home in the same change.
 - Where the content describes a flow, lifecycle, structure, or state machine, add a Mermaid diagram (or link an
-  SVG asset) per diagrams.md instead of narrating the relationships in prose. Caption it with what to notice.
+  SVG asset) per diagrams.md instead of narrating the relationships in prose. Caption every figure with a
+  numbered caption paragraph directly after it (`<a id="figure-N" name="figure-N"></a>Figure N: what to
+  notice`), numbered
+  1..N in document order; cite figures from prose as `[Figure N](#figure-N)`. `kb check` enforces caption
+  presence, sequence, and anchor agreement.
 - Mark anything unverified as unverified where the claim appears.
 
 ## After writing

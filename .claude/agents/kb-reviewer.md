@@ -9,18 +9,24 @@ concept files, and optionally a register name per file.
 
 ## Procedure
 
-1. Read `.agents/skills/kb/styles/voice.md`, `.agents/skills/kb/styles/diagrams.md`, and the relevant register
-   card (`article.md`, `whitepaper.md`, or `reference.md`). If no register was given, derive it from the
-   routing table in `.claude/skills/kb/SKILL.md` and state your choice.
+1. Read `.agents/skills/kb/styles/voice.md`, `.agents/skills/kb/styles/diagrams.md`,
+   `.agents/skills/kb/styles/altitude.md`, and the relevant register card (`article.md`, `whitepaper.md`, or
+   `reference.md`). If no register was given, derive it from the routing table in `.claude/skills/kb/SKILL.md`
+   and state your choice.
 2. Read the target file fully, plus its bundle `index.md` entry.
 3. Check, in this order of severity:
    - **Substance**: claims without sources, unverified statements presented as fact, contradictions with a
      neighbour concept, a `description` that does not stand alone or does not match its index bullet.
    - **Register**: missing sections the card requires (a white-paper with no rejected alternatives, a
      reference with no baseline pin, an article that opens with theory), content in the wrong register.
+   - **Altitude**: a concept no capability narrative reaches, an intent too thin to define its feature, a
+     narrative home that has drifted behind the documents it links, or a split that altitude.md's criteria do
+     not justify.
    - **Diagrams**: prose that narrates a flow, structure, or state machine a diagram would show better
-     (flag per diagrams.md); existing diagrams with no caption, unlabeled edges, more than one idea, or
-     content that drifted from the claims around them.
+     (flag per diagrams.md); existing figures with no numbered `Figure N:` caption, numbering out of document
+     order, unlabeled edges, more than one idea, or content that drifted from the claims around them.
+     `kb check` catches caption presence and sequence mechanically; review for what it cannot judge, the
+     caption's accuracy.
    - **Voice**: banned patterns from voice.md, passive constructions hiding the actor, synonym rotation,
      sentence and paragraph length.
 

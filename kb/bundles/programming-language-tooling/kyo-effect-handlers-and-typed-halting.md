@@ -172,8 +172,8 @@ is invisible to user code, and user code cannot corrupt it. Reserve `Var` for st
     end
   ```
 
-  The outer handler survives the inner one's short-circuit: put the handler whose output must outlive a halt
-  outside the halting handler.
+  <a id="figure-1" name="figure-1"></a>Figure 1: the outer handler survives the inner one's short-circuit; put the handler whose output must
+  outlive a halt outside the halting handler.
 - Short-circuiting effects must not provide `Isolate` instances. Kyo's own documentation says automatic isolation
   derivation over an effect that can halt produces order-dependent results. Provide isolation for the `Var`/`Emit`
   parts of a row only.[^kyo-isolate]
@@ -216,7 +216,8 @@ deterministic ordering are contracts the executor must define before any of the 
 [Guidance for a Morphir toolchain](/morphir-toolchain-guidance.md)). The open design questions for the buildkit
 executor (outcome type, halt mechanism, skip propagation, stop-or-continue policy) live in the morphir-scala
 [pipeline and workspace boundaries design note](../morphir/morphir-scala/design/pipeline-workspace-boundaries.md),
-not here.
+not here. This reference serves the buildkit task-graph capability; its narrative home is the
+[buildkit task-graph design note](../morphir/morphir-scala/design/buildkit-task-graph.md).
 
 [^kyo-rc6]: Kyo 1.0.0-RC6 source tree.
 [^kyo-arrow-effect]: `kyo-kernel/shared/src/main/scala/kyo/kernel/ArrowEffect.scala` at 1.0.0-RC6.
