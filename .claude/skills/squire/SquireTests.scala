@@ -219,20 +219,20 @@ object SquireCiPolicy:
       "ci.lint must take an Evaluator and an exclude regex"
     )
     expect(
-      script.contains("LintSelectors.checkFormatSelector"),
-      "ci.lint must resolve checkFormat via LintSelectors.checkFormatSelector"
+      script.contains("resolveSegments(Seq(LintSelectors.sourcesSelector)"),
+      "ci.lint must resolve sources via LintSelectors.sourcesSelector"
     )
     expect(
       script.contains("LintSelectors.excludeMatching"),
       "ci.lint must drop matching modules through LintSelectors.excludeMatching"
     )
     expect(
-      script.contains("exclusive = true"),
-      "ci commands that use Evaluator must be exclusive"
+      script.contains("mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll"),
+      "ci.lint must run checkFormatAll so modules without ScalafmtModule stay covered"
     )
     expect(
-      !script.contains("checkFormatAll"),
-      "ci.lint must evaluate per-module checkFormat so --exclude can drop targets"
+      script.contains("exclusive = true"),
+      "ci commands that use Evaluator must be exclusive"
     )
     expect(
       !script.contains("millLauncher") && !script.contains("os.proc(millLauncher"),
@@ -1399,14 +1399,20 @@ class SquireCiPolicySpec extends Test[Any]:
         "def lint(evaluator: Evaluator, exclude: String = \"\")",
         "def lint(evaluator: Evaluator)"
       )
-      val checkFormatAll = replaceOnce(
+      val withoutSources = replaceOnce(
         sonatypePublishTask,
-        "LintSelectors.checkFormatSelector",
-        "checkFormatAll"
+        "resolveSegments(Seq(LintSelectors.sourcesSelector)",
+        "resolveSegments(Seq(\"morphir.__.checkFormat\")"
+      )
+      val withoutCheckFormatAll = replaceOnce(
+        sonatypePublishTask,
+        "mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll",
+        "morphir.__.checkFormat"
       )
       assert(rejects(assertLintJobPolicy, miseLint))
       assert(rejects(assertCiLintPolicy, withoutExclude))
-      assert(rejects(assertCiLintPolicy, checkFormatAll))
+      assert(rejects(assertCiLintPolicy, withoutSources))
+      assert(rejects(assertCiLintPolicy, withoutCheckFormatAll))
       assert(true)
     }
 

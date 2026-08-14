@@ -112,15 +112,16 @@ trait MorphirCiModule extends Module {
   }
 
   /**
-   * Scalafmt check over resolved `morphir.__.checkFormat` modules.
+   * Scalafmt check over resolved `morphir.__.sources` tasks, including modules that do not mix in
+   * `ScalafmtModule`.
    *
    * `--exclude` is a regex matched against each module path. A match drops that module from the
-   * check set. A blank exclude keeps every resolved module.
+   * check set. A blank exclude keeps every resolved module and runs one `checkFormatAll`.
    */
   def lint(evaluator: Evaluator, exclude: String = "") = Task.Command(exclusive = true) {
     val resolved = unwrap(
-      evaluator.resolveSegments(Seq(LintSelectors.checkFormatSelector), SelectMode.Multi),
-      s"resolve ${LintSelectors.checkFormatSelector}"
+      evaluator.resolveSegments(Seq(LintSelectors.sourcesSelector), SelectMode.Multi),
+      s"resolve ${LintSelectors.sourcesSelector}"
     ).map(_.render)
     val modules = LintSelectors.modulesFromResolved(resolved)
     val kept = LintSelectors.excludeMatching(modules, exclude) match {
@@ -129,12 +130,28 @@ trait MorphirCiModule extends Module {
     }
     if kept.isEmpty then
       throw new Exception(
-        s"ci.lint: no ${LintSelectors.checkFormatSuffix} targets remain" +
+        s"ci.lint: no ${LintSelectors.sourcesSuffix} targets remain" +
           (if exclude.isBlank then "" else s" after --exclude $exclude")
       )
-    val selectors = kept.map(module => s"$module${LintSelectors.checkFormatSuffix}")
-    Task.log.info(s"ci.lint: checking ${selectors.size} modules")
-    evaluateAll(evaluator, selectors, "ci.lint")
+    val sourceSelectors =
+      if kept.size == modules.size then Seq(LintSelectors.sourcesSelector)
+      else kept.map(module => s"$module${LintSelectors.sourcesSuffix}")
+    Task.log.info(s"ci.lint: checking ${kept.size} source modules")
+    sourceSelectors.foreach(selector => evaluateLint(evaluator, selector))
+  }
+
+  private def evaluateLint(evaluator: Evaluator, sourcesSelector: String): Unit = {
+    val evalResult = unwrap(
+      evaluator.evaluate(
+        Seq("mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll", sourcesSelector),
+        SelectMode.Separated
+      ),
+      s"ci.lint $sourcesSelector"
+    )
+    evalResult.values.toEither match {
+      case Left(msg) => throw new Exception(s"ci.lint $sourcesSelector failed: $msg")
+      case Right(_)  => ()
+    }
   }
 
   /**

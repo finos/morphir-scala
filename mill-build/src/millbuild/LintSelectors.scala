@@ -1,22 +1,23 @@
 package millbuild
 
 /**
- * Pure selection over resolved `*.checkFormat` module paths for [[build.ci.MorphirCiModule.lint]].
+ * Pure selection over resolved `*.sources` module paths for [[build.ci.MorphirCiModule.lint]].
  *
  * `ci/MorphirCi.mill` supplies the names Mill resolved; this object drops those whose path matches
- * `--exclude`.
+ * `--exclude`. The selector is `morphir.__.sources` so modules without `ScalafmtModule` stay in
+ * the check set; `checkFormatAll` lints those files.
  */
 object LintSelectors {
-  val checkFormatSelector: String = "morphir.__.checkFormat"
-  val checkFormatSuffix: String   = ".checkFormat"
+  val sourcesSelector: String = "morphir.__.sources"
+  val sourcesSuffix: String   = ".sources"
 
   def modulesFromResolved(resolved: Seq[String]): Seq[String] =
     resolved
-      .filter(_.endsWith(checkFormatSuffix))
+      .filter(_.endsWith(sourcesSuffix))
       .map { rendered =>
         if rendered.contains(' ') then
-          throw new IllegalArgumentException(s"resolve $checkFormatSelector: unexpected space in $rendered")
-        rendered.stripSuffix(checkFormatSuffix)
+          throw new IllegalArgumentException(s"resolve $sourcesSelector: unexpected space in $rendered")
+        rendered.stripSuffix(sourcesSuffix)
       }
       .distinct
       .sorted

@@ -7,25 +7,25 @@ def assertEquals[A](actual: A, expected: A): Unit =
 
 @main def runLintSelectorsTests(): Unit =
   val resolved = Seq(
-    "morphir.langkit.jvm.checkFormat",
-    "morphir.prelude.jvm.checkFormat",
-    "morphir.tests.jvm.checkFormat",
+    "morphir.langkit.jvm.sources",
+    "morphir.prelude.jvm.sources",
+    "morphir.tests.jvm.test.sources",
     "morphir.langkit.jvm.compile"
   )
   val modules = LintSelectors.modulesFromResolved(resolved)
   assertEquals(
     modules,
-    Seq("morphir.langkit.jvm", "morphir.prelude.jvm", "morphir.tests.jvm")
+    Seq("morphir.langkit.jvm", "morphir.prelude.jvm", "morphir.tests.jvm.test")
   )
 
   assertEquals(LintSelectors.excludeMatching(modules, ""), Right(modules))
   assertEquals(LintSelectors.excludeMatching(modules, "   "), Right(modules))
   assertEquals(
     LintSelectors.excludeMatching(modules, "langkit"),
-    Right(Seq("morphir.prelude.jvm", "morphir.tests.jvm"))
+    Right(Seq("morphir.prelude.jvm", "morphir.tests.jvm.test"))
   )
   assertEquals(
-    LintSelectors.excludeMatching(modules, "^morphir\\.tests\\."),
+    LintSelectors.excludeMatching(modules, "\\.test$"),
     Right(Seq("morphir.langkit.jvm", "morphir.prelude.jvm"))
   )
   assertEquals(LintSelectors.excludeMatching(modules, "morphir\\."), Right(Seq.empty))
@@ -41,7 +41,7 @@ def assertEquals[A](actual: A, expected: A): Unit =
 
 def interceptSpace(): Unit =
   try
-    LintSelectors.modulesFromResolved(Seq("morphir.jvm extra.checkFormat"))
+    LintSelectors.modulesFromResolved(Seq("morphir.jvm extra.sources"))
     assert(false, "expected space in a resolved name to fail")
   catch
     case _: IllegalArgumentException => ()

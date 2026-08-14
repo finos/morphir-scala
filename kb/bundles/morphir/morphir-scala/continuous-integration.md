@@ -15,7 +15,7 @@ branches.
 
 | Job | Runs |
 | --- | ---- |
-| `lint` | Mill `ci.lint`: scalafmt check over resolved `morphir.__.checkFormat` modules. `--exclude` drops matching module paths. |
+| `lint` | Mill `ci.lint`: scalafmt `checkFormatAll` over resolved `morphir.__.sources` tasks. `--exclude` drops matching module paths. |
 | `squire-policy` | `mise run test:squire`. Squire and release-policy gates. |
 | `knowledge-base` | `kb check` and `kb intent check` |
 | `test-jvm` | JVM tests, including the Cucumber/JUnit5 `langkit.itest` suite |
