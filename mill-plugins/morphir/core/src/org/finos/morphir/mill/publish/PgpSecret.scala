@@ -9,8 +9,9 @@ import scala.util.control.NonFatal
  * Normalize CI-supplied PGP material to Mill's `MILL_PGP_SECRET_BASE64` form and optionally validate it with a
  * temporary `gpg --import`.
  *
- * Accepts armored plaintext (`BEGIN PGP PRIVATE KEY`) or base64 of that armor — the same dual input Morphir CI
- * historically accepted in its publish scripts.
+ * Accepts armored plaintext (`BEGIN PGP PRIVATE KEY`), base64 of that armor, or base64 of a binary
+ * `gpg --export-secret-keys` packet — the dual input Morphir CI historically accepted in its publish scripts,
+ * plus the common binary-export encoding.
  */
 object PgpSecret {
 
@@ -30,8 +31,10 @@ object PgpSecret {
     } else {
       val cleaned = normalized.filterNot(_.isWhitespace)
       try {
-        val decoded = new String(Base64.getDecoder.decode(cleaned), StandardCharsets.UTF_8)
-        if decoded.contains("PGP") || decoded.contains("PRIVATE") || decoded.contains("BEGIN") then {
+        val decodedBytes = Base64.getDecoder.decode(cleaned)
+        // Inspect as Latin-1 so binary OpenPGP packets are not corrupted before marker checks.
+        val decodedText = new String(decodedBytes, StandardCharsets.ISO_8859_1)
+        if decodedText.contains("PGP") || decodedText.contains("PRIVATE") || decodedText.contains("BEGIN") then {
           log("Detected base64-encoded PGP key")
           cleaned
         } else {
@@ -49,11 +52,14 @@ object PgpSecret {
   /**
    * Import the Mill-form base64 secret into a throwaway `GNUPGHOME` and fail if GPG rejects it or reports the key as
    * expired.
+   *
+   * Decoded key bytes are passed to `gpg` directly — never via a UTF-8 `String` — so binary
+   * `gpg --export-secret-keys` material survives validation.
    */
   def validate(secretBase64: String, log: String => Unit = _ => ()): Unit = {
     log("Validating GPG key via temporary import")
-    val decoded =
-      try new String(Base64.getDecoder.decode(secretBase64), StandardCharsets.UTF_8)
+    val decodedBytes =
+      try Base64.getDecoder.decode(secretBase64)
       catch {
         case e: IllegalArgumentException =>
           throw PgpError.InvalidBase64(e.getMessage)
@@ -76,7 +82,7 @@ object PgpSecret {
         )
         .call(
           env = env,
-          stdin = decoded,
+          stdin = decodedBytes,
           stdout = os.Pipe,
           stderr = os.Pipe,
           check = false,
