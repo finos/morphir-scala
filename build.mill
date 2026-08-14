@@ -226,12 +226,29 @@ trait MorphirCliBuildInfo extends MorphirVersionBuildInfo {
 
 /** BuildInfo wiring for `morphir.intelligence` — its own member set (adds JVM build info, no `platform` member
   * since this module isn't cross-platform) and package name, both hardcoded per [[MorphirExtensibilityBuildInfo]].
+  *
+  * Intentionally does **not** extend [[PublishModule]]. Intelligence is unpublished (#950); mixing in
+  * `PublishModule` typed `moduleDeps` as `Seq[PublishModule]` and broke Graph/generate once the SDK lost
+  * its publish trait while remaining a module dependency of this CLI.
   */
-trait MorphirIntelligenceBuildInfo extends BuildInfo with PublishModule with ScalaModule {
+trait MorphirIntelligenceBuildInfo extends BuildInfo with ScalaModule {
   def buildInfoPackageName = "org.finos.morphir.intelligence.buildinfo"
   override def buildInfoObjectName = "BuildInfo"
+
+  /** Same env-driven version selection as [[MorphirPublishModule.publishVersion]], without requiring PublishModule. */
+  def intelligenceVersionEnvironment = Task.Input {
+    Seq("MORPHIR_PUBLISH_MODE", "MORPHIR_PUBLISH_BRANCH")
+      .flatMap(name => Task.env.get(name).map(name -> _))
+      .toMap
+  }
+  def intelligenceVersion = Task {
+    SnapshotVersion
+      .select(VcsVersion.vcsState(), intelligenceVersionEnvironment())
+      .fold(message => throw new IllegalArgumentException(message), identity)
+  }
+
   def buildInfoMembers = Seq(
-    BuildInfo.Value("version", publishVersion()),
+    BuildInfo.Value("version", intelligenceVersion()),
     BuildInfo.Value("scalaVersion", scalaVersion()),
     BuildInfo.Value("buildJvmVersion", System.getProperty("java.version")),
     BuildInfo.Value("buildJvmVendor", System.getProperty("java.vendor"))
