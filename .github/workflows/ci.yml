@@ -39,13 +39,8 @@ jobs:
           java-version: "25"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
-      - name: Setup mise
-        uses: jdx/mise-action@v4
-        with:
-          experimental: true
-
       - name: Lint code
-        run: mise run lint
+        run: ./mill --ticker false -i ci.lint
 
   squire-policy:
     runs-on: ubuntu-latest
@@ -128,7 +123,7 @@ jobs:
             !out/mill-plugins/morphir/**/testOnly.dest/**
           key: ${{ runner.os }}-mill-morphir-unit-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}-${{ github.sha }}
       - name: Run capability
-        run: ./mill -i -k 'mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test'
+        run: ./mill --ticker false -i -k 'mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test'
 
   mill-morphir-integration:
     runs-on: ubuntu-latest
@@ -160,7 +155,7 @@ jobs:
             !out/mill-plugins/morphir/**/testOnly.dest/**
           key: ${{ runner.os }}-mill-morphir-unit-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}-${{ github.sha }}
       - name: Run capability
-        run: ./mill -i mill-plugins.morphir.integration.test
+        run: ./mill --ticker false -i mill-plugins.morphir.integration.test
 
   morphir-elm-projects:
     runs-on: ubuntu-latest
@@ -205,7 +200,7 @@ jobs:
           NODE_OPTIONS: --require ${{ github.workspace }}/.github/scripts/ebadf-close-shim.cjs
         run: |
           for attempt in 1 2 3; do
-            if ./mill -i -k "examples.morphir-elm-projects.__.morphirIR" \
+            if ./mill --ticker false -i -k "examples.morphir-elm-projects.__.morphirIR" \
               + "morphir-elm.sdks.__.morphirIR"; then
               exit 0
             fi
@@ -247,7 +242,7 @@ jobs:
           path: out/morphir/runtime/classic/jvm/test/
           key: ${{ runner.os }}-mill-runtime-generated-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}-${{ github.sha }}
       - name: Run capability
-        run: ./mill -i morphir.runtime.classic.jvm.test.generatedRuntimeFixtures
+        run: ./mill --ticker false -i morphir.runtime.classic.jvm.test.generatedRuntimeFixtures
 
   runtime-tests:
     runs-on: ubuntu-latest
@@ -284,8 +279,8 @@ jobs:
           key: ${{ runner.os }}-mill-runtime-generated-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}-${{ github.sha }}
       - name: Run capability
         run: |
-          ./mill -i morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery
-          ./mill -i morphir.runtime.classic.jvm.test
+          ./mill --ticker false -i morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery
+          ./mill --ticker false -i morphir.runtime.classic.jvm.test
 
   test-js:
     runs-on: ubuntu-latest
@@ -319,7 +314,7 @@ jobs:
         # `-j 4` matches that task; see the comment there for why the Scala.js
         # link phase needs a parallelism cap against the daemon's `-Xmx4g`.
         run: |
-          ./mill -i -k -j 4 "morphir.__.js.__.compile" + "morphir.__.js.publishArtifacts" + "morphir.__.js.__.test" + "morphir.__.wasm.__.test" + "morphir.__.wasm.fullLinkJS"
+          ./mill --ticker false -i -k -j 4 "morphir.__.js.__.compile" + "morphir.__.js.publishArtifacts" + "morphir.__.js.__.test" + "morphir.__.wasm.__.test" + "morphir.__.wasm.fullLinkJS"
 
       - name: Cache JS build output
         # when in master repo: all commits to main branch and all additional tags
@@ -369,7 +364,7 @@ jobs:
         # Kept in step with .config/mise/tasks/test/native — `-j 4` caps the
         # concurrent `nativeLink` tasks against the daemon's `-Xmx4g`.
         run: |
-          ./mill -i -k -j 4 "morphir.__.native.__.compile" + "morphir.__.native.publishArtifacts" + "morphir.__.native.__.test"
+          ./mill --ticker false -i -k -j 4 "morphir.__.native.__.compile" + "morphir.__.native.publishArtifacts" + "morphir.__.native.__.test"
 
   test-jvm:
     runs-on: ubuntu-latest
@@ -440,11 +435,6 @@ jobs:
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
 
-      - name: Setup mise
-        uses: jdx/mise-action@v4
-        with:
-          experimental: true
-
       - name: Install libuv
         run: sudo apt-get update && sudo apt-get install -y libuv1-dev
 
@@ -477,7 +467,17 @@ jobs:
           GPG_PRIVATE_KEY: ${{ secrets.ORG_MORPHIR_CI_GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.ORG_MORPHIR_CI_GPG_PASSPHRASE }}
         run: |
-          mise run publish:sonatype
+          # Task.env is snapshotted at mill start. Convert GPG_* / SONATYPE_* in a first mill,
+          # source the file, then start ci.publish so MILL_* is in that process env.
+          # Do not mill show the file: it contains secrets.
+          envfile="${RUNNER_TEMP:-/tmp}/mill-publish.env"
+          trap 'rm -f "$envfile"' EXIT
+          ./mill --ticker false -i ci.sonatype.writeMillEnv --path "$envfile"
+          set -a
+          # shellcheck disable=SC1090
+          source "$envfile"
+          set +a
+          ./mill --ticker false -i ci.publish
 
   ci:
     if: ${{ always() }}

@@ -1,5 +1,18 @@
 # Log
 
+## 2026-08-14
+
+* **Update**: Hosted CI mill invocations pass `--ticker false`. See [Continuous Integration](/continuous-integration.md).
+* **Update**: The publish job now invokes Mill `ci.publish` (destination fan-out over `ci.sonatype.*`) rather than `mise run publish:sonatype`. The Release step converts Morphir `GPG_*` names through `ci.sonatype.writeMillEnv` before that mill. Live Central upload is the first `develop` publish job after merge. See [Continuous Integration](/continuous-integration.md).
+* **Creation**: Added [Keep compiling Mill Morphir plugins into the metabuild](/decisions/0012-keep-source-metabuild-for-mill-morphir-plugins.md).
+* **Update**: Sonatype publication now derives its module set from Mill
+  (`__.publishSonatypeCentral`) rather than a hand-maintained script list, and publishes the Mill Morphir plugin
+  family (`org.finos.morphir.mill`) alongside the library modules. Pre-publish verification: `mill-libs-scalalib_3`
+  for the pinned Mill version is on Maven Central; plugin `publishArtifacts` succeed; generated POMs declare
+  `mill-libs-scalalib` as `provided`; `integration` is absent from the resolve inventory. Live Central SNAPSHOT
+  resolution is confirmed by the next `develop` publish job after merge. See
+  [Continuous Integration](/continuous-integration.md).
+
 ## 2026-08-13
 
 * **Update**: CI now publishes branch snapshots from `main` and `develop` after the aggregate gate, as described in

@@ -28,4 +28,4 @@ jobs:
       - name: Submit dependency graph
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./mill io.eleven19.mill.github.dependency.graph.Graph/submit
+        run: ./mill --ticker false io.eleven19.mill.github.dependency.graph.Graph/submit

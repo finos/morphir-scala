@@ -30,3 +30,7 @@ past-tense and answers *why is it shaped this way*. See
 * [Expressions are Expr, values are Val — diverging from Morphir's Elm-inherited vocabulary](/decisions/0009-expressions-are-expr-values-are-val.md) - The code model's expression type is renamed from Value to Expr, so that the word value is free for what an expression evaluates to.
 * [The old runtime becomes runtime.classic; its package rename is deferred](/decisions/0010-the-old-runtime-becomes-runtime-classic.md) - The existing ZIO runtime moved to morphir/runtime/classic intact, so the new runtime can take the good module path without a flag-day cutover.
 * [Runtime closures retain parameter patterns](/decisions/0011-runtime-closures-retain-parameter-patterns.md) - Val.Closure stores each remaining parameter as a code-model Pattern, preserving destructuring lambdas in the serializable runtime value.
+
+## Build and tooling
+
+* [Keep compiling Mill Morphir plugins into the metabuild](/decisions/0012-keep-source-metabuild-for-mill-morphir-plugins.md) - Normal builds continue to compile mill-plugins/morphir sources into the metabuild; pinned Central artifacts are deferred until bootstrap experience is measured.

@@ -158,7 +158,7 @@ Use mise for task management:
 
 ```bash
 mise run setup          # Install developer dependencies; it does not install Morphir build tools
-mise run lint           # Check code formatting
+mise run lint           # Check code formatting (`./mill --ticker false -i ci.lint`)
 mise run fmt            # Format code
 mise run test:jvm       # Run JVM tests (includes langkit.itest)
 mise run test:js        # Run JS tests (includes the wasm link variants)
@@ -177,6 +177,7 @@ Or use Mill directly:
 
 ```bash
 ./mill morphir.jvm.compile
+./mill --ticker false -i ci.lint
 ./mill morphir.tests.jvm.test
 ./mill -i -k 'mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test'
 ./mill mill-plugins.morphir.integration.test
@@ -343,7 +344,7 @@ The project uses GitHub Actions for CI:
 - `test-jvm` - JVM tests, including `langkit.itest`
 - `test-js` - ScalaJS tests, including the wasm link variants
 - `test-native` - Scala Native tests
-- `publish` - Publish SNAPSHOTs from `main` and `develop`; publish milestones/releases from `0.4.x` and tags
+- `publish` - SNAPSHOTs from `main` and `develop`; milestones/releases from `0.4.x` and tags, via `./mill --ticker false -i ci.publish`
 
 CI runs on pull requests targeting and pushes to `main`, `0.4.x`, and `develop`, plus releases and manual triggers.
 

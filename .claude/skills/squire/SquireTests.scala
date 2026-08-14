@@ -130,12 +130,171 @@ object SquireCiPolicy:
     )
     val release = indentedBlock(publish, "- name: Release", 6)
     expect(
-      count(release, "mise run publish:sonatype") == 1,
+      count(release, "./mill --ticker false -i ci.publish") == 1,
       "Release step must contain the Sonatype publish invocation"
     )
     expect(
-      count(workflow, "mise run publish:sonatype") == 1,
+      count(workflow, "./mill --ticker false -i ci.publish") == 1,
       "workflow must contain exactly one Sonatype publish invocation"
+    )
+    expect(
+      count(release, "writeMillEnv") == 1,
+      "Release step must convert GPG_* via ci.sonatype.writeMillEnv"
+    )
+    expect(
+      release.contains("source \"$envfile\"") || release.contains("source '$envfile'"),
+      "Release step must source the writeMillEnv file into the publish mill's process env"
+    )
+    expect(
+      !release.contains("BEGIN PGP PRIVATE KEY"),
+      "Release step must not duplicate PgpSecret conversion in bash"
+    )
+
+  def assertCiMillTicker(workflow: String): Unit =
+    assertMillInvocationsDisableTicker(Seq(workflow))
+
+  def assertMillInvocationsDisableTicker(texts: Seq[String]): Unit =
+    val invocations = texts.iterator.flatMap { text =>
+      text.linesIterator
+        .map(_.trim)
+        .filter { line =>
+          line.startsWith("./mill") ||
+            line.startsWith("if ./mill") ||
+            line.startsWith("run: ./mill")
+        }
+    }.toList
+    expect(invocations.nonEmpty, "CI mill invocations must exist")
+    invocations.foreach { line =>
+      expect(
+        line.contains("--ticker false"),
+        s"CI mill invocation must disable the ticker: $line"
+      )
+    }
+
+  def assertSonatypePublishPolicy(script: String): Unit =
+    expect(
+      script.contains("resolveSegments(Seq(\"__.publishSonatypeCentral\")"),
+      "sonatype publish must resolve __.publishSonatypeCentral via Evaluator.resolveSegments"
+    )
+    expect(
+      script.contains("exclusive = true"),
+      "sonatype publish commands must be exclusive Evaluator commands"
+    )
+    expect(
+      script.contains("ModuleRef"),
+      "sonatype publish must list plugins via ModuleRef"
+    )
+    expect(
+      script.contains("uploadJobs"),
+      "sonatype publish must drive upload parallelism from the uploadJobs task"
+    )
+    expect(
+      !script.contains("millLauncher") && !script.contains("os.proc(millLauncher"),
+      "sonatype publish must not nest a second mill process"
+    )
+    expect(
+      script.contains("writeMillEnv"),
+      "sonatype publish must expose writeMillEnv so GHA can feed MILL_* into a later mill"
+    )
+    expect(
+      script.contains("MillSonatypeEnv"),
+      "sonatype publish must convert CI env through MillSonatypeEnv"
+    )
+    expect(
+      script.contains("mill-libs-scalalib"),
+      "sonatype publish must record that Mill 1.x mill-libs-scalalib is on Maven Central"
+    )
+    expect(
+      !script.contains("mill-scalalib which isn't on Maven Central"),
+      "retired mill-scalalib Central exclusion must stay gone"
+    )
+    expect(
+      !script.contains("except the mill-morphir"),
+      "Mill Morphir plugins must not be excluded from Sonatype publication by comment policy"
+    )
+
+  def assertCiLintPolicy(script: String): Unit =
+    expect(
+      script.contains("def lint(evaluator: Evaluator, exclude: String"),
+      "ci.lint must take an Evaluator and an exclude regex"
+    )
+    expect(
+      script.contains("resolveSegments(Seq(LintSelectors.sourcesSelector)"),
+      "ci.lint must resolve sources via LintSelectors.sourcesSelector"
+    )
+    expect(
+      script.contains("LintSelectors.excludeMatching"),
+      "ci.lint must drop matching modules through LintSelectors.excludeMatching"
+    )
+    expect(
+      script.contains("mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll"),
+      "ci.lint must run checkFormatAll so modules without ScalafmtModule stay covered"
+    )
+    expect(
+      script.contains("exclusive = true"),
+      "ci commands that use Evaluator must be exclusive"
+    )
+    expect(
+      !script.contains("millLauncher") && !script.contains("os.proc(millLauncher"),
+      "ci.lint must not nest a second mill process"
+    )
+
+  def assertLintJobPolicy(workflow: String): Unit =
+    val lint = indentedBlock(workflow, "lint:", 2)
+    val step = indentedBlock(lint, "- name: Lint code", 6)
+    expect(
+      scalar(step, "run") == "./mill --ticker false -i ci.lint",
+      "lint job must run ci.lint"
+    )
+    expect(!lint.contains("mise run lint"), "lint job must not go through the mise lint wrapper")
+    expect(!lint.contains("mise-action"), "lint job must not install mise")
+
+  def assertSonatypePublishConfig(yaml: String): Unit =
+    val lines = yaml.linesIterator.map(_.trim).filter(_.nonEmpty).toList
+    expect(
+      lines.contains("uploadJobs: 1"),
+      "ci/package.mill.yaml must pin uploadJobs: 1 (SLF4J / #957)"
+    )
+    expect(
+      lines.exists(_.startsWith("libraryModulePrefix:")),
+      "ci/package.mill.yaml must configure libraryModulePrefix"
+    )
+    expect(
+      !lines.exists(_.startsWith("pluginModulePrefixes:")) && !lines.contains("pluginModulePrefixes:"),
+      "plugin inventory belongs in MorphirCi.mill ModuleRefs, not YAML prefixes"
+    )
+    expect(
+      yaml.contains(".integration."),
+      "ci/package.mill.yaml must exclude .integration. modules"
+    )
+
+  def assertPublishTargetInventory(targets: Set[String]): Unit =
+    val requiredPluginPrefixes = List(
+      "mill-plugins.morphir.toolchain.",
+      "mill-plugins.morphir.javascript.",
+      "mill-plugins.morphir.elm-tooling.",
+      "mill-plugins.morphir.core.",
+      "mill-plugins.morphir.elm."
+    )
+    requiredPluginPrefixes.foreach { prefix =>
+      expect(
+        targets.exists(target => target.startsWith(prefix) && target.endsWith(".publishSonatypeCentral")),
+        s"publish inventory must include $prefix*.publishSonatypeCentral"
+      )
+    }
+    expect(
+      !targets.exists(_.contains(".integration.")),
+      "publish inventory must exclude mill-plugins.morphir.integration"
+    )
+    expect(
+      targets.contains("morphir.jvm.publishSonatypeCentral") &&
+        targets.contains("morphir.naming.jvm.publishSonatypeCentral"),
+      "publish inventory must still cover morphir.jvm and morphir.naming.jvm"
+    )
+    expect(targets.nonEmpty, "publish inventory must not be empty")
+    expect(
+      targets.forall(_.endsWith(".publishSonatypeCentral")),
+      "publish inventory may only contain publishSonatypeCentral targets"
     )
 
   def assertSnapshotPolicy(workflow: String): Unit =
@@ -209,7 +368,7 @@ object SquireCiPolicy:
     val runJvm  = indentedBlock(testJvm, "- name: Run JVM tests", 6)
     expect(scalar(runJvm, "run") == "mise run test:jvm-platform", "generic JVM CI must use test:jvm-platform")
     expect(
-      task.linesIterator.map(_.trim).contains("./mill -i Alias/run testJVMPlatform"),
+      task.linesIterator.map(_.trim).contains("./mill --ticker false -i Alias/run testJVMPlatform"),
       "test:jvm-platform must invoke Alias/run testJVMPlatform"
     )
     val expectedMembers = List(
@@ -1122,6 +1281,18 @@ class SquireCiPolicySpec extends Test[Any]:
     skillDirectory.resolve("../../../.config/mise/tasks/test/jvm-platform").normalize,
     StandardCharsets.UTF_8
   )
+  private val lintTask = Files.readString(
+    skillDirectory.resolve("../../../.config/mise/tasks/lint").normalize,
+    StandardCharsets.UTF_8
+  )
+  private val sonatypePublishTask = Files.readString(
+    skillDirectory.resolve("../../../ci/MorphirCi.mill").normalize,
+    StandardCharsets.UTF_8
+  )
+  private val ciPackageYaml = Files.readString(
+    skillDirectory.resolve("../../../ci/package.mill.yaml").normalize,
+    StandardCharsets.UTF_8
+  )
   private val jvmTargetSelectors = List(
     "morphir.__.jvm.__.compile",
     "morphir.jvm.__.compile",
@@ -1157,6 +1328,25 @@ class SquireCiPolicySpec extends Test[Any]:
       resolveJvmTarget(selector).map(selector -> _)
     }.map(_.toList.toMap)
 
+  private def resolvePublishTargets: Set[String] < (Async & Abort[SquireError]) =
+    LiveProcessRunner.run(
+      ProcessRequest(
+        Chunk((repositoryRoot / "mill").toString, "--ticker", "false", "resolve", "__.publishSonatypeCentral"),
+        Present(repositoryRoot)
+      )
+    ).flatMap {
+      case ProcessResult(_, 0, stdout, _) =>
+        stdout.linesIterator.filter(_.endsWith(".publishSonatypeCentral")).filterNot(_.contains(' ')).toSet
+      case result =>
+        Abort.fail(
+          SquireError.Failure(
+            "ci-policy",
+            s"could not resolve __.publishSonatypeCentral (exit ${result.exitCode})",
+            Present(result.stderr.trim)
+          )
+        )
+    }
+
   "hosted CI policy" - {
     "targets the exact supported pull-request and push branches" in {
       assertBranchPolicy(workflow)
@@ -1166,6 +1356,83 @@ class SquireCiPolicySpec extends Test[Any]:
     "waits for aggregate CI and owns one guarded release path" in {
       assertPublishPolicy(workflow)
       assert(true)
+    }
+
+    "disables the mill ticker on hosted workflow and mise mill invocations" in {
+      assertMillInvocationsDisableTicker(Seq(workflow, lintTask, jvmPlatformTask))
+      val tickerEnabled = replaceOnce(
+        workflow,
+        "./mill --ticker false -i ci.publish",
+        "./mill -i ci.publish"
+      )
+      val lintJobTickerEnabled = replaceOnce(
+        workflow,
+        "./mill --ticker false -i ci.lint",
+        "./mill -i ci.lint"
+      )
+      val lintTickerEnabled = replaceOnce(
+        lintTask,
+        "./mill --ticker false ",
+        "./mill "
+      )
+      val jvmTickerEnabled = replaceOnce(
+        jvmPlatformTask,
+        "./mill --ticker false -i ",
+        "./mill -i "
+      )
+      assert(rejects(assertCiMillTicker, tickerEnabled))
+      assert(rejects(assertCiMillTicker, lintJobTickerEnabled))
+      assert(scala.util.Try(assertMillInvocationsDisableTicker(Seq(workflow, lintTickerEnabled, jvmPlatformTask))).isFailure)
+      assert(scala.util.Try(assertMillInvocationsDisableTicker(Seq(workflow, lintTask, jvmTickerEnabled))).isFailure)
+    }
+
+    "runs hosted lint through ci.lint with an exclude regex" in {
+      assertLintJobPolicy(workflow)
+      assertCiLintPolicy(sonatypePublishTask)
+      val miseLint = replaceOnce(
+        workflow,
+        "run: ./mill --ticker false -i ci.lint",
+        "run: mise run lint"
+      )
+      val withoutExclude = replaceOnce(
+        sonatypePublishTask,
+        "def lint(evaluator: Evaluator, exclude: String = \"\")",
+        "def lint(evaluator: Evaluator)"
+      )
+      val withoutSources = replaceOnce(
+        sonatypePublishTask,
+        "resolveSegments(Seq(LintSelectors.sourcesSelector)",
+        "resolveSegments(Seq(\"morphir.__.checkFormat\")"
+      )
+      val withoutCheckFormatAll = replaceOnce(
+        sonatypePublishTask,
+        "mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll",
+        "morphir.__.checkFormat"
+      )
+      assert(rejects(assertLintJobPolicy, miseLint))
+      assert(rejects(assertCiLintPolicy, withoutExclude))
+      assert(rejects(assertCiLintPolicy, withoutSources))
+      assert(rejects(assertCiLintPolicy, withoutCheckFormatAll))
+      assert(true)
+    }
+
+    "derives the Sonatype publish set from Mill resolve, including the Mill Morphir plugin family" in {
+      assertSonatypePublishPolicy(sonatypePublishTask)
+      assertSonatypePublishConfig(ciPackageYaml)
+      val withoutResolve = replaceOnce(
+        sonatypePublishTask,
+        "Seq(\"__.publishSonatypeCentral\")",
+        "Seq(\"morphir.__.compile\")"
+      )
+      val withoutSerial = replaceOnce(ciPackageYaml, "uploadJobs: 1", "uploadJobs: 8")
+      assert(rejects(assertSonatypePublishPolicy, withoutResolve))
+      assert(rejects(assertSonatypePublishConfig, withoutSerial))
+
+      for targets <- resolvePublishTargets
+      yield
+        assertPublishTargetInventory(targets)
+        val withoutPlugin = targets.filterNot(_.startsWith("mill-plugins.morphir.toolchain."))
+        assert(scala.util.Try(assertPublishTargetInventory(withoutPlugin)).isFailure)
     }
 
     "scopes the exact snapshot configuration to main and develop" in {
@@ -1247,8 +1514,8 @@ class SquireCiPolicySpec extends Test[Any]:
       )
       val taskMutation = replaceOnce(
         jvmPlatformTask,
-        "./mill -i Alias/run testJVMPlatform",
-        "./mill -i Alias/run testJVM"
+        "./mill --ticker false -i Alias/run testJVMPlatform",
+        "./mill --ticker false -i Alias/run testJVM"
       )
       val aliasMutations = List(
         missingPublishAliasMutation,
@@ -1345,8 +1612,8 @@ class SquireCiPolicySpec extends Test[Any]:
           "path: out/"
         ),
         "runtime-generated-fixtures:",
-        "run: ./mill -i morphir.runtime.classic.jvm.test.generatedRuntimeFixtures",
-        "run: |\n          echo out/morphir/runtime/classic/jvm/test/\n          ./mill -i morphir.runtime.classic.jvm.test.generatedRuntimeFixtures"
+        "run: ./mill --ticker false -i morphir.runtime.classic.jvm.test.generatedRuntimeFixtures",
+        "run: |\n          echo out/morphir/runtime/classic/jvm/test/\n          ./mill --ticker false -i morphir.runtime.classic.jvm.test.generatedRuntimeFixtures"
       )
       val runtimeTestsOutputOutsideStep = replaceInJob(
         replaceInJob(
@@ -1356,8 +1623,8 @@ class SquireCiPolicySpec extends Test[Any]:
           "path: out/"
         ),
         "runtime-tests:",
-        "./mill -i morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery",
-        "echo out/morphir/runtime/classic/jvm/test/\n          ./mill -i morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery"
+        "./mill --ticker false -i morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery",
+        "echo out/morphir/runtime/classic/jvm/test/\n          ./mill --ticker false -i morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery"
       )
       val unnamedCacheAction = replaceInJob(
         workflow,
@@ -1418,8 +1685,8 @@ class SquireCiPolicySpec extends Test[Any]:
         "duplicate job" -> replaceOnce(workflow, policyJob, s"$policyJob\n$policyJob"),
         "step moved into lint" -> replaceOnce(
           replaceOnce(workflow, policyStep, ""),
-          "      - name: Lint code\n        run: mise run lint",
-          "      - name: Lint code\n        run: mise run lint\n" + policyStep
+          "      - name: Lint code\n        run: ./mill --ticker false -i ci.lint",
+          "      - name: Lint code\n        run: ./mill --ticker false -i ci.lint\n" + policyStep
         ),
         "step moved into another job" -> (replaceOnce(workflow, policyStep, "") +
           "\n  bypass-policy:\n" +
@@ -1549,19 +1816,19 @@ class SquireCiPolicySpec extends Test[Any]:
         "\nenv:\n  DUPLICATE: \"MORPHIR_PUBLISH_MODE=snapshot\"\n"
       val duplicatePublishPath = replaceOnce(
         workflow,
-        "          mise run publish:sonatype",
-        "          mise run publish:sonatype\n          mise run publish:sonatype"
+        "          ./mill --ticker false -i ci.publish",
+        "          ./mill --ticker false -i ci.publish\n          ./mill --ticker false -i ci.publish"
       )
       val unguardedPublishPath = replaceOnce(
         workflow,
-        "          mise run publish:sonatype",
+        "          ./mill --ticker false -i ci.publish",
         "          echo release command moved"
       ) +
         "\n  unguarded-publish:\n" +
         "    runs-on: ubuntu-latest\n" +
         "    steps:\n" +
         "      - name: Bypass Release\n" +
-        "        run: mise run publish:sonatype\n"
+        "        run: ./mill --ticker false -i ci.publish\n"
 
       val mutations = List(
         (assertBranchPolicy, pushWithExtraBranch),

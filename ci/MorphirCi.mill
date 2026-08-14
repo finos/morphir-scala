@@ -1,0 +1,327 @@
+package build.ci
+
+import build.{`mill-plugins` => millPlugins}
+import mill.*
+import mill.api.{BuildCtx, DefaultTaskModule, Evaluator, ModuleRef, Result, SelectMode, TaskCtx}
+import millbuild.LintSelectors
+import org.finos.morphir.mill.publish.{MillPublishEnvFile, MillSonatypeEnv, PgpSecret, PublishSelectors}
+
+/**
+ * CI commands that YAML cannot express. Morphir inventory knobs for libraries live in
+ * `ci/package.mill.yaml`; publishable Mill plugins are [[pluginModules]] ModuleRefs.
+ *
+ * Slice 1: [[sonatype]] plus [[lint]]. Next destination: `githubReleases` (skill binaries) as a
+ * sibling — reserved in comments, not nested under `publish`, and not a filesystem subfolder yet.
+ *
+ * Dynamic task selection uses Mill's exclusive [[Evaluator]] commands (same mechanism as builtin
+ * `resolve` / `show`). Nested `./mill` is intentionally avoided — under `mill -i` it deadlocks on
+ * the workspace write lock.
+ *
+ * Upload expects `MILL_PGP_*` / `MILL_SONATYPE_*` (or `SONATYPE_*`) already in the Mill process
+ * environment. The Release workflow runs `ci.sonatype.writeMillEnv` (GPG_* in that mill's
+ * `Task.env`), sources the file, then starts `./mill -i ci.publish` so `Task.env` sees `MILL_*`.
+ * Conversion lives in mill-morphir-core (`org.finos.morphir.mill.publish`).
+ */
+trait MorphirCiModule extends Module {
+
+  /** Module-path prefix for library Sonatype publishables. Set in `package.mill.yaml`. */
+  def libraryModulePrefix = Task { "" }
+
+  /** Prefixes never treated as libraries even when [[libraryModulePrefix]] would match. */
+  def libraryExcludedPrefixes = Task { Seq.empty[String] }
+
+  /** Drop any module whose Mill path contains one of these substrings. */
+  def excludedModuleSubstrings = Task { Seq.empty[String] }
+
+  /**
+   * Parallelism for `publishSonatypeCentral`. `1` means serial `evaluator.evaluate` calls
+   * (SLF4J / #957). Values greater than 1 evaluate the batch under the outer `--jobs` setting.
+   */
+  def uploadJobs = Task { 1 }
+
+  /**
+   * Publishable mill-morphir plugin Cross roots. `integration` is omitted (test-only).
+   * ModuleRefs keep the inventory type-safe; expand via Evaluator under each root.
+   */
+  def pluginModules: Seq[ModuleRef[Module]] = Seq(
+    ModuleRef(millPlugins.morphir.toolchain),
+    ModuleRef(millPlugins.morphir.javascript),
+    ModuleRef(millPlugins.morphir.`elm-tooling`),
+    ModuleRef(millPlugins.morphir.core),
+    ModuleRef(millPlugins.morphir.elm)
+  )
+
+  final case class PublishFilterConfig(
+      libraryModulePrefix: String,
+      libraryExcludedPrefixes: Seq[String],
+      excludedModuleSubstrings: Seq[String],
+      uploadJobs: Int
+  ) derives upickle.default.ReadWriter
+
+  enum PublishKind {
+    case Libraries, Plugins, All
+  }
+
+  object sonatype extends Module, DefaultTaskModule {
+    def defaultTask(): String = "all"
+
+    def artifactsLibraries(evaluator: Evaluator) = Task.Command(exclusive = true) {
+      runArtifactPhase(evaluator, PublishKind.Libraries, publishFilterConfig())
+    }
+
+    def artifactsPlugins(evaluator: Evaluator) = Task.Command(exclusive = true) {
+      runArtifactPhase(evaluator, PublishKind.Plugins, publishFilterConfig())
+    }
+
+    def artifacts(evaluator: Evaluator) = Task.Command(exclusive = true) {
+      runArtifactPhase(evaluator, PublishKind.All, publishFilterConfig())
+    }
+
+    def libraries(evaluator: Evaluator) = Task.Command(exclusive = true) {
+      runUploadPhase(evaluator, PublishKind.Libraries, publishFilterConfig())
+    }
+
+    def plugins(evaluator: Evaluator) = Task.Command(exclusive = true) {
+      runUploadPhase(evaluator, PublishKind.Plugins, publishFilterConfig())
+    }
+
+    /**
+     * Write `MILL_*` publish env for a later mill process. Values are not logged.
+     *
+     * GHA: `./mill -i ci.sonatype.writeMillEnv --path "$envfile"` then `source` the file
+     * before `./mill -i ci.publish`. `Task.env` is snapshotted at mill start, so conversion
+     * inside the publish mill cannot feed `publishSonatypeCentral`.
+     */
+    def writeMillEnv(path: os.Path) = Task.Command {
+      val dest = MillPublishEnvFile.requireWritableDest(path, BuildCtx.workspaceRoot)
+      val millEnv = MillSonatypeEnv.fromEnvOrThrow(
+        sys.env ++ Task.env,
+        msg => Task.log.info(msg)
+      )
+      PgpSecret.validate(millEnv.pgpSecretBase64, msg => Task.log.info(msg))
+      os.write.over(dest, millEnv.toDotenv, createFolders = true, perms = "rw-------")
+      Task.log.info(s"Wrote Mill publish env to $dest (values not logged)")
+    }
+
+    /** Full Sonatype destination: artifacts then upload. */
+    def all(evaluator: Evaluator) = Task.Command(exclusive = true) {
+      val cfg = publishFilterConfig()
+      runArtifactPhase(evaluator, PublishKind.All, cfg)
+      runUploadPhase(evaluator, PublishKind.All, cfg)
+    }
+  }
+
+  /**
+   * Scalafmt check over resolved `morphir.__.sources` tasks, including modules that do not mix in
+   * `ScalafmtModule`.
+   *
+   * `--exclude` is a regex matched against each module path. A match drops that module from the
+   * check set. A blank exclude keeps every resolved module and runs one `checkFormatAll`.
+   */
+  def lint(evaluator: Evaluator, exclude: String = "") = Task.Command(exclusive = true) {
+    val resolved = unwrap(
+      evaluator.resolveSegments(Seq(LintSelectors.sourcesSelector), SelectMode.Multi),
+      s"resolve ${LintSelectors.sourcesSelector}"
+    ).map(_.render)
+    val modules = LintSelectors.modulesFromResolved(resolved)
+    val kept = LintSelectors.excludeMatching(modules, exclude) match {
+      case Right(selected) => selected
+      case Left(message)   => throw new Exception(message)
+    }
+    if kept.isEmpty then
+      throw new Exception(
+        s"ci.lint: no ${LintSelectors.sourcesSuffix} targets remain" +
+          (if exclude.isBlank then "" else s" after --exclude $exclude")
+      )
+    val sourceSelectors =
+      if kept.size == modules.size then Seq(LintSelectors.sourcesSelector)
+      else kept.map(module => s"$module${LintSelectors.sourcesSuffix}")
+    Task.log.info(s"ci.lint: checking ${kept.size} source modules")
+    sourceSelectors.foreach(selector => evaluateLint(evaluator, selector))
+  }
+
+  private def evaluateLint(evaluator: Evaluator, sourcesSelector: String): Unit = {
+    val evalResult = unwrap(
+      evaluator.evaluate(
+        Seq("mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll", sourcesSelector),
+        SelectMode.Separated
+      ),
+      s"ci.lint $sourcesSelector"
+    )
+    evalResult.values.toEither match {
+      case Left(msg) => throw new Exception(s"ci.lint $sourcesSelector failed: $msg")
+      case Right(_)  => ()
+    }
+  }
+
+  /**
+   * Cross-destination aggregator. CI calls `ci.publish`. Today that is Sonatype only; later also
+   * `ci.githubReleases`.
+   */
+  def publish(evaluator: Evaluator) = Task.Command(exclusive = true) {
+    Task.log.info("ci.publish: running destination fan-out (sonatype)")
+    val cfg = publishFilterConfig()
+    runArtifactPhase(evaluator, PublishKind.All, cfg)
+    runUploadPhase(evaluator, PublishKind.All, cfg)
+  }
+
+  def publishFilterConfig = Task {
+    PublishFilterConfig(
+      libraryModulePrefix = libraryModulePrefix(),
+      libraryExcludedPrefixes = libraryExcludedPrefixes(),
+      excludedModuleSubstrings = excludedModuleSubstrings(),
+      uploadJobs = uploadJobs()
+    )
+  }
+
+  private def runArtifactPhase(
+      evaluator: Evaluator,
+      kind: PublishKind,
+      cfg: PublishFilterConfig
+  )(using TaskCtx): Unit = {
+    val selectors = resolvePublishModules(evaluator, kind, cfg).map(m => s"$m.publishArtifacts")
+    Task.log.info(s"ci.sonatype: building ${selectors.size} publishArtifacts ($kind)")
+    if dryRun then Task.log.info(s"DRY_RUN: would evaluate ${selectors.mkString(" + ")}")
+    else evaluateAll(evaluator, selectors, s"publishArtifacts ($kind)")
+  }
+
+  private def runUploadPhase(
+      evaluator: Evaluator,
+      kind: PublishKind,
+      cfg: PublishFilterConfig
+  )(using TaskCtx): Unit = {
+    val selectors =
+      resolvePublishModules(evaluator, kind, cfg).map(m => s"$m.publishSonatypeCentral")
+    val jobs = cfg.uploadJobs.max(1)
+    Task.log.info(
+      s"ci.sonatype: uploading ${selectors.size} publishSonatypeCentral ($kind, serial=${jobs == 1})"
+    )
+    if dryRun then Task.log.info(s"DRY_RUN: would evaluate ${selectors.mkString(" + ")}")
+    else {
+      ensureMillPublishEnv()
+      if jobs == 1 then
+        selectors.foreach { selector =>
+          evaluateAll(evaluator, Seq(selector), s"publishSonatypeCentral $selector")
+        }
+      else evaluateAll(evaluator, selectors, s"publishSonatypeCentral ($kind)")
+    }
+  }
+
+  private def dryRun(using TaskCtx): Boolean =
+    Task.env.get("DRY_RUN").orElse(sys.env.get("DRY_RUN")).exists(v =>
+      v.equalsIgnoreCase("true") || v == "1"
+    )
+
+  private def resolvePublishModules(
+      evaluator: Evaluator,
+      kind: PublishKind,
+      cfg: PublishFilterConfig
+  ): Seq[String] = {
+    val filtered = kind match {
+      case PublishKind.Plugins =>
+        pluginPublishModules(evaluator)
+      case PublishKind.Libraries =>
+        PublishSelectors.libraryModules(
+          allPublishModules(evaluator, cfg),
+          cfg.libraryModulePrefix,
+          cfg.libraryExcludedPrefixes,
+          pluginModuleRoots
+        )
+      case PublishKind.All =>
+        PublishSelectors.allKinds(
+          allPublishModules(evaluator, cfg),
+          pluginPublishModules(evaluator)
+        )
+    }
+
+    if filtered.isEmpty then
+      throw new Exception(s"Mill resolved no publishSonatypeCentral modules for kind $kind")
+    filtered
+  }
+
+  private def pluginModuleRoots: Seq[String] =
+    pluginModules.map(_.apply().moduleSegments.render)
+
+  private def pluginPublishModules(evaluator: Evaluator): Seq[String] =
+    pluginModules
+      .flatMap { ref =>
+        val root = ref().moduleSegments.render
+        unwrap(
+          evaluator.resolveSegments(Seq(s"$root.__.publishSonatypeCentral"), SelectMode.Multi),
+          s"resolve $root.__.publishSonatypeCentral"
+        ).map(_.render)
+      }
+      .filter(_.endsWith(".publishSonatypeCentral"))
+      .map { rendered =>
+        if rendered.contains(' ') then
+          throw new Exception(s"resolve plugin publish modules: unexpected space in $rendered")
+        rendered.stripSuffix(".publishSonatypeCentral")
+      }
+      .distinct
+      .sorted
+
+  private def allPublishModules(evaluator: Evaluator, cfg: PublishFilterConfig): Seq[String] =
+    PublishSelectors.dropExcluded(
+      unwrap(
+        evaluator.resolveSegments(Seq("__.publishSonatypeCentral"), SelectMode.Multi),
+        "resolve __.publishSonatypeCentral"
+      )
+        .map(_.render)
+        .filter(_.endsWith(".publishSonatypeCentral"))
+        .map { rendered =>
+          if rendered.contains(' ') then
+            throw new Exception(s"resolve __.publishSonatypeCentral: unexpected space in $rendered")
+          rendered.stripSuffix(".publishSonatypeCentral")
+        },
+      cfg.excludedModuleSubstrings
+    )
+
+  private def evaluateAll(
+      evaluator: Evaluator,
+      selectors: Seq[String],
+      what: String
+  ): Unit = {
+    if selectors.isEmpty then throw new Exception(s"$what: no selectors")
+    val evalResult = unwrap(evaluator.evaluate(selectors, SelectMode.Multi), what)
+    evalResult.values.toEither match {
+      case Left(msg) => throw new Exception(s"$what failed: $msg")
+      case Right(_)  => ()
+    }
+  }
+
+  private def unwrap[T](result: Result[T], what: String): T =
+    result.toEither match {
+      case Right(value) => value
+      case Left(msg)    => throw new Exception(s"$what failed: $msg")
+    }
+
+  /**
+   * Mill Morphir plugins compile against `com.lihaoyi::mill-libs-scalalib`, which is on Maven Central
+   * for Mill 1.x — the older mill-scalalib Central exclusion is retired; plugins are in the publish set.
+   *
+   * `publishSonatypeCentral` reads `MILL_PGP_*` from `Task.env` (process env at Mill start).
+   * `ci.sonatype.writeMillEnv` converts Morphir CI `GPG_*` names; GHA sources that file first.
+   */
+  private def ensureMillPublishEnv()(using TaskCtx): Unit = {
+    val env = Task.env
+    def present(name: String): Boolean = env.get(name).exists(v => !v.isBlank)
+
+    val missing = Seq.newBuilder[String]
+    if !present("MILL_PGP_SECRET_BASE64") then missing += "MILL_PGP_SECRET_BASE64"
+    if !present("MILL_PGP_PASSPHRASE") then missing += "MILL_PGP_PASSPHRASE"
+    if !(present("MILL_SONATYPE_USERNAME") || present("SONATYPE_USERNAME")) then
+      missing += "MILL_SONATYPE_USERNAME|SONATYPE_USERNAME"
+    if !(present("MILL_SONATYPE_PASSWORD") || present("SONATYPE_PASSWORD")) then
+      missing += "MILL_SONATYPE_PASSWORD|SONATYPE_PASSWORD"
+
+    val absent = missing.result()
+    if absent.nonEmpty then
+      throw new Exception(
+        s"Missing Mill publish env (${absent.mkString(", ")}). " +
+          "Run ci.sonatype.writeMillEnv and source the file before ./mill -i ci.publish " +
+          "(see the Release step in .github/workflows/ci.yml; helpers in org.finos.morphir.mill.publish)."
+      )
+
+    PgpSecret.validate(env("MILL_PGP_SECRET_BASE64"), msg => Task.log.info(msg))
+  }
+}
