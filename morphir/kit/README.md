@@ -12,6 +12,12 @@ feature modules, where it otherwise accumulates by accident, and gives later kit
 | --- | --- | --- |
 | [`kyo`](./kyo) | `morphir-kit-kyo` | The [Kyo](https://getkyo.io) effect system — currently a Kyo `Log` ↔ scribe bridge |
 
+A kit is not a connector and not an appkit. External systems (GitHub) live under `morphir/connector`. Host
+applications (Electron, Codeium) live under `morphir/appkit`. Source languages (Elm, markdown) live under
+`morphir/langkit`. OKF lives under `morphir/knowledge/okf`. See
+`kb/bundles/morphir/morphir-scala/decisions/0013-published-library-families.md`.
+
+
 ## What belongs in a kit
 
 Code that is about the upstream library rather than about Morphir. If a type mentions a Morphir concept — IR,

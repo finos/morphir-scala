@@ -13,6 +13,7 @@ Draft Design Notes and research are provisional.
 
 ## Design Notes
 
+* [Published library families](/design/published-library-families.md) - The narrative home for kit, connector, appkit, langkit markdown, and knowledge/okf: taxonomy, first skeletons, and the open parser and HTTP questions.
 * [Package URL-centered package management](/design/package-url-package-management.md) - A design for PURL identities, reproducible materialization, and packages outside ecosystem registries.
 * [Multi-frontend pipeline and workspace boundaries](/design/pipeline-workspace-boundaries.md) - A design for shared buildkit phases, workspace normalization, frontend isolation, and issue #930.
 * [Mill Morphir plugin architecture](/design/mill-morphir-plugin-architecture.md) - Design for publishable Mill plugins that acquire tools and compose Morphir generation with host-language builds.
@@ -43,3 +44,4 @@ Full list, grouped, in [decisions/index.md](/decisions/index.md).
 * [Expressions are Expr, values are Val — diverging from Morphir's Elm-inherited vocabulary](/decisions/0009-expressions-are-expr-values-are-val.md) - The code model's expression type is renamed from Value to Expr, so that the word value is free for what an expression evaluates to.
 * [The old runtime becomes runtime.classic; its package rename is deferred](/decisions/0010-the-old-runtime-becomes-runtime-classic.md) - The existing ZIO runtime moved to morphir/runtime/classic intact, so the new runtime can take the good module path without a flag-day cutover.
 * [Runtime closures retain parameter patterns](/decisions/0011-runtime-closures-retain-parameter-patterns.md) - Val.Closure stores each remaining parameter as a code-model Pattern, preserving destructuring lambdas in the serializable runtime value.
+* [Published library families are kit, connector, appkit, langkit, and knowledge](/decisions/0013-published-library-families.md) - Kit wraps Scala libraries, connector wraps external systems, appkit hosts Morphir in an application, and knowledge holds OKF; kit and connector both compile for JVM, JS, and Native.

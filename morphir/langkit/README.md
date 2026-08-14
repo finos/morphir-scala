@@ -14,10 +14,11 @@ own copies.
 | [`core`](./core) | `morphir-langkit-core` | Language-agnostic source positions and diagnostic rendering — `Span`, `SourceSpan`, `SourceOffsets`, `SourceSnippetBuilder` |
 | [`trees`](./trees) | `morphir-langkit-trees` | The `QueryableTree[T]` typeclass and a tree-sitter-inspired query DSL, generic over any tree |
 | [`elm`](./elm) | `morphir-langkit-elm-core`, `morphir-langkit-elm-compiler-api` | The Elm langkit: lexer, parser, CST/AST, diagnostics, and a Kyo-backed compiler API |
+| [`markdown`](./markdown) | `morphir-langkit-markdown` | Markdown CST (stub parser for ATX headings and paragraphs; production parser still open) |
 | [`itest`](./itest) | *(not published)* | Cucumber/JUnit5 integration suite covering the langkits end to end |
 
-`core` and `trees` are the shared layer: neither knows anything about Elm, and a second langkit should depend on both
-rather than reimplementing spans, snippets, or queries.
+`core` and `trees` are the shared layer: neither knows anything about Elm or markdown, and a second langkit should
+depend on both rather than reimplementing spans, snippets, or queries.
 
 `itest` sits here rather than under `elm` for the same reason — it is the suite for *all* langkits, and only happens to
 exercise Elm today.

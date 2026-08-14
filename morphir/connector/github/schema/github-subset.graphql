@@ -1,0 +1,57 @@
+# Subset of GitHub's GraphQL schema for morphir-connector-github.
+#
+# Hand-authored to name the operations this module will call. Not a copy of GitHub's full
+# schema.docs.graphql. When codegen first runs, pin the upstream schema commit in README.md
+# and regenerate from a cut-down SDL taken from that pin.
+#
+# Codegen (checked-in Scala, not a Mill task):
+#   calibanGenClient schema/github-subset.graphql src/morphir/connector/github/internal/Client.scala
+
+scalar URI
+scalar ID
+
+type Query {
+  repository(owner: String!, name: String!): Repository
+}
+
+type Repository {
+  issues(first: Int): IssueConnection
+  pullRequests(first: Int): PullRequestConnection
+  discussions(first: Int): DiscussionConnection
+}
+
+type IssueConnection {
+  nodes: [Issue!]!
+}
+
+type PullRequestConnection {
+  nodes: [PullRequest!]!
+}
+
+type DiscussionConnection {
+  nodes: [Discussion!]!
+}
+
+type Issue {
+  id: ID!
+  number: Int!
+  title: String!
+  body: String
+  url: URI!
+}
+
+type PullRequest {
+  id: ID!
+  number: Int!
+  title: String!
+  body: String
+  url: URI!
+}
+
+type Discussion {
+  id: ID!
+  number: Int!
+  title: String!
+  body: String
+  url: URI!
+}

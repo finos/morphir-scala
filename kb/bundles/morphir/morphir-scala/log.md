@@ -12,6 +12,8 @@
   `mill-libs-scalalib` as `provided`; `integration` is absent from the resolve inventory. Live Central SNAPSHOT
   resolution is confirmed by the next `develop` publish job after merge. See
   [Continuous Integration](/continuous-integration.md).
+* **Creation**: Added [Published library families are kit, connector, appkit, langkit, and knowledge](/decisions/0013-published-library-families.md).
+* **Creation**: Added [Published library families](/design/published-library-families.md).
 
 ## 2026-08-13
 
