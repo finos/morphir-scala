@@ -151,11 +151,15 @@ object SquireCiPolicy:
     )
 
   def assertCiMillTicker(workflow: String): Unit =
-    val invocations = workflow.linesIterator
-      .map(_.trim)
-      .filter(line => line.startsWith("./mill") || line.startsWith("if ./mill"))
-      .toList
-    expect(invocations.nonEmpty, "CI workflow must invoke mill")
+    assertMillInvocationsDisableTicker(Seq(workflow))
+
+  def assertMillInvocationsDisableTicker(texts: Seq[String]): Unit =
+    val invocations = texts.iterator.flatMap { text =>
+      text.linesIterator
+        .map(_.trim)
+        .filter(line => line.startsWith("./mill") || line.startsWith("if ./mill"))
+    }.toList
+    expect(invocations.nonEmpty, "CI mill invocations must exist")
     invocations.foreach { line =>
       expect(
         line.contains("--ticker false"),
@@ -324,7 +328,7 @@ object SquireCiPolicy:
     val runJvm  = indentedBlock(testJvm, "- name: Run JVM tests", 6)
     expect(scalar(runJvm, "run") == "mise run test:jvm-platform", "generic JVM CI must use test:jvm-platform")
     expect(
-      task.linesIterator.map(_.trim).contains("./mill -i Alias/run testJVMPlatform"),
+      task.linesIterator.map(_.trim).contains("./mill --ticker false -i Alias/run testJVMPlatform"),
       "test:jvm-platform must invoke Alias/run testJVMPlatform"
     )
     val expectedMembers = List(
@@ -1237,6 +1241,10 @@ class SquireCiPolicySpec extends Test[Any]:
     skillDirectory.resolve("../../../.config/mise/tasks/test/jvm-platform").normalize,
     StandardCharsets.UTF_8
   )
+  private val lintTask = Files.readString(
+    skillDirectory.resolve("../../../.config/mise/tasks/lint").normalize,
+    StandardCharsets.UTF_8
+  )
   private val sonatypePublishTask = Files.readString(
     skillDirectory.resolve("../../../ci/MorphirCi.mill").normalize,
     StandardCharsets.UTF_8
@@ -1310,14 +1318,26 @@ class SquireCiPolicySpec extends Test[Any]:
       assert(true)
     }
 
-    "disables the mill ticker on every workflow mill invocation" in {
-      assertCiMillTicker(workflow)
+    "disables the mill ticker on hosted workflow and mise mill invocations" in {
+      assertMillInvocationsDisableTicker(Seq(workflow, lintTask, jvmPlatformTask))
       val tickerEnabled = replaceOnce(
         workflow,
         "./mill --ticker false -i ci.publish",
         "./mill -i ci.publish"
       )
+      val lintTickerEnabled = replaceOnce(
+        lintTask,
+        "./mill --ticker false ",
+        "./mill "
+      )
+      val jvmTickerEnabled = replaceOnce(
+        jvmPlatformTask,
+        "./mill --ticker false -i ",
+        "./mill -i "
+      )
       assert(rejects(assertCiMillTicker, tickerEnabled))
+      assert(scala.util.Try(assertMillInvocationsDisableTicker(Seq(workflow, lintTickerEnabled, jvmPlatformTask))).isFailure)
+      assert(scala.util.Try(assertMillInvocationsDisableTicker(Seq(workflow, lintTask, jvmTickerEnabled))).isFailure)
     }
 
     "derives the Sonatype publish set from Mill resolve, including the Mill Morphir plugin family" in {
@@ -1418,8 +1438,8 @@ class SquireCiPolicySpec extends Test[Any]:
       )
       val taskMutation = replaceOnce(
         jvmPlatformTask,
-        "./mill -i Alias/run testJVMPlatform",
-        "./mill -i Alias/run testJVM"
+        "./mill --ticker false -i Alias/run testJVMPlatform",
+        "./mill --ticker false -i Alias/run testJVM"
       )
       val aliasMutations = List(
         missingPublishAliasMutation,
