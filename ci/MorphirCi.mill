@@ -3,14 +3,15 @@ package build.ci
 import build.{`mill-plugins` => millPlugins}
 import mill.*
 import mill.api.{BuildCtx, DefaultTaskModule, Evaluator, ModuleRef, Result, SelectMode, TaskCtx}
+import millbuild.LintSelectors
 import org.finos.morphir.mill.publish.{MillPublishEnvFile, MillSonatypeEnv, PgpSecret, PublishSelectors}
 
 /**
- * CI publish mechanics that YAML cannot express. Morphir inventory knobs for libraries live in
+ * CI commands that YAML cannot express. Morphir inventory knobs for libraries live in
  * `ci/package.mill.yaml`; publishable Mill plugins are [[pluginModules]] ModuleRefs.
  *
- * Slice 1: [[sonatype]] only. Next destination: `githubReleases` (skill binaries) as a sibling —
- * reserved in comments, not nested under `publish`, and not a filesystem subfolder yet.
+ * Slice 1: [[sonatype]] plus [[lint]]. Next destination: `githubReleases` (skill binaries) as a
+ * sibling — reserved in comments, not nested under `publish`, and not a filesystem subfolder yet.
  *
  * Dynamic task selection uses Mill's exclusive [[Evaluator]] commands (same mechanism as builtin
  * `resolve` / `show`). Nested `./mill` is intentionally avoided — under `mill -i` it deadlocks on
@@ -107,6 +108,49 @@ trait MorphirCiModule extends Module {
       val cfg = publishFilterConfig()
       runArtifactPhase(evaluator, PublishKind.All, cfg)
       runUploadPhase(evaluator, PublishKind.All, cfg)
+    }
+  }
+
+  /**
+   * Scalafmt check over resolved `morphir.__.sources` tasks, including modules that do not mix in
+   * `ScalafmtModule`.
+   *
+   * `--exclude` is a regex matched against each module path. A match drops that module from the
+   * check set. A blank exclude keeps every resolved module and runs one `checkFormatAll`.
+   */
+  def lint(evaluator: Evaluator, exclude: String = "") = Task.Command(exclusive = true) {
+    val resolved = unwrap(
+      evaluator.resolveSegments(Seq(LintSelectors.sourcesSelector), SelectMode.Multi),
+      s"resolve ${LintSelectors.sourcesSelector}"
+    ).map(_.render)
+    val modules = LintSelectors.modulesFromResolved(resolved)
+    val kept = LintSelectors.excludeMatching(modules, exclude) match {
+      case Right(selected) => selected
+      case Left(message)   => throw new Exception(message)
+    }
+    if kept.isEmpty then
+      throw new Exception(
+        s"ci.lint: no ${LintSelectors.sourcesSuffix} targets remain" +
+          (if exclude.isBlank then "" else s" after --exclude $exclude")
+      )
+    val sourceSelectors =
+      if kept.size == modules.size then Seq(LintSelectors.sourcesSelector)
+      else kept.map(module => s"$module${LintSelectors.sourcesSuffix}")
+    Task.log.info(s"ci.lint: checking ${kept.size} source modules")
+    sourceSelectors.foreach(selector => evaluateLint(evaluator, selector))
+  }
+
+  private def evaluateLint(evaluator: Evaluator, sourcesSelector: String): Unit = {
+    val evalResult = unwrap(
+      evaluator.evaluate(
+        Seq("mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll", sourcesSelector),
+        SelectMode.Separated
+      ),
+      s"ci.lint $sourcesSelector"
+    )
+    evalResult.values.toEither match {
+      case Left(msg) => throw new Exception(s"ci.lint $sourcesSelector failed: $msg")
+      case Right(_)  => ()
     }
   }
 

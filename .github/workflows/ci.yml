@@ -39,13 +39,8 @@ jobs:
           java-version: "25"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
-      - name: Setup mise
-        uses: jdx/mise-action@v4
-        with:
-          experimental: true
-
       - name: Lint code
-        run: mise run lint
+        run: ./mill --ticker false -i ci.lint
 
   squire-policy:
     runs-on: ubuntu-latest

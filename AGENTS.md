@@ -158,7 +158,7 @@ Use mise for task management:
 
 ```bash
 mise run setup          # Install developer dependencies; it does not install Morphir build tools
-mise run lint           # Check code formatting
+mise run lint           # Check code formatting (`./mill --ticker false -i ci.lint`)
 mise run fmt            # Format code
 mise run test:jvm       # Run JVM tests (includes langkit.itest)
 mise run test:js        # Run JS tests (includes the wasm link variants)
@@ -177,6 +177,7 @@ Or use Mill directly:
 
 ```bash
 ./mill morphir.jvm.compile
+./mill --ticker false -i ci.lint
 ./mill morphir.tests.jvm.test
 ./mill -i -k 'mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test'
 ./mill mill-plugins.morphir.integration.test
