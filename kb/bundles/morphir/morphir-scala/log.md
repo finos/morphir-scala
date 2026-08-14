@@ -2,10 +2,13 @@
 
 ## 2026-08-14
 
+* **Creation**: Added [Keep compiling Mill Morphir plugins into the metabuild](/decisions/0012-keep-source-metabuild-for-mill-morphir-plugins.md).
 * **Update**: Sonatype publication now derives its module set from Mill
   (`__.publishSonatypeCentral`) rather than a hand-maintained script list, and publishes the Mill Morphir plugin
-  family (`org.finos.morphir.mill`) alongside the library modules. The retired exclusion for `mill-scalalib` no longer
-  applies under Mill 1.x (`mill-libs-scalalib` is on Maven Central). See
+  family (`org.finos.morphir.mill`) alongside the library modules. Pre-publish verification: `mill-libs-scalalib_3`
+  for the pinned Mill version is on Maven Central; plugin `publishArtifacts` succeed; generated POMs declare
+  `mill-libs-scalalib` as `provided`; `integration` is absent from the resolve inventory. Live Central SNAPSHOT
+  resolution is confirmed by the next `develop` publish job after merge. See
   [Continuous Integration](/continuous-integration.md).
 
 ## 2026-08-13

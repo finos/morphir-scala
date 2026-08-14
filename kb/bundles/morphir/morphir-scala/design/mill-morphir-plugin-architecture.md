@@ -170,6 +170,9 @@ artifact-based acceptance path.
 
 After the first Mill 1.x plugin release, the project may switch normal builds to a pinned artifact. That choice does
 not weaken the local-SNAPSHOT acceptance path and should be made from measured maintenance and bootstrap experience.
+The decision for now is recorded in
+[0012 — Keep compiling Mill Morphir plugins into the metabuild](/decisions/0012-keep-source-metabuild-for-mill-morphir-plugins.md):
+publication is enabled; the metabuild stays source-compiled until the revisit conditions there are met.
 
 Mill uses the same basic pattern: its tests publish current modules into local test repositories and inject those
 repositories into isolated consumer runs. It also separates fast and packaged integration launchers.
