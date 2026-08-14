@@ -589,8 +589,6 @@ trait ExampleProjectTestMorphirDependencies extends MorphirModule {
   )
 }
 
-// ci module removed - using Mill's built-in mill.scalalib.PublishModule/ for publishing
-
 // The following section contains aliases used to simplify build tasks
 
 object MyAliases extends Aliases {

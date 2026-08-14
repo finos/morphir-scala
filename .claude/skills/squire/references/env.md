@@ -94,5 +94,5 @@ Precedence: `MILL_NO_SERVER=1` / `MILL_USE_SERVER=1` (explicit override) → CI
 
 Tasks that already pass `-i`/`--interactive` (an alias for `--no-daemon` as of
 Mill 1.1.0 — see `./mill --help-advanced`) don't need this: `test/jvm`,
-`test/js`, `test/runtime-jvm`, and `publish/sonatype` already force no-daemon
-mode by that flag and were never at risk from this issue.
+`test/js`, `test/runtime-jvm`, and the `ci.publish` Mill command already force
+no-daemon mode by that flag and were never at risk from this issue.

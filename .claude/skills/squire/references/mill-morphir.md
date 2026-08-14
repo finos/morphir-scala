@@ -35,7 +35,9 @@ The suite:
 - proves the consumer cannot see repository source modules or metabuild classes.
 
 CI Sonatype publication for the five plugins uses the same `MorphirMillPublishModule` surface
-(`__.publishSonatypeCentral`). Local SNAPSHOT acceptance stays authoritative; Central snapshots do not replace it.
+(`__.publishSonatypeCentral`), invoked from `ci.sonatype.*` / `ci.publish`. GitHub Actions runs
+`ci.sonatype.writeMillEnv` first so Morphir `GPG_*` names become `MILL_*` in the publish mill.
+Local SNAPSHOT acceptance stays authoritative; Central snapshots do not replace it.
 
 ## Diagnostics
 

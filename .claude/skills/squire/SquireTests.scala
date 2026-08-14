@@ -130,26 +130,54 @@ object SquireCiPolicy:
     )
     val release = indentedBlock(publish, "- name: Release", 6)
     expect(
-      count(release, "mise run publish:sonatype") == 1,
+      count(release, "./mill -i ci.publish") == 1,
       "Release step must contain the Sonatype publish invocation"
     )
     expect(
-      count(workflow, "mise run publish:sonatype") == 1,
+      count(workflow, "./mill -i ci.publish") == 1,
       "workflow must contain exactly one Sonatype publish invocation"
+    )
+    expect(
+      count(release, "writeMillEnv") == 1,
+      "Release step must convert GPG_* via ci.sonatype.writeMillEnv"
+    )
+    expect(
+      release.contains("source \"$envfile\"") || release.contains("source '$envfile'"),
+      "Release step must source the writeMillEnv file into the publish mill's process env"
+    )
+    expect(
+      !release.contains("BEGIN PGP PRIVATE KEY"),
+      "Release step must not duplicate PgpSecret conversion in bash"
     )
 
   def assertSonatypePublishPolicy(script: String): Unit =
     expect(
-      !script.contains("module_prefixes"),
-      "sonatype publish must not hardcode a module_prefixes list"
+      script.contains("resolveSegments(Seq(\"__.publishSonatypeCentral\")"),
+      "sonatype publish must resolve __.publishSonatypeCentral via Evaluator.resolveSegments"
     )
     expect(
-      script.contains("resolve '__.publishSonatypeCentral'"),
-      "sonatype publish must resolve publishSonatypeCentral from the Mill build"
+      script.contains("exclusive = true"),
+      "sonatype publish commands must be exclusive Evaluator commands"
     )
     expect(
-      script.contains("--jobs 1"),
-      "sonatype publish must serialize publishSonatypeCentral with --jobs 1"
+      script.contains("ModuleRef"),
+      "sonatype publish must list plugins via ModuleRef"
+    )
+    expect(
+      script.contains("uploadJobs"),
+      "sonatype publish must drive upload parallelism from the uploadJobs task"
+    )
+    expect(
+      !script.contains("millLauncher") && !script.contains("os.proc(millLauncher"),
+      "sonatype publish must not nest a second mill process"
+    )
+    expect(
+      script.contains("writeMillEnv"),
+      "sonatype publish must expose writeMillEnv so GHA can feed MILL_* into a later mill"
+    )
+    expect(
+      script.contains("MillSonatypeEnv"),
+      "sonatype publish must convert CI env through MillSonatypeEnv"
     )
     expect(
       script.contains("mill-libs-scalalib"),
@@ -162,6 +190,25 @@ object SquireCiPolicy:
     expect(
       !script.contains("except the mill-morphir"),
       "Mill Morphir plugins must not be excluded from Sonatype publication by comment policy"
+    )
+
+  def assertSonatypePublishConfig(yaml: String): Unit =
+    val lines = yaml.linesIterator.map(_.trim).filter(_.nonEmpty).toList
+    expect(
+      lines.contains("uploadJobs: 1"),
+      "ci/package.mill.yaml must pin uploadJobs: 1 (SLF4J / #957)"
+    )
+    expect(
+      lines.exists(_.startsWith("libraryModulePrefix:")),
+      "ci/package.mill.yaml must configure libraryModulePrefix"
+    )
+    expect(
+      !lines.exists(_.startsWith("pluginModulePrefixes:")) && !lines.contains("pluginModulePrefixes:"),
+      "plugin inventory belongs in MorphirCi.mill ModuleRefs, not YAML prefixes"
+    )
+    expect(
+      yaml.contains(".integration."),
+      "ci/package.mill.yaml must exclude .integration. modules"
     )
 
   def assertPublishTargetInventory(targets: Set[String]): Unit =
@@ -1178,7 +1225,11 @@ class SquireCiPolicySpec extends Test[Any]:
     StandardCharsets.UTF_8
   )
   private val sonatypePublishTask = Files.readString(
-    skillDirectory.resolve("../../../.config/mise/tasks/publish/sonatype").normalize,
+    skillDirectory.resolve("../../../ci/MorphirCi.mill").normalize,
+    StandardCharsets.UTF_8
+  )
+  private val ciPackageYaml = Files.readString(
+    skillDirectory.resolve("../../../ci/package.mill.yaml").normalize,
     StandardCharsets.UTF_8
   )
   private val jvmTargetSelectors = List(
@@ -1248,14 +1299,15 @@ class SquireCiPolicySpec extends Test[Any]:
 
     "derives the Sonatype publish set from Mill resolve, including the Mill Morphir plugin family" in {
       assertSonatypePublishPolicy(sonatypePublishTask)
-      val hardCodedList = sonatypePublishTask + "\n    local module_prefixes=(\n        morphir.jvm\n    )\n"
+      assertSonatypePublishConfig(ciPackageYaml)
       val withoutResolve = replaceOnce(
         sonatypePublishTask,
-        "resolve '__.publishSonatypeCentral'",
-        "resolve 'morphir.__.compile'"
+        "Seq(\"__.publishSonatypeCentral\")",
+        "Seq(\"morphir.__.compile\")"
       )
-      assert(rejects(assertSonatypePublishPolicy, hardCodedList))
+      val withoutSerial = replaceOnce(ciPackageYaml, "uploadJobs: 1", "uploadJobs: 8")
       assert(rejects(assertSonatypePublishPolicy, withoutResolve))
+      assert(rejects(assertSonatypePublishConfig, withoutSerial))
 
       for targets <- resolvePublishTargets
       yield
@@ -1645,19 +1697,19 @@ class SquireCiPolicySpec extends Test[Any]:
         "\nenv:\n  DUPLICATE: \"MORPHIR_PUBLISH_MODE=snapshot\"\n"
       val duplicatePublishPath = replaceOnce(
         workflow,
-        "          mise run publish:sonatype",
-        "          mise run publish:sonatype\n          mise run publish:sonatype"
+        "          ./mill -i ci.publish",
+        "          ./mill -i ci.publish\n          ./mill -i ci.publish"
       )
       val unguardedPublishPath = replaceOnce(
         workflow,
-        "          mise run publish:sonatype",
+        "          ./mill -i ci.publish",
         "          echo release command moved"
       ) +
         "\n  unguarded-publish:\n" +
         "    runs-on: ubuntu-latest\n" +
         "    steps:\n" +
         "      - name: Bypass Release\n" +
-        "        run: mise run publish:sonatype\n"
+        "        run: ./mill -i ci.publish\n"
 
       val mutations = List(
         (assertBranchPolicy, pushWithExtraBranch),
