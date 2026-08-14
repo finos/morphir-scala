@@ -16,6 +16,6 @@ echo "  Linting Scala files..."
 # which needs a cold JVM to trigger — so --no-server, which starts a fresh runner
 # every time, was the one form guaranteed to deadlock, while a warm daemon
 # usually escaped. With that fixed the glob completes in seconds either way.
-./mill mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll 'morphir.__.sources'
+./mill --ticker false mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll 'morphir.__.sources'
 
 echo "Lint completed successfully"

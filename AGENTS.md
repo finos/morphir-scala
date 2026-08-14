@@ -343,7 +343,7 @@ The project uses GitHub Actions for CI:
 - `test-jvm` - JVM tests, including `langkit.itest`
 - `test-js` - ScalaJS tests, including the wasm link variants
 - `test-native` - Scala Native tests
-- `publish` - SNAPSHOTs from `main` and `develop`; milestones/releases from `0.4.x` and tags, via `./mill -i ci.publish`
+- `publish` - SNAPSHOTs from `main` and `develop`; milestones/releases from `0.4.x` and tags, via `./mill --ticker false -i ci.publish`
 
 CI runs on pull requests targeting and pushes to `main`, `0.4.x`, and `develop`, plus releases and manual triggers.
 
