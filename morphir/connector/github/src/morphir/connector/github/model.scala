@@ -11,7 +11,7 @@ final case class Issue(
     title: String,
     body: Maybe[String],
     url: String
-) derives CanEqual
+) derives CanEqual, Schema
 
 /** A GitHub pull request. Field names follow GitHub's GraphQL `PullRequest` type, not OKF. */
 final case class PullRequest(
@@ -19,7 +19,7 @@ final case class PullRequest(
     title: String,
     body: Maybe[String],
     url: String
-) derives CanEqual
+) derives CanEqual, Schema
 
 /** A GitHub discussion. Field names follow GitHub's GraphQL `Discussion` type, not OKF. */
 final case class Discussion(
@@ -27,4 +27,4 @@ final case class Discussion(
     title: String,
     body: Maybe[String],
     url: String
-) derives CanEqual
+) derives CanEqual, Schema

@@ -125,6 +125,17 @@ trait MorphirJSModule extends MorphirCommonCrossModule with ScalaJSModule {
   def scalaJSVersion = Task { ScalaVers.scalaJSVersion }
 }
 
+/**
+ * Scala.js linker config for modules whose runtime reaches Node builtins (`node:fs`, `node:net`, `node:tls`).
+ * kyo-http's JS backend is Node-only. Mill's default `ModuleKind.NoModule` cannot import those modules; Kyo's own
+ * JS build sets CommonJS for the same reason. Mix this in after [[MorphirJSModule]] so the override wins.
+ * Mill's `ScalaJSTests` forwards `moduleKind` from the enclosing module.
+ */
+trait MorphirJSNodeModule extends ScalaJSModule {
+  import mill.scalajslib.api.*
+  override def moduleKind: T[ModuleKind] = Task { ModuleKind.CommonJSModule }
+}
+
 trait MorphirNativeModule extends MorphirCommonCrossModule with ScalaNativeModule {
   def platform           = Platform.Native
   def scalaNativeVersion = Task { ScalaVers.scalaNativeVersion }
@@ -399,12 +410,56 @@ trait MorphirKyoTestMvnDeps extends ScalaModule {
   )
 }
 
+/** Opt-in kyo-test snapshot and golden assertions. Mix into a test module that extends `SnapshotTest`. */
+trait MorphirKyoSnapshotTestMvnDeps extends ScalaModule {
+  override def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.io.getkyo.`kyo-test-snapshot`,
+    Deps.io.getkyo.`kyo-test-prop`
+  )
+}
+
 /** The `kyo-schema` JSON codec (`kyo.Json`), published as a separate artifact from `kyo-schema` itself. Needed
   * wherever a derived `Schema` is round-tripped through `encodeString`/`decodeString`, whether that's production
   * code (e.g. `morphir.model`'s `CodeModelCodecs`) or a test. */
 trait MorphirKyoSchemaJsonMvnDeps extends ScalaModule {
   override def mvnDeps = super.mvnDeps() ++ Seq(
     Deps.io.getkyo.`kyo-schema-json`
+  )
+}
+
+/** `kyo-http`, the cross-platform HTTP client and server. Used by connectors that talk to an external system. */
+trait MorphirKyoHttpMvnDeps extends ScalaModule {
+  override def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.io.getkyo.`kyo-http`
+  )
+}
+
+/** Absolute kyo-test snapshot directory for the GitHub connector. Mill's test sandbox would otherwise swallow relative paths. */
+trait MorphirConnectorGithubSnapshotEnv extends ScalaModule {
+  override def forkEnv: T[Map[String, String]] = Task {
+    super.forkEnv() ++ Map(
+      "MORPHIR_CONNECTOR_GITHUB_SNAPSHOT_DIR" ->
+        (workspaceDir / "morphir" / "connector" / "github" / "test-snapshots").toString
+    )
+  }
+}
+
+/** Passes the GitHub connector snapshot directory into Node, which does not inherit [[TestModule.forkEnv]]. */
+trait MorphirConnectorGithubSnapshotJsEnv extends ScalaJSModule {
+  import mill.scalajslib.api.JsEnvConfig
+  override def jsEnvConfig: T[JsEnvConfig] = Task {
+    val dir   = (workspaceDir / "morphir" / "connector" / "github" / "test-snapshots").toString
+    val extra = Map("MORPHIR_CONNECTOR_GITHUB_SNAPSHOT_DIR" -> dir)
+    super.jsEnvConfig() match
+      case node: JsEnvConfig.NodeJs => node.copy(env = node.env ++ extra)
+      case other                    => other
+  }
+}
+
+/** `caliban-client` for typed GraphQL documents. ZIO-free at compile time. Codegen is a Mill script, not a module dep. */
+trait MorphirCalibanClientMvnDeps extends ScalaModule {
+  override def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.com.github.ghostdogpr.`caliban-client`
   )
 }
 

@@ -49,6 +49,10 @@ object Deps {
       object lolgab {
         val `scala-native-crypto` = mvn"com.github.lolgab::scala-native-crypto::${Versions.`scala-native-crypto`}"
       }
+
+      object ghostdogpr {
+        val `caliban-client` = mvn"com.github.ghostdogpr::caliban-client::${Versions.caliban}"
+      }
     }
     object lihaoyi {
       val castor         = mvn"com.lihaoyi::castor::${Versions.castor}"
@@ -125,6 +129,7 @@ object Deps {
       val `kyo-case-app`      = mvn"io.getkyo::kyo-case-app::${Versions.kyo}"
       val `kyo-core`          = mvn"io.getkyo::kyo-core::${Versions.kyo}"
       val `kyo-data`          = mvn"io.getkyo::kyo-data::${Versions.kyo}"
+      val `kyo-http`          = mvn"io.getkyo::kyo-http::${Versions.kyo}"
       val `kyo-prelude`       = mvn"io.getkyo::kyo-prelude::${Versions.kyo}"
       val `kyo-schema`        = mvn"io.getkyo::kyo-schema::${Versions.kyo}"
       val `kyo-schema-json`   = mvn"io.getkyo::kyo-schema-json::${Versions.kyo}"
@@ -219,6 +224,7 @@ object Versions {
   val geny                       = "1.1.1"
   val `izumi-reflect`            = "3.0.9"
   val kyo                        = "1.0.0-RC6"
+  val caliban                    = "3.1.5"
   val metaconfig                 = "0.12.0"
   val mainargs                   = "0.7.8"
   val `os-lib`                   = "0.11.8"

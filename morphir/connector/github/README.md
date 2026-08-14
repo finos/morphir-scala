@@ -2,46 +2,50 @@
 
 A Kyo GitHub GraphQL client for issues, pull requests, and discussions. No Morphir types, no OKF types.
 
-The HTTP stack (`kyo-http` / `caliban-client`) is not a dependency yet. Those libraries must run on Scala.js and
-Scala Native, not merely compile; until that check is recorded in the published-library-families Design Note, this
-module ships a fixture-backed client. Tests replay recorded values and do not call `api.github.com`.
+Tests replay recorded GraphQL JSON envelopes and do not call `api.github.com`.
 
 `kyo-caliban` is a GraphQL server and is not used here.
 
 ## Artifact
 
-`org.finos.morphir::morphir-connector-github` — JVM, Scala.js, and Scala Native.
+`org.finos.morphir::morphir-connector-github` — JVM, Scala.js (Node for live HTTP), and Scala Native.
+
+## Client
+
+`GithubClient.recorded` decodes GraphQL envelopes. `GithubClient.fixture` replays already-decoded values.
+`GithubClient.live` POSTs to `https://api.github.com/graphql` through `kyo-http` on the JVM and on Node.js. The JS
+artifact needs `ModuleKind.CommonJSModule` (or ESModule) because kyo-http's JS backend imports Node builtins. Live
+HTTP does not run in browsers. A `fetch` backend is not planned: GitHub GraphQL from a page origin is a CORS and token
+problem. Electron uses this Node backend. On Scala Native, listing fails with `GithubError.Transport` until a kyo-net
+Native artifact links kqueue. See the published-library-families Design Note.
+
+Listing methods return `Chunk[A] < (Abort[GithubError] & Async)`:
+
+```scala
+import kyo.*
+import morphir.connector.github.*
+
+val json =
+  """{"data":{"repository":{"issues":{"nodes":[{"number":1,"title":"title","body":"body","url":"https://example.test/1"}]}}}}"""
+val client = GithubClient.recorded(issues = json)
+
+Abort.run[GithubError](client.listIssues(RepositoryRef("owner", "repo")))
+```
 
 ## Schema subset and codegen
 
 The operations this module will call are declared in [`schema/github-subset.graphql`](./schema/github-subset.graphql).
 That file is a hand-authored subset of GitHub's public schema, not a copy of the full `schema.docs.graphql`.
 
-When codegen runs, generated Scala is **checked in**, produced by a documented command rather than a Mill task.
-Caliban's codegen plugin is sbt-shaped, and no Mill equivalent lives in this repository. Pin the upstream schema
-commit in this README when the first generated file lands.
+Generated Scala is **checked in**, produced by a Mill script rather than a Mill module task. Caliban's codegen
+plugin is sbt-shaped; the script is the documented command. Pin the upstream schema commit here when the subset is
+cut from a known GitHub schema revision.
 
 ```text
-calibanGenClient \
-  morphir/connector/github/schema/github-subset.graphql \
-  morphir/connector/github/src/morphir/connector/github/internal/Client.scala
+./mill morphir/connector/github/schema/gen-client.scala
 ```
 
-Until that command has been run once, the public types in `morphir.connector.github` are hand-written to match the
-subset.
-
-## Using the fixture client
-
-```scala
-import kyo.*
-import morphir.connector.github.*
-
-val issue = Issue(number = 1, title = "title", body = Maybe.Present("body"), url = "https://example.test/1")
-val client = GithubClient.fixture(issues = Chunk(issue))
-
-client.listIssues(RepositoryRef("owner", "repo")) match
-  case Result.Success(issues) => issues
-  case Result.Failure(err)    => throw err
-```
+`caliban-codegen` is a dependency of that script only. The published module depends on `caliban-client`, which has
+no ZIO compile dependency.
 
 The `gh` CLI wrapper is a sibling module (`morphir-connector-github-cli`), not a package here.

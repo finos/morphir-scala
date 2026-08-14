@@ -1,0 +1,1 @@
+query{repository(owner:"acme",name:"widgets"){discussions(first:100){nodes{number title body url}}}}

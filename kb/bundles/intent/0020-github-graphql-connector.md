@@ -2,7 +2,7 @@
 type: Intent
 title: GitHub GraphQL connector
 description: "Publish a Kyo GitHub GraphQL client as morphir-connector-github, with no Morphir types, on JVM, JS, and Native."
-state: Refinement
+state: InProgress
 kind: feature
 breaking: false
 created: 2026-08-14
@@ -28,14 +28,16 @@ The public surface is a token, a typed error ADT, GitHub-shaped issue, pull requ
 client that lists those objects for a repository. No OKF type and no Morphir IR type appears in the module.
 
 The client consumes GitHub's GraphQL API. `kyo-caliban` is a GraphQL server and is out of scope. Generated Scala
-comes from `caliban-client` against a vendored **subset** of GitHub's schema, checked in and produced by a documented
-command. REST is used only for endpoints GraphQL lacks.
+comes from `caliban-client` against a vendored **subset** of GitHub's schema, checked in and produced by the Mill
+script `morphir/connector/github/schema/gen-client.scala`. REST is used only for endpoints GraphQL lacks.
 
-The HTTP stack (`kyo-http` or sttp wrapped in Kyo) must run on JS and Native, not merely compile. Until that check
-is recorded in the
-[published library families Design Note](../morphir/morphir-scala/design/published-library-families.md), the module
-uses a fixture-backed client and takes neither dependency. Tests replay recorded GraphQL fixtures and do not call
-`api.github.com`.
+`kyo-http` 1.0.0-RC6 is the HTTP stack. Live POST runs on the JVM and on Node.js. The github JS module sets
+`ModuleKind.CommonJSModule` so Scala.js can import Node builtins (`node:fs`, `node:net`, `node:tls`). kyo-http on JS
+is Node-only. A browser `fetch` backend is out of scope: kyo-http has no fetch floor, and GitHub GraphQL from a page
+origin is a CORS and token problem. Electron uses the Node backend. Scala Native stays stubbed: the published kyo-net
+1.0.0-RC6 Native artifact was generated on Linux, so kqueue is a throwing stub and epoll/io_uring do not link on
+macOS. Tests replay recorded GraphQL fixtures and do not call `api.github.com`. The check lives in the
+[published library families Design Note](../morphir/morphir-scala/design/published-library-families.md).
 
 The `gh` CLI is [0024](/0024-github-cli-connector.md), a sibling module, not a package here.
 

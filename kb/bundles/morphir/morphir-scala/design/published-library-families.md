@@ -9,7 +9,7 @@ status: draft
 # Published library families
 
 The capability this note tracks: Morphir publishes general-purpose libraries beside its IR tooling, in five families whose mill paths and artifacts a reader can predict. The taxonomy is settled in
-[decision 0013](/decisions/0013-published-library-families.md). This note is the narrative home for delivering the first three modules and for the questions that still move: markdown parsing on Native, and an HTTP stack that actually runs on JS and Native.
+[decision 0013](/decisions/0013-published-library-families.md). This note is the narrative home for delivering the first three modules and for the questions that still move: markdown parsing on Native, and live HTTP on Scala Native.
 
 ```mermaid
 flowchart LR
@@ -32,7 +32,7 @@ flowchart LR
 
 Kit already exists and means one thing: a bridge to a Scala library Morphir builds on, with no Morphir types, on JVM, JS, and Native. GitHub, markdown, Electron, and Codeium were going to land somewhere. Putting them in kit would empty that rule. Putting them in `contrib/` would hide first-class work in a parking lot. The families in decision 0013 are the place.
 
-The first skeletons exist so GitHub, markdown, and OKF work can proceed in parallel. They compile, test, and mix `MorphirPublishModule`. They do not yet speak to `api.github.com`, parse CommonMark, or round-trip a real `kb/` bundle.
+The first skeletons exist so GitHub, markdown, and OKF work can proceed in parallel. They compile, test, and mix `MorphirPublishModule`. Tests do not call `api.github.com`. The markdown stub is not CommonMark. OKF does not yet round-trip a real `kb/` bundle.
 
 ## Constraints that stay
 
@@ -41,7 +41,7 @@ See [decision 0005](/decisions/0005-bridge-nothing-between-zio-and-kyo.md).
 
 Root `morphir`, `runtime.classic`, `interop/zio`, and `testing/zio` do not grow this work. `contrib/` is not a destination. `morphir/toolkit` is not a namespace to revive.
 
-Public APIs in the new modules use `kyo.Result` and `kyo.Maybe`. Types that must not exist are `Option` and `Either` in those signatures. Tests use kyo-test. Case classes are `final`.
+Public APIs in the new modules use `kyo.Maybe` and typed failure. Pure decode uses `kyo.Result`. Effectful listing uses `Abort` and `Async`. Types that must not exist are `Option` and `Either` in those signatures. Tests use kyo-test. Case classes are `final`.
 
 ## First skeletons
 
@@ -51,13 +51,39 @@ Artifact `org.finos.morphir::morphir-connector-github`. Package `morphir.connect
 
 The module holds GitHub-shaped types (issue, pull request, discussion), a token, a typed error ADT, and a client that can list those objects for a repository. It holds no OKF types and no Morphir IR types.
 
-`kyo-caliban` is a GraphQL server and is out of scope. The client path is `caliban-client` plus an HTTP backend, against a **subset** of GitHub's schema. REST is used only for endpoints GraphQL lacks. The `gh` CLI is a later sibling module, `morphir/connector/github-cli`, and may be JVM-only.
+Listing methods return `Chunk[A] < (Abort[GithubError] & Async)`. Recorded JSON decode is pure `Result` lifted into that row. Live HTTP cannot be a bare `Result`.
 
-**Codegen (settled for this skeleton).** Generated client Scala is checked in, produced by a documented command, not by a Mill task. Caliban's codegen plugin is sbt-shaped, and no Mill equivalent is in this repository. GitHub's subset schema will change slowly enough that a checked-in file is reviewable. A Mill codegen task can be added later if regeneration becomes frequent. Until the command has been run once, the skeleton hand-writes the operation types the subset schema will generate. The subset schema itself is vendored in the module and pinned to an upstream commit in the README.
+`kyo-caliban` is a GraphQL server and is out of scope. The client path is still `caliban-client` plus an HTTP backend, against a **subset** of GitHub's schema. REST is used only for endpoints GraphQL lacks. The `gh` CLI is a later sibling module, `morphir/connector/github-cli`, and may be JVM-only.
 
-**HTTP stack (open).** `kyo-http` and `caliban-client` must run on Scala.js and Scala Native, not merely compile. That is unverified here. The skeleton therefore uses a fixture-backed client and takes neither dependency. Adding them is part of the GitHub connector intent, gated on a recorded platform check.
+**Codegen (settled).** Generated client Scala is checked in, produced by the Mill script
+`morphir/connector/github/schema/gen-client.scala`, not by a module task. Caliban's codegen plugin is sbt-shaped;
+the script is the documented command (`./mill morphir/connector/github/schema/gen-client.scala`). GitHub's subset
+schema will change slowly enough that a checked-in file is reviewable. A Mill codegen task can be added later if
+regeneration becomes frequent. The subset schema itself is vendored in the module. Caliban's generator API is ZIO;
+that stays inside the script. The published module uses `caliban-client` (no ZIO compile dependency) plus `kyo-http`.
 
-Tests replay recorded GraphQL fixtures. They do not call `api.github.com`.
+**HTTP stack (checked, split).** `kyo-http` 1.0.0-RC6 Scala sources compile on JVM, JS, and Native.
+
+Live POST is wired on the JVM and on Node.js. The github JS module mixes `MorphirJSNodeModule`, which sets
+`ModuleKind.CommonJSModule`. Without that, Scala.js `NoModule` cannot import `node:fs` / `node:net` / `node:tls`.
+kyo-http's JS backend is Node-only. A browser consumer whose link reaches `GithubClient.live` inherits that
+requirement.
+
+**Browsers (settled).** There is no `fetch` floor in kyo-http 1.0.0-RC6, and this module will not add one. A Scala.js
+`fetch` transport could POST JSON, but authenticated calls to `api.github.com/graphql` from a page origin fail CORS.
+GitHub does not make that a supported client-side pattern. The token would also sit in the page. A web app that needs
+live GitHub data goes through a same-origin proxy, not `GithubClient.live`. Electron ([0025](../../../intent/0025-electron-appkit.md))
+is a browser-shaped host with Node, so it uses the Node backend already wired. Recorded fixtures and decode stay
+usable without posting. Splitting a Node-free JS artifact is later work, only if a page must load this module without
+Node.
+
+Scala Native does not take `kyo-http`. The published `kyo-net_native0.5_3-1.0.0-RC6` artifact was generated on a Linux
+host. `KqueueBindingsImpl` is a throwing stub (`sys/event.h` unavailable). `EpollBindingsImpl` still references Linux
+`epoll` / `eventfd` / `io_uring` symbols. OpenSSL link flags would not fix that. `GithubClient.live` exists on Native
+and listing fails with `GithubError.Transport`.
+
+Recorded GraphQL fixtures run on all three. Tests do not call `api.github.com`. Live listing builds GraphQL
+documents from the generated `caliban-client` helpers.
 
 ### `morphir/langkit/markdown`
 
@@ -101,7 +127,7 @@ Intent 0004 (project intent outward as GitHub issues) stays Cancelled. GitHub in
 
 ## Unresolved
 
-1. **HTTP on JS and Native.** Whether `kyo-http`, `caliban-client`, and a sttp backend run on Scala.js and Scala Native at the pinned Kyo version. Unverified. The GitHub skeleton stays fixture-backed until a check is recorded here.
+1. **Live HTTP on Native.** `kyo-http` 1.0.0-RC6 live POST is wired on the JVM and on Node.js. Scala Native stays stubbed because the published kyo-net Native artifact at that version does not link kqueue on macOS. Linux Native is untested. A later kyo RC that ships Darwin codegen would reopen this.
 2. **Markdown parser.** Which library, or which per-platform engines, produce a shared CST on all three platforms. Unverified. The stub is not that parser.
 3. **Caliban subset workflow.** How the GitHub schema is cut down before codegen (hand-edited SDL, a documents file, or an external subset tool). The first subset is small enough to edit by hand. A tool is not required until the operation set grows.
 4. **OKF fidelity.** How closely `morphir.knowledge.okf` matches the kb skill's current model, and when the skill switches. Out of scope for the skeleton.
