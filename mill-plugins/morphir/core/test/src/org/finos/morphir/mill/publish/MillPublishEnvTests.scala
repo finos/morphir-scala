@@ -187,5 +187,62 @@ object MillPublishEnvTests extends TestSuite {
         assert(!millEnv.pgpSecretBase64.contains("BEGIN PGP"))
       }
     }
+
+    test("validate accepts base64 of a binary secret-key export") {
+      if !EphemeralPgp.gpgAvailable then {
+        println("skipping PgpSecret.validate binary export: gpg not on PATH")
+      } else {
+        val armored  = new String(Base64.getDecoder.decode(millTestKeyBase64), StandardCharsets.UTF_8)
+        val tempHome = PgpSecret.shortGpgHome("mbt-")
+        val env      = sys.env.toMap.updated("GNUPGHOME", tempHome.toString) - "GPG_AGENT_INFO" - "GPG_TTY"
+        try {
+          val imported = os
+            .proc(
+              "gpg",
+              "--homedir",
+              tempHome.toString,
+              "--batch",
+              "--pinentry-mode",
+              "loopback",
+              "--import",
+              "--no-tty"
+            )
+            .call(
+              env = env,
+              stdin = armored,
+              stdout = os.Pipe,
+              stderr = os.Pipe,
+              check = false,
+              timeout = 15_000L
+            )
+          assert(imported.exitCode == 0)
+
+          val exported = os
+            .proc(
+              "gpg",
+              "--homedir",
+              tempHome.toString,
+              "--batch",
+              "--pinentry-mode",
+              "loopback",
+              "--export-secret-keys"
+            )
+            .call(env = env, stdout = os.Pipe, stderr = os.Pipe, check = false, timeout = 15_000L)
+          assert(exported.exitCode == 0)
+          val binaryBytes = exported.out.bytes
+          assert(binaryBytes.nonEmpty)
+          assert(!(new String(binaryBytes, StandardCharsets.UTF_8).contains("BEGIN PGP")))
+
+          val binaryBase64 = Base64.getEncoder.encodeToString(binaryBytes)
+          val millForm     = PgpSecret.toMillBase64(binaryBase64)
+          assert(millForm == binaryBase64.filterNot(_.isWhitespace))
+          PgpSecret.validate(millForm)
+        } finally {
+          os.proc("gpgconf", "--homedir", tempHome.toString, "--kill", "gpg-agent")
+            .call(env = env, check = false, stdout = os.Pipe, stderr = os.Pipe, timeout = 15_000L)
+          os.remove.all(tempHome)
+        }
+      }
+    }
   }
 }
