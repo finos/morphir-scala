@@ -121,7 +121,7 @@ object core extends Cross[CorePlugin](MillVersions.all)
 
 trait CorePlugin extends MorphirMillPlugin {
   override def artifactName       = "mill-morphir-core"
-  override def packageDescription = "Frontend-neutral Morphir project and IR support for Mill."
+  override def packageDescription = "Frontend-neutral Morphir project, IR, and Mill publish-env support."
   override def mvnDeps            = super.mvnDeps() ++ Seq(
     Deps.com.lihaoyi.sourcecodeJvm,
     Deps.com.lihaoyi.upickleJvm
@@ -132,6 +132,7 @@ trait CorePlugin extends MorphirMillPlugin {
     def utestVersion     = Vers.utest
     override def mvnDeps = super.mvnDeps() ++ Seq(
       mvn"com.lihaoyi::mill-libs-scalalib:${CorePlugin.this.millVersion}",
+      mvn"com.lihaoyi::mill-libs-javalib:${CorePlugin.this.millVersion}",
       mvn"com.lihaoyi::mill-testkit:${CorePlugin.this.millVersion}"
     )
   }

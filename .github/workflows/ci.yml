@@ -440,11 +440,6 @@ jobs:
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
 
-      - name: Setup mise
-        uses: jdx/mise-action@v4
-        with:
-          experimental: true
-
       - name: Install libuv
         run: sudo apt-get update && sudo apt-get install -y libuv1-dev
 
@@ -477,7 +472,17 @@ jobs:
           GPG_PRIVATE_KEY: ${{ secrets.ORG_MORPHIR_CI_GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.ORG_MORPHIR_CI_GPG_PASSPHRASE }}
         run: |
-          mise run publish:sonatype
+          # Task.env is snapshotted at mill start. Convert GPG_* / SONATYPE_* in a first mill,
+          # source the file, then start ci.publish so MILL_* is in that process env.
+          # Do not mill show the file: it contains secrets.
+          envfile="${RUNNER_TEMP:-/tmp}/mill-publish.env"
+          trap 'rm -f "$envfile"' EXIT
+          ./mill --ticker false -i ci.sonatype.writeMillEnv --path "$envfile"
+          set -a
+          # shellcheck disable=SC1090
+          source "$envfile"
+          set +a
+          ./mill -i ci.publish
 
   ci:
     if: ${{ always() }}

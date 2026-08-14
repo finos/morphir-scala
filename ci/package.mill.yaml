@@ -1,0 +1,23 @@
+# CI publish surface for morphir-scala.
+# Library kind-split knobs live here; plugin inventory is ModuleRefs in MorphirCi.mill.
+# Upload parallelism and exclusions are configured below.
+extends:
+  - MorphirCiModule
+
+# ---------------------------------------------------------------------------
+# Sonatype kind split — libraries (plugins: see pluginModules ModuleRefs)
+# ---------------------------------------------------------------------------
+
+# Libraries: module path starts with this prefix.
+libraryModulePrefix: "morphir."
+
+# Never treat these as libraries even when libraryModulePrefix would match.
+libraryExcludedPrefixes:
+  - "mill-plugins."
+
+# Drop any module whose Mill path contains one of these substrings (All / Libraries resolve).
+excludedModuleSubstrings:
+  - ".integration."
+
+# Serial Sonatype upload via one evaluate per module (SLF4J / morphir-scala#957).
+uploadJobs: 1
