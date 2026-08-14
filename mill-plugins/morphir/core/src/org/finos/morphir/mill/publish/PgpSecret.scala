@@ -14,6 +14,8 @@ import scala.util.control.NonFatal
  */
 object PgpSecret {
 
+  private val GpgTimeoutMs = 15_000L
+
   /**
    * Convert raw key material into the base64 string Mill expects for `MILL_PGP_SECRET_BASE64`.
    *
@@ -77,7 +79,8 @@ object PgpSecret {
           stdin = decoded,
           stdout = os.Pipe,
           stderr = os.Pipe,
-          check = false
+          check = false,
+          timeout = GpgTimeoutMs
         )
       if imported.exitCode != 0 then
         throw PgpError.ImportFailed(imported.exitCode, imported.err.text())
@@ -92,7 +95,7 @@ object PgpSecret {
           "loopback",
           "--list-secret-keys"
         )
-        .call(env = env, stdout = os.Pipe, stderr = os.Pipe, check = false)
+        .call(env = env, stdout = os.Pipe, stderr = os.Pipe, check = false, timeout = GpgTimeoutMs)
       if listed.out.text().toLowerCase.contains("expired") then throw PgpError.KeyExpired
 
       log("GPG key imported successfully for validation")
@@ -101,7 +104,7 @@ object PgpSecret {
       case NonFatal(e) => throw PgpError.ValidationFailed(e.getMessage)
     } finally {
       os.proc("gpgconf", "--homedir", tempHome.toString, "--kill", "gpg-agent")
-        .call(env = env, check = false, stdout = os.Pipe, stderr = os.Pipe)
+        .call(env = env, check = false, stdout = os.Pipe, stderr = os.Pipe, timeout = GpgTimeoutMs)
       os.remove.all(tempHome)
     }
   }
