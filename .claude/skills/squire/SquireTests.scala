@@ -130,11 +130,11 @@ object SquireCiPolicy:
     )
     val release = indentedBlock(publish, "- name: Release", 6)
     expect(
-      count(release, "./mill -i ci.publish") == 1,
+      count(release, "./mill --ticker false -i ci.publish") == 1,
       "Release step must contain the Sonatype publish invocation"
     )
     expect(
-      count(workflow, "./mill -i ci.publish") == 1,
+      count(workflow, "./mill --ticker false -i ci.publish") == 1,
       "workflow must contain exactly one Sonatype publish invocation"
     )
     expect(
@@ -149,6 +149,19 @@ object SquireCiPolicy:
       !release.contains("BEGIN PGP PRIVATE KEY"),
       "Release step must not duplicate PgpSecret conversion in bash"
     )
+
+  def assertCiMillTicker(workflow: String): Unit =
+    val invocations = workflow.linesIterator
+      .map(_.trim)
+      .filter(line => line.startsWith("./mill") || line.startsWith("if ./mill"))
+      .toList
+    expect(invocations.nonEmpty, "CI workflow must invoke mill")
+    invocations.foreach { line =>
+      expect(
+        line.contains("--ticker false"),
+        s"CI mill invocation must disable the ticker: $line"
+      )
+    }
 
   def assertSonatypePublishPolicy(script: String): Unit =
     expect(
@@ -1297,6 +1310,16 @@ class SquireCiPolicySpec extends Test[Any]:
       assert(true)
     }
 
+    "disables the mill ticker on every workflow mill invocation" in {
+      assertCiMillTicker(workflow)
+      val tickerEnabled = replaceOnce(
+        workflow,
+        "./mill --ticker false -i ci.publish",
+        "./mill -i ci.publish"
+      )
+      assert(rejects(assertCiMillTicker, tickerEnabled))
+    }
+
     "derives the Sonatype publish set from Mill resolve, including the Mill Morphir plugin family" in {
       assertSonatypePublishPolicy(sonatypePublishTask)
       assertSonatypePublishConfig(ciPackageYaml)
@@ -1493,8 +1516,8 @@ class SquireCiPolicySpec extends Test[Any]:
           "path: out/"
         ),
         "runtime-generated-fixtures:",
-        "run: ./mill -i morphir.runtime.classic.jvm.test.generatedRuntimeFixtures",
-        "run: |\n          echo out/morphir/runtime/classic/jvm/test/\n          ./mill -i morphir.runtime.classic.jvm.test.generatedRuntimeFixtures"
+        "run: ./mill --ticker false -i morphir.runtime.classic.jvm.test.generatedRuntimeFixtures",
+        "run: |\n          echo out/morphir/runtime/classic/jvm/test/\n          ./mill --ticker false -i morphir.runtime.classic.jvm.test.generatedRuntimeFixtures"
       )
       val runtimeTestsOutputOutsideStep = replaceInJob(
         replaceInJob(
@@ -1504,8 +1527,8 @@ class SquireCiPolicySpec extends Test[Any]:
           "path: out/"
         ),
         "runtime-tests:",
-        "./mill -i morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery",
-        "echo out/morphir/runtime/classic/jvm/test/\n          ./mill -i morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery"
+        "./mill --ticker false -i morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery",
+        "echo out/morphir/runtime/classic/jvm/test/\n          ./mill --ticker false -i morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery"
       )
       val unnamedCacheAction = replaceInJob(
         workflow,
@@ -1697,19 +1720,19 @@ class SquireCiPolicySpec extends Test[Any]:
         "\nenv:\n  DUPLICATE: \"MORPHIR_PUBLISH_MODE=snapshot\"\n"
       val duplicatePublishPath = replaceOnce(
         workflow,
-        "          ./mill -i ci.publish",
-        "          ./mill -i ci.publish\n          ./mill -i ci.publish"
+        "          ./mill --ticker false -i ci.publish",
+        "          ./mill --ticker false -i ci.publish\n          ./mill --ticker false -i ci.publish"
       )
       val unguardedPublishPath = replaceOnce(
         workflow,
-        "          ./mill -i ci.publish",
+        "          ./mill --ticker false -i ci.publish",
         "          echo release command moved"
       ) +
         "\n  unguarded-publish:\n" +
         "    runs-on: ubuntu-latest\n" +
         "    steps:\n" +
         "      - name: Bypass Release\n" +
-        "        run: ./mill -i ci.publish\n"
+        "        run: ./mill --ticker false -i ci.publish\n"
 
       val mutations = List(
         (assertBranchPolicy, pushWithExtraBranch),

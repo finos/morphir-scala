@@ -24,10 +24,11 @@ branches.
 | `ci` | Aggregate gate — depends on lint, knowledge-base and all three test jobs |
 
 CI runs on pull requests into `main`, `0.4.x`, and `develop`; pushes to those same branches; published releases; and
-manual dispatch. Older runs of the same pull request are cancelled automatically.
+manual dispatch. Older runs of the same pull request are cancelled automatically. Workflow mill invocations pass
+`--ticker false` so the GitHub log is a linear task trace rather than a replayed progress ticker.
 
 The Release step runs `ci.sonatype.writeMillEnv` first, with Morphir `GPG_*` and `SONATYPE_*` names in that mill.
-It sources the written file and then starts `./mill -i ci.publish`. Mill snapshots `Task.env` at process start, so
+It sources the written file and then starts `./mill --ticker false -i ci.publish`. Mill snapshots `Task.env` at process start, so
 conversion has to happen in an earlier mill. Live Central upload is the first `develop` publish job after merge.
 
 ## Branch snapshots
