@@ -198,59 +198,73 @@ test_gpg_key() {
     fi
 }
 
+# Discover every module that declares Sonatype publication in the Mill build.
+#
+# MorphirPublishModule / MorphirMillPublishModule already expose
+# publishSonatypeCentral. Resolving that task is the publish set — there is no
+# parallel hand-maintained module list. A module that should not be released
+# must drop the publish trait (or never gain one); the integration plugin is
+# test-only and correctly has neither.
+#
+# Mill Morphir plugins are included: they compile against
+# com.lihaoyi::mill-libs-scalalib, which is on Maven Central for Mill 1.x. The
+# older "mill-scalalib is not on Central" exclusion predates that and is retired.
+resolve_publish_targets() {
+    local resolve_output
+    if ! resolve_output=$(./mill --ticker false resolve '__.publishSonatypeCentral'); then
+        log_error "Failed to resolve __.publishSonatypeCentral from the Mill build"
+        return 1
+    fi
+
+    local -a targets=()
+    local line
+    while IFS= read -r line; do
+        case "$line" in
+            *.publishSonatypeCentral)
+                # Mill resolve can echo progress on other lines; keep only task selectors.
+                if [[ "$line" != *" "* ]]; then
+                    targets+=("$line")
+                fi
+                ;;
+        esac
+    done <<< "$resolve_output"
+
+    if [[ ${#targets[@]} -eq 0 ]]; then
+        log_error "Mill resolved no publishSonatypeCentral targets"
+        return 1
+    fi
+
+    printf '%s\n' "${targets[@]}" | sort -u
+}
+
 # Run the publish
 run_publish() {
     log_info "Starting Sonatype Central publish..."
 
-    # Publish covers all morphir modules except the mill-morphir-elm plugin.
-    # The plugin depends on mill-scalalib which isn't on Maven Central.
-    #
-    # INVARIANT: this list must cover every module extending MorphirPublishModule,
-    # minus that plugin. Check with:
-    #
-    #     ./mill resolve 'morphir.__.publishSonatypeCentral'
-    #
-    # A module that carries the trait but is missing here is not published, and
-    # nothing reports it. If a module should not be released, drop the trait
-    # rather than leaving it out of this list — the trait is what declares the
-    # intent, so the two must agree.
-    #
-    # `morphir.naming.__` is not optional: `morphir.jvm`/`morphir.js` declare a
-    # moduleDep on it, so the published `morphir` POM names `morphir-naming_3`.
-    # Omitting it publishes a POM pointing at an artifact that is not on
-    # Sonatype, which breaks resolution for every consumer of `morphir` — not
-    # just for consumers of the new modules.
-    local module_prefixes=(
-        morphir.main
-        morphir.jvm
-        morphir.js
-        morphir.naming.__
-        morphir.model.__
-        morphir.runtime.__
-        morphir.tools.__
-        morphir.extensibility.__
-        morphir.lib.__
-        morphir.interop.__
-        morphir.contrib.__
-        morphir.tests.__
-        morphir.buildkit.__
-        morphir.prelude.__
-    )
+    local -a publish_targets=()
+    local target
+    while IFS= read -r target; do
+        [[ -n "$target" ]] && publish_targets+=("$target")
+    done < <(resolve_publish_targets)
 
     local publish_selectors=""
     local artifact_selectors=""
-    local prefix
-    for prefix in "${module_prefixes[@]}"; do
+    for target in "${publish_targets[@]}"; do
+        local module="${target%.publishSonatypeCentral}"
         if [[ -n "$publish_selectors" ]]; then
             publish_selectors+=" + "
             artifact_selectors+=" + "
         fi
-        publish_selectors+="${prefix}.publishSonatypeCentral"
-        artifact_selectors+="${prefix}.publishArtifacts"
+        publish_selectors+="${module}.publishSonatypeCentral"
+        artifact_selectors+="${module}.publishArtifacts"
     done
+
+    log_info "Publishing ${#publish_targets[@]} modules discovered from the Mill build"
 
     if [[ "${DRY_RUN:-}" == "true" ]]; then
         log_warn "DRY_RUN mode - skipping actual publish"
+        log_info "Resolved publishSonatypeCentral targets:"
+        printf '  %s\n' "${publish_targets[@]}"
         log_info "Would run: ./mill -i $artifact_selectors"
         log_info "Then:      ./mill -i --jobs 1 $publish_selectors"
         return 0

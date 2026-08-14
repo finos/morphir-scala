@@ -138,6 +138,61 @@ object SquireCiPolicy:
       "workflow must contain exactly one Sonatype publish invocation"
     )
 
+  def assertSonatypePublishPolicy(script: String): Unit =
+    expect(
+      !script.contains("module_prefixes"),
+      "sonatype publish must not hardcode a module_prefixes list"
+    )
+    expect(
+      script.contains("resolve '__.publishSonatypeCentral'"),
+      "sonatype publish must resolve publishSonatypeCentral from the Mill build"
+    )
+    expect(
+      script.contains("--jobs 1"),
+      "sonatype publish must serialize publishSonatypeCentral with --jobs 1"
+    )
+    expect(
+      script.contains("mill-libs-scalalib"),
+      "sonatype publish must record that Mill 1.x mill-libs-scalalib is on Maven Central"
+    )
+    expect(
+      !script.contains("mill-scalalib which isn't on Maven Central"),
+      "retired mill-scalalib Central exclusion must stay gone"
+    )
+    expect(
+      !script.contains("except the mill-morphir"),
+      "Mill Morphir plugins must not be excluded from Sonatype publication by comment policy"
+    )
+
+  def assertPublishTargetInventory(targets: Set[String]): Unit =
+    val requiredPluginPrefixes = List(
+      "mill-plugins.morphir.toolchain.",
+      "mill-plugins.morphir.javascript.",
+      "mill-plugins.morphir.elm-tooling.",
+      "mill-plugins.morphir.core.",
+      "mill-plugins.morphir.elm."
+    )
+    requiredPluginPrefixes.foreach { prefix =>
+      expect(
+        targets.exists(target => target.startsWith(prefix) && target.endsWith(".publishSonatypeCentral")),
+        s"publish inventory must include $prefix*.publishSonatypeCentral"
+      )
+    }
+    expect(
+      !targets.exists(_.contains(".integration.")),
+      "publish inventory must exclude mill-plugins.morphir.integration"
+    )
+    expect(
+      targets.contains("morphir.jvm.publishSonatypeCentral") &&
+        targets.contains("morphir.naming.jvm.publishSonatypeCentral"),
+      "publish inventory must still cover morphir.jvm and morphir.naming.jvm"
+    )
+    expect(targets.nonEmpty, "publish inventory must not be empty")
+    expect(
+      targets.forall(_.endsWith(".publishSonatypeCentral")),
+      "publish inventory may only contain publishSonatypeCentral targets"
+    )
+
   def assertSnapshotPolicy(workflow: String): Unit =
     val publish  = publishBlock(workflow)
     val snapshot = indentedBlock(publish, "- name: Configure snapshot version", 6)
@@ -1122,6 +1177,10 @@ class SquireCiPolicySpec extends Test[Any]:
     skillDirectory.resolve("../../../.config/mise/tasks/test/jvm-platform").normalize,
     StandardCharsets.UTF_8
   )
+  private val sonatypePublishTask = Files.readString(
+    skillDirectory.resolve("../../../.config/mise/tasks/publish/sonatype").normalize,
+    StandardCharsets.UTF_8
+  )
   private val jvmTargetSelectors = List(
     "morphir.__.jvm.__.compile",
     "morphir.jvm.__.compile",
@@ -1157,6 +1216,25 @@ class SquireCiPolicySpec extends Test[Any]:
       resolveJvmTarget(selector).map(selector -> _)
     }.map(_.toList.toMap)
 
+  private def resolvePublishTargets: Set[String] < (Async & Abort[SquireError]) =
+    LiveProcessRunner.run(
+      ProcessRequest(
+        Chunk((repositoryRoot / "mill").toString, "--ticker", "false", "resolve", "__.publishSonatypeCentral"),
+        Present(repositoryRoot)
+      )
+    ).flatMap {
+      case ProcessResult(_, 0, stdout, _) =>
+        stdout.linesIterator.filter(_.endsWith(".publishSonatypeCentral")).filterNot(_.contains(' ')).toSet
+      case result =>
+        Abort.fail(
+          SquireError.Failure(
+            "ci-policy",
+            s"could not resolve __.publishSonatypeCentral (exit ${result.exitCode})",
+            Present(result.stderr.trim)
+          )
+        )
+    }
+
   "hosted CI policy" - {
     "targets the exact supported pull-request and push branches" in {
       assertBranchPolicy(workflow)
@@ -1166,6 +1244,24 @@ class SquireCiPolicySpec extends Test[Any]:
     "waits for aggregate CI and owns one guarded release path" in {
       assertPublishPolicy(workflow)
       assert(true)
+    }
+
+    "derives the Sonatype publish set from Mill resolve, including the Mill Morphir plugin family" in {
+      assertSonatypePublishPolicy(sonatypePublishTask)
+      val hardCodedList = sonatypePublishTask + "\n    local module_prefixes=(\n        morphir.jvm\n    )\n"
+      val withoutResolve = replaceOnce(
+        sonatypePublishTask,
+        "resolve '__.publishSonatypeCentral'",
+        "resolve 'morphir.__.compile'"
+      )
+      assert(rejects(assertSonatypePublishPolicy, hardCodedList))
+      assert(rejects(assertSonatypePublishPolicy, withoutResolve))
+
+      for targets <- resolvePublishTargets
+      yield
+        assertPublishTargetInventory(targets)
+        val withoutPlugin = targets.filterNot(_.startsWith("mill-plugins.morphir.toolchain."))
+        assert(scala.util.Try(assertPublishTargetInventory(withoutPlugin)).isFailure)
     }
 
     "scopes the exact snapshot configuration to main and develop" in {

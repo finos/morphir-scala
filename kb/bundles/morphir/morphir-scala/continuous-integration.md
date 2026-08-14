@@ -20,7 +20,7 @@ branches.
 | `test-jvm` | JVM tests, including the Cucumber/JUnit5 `langkit.itest` suite |
 | `test-js` | ScalaJS tests, including the WebAssembly link variants |
 | `test-native` | Scala Native tests |
-| `publish` | Sonatype publication — branch snapshots on `main` and `develop`; VCS milestones and releases on `0.4.x` and tags |
+| `publish` | Sonatype publication — branch snapshots on `main` and `develop`; VCS milestones and releases on `0.4.x` and tags. The publish set is whatever Mill resolves for `__.publishSonatypeCentral`, including the Mill Morphir plugin family (`org.finos.morphir.mill`); the test-only `integration` module is not a publish module and is not uploaded. |
 | `ci` | Aggregate gate — depends on lint, knowledge-base and all three test jobs |
 
 CI runs on pull requests into `main`, `0.4.x`, and `develop`; pushes to those same branches; published releases; and

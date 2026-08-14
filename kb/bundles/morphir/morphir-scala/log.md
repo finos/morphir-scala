@@ -1,5 +1,13 @@
 # Log
 
+## 2026-08-14
+
+* **Update**: Sonatype publication now derives its module set from Mill
+  (`__.publishSonatypeCentral`) rather than a hand-maintained script list, and publishes the Mill Morphir plugin
+  family (`org.finos.morphir.mill`) alongside the library modules. The retired exclusion for `mill-scalalib` no longer
+  applies under Mill 1.x (`mill-libs-scalalib` is on Maven Central). See
+  [Continuous Integration](/continuous-integration.md).
+
 ## 2026-08-13
 
 * **Update**: CI now publishes branch snapshots from `main` and `develop` after the aggregate gate, as described in
