@@ -98,6 +98,11 @@ object Stage:
    * A bare `Stage(...)` call with no expected type flowing in leaves `S` underconstrained, and inference defaults it to
    * `Nothing` rather than `Any` — a valid but unusable row. Ascribe the stage's type (`Stage[I, O, E, S]`) when
    * composing one standalone, rather than inline inside a pipeline where the expected type already pins `S`.
+   *
+   * This is the only lift for effectful functions: a `fromKyo`-style constructor that fixed the declared error to
+   * `Nothing` while accepting an arbitrary row let `Abort[E]` hide inside `S`, bypassing the executor's error cleanup
+   * and unbalancing the event stream. Declare the error type here instead; an infallible effectful function is simply
+   * `E = Nothing`.
    */
   def apply[I, O, E, S](f: I => O < (Abort[E] & S)): Stage[I, O, E, S] =
     Run(f)
@@ -110,9 +115,31 @@ object Stage:
   def pure[A, B](f: A => B): Stage[A, B, Nothing, Any] =
     Run(a => f(a))
 
-  /** Lift an effect-tracked function into a stage with no declared error. */
-  def fromKyo[A, B, S](f: A => B < S): Stage[A, B, Nothing, S] =
+  /**
+   * Lift an effectful function that declares no error — the ergonomic constructor for the common case, after
+   * `ZIO.succeed`'s role as the infallible-effect constructor. `E` is fixed to `Nothing` by the name rather than
+   * spelled at every call site; `S` still wants help where no expected type flows in (`Stage.succeed[Int, Int, Any]` or
+   * an ascribed lambda result), for the same underconstrained-row reason [[apply]] documents.
+   *
+   * "Succeed" is a claim, not a proof: Scala offers no negative evidence over effect rows, so an `Abort` smuggled
+   * inside `S` cannot be rejected here statically. The executors contain one at runtime instead, converting it to a
+   * panic carrying [[UndeclaredAbortException]] — the event stream stays balanced and `runReport` folds it as data.
+   * Code that can genuinely fail belongs in [[attempt]] (throws) or [[apply]] (a declared error type).
+   */
+  def succeed[A, B, S](f: A => B < S): Stage[A, B, Nothing, S] =
     Run(f)
+
+  /**
+   * Lift a plain side-effecting function whose non-fatal throws become the declared error — after `ZIO.attempt`, fixing
+   * the error channel to `Throwable` so exception-throwing code fails typed instead of panicking. Fatal throwables
+   * (`VirtualMachineError`, `InterruptedException`, ...) are not caught, matching `kyo.Abort.catching`.
+   *
+   * The parameter is a plain function, as in ZIO: a Kyo-effectful computation that also throws is unusual enough to
+   * spell out with [[succeed]] or [[apply]] plus `Abort.catching` directly, and a `B < S` parameter here would let an
+   * underconstrained `S` collapse to `Nothing` at plain-lambda call sites.
+   */
+  def attempt[A, B](f: A => B): Stage[A, B, Throwable, Any] =
+    Run(a => Abort.catching[Throwable](f(a)))
 
   /** A stage that never aborts: its declared error is `Nothing`, so it composes into any pipeline's error row. */
   type Infallible[-I, +O, S] = Stage[I, O, Nothing, S]

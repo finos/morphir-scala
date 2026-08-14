@@ -28,6 +28,14 @@ class RunReportTests extends Test[Any]:
   private val explode: Stage[Int, Int, Nothing, Any] = Stage((_: Int) => (throw new RuntimeException("kaboom")): Int)
   private val stringify: Stage[Int, String, Nothing, Any] = Stage((i: Int) => i.toString)
 
+  /**
+   * Declares `E = Nothing` but folds its real failure into `S` instead — the shape `Stage.apply`'s own scaladoc warns
+   * cannot be forbidden statically. Used to exercise `SealedPipeline.attempt`'s own containment of an `Abort` hidden
+   * this way, in place of the escape it used to leave through the report row's own `S`.
+   */
+  private val hidden: Stage[Int, Int, Nothing, Abort[String]] =
+    Stage[Int, Int, Nothing, Abort[String]]((_: Int) => Abort.fail("boom")).named("hidden")
+
   /** `a` succeeds, `b` aborts with a typed error, `c` never runs. */
   private def failingChain =
     Pipeline.stage(nodeId"a", inc).andThen(nodeId"b", boom).andThen(nodeId"c", double)
@@ -77,6 +85,52 @@ class RunReportTests extends Test[Any]:
       assert(report.outcome(nodeId"c") ==
         Present(NodeOutcome.Blocked(Causes.unsafe(Chunk(nodeId"boom")), Causes.unsafe(Chunk(nodeId"boom")))))
       assert(report.result.isEmpty)
+      assert(render(events).last == "run:finished:false")
+    }
+
+    "a stage that hides Abort[String] inside its declared S instead of its declared E folds into Failed(Panic), not a torn run" in {
+      val plan = sealOrFail(Pipeline.stage(nodeId"a", inc).andThen(nodeId"hidden", hidden).andThen(nodeId"c", double))
+      // `runReport`'s own row still declares the hidden `Abort[String]` (it's part of the pipeline's own flattened
+      // `S`, unioned in from `hidden`'s), even though `attempt` — see `SealedPipeline.attempt`'s own doc — already
+      // fully contains it before this point, so nothing ever actually raises through it here; the outer
+      // `Abort.run[Any]` only discharges that unused static capability, and always finds a `Result.Success`.
+      val (events, outer) = Emit.run(Abort.run[Any](plan.runReport(1))).eval
+      outer match
+        case Result.Success(report) =>
+          report.outcome(nodeId"hidden") match
+            case Present(NodeOutcome.Failed(Result.Panic(ex: UndeclaredAbortException))) =>
+              assert(ex.error == "boom")
+            case other => assert(false, s"expected Failed(Panic(UndeclaredAbortException)), got $other")
+          assert(report.outcome(nodeId"c") ==
+            Present(NodeOutcome.Blocked(Causes.unsafe(Chunk(nodeId"hidden")), Causes.unsafe(Chunk(nodeId"hidden")))))
+          assert(report.result.isEmpty)
+        case other => assert(false, s"expected the outer Abort[Any] boundary to be unused, got $other")
+      assert(render(events).last == "run:finished:false")
+    }
+
+    "a hidden Abort whose error toString throws still folds into Failed(Panic), not a torn run" in {
+      final class ExplosiveToString:
+        override def toString: String = throw new RuntimeException("toString boom")
+      val payload                                                       = new ExplosiveToString
+      val explosive: Stage[Int, Int, Nothing, Abort[ExplosiveToString]] =
+        Stage[Int, Int, Nothing, Abort[ExplosiveToString]]((_: Int) => Abort.fail(payload)).named("hidden")
+      val plan =
+        sealOrFail(Pipeline.stage(nodeId"a", inc).andThen(nodeId"hidden", explosive).andThen(nodeId"c", double))
+      val (events, outer) = Emit.run(Abort.run[Any](plan.runReport(1))).eval
+      outer match
+        case Result.Success(report) =>
+          report.outcome(nodeId"hidden") match
+            case Present(NodeOutcome.Failed(Result.Panic(ex: UndeclaredAbortException))) =>
+              assert(ex.error.asInstanceOf[AnyRef] eq payload)
+              assert(ex.getMessage.startsWith(
+                "a stage hid Abort(...) inside its declared effect row instead of its declared error channel"
+              ))
+              assert(ex.getMessage.contains("toString failed"))
+            case other => assert(false, s"expected Failed(Panic(UndeclaredAbortException)), got $other")
+          assert(report.outcome(nodeId"c") ==
+            Present(NodeOutcome.Blocked(Causes.unsafe(Chunk(nodeId"hidden")), Causes.unsafe(Chunk(nodeId"hidden")))))
+          assert(report.result.isEmpty)
+        case other => assert(false, s"expected the outer Abort[Any] boundary to be unused, got $other")
       assert(render(events).last == "run:finished:false")
     }
 

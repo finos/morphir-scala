@@ -10,9 +10,9 @@ import morphir.buildkit.*
  */
 class VisibilityTests extends Test[Any]:
 
-  private def observer = Stage
-    .fromKyo[Int, String, Any](i => Pipeline.provenance.map(path => path.map(_.label).mkString(",")))
-    .named("observer")
+  private def observer =
+    Stage.succeed[Int, String, Any](i => Pipeline.provenance.map(path => path.map(_.label).mkString(",")))
+      .named("observer")
 
   /**
    * Strip a proven-empty `Abort[Nothing]`: `observer` is a pure fixture, so `execute`'s own `E` infers as `Nothing`.
