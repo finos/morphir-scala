@@ -15,7 +15,8 @@ branches.
 
 | Job | Runs |
 | --- | ---- |
-| `lint` | `mise run lint` plus `mise run test:squire` — scalafmt and Squire/release-policy gates |
+| `lint` | Mill `ci.lint`: scalafmt check over resolved `morphir.__.checkFormat` modules. `--exclude` drops matching module paths. |
+| `squire-policy` | `mise run test:squire`. Squire and release-policy gates. |
 | `knowledge-base` | `kb check` and `kb intent check` |
 | `test-jvm` | JVM tests, including the Cucumber/JUnit5 `langkit.itest` suite |
 | `test-js` | ScalaJS tests, including the WebAssembly link variants |
@@ -25,7 +26,7 @@ branches.
 
 CI runs on pull requests into `main`, `0.4.x`, and `develop`; pushes to those same branches; published releases; and
 manual dispatch. Older runs of the same pull request are cancelled automatically. Hosted mill invocations pass
-`--ticker false`. That includes the workflow and the mise tasks CI runs (`lint`, `test:jvm-platform`). The GitHub
+`--ticker false`. That includes the workflow, the local `lint` mise wrapper, and `test:jvm-platform`. The GitHub
 log is then a linear task trace rather than a replayed progress ticker.
 
 The Release step runs `ci.sonatype.writeMillEnv` first, with Morphir `GPG_*` and `SONATYPE_*` names in that mill.

@@ -157,7 +157,11 @@ object SquireCiPolicy:
     val invocations = texts.iterator.flatMap { text =>
       text.linesIterator
         .map(_.trim)
-        .filter(line => line.startsWith("./mill") || line.startsWith("if ./mill"))
+        .filter { line =>
+          line.startsWith("./mill") ||
+            line.startsWith("if ./mill") ||
+            line.startsWith("run: ./mill")
+        }
     }.toList
     expect(invocations.nonEmpty, "CI mill invocations must exist")
     invocations.foreach { line =>
@@ -208,6 +212,42 @@ object SquireCiPolicy:
       !script.contains("except the mill-morphir"),
       "Mill Morphir plugins must not be excluded from Sonatype publication by comment policy"
     )
+
+  def assertCiLintPolicy(script: String): Unit =
+    expect(
+      script.contains("def lint(evaluator: Evaluator, exclude: String"),
+      "ci.lint must take an Evaluator and an exclude regex"
+    )
+    expect(
+      script.contains("LintSelectors.checkFormatSelector"),
+      "ci.lint must resolve checkFormat via LintSelectors.checkFormatSelector"
+    )
+    expect(
+      script.contains("LintSelectors.excludeMatching"),
+      "ci.lint must drop matching modules through LintSelectors.excludeMatching"
+    )
+    expect(
+      script.contains("exclusive = true"),
+      "ci commands that use Evaluator must be exclusive"
+    )
+    expect(
+      !script.contains("checkFormatAll"),
+      "ci.lint must evaluate per-module checkFormat so --exclude can drop targets"
+    )
+    expect(
+      !script.contains("millLauncher") && !script.contains("os.proc(millLauncher"),
+      "ci.lint must not nest a second mill process"
+    )
+
+  def assertLintJobPolicy(workflow: String): Unit =
+    val lint = indentedBlock(workflow, "lint:", 2)
+    val step = indentedBlock(lint, "- name: Lint code", 6)
+    expect(
+      scalar(step, "run") == "./mill --ticker false -i ci.lint",
+      "lint job must run ci.lint"
+    )
+    expect(!lint.contains("mise run lint"), "lint job must not go through the mise lint wrapper")
+    expect(!lint.contains("mise-action"), "lint job must not install mise")
 
   def assertSonatypePublishConfig(yaml: String): Unit =
     val lines = yaml.linesIterator.map(_.trim).filter(_.nonEmpty).toList
@@ -1325,6 +1365,11 @@ class SquireCiPolicySpec extends Test[Any]:
         "./mill --ticker false -i ci.publish",
         "./mill -i ci.publish"
       )
+      val lintJobTickerEnabled = replaceOnce(
+        workflow,
+        "./mill --ticker false -i ci.lint",
+        "./mill -i ci.lint"
+      )
       val lintTickerEnabled = replaceOnce(
         lintTask,
         "./mill --ticker false ",
@@ -1336,8 +1381,33 @@ class SquireCiPolicySpec extends Test[Any]:
         "./mill -i "
       )
       assert(rejects(assertCiMillTicker, tickerEnabled))
+      assert(rejects(assertCiMillTicker, lintJobTickerEnabled))
       assert(scala.util.Try(assertMillInvocationsDisableTicker(Seq(workflow, lintTickerEnabled, jvmPlatformTask))).isFailure)
       assert(scala.util.Try(assertMillInvocationsDisableTicker(Seq(workflow, lintTask, jvmTickerEnabled))).isFailure)
+    }
+
+    "runs hosted lint through ci.lint with an exclude regex" in {
+      assertLintJobPolicy(workflow)
+      assertCiLintPolicy(sonatypePublishTask)
+      val miseLint = replaceOnce(
+        workflow,
+        "run: ./mill --ticker false -i ci.lint",
+        "run: mise run lint"
+      )
+      val withoutExclude = replaceOnce(
+        sonatypePublishTask,
+        "def lint(evaluator: Evaluator, exclude: String = \"\")",
+        "def lint(evaluator: Evaluator)"
+      )
+      val checkFormatAll = replaceOnce(
+        sonatypePublishTask,
+        "LintSelectors.checkFormatSelector",
+        "checkFormatAll"
+      )
+      assert(rejects(assertLintJobPolicy, miseLint))
+      assert(rejects(assertCiLintPolicy, withoutExclude))
+      assert(rejects(assertCiLintPolicy, checkFormatAll))
+      assert(true)
     }
 
     "derives the Sonatype publish set from Mill resolve, including the Mill Morphir plugin family" in {
@@ -1609,8 +1679,8 @@ class SquireCiPolicySpec extends Test[Any]:
         "duplicate job" -> replaceOnce(workflow, policyJob, s"$policyJob\n$policyJob"),
         "step moved into lint" -> replaceOnce(
           replaceOnce(workflow, policyStep, ""),
-          "      - name: Lint code\n        run: mise run lint",
-          "      - name: Lint code\n        run: mise run lint\n" + policyStep
+          "      - name: Lint code\n        run: ./mill --ticker false -i ci.lint",
+          "      - name: Lint code\n        run: ./mill --ticker false -i ci.lint\n" + policyStep
         ),
         "step moved into another job" -> (replaceOnce(workflow, policyStep, "") +
           "\n  bypass-policy:\n" +

@@ -1,21 +1,7 @@
 #!/usr/bin/env bash
 # MISE description="Lint Scala code"
 
-set -e
+set -euo pipefail
 
-echo "Linting code..."
-echo "  Linting Scala files..."
-
-# Use Mill's simplified scalafmt command (Mill 1.x)
-# The /checkFormatAll suffix is inferred automatically
-#
-# This used to hang against the broad 'morphir.__.sources' glob, and carried a
-# --no-server workaround with a note that the flag "sidesteps it reliably". That
-# had it backwards: the hang was a class-initialization deadlock between the
-# Platform case objects (see mill-build/src/millbuild/crossplatform/Platform.scala),
-# which needs a cold JVM to trigger — so --no-server, which starts a fresh runner
-# every time, was the one form guaranteed to deadlock, while a warm daemon
-# usually escaped. With that fixed the glob completes in seconds either way.
-./mill --ticker false mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll 'morphir.__.sources'
-
-echo "Lint completed successfully"
+# Extra args go to ci.lint, e.g. `mise run lint -- --exclude 'langkit'`.
+./mill --ticker false -i ci.lint "$@"
