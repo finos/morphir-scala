@@ -9,7 +9,7 @@ The kb skill (`.claude/skills/kb`) does not use this library yet. Switching it o
 document kinds, frontmatter split, and the bundle shape from that skill. It does not take SnakeYAML or
 commonmark-java. Frontmatter is decoded with Kyo `kyo-schema` and `kyo-schema-yaml`, using `Maybe` for optional fields.
 Snake-case OKF keys are the case-class field names (`okf_version`, `stale_after`), with camelCase accessors for Scala
-call sites.
+call sites — a workaround while `Tag[Maybe[A]]` MatchErrors under `-Yretain-trees`.
 
 `morphir/contrib/knowledge` is microkanren and is unrelated.
 

@@ -15,8 +15,9 @@ final case class SourceRef(
  * every problem instead of failing on the first.
  *
  * Field names follow the OKF YAML keys (`stale_after`, `okf_version`) so `kyo-schema-yaml` can decode them without a
- * rename transform. `Schema.rename` needs Tag, and Tag does not yet handle `Maybe`. CamelCase accessors stay for
- * Scala call sites.
+ * rename transform. With Morphir's `-Yretain-trees` scalac flag, `Tag[Maybe[A]]` MatchErrors in Kyo's TagMacro, and
+ * both `Schema.rename` and `@rename` on `Maybe` fields fail or are ignored. CamelCase accessors stay for Scala call
+ * sites.
  */
 final case class Frontmatter(
     `type`: Maybe[String] = Absent,
