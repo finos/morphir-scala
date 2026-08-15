@@ -1,0 +1,1 @@
+query{repository(owner:"acme",name:"widgets"){discussion(number:4){comments(first:100){pageInfo{hasNextPage endCursor} nodes{id author{login url} body createdAt updatedAt upvoteCount replies(first:100){pageInfo{hasNextPage endCursor} nodes{id author{login url} body createdAt updatedAt upvoteCount}}}}}}}

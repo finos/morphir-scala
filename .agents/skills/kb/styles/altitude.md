@@ -33,7 +33,9 @@ Split a document only when a piece is one of:
 - independently reusable by another capability,
 - independently pinned to a version or commit with its own verification cadence,
 - owned by a different register (evidence does not live inside an argument; an argument does not live inside a
-  reference).
+  reference),
+- a Glossary or Data Dictionary of terms the bundle uses. Put term catalogs there so narrative pages do not grow
+  definition sidebars. Same bundle is best. A co-located sibling bundle (same grouping directory) is also fine.
 
 Do not split because a document is long, because sections feel conceptually distinct, or to make review
 easier. A long document with one responsibility beats three short ones whose story lives in nobody's head.

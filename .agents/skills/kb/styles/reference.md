@@ -31,3 +31,16 @@ specification summaries, mirrored-source companions. Nobody reads it start to fi
 - If a section starts teaching a workflow, that content wants the [article](./article.md) register.
 - Do not restate the source in the source's order; the value of a reference here is selection, structure and
   cross-links the source lacks.
+
+## Glossary and Data Dictionary
+
+Two `type:` values use this register for term catalogs. They are not narrative homes.
+
+| `type:` | Holds | Typical shape |
+| --- | --- | --- |
+| `Glossary` | Domain words and short meanings | One heading per term, then a few sentences. Headings make fragment links work. |
+| `Data Dictionary` | Named fields, types, flags, columns | A table: name, kind, meaning, constraints. Prose only for a "because". |
+
+Prefer `glossary.md` and `data-dictionary.md` at the bundle root. Split into a directory only when one file would mix unrelated catalogs.
+
+A Design Note or Intent in the same bundle (or a co-located sibling) may link here instead of defining the term inline. That is how those pages keep flow. Do not copy the catalog back onto the narrative page.

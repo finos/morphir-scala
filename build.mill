@@ -94,7 +94,7 @@ trait MorphirMillPublishModule extends MorphirPublishModule {
   override def pomSettings = super.pomSettings().copy(organization = "org.finos.morphir.mill")
 }
 
-trait MorphirCommonModule extends ScalaModule with CommonScalaModule {
+trait MorphirCommonModule extends ScalaModule with CommonScalaModule with MorphirSuiteBom {
   def scalaVersion: T[String]      = Task { morphirScalaVersion }
   def semanticDbVersion: T[String] = Task { Vers.semanticDb }
 
@@ -108,7 +108,8 @@ trait DeduplicatedSources extends ScalaModule {
   }
 }
 
-trait MorphirCommonCrossModule extends CrossPlatformScalaModule with ScalafmtModule with DeduplicatedSources {
+trait MorphirCommonCrossModule extends CrossPlatformScalaModule with ScalafmtModule with DeduplicatedSources
+    with MorphirSuiteBom {
   def scalaVersion                                             = Task { morphirScalaVersion }
   def semanticDbVersion: T[String]                             = Task { Vers.semanticDb }
   def compilerPluginDependencies(selectedScalaVersion: String) =
@@ -123,11 +124,38 @@ trait MorphirJSModule extends MorphirCommonCrossModule with ScalaJSModule {
   import mill.scalajslib.api.*
   def platform       = Platform.JS
   def scalaJSVersion = Task { ScalaVers.scalaJSVersion }
+
+  /** YAML `group::artifact` (no version, one colon-pair) parses as non-platformed. Bind library coords as
+    * platformed so extra suite jars resolve to the Scala.js artifact, not the JVM jar. Compiler and scalac-plugin
+    * coords stay unplatformed: `scala3-compiler_sjs1_3` does not exist. Mill's `resolvedDepsWarnNonPlatform` check
+    * runs on the unbound coords and would false-positive after this bind.
+    */
+  override def bindDependency: Task[Dep => BoundDep] = Task.Anon { (dep: Dep) =>
+    super.bindDependency()(platformScalaDep(dep))
+  }
+  override def resolvedDepsWarnNonPlatform: T[Boolean] = Task { false }
+}
+
+/**
+ * Scala.js linker config for modules whose runtime reaches Node builtins (`node:fs`, `node:net`, `node:tls`).
+ * kyo-http's JS backend is Node-only. Mill's default `ModuleKind.NoModule` cannot import those modules; Kyo's own
+ * JS build sets CommonJS for the same reason. Mix this in after [[MorphirJSModule]] so the override wins.
+ * Mill's `ScalaJSTests` forwards `moduleKind` from the enclosing module.
+ */
+trait MorphirJSNodeModule extends ScalaJSModule {
+  import mill.scalajslib.api.*
+  override def moduleKind: T[ModuleKind] = Task { ModuleKind.CommonJSModule }
 }
 
 trait MorphirNativeModule extends MorphirCommonCrossModule with ScalaNativeModule {
   def platform           = Platform.Native
   def scalaNativeVersion = Task { ScalaVers.scalaNativeVersion }
+
+  /** Same as [[MorphirJSModule.bindDependency]]: versionless YAML Scala coords must bind as platformed. */
+  override def bindDependency: Task[Dep => BoundDep] = Task.Anon { (dep: Dep) =>
+    super.bindDependency()(platformScalaDep(dep))
+  }
+  override def resolvedDepsWarnNonPlatform: T[Boolean] = Task { false }
 }
 
 /**
@@ -354,10 +382,40 @@ trait ToolsJSDocSources extends ScalaJSModule {
   }
 }
 
+/** Bind a Scala binary/full-cross dep as platformed. YAML `group::artifact` (empty version) parses as
+  * `CrossVersion.Binary(platformed = false)`; without this, JS and Native silently resolve the JVM jar.
+  * Java coords (`group:artifact`) are `Constant` and are left alone. Compiler and scalac-plugin artifacts are
+  * not published as platformed jars, so they stay as Mill declared them.
+  */
+def platformScalaDep(dep: Dep): Dep =
+  if isCompilerOrPluginDep(dep) then dep
+  else
+    dep.cross match
+      case mill.api.CrossVersion.Binary(false) =>
+        dep.copy(cross = mill.api.CrossVersion.Binary(true))
+      case mill.api.CrossVersion.Full(false) =>
+        dep.copy(cross = mill.api.CrossVersion.Full(true))
+      case _ => dep
+
+def isCompilerOrPluginDep(dep: Dep): Boolean =
+  val org  = dep.dep.module.organization.value
+  val name = dep.dep.module.name.value
+  (org == "org.scala-lang" &&
+    (name.contains("compiler") || name.contains("scaladoc") || name.contains("tasty-inspector"))) ||
+  (org == "org.scala-js" && name.contains("compiler")) ||
+  (org == "org.scala-native" && (name == "nscplugin" || name.contains("compiler")))
+
+/** Pins every known library suite (kyo, zio, fs2, upickle, borer, metaconfig, scala-java-time) through Mill
+  * `depManagement`. Each suite's version lives once in [[millbuild.Versions]]. Extra suite jars belong in YAML
+  * `mvnDeps: !append` without a version. Do not add a new trait per artifact.
+  */
+trait MorphirSuiteBom extends ScalaModule {
+  override def depManagement = super.depManagement() ++ Deps.managedSuites
+}
+
 /** The base kyo effect deps — what a module needs to write `ArrowEffect`s and run them. Used by the `langkit`
-  * modules, whose production code is Kyo-native. Named as a trait rather than repeated as YAML literals so the
-  * version pin stays sourced from [[millbuild.Versions.kyo]] alone: a second literal elsewhere in the build is how
-  * two kyo versions end up in one Coursier resolution.
+  * modules, whose production code is Kyo-native. The version pin lives on [[MorphirSuiteBom]]; this trait only
+  * *fetches* kyo-core and kyo-prelude. Extra kyo artifacts go in YAML `mvnDeps: !append` with no version.
   */
 trait MorphirKyoCoreMvnDeps extends ScalaModule {
   override def mvnDeps = super.mvnDeps() ++ Seq(
@@ -399,12 +457,48 @@ trait MorphirKyoTestMvnDeps extends ScalaModule {
   )
 }
 
+/** Opt-in kyo-test snapshot and golden assertions. Mix into a test module that extends `SnapshotTest`. */
+trait MorphirKyoSnapshotTestMvnDeps extends ScalaModule {
+  override def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.io.getkyo.`kyo-test-snapshot`,
+    Deps.io.getkyo.`kyo-test-prop`
+  )
+}
+
 /** The `kyo-schema` JSON codec (`kyo.Json`), published as a separate artifact from `kyo-schema` itself. Needed
   * wherever a derived `Schema` is round-tripped through `encodeString`/`decodeString`, whether that's production
   * code (e.g. `morphir.model`'s `CodeModelCodecs`) or a test. */
 trait MorphirKyoSchemaJsonMvnDeps extends ScalaModule {
   override def mvnDeps = super.mvnDeps() ++ Seq(
     Deps.io.getkyo.`kyo-schema-json`
+  )
+}
+
+/** Absolute kyo-test snapshot directory for the GitHub connector. Mill's test sandbox would otherwise swallow relative paths. */
+def githubConnectorSnapshotDir: String =
+  (workspaceDir / "morphir" / "connector" / "github" / "test-snapshots").toNIO.toAbsolutePath.normalize.toString
+
+trait MorphirConnectorGithubSnapshotEnv extends ScalaModule {
+  override def forkEnv: T[Map[String, String]] = Task {
+    super.forkEnv() ++ Map("MORPHIR_CONNECTOR_GITHUB_SNAPSHOT_DIR" -> githubConnectorSnapshotDir)
+  }
+}
+
+/** Passes the GitHub connector snapshot directory into Node, which does not inherit [[TestModule.forkEnv]]. */
+trait MorphirConnectorGithubSnapshotJsEnv extends ScalaJSModule {
+  import mill.scalajslib.api.JsEnvConfig
+  override def jsEnvConfig: T[JsEnvConfig] = Task {
+    val extra = Map("MORPHIR_CONNECTOR_GITHUB_SNAPSHOT_DIR" -> githubConnectorSnapshotDir)
+    super.jsEnvConfig() match
+      case node: JsEnvConfig.NodeJs => node.copy(env = node.env ++ extra)
+      case other                    => other
+  }
+}
+
+/** `caliban-client` for typed GraphQL documents. ZIO-free at compile time. Codegen is a Mill script, not a module dep. */
+trait MorphirCalibanClientMvnDeps extends ScalaModule {
+  override def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.com.github.ghostdogpr.`caliban-client`
   )
 }
 
@@ -519,6 +613,13 @@ trait MorphirTestsJVMTestSources extends JavaModule {
  */
 trait MorphirScoverage extends mill.contrib.scoverage.ScoverageModule {
   def scoverageVersion: T[String] = Task { Vers.scoverage }
+
+  /** Mill's scoverage inner module copies `mvnDeps` but not `depManagement`, so versionless suite coords would
+    * resolve as an empty version. Forward the enclosing module's pins.
+    */
+  override lazy val scoverage: ScoverageData = new ScoverageData {
+    override def depManagement = Task { MorphirScoverage.this.depManagement() }
+  }
 }
 
 /** `tests.js.test`'s source override: shared `test/src` (+ `test/src-3`) plus `test/js/src` — js-only test code. */

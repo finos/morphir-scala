@@ -34,3 +34,7 @@ past-tense and answers *why is it shaped this way*. See
 ## Build and tooling
 
 * [Keep compiling Mill Morphir plugins into the metabuild](/decisions/0012-keep-source-metabuild-for-mill-morphir-plugins.md) - Normal builds continue to compile mill-plugins/morphir sources into the metabuild; pinned Central artifacts are deferred until bootstrap experience is measured.
+
+## Published libraries
+
+* [Published library families are kit, connector, appkit, langkit, and knowledge](/decisions/0013-published-library-families.md) - Kit wraps Scala libraries, connector wraps external systems, appkit hosts Morphir in an application, and knowledge holds OKF; kit and connector both compile for JVM, JS, and Native.

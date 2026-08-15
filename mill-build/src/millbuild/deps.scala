@@ -16,6 +16,7 @@ object Deps {
     object fs2 {
       val `fs2-core` = mvn"co.fs2::fs2-core::${Versions.fs2}"
       val `fs2-io`   = mvn"co.fs2::fs2-io::${Versions.fs2}"
+      def managed: Seq[Dep] = Seq(`fs2-core`, `fs2-io`)
     }
   }
 
@@ -38,6 +39,7 @@ object Deps {
         val json    = mvn"com.geirsson::metaconfig-json::${Versions.metaconfig}"
         val pprint  = mvn"com.geirsson::metaconfig-pprint::${Versions.metaconfig}"
         val sconfig = mvn"com.geirsson::metaconfig-sconfig::${Versions.metaconfig}"
+        def managed: Seq[Dep] = Seq(core, docs, json, pprint, sconfig)
       }
     }
 
@@ -48,6 +50,10 @@ object Deps {
 
       object lolgab {
         val `scala-native-crypto` = mvn"com.github.lolgab::scala-native-crypto::${Versions.`scala-native-crypto`}"
+      }
+
+      object ghostdogpr {
+        val `caliban-client` = mvn"com.github.ghostdogpr::caliban-client::${Versions.caliban}"
       }
     }
     object lihaoyi {
@@ -64,6 +70,7 @@ object Deps {
       val upickle        = mvn"com.lihaoyi::upickle::${Versions.upickle}"
       val upickleJvm     = mvn"com.lihaoyi::upickle:${Versions.upickle}"
       val `upickle-core` = mvn"com.lihaoyi::upickle-core::${Versions.upickle}"
+      def upickleManaged: Seq[Dep] = Seq(ujson, upickle, `upickle-core`)
     }
 
     object outr {
@@ -103,11 +110,13 @@ object Deps {
         val magnolia     = mvn"dev.zio::zio-config-magnolia::${Versions.`zio-config`}"
         val refined      = mvn"dev.zio::zio-config-refined::${Versions.`zio-config`}"
         val typesafe     = mvn"dev.zio::zio-config-typesafe::${Versions.`zio-config`}"
+        def managed: Seq[Dep] = Seq(apply(), magnolia, refined, typesafe)
       }
 
       object prelude {
         def apply(): Dep = mvn"dev.zio::zio-prelude::${Versions.`zio-prelude`}"
         val macros       = mvn"dev.zio::zio-prelude-macros::${Versions.`zio-prelude`}"
+        def managed: Seq[Dep] = Seq(apply(), macros)
       }
 
       object schema {
@@ -117,14 +126,22 @@ object Deps {
         val `derivation` = mvn"dev.zio::zio-schema-derivation::${Versions.`zio-schema`}"
         val `json`       = mvn"dev.zio::zio-schema-json::${Versions.`zio-schema`}"
         val `msg-pack`   = mvn"dev.zio::zio-schema-msg-pack::${Versions.`zio-schema`}"
+        def managed: Seq[Dep] = Seq(`avro`, `bson`, `core`, `derivation`, `json`, `msg-pack`)
       }
+
+      /** zio, zio-json, zio-prelude, zio-config and zio-schema are separate version pins. Each is a suite. */
+      def managed: Seq[Dep] =
+        Seq(zio, `zio-streams`, `zio-test`, `zio-test-magnolia`, `zio-test-sbt`, `zio-json`, `zio-json-golden`) ++
+          config.managed ++ prelude.managed ++ schema.managed
     }
   }
   object io {
     object getkyo {
       val `kyo-case-app`      = mvn"io.getkyo::kyo-case-app::${Versions.kyo}"
+      val `kyo-config`        = mvn"io.getkyo::kyo-config::${Versions.kyo}"
       val `kyo-core`          = mvn"io.getkyo::kyo-core::${Versions.kyo}"
       val `kyo-data`          = mvn"io.getkyo::kyo-data::${Versions.kyo}"
+      val `kyo-http`          = mvn"io.getkyo::kyo-http::${Versions.kyo}"
       val `kyo-prelude`       = mvn"io.getkyo::kyo-prelude::${Versions.kyo}"
       val `kyo-schema`        = mvn"io.getkyo::kyo-schema::${Versions.kyo}"
       val `kyo-schema-json`   = mvn"io.getkyo::kyo-schema-json::${Versions.kyo}"
@@ -133,6 +150,23 @@ object Deps {
       val `kyo-test-prop`     = mvn"io.getkyo::kyo-test-prop::${Versions.kyo}"
       val `kyo-test-runner`   = mvn"io.getkyo::kyo-test-runner::${Versions.kyo}"
       val `kyo-test-snapshot` = mvn"io.getkyo::kyo-test-snapshot::${Versions.kyo}"
+
+      /** Every kyo artifact this build may resolve, all at [[Versions.kyo]]. */
+      def managed: Seq[Dep] = Seq(
+        `kyo-case-app`,
+        `kyo-config`,
+        `kyo-core`,
+        `kyo-data`,
+        `kyo-http`,
+        `kyo-prelude`,
+        `kyo-schema`,
+        `kyo-schema-json`,
+        `kyo-zio`,
+        `kyo-test-api`,
+        `kyo-test-prop`,
+        `kyo-test-runner`,
+        `kyo-test-snapshot`
+      )
     }
     object bullet {
       def `borer-core`(scalaVersion: String): Dep = mvn"io.bullet::borer-core::${Versions.borer(scalaVersion)}"
@@ -144,6 +178,9 @@ object Deps {
 
       def `borer-derivation`(scalaVersionParts: Seq[String]): Dep =
         mvn"io.bullet::borer-derivation::${Versions.borer(scalaVersionParts)}"
+
+      def managed: Seq[Dep] =
+        Seq(`borer-core`(ScalaVersions.scala3), `borer-derivation`(ScalaVersions.scala3))
     }
     object `get-coursier` {
       val coursier = mvn"io.get-coursier::coursier::${Versions.coursier}"
@@ -152,6 +189,7 @@ object Deps {
       object cquiroz {
         val `scala-java-time`      = mvn"io.github.cquiroz::scala-java-time::${Versions.`scala-java-time`}"
         val `scala-java-time-tzdb` = mvn"io.github.cquiroz::scala-java-time-tzdb::${Versions.`scala-java-time`}"
+        def managed: Seq[Dep] = Seq(`scala-java-time`, `scala-java-time-tzdb`)
       }
     }
     object lemonlabs {
@@ -195,6 +233,18 @@ object Deps {
       }
     }
   }
+
+  /** Artifacts that share a [[Versions]] pin with at least one sibling. Mill `depManagement` applies this
+    * so YAML can omit those versions. When a suite gains a member, add it to that object's `managed`.
+    */
+  def managedSuites: Seq[Dep] =
+    co.fs2.managed ++
+      com.geirsson.metaconfig.managed ++
+      com.lihaoyi.upickleManaged ++
+      dev.zio.managed ++
+      io.getkyo.managed ++
+      io.bullet.managed ++
+      io.github.cquiroz.managed
 }
 
 object Versions {
@@ -219,6 +269,7 @@ object Versions {
   val geny                       = "1.1.1"
   val `izumi-reflect`            = "3.0.9"
   val kyo                        = "1.0.0-RC6"
+  val caliban                    = "3.1.5"
   val metaconfig                 = "0.12.0"
   val mainargs                   = "0.7.8"
   val `os-lib`                   = "0.11.8"

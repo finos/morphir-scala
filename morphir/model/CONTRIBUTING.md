@@ -120,11 +120,15 @@ At the same time, eight modules that hardcoded a kyo version literal in their `p
 across the whole build, so a second literal anywhere is a silent version unification waiting for the first module
 that depends on both sides.
 
-**When adding kyo deps to a module, name a trait; do not paste a version literal into YAML.** The traits are
-`MorphirKyoCoreMvnDeps` (kyo-core, kyo-prelude), `MorphirKyoTestMvnDeps` (those two plus kyo-test-api and
-kyo-test-runner), `MorphirKyoMvnDeps` (kyo-data, kyo-schema), `MorphirKyoSchemaMvnDeps`,
-`MorphirKyoSchemaJsonMvnDeps` and `MorphirKyoCaseAppMvnDeps`. A YAML block that also has non-kyo deps declares them
-with `mvnDeps: !append`, since a bare `mvnDeps:` replaces what the trait contributed rather than adding to it.
+**When adding extra artifacts from a versioned suite, `mvnDeps: !append` them without a version.**
+`MorphirSuiteBom` pins every suite in `Deps.managedSuites` through Mill `depManagement`. Kyo, ZIO (and its
+separately versioned siblings zio-json, zio-prelude, zio-config, zio-schema), fs2, upickle, borer, metaconfig
+and scala-java-time are suites. None of those publishers are imported as a Maven BOM; the pin is ours. Suite
+traits still *fetch* a bundle that always travels together: `MorphirKyoCoreMvnDeps` (kyo-core, kyo-prelude),
+`MorphirKyoTestMvnDeps` (those two plus kyo-test-api and kyo-test-runner), `MorphirKyoMvnDeps` (kyo-data,
+kyo-schema), `MorphirKyoSchemaMvnDeps`, `MorphirKyoSchemaJsonMvnDeps` and `MorphirKyoCaseAppMvnDeps`. Do not add
+a new trait for each extra artifact. A YAML block that also has non-suite deps declares them with
+`mvnDeps: !append` too, since a bare `mvnDeps:` replaces what the trait contributed rather than adding to it.
 
 ### 6. Split packages across artifacts
 
