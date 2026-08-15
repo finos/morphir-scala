@@ -400,14 +400,14 @@ object SquireCiPolicy:
     val classicPrefix = "morphir.runtime.classic.jvm"
     val compileSelectors = List(
       "morphir.jvm.__.compile",
-      "morphir.{buildkit.core,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile"
+      "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile"
     )
     val publishSelectors = List(
       "morphir.jvm.publishArtifacts",
-      "morphir.{buildkit.core,contrib.knowledge,extensibility,interop.borer,interop.zio.json,lib.interop,model,model.lowering,naming,prelude,tests,tools}.jvm.publishArtifacts"
+      "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,extensibility,interop.borer,interop.zio.json,knowledge.okf,langkit.core,langkit.markdown,lib.interop,model,model.lowering,naming,prelude,tests,tools}.jvm.publishArtifacts"
     )
     val testSelectors = List(
-      "morphir.{buildkit.core,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,model,model.lowering,prelude,tests}.jvm.test"
+      "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.trees,model,model.lowering,prelude,tests}.jvm.test"
     )
 
     def targets(selector: String): Set[String] =
@@ -1296,12 +1296,12 @@ class SquireCiPolicySpec extends Test[Any]:
   private val jvmTargetSelectors = List(
     "morphir.__.jvm.__.compile",
     "morphir.jvm.__.compile",
-    "morphir.{buildkit.core,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile",
+    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile",
     "morphir.__.jvm.publishArtifacts",
     "morphir.jvm.publishArtifacts",
-    "morphir.{buildkit.core,contrib.knowledge,extensibility,interop.borer,interop.zio.json,lib.interop,model,model.lowering,naming,prelude,tests,tools}.jvm.publishArtifacts",
+    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,extensibility,interop.borer,interop.zio.json,knowledge.okf,langkit.core,langkit.markdown,lib.interop,model,model.lowering,naming,prelude,tests,tools}.jvm.publishArtifacts",
     "morphir.__.jvm.__.test",
-    "morphir.{buildkit.core,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,model,model.lowering,prelude,tests}.jvm.test"
+    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.trees,model,model.lowering,prelude,tests}.jvm.test"
   )
 
   private def resolveJvmTarget(selector: String): Set[String] < (Async & Abort[SquireError]) =

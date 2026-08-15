@@ -11,7 +11,7 @@ about the format. What follows is about writing well within it.
 
 | Field | Guidance |
 | ----- | -------- |
-| `type` | Reuse a type already present in the bundle. Coining `Design Doc` next to an existing `Design Note` fragments the vocabulary for no gain |
+| `type` | Reuse a type already present in the bundle. Coining `Design Doc` next to an existing `Design Note` fragments the vocabulary for no gain. Use `Glossary` and `Data Dictionary` for term catalogs. |
 | `title` | Human-readable. It is what search and indexes display |
 | `description` | **One sentence that stands alone.** It appears in the index bullet, in search results, and nowhere near the body that would give it context |
 | `tags` | Cross-cutting categories, not a restatement of the title |
@@ -49,6 +49,11 @@ state machine, follow `diagrams.md` there: a captioned Mermaid diagram or SVG be
 
 **Open with the answer.** Someone arriving from a search result should learn the thing in the first paragraph. Build
 up to it and they will leave first.
+
+**Write for a junior to early mid-level developer.** See `voice.md` Audience. Do not assume PhD-level or deep
+domain knowledge. When background is required, include it, summarize it, link a Glossary or Data Dictionary
+(same bundle or co-located sibling is enough to skip an inline sidebar), link another kb concept, or (least
+preferred) link an external reference.
 
 **Say what is unresolved.** A knowledge base earns trust by being honest about its edges. Where sources disagree,
 record the disagreement and say which is authoritative — or that neither is. Where you did not verify something, say

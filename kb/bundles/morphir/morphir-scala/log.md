@@ -1,5 +1,31 @@
 # Log
 
+## 2026-08-15
+
+* **Update**: Recorded that GitHub list paging takes opaque `PageSize`, that `GitHubException` has a safe `Render`,
+  and that appkit `SecretException` extends `MorphirException`, in
+  [Published library families](/design/published-library-families.md) and
+  [GitHub token providers and appkit secrets](/design/github-token-providers-and-appkit-secrets.md).
+* **Update**: Recorded that process auth for `gh` and `security` uses shared `kyo.Command` spawn with concurrent
+  stream drains on JVM, Node, and Scala Native, in
+  [GitHub token providers and appkit secrets](/design/github-token-providers-and-appkit-secrets.md).
+* **Update**: Recorded that the GitHub client failure ADT is `GitHubException` and extends `MorphirException`, in
+  [Published library families](/design/published-library-families.md).
+* **Update**: Recorded that `TokenProvider.gitHubCli` and `SecretStore.macOsKeychain` spawn `gh` and
+  `security` on Scala Native, in
+  [GitHub token providers and appkit secrets](/design/github-token-providers-and-appkit-secrets.md).
+* **Update**: Recorded that GitHub public models have `Render` instances, in
+  [Published library families](/design/published-library-families.md).
+* **Update**: Recorded that GitHub issue, pull request, and discussion numbers form the `GithubNumber` union, with
+  `@targetName` overloads of `fold`, in
+  [Published library families](/design/published-library-families.md).
+* **Update**: Recorded that GitHub issue, pull request, and discussion numbers, connection cursors, and discussion
+  comment ids are opaque types, in
+  [Published library families](/design/published-library-families.md).
+* **Update**: Recorded that nested GitHub comments are a `ConnectionPage`, with `listIssueComments`,
+  `listPullRequestComments`, and `listDiscussionComments`, in
+  [Published library families](/design/published-library-families.md).
+
 ## 2026-08-14
 
 * **Update**: Hosted CI mill invocations pass `--ticker false`. See [Continuous Integration](/continuous-integration.md).
@@ -12,6 +38,14 @@
   `mill-libs-scalalib` as `provided`; `integration` is absent from the resolve inventory. Live Central SNAPSHOT
   resolution is confirmed by the next `develop` publish job after merge. See
   [Continuous Integration](/continuous-integration.md).
+* **Update**: Recorded that GitHub listing methods return `ConnectionPage` and take `after` / `first`, in
+  [Published library families](/design/published-library-families.md).
+* **Update**: Recorded that extra artifacts from a versioned suite are YAML `mvnDeps: !append` without a
+  version, pinned by Mill `depManagement` on `MorphirSuiteBom` (`Deps.managedSuites`), in
+  [Build System](/build-system.md).
+* **Creation**: Added [Published library families are kit, connector, appkit, langkit, and knowledge](/decisions/0013-published-library-families.md).
+* **Creation**: Added [Published library families](/design/published-library-families.md).
+* **Creation**: Added [GitHub token providers and appkit secrets](/design/github-token-providers-and-appkit-secrets.md).
 
 ## 2026-08-13
 

@@ -48,7 +48,7 @@ morphir-scala provides Scala language bindings and JVM-based tooling for Morphir
 - **ZIO** - Effect system and testing
 - **Kyo** - Effect system used by the newer modules (kyo-core, kyo-prelude, kyo-test, kyo-case-app, kyo-schema, kyo-zio)
 - **ScalaJS** - JavaScript compilation target, plus a WebAssembly link variant
-- **Scala Native** - Native compilation target, currently scoped to the `langkit`, `kit`, `buildkit` and `prelude` modules
+- **Scala Native** - Native compilation target, currently scoped to the `langkit`, `kit`, `connector`, `knowledge`, `buildkit` and `prelude` modules
 
 ### Versions
 
@@ -132,7 +132,10 @@ morphir-scala/
 │   ├── contrib/             # Contributed modules
 │   ├── interop/             # Interoperability modules (borer, zio-json)
 │   ├── kit/                 # Kits: extensions and bridges per upstream library (e.g. kit/kyo)
-│   ├── langkit/             # Language toolkits: shared core, tree query DSL, the Elm langkit, itest
+│   ├── connector/           # External-system clients (e.g. connector/github)
+│   ├── appkit/              # Host-application integrations (SecretStore; electron and codeium later)
+│   ├── knowledge/           # Knowledge encodings (okf); not contrib/knowledge
+│   ├── langkit/             # Language toolkits: shared core, tree query DSL, Elm, markdown, itest
 │   ├── runtime/             # Morphir runtime
 │   ├── testing/             # Testing utilities
 │   └── tools/               # CLI and tooling
@@ -228,7 +231,7 @@ Two-platform directory names are sorted and shared by both targets. See
   - Prefer newtypes via opaque types over stringly typed or non-intention-revealing primitives
   - Use named tuples, especially where they make public signatures easier to read
 - In Kyo-based modules — those whose Mill config extends a `MorphirKyo*MvnDeps` trait (currently `langkit`, `kit`,
-  `buildkit`, `prelude`, `model`, `intelligence`, and `contrib/knowledge`):
+  `connector`, `knowledge`, `buildkit`, `prelude`, `model`, `intelligence`, and `contrib/knowledge`):
   - Prefer `kyo.Maybe` over `Option` in public APIs. ZIO-side modules do not carry `Maybe` and are out of scope.
   - Prefer `kyo.Result` over `Either` in public APIs. `Result[E, A]` is unboxed, carries panics as a third arm
     alongside success and typed failure, and integrates with `Abort`; `Either` remains for boundaries that demand
@@ -311,8 +314,14 @@ that capability is invisible to downstream consumers.
 4. Declare dependents' `moduleDeps` per platform, and remember that `moduleDeps:` in YAML *replaces* the inherited
    value — inside a nested `object test:` use `moduleDeps: !append [...]` to keep the implicit dependency on the
    enclosing module
-5. For JS and Native dependencies use the double-colon form (`group::artifact::version`); a single colon cross-builds
-   only by Scala version and silently resolves the JVM jar
+5. For JS and Native dependencies that are not a managed suite, use the double-colon form
+   (`group::artifact::version`); a single colon cross-builds only by Scala version and silently resolves the JVM
+   jar. Extra artifacts from a suite whose version lives in `Versions` omit the version (`io.getkyo::kyo-config`,
+   `dev.zio::zio-json`): `MorphirSuiteBom` supplies the pin through Mill `depManagement`, and the JS/Native
+   modules bind those coords as platformed. When a suite gains a member, add it to that object's `managed` in
+   `mill-build/src/millbuild/deps.scala`.
+6. A bare `mvnDeps:` in YAML *replaces* inherited deps. Use `mvnDeps: !append` to keep the suite trait's jars
+   and add more. Do not add a new `Morphir*MvnDeps` trait per artifact.
 
 ### Fixing Compilation Errors
 

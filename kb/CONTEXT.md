@@ -2,7 +2,8 @@
 
 The vocabulary of `kb/` — the knowledge base, and the intent recorded within it. This is a glossary, not a
 specification: it says what each term means, not how anything is built. For the conventions, see
-[AGENTS.md](./AGENTS.md).
+[AGENTS.md](./AGENTS.md). Bundle-level term catalogs are typed concepts (`Glossary`, `Data Dictionary`); this
+file is the kb-root vocabulary and is not one of those concepts.
 
 Morphir's own domain language (IR, distributions, bundles of business logic) is not covered here.
 

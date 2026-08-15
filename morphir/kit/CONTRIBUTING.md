@@ -17,6 +17,10 @@ Two rules keep the boundary honest:
    integration does not fit as the namespace currently stands, and adding one means deciding whether `kit` should grow
    platform-specific modules rather than quietly making an existing kit JVM-only.
 
+External systems (GitHub) belong in `morphir/connector`. Host applications belong in `morphir/appkit`. Source
+languages belong in `morphir/langkit`. OKF belongs in `morphir/knowledge/okf`. See
+[decision 0013](../../kb/bundles/morphir/morphir-scala/decisions/0013-published-library-families.md).
+
 The namespace was created because a Kyo `Log` ↔ scribe bridge had ended up inside the Elm langkit — carried there by
 a port that renamed an upstream namespace wholesale, despite the code having nothing to do with Elm. The same gravity
 applies to anything library-shaped written while working in a feature module: it lands wherever it was written unless

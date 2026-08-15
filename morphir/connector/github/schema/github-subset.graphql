@@ -1,0 +1,132 @@
+# Subset of GitHub's GraphQL schema for morphir-connector-github.
+#
+# Hand-authored to name the operations this module will call. Not a copy of GitHub's full
+# schema.docs.graphql. Checked against github/docs
+# src/graphql/data/fpt/schema.docs.graphql at
+# 4919b704c4cee5b6cd41377455b15ed829f83aa2 (2026-08-13).
+#
+# Codegen (checked-in Scala, not a Mill task):
+#   ./mill morphir/connector/github/schema/gen-client.scala
+
+scalar URI
+scalar ID
+scalar DateTime
+
+interface Node {
+  id: ID!
+}
+
+type Query {
+  repository(owner: String!, name: String!): Repository
+  node(id: ID!): Node
+}
+
+type Repository {
+  issues(first: Int, after: String): IssueConnection
+  pullRequests(first: Int, after: String): PullRequestConnection
+  discussions(first: Int, after: String): DiscussionConnection
+  issue(number: Int!): Issue
+  pullRequest(number: Int!): PullRequest
+  discussion(number: Int!): Discussion
+}
+
+type Actor {
+  login: String!
+  url: URI!
+}
+
+type Label {
+  name: String!
+}
+
+type LabelConnection {
+  nodes: [Label!]!
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  endCursor: String
+}
+
+type IssueComment {
+  author: Actor
+  body: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type IssueCommentConnection {
+  nodes: [IssueComment!]!
+  pageInfo: PageInfo!
+}
+
+type DiscussionComment implements Node {
+  id: ID!
+  author: Actor
+  body: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  upvoteCount: Int!
+  replies(first: Int, after: String): DiscussionCommentConnection
+}
+
+type DiscussionCommentConnection {
+  nodes: [DiscussionComment!]!
+  pageInfo: PageInfo!
+}
+
+type IssueConnection {
+  nodes: [Issue!]!
+  pageInfo: PageInfo!
+}
+
+type PullRequestConnection {
+  nodes: [PullRequest!]!
+  pageInfo: PageInfo!
+}
+
+type DiscussionConnection {
+  nodes: [Discussion!]!
+  pageInfo: PageInfo!
+}
+
+type Issue {
+  id: ID!
+  number: Int!
+  title: String!
+  body: String
+  url: URI!
+  author: Actor
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  labels(first: Int): LabelConnection
+  comments(first: Int, after: String): IssueCommentConnection
+}
+
+type PullRequest {
+  id: ID!
+  number: Int!
+  title: String!
+  body: String
+  url: URI!
+  author: Actor
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  labels(first: Int): LabelConnection
+  comments(first: Int, after: String): IssueCommentConnection
+}
+
+type Discussion {
+  id: ID!
+  number: Int!
+  title: String!
+  body: String
+  url: URI!
+  author: Actor
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  upvoteCount: Int!
+  labels(first: Int): LabelConnection
+  answer: DiscussionComment
+  comments(first: Int, after: String): DiscussionCommentConnection
+}
