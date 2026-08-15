@@ -16,50 +16,53 @@ import morphir.connector.github.internal.PlatformLive
 trait GithubClient:
   def listIssues(
       repository: RepositoryRef,
-      after: Maybe[String] = Absent,
+      after: Maybe[Cursor] = Absent,
       first: Int = 100
   ): ConnectionPage[Issue] < (Abort[GithubError] & Async)
   def listPullRequests(
       repository: RepositoryRef,
-      after: Maybe[String] = Absent,
+      after: Maybe[Cursor] = Absent,
       first: Int = 100
   ): ConnectionPage[PullRequest] < (Abort[GithubError] & Async)
   def listDiscussions(
       repository: RepositoryRef,
-      after: Maybe[String] = Absent,
+      after: Maybe[Cursor] = Absent,
       first: Int = 100,
       replyDepth: ReplyDepth = ReplyDepth.one
   ): ConnectionPage[Discussion] < (Abort[GithubError] & Async)
   def listDiscussionReplies(
-      commentId: String,
-      after: Maybe[String] = Absent,
+      commentId: DiscussionCommentId,
+      after: Maybe[Cursor] = Absent,
       first: Int = 100,
       replyDepth: ReplyDepth = ReplyDepth.one
   ): ConnectionPage[DiscussionComment] < (Abort[GithubError] & Async)
   def listIssueComments(
       repository: RepositoryRef,
-      number: Int,
-      after: Maybe[String] = Absent,
+      number: IssueNumber,
+      after: Maybe[Cursor] = Absent,
       first: Int = 100
   ): ConnectionPage[IssueComment] < (Abort[GithubError] & Async)
   def listPullRequestComments(
       repository: RepositoryRef,
-      number: Int,
-      after: Maybe[String] = Absent,
+      number: PullRequestNumber,
+      after: Maybe[Cursor] = Absent,
       first: Int = 100
   ): ConnectionPage[IssueComment] < (Abort[GithubError] & Async)
   def listDiscussionComments(
       repository: RepositoryRef,
-      number: Int,
-      after: Maybe[String] = Absent,
+      number: DiscussionNumber,
+      after: Maybe[Cursor] = Absent,
       first: Int = 100,
       replyDepth: ReplyDepth = ReplyDepth.one
   ): ConnectionPage[DiscussionComment] < (Abort[GithubError] & Async)
-  def getIssue(repository: RepositoryRef, number: Int): Maybe[Issue] < (Abort[GithubError] & Async)
-  def getPullRequest(repository: RepositoryRef, number: Int): Maybe[PullRequest] < (Abort[GithubError] & Async)
+  def getIssue(repository: RepositoryRef, number: IssueNumber): Maybe[Issue] < (Abort[GithubError] & Async)
+  def getPullRequest(
+      repository: RepositoryRef,
+      number: PullRequestNumber
+  ): Maybe[PullRequest] < (Abort[GithubError] & Async)
   def getDiscussion(
       repository: RepositoryRef,
-      number: Int,
+      number: DiscussionNumber,
       replyDepth: ReplyDepth = ReplyDepth.one
   ): Maybe[Discussion] < (Abort[GithubError] & Async)
 
@@ -141,59 +144,62 @@ object GithubClient:
   ) extends GithubClient:
     def listIssues(
         repository: RepositoryRef,
-        after: Maybe[String],
+        after: Maybe[Cursor],
         first: Int
     ): ConnectionPage[Issue] < (Abort[GithubError] & Async) =
       ConnectionPage(nodes = issues)
     def listPullRequests(
         repository: RepositoryRef,
-        after: Maybe[String],
+        after: Maybe[Cursor],
         first: Int
     ): ConnectionPage[PullRequest] < (Abort[GithubError] & Async) =
       ConnectionPage(nodes = pullRequests)
     def listDiscussions(
         repository: RepositoryRef,
-        after: Maybe[String],
+        after: Maybe[Cursor],
         first: Int,
         replyDepth: ReplyDepth
     ): ConnectionPage[Discussion] < (Abort[GithubError] & Async) =
       ConnectionPage(nodes = discussions)
     def listDiscussionReplies(
-        commentId: String,
-        after: Maybe[String],
+        commentId: DiscussionCommentId,
+        after: Maybe[Cursor],
         first: Int,
         replyDepth: ReplyDepth
     ): ConnectionPage[DiscussionComment] < (Abort[GithubError] & Async) =
       discussionReplies
     def listIssueComments(
         repository: RepositoryRef,
-        number: Int,
-        after: Maybe[String],
+        number: IssueNumber,
+        after: Maybe[Cursor],
         first: Int
     ): ConnectionPage[IssueComment] < (Abort[GithubError] & Async) =
       issueComments
     def listPullRequestComments(
         repository: RepositoryRef,
-        number: Int,
-        after: Maybe[String],
+        number: PullRequestNumber,
+        after: Maybe[Cursor],
         first: Int
     ): ConnectionPage[IssueComment] < (Abort[GithubError] & Async) =
       pullRequestComments
     def listDiscussionComments(
         repository: RepositoryRef,
-        number: Int,
-        after: Maybe[String],
+        number: DiscussionNumber,
+        after: Maybe[Cursor],
         first: Int,
         replyDepth: ReplyDepth
     ): ConnectionPage[DiscussionComment] < (Abort[GithubError] & Async) =
       discussionComments
-    def getIssue(repository: RepositoryRef, number: Int): Maybe[Issue] < (Abort[GithubError] & Async) =
+    def getIssue(repository: RepositoryRef, number: IssueNumber): Maybe[Issue] < (Abort[GithubError] & Async) =
       issue
-    def getPullRequest(repository: RepositoryRef, number: Int): Maybe[PullRequest] < (Abort[GithubError] & Async) =
+    def getPullRequest(
+        repository: RepositoryRef,
+        number: PullRequestNumber
+    ): Maybe[PullRequest] < (Abort[GithubError] & Async) =
       pullRequest
     def getDiscussion(
         repository: RepositoryRef,
-        number: Int,
+        number: DiscussionNumber,
         replyDepth: ReplyDepth
     ): Maybe[Discussion] < (Abort[GithubError] & Async) =
       discussion
@@ -212,59 +218,62 @@ object GithubClient:
   ) extends GithubClient:
     def listIssues(
         repository: RepositoryRef,
-        after: Maybe[String],
+        after: Maybe[Cursor],
         first: Int
     ): ConnectionPage[Issue] < (Abort[GithubError] & Async) =
       lift(GraphQl.decodeIssues(issuesJson))
     def listPullRequests(
         repository: RepositoryRef,
-        after: Maybe[String],
+        after: Maybe[Cursor],
         first: Int
     ): ConnectionPage[PullRequest] < (Abort[GithubError] & Async) =
       lift(GraphQl.decodePullRequests(pullRequestsJson))
     def listDiscussions(
         repository: RepositoryRef,
-        after: Maybe[String],
+        after: Maybe[Cursor],
         first: Int,
         replyDepth: ReplyDepth
     ): ConnectionPage[Discussion] < (Abort[GithubError] & Async) =
       lift(GraphQl.decodeDiscussions(discussionsJson))
     def listDiscussionReplies(
-        commentId: String,
-        after: Maybe[String],
+        commentId: DiscussionCommentId,
+        after: Maybe[Cursor],
         first: Int,
         replyDepth: ReplyDepth
     ): ConnectionPage[DiscussionComment] < (Abort[GithubError] & Async) =
       lift(GraphQl.decodeDiscussionReplies(discussionRepliesJson))
     def listIssueComments(
         repository: RepositoryRef,
-        number: Int,
-        after: Maybe[String],
+        number: IssueNumber,
+        after: Maybe[Cursor],
         first: Int
     ): ConnectionPage[IssueComment] < (Abort[GithubError] & Async) =
       lift(GraphQl.decodeIssueComments(issueCommentsJson))
     def listPullRequestComments(
         repository: RepositoryRef,
-        number: Int,
-        after: Maybe[String],
+        number: PullRequestNumber,
+        after: Maybe[Cursor],
         first: Int
     ): ConnectionPage[IssueComment] < (Abort[GithubError] & Async) =
       lift(GraphQl.decodePullRequestComments(pullRequestCommentsJson))
     def listDiscussionComments(
         repository: RepositoryRef,
-        number: Int,
-        after: Maybe[String],
+        number: DiscussionNumber,
+        after: Maybe[Cursor],
         first: Int,
         replyDepth: ReplyDepth
     ): ConnectionPage[DiscussionComment] < (Abort[GithubError] & Async) =
       lift(GraphQl.decodeDiscussionComments(discussionCommentsJson))
-    def getIssue(repository: RepositoryRef, number: Int): Maybe[Issue] < (Abort[GithubError] & Async) =
+    def getIssue(repository: RepositoryRef, number: IssueNumber): Maybe[Issue] < (Abort[GithubError] & Async) =
       lift(GraphQl.decodeIssue(issueJson))
-    def getPullRequest(repository: RepositoryRef, number: Int): Maybe[PullRequest] < (Abort[GithubError] & Async) =
+    def getPullRequest(
+        repository: RepositoryRef,
+        number: PullRequestNumber
+    ): Maybe[PullRequest] < (Abort[GithubError] & Async) =
       lift(GraphQl.decodePullRequest(pullRequestJson))
     def getDiscussion(
         repository: RepositoryRef,
-        number: Int,
+        number: DiscussionNumber,
         replyDepth: ReplyDepth
     ): Maybe[Discussion] < (Abort[GithubError] & Async) =
       lift(GraphQl.decodeDiscussion(discussionJson))

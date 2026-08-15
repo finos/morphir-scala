@@ -8,7 +8,13 @@ Discussions include upvote count, an accepted answer, and nested comment replies
 can page. Nested comments are also a `ConnectionPage`. `listIssueComments`, `listPullRequestComments`, and
 `listDiscussionComments` page past the first hundred. `listDiscussionReplies` pages further replies for a comment
 id using the connection cursor. `getIssue`, `getPullRequest`, and `getDiscussion` look up one object by repository number and
-return `Maybe` (`Absent` when GitHub returns null). Issue and pull request comments have no upvote count and no
+return `Maybe` (`Absent` when GitHub returns null). Issue, pull request, and discussion numbers are opaque types
+(`IssueNumber`, `PullRequestNumber`, `DiscussionNumber`). `GithubNumber` is their union; `IssueOrPullRequestNumber` is
+the issue and pull request pair. `GithubNumber.fold` is overloaded on the member type; `@targetName` names each overload
+on the JVM.
+Cursors are `Cursor`. A discussion comment node id is
+`DiscussionCommentId`. Page size `first` stays `Int`. Public models have `Render` instances so logs and snapshots print
+opaque numbers and ids as `issue:975`, `pr:3`, `discussion:100`, `cursor:c1`, and `dc:DC_1`. Issue and pull request comments have no upvote count and no
 reply tree.
 
 `Token` does not print the secret. Long GitHub tokens show a type prefix and the last four characters

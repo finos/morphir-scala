@@ -22,59 +22,62 @@ private[github] object PlatformLive:
   private final class StubClient() extends GithubClient:
     def listIssues(
         repository: RepositoryRef,
-        after: Maybe[String],
+        after: Maybe[Cursor],
         first: Int
     ): ConnectionPage[Issue] < (Abort[GithubError] & Async) =
       Abort.fail(GithubError.Transport(detail))
     def listPullRequests(
         repository: RepositoryRef,
-        after: Maybe[String],
+        after: Maybe[Cursor],
         first: Int
     ): ConnectionPage[PullRequest] < (Abort[GithubError] & Async) =
       Abort.fail(GithubError.Transport(detail))
     def listDiscussions(
         repository: RepositoryRef,
-        after: Maybe[String],
+        after: Maybe[Cursor],
         first: Int,
         replyDepth: ReplyDepth
     ): ConnectionPage[Discussion] < (Abort[GithubError] & Async) =
       Abort.fail(GithubError.Transport(detail))
     def listDiscussionReplies(
-        commentId: String,
-        after: Maybe[String],
+        commentId: DiscussionCommentId,
+        after: Maybe[Cursor],
         first: Int,
         replyDepth: ReplyDepth
     ): ConnectionPage[DiscussionComment] < (Abort[GithubError] & Async) =
       Abort.fail(GithubError.Transport(detail))
     def listIssueComments(
         repository: RepositoryRef,
-        number: Int,
-        after: Maybe[String],
+        number: IssueNumber,
+        after: Maybe[Cursor],
         first: Int
     ): ConnectionPage[IssueComment] < (Abort[GithubError] & Async) =
       Abort.fail(GithubError.Transport(detail))
     def listPullRequestComments(
         repository: RepositoryRef,
-        number: Int,
-        after: Maybe[String],
+        number: PullRequestNumber,
+        after: Maybe[Cursor],
         first: Int
     ): ConnectionPage[IssueComment] < (Abort[GithubError] & Async) =
       Abort.fail(GithubError.Transport(detail))
     def listDiscussionComments(
         repository: RepositoryRef,
-        number: Int,
-        after: Maybe[String],
+        number: DiscussionNumber,
+        after: Maybe[Cursor],
         first: Int,
         replyDepth: ReplyDepth
     ): ConnectionPage[DiscussionComment] < (Abort[GithubError] & Async) =
       Abort.fail(GithubError.Transport(detail))
-    def getIssue(repository: RepositoryRef, number: Int): Maybe[Issue] < (Abort[GithubError] & Async) =
+    def getIssue(repository: RepositoryRef, number: IssueNumber): Maybe[Issue] < (Abort[GithubError] & Async) =
       Abort.fail(GithubError.Transport(detail))
-    def getPullRequest(repository: RepositoryRef, number: Int): Maybe[PullRequest] < (Abort[GithubError] & Async) =
+    def getPullRequest(
+        repository: RepositoryRef,
+        number: PullRequestNumber
+    ): Maybe[PullRequest] < (Abort[GithubError] & Async) =
       Abort.fail(GithubError.Transport(detail))
     def getDiscussion(
         repository: RepositoryRef,
-        number: Int,
+        number: DiscussionNumber,
         replyDepth: ReplyDepth
     ): Maybe[Discussion] < (Abort[GithubError] & Async) =
       Abort.fail(GithubError.Transport(detail))

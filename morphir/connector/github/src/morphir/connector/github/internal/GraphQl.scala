@@ -149,7 +149,7 @@ private[github] object GraphQl:
 
   def listIssuesDocument(
       repository: RepositoryRef,
-      after: Maybe[String] = Absent,
+      after: Maybe[Cursor] = Absent,
       first: Int = 100
   ): Request =
     queryDocument(
@@ -162,7 +162,7 @@ private[github] object GraphQl:
 
   def listPullRequestsDocument(
       repository: RepositoryRef,
-      after: Maybe[String] = Absent,
+      after: Maybe[Cursor] = Absent,
       first: Int = 100
   ): Request =
     queryDocument(
@@ -175,7 +175,7 @@ private[github] object GraphQl:
 
   def listDiscussionsDocument(
       repository: RepositoryRef,
-      after: Maybe[String] = Absent,
+      after: Maybe[Cursor] = Absent,
       first: Int = 100,
       replyDepth: ReplyDepth = ReplyDepth.one
   ): Request =
@@ -188,73 +188,71 @@ private[github] object GraphQl:
     )
 
   def listDiscussionRepliesDocument(
-      commentId: String,
-      after: Maybe[String] = Absent,
+      commentId: DiscussionCommentId,
+      after: Maybe[Cursor] = Absent,
       first: Int = 100,
       replyDepth: ReplyDepth = ReplyDepth.one
   ): NodeReplyRequest =
-    val afterArg = after match
-      case Present(cursor) => Some(cursor)
-      case Absent          => None
+    val afterArg   = cursorArg(after)
     val connection =
       Client.DiscussionCommentConnection.pageInfo(
         Client.PageInfo.hasNextPage ~ Client.PageInfo.endCursor
       ) ~ Client.DiscussionCommentConnection.nodes(discussionCommentSelection(replyDepth.normalized))
     val document =
-      Client.Query.node(commentId)(
+      Client.Query.node(commentId.asString)(
         Client.DiscussionComment.replies(Some(first), afterArg)(connection)
       ).toGraphQL()
-    NodeReplyRequest(document.query, NodeReplyVars(commentId, first, after))
+    NodeReplyRequest(document.query, NodeReplyVars(commentId.asString, first, after.map(_.asString)))
 
-  def getIssueDocument(repository: RepositoryRef, number: Int): Request =
-    queryDocument(repository, Client.Repository.issue(number)(issueSelection))
+  def getIssueDocument(repository: RepositoryRef, number: IssueNumber): Request =
+    queryDocument(repository, Client.Repository.issue(number.toInt)(issueSelection))
 
-  def getPullRequestDocument(repository: RepositoryRef, number: Int): Request =
-    queryDocument(repository, Client.Repository.pullRequest(number)(pullRequestSelection))
+  def getPullRequestDocument(repository: RepositoryRef, number: PullRequestNumber): Request =
+    queryDocument(repository, Client.Repository.pullRequest(number.toInt)(pullRequestSelection))
 
   def getDiscussionDocument(
       repository: RepositoryRef,
-      number: Int,
+      number: DiscussionNumber,
       replyDepth: ReplyDepth = ReplyDepth.one
   ): Request =
-    queryDocument(repository, Client.Repository.discussion(number)(discussionSelection(replyDepth.normalized)))
+    queryDocument(repository, Client.Repository.discussion(number.toInt)(discussionSelection(replyDepth.normalized)))
 
   def listIssueCommentsDocument(
       repository: RepositoryRef,
-      number: Int,
-      after: Maybe[String] = Absent,
+      number: IssueNumber,
+      after: Maybe[Cursor] = Absent,
       first: Int = 100
   ): Request =
     queryDocument(
       repository,
-      Client.Repository.issue(number)(
+      Client.Repository.issue(number.toInt)(
         Client.Issue.comments(Some(first), cursorArg(after))(issueCommentsSelection)
       )
     )
 
   def listPullRequestCommentsDocument(
       repository: RepositoryRef,
-      number: Int,
-      after: Maybe[String] = Absent,
+      number: PullRequestNumber,
+      after: Maybe[Cursor] = Absent,
       first: Int = 100
   ): Request =
     queryDocument(
       repository,
-      Client.Repository.pullRequest(number)(
+      Client.Repository.pullRequest(number.toInt)(
         Client.PullRequest.comments(Some(first), cursorArg(after))(issueCommentsSelection)
       )
     )
 
   def listDiscussionCommentsDocument(
       repository: RepositoryRef,
-      number: Int,
-      after: Maybe[String] = Absent,
+      number: DiscussionNumber,
+      after: Maybe[Cursor] = Absent,
       first: Int = 100,
       replyDepth: ReplyDepth = ReplyDepth.one
   ): Request =
     queryDocument(
       repository,
-      Client.Repository.discussion(number)(
+      Client.Repository.discussion(number.toInt)(
         Client.Discussion.comments(Some(first), cursorArg(after))(
           discussionCommentsSelection(replyDepth.normalized)
         )
@@ -454,7 +452,7 @@ private[github] object GraphQl:
 
   private def toIssue(wire: WireIssue): Issue =
     Issue(
-      number = wire.number,
+      number = IssueNumber.fromWire(wire.number),
       title = wire.title,
       body = wire.body,
       url = wire.url,
@@ -475,7 +473,7 @@ private[github] object GraphQl:
 
   private def toPullRequest(wire: WirePullRequest): PullRequest =
     PullRequest(
-      number = wire.number,
+      number = PullRequestNumber.fromWire(wire.number),
       title = wire.title,
       body = wire.body,
       url = wire.url,
@@ -488,7 +486,7 @@ private[github] object GraphQl:
 
   private def toDiscussion(wire: WireDiscussion): Discussion =
     Discussion(
-      number = wire.number,
+      number = DiscussionNumber.fromWire(wire.number),
       title = wire.title,
       body = wire.body,
       url = wire.url,
@@ -503,7 +501,7 @@ private[github] object GraphQl:
 
   private def toDiscussionComment(wire: WireDiscussionComment): DiscussionComment =
     DiscussionComment(
-      id = wire.id,
+      id = wire.id.flatMap(DiscussionCommentId.parse),
       author = wire.author,
       body = wire.body,
       createdAt = wire.createdAt,
@@ -519,12 +517,12 @@ private[github] object GraphQl:
     ConnectionPage(
       nodes = conn.nodes.map(toValue),
       hasNextPage = conn.pageInfo.map(_.hasNextPage).getOrElse(false),
-      endCursor = conn.pageInfo.flatMap(_.endCursor)
+      endCursor = conn.pageInfo.flatMap(_.endCursor).flatMap(Cursor.parse)
     )
 
-  private def cursorArg(after: Maybe[String]): Option[String] =
+  private def cursorArg(after: Maybe[Cursor]): Option[String] =
     after match
-      case Present(cursor) => Some(cursor)
+      case Present(cursor) => Some(cursor.asString)
       case Absent          => None
 
   private def queryDocument[A](

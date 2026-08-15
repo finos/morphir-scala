@@ -2,6 +2,14 @@
 
 ## 2026-08-15
 
+* **Update**: Recorded that GitHub public models have `Render` instances, in
+  [Published library families](/design/published-library-families.md).
+* **Update**: Recorded that GitHub issue, pull request, and discussion numbers form the `GithubNumber` union, with
+  `@targetName` overloads of `fold`, in
+  [Published library families](/design/published-library-families.md).
+* **Update**: Recorded that GitHub issue, pull request, and discussion numbers, connection cursors, and discussion
+  comment ids are opaque types, in
+  [Published library families](/design/published-library-families.md).
 * **Update**: Recorded that nested GitHub comments are a `ConnectionPage`, with `listIssueComments`,
   `listPullRequestComments`, and `listDiscussionComments`, in
   [Published library families](/design/published-library-families.md).

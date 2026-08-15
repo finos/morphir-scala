@@ -36,6 +36,15 @@ and `first` so a caller can page. Nested comments on an issue, pull request, or 
 `listIssueComments`, `listPullRequestComments`, and `listDiscussionComments` page past the first hundred.
 `listDiscussionReplies` pages further replies by comment id.
 `getIssue`, `getPullRequest`, and `getDiscussion` look up one object by repository number and return `Maybe`.
+Issue, pull request, and discussion numbers are opaque types (`IssueNumber`, `PullRequestNumber`,
+`DiscussionNumber`), not `Int`. `GithubNumber` is their union, for shared operations such as `toInt`.
+`IssueOrPullRequestNumber` is the issue and pull request pair, which share GitHub's numbering.
+`GithubNumber.fold` and `IssueOrPullRequestNumber.fold` are overloaded on the member type. `@targetName` gives each
+overload a distinct JVM bytecode name, because the opaque types erase to `Int`.
+Connection `after` / `endCursor` values are `Cursor`. A discussion comment node id is
+`DiscussionCommentId`. Page size `first` remains `Int`.
+Public models have `Render` instances. Opaque numbers and ids print as `issue:975`, `pr:3`,
+`discussion:100`, `cursor:c1`, and `dc:DC_1`.
 Issue and pull request comments have no upvoteCount.
 
 The client consumes GitHub's GraphQL API. `kyo-caliban` is a GraphQL server and is out of scope. Generated Scala

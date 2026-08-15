@@ -12,7 +12,7 @@ private[github] object PlatformLive:
   private final class LiveClient(token: Token) extends GithubClient:
     def listIssues(
         repository: RepositoryRef,
-        after: Maybe[String],
+        after: Maybe[Cursor],
         first: Int
     ): ConnectionPage[Issue] < (Abort[GithubError] & Async) =
       post[GraphQl.IssuesEnvelope](GraphQl.listIssuesDocument(repository, after, first)).map(env =>
@@ -20,7 +20,7 @@ private[github] object PlatformLive:
       )
     def listPullRequests(
         repository: RepositoryRef,
-        after: Maybe[String],
+        after: Maybe[Cursor],
         first: Int
     ): ConnectionPage[PullRequest] < (Abort[GithubError] & Async) =
       post[GraphQl.PullRequestsEnvelope](GraphQl.listPullRequestsDocument(repository, after, first)).map(env =>
@@ -28,7 +28,7 @@ private[github] object PlatformLive:
       )
     def listDiscussions(
         repository: RepositoryRef,
-        after: Maybe[String],
+        after: Maybe[Cursor],
         first: Int,
         replyDepth: ReplyDepth
     ): ConnectionPage[Discussion] < (Abort[GithubError] & Async) =
@@ -37,8 +37,8 @@ private[github] object PlatformLive:
           GithubClient.lift(GraphQl.discussionsFrom(env))
       )
     def listDiscussionReplies(
-        commentId: String,
-        after: Maybe[String],
+        commentId: DiscussionCommentId,
+        after: Maybe[Cursor],
         first: Int,
         replyDepth: ReplyDepth
     ): ConnectionPage[DiscussionComment] < (Abort[GithubError] & Async) =
@@ -47,8 +47,8 @@ private[github] object PlatformLive:
       ).map(env => GithubClient.lift(GraphQl.discussionRepliesFrom(env)))
     def listIssueComments(
         repository: RepositoryRef,
-        number: Int,
-        after: Maybe[String],
+        number: IssueNumber,
+        after: Maybe[Cursor],
         first: Int
     ): ConnectionPage[IssueComment] < (Abort[GithubError] & Async) =
       post[GraphQl.IssueCommentsEnvelope](GraphQl.listIssueCommentsDocument(repository, number, after, first)).map(
@@ -56,8 +56,8 @@ private[github] object PlatformLive:
       )
     def listPullRequestComments(
         repository: RepositoryRef,
-        number: Int,
-        after: Maybe[String],
+        number: PullRequestNumber,
+        after: Maybe[Cursor],
         first: Int
     ): ConnectionPage[IssueComment] < (Abort[GithubError] & Async) =
       post[GraphQl.PullRequestCommentsEnvelope](
@@ -65,25 +65,28 @@ private[github] object PlatformLive:
       ).map(env => GithubClient.lift(GraphQl.pullRequestCommentsFrom(env)))
     def listDiscussionComments(
         repository: RepositoryRef,
-        number: Int,
-        after: Maybe[String],
+        number: DiscussionNumber,
+        after: Maybe[Cursor],
         first: Int,
         replyDepth: ReplyDepth
     ): ConnectionPage[DiscussionComment] < (Abort[GithubError] & Async) =
       post[GraphQl.DiscussionCommentsEnvelope](
         GraphQl.listDiscussionCommentsDocument(repository, number, after, first, replyDepth)
       ).map(env => GithubClient.lift(GraphQl.discussionCommentsFrom(env)))
-    def getIssue(repository: RepositoryRef, number: Int): Maybe[Issue] < (Abort[GithubError] & Async) =
+    def getIssue(repository: RepositoryRef, number: IssueNumber): Maybe[Issue] < (Abort[GithubError] & Async) =
       post[GraphQl.SingleIssueEnvelope](GraphQl.getIssueDocument(repository, number)).map(env =>
         GithubClient.lift(GraphQl.issueFrom(env))
       )
-    def getPullRequest(repository: RepositoryRef, number: Int): Maybe[PullRequest] < (Abort[GithubError] & Async) =
+    def getPullRequest(
+        repository: RepositoryRef,
+        number: PullRequestNumber
+    ): Maybe[PullRequest] < (Abort[GithubError] & Async) =
       post[GraphQl.SinglePullRequestEnvelope](GraphQl.getPullRequestDocument(repository, number)).map(env =>
         GithubClient.lift(GraphQl.pullRequestFrom(env))
       )
     def getDiscussion(
         repository: RepositoryRef,
-        number: Int,
+        number: DiscussionNumber,
         replyDepth: ReplyDepth
     ): Maybe[Discussion] < (Abort[GithubError] & Async) =
       post[GraphQl.SingleDiscussionEnvelope](GraphQl.getDiscussionDocument(repository, number, replyDepth)).map(env =>
