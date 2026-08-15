@@ -36,9 +36,9 @@ keeps meaning the document tree. See
 
 The library takes `DocKind`, frontmatter split, and the bundle shape (root index, log, nested indexes, concepts) from
 the kb skill. Frontmatter is decoded by Kyo `kyo-schema-yaml`, not a handwritten YAML parser or SnakeYAML. Optional
-fields use `Maybe`. Snake-case OKF keys such as `okf_version` are the case-class field names, with camelCase accessors
-for Scala call sites: under Morphir's `-Yretain-trees` flag, `Tag[Maybe[A]]` MatchErrors in Kyo's TagMacro, so
-`Schema.rename` / `@rename` on `Maybe` fields are unusable. The library does not take
+fields use `Maybe`. Snake-case OKF keys such as `okf_version` map onto camelCase fields via `@rename`.
+`-Yretain-trees` is off by default (opt in with `MorphirRetainTrees`) so `Tag[Maybe[A]]` works; see
+https://github.com/getkyo/kyo/issues/1883. The library does not take
 commonmark-java or the check engine. Switching the skill onto this library is later work. `contrib/knowledge` stays
 until [0027](/0027-stop-using-contrib-for-first-class-work.md) and a migration intent.
 

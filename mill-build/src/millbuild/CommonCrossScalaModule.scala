@@ -109,7 +109,6 @@ trait CommonScalaModule extends ScalaModule with CommonCoursierModule {
       "-explain",
       "-explain-types",
       "-Xignore-scala2-macros",
-      "-Yretain-trees",
       "-Wvalue-discard",
       // Suppress warnings for generated code and migration issues
       "-Wconf:msg=Ignoring.*this.*qualifier:s",                                    // BuildInfo private[this]

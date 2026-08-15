@@ -14,10 +14,8 @@ final case class SourceRef(
  * Parsed OKF frontmatter. Accessors are permissive: a missing field is [[kyo.Absent]], so a later check can report
  * every problem instead of failing on the first.
  *
- * Field names follow the OKF YAML keys (`stale_after`, `okf_version`) so `kyo-schema-yaml` can decode them without a
- * rename transform. With Morphir's `-Yretain-trees` scalac flag, `Tag[Maybe[A]]` MatchErrors in Kyo's TagMacro, and
- * both `Schema.rename` and `@rename` on `Maybe` fields fail or are ignored. CamelCase accessors stay for Scala call
- * sites.
+ * Snake-case OKF keys map through `@rename`. `-Yretain-trees` is off by default (opt in with `MorphirRetainTrees`)
+ * so `Tag[Maybe[A]]` works (see https://github.com/getkyo/kyo/issues/1883).
  */
 final case class Frontmatter(
     `type`: Maybe[String] = Absent,
@@ -25,13 +23,11 @@ final case class Frontmatter(
     description: Maybe[String] = Absent,
     resource: Maybe[String] = Absent,
     status: Maybe[String] = Absent,
-    stale_after: Maybe[String] = Absent,
-    okf_version: Maybe[String] = Absent,
+    @rename("stale_after") staleAfter: Maybe[String] = Absent,
+    @rename("okf_version") okfVersion: Maybe[String] = Absent,
     tags: Chunk[String] = Chunk.empty,
     sources: Chunk[SourceRef] = Chunk.empty
-) derives CanEqual, Schema:
-  def staleAfter: Maybe[String] = stale_after
-  def okfVersion: Maybe[String] = okf_version
+) derives CanEqual, Schema
 
 object Frontmatter:
 
