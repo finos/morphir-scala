@@ -2,7 +2,7 @@
 type: Intent
 title: morphir-desktop Electron app
 description: "Build morphir/desktop, an unpublished Electron app hosting morphir-ui with Scala.js in both processes over a kyo-jsonrpc seam."
-state: Backlog
+state: InProgress
 kind: feature
 breaking: false
 created: 2026-08-15
