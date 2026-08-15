@@ -34,7 +34,7 @@ object Cursor:
 
   extension (cursor: Cursor) def asString: String = cursor
 
-/** A positive GitHub GraphQL connection page size (`first`). */
+/** A GitHub GraphQL connection page size (`first`) between 1 and 100, inclusive. */
 opaque type PageSize = Int
 
 object PageSize:
@@ -44,7 +44,7 @@ object PageSize:
   val default: PageSize = 100
 
   def parse(n: Int): Maybe[PageSize] =
-    if n > 0 then Present(n) else Absent
+    if n >= 1 && n <= 100 then Present(n) else Absent
 
   private[github] def fromWire(n: Int): PageSize = n
 

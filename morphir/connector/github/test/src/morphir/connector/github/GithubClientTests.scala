@@ -95,10 +95,13 @@ class GithubClientTests extends SnapshotTest[Any]:
   }
 
   "PageSize" - {
-    "accepts positive sizes and rejects zero or negative sizes" in {
+    "accepts GitHub's supported range and rejects values outside it" in {
+      assert(PageSize.parse(1) == Present(PageSize.fromWire(1)))
       assert(PageSize.parse(50) == Present(PageSize.fromWire(50)))
+      assert(PageSize.parse(100) == Present(PageSize.fromWire(100)))
       assert(PageSize.parse(0).isEmpty)
       assert(PageSize.parse(-1).isEmpty)
+      assert(PageSize.parse(101).isEmpty)
     }
   }
 

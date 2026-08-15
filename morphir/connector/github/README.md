@@ -13,7 +13,8 @@ return `Maybe` (`Absent` when GitHub returns null). Issue, pull request, and dis
 the issue and pull request pair. `GithubNumber.fold` is overloaded on the member type; `@targetName` names each overload
 on the JVM.
 Cursors are `Cursor`. A discussion comment node id is
-`DiscussionCommentId`. Page size `first` is `PageSize`, parsed from a positive `Int`; `PageSize.default` is 100.
+`DiscussionCommentId`. Page size `first` is `PageSize`, parsed from an `Int` between 1 and GitHub's maximum of 100;
+`PageSize.default` is 100.
 Public models and `GitHubException` have `Render` instances so logs and snapshots print opaque numbers and ids as
 `issue:975`, `pr:3`, `discussion:100`, `cursor:c1`, and `dc:DC_1`. Issue and pull request comments have no upvote count and no
 reply tree.
@@ -22,8 +23,10 @@ reply tree.
 (`Token(ghp_...abcd)`). Short values print `Token(redacted)`. `GithubClient.live(token)` still takes a parsed
 token. `GithubClient.live` (no args) reads `Env[TokenProvider]`. `TokenProvider.const` wraps a token.
 `TokenProvider.flags` reads `morphir.connector.github.token` (`MORPHIR_CONNECTOR_GITHUB_TOKEN`). A blank flag is
-`Unauthorized`. `TokenProvider.gitHubActions` reads `GITHUB_TOKEN`, which GitHub Actions sets automatically. Neither
-provider falls back to the other, and neither reads `GH_TOKEN`. `TokenProvider.gitHubCli` runs `gh auth token`
+`Unauthorized`. `TokenProvider.gitHubActions` reads the process environment variable `GITHUB_TOKEN`. A workflow must
+export the Actions token explicitly, for example with `env: GITHUB_TOKEN: ${{ github.token }}`; GitHub does not export
+the token to every process automatically. Neither provider falls back to the other, and neither reads `GH_TOKEN`.
+`TokenProvider.gitHubCli` runs `gh auth token`
 and takes optional `user` and `hostname`. A missing `gh` binary or a non-zero exit is `Unauthorized`. JVM, Node, and
 Scala Native spawn that process. `TokenProvider.vault` reads
 `Env[SecretStore]` from `morphir-appkit`. A missing or blank entry is `Unauthorized`. Tests use
