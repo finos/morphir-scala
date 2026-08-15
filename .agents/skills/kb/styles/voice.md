@@ -11,10 +11,11 @@ When a claim needs background, supply it in this order:
 
 1. Include the background on the page, in a few sentences.
 2. Summarize it, then continue.
-3. Link to another concept in this knowledge base.
-4. Link an external reference. Least preferred. Allowed so the kb stays focused and does not grow a new page for every upstream detail.
+3. Link a Glossary or Data Dictionary. Preferred when that catalog lives in the same bundle or a co-located bundle (a sibling under the same grouping directory). That keeps the page moving and keeps definition sidebars off the narrative.
+4. Link to another concept in this knowledge base.
+5. Link an external reference. Least preferred. Allowed so the kb stays focused and does not grow a new page for every upstream detail.
 
-Name the term, say what it is, then use it. A link is not a substitute for that first sentence when the rest of the page depends on the term.
+Name the term, say what it is, then use it. A same-bundle or co-located Glossary or Data Dictionary link may stand in for that first sentence. A link to an unrelated concept or an external page may not.
 
 ## Mechanics
 

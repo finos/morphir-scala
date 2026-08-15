@@ -62,7 +62,7 @@ with every fine-grained concept reachable from it.
 | ------- | -------- | ---- |
 | Playbook, tutorial, orientation, guidance | article | `styles/article.md` |
 | Design Note, Decision Record, Intent, synthesis | white-paper | `styles/whitepaper.md` |
-| Reference, Specification Section, version-pinned notes | reference | `styles/reference.md` |
+| Reference, Specification Section, Glossary, Data Dictionary, version-pinned notes | reference | `styles/reference.md` |
 
 Delegate drafting to the `kb-writer` subagent and review to the `kb-reviewer` subagent
 (`.claude/agents/kb-writer.md`, `kb-reviewer.md`), naming the target file and register in the dispatch. Writing
