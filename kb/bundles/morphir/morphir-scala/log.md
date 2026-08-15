@@ -2,6 +2,11 @@
 
 ## 2026-08-15
 
+* **Update**: Recorded that process auth for `gh` and `security` uses shared `kyo.Command` spawn with concurrent
+  stream drains on JVM, Node, and Scala Native, in
+  [GitHub token providers and appkit secrets](/design/github-token-providers-and-appkit-secrets.md).
+* **Update**: Recorded that the GitHub client failure ADT is `GitHubException` and extends `MorphirException`, in
+  [Published library families](/design/published-library-families.md).
 * **Update**: Recorded that `TokenProvider.gitHubCli` and `SecretStore.macOsKeychain` spawn `gh` and
   `security` on Scala Native, in
   [GitHub token providers and appkit secrets](/design/github-token-providers-and-appkit-secrets.md).

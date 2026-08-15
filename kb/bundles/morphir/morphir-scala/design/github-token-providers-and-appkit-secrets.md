@@ -129,7 +129,7 @@ TokenProvider.gitHubCli(
 )
 ```
 
-That layer runs `gh auth token`, and adds `--user` / `--hostname` when those arguments are present. Stdout is trimmed and passed to `Token.parse`. A missing binary or a non-zero exit is `Unauthorized` with the process detail, not `Transport`. JVM, Node, and Scala Native spawn the process.
+That layer runs `gh auth token`, and adds `--user` / `--hostname` when those arguments are present. Stdout is trimmed and passed to `Token.parse`. A missing binary or a non-zero exit is `Unauthorized` with the process detail, not `Transport`. JVM, Node, and Scala Native spawn through shared `kyo.Command` (`spawn`, concurrent stdout and stderr drains, then `waitFor`). Platform `ProcessBuilder` and Node `spawnSync` helpers are gone.
 
 `Absent` for both is a valid choice: use whatever `gh` treats as active. The provider does not pick among accounts on its own. The rest of `gh` stays [intent 0024](../../../intent/0024-github-cli-connector.md).
 
@@ -146,7 +146,7 @@ A missing entry is `Absent`. The GitHub vault adapter turns `Absent` or a failed
 
 Two early backends:
 
-- `macOsKeychain` talks to the macOS Keychain (process `security`). JVM, Node, and Scala Native spawn that process.
+- `macOsKeychain` talks to the macOS Keychain (process `security`). JVM, Node, and Scala Native spawn that process through the same shared `kyo.Command` path as `gitHubCli`.
 - `javaKeychain` is a JVM backend Morphir provides. It uses a Java keyring library as an implementation detail, not a published kit. On the JVM that path also reaches Windows Credential Manager and Linux secret service.
 
 JS and Native keep the `SecretStore` trait. `javaKeychain` is JVM-only, the same kind of split as live GitHub HTTP.
@@ -159,9 +159,10 @@ Electron remains a later leaf ([intent 0025](../../../intent/0025-electron-appki
 
 ### Delivery order
 
-1. `TokenProvider`, `Env` on live methods, `const`, redacted `Token`, `live(token)`.
-2. `TokenProvider.flags`, `TokenProvider.gitHubActions`, then `TokenProvider.gitHubCli`.
-3. Appkit `SecretStore` with both vault backends, then `TokenProvider.vault`.
+1. `TokenProvider`, `Env` on live methods, `const`, redacted `Token`, `live(token)`. Done.
+2. `TokenProvider.flags`, `TokenProvider.gitHubActions`, then `TokenProvider.gitHubCli`. Done.
+3. Appkit `SecretStore` with both vault backends, then `TokenProvider.vault`. Done.
+4. Shared `kyo.Command` process floor for `gh` and `security` on JVM, Node, and Native. Done.
 
 ### Tests
 
@@ -186,6 +187,9 @@ Tests do not call `api.github.com`. Flag tests assert `token.name` and `token.en
 ## Unresolved
 
 - Whether `.provide` needs `kyo-combinators` on the GitHub classpath, or `Env.runLayer` from prelude is enough.
-- `DynamicFlag` for in-process rotation.
+- `DynamicFlag` for in-process rotation. Needed only if a long-running host must replace a flag-sourced token without
+  restart. CLI and CI hosts do not need it. Vault and `gh` already look up on each `token` call.
+- A Decision Record that promotes this Design Note once reviewers agree the shipped providers are settled.
 
-A Decision Record is not warranted until the first providers ship and the mill path is in the build.
+The named providers, mill paths, and `kyo.Command` process floor have shipped under
+[intent 0020](../../../intent/0020-github-graphql-connector.md).
