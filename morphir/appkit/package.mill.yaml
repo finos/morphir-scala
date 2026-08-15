@@ -2,6 +2,7 @@ extends: Module
 
 object jvm:
   extends: [build.MorphirJVMModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps]
+  moduleDeps: [build.morphir.prelude.jvm]
   mvnDeps: !append
   - com.github.javakeyring:java-keyring:1.0.4
   object test:
@@ -9,11 +10,13 @@ object jvm:
 
 object js:
   extends: [build.MorphirJSModule, build.MorphirJSNodeModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps]
+  moduleDeps: [build.morphir.prelude.js]
   object test:
     extends: [ScalaJSTests, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
 
 object native:
   extends: [build.MorphirNativeModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps]
+  moduleDeps: [build.morphir.prelude.native]
   object test:
     extends: [ScalaNativeTests, millbuild.KyoTestNative, build.MorphirKyoTestMvnDeps]
     mvnDeps: !append

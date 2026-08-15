@@ -44,8 +44,8 @@ Issue, pull request, and discussion numbers are opaque types (`IssueNumber`, `Pu
 `GithubNumber.fold` and `IssueOrPullRequestNumber.fold` are overloaded on the member type. `@targetName` gives each
 overload a distinct JVM bytecode name, because the opaque types erase to `Int`.
 Connection `after` / `endCursor` values are `Cursor`. A discussion comment node id is
-`DiscussionCommentId`. Page size `first` remains `Int`.
-Public models have `Render` instances. Opaque numbers and ids print as `issue:975`, `pr:3`,
+`DiscussionCommentId`. Page size `first` is the positive opaque `PageSize`; `PageSize.default` is 100.
+Public models and `GitHubException` have `Render` instances. Opaque numbers and ids print as `issue:975`, `pr:3`,
 `discussion:100`, `cursor:c1`, and `dc:DC_1`.
 Issue and pull request comments have no upvoteCount.
 

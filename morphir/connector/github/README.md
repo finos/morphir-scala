@@ -13,8 +13,9 @@ return `Maybe` (`Absent` when GitHub returns null). Issue, pull request, and dis
 the issue and pull request pair. `GithubNumber.fold` is overloaded on the member type; `@targetName` names each overload
 on the JVM.
 Cursors are `Cursor`. A discussion comment node id is
-`DiscussionCommentId`. Page size `first` stays `Int`. Public models have `Render` instances so logs and snapshots print
-opaque numbers and ids as `issue:975`, `pr:3`, `discussion:100`, `cursor:c1`, and `dc:DC_1`. Issue and pull request comments have no upvote count and no
+`DiscussionCommentId`. Page size `first` is `PageSize`, parsed from a positive `Int`; `PageSize.default` is 100.
+Public models and `GitHubException` have `Render` instances so logs and snapshots print opaque numbers and ids as
+`issue:975`, `pr:3`, `discussion:100`, `cursor:c1`, and `dc:DC_1`. Issue and pull request comments have no upvote count and no
 reply tree.
 
 `Token` does not print the secret. Long GitHub tokens show a type prefix and the last four characters
@@ -45,7 +46,8 @@ HTTP does not run in browsers. A `fetch` backend is not planned: GitHub GraphQL 
 problem. Electron uses this Node backend. On Scala Native, listing fails with `GitHubException.Transport` until a kyo-net
 Native artifact links kqueue. See the published-library-families Design Note.
 
-Listing methods return `ConnectionPage[A] < (Abort[GitHubException] & Async)`. Pass `after` and `first` to page.
+Listing methods return `ConnectionPage[A] < (Abort[GitHubException] & Async)`. Pass `after` and a positive
+`PageSize` as `first` to page.
 `getIssue`, `getPullRequest`, and `getDiscussion` return `Maybe[A]`. Nested comments use the same page type;
 `listIssueComments`, `listPullRequestComments`, `listDiscussionComments`, and `listDiscussionReplies` page further:
 

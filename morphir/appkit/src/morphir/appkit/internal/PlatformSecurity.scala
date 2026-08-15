@@ -8,14 +8,14 @@ import kyo.*
 private[appkit] object PlatformSecurity extends SecurityCli:
   private val NotFound = 44
 
-  def findGenericPassword(service: String, account: String): Maybe[String] < (Abort[SecretError] & Async) =
+  def findGenericPassword(service: String, account: String): Maybe[String] < (Abort[SecretException] & Async) =
     run("security", service, account)
 
   private[appkit] def forProgram(program: String): SecurityCli =
     new SecurityCli:
       def findGenericPassword(service: String, account: String) = run(program, service, account)
 
-  private def run(program: String, service: String, account: String): Maybe[String] < (Abort[SecretError] & Async) =
+  private def run(program: String, service: String, account: String): Maybe[String] < (Abort[SecretException] & Async) =
     Abort.recover[CommandException](exception => Abort.fail(commandFailure(exception))) {
       Scope.run {
         for
@@ -30,21 +30,26 @@ private[appkit] object PlatformSecurity extends SecurityCli:
           value <-
             if exitCode.toInt == 0 then
               Sync.defer {
-                val trimmed = out.trim
-                if trimmed.isEmpty then Absent else Present(trimmed)
+                val value = stripTrailingLineEnding(out)
+                if value.isEmpty then Absent else Present(value)
               }
             else if exitCode.toInt == NotFound then Sync.defer(Absent)
-            else Abort.fail(SecretError.LookupFailed(detail(exitCode.toInt, err, out)))
+            else Abort.fail(SecretException.LookupFailed(detail(exitCode.toInt, err, out)))
         yield value
       }
     }
 
-  private def commandFailure(exception: CommandException): SecretError =
+  private def commandFailure(exception: CommandException): SecretException =
     exception match
       case _: ProgramNotFoundException | _: PermissionDeniedException =>
-        SecretError.NotAvailable(s"security is not installed or could not be started: ${exception.getMessage}")
+        SecretException.NotAvailable(s"security is not installed or could not be started: ${exception.getMessage}")
       case other =>
-        SecretError.LookupFailed(other.getMessage)
+        SecretException.LookupFailed(other.getMessage)
+
+  private[appkit] def stripTrailingLineEnding(value: String): String =
+    if value.endsWith("\r\n") then value.dropRight(2)
+    else if value.endsWith("\n") then value.dropRight(1)
+    else value
 
   private def detail(code: Int, err: String, out: String): String =
     val fromErr = err.trim

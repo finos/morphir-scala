@@ -150,11 +150,11 @@ private[github] object GraphQl:
   def listIssuesDocument(
       repository: RepositoryRef,
       after: Maybe[Cursor] = Absent,
-      first: Int = 100
+      first: PageSize = PageSize.default
   ): Request =
     queryDocument(
       repository,
-      Client.Repository.issues(Some(first), cursorArg(after))(
+      Client.Repository.issues(Some(first.toInt), cursorArg(after))(
         Client.IssueConnection.pageInfo(pageInfoSelection) ~
           Client.IssueConnection.nodes(issueSelection)
       )
@@ -163,11 +163,11 @@ private[github] object GraphQl:
   def listPullRequestsDocument(
       repository: RepositoryRef,
       after: Maybe[Cursor] = Absent,
-      first: Int = 100
+      first: PageSize = PageSize.default
   ): Request =
     queryDocument(
       repository,
-      Client.Repository.pullRequests(Some(first), cursorArg(after))(
+      Client.Repository.pullRequests(Some(first.toInt), cursorArg(after))(
         Client.PullRequestConnection.pageInfo(pageInfoSelection) ~
           Client.PullRequestConnection.nodes(pullRequestSelection)
       )
@@ -176,12 +176,12 @@ private[github] object GraphQl:
   def listDiscussionsDocument(
       repository: RepositoryRef,
       after: Maybe[Cursor] = Absent,
-      first: Int = 100,
+      first: PageSize = PageSize.default,
       replyDepth: ReplyDepth = ReplyDepth.one
   ): Request =
     queryDocument(
       repository,
-      Client.Repository.discussions(Some(first), cursorArg(after))(
+      Client.Repository.discussions(Some(first.toInt), cursorArg(after))(
         Client.DiscussionConnection.pageInfo(pageInfoSelection) ~
           Client.DiscussionConnection.nodes(discussionSelection(replyDepth.normalized))
       )
@@ -190,7 +190,7 @@ private[github] object GraphQl:
   def listDiscussionRepliesDocument(
       commentId: DiscussionCommentId,
       after: Maybe[Cursor] = Absent,
-      first: Int = 100,
+      first: PageSize = PageSize.default,
       replyDepth: ReplyDepth = ReplyDepth.one
   ): NodeReplyRequest =
     val afterArg   = cursorArg(after)
@@ -200,9 +200,9 @@ private[github] object GraphQl:
       ) ~ Client.DiscussionCommentConnection.nodes(discussionCommentSelection(replyDepth.normalized))
     val document =
       Client.Query.node(commentId.asString)(
-        Client.DiscussionComment.replies(Some(first), afterArg)(connection)
+        Client.DiscussionComment.replies(Some(first.toInt), afterArg)(connection)
       ).toGraphQL()
-    NodeReplyRequest(document.query, NodeReplyVars(commentId.asString, first, after.map(_.asString)))
+    NodeReplyRequest(document.query, NodeReplyVars(commentId.asString, first.toInt, after.map(_.asString)))
 
   def getIssueDocument(repository: RepositoryRef, number: IssueNumber): Request =
     queryDocument(repository, Client.Repository.issue(number.toInt)(issueSelection))
@@ -221,12 +221,12 @@ private[github] object GraphQl:
       repository: RepositoryRef,
       number: IssueNumber,
       after: Maybe[Cursor] = Absent,
-      first: Int = 100
+      first: PageSize = PageSize.default
   ): Request =
     queryDocument(
       repository,
       Client.Repository.issue(number.toInt)(
-        Client.Issue.comments(Some(first), cursorArg(after))(issueCommentsSelection)
+        Client.Issue.comments(Some(first.toInt), cursorArg(after))(issueCommentsSelection)
       )
     )
 
@@ -234,12 +234,12 @@ private[github] object GraphQl:
       repository: RepositoryRef,
       number: PullRequestNumber,
       after: Maybe[Cursor] = Absent,
-      first: Int = 100
+      first: PageSize = PageSize.default
   ): Request =
     queryDocument(
       repository,
       Client.Repository.pullRequest(number.toInt)(
-        Client.PullRequest.comments(Some(first), cursorArg(after))(issueCommentsSelection)
+        Client.PullRequest.comments(Some(first.toInt), cursorArg(after))(issueCommentsSelection)
       )
     )
 
@@ -247,13 +247,13 @@ private[github] object GraphQl:
       repository: RepositoryRef,
       number: DiscussionNumber,
       after: Maybe[Cursor] = Absent,
-      first: Int = 100,
+      first: PageSize = PageSize.default,
       replyDepth: ReplyDepth = ReplyDepth.one
   ): Request =
     queryDocument(
       repository,
       Client.Repository.discussion(number.toInt)(
-        Client.Discussion.comments(Some(first), cursorArg(after))(
+        Client.Discussion.comments(Some(first.toInt), cursorArg(after))(
           discussionCommentsSelection(replyDepth.normalized)
         )
       )

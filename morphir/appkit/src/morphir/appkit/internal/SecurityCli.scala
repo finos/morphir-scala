@@ -5,7 +5,7 @@ import kyo.*
 
 /** Runs `security find-generic-password`. Tests inject a fake. */
 private[appkit] trait SecurityCli:
-  def findGenericPassword(service: String, account: String): Maybe[String] < (Abort[SecretError] & Async)
+  def findGenericPassword(service: String, account: String): Maybe[String] < (Abort[SecretException] & Async)
 
 private[appkit] object SecurityCli:
   def succeed(secret: String): SecurityCli =
@@ -20,7 +20,7 @@ private[appkit] object SecurityCli:
         val _ = (service, account)
         Absent
 
-  def fail(error: SecretError): SecurityCli =
+  def fail(error: SecretException): SecurityCli =
     new SecurityCli:
       def findGenericPassword(service: String, account: String) =
         val _ = (service, account)

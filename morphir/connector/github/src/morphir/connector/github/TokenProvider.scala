@@ -1,7 +1,7 @@
 package morphir.connector.github
 
 import kyo.*
-import morphir.appkit.SecretError
+import morphir.appkit.SecretException
 import morphir.appkit.SecretStore
 import morphir.connector.github.internal.GhAuth
 
@@ -95,8 +95,8 @@ object TokenProvider:
 
   private final class VaultProvider(store: SecretStore, service: String, account: String) extends TokenProvider:
     def token: Token < (Abort[GitHubException] & Async) =
-      Abort.run[SecretError](store.get(service, account)).map {
-        case Result.Success(Present(raw)) => parseNamed(s"$service/$account", raw)
+      Abort.run[SecretException](store.get(service, account)).map {
+        case Result.Success(Present(secret)) => parseNamed(s"$service/$account", secret.unsafeReveal)
         case Result.Success(Absent)       =>
           Abort.fail(GitHubException.Unauthorized(s"no secret for $service/$account"))
         case Result.Failure(err) => Abort.fail(GitHubException.Unauthorized(err.getMessage))

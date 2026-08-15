@@ -13,7 +13,7 @@ private[github] object PlatformLive:
     def listIssues(
         repository: RepositoryRef,
         after: Maybe[Cursor],
-        first: Int
+        first: PageSize
     ): ConnectionPage[Issue] < (Abort[GitHubException] & Async) =
       post[GraphQl.IssuesEnvelope](GraphQl.listIssuesDocument(repository, after, first)).map(env =>
         GithubClient.lift(GraphQl.issuesFrom(env))
@@ -21,7 +21,7 @@ private[github] object PlatformLive:
     def listPullRequests(
         repository: RepositoryRef,
         after: Maybe[Cursor],
-        first: Int
+        first: PageSize
     ): ConnectionPage[PullRequest] < (Abort[GitHubException] & Async) =
       post[GraphQl.PullRequestsEnvelope](GraphQl.listPullRequestsDocument(repository, after, first)).map(env =>
         GithubClient.lift(GraphQl.pullRequestsFrom(env))
@@ -29,7 +29,7 @@ private[github] object PlatformLive:
     def listDiscussions(
         repository: RepositoryRef,
         after: Maybe[Cursor],
-        first: Int,
+        first: PageSize,
         replyDepth: ReplyDepth
     ): ConnectionPage[Discussion] < (Abort[GitHubException] & Async) =
       post[GraphQl.DiscussionsEnvelope](GraphQl.listDiscussionsDocument(repository, after, first, replyDepth)).map(
@@ -39,7 +39,7 @@ private[github] object PlatformLive:
     def listDiscussionReplies(
         commentId: DiscussionCommentId,
         after: Maybe[Cursor],
-        first: Int,
+        first: PageSize,
         replyDepth: ReplyDepth
     ): ConnectionPage[DiscussionComment] < (Abort[GitHubException] & Async) =
       post[GraphQl.NodeRepliesEnvelope](
@@ -49,7 +49,7 @@ private[github] object PlatformLive:
         repository: RepositoryRef,
         number: IssueNumber,
         after: Maybe[Cursor],
-        first: Int
+        first: PageSize
     ): ConnectionPage[IssueComment] < (Abort[GitHubException] & Async) =
       post[GraphQl.IssueCommentsEnvelope](GraphQl.listIssueCommentsDocument(repository, number, after, first)).map(
         env => GithubClient.lift(GraphQl.issueCommentsFrom(env))
@@ -58,7 +58,7 @@ private[github] object PlatformLive:
         repository: RepositoryRef,
         number: PullRequestNumber,
         after: Maybe[Cursor],
-        first: Int
+        first: PageSize
     ): ConnectionPage[IssueComment] < (Abort[GitHubException] & Async) =
       post[GraphQl.PullRequestCommentsEnvelope](
         GraphQl.listPullRequestCommentsDocument(repository, number, after, first)
@@ -67,7 +67,7 @@ private[github] object PlatformLive:
         repository: RepositoryRef,
         number: DiscussionNumber,
         after: Maybe[Cursor],
-        first: Int,
+        first: PageSize,
         replyDepth: ReplyDepth
     ): ConnectionPage[DiscussionComment] < (Abort[GitHubException] & Async) =
       post[GraphQl.DiscussionCommentsEnvelope](

@@ -6,7 +6,7 @@ import morphir.appkit.internal.SecurityCli
 
 /** Reads a secret from an OS password store. A missing entry is Absent, not an error. */
 trait SecretStore:
-  def get(service: String, account: String): Maybe[String] < (Abort[SecretError] & Async)
+  def get(service: String, account: String): Maybe[Secret] < (Abort[SecretException] & Async)
 
 object SecretStore:
 
@@ -35,15 +35,21 @@ object SecretStore:
     MacOsKeychainStore(security)
 
   private final class ConstStore(entries: Map[(String, String), String]) extends SecretStore:
-    def get(service: String, account: String): Maybe[String] < (Abort[SecretError] & Async) =
+    def get(service: String, account: String): Maybe[Secret] < (Abort[SecretException] & Async) =
       entries.get((service, account)) match
-        case Some(secret) => Present(secret)
+        case Some(secret) => Secret.fromStored(secret)
         case None         => Absent
 
   private final class JavaKeychainStore(keyring: KeyringGet) extends SecretStore:
-    def get(service: String, account: String): Maybe[String] < (Abort[SecretError] & Async) =
-      keyring.password(service, account)
+    def get(service: String, account: String): Maybe[Secret] < (Abort[SecretException] & Async) =
+      keyring.password(service, account).map {
+        case Present(raw) => Secret.fromStored(raw)
+        case Absent       => Absent
+      }
 
   private final class MacOsKeychainStore(security: SecurityCli) extends SecretStore:
-    def get(service: String, account: String): Maybe[String] < (Abort[SecretError] & Async) =
-      security.findGenericPassword(service, account)
+    def get(service: String, account: String): Maybe[Secret] < (Abort[SecretException] & Async) =
+      security.findGenericPassword(service, account).map {
+        case Present(raw) => Secret.fromStored(raw)
+        case Absent       => Absent
+      }

@@ -34,6 +34,22 @@ object Cursor:
 
   extension (cursor: Cursor) def asString: String = cursor
 
+/** A positive GitHub GraphQL connection page size (`first`). */
+opaque type PageSize = Int
+
+object PageSize:
+  given CanEqual[PageSize, PageSize] = CanEqual.derived
+  given Schema[PageSize]             = GithubOpaqueSchemas.int
+
+  val default: PageSize = 100
+
+  def parse(n: Int): Maybe[PageSize] =
+    if n > 0 then Present(n) else Absent
+
+  private[github] def fromWire(n: Int): PageSize = n
+
+  extension (size: PageSize) def toInt: Int = size
+
 /** Repository issue number (`Issue.number`). Not a discussion number and not a page size. */
 opaque type IssueNumber = Int
 

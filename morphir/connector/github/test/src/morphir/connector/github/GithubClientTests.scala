@@ -27,6 +27,7 @@ class GithubClientTests extends SnapshotTest[Any]:
   private def discNo(n: Int): DiscussionNumber          = DiscussionNumber.fromWire(n)
   private def cursor(s: String): Cursor                 = Cursor.fromWire(s)
   private def commentId(s: String): DiscussionCommentId = DiscussionCommentId.fromWire(s)
+  private def pageSize(n: Int): PageSize                = PageSize.fromWire(n)
 
   "GitHubException" - {
     "is catchable as MorphirException" in {
@@ -36,6 +37,9 @@ class GithubClientTests extends SnapshotTest[Any]:
         catch case e: MorphirException => e.getMessage == "missing token"
       assert(caught)
     }
+    "renders its variant and message" in
+      assert(Render.asString(GitHubException.Unauthorized("missing token")) ==
+        "GitHubException.Unauthorized: missing token")
   }
 
   "Token" - {
@@ -59,6 +63,14 @@ class GithubClientTests extends SnapshotTest[Any]:
           assert(!token.toString.contains("x" * 32))
           assert(!token.toString.contains(secret))
         case Absent => assert(false)
+    }
+  }
+
+  "PageSize" - {
+    "accepts positive sizes and rejects zero or negative sizes" in {
+      assert(PageSize.parse(50) == Present(PageSize.fromWire(50)))
+      assert(PageSize.parse(0).isEmpty)
+      assert(PageSize.parse(-1).isEmpty)
     }
   }
 
@@ -530,7 +542,11 @@ class GithubClientTests extends SnapshotTest[Any]:
     }
     "passes after and first into the issues query" in {
       val request =
-        GraphQl.listIssuesDocument(RepositoryRef("acme", "widgets"), after = Present(cursor("cursor1")), first = 50)
+        GraphQl.listIssuesDocument(
+          RepositoryRef("acme", "widgets"),
+          after = Present(cursor("cursor1")),
+          first = pageSize(50)
+        )
       assert(request.query.contains("after:\"cursor1\""))
       assert(request.query.contains("first:50"))
     }
@@ -546,7 +562,7 @@ class GithubClientTests extends SnapshotTest[Any]:
         GraphQl.listPullRequestsDocument(
           RepositoryRef("acme", "widgets"),
           after = Present(cursor("cursor1")),
-          first = 50
+          first = pageSize(50)
         )
       assert(request.query.contains("after:\"cursor1\""))
       assert(request.query.contains("first:50"))
@@ -563,7 +579,7 @@ class GithubClientTests extends SnapshotTest[Any]:
         GraphQl.listDiscussionsDocument(
           RepositoryRef("acme", "widgets"),
           after = Present(cursor("cursor1")),
-          first = 50
+          first = pageSize(50)
         )
       assert(request.query.contains("after:\"cursor1\""))
       assert(request.query.contains("first:50"))
@@ -596,7 +612,7 @@ class GithubClientTests extends SnapshotTest[Any]:
           RepositoryRef("acme", "widgets"),
           issueNo(1),
           after = Present(cursor("cursor1")),
-          first = 50
+          first = pageSize(50)
         )
       assert(request.query.contains("after:\"cursor1\""))
       assert(request.query.contains("first:50"))

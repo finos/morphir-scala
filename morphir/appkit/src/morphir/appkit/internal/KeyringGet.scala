@@ -5,7 +5,7 @@ import kyo.*
 
 /** Reads one password from a Java keyring. Tests inject a fake. */
 private[appkit] trait KeyringGet:
-  def password(service: String, account: String): Maybe[String] < (Abort[SecretError] & Async)
+  def password(service: String, account: String): Maybe[String] < (Abort[SecretException] & Async)
 
 private[appkit] object KeyringGet:
   def succeed(secret: String): KeyringGet =
@@ -20,7 +20,7 @@ private[appkit] object KeyringGet:
         val _ = (service, account)
         Absent
 
-  def fail(error: SecretError): KeyringGet =
+  def fail(error: SecretException): KeyringGet =
     new KeyringGet:
       def password(service: String, account: String) =
         val _ = (service, account)

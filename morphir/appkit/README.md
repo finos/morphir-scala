@@ -3,10 +3,12 @@
 Host-application integrations: Morphir running inside another product's surface.
 
 The family-root artifact is `org.finos.morphir::morphir-appkit`. Package `morphir.appkit`.
-`SecretStore` reads an OS password store. A missing entry is `Absent`. `javaKeychain` uses
-`com.github.javakeyring:java-keyring:1.0.4` on the JVM and is not a published kit. `macOsKeychain`
-runs `security find-generic-password` on the JVM, Node, and Scala Native. Tests inject a fake store
-and do not require a real Keychain.
+`SecretStore.get` returns `Maybe[Secret]`; a missing or empty entry is `Absent`. `Secret` redacts
+`toString`, has no public string accessor, and preserves stored whitespace. Failures are
+`SecretException`, which extends `MorphirException`. `javaKeychain` uses
+`com.github.javakeyring:java-keyring:1.0.4` on the JVM and is not a published kit. `macOsKeychain` runs
+`security find-generic-password` on the JVM, Node, and Scala Native. Tests inject a fake store and do not
+require a real Keychain.
 
 | Planned leaf | Artifact | Host |
 | --- | --- | --- |

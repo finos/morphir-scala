@@ -7,14 +7,14 @@ import kyo.*
 
 /** JVM java-keyring backend. Missing entries are Absent. */
 private[appkit] object PlatformKeyring extends KeyringGet:
-  def password(service: String, account: String): Maybe[String] < (Abort[SecretError] & Async) =
+  def password(service: String, account: String): Maybe[String] < (Abort[SecretException] & Async) =
     Sync.defer(run(service, account)).map {
       case Result.Success(value) => value
       case Result.Failure(err)   => Abort.fail(err)
-      case Result.Panic(err)     => Abort.fail(SecretError.LookupFailed(err.getMessage))
+      case Result.Panic(err)     => Abort.fail(SecretException.LookupFailed(err.getMessage))
     }
 
-  private def run(service: String, account: String): Result[SecretError, Maybe[String]] =
+  private def run(service: String, account: String): Result[SecretException, Maybe[String]] =
     try
       val keyring = Keyring.create()
       try
@@ -27,4 +27,4 @@ private[appkit] object PlatformKeyring extends KeyringGet:
       case _: PasswordAccessException =>
         Result.Success(Absent)
       case e: Exception =>
-        Result.Failure(SecretError.LookupFailed(e.getMessage))
+        Result.Failure(SecretException.LookupFailed(e.getMessage))

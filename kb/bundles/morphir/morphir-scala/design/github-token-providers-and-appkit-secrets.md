@@ -79,8 +79,8 @@ Proposed layers:
 | `TokenProvider.gitHubActions` | `TokenProvider` | `Any` |
 | `TokenProvider.gitHubCli(user, hostname)` | `TokenProvider` | `Abort[GitHubException]` and `Async` |
 | `TokenProvider.vault(service, account)` | `TokenProvider` | `Env[SecretStore]`, `Abort[GitHubException]`, and `Async` |
-| `SecretStore.macOsKeychain` | `SecretStore` | `Abort[SecretError]` and `Async` |
-| `SecretStore.javaKeychain` | `SecretStore` | `Abort[SecretError]` and `Async` (JVM) |
+| `SecretStore.macOsKeychain` | `SecretStore` | `Abort[SecretException]` and `Async` |
+| `SecretStore.javaKeychain` | `SecretStore` | `Abort[SecretException]` and `Async` (JVM) |
 
 Example:
 
@@ -139,14 +139,20 @@ That layer runs `gh auth token`, and adds `--user` / `--hostname` when those arg
 
 ```scala
 trait SecretStore:
-  def get(service: String, account: String): Maybe[String] < (Abort[SecretError] & Async)
+  def get(service: String, account: String): Maybe[Secret] < (Abort[SecretException] & Async)
 ```
 
-A missing entry is `Absent`. The GitHub vault adapter turns `Absent` or a failed `parse` into `GitHubException.Unauthorized`.
+A missing or empty entry is `Absent`. `Secret` is a `final class` with a private constructor. It is not a case class
+or opaque `String`; `toString` is always `Secret(redacted)`, `hashCode` is `0`, and equality compares the stored
+value. `Secret.fromStored` preserves all whitespace and rejects only the empty string. It exposes no public string
+accessor. `private[morphir] def unsafeReveal: String` lets the GitHub vault adapter parse the stored value into
+`Token` without making it printable. `SecretException` extends `MorphirException`, so secret-store failures are typed
+values and catchable boundary exceptions. The GitHub vault adapter turns `Absent` or a failed `parse` into
+`GitHubException.Unauthorized`.
 
 Two early backends:
 
-- `macOsKeychain` talks to the macOS Keychain (process `security`). JVM, Node, and Scala Native spawn that process through the same shared `kyo.Command` path as `gitHubCli`.
+- `macOsKeychain` talks to the macOS Keychain (process `security`). JVM, Node, and Scala Native spawn that process through the same shared `kyo.Command` path as `gitHubCli`. It removes only the command's final newline or CRLF, preserving intentional secret whitespace.
 - `javaKeychain` is a JVM backend Morphir provides. It uses a Java keyring library as an implementation detail, not a published kit. On the JVM that path also reaches Windows Credential Manager and Linux secret service.
 
 JS and Native keep the `SecretStore` trait. `javaKeychain` is JVM-only, the same kind of split as live GitHub HTTP.

@@ -2,6 +2,10 @@
 
 ## 2026-08-15
 
+* **Update**: Recorded that GitHub list paging takes opaque `PageSize`, that `GitHubException` has a safe `Render`,
+  and that appkit `SecretException` extends `MorphirException`, in
+  [Published library families](/design/published-library-families.md) and
+  [GitHub token providers and appkit secrets](/design/github-token-providers-and-appkit-secrets.md).
 * **Update**: Recorded that process auth for `gh` and `security` uses shared `kyo.Command` spawn with concurrent
   stream drains on JVM, Node, and Scala Native, in
   [GitHub token providers and appkit secrets](/design/github-token-providers-and-appkit-secrets.md).

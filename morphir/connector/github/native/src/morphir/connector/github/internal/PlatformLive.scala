@@ -23,26 +23,26 @@ private[github] object PlatformLive:
     def listIssues(
         repository: RepositoryRef,
         after: Maybe[Cursor],
-        first: Int
+        first: PageSize
     ): ConnectionPage[Issue] < (Abort[GitHubException] & Async) =
       Abort.fail(GitHubException.Transport(detail))
     def listPullRequests(
         repository: RepositoryRef,
         after: Maybe[Cursor],
-        first: Int
+        first: PageSize
     ): ConnectionPage[PullRequest] < (Abort[GitHubException] & Async) =
       Abort.fail(GitHubException.Transport(detail))
     def listDiscussions(
         repository: RepositoryRef,
         after: Maybe[Cursor],
-        first: Int,
+        first: PageSize,
         replyDepth: ReplyDepth
     ): ConnectionPage[Discussion] < (Abort[GitHubException] & Async) =
       Abort.fail(GitHubException.Transport(detail))
     def listDiscussionReplies(
         commentId: DiscussionCommentId,
         after: Maybe[Cursor],
-        first: Int,
+        first: PageSize,
         replyDepth: ReplyDepth
     ): ConnectionPage[DiscussionComment] < (Abort[GitHubException] & Async) =
       Abort.fail(GitHubException.Transport(detail))
@@ -50,21 +50,21 @@ private[github] object PlatformLive:
         repository: RepositoryRef,
         number: IssueNumber,
         after: Maybe[Cursor],
-        first: Int
+        first: PageSize
     ): ConnectionPage[IssueComment] < (Abort[GitHubException] & Async) =
       Abort.fail(GitHubException.Transport(detail))
     def listPullRequestComments(
         repository: RepositoryRef,
         number: PullRequestNumber,
         after: Maybe[Cursor],
-        first: Int
+        first: PageSize
     ): ConnectionPage[IssueComment] < (Abort[GitHubException] & Async) =
       Abort.fail(GitHubException.Transport(detail))
     def listDiscussionComments(
         repository: RepositoryRef,
         number: DiscussionNumber,
         after: Maybe[Cursor],
-        first: Int,
+        first: PageSize,
         replyDepth: ReplyDepth
     ): ConnectionPage[DiscussionComment] < (Abort[GitHubException] & Async) =
       Abort.fail(GitHubException.Transport(detail))
