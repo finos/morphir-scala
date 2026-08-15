@@ -13,7 +13,7 @@ Draft Design Notes and research are provisional.
 
 ## Design Notes
 
-* [Published library families](/design/published-library-families.md) - The narrative home for kit, connector, appkit, langkit markdown, and knowledge/okf: taxonomy, first skeletons, and the open parser and HTTP questions.
+* [Published library families](/design/published-library-families.md) - The narrative home for kit, connector, appkit, langkit markdown, and knowledge/okf: taxonomy, first modules, and the CommonMark and Native HTTP questions.
 * [GitHub token providers and appkit secrets](/design/github-token-providers-and-appkit-secrets.md) - Live GitHub calls take Env[TokenProvider]; named providers and appkit SecretStore supply the token without logging it.
 * [Package URL-centered package management](/design/package-url-package-management.md) - A design for PURL identities, reproducible materialization, and packages outside ecosystem registries.
 * [Multi-frontend pipeline and workspace boundaries](/design/pipeline-workspace-boundaries.md) - A design for shared buildkit phases, workspace normalization, frontend isolation, and issue #930.

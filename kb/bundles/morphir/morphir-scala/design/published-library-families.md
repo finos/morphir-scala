@@ -1,7 +1,7 @@
 ---
 type: Design Note
 title: Published library families
-description: "The narrative home for kit, connector, appkit, langkit markdown, and knowledge/okf: taxonomy, first skeletons, and the open parser and HTTP questions."
+description: "The narrative home for kit, connector, appkit, langkit markdown, and knowledge/okf: taxonomy, first modules, and the CommonMark and Native HTTP questions."
 tags: [modules, kit, connector, appkit, knowledge, langkit]
 status: draft
 ---
@@ -9,7 +9,7 @@ status: draft
 # Published library families
 
 The capability this note tracks: Morphir publishes general-purpose libraries beside its IR tooling, in five families whose mill paths and artifacts a reader can predict. The taxonomy is settled in
-[decision 0013](/decisions/0013-published-library-families.md). This note is the narrative home for delivering the first three modules and for the questions that still move: markdown parsing on Native, and live HTTP on Scala Native.
+[decision 0013](/decisions/0013-published-library-families.md). This note is the narrative home for delivering the first three modules and for the questions that still move: full CommonMark and live HTTP on Scala Native.
 
 ```mermaid
 flowchart LR
@@ -32,7 +32,7 @@ flowchart LR
 
 Kit already exists and means one thing: a bridge to a Scala library Morphir builds on, with no Morphir types, on JVM, JS, and Native. GitHub, markdown, Electron, and Codeium were going to land somewhere. Putting them in kit would empty that rule. Putting them in `contrib/` would hide first-class work in a parking lot. The families in decision 0013 are the place.
 
-The first skeletons exist so GitHub, markdown, and OKF work can proceed in parallel. They compile, test, and mix `MorphirPublishModule`. Tests do not call `api.github.com`. The markdown stub is not CommonMark. OKF does not yet round-trip a real `kb/` bundle.
+The first skeletons exist so GitHub, markdown, and OKF work can proceed in parallel. They compile, test, and mix `MorphirPublishModule`. Tests do not call `api.github.com`. Markdown parses a CommonMark block subset. OKF parses documents and in-memory bundles; it does not yet load `kb/` from disk.
 
 ## Constraints that stay
 
@@ -98,15 +98,15 @@ Artifact `org.finos.morphir::morphir-langkit-markdown`. Package `morphir.langkit
 
 `langkit.core` mixes `MorphirPublishModule` so a published markdown module can depend on it. Mill's `PublishModule` will not take an unpublished `moduleDep`.
 
-**Parser (open).** `commonmark-java` is JVM-only and must not enter this module. A cross-platform parser, or a shared AST with per-platform engines, has to be named before the module grows past the stub. The stub parses ATX headings and paragraphs into a CST so tests run on all three platforms with no third-party parser.
+**Parser (subset, Morphir-owned).** `commonmark-java` is JVM-only and must not enter this module. The module owns a CommonMark subset parser that compiles on JVM, JS, and Native: ATX headings, paragraphs, fenced code, unordered lists, and thematic breaks. Inlines stay raw text. Nested lists, Setext headings, and a full inline parser are later. A third-party engine remains allowed if one appears on all three platforms.
 
 ### `morphir/knowledge/okf`
 
 Artifact `org.finos.morphir::morphir-knowledge-okf`. Package `morphir.knowledge.okf`. JVM, JS, and Native.
 
-The shared sources hold the OKF model (bundle, concept, frontmatter) and depend on `langkit.markdown` for bodies. GitHub ingest depends on `connector.github` and also lives in shared sources, so it follows the connector onto JS and Native. JVM-only pieces, if any appear, go in `jvm/src`.
+The shared sources hold the OKF model (bundle, concept, frontmatter) and depend on `langkit.markdown` for bodies. `Concept.parse` splits a leading YAML fence and parses the body. Frontmatter accessors are permissive (`Maybe`). `Bundle.parse` loads from in-memory files; the root `index.md` must carry `okf_version`. GitHub ingest depends on `connector.github` and also lives in shared sources, so it follows the connector onto JS and Native. JVM-only pieces, if any appear, go in `jvm/src`.
 
-The kb skill (`KbModel.scala` and friends) does not move in this pass. The published library is a new API. Switching the skill onto it is a later intent.
+The library takes `DocKind`, frontmatter split, and the bundle shape from the kb skill (`KbModel` / `KbStore`). Frontmatter decoding uses Kyo `kyo-schema-yaml`, not a handwritten parser or SnakeYAML. Optional fields use `Maybe`. Snake-case OKF keys such as `okf_version` map onto camelCase fields via `@rename`. `-Yretain-trees` is off by default (opt in with `MorphirRetainTrees`) so `Tag[Maybe[A]]` works; see https://github.com/getkyo/kyo/issues/1883. The library does not take commonmark-java or the check engine. The kb skill does not move in this pass. Switching the skill onto the published library is a later intent.
 
 `morphir/contrib/knowledge` (microkanren) stays where it is.
 
@@ -135,8 +135,8 @@ Intent 0004 (project intent outward as GitHub issues) stays Cancelled. GitHub in
 ## Unresolved
 
 1. **Live HTTP on Native.** `kyo-http` 1.0.0-RC6 live POST is wired on the JVM and on Node.js. Scala Native stays stubbed because the published kyo-net Native artifact at that version does not link kqueue on macOS. Linux Native is untested. A later kyo RC that ships Darwin codegen would reopen this.
-2. **Markdown parser.** Which library, or which per-platform engines, produce a shared CST on all three platforms. Unverified. The stub is not that parser.
+2. **Markdown parser.** Full CommonMark (inlines, nested lists, Setext headings) and whether a third-party engine replaces the Morphir-owned subset. The subset is the current production parser, not a compile stub.
 3. **Caliban subset workflow.** How the GitHub schema is cut down before codegen (hand-edited SDL, a documents file, or an external subset tool). The first subset is small enough to edit by hand. A tool is not required until the operation set grows.
-4. **OKF fidelity.** How closely `morphir.knowledge.okf` matches the kb skill's current model, and when the skill switches. Out of scope for the skeleton.
+4. **OKF fidelity.** Filesystem loading, structural checks, and when the kb skill switches onto this library. Document and in-memory bundle parse now exist.
 
 A finding that Native HTTP is impossible would reopen the platform half of [decision 0013](/decisions/0013-published-library-families.md), as that record already says.
