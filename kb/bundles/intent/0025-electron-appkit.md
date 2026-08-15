@@ -2,7 +2,7 @@
 type: Intent
 title: Electron appkit
 description: "Publish morphir-appkit-electron for running Morphir inside an Electron host using Scala."
-state: Refinement
+state: InProgress
 kind: feature
 breaking: false
 created: 2026-08-14
