@@ -2,7 +2,7 @@ extends: Module
 
 object jvm:
   extends: [build.MorphirJVMModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps, build.MorphirCalibanClientMvnDeps]
-  moduleDeps: [build.morphir.appkit.jvm]
+  moduleDeps: [build.morphir.appkit.jvm, build.morphir.prelude.jvm]
   mvnDeps: !append
   - io.getkyo::kyo-config
   - io.getkyo::kyo-http
@@ -13,7 +13,7 @@ object jvm:
 
 object js:
   extends: [build.MorphirJSModule, build.MorphirJSNodeModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps, build.MorphirCalibanClientMvnDeps]
-  moduleDeps: [build.morphir.appkit.js]
+  moduleDeps: [build.morphir.appkit.js, build.morphir.prelude.js]
   mvnDeps: !append
   - io.getkyo::kyo-config
   - io.getkyo::kyo-http
@@ -24,7 +24,7 @@ object js:
 
 object native:
   extends: [build.MorphirNativeModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps, build.MorphirCalibanClientMvnDeps]
-  moduleDeps: [build.morphir.appkit.native]
+  moduleDeps: [build.morphir.appkit.native, build.morphir.prelude.native]
   mvnDeps: !append
   - io.getkyo::kyo-config
   - io.getkyo::kyo-schema

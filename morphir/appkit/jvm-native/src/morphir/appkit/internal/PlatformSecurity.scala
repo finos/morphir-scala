@@ -5,7 +5,7 @@ import java.nio.charset.StandardCharsets
 import kyo.*
 import scala.jdk.CollectionConverters.*
 
-/** Spawns `security find-generic-password` on the JVM. Exit 44 is Absent. */
+/** Spawns `security find-generic-password` on the JVM and Scala Native. Exit 44 is Absent. */
 private[appkit] object PlatformSecurity extends SecurityCli:
   private val NotFound = 44
 

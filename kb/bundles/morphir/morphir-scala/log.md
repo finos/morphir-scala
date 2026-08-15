@@ -2,6 +2,9 @@
 
 ## 2026-08-15
 
+* **Update**: Recorded that `TokenProvider.gitHubCli` and `SecretStore.macOsKeychain` spawn `gh` and
+  `security` on Scala Native, in
+  [GitHub token providers and appkit secrets](/design/github-token-providers-and-appkit-secrets.md).
 * **Update**: Recorded that GitHub public models have `Render` instances, in
   [Published library families](/design/published-library-families.md).
 * **Update**: Recorded that GitHub issue, pull request, and discussion numbers form the `GithubNumber` union, with

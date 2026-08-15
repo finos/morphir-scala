@@ -3,6 +3,7 @@ package morphir.connector.github
 import kyo.*
 import kyo.test.*
 import kyo.test.snapshot.*
+import morphir.MorphirException
 import morphir.appkit.SecretStore
 import morphir.connector.github.internal.GhAuth
 import morphir.connector.github.internal.GraphQl
@@ -25,6 +26,16 @@ class GithubClientTests extends SnapshotTest[Any]:
   private def discNo(n: Int): DiscussionNumber          = DiscussionNumber.fromWire(n)
   private def cursor(s: String): Cursor                 = Cursor.fromWire(s)
   private def commentId(s: String): DiscussionCommentId = DiscussionCommentId.fromWire(s)
+
+  "GithubError" - {
+    "is catchable as MorphirException" in {
+      val err: MorphirException = GithubError.Unauthorized("missing token")
+      val caught                =
+        try throw err
+        catch case e: MorphirException => e.getMessage == "missing token"
+      assert(caught)
+    }
+  }
 
   "Token" - {
     "rejects a blank string" in
@@ -740,6 +751,13 @@ class GithubClientTests extends SnapshotTest[Any]:
         case _                   => assert(false)
       }
     }
+    "spawns gh rather than failing as an unlinked process floor" in
+      run(TokenProvider.gitHubCli().token).map {
+        case Result.Failure(GithubError.Transport(_))    => assert(false)
+        case Result.Failure(GithubError.Unauthorized(_)) => assert(true)
+        case Result.Success(_)                           => assert(true)
+        case _                                           => assert(false)
+      }
   }
 
   "TokenProvider.vault" - {

@@ -75,4 +75,12 @@ class SecretStoreTests extends Test[Any]:
         case _ => assert(false)
       }
     }
+    "spawns security rather than failing as an unlinked process floor" in
+      run(SecretStore.macOsKeychain.get("morphir-test-missing", "morphir-test-missing")).map {
+        case Result.Failure(SecretError.NotAvailable(detail)) =>
+          assert(!detail.contains("not linked"))
+        case Result.Failure(SecretError.LookupFailed(_)) => assert(true)
+        case Result.Success(_)                           => assert(true)
+        case _                                           => assert(false)
+      }
   }

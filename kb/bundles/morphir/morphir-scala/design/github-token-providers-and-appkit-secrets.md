@@ -129,7 +129,7 @@ TokenProvider.gitHubCli(
 )
 ```
 
-That layer runs `gh auth token`, and adds `--user` / `--hostname` when those arguments are present. Stdout is trimmed and passed to `Token.parse`. A missing binary or a non-zero exit is `Unauthorized` with the process detail, not `Transport`. JVM and Node spawn the process. Native fails with `Transport` until a process floor exists.
+That layer runs `gh auth token`, and adds `--user` / `--hostname` when those arguments are present. Stdout is trimmed and passed to `Token.parse`. A missing binary or a non-zero exit is `Unauthorized` with the process detail, not `Transport`. JVM, Node, and Scala Native spawn the process.
 
 `Absent` for both is a valid choice: use whatever `gh` treats as active. The provider does not pick among accounts on its own. The rest of `gh` stays [intent 0024](../../../intent/0024-github-cli-connector.md).
 
@@ -144,14 +144,14 @@ trait SecretStore:
 
 A missing entry is `Absent`. The GitHub vault adapter turns `Absent` or a failed `parse` into `GithubError.Unauthorized`.
 
-Two early JVM-facing backends:
+Two early backends:
 
-- `macOsKeychain` talks to the macOS Keychain (process `security`, or the Mac path of a Java keyring).
+- `macOsKeychain` talks to the macOS Keychain (process `security`). JVM, Node, and Scala Native spawn that process.
 - `javaKeychain` is a JVM backend Morphir provides. It uses a Java keyring library as an implementation detail, not a published kit. On the JVM that path also reaches Windows Credential Manager and Linux secret service.
 
 JS and Native keep the `SecretStore` trait. `javaKeychain` is JVM-only, the same kind of split as live GitHub HTTP.
 
-Which Java keyring artifact to pin is `com.github.javakeyring:java-keyring:1.0.4`. It is a JVM implementation detail of `javaKeychain`, not a published kit. `macOsKeychain` runs `security find-generic-password`. Native process spawn for `security` is still missing.
+Which Java keyring artifact to pin is `com.github.javakeyring:java-keyring:1.0.4`. It is a JVM implementation detail of `javaKeychain`, not a published kit. `macOsKeychain` runs `security find-generic-password`.
 
 Kit does not depend on connector. GitHub depends on appkit for the vault adapter. Flags, Actions, and `gh` do not need the store at construction.
 
@@ -165,7 +165,7 @@ Electron remains a later leaf ([intent 0025](../../../intent/0025-electron-appki
 
 ### Tests
 
-Tests do not call `api.github.com`. Flag tests assert `token.name` and `token.envName`, and that a blank value is `Unauthorized`. They do not set the system property in-process: `StaticFlag` reads once at class load. `gitHubActions` tests parse a `GITHUB_TOKEN` value and, when the process env is set (GitHub Actions), only check that lookup succeeds. `gh` and keychain use a fake `SecretStore` or a process seam. The `gh` seam records `--user` and `--hostname` when present. CI does not require a real Keychain.
+Tests do not call `api.github.com`. Flag tests assert `token.name` and `token.envName`, and that a blank value is `Unauthorized`. They do not set the system property in-process: `StaticFlag` reads once at class load. `gitHubActions` tests parse a `GITHUB_TOKEN` value and, when the process env is set (GitHub Actions), only check that lookup succeeds. `gh` and keychain use a fake `SecretStore` or a process seam for argument and error mapping. The `gh` seam records `--user` and `--hostname` when present. A separate platform test spawns the real `gh` and `security` binaries. A missing binary, a non-zero exit, or a missing Keychain item still passes. CI does not require a logged-in `gh` or a real Keychain entry.
 
 ## Alternatives
 
@@ -187,6 +187,5 @@ Tests do not call `api.github.com`. Flag tests assert `token.name` and `token.en
 
 - Whether `.provide` needs `kyo-combinators` on the GitHub classpath, or `Env.runLayer` from prelude is enough.
 - `DynamicFlag` for in-process rotation.
-- Native process spawn for `gh` and `security`.
 
 A Decision Record is not warranted until the first providers ship and the mill path is in the build.

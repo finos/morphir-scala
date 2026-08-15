@@ -107,7 +107,7 @@ The kb skill (`KbModel.scala` and friends) does not move in this pass. The publi
 
 ### `morphir/appkit`
 
-Artifact `org.finos.morphir::morphir-appkit`. Package `morphir.appkit`. First surface is `SecretStore` plus macOS Keychain and JVM java-keychain backends. `javaKeychain` pins `com.github.javakeyring:java-keyring:1.0.4` as an implementation detail. `macOsKeychain` runs `security find-generic-password`. This is host capability, not a vault kit and not Electron. GitHub's vault `TokenProvider` depends on it. Detail: [GitHub token providers and appkit secrets](/design/github-token-providers-and-appkit-secrets.md). `electron` and `codeium` children wait on [0025](../../../intent/0025-electron-appkit.md) and [0026](../../../intent/0026-codeium-appkit.md).
+Artifact `org.finos.morphir::morphir-appkit`. Package `morphir.appkit`. First surface is `SecretStore` plus macOS Keychain and JVM java-keychain backends. `javaKeychain` pins `com.github.javakeyring:java-keyring:1.0.4` as an implementation detail. `macOsKeychain` runs `security find-generic-password` on the JVM, Node, and Scala Native. This is host capability, not a vault kit and not Electron. GitHub's vault `TokenProvider` depends on it. Detail: [GitHub token providers and appkit secrets](/design/github-token-providers-and-appkit-secrets.md). `electron` and `codeium` children wait on [0025](../../../intent/0025-electron-appkit.md) and [0026](../../../intent/0026-codeium-appkit.md).
 
 ## Delivery intents
 

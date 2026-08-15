@@ -5,7 +5,7 @@ import java.nio.charset.StandardCharsets
 import kyo.*
 import scala.jdk.CollectionConverters.*
 
-/** Spawns `gh auth token` on the JVM. Missing binary or a non-zero exit is Unauthorized. */
+/** Spawns `gh auth token` on the JVM and Scala Native. Missing binary or a non-zero exit is Unauthorized. */
 private[github] object PlatformGhAuth extends GhAuth:
   def stdout(args: Chunk[String]): String < (Abort[GithubError] & Async) =
     Sync.defer(run(args)).map {
