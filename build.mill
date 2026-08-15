@@ -400,7 +400,8 @@ def platformScalaDep(dep: Dep): Dep =
 def isCompilerOrPluginDep(dep: Dep): Boolean =
   val org  = dep.dep.module.organization.value
   val name = dep.dep.module.name.value
-  (org == "org.scala-lang" && name.contains("compiler")) ||
+  (org == "org.scala-lang" &&
+    (name.contains("compiler") || name.contains("scaladoc") || name.contains("tasty-inspector"))) ||
   (org == "org.scala-js" && name.contains("compiler")) ||
   (org == "org.scala-native" && (name == "nscplugin" || name.contains("compiler")))
 
