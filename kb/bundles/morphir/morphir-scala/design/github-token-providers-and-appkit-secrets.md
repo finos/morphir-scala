@@ -20,7 +20,7 @@ Kyo is the effect system this module uses. `Env[A]` means the running program mu
 
 A vault is not GitHub-specific. Other Morphir tools will need the same read. It is not a kit: a kit wraps one Scala library Morphir builds on ([decision 0012](/decisions/0012-published-library-families.md)). It is not a dedicated vault module either. Appkit is the family for host applications (CLIs, Electron). `SecretStore` is an early appkit surface, not a secrets kit.
 
-`Token` is an opaque type alias for `String` today. Opaque means the compiler treats it as a distinct type, but at runtime it is still a `String`. Interpolation, `println`, and loggers print the secret. `.value` makes that easy.
+`Token` is a `final class` with a private constructor. It is not a case class and not an opaque `String`. Case class `toString`, `copy`, and `productIterator` leak the secret. An opaque alias is still a `String` at runtime.
 
 ## Argument
 
@@ -91,7 +91,7 @@ Memo.run(Env.runLayer(SecretStore.javaKeychain, TokenProvider.vault("gh", "morph
 
 `Token` is a `final class` with a private constructor. It is not a case class and not an opaque `String`. Case class `toString`, `copy`, and `productIterator` leak the secret. An opaque alias is still a `String` at runtime.
 
-`toString` is always `Token(redacted)`. `hashCode` is `0` so a dump of a map does not show a token hash. Equality still compares the secret.
+`toString` shows a GitHub type prefix (or the first four characters) and the last four characters when at least 16 characters stay hidden, for example `Token(ghp_...abcd)`. Shorter values print `Token(redacted)`. `hashCode` is `0` so a dump of a map does not show a token hash. Equality still compares the secret.
 
 There is no public string accessor. The HTTP layer uses `private[github] def unsafeReveal: String`. Tests assert parse, equality, and redacted `toString`. `Token` does not derive `Schema`.
 

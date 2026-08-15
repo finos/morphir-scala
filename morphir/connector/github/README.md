@@ -9,6 +9,11 @@ connection cursor. `getIssue`, `getPullRequest`, and `getDiscussion` look up one
 return `Maybe` (`Absent` when GitHub returns null). Issue and pull request comments have no upvote count and no
 reply tree.
 
+`Token` does not print the secret. Long GitHub tokens show a type prefix and the last four characters
+(`Token(ghp_...abcd)`). Short values print `Token(redacted)`. `GithubClient.live(token)` still takes a parsed
+token. `GithubClient.live` (no args) reads `Env[TokenProvider]`. `TokenProvider.const` wraps a token; flags, `gh`,
+and vault providers come next.
+
 Tests replay recorded GraphQL JSON envelopes and do not call `api.github.com`.
 
 `kyo-caliban` is a GraphQL server and is not used here.

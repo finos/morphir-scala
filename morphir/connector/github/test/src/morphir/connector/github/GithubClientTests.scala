@@ -16,10 +16,24 @@ class GithubClientTests extends SnapshotTest[Any]:
   "Token" - {
     "rejects a blank string" in
       assert(Token.parse("  ").isEmpty)
-    "stores a trimmed token" in {
-      Token.parse("  ghp_example  ") match
-        case Present(token) => assert(token.value == "ghp_example")
-        case Absent         => assert(false)
+    "stores a trimmed token" in
+      assert(Token.parse("  ghp_example  ") == Token.parse("ghp_example"))
+    "does not print the secret" in {
+      Token.parse("ghp_example") match
+        case Present(token) =>
+          assert(token.toString == "Token(redacted)")
+          assert(!token.toString.contains("ghp_example"))
+          assert(token.hashCode == 0)
+        case Absent => assert(false)
+    }
+    "shows prefix and suffix of a long GitHub token" in {
+      val secret = "ghp_" + ("x" * 32) + "abcd"
+      Token.parse(secret) match
+        case Present(token) =>
+          assert(token.toString == "Token(ghp_...abcd)")
+          assert(!token.toString.contains("x" * 32))
+          assert(!token.toString.contains(secret))
+        case Absent => assert(false)
     }
   }
 
@@ -374,12 +388,35 @@ class GithubClientTests extends SnapshotTest[Any]:
     }
   }
 
+  "TokenProvider.const" - {
+    "yields the given token" in {
+      Token.parse("ghp_example") match
+        case Present(token) =>
+          run(TokenProvider.const(token).token).map {
+            case Result.Success(got) =>
+              assert(got == token)
+              assert(got.toString == "Token(redacted)")
+            case _ => assert(false)
+          }
+        case Absent => assert(false)
+    }
+  }
+
   "GithubClient.live" - {
     "is constructible from a token without calling GitHub" in {
       Token.parse("ghp_example") match
         case Present(token) =>
           val _ = GithubClient.live(token)
           assert(true)
+        case Absent => assert(false)
+    }
+    "is constructible from Env[TokenProvider] without calling GitHub" in {
+      Token.parse("ghp_example") match
+        case Present(token) =>
+          run(Env.run(TokenProvider.const(token))(GithubClient.live)).map {
+            case Result.Success(_) => assert(true)
+            case _                 => assert(false)
+          }
         case Absent => assert(false)
     }
   }

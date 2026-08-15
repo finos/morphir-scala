@@ -8,9 +8,10 @@ import morphir.connector.github.internal.PlatformLive
  * Lists issues, pull requests, and discussions for a repository, and looks up one of those objects by number.
  *
  * [[GithubClient.recorded]] replays GraphQL JSON envelopes. [[GithubClient.fixture]] replays already-decoded values.
- * [[GithubClient.live]] posts to GitHub over `kyo-http` on the JVM and on Node.js. On Scala Native, listing fails with
- * [[GithubError.Transport]] because the published kyo-net Native artifact at 1.0.0-RC6 does not link kqueue on macOS.
- * Tests use recorded or fixture clients and do not call `api.github.com`.
+ * [[GithubClient.live]] posts to GitHub over `kyo-http` on the JVM and on Node.js. Pass a [[Token]] or take
+ * [[TokenProvider]] from [[kyo.Env]]. On Scala Native, listing fails with [[GithubError.Transport]] because the
+ * published kyo-net Native artifact at 1.0.0-RC6 does not link kqueue on macOS. Tests use recorded or fixture clients
+ * and do not call `api.github.com`.
  */
 trait GithubClient:
   def listIssues(repository: RepositoryRef): Chunk[Issue] < (Abort[GithubError] & Async)
@@ -59,6 +60,9 @@ object GithubClient:
 
   def live(token: Token): GithubClient =
     PlatformLive.make(token)
+
+  def live: GithubClient < (Env[TokenProvider] & Abort[GithubError] & Async) =
+    Env.use[TokenProvider](_.token).map(PlatformLive.make)
 
   private[github] def lift[A](result: Result[GithubError, A]): A < Abort[GithubError] =
     result match

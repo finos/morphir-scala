@@ -62,7 +62,7 @@ private[github] object PlatformLive:
         HttpClient.withConfig(
           HttpClientConfig()
             .baseUrl("https://api.github.com")
-            .filter(HttpFilter.client.bearerAuth(token.value))
+            .filter(HttpFilter.client.bearerAuth(token.unsafeReveal))
             .filter(HttpFilter.client.addHeader("User-Agent", "morphir-connector-github"))
         ) {
           HttpClient.postJson[A]("/graphql", body)
