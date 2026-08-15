@@ -75,6 +75,22 @@ class ConceptTests extends Test[Any]:
           assert(concept.frontmatter.okfVersion == Present("0.2"))
         case _ => assert(false)
     }
+    "maps snake_case frontmatter keys onto camelCase fields" in {
+      val source =
+        """---
+          |type: Design Note
+          |stale_after: 2026-12-01
+          |okf_version: "0.2"
+          |---
+          |
+          |Body
+          |""".stripMargin
+      Concept.parse("note.md", source) match
+        case Result.Success(concept) =>
+          assert(concept.frontmatter.staleAfter == Present("2026-12-01"))
+          assert(concept.frontmatter.okfVersion == Present("0.2"))
+        case _ => assert(false)
+    }
     "reports malformed YAML frontmatter" in {
       Concept.parse("note.md", "---\ntitle: [unclosed\n---\n\nBody\n") match
         case Result.Failure(OkfError.InvalidFrontmatter(_)) => assert(true)

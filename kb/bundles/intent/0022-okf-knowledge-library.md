@@ -35,10 +35,11 @@ keeps meaning the document tree. See
 [decision 0013](../morphir/morphir-scala/decisions/0013-published-library-families.md).
 
 The library takes `DocKind`, frontmatter split, and the bundle shape (root index, log, nested indexes, concepts) from
-the kb skill. Frontmatter is decoded by Kyo `kyo-schema-yaml`, not a handwritten YAML parser or SnakeYAML.
-Private wire types use `Option` because the schema codec does not derive `Maybe`; the public model converts them to
-`Maybe`. The library does not take commonmark-java or the check engine. Switching the skill onto this library is later
-work. `contrib/knowledge` stays until [0027](/0027-stop-using-contrib-for-first-class-work.md) and a migration intent.
+the kb skill. Frontmatter is decoded by Kyo `kyo-schema-yaml`, not a handwritten YAML parser or SnakeYAML. Optional
+fields use `Maybe`. Snake-case OKF keys such as `okf_version` are the case-class field names, with camelCase accessors
+for Scala call sites, because `Schema.rename` needs Tag and Tag does not yet handle `Maybe`. The library does not take
+commonmark-java or the check engine. Switching the skill onto this library is later work. `contrib/knowledge` stays
+until [0027](/0027-stop-using-contrib-for-first-class-work.md) and a migration intent.
 
 GitHub ingest is [0023](/0023-import-github-sources-into-okf.md), which depends on this library and on
 [0020](/0020-github-graphql-connector.md). Ingest code may live in this module's shared sources once both

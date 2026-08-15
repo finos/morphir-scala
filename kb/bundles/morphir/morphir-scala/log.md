@@ -15,7 +15,8 @@
   `security` on Scala Native, in
   [GitHub token providers and appkit secrets](/design/github-token-providers-and-appkit-secrets.md).
 * **Update**: Recorded that `morphir.knowledge.okf` parses concept documents and in-memory bundles, takes
-  `DocKind` and frontmatter split from the kb skill, and decodes YAML through Kyo `kyo-schema-yaml`, in
+  `DocKind` and frontmatter split from the kb skill, and decodes YAML through Kyo `kyo-schema-yaml` with
+  `Maybe` optional fields, in
   [Published library families](/design/published-library-families.md).
 * **Update**: Recorded that `morphir.langkit.markdown` owns a CommonMark subset parser (ATX headings, paragraphs,
   fenced code, unordered lists, thematic breaks), in

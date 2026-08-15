@@ -106,7 +106,7 @@ Artifact `org.finos.morphir::morphir-knowledge-okf`. Package `morphir.knowledge.
 
 The shared sources hold the OKF model (bundle, concept, frontmatter) and depend on `langkit.markdown` for bodies. `Concept.parse` splits a leading YAML fence and parses the body. Frontmatter accessors are permissive (`Maybe`). `Bundle.parse` loads from in-memory files; the root `index.md` must carry `okf_version`. GitHub ingest depends on `connector.github` and also lives in shared sources, so it follows the connector onto JS and Native. JVM-only pieces, if any appear, go in `jvm/src`.
 
-The library takes `DocKind`, frontmatter split, and the bundle shape from the kb skill (`KbModel` / `KbStore`). Frontmatter decoding uses Kyo `kyo-schema-yaml`, not a handwritten parser or SnakeYAML. Private wire types use `Option` because the schema codec does not derive `Maybe`; the public model converts them to `Maybe`. The library does not take commonmark-java or the check engine. The kb skill does not move in this pass. Switching the skill onto the published library is a later intent.
+The library takes `DocKind`, frontmatter split, and the bundle shape from the kb skill (`KbModel` / `KbStore`). Frontmatter decoding uses Kyo `kyo-schema-yaml`, not a handwritten parser or SnakeYAML. Optional fields use `Maybe`. Snake-case OKF keys such as `okf_version` are the case-class field names, with camelCase accessors for Scala call sites, because `Schema.rename` needs Tag and Tag does not yet handle `Maybe`. The library does not take commonmark-java or the check engine. The kb skill does not move in this pass. Switching the skill onto the published library is a later intent.
 
 `morphir/contrib/knowledge` (microkanren) stays where it is.
 
