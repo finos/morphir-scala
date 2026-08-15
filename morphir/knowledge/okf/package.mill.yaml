@@ -3,18 +3,27 @@ extends: Module
 object jvm:
   extends: [build.MorphirJVMModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps]
   moduleDeps: [build.morphir.langkit.markdown.jvm, build.morphir.connector.github.jvm]
+  mvnDeps: !append
+  - io.getkyo::kyo-schema
+  - io.getkyo::kyo-schema-yaml
   object test:
     extends: [ScalaTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps]
 
 object js:
   extends: [build.MorphirJSModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps]
   moduleDeps: [build.morphir.langkit.markdown.js, build.morphir.connector.github.js]
+  mvnDeps: !append
+  - io.getkyo::kyo-schema
+  - io.getkyo::kyo-schema-yaml
   object test:
     extends: [ScalaJSTests, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
 
 object native:
   extends: [build.MorphirNativeModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps]
   moduleDeps: [build.morphir.langkit.markdown.native, build.morphir.connector.github.native]
+  mvnDeps: !append
+  - io.getkyo::kyo-schema
+  - io.getkyo::kyo-schema-yaml
   object test:
     extends: [ScalaNativeTests, millbuild.KyoTestNative, build.MorphirKyoTestMvnDeps]
     mvnDeps: !append

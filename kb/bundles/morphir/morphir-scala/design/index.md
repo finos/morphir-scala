@@ -3,7 +3,7 @@
 Design Notes evolve through research and implementation. Accepted choices belong in immutable
 [Decision Records](/decisions/index.md).
 
-* [Published library families](/design/published-library-families.md) - The narrative home for kit, connector, appkit, langkit markdown, and knowledge/okf: taxonomy, first skeletons, and the open parser and HTTP questions.
+* [Published library families](/design/published-library-families.md) - The narrative home for kit, connector, appkit, langkit markdown, and knowledge/okf: taxonomy, first modules, and the CommonMark and Native HTTP questions.
 * [GitHub token providers and appkit secrets](/design/github-token-providers-and-appkit-secrets.md) - Live GitHub calls take Env[TokenProvider]; named providers and appkit SecretStore supply the token without logging it.
 * [Buildkit task-graph capability](/design/buildkit-task-graph.md) - The narrative home for the buildkit task-graph capability: the story connecting its research, constraints, open questions, and delivery intents.
 * [Package URL-centered package management](/design/package-url-package-management.md) - A design for PURL identities, reproducible materialization, and packages outside ecosystem registries.

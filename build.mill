@@ -147,6 +147,18 @@ trait MorphirJSNodeModule extends ScalaJSModule {
   override def moduleKind: T[ModuleKind] = Task { ModuleKind.CommonJSModule }
 }
 
+/**
+ * Opt into `-Yretain-trees`. Off by default: under that flag Kyo's TagMacro MatchErrors on `Maybe`
+ * (https://github.com/getkyo/kyo/issues/1883), which breaks `Schema.rename` / `@rename` on `Maybe` fields.
+ * Mill's `ScalaTests` forwards `scalacOptions` from the outer module, so test objects inherit this automatically.
+ */
+trait MorphirRetainTrees extends ScalaModule {
+  override def scalacOptions: T[Seq[String]] = Task {
+    val options = super.scalacOptions()
+    if options.contains("-Yretain-trees") then options else options :+ "-Yretain-trees"
+  }
+}
+
 trait MorphirNativeModule extends MorphirCommonCrossModule with ScalaNativeModule {
   def platform           = Platform.Native
   def scalaNativeVersion = Task { ScalaVers.scalaNativeVersion }

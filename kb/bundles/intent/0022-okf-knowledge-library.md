@@ -2,11 +2,11 @@
 type: Intent
 title: OKF knowledge library
 description: "Publish morphir-knowledge-okf as an OKF model library that parses concept bodies through the markdown langkit."
-state: Refinement
+state: InProgress
 kind: feature
 breaking: false
 created: 2026-08-14
-state_since: 2026-08-14
+state_since: 2026-08-15
 tags: [knowledge, okf]
 ---
 
@@ -25,15 +25,22 @@ published Scala library for that model. The kb skill carries its own parser and 
 ## Approach
 
 Publish `morphir/knowledge/okf` as `org.finos.morphir::morphir-knowledge-okf`, compiling for JVM, JS, and Native.
-Shared sources hold bundle, concept, and frontmatter types. Concept bodies parse through
-[0021 Markdown langkit](/0021-markdown-langkit.md).
+Shared sources hold bundle, concept, and frontmatter types. `Concept.parse` splits a leading YAML fence and parses the
+body through [0021 Markdown langkit](/0021-markdown-langkit.md). Frontmatter accessors are permissive (`Maybe`): a
+missing field is absent so a later check can report every problem. `Bundle.parse` loads from in-memory files keyed by
+bundle-relative path. The root `index.md` must carry `okf_version`. Filesystem loading is later work.
 
 The mill path is `knowledge/okf`, not `kb` or a top-level `okf`, so a second encoding can sit beside OKF and so `kb/`
 keeps meaning the document tree. See
 [decision 0013](../morphir/morphir-scala/decisions/0013-published-library-families.md).
 
-The kb skill does not move onto this library in this intent. Switching the skill is later work. `contrib/knowledge`
-stays until [0027](/0027-stop-using-contrib-for-first-class-work.md) and a migration intent.
+The library takes `DocKind`, frontmatter split, and the bundle shape (root index, log, nested indexes, concepts) from
+the kb skill. Frontmatter is decoded by Kyo `kyo-schema-yaml`, not a handwritten YAML parser or SnakeYAML. Optional
+fields use `Maybe`. Snake-case OKF keys such as `okf_version` map onto camelCase fields via `@rename`.
+`-Yretain-trees` is off by default (opt in with `MorphirRetainTrees`) so `Tag[Maybe[A]]` works; see
+https://github.com/getkyo/kyo/issues/1883. The library does not take
+commonmark-java or the check engine. Switching the skill onto this library is later work. `contrib/knowledge` stays
+until [0027](/0027-stop-using-contrib-for-first-class-work.md) and a migration intent.
 
 GitHub ingest is [0023](/0023-import-github-sources-into-okf.md), which depends on this library and on
 [0020](/0020-github-graphql-connector.md). Ingest code may live in this module's shared sources once both
