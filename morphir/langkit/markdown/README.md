@@ -2,10 +2,9 @@
 
 Markdown as a langkit: source text to a CST, on the JVM, Scala.js, and Scala Native.
 
-The production parser is not chosen yet. `commonmark-java` is JVM-only and must not enter this module. Until a
-cross-platform parser (or a shared AST with per-platform engines) is named in the published-library-families Design
-Note, this module ships a stub that parses ATX headings and paragraphs so tests run on all three platforms with no
-third-party parser.
+The module owns a CommonMark subset parser: ATX headings, paragraphs, fenced code, unordered lists, and thematic
+breaks. Inlines stay raw text. `commonmark-java` must not enter this module. A third-party engine remains allowed
+later if one compiles on JVM, JS, and Native.
 
 ## Artifact
 

@@ -58,4 +58,41 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) => assert(doc.blocks.isEmpty)
         case _                   => assert(false)
     }
+    "reads a fenced code block including blank lines inside the fence" in {
+      val source = "```scala\nval x = 1\n\nval y = 2\n```"
+      Parser.parse(source) match
+        case Result.Success(doc) =>
+          assert(doc.blocks.size == 1)
+          doc.blocks(0) match
+            case Block.FencedCode(info, content, _) =>
+              assert(info == "scala")
+              assert(content == "val x = 1\n\nval y = 2\n")
+            case _ => assert(false)
+        case _ => assert(false)
+    }
+    "reads consecutive unordered list items as one list" in {
+      Parser.parse("- alpha\n- beta") match
+        case Result.Success(doc) =>
+          assert(doc.blocks.size == 1)
+          doc.blocks(0) match
+            case Block.UnorderedList(items, _) =>
+              assert(items == Chunk("alpha", "beta"))
+            case _ => assert(false)
+        case _ => assert(false)
+    }
+    "reads a thematic break between paragraphs" in {
+      Parser.parse("Hello\n\n---\n\nWorld") match
+        case Result.Success(doc) =>
+          assert(doc.blocks.size == 3)
+          doc.blocks(1) match
+            case Block.ThematicBreak(_) => assert(true)
+            case _                      => assert(false)
+          doc.blocks(0) match
+            case Block.Paragraph(text, _) => assert(text == "Hello")
+            case _                        => assert(false)
+          doc.blocks(2) match
+            case Block.Paragraph(text, _) => assert(text == "World")
+            case _                        => assert(false)
+        case _ => assert(false)
+    }
   }
