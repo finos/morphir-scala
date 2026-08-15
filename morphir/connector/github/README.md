@@ -23,8 +23,8 @@ token. `GithubClient.live` (no args) reads `Env[TokenProvider]`. `TokenProvider.
 `TokenProvider.flags` reads `morphir.connector.github.token` (`MORPHIR_CONNECTOR_GITHUB_TOKEN`). A blank flag is
 `Unauthorized`. `TokenProvider.gitHubActions` reads `GITHUB_TOKEN`, which GitHub Actions sets automatically. Neither
 provider falls back to the other, and neither reads `GH_TOKEN`. `TokenProvider.gitHubCli` runs `gh auth token`
-and takes optional `user` and `hostname`. A missing `gh` binary or a non-zero exit is `Unauthorized`. Scala Native
-fails that lookup with `Transport` until a process floor exists. `TokenProvider.vault` reads
+and takes optional `user` and `hostname`. A missing `gh` binary or a non-zero exit is `Unauthorized`. JVM, Node, and
+Scala Native spawn that process. `TokenProvider.vault` reads
 `Env[SecretStore]` from `morphir-appkit`. A missing or blank entry is `Unauthorized`. Tests use
 `SecretStore.const` and do not open a real Keychain.
 
@@ -42,10 +42,10 @@ Tests replay recorded GraphQL JSON envelopes and do not call `api.github.com`.
 `GithubClient.live` POSTs to `https://api.github.com/graphql` through `kyo-http` on the JVM and on Node.js. The JS
 artifact needs `ModuleKind.CommonJSModule` (or ESModule) because kyo-http's JS backend imports Node builtins. Live
 HTTP does not run in browsers. A `fetch` backend is not planned: GitHub GraphQL from a page origin is a CORS and token
-problem. Electron uses this Node backend. On Scala Native, listing fails with `GithubError.Transport` until a kyo-net
+problem. Electron uses this Node backend. On Scala Native, listing fails with `GitHubException.Transport` until a kyo-net
 Native artifact links kqueue. See the published-library-families Design Note.
 
-Listing methods return `ConnectionPage[A] < (Abort[GithubError] & Async)`. Pass `after` and `first` to page.
+Listing methods return `ConnectionPage[A] < (Abort[GitHubException] & Async)`. Pass `after` and `first` to page.
 `getIssue`, `getPullRequest`, and `getDiscussion` return `Maybe[A]`. Nested comments use the same page type;
 `listIssueComments`, `listPullRequestComments`, `listDiscussionComments`, and `listDiscussionReplies` page further:
 
@@ -57,7 +57,7 @@ val json =
   """{"data":{"repository":{"issues":{"nodes":[{"number":1,"title":"title","body":"body","url":"https://example.test/1"}]}}}}"""
 val client = GithubClient.recorded(issues = json)
 
-Abort.run[GithubError](client.listIssues(RepositoryRef("owner", "repo")))
+Abort.run[GitHubException](client.listIssues(RepositoryRef("owner", "repo")))
 ```
 
 ## Schema subset and codegen

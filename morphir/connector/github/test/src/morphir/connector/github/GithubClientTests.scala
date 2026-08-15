@@ -7,19 +7,20 @@ import morphir.MorphirException
 import morphir.appkit.SecretStore
 import morphir.connector.github.internal.GhAuth
 import morphir.connector.github.internal.GraphQl
+import morphir.connector.github.internal.PlatformGhAuth
 
 class GithubClientTests extends SnapshotTest[Any]:
 
   override def snapshotDir: String =
     SnapshotDir.value
 
-  private def run[A](effect: A < (Abort[GithubError] & Async)): Result[GithubError, A] < Async =
-    Abort.run[GithubError](effect)
+  private def run[A](effect: A < (Abort[GitHubException] & Async)): Result[GitHubException, A] < Async =
+    Abort.run[GitHubException](effect)
 
   private def runVault[A](
       store: SecretStore
-  )(effect: A < (Env[SecretStore] & Abort[GithubError] & Async)): Result[GithubError, A] < Async =
-    Abort.run[GithubError](Env.run(store)(effect))
+  )(effect: A < (Env[SecretStore] & Abort[GitHubException] & Async)): Result[GitHubException, A] < Async =
+    Abort.run[GitHubException](Env.run(store)(effect))
 
   private def issueNo(n: Int): IssueNumber              = IssueNumber.fromWire(n)
   private def prNo(n: Int): PullRequestNumber           = PullRequestNumber.fromWire(n)
@@ -27,9 +28,9 @@ class GithubClientTests extends SnapshotTest[Any]:
   private def cursor(s: String): Cursor                 = Cursor.fromWire(s)
   private def commentId(s: String): DiscussionCommentId = DiscussionCommentId.fromWire(s)
 
-  "GithubError" - {
+  "GitHubException" - {
     "is catchable as MorphirException" in {
-      val err: MorphirException = GithubError.Unauthorized("missing token")
+      val err: MorphirException = GitHubException.Unauthorized("missing token")
       val caught                =
         try throw err
         catch case e: MorphirException => e.getMessage == "missing token"
@@ -279,7 +280,7 @@ class GithubClientTests extends SnapshotTest[Any]:
     "fails with GraphQl when the envelope carries errors" in {
       val json = """{"data":null,"errors":[{"message":"API rate limit exceeded"}]}"""
       run(GithubClient.recorded(issues = json).listIssues(RepositoryRef("owner", "repo"))).map {
-        case Result.Failure(GithubError.GraphQl(detail)) =>
+        case Result.Failure(GitHubException.GraphQl(detail)) =>
           assert(detail.contains("API rate limit exceeded"))
         case _ => assert(false)
       }
@@ -658,7 +659,7 @@ class GithubClientTests extends SnapshotTest[Any]:
     }
     "fails Unauthorized when the flag value is blank" in
       run(TokenProvider.parseFlag("")).map {
-        case Result.Failure(GithubError.Unauthorized(detail)) =>
+        case Result.Failure(GitHubException.Unauthorized(detail)) =>
           assert(detail.nonEmpty)
         case _ => assert(false)
       }
@@ -673,8 +674,8 @@ class GithubClientTests extends SnapshotTest[Any]:
     "fails Unauthorized when the process flag is the default blank" in {
       if token.source == Flag.Source.Default then
         run(TokenProvider.flags.token).map {
-          case Result.Failure(GithubError.Unauthorized(_)) => assert(true)
-          case _                                           => assert(false)
+          case Result.Failure(GitHubException.Unauthorized(_)) => assert(true)
+          case _                                               => assert(false)
         }
       else assert(token.source != Flag.Source.Default)
     }
@@ -685,7 +686,7 @@ class GithubClientTests extends SnapshotTest[Any]:
       assert(GITHUB_TOKEN.name == "GITHUB_TOKEN")
     "fails Unauthorized when GITHUB_TOKEN is blank" in
       run(TokenProvider.parseGitHubToken("")).map {
-        case Result.Failure(GithubError.Unauthorized(detail)) =>
+        case Result.Failure(GitHubException.Unauthorized(detail)) =>
           assert(detail.contains("GITHUB_TOKEN"))
         case _ => assert(false)
       }
@@ -700,8 +701,8 @@ class GithubClientTests extends SnapshotTest[Any]:
     "uses the process GITHUB_TOKEN when it is set" in {
       if GITHUB_TOKEN().isEmpty then
         run(TokenProvider.gitHubActions.token).map {
-          case Result.Failure(GithubError.Unauthorized(_)) => assert(true)
-          case _                                           => assert(false)
+          case Result.Failure(GitHubException.Unauthorized(_)) => assert(true)
+          case _                                               => assert(false)
         }
       else
         run(TokenProvider.gitHubActions.token).map {
@@ -715,6 +716,16 @@ class GithubClientTests extends SnapshotTest[Any]:
   "TokenProvider.gitHubCli" - {
     "asks gh auth token with no account flags by default" in
       assert(TokenProvider.gitHubCliArgs(Absent, Absent) == Chunk("auth", "token"))
+    "maps a missing gh executable to Unauthorized" in
+      run(
+        PlatformGhAuth
+          .forProgram("morphir-gh-command-that-does-not-exist")
+          .stdout(Chunk("auth", "token"))
+      ).map {
+        case Result.Failure(GitHubException.Unauthorized(detail)) =>
+          assert(detail.contains("not installed") || detail.contains("could not be started"))
+        case _ => assert(false)
+      }
     "passes --hostname and --user when present" in {
       val args = TokenProvider.gitHubCliArgs(Present("ada"), Present("github.com"))
       assert(args == Chunk("auth", "token", "--hostname", "github.com", "--user", "ada"))
@@ -729,13 +740,13 @@ class GithubClientTests extends SnapshotTest[Any]:
     }
     "fails Unauthorized when gh stdout is blank" in
       run(TokenProvider.gitHubCli(Absent, Absent, GhAuth.succeed("  ")).token).map {
-        case Result.Failure(GithubError.Unauthorized(_)) => assert(true)
-        case _                                           => assert(false)
+        case Result.Failure(GitHubException.Unauthorized(_)) => assert(true)
+        case _                                               => assert(false)
       }
     "fails Unauthorized when gh fails" in {
-      val auth = GhAuth.fail(GithubError.Unauthorized("gh: not logged in"))
+      val auth = GhAuth.fail(GitHubException.Unauthorized("gh: not logged in"))
       run(TokenProvider.gitHubCli(Absent, Absent, auth).token).map {
-        case Result.Failure(GithubError.Unauthorized(detail)) =>
+        case Result.Failure(GitHubException.Unauthorized(detail)) =>
           assert(detail.contains("not logged in"))
         case _ => assert(false)
       }
@@ -745,7 +756,7 @@ class GithubClientTests extends SnapshotTest[Any]:
       val auth   = new GhAuth:
         def stdout(args: Chunk[String]) =
           if args == Chunk("auth", "token", "--user", "ada") then secret
-          else Abort.fail(GithubError.Unauthorized(s"unexpected args: $args"))
+          else Abort.fail(GitHubException.Unauthorized(s"unexpected args: $args"))
       run(TokenProvider.gitHubCli(Present("ada"), Absent, auth).token).map {
         case Result.Success(got) => assert(got.toString == "Token(ghp_...abcd)")
         case _                   => assert(false)
@@ -753,10 +764,10 @@ class GithubClientTests extends SnapshotTest[Any]:
     }
     "spawns gh rather than failing as an unlinked process floor" in
       run(TokenProvider.gitHubCli().token).map {
-        case Result.Failure(GithubError.Transport(_))    => assert(false)
-        case Result.Failure(GithubError.Unauthorized(_)) => assert(true)
-        case Result.Success(_)                           => assert(true)
-        case _                                           => assert(false)
+        case Result.Failure(GitHubException.Transport(_))    => assert(false)
+        case Result.Failure(GitHubException.Unauthorized(_)) => assert(true)
+        case Result.Success(_)                               => assert(true)
+        case _                                               => assert(false)
       }
   }
 
@@ -772,15 +783,15 @@ class GithubClientTests extends SnapshotTest[Any]:
     "fails Unauthorized when the entry is missing" in {
       val store = SecretStore.const()
       runVault(store)(TokenProvider.vault("gh", "morphir").map(_.token)).map {
-        case Result.Failure(GithubError.Unauthorized(_)) => assert(true)
-        case _                                           => assert(false)
+        case Result.Failure(GitHubException.Unauthorized(_)) => assert(true)
+        case _                                               => assert(false)
       }
     }
     "fails Unauthorized when the stored value is blank" in {
       val store = SecretStore.const(("gh", "morphir", "  "))
       runVault(store)(TokenProvider.vault("gh", "morphir").map(_.token)).map {
-        case Result.Failure(GithubError.Unauthorized(_)) => assert(true)
-        case _                                           => assert(false)
+        case Result.Failure(GitHubException.Unauthorized(_)) => assert(true)
+        case _                                               => assert(false)
       }
     }
   }

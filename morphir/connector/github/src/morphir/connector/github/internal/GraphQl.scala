@@ -259,71 +259,71 @@ private[github] object GraphQl:
       )
     )
 
-  def decodeIssues(json: String): Result[GithubError, ConnectionPage[Issue]] =
+  def decodeIssues(json: String): Result[GitHubException, ConnectionPage[Issue]] =
     decodeEnvelopeValue(json, summon[Schema[IssuesEnvelope]], _.errors) { envelope =>
       envelope.data.flatMap(_.repository).map(repo => page(repo.issues, toIssue)).getOrElse(ConnectionPage())
     }
 
-  def decodePullRequests(json: String): Result[GithubError, ConnectionPage[PullRequest]] =
+  def decodePullRequests(json: String): Result[GitHubException, ConnectionPage[PullRequest]] =
     decodeEnvelopeValue(json, summon[Schema[PullRequestsEnvelope]], _.errors) { envelope =>
       envelope.data.flatMap(
         _.repository
       ).map(repo => page(repo.pullRequests, toPullRequest)).getOrElse(ConnectionPage())
     }
 
-  def decodeDiscussions(json: String): Result[GithubError, ConnectionPage[Discussion]] =
+  def decodeDiscussions(json: String): Result[GitHubException, ConnectionPage[Discussion]] =
     decodeEnvelopeValue(json, summon[Schema[DiscussionsEnvelope]], _.errors) { envelope =>
       envelope.data.flatMap(_.repository).map(repo => page(repo.discussions, toDiscussion)).getOrElse(ConnectionPage())
     }
 
-  def decodeDiscussionReplies(json: String): Result[GithubError, ConnectionPage[DiscussionComment]] =
+  def decodeDiscussionReplies(json: String): Result[GitHubException, ConnectionPage[DiscussionComment]] =
     decodeEnvelopeValue(json, summon[Schema[NodeRepliesEnvelope]], _.errors) { envelope =>
       envelope.data.flatMap(_.node).flatMap(_.replies).map(toConnectionPage).getOrElse(ConnectionPage())
     }
 
-  def decodeIssue(json: String): Result[GithubError, Maybe[Issue]] =
+  def decodeIssue(json: String): Result[GitHubException, Maybe[Issue]] =
     decodeEnvelopeValue(json, summon[Schema[SingleIssueEnvelope]], _.errors) { envelope =>
       envelope.data.flatMap(_.repository).flatMap(_.issue).map(toIssue)
     }
 
-  def decodePullRequest(json: String): Result[GithubError, Maybe[PullRequest]] =
+  def decodePullRequest(json: String): Result[GitHubException, Maybe[PullRequest]] =
     decodeEnvelopeValue(json, summon[Schema[SinglePullRequestEnvelope]], _.errors) { envelope =>
       envelope.data.flatMap(_.repository).flatMap(_.pullRequest).map(toPullRequest)
     }
 
-  def decodeDiscussion(json: String): Result[GithubError, Maybe[Discussion]] =
+  def decodeDiscussion(json: String): Result[GitHubException, Maybe[Discussion]] =
     decodeEnvelopeValue(json, summon[Schema[SingleDiscussionEnvelope]], _.errors) { envelope =>
       envelope.data.flatMap(_.repository).flatMap(_.discussion).map(toDiscussion)
     }
 
-  def decodeIssueComments(json: String): Result[GithubError, ConnectionPage[IssueComment]] =
+  def decodeIssueComments(json: String): Result[GitHubException, ConnectionPage[IssueComment]] =
     decodeEnvelopeValue(json, summon[Schema[IssueCommentsEnvelope]], _.errors) { envelope =>
       envelope.data.flatMap(_.repository).flatMap(_.issue).flatMap(_.comments).map(page(_, toIssueComment)).getOrElse(
         ConnectionPage()
       )
     }
 
-  def decodePullRequestComments(json: String): Result[GithubError, ConnectionPage[IssueComment]] =
+  def decodePullRequestComments(json: String): Result[GitHubException, ConnectionPage[IssueComment]] =
     decodeEnvelopeValue(json, summon[Schema[PullRequestCommentsEnvelope]], _.errors) { envelope =>
       envelope.data.flatMap(_.repository).flatMap(_.pullRequest).flatMap(_.comments).map(
         page(_, toIssueComment)
       ).getOrElse(ConnectionPage())
     }
 
-  def decodeDiscussionComments(json: String): Result[GithubError, ConnectionPage[DiscussionComment]] =
+  def decodeDiscussionComments(json: String): Result[GitHubException, ConnectionPage[DiscussionComment]] =
     decodeEnvelopeValue(json, summon[Schema[DiscussionCommentsEnvelope]], _.errors) { envelope =>
       envelope.data.flatMap(_.repository).flatMap(_.discussion).flatMap(_.comments).map(toConnectionPage).getOrElse(
         ConnectionPage()
       )
     }
 
-  def issuesFrom(envelope: IssuesEnvelope): Result[GithubError, ConnectionPage[Issue]] =
+  def issuesFrom(envelope: IssuesEnvelope): Result[GitHubException, ConnectionPage[Issue]] =
     fromErrors(
       envelope.errors,
       envelope.data.flatMap(_.repository).map(repo => page(repo.issues, toIssue)).getOrElse(ConnectionPage())
     )
 
-  def pullRequestsFrom(envelope: PullRequestsEnvelope): Result[GithubError, ConnectionPage[PullRequest]] =
+  def pullRequestsFrom(envelope: PullRequestsEnvelope): Result[GitHubException, ConnectionPage[PullRequest]] =
     fromErrors(
       envelope.errors,
       envelope.data.flatMap(
@@ -331,28 +331,28 @@ private[github] object GraphQl:
       ).map(repo => page(repo.pullRequests, toPullRequest)).getOrElse(ConnectionPage())
     )
 
-  def discussionsFrom(envelope: DiscussionsEnvelope): Result[GithubError, ConnectionPage[Discussion]] =
+  def discussionsFrom(envelope: DiscussionsEnvelope): Result[GitHubException, ConnectionPage[Discussion]] =
     fromErrors(
       envelope.errors,
       envelope.data.flatMap(_.repository).map(repo => page(repo.discussions, toDiscussion)).getOrElse(ConnectionPage())
     )
 
-  def discussionRepliesFrom(envelope: NodeRepliesEnvelope): Result[GithubError, ConnectionPage[DiscussionComment]] =
+  def discussionRepliesFrom(envelope: NodeRepliesEnvelope): Result[GitHubException, ConnectionPage[DiscussionComment]] =
     fromErrors(
       envelope.errors,
       envelope.data.flatMap(_.node).flatMap(_.replies).map(toConnectionPage).getOrElse(ConnectionPage())
     )
 
-  def issueFrom(envelope: SingleIssueEnvelope): Result[GithubError, Maybe[Issue]] =
+  def issueFrom(envelope: SingleIssueEnvelope): Result[GitHubException, Maybe[Issue]] =
     fromErrors(envelope.errors, envelope.data.flatMap(_.repository).flatMap(_.issue).map(toIssue))
 
-  def pullRequestFrom(envelope: SinglePullRequestEnvelope): Result[GithubError, Maybe[PullRequest]] =
+  def pullRequestFrom(envelope: SinglePullRequestEnvelope): Result[GitHubException, Maybe[PullRequest]] =
     fromErrors(envelope.errors, envelope.data.flatMap(_.repository).flatMap(_.pullRequest).map(toPullRequest))
 
-  def discussionFrom(envelope: SingleDiscussionEnvelope): Result[GithubError, Maybe[Discussion]] =
+  def discussionFrom(envelope: SingleDiscussionEnvelope): Result[GitHubException, Maybe[Discussion]] =
     fromErrors(envelope.errors, envelope.data.flatMap(_.repository).flatMap(_.discussion).map(toDiscussion))
 
-  def issueCommentsFrom(envelope: IssueCommentsEnvelope): Result[GithubError, ConnectionPage[IssueComment]] =
+  def issueCommentsFrom(envelope: IssueCommentsEnvelope): Result[GitHubException, ConnectionPage[IssueComment]] =
     fromErrors(
       envelope.errors,
       envelope.data.flatMap(_.repository).flatMap(_.issue).flatMap(_.comments).map(page(_, toIssueComment)).getOrElse(
@@ -361,7 +361,7 @@ private[github] object GraphQl:
     )
 
   def pullRequestCommentsFrom(envelope: PullRequestCommentsEnvelope)
-      : Result[GithubError, ConnectionPage[IssueComment]] =
+      : Result[GitHubException, ConnectionPage[IssueComment]] =
     fromErrors(
       envelope.errors,
       envelope.data.flatMap(_.repository).flatMap(_.pullRequest).flatMap(_.comments).map(
@@ -370,7 +370,7 @@ private[github] object GraphQl:
     )
 
   def discussionCommentsFrom(envelope: DiscussionCommentsEnvelope)
-      : Result[GithubError, ConnectionPage[DiscussionComment]] =
+      : Result[GitHubException, ConnectionPage[DiscussionComment]] =
     fromErrors(
       envelope.errors,
       envelope.data.flatMap(_.repository).flatMap(_.discussion).flatMap(_.comments).map(toConnectionPage).getOrElse(
@@ -532,18 +532,18 @@ private[github] object GraphQl:
     val document = Client.Query.repository(repository.owner, repository.name)(inner).toGraphQL()
     Request(document.query, RepositoryVars(repository.owner, repository.name))
 
-  private def fromErrors[A](errors: Maybe[Chunk[Error]], value: A): Result[GithubError, A] =
+  private def fromErrors[A](errors: Maybe[Chunk[Error]], value: A): Result[GitHubException, A] =
     errors match
       case Present(errs) if errs.nonEmpty =>
-        Result.fail(GithubError.GraphQl(errs.map(_.message).mkString("; ")))
+        Result.fail(GitHubException.GraphQl(errs.map(_.message).mkString("; ")))
       case _ => Result.succeed(value)
 
   private def decodeEnvelopeValue[A, B](
       json: String,
       schema: Schema[A],
       errorsOf: A => Maybe[Chunk[Error]]
-  )(valueOf: A => B): Result[GithubError, B] =
+  )(valueOf: A => B): Result[GitHubException, B] =
     schema.decodeString(json) match
       case Result.Success(envelope) => fromErrors(errorsOf(envelope), valueOf(envelope))
-      case Result.Failure(err)      => Result.fail(GithubError.GraphQl(err.getMessage))
-      case Result.Panic(err)        => Result.fail(GithubError.GraphQl(err.getMessage))
+      case Result.Failure(err)      => Result.fail(GitHubException.GraphQl(err.getMessage))
+      case Result.Panic(err)        => Result.fail(GitHubException.GraphQl(err.getMessage))

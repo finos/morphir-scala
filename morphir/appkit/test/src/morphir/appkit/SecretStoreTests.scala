@@ -3,6 +3,7 @@ package morphir.appkit
 import kyo.*
 import kyo.test.*
 import morphir.appkit.internal.KeyringGet
+import morphir.appkit.internal.PlatformSecurity
 import morphir.appkit.internal.SecurityCli
 
 class SecretStoreTests extends Test[Any]:
@@ -53,6 +54,16 @@ class SecretStoreTests extends Test[Any]:
       val _ = SecretStore.macOsKeychain
       assert(true)
     }
+    "maps a missing security executable to NotAvailable" in
+      run(
+        PlatformSecurity
+          .forProgram("morphir-security-command-that-does-not-exist")
+          .findGenericPassword("morphir-test-missing", "morphir-test-missing")
+      ).map {
+        case Result.Failure(SecretError.NotAvailable(detail)) =>
+          assert(detail.contains("not installed") || detail.contains("could not be started"))
+        case _ => assert(false)
+      }
     "yields a password from the security seam" in {
       val store = SecretStore.macOsKeychain(SecurityCli.succeed("from-security"))
       run(store.get("gh", "morphir")).map {

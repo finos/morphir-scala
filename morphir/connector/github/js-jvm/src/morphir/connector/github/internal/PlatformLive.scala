@@ -14,7 +14,7 @@ private[github] object PlatformLive:
         repository: RepositoryRef,
         after: Maybe[Cursor],
         first: Int
-    ): ConnectionPage[Issue] < (Abort[GithubError] & Async) =
+    ): ConnectionPage[Issue] < (Abort[GitHubException] & Async) =
       post[GraphQl.IssuesEnvelope](GraphQl.listIssuesDocument(repository, after, first)).map(env =>
         GithubClient.lift(GraphQl.issuesFrom(env))
       )
@@ -22,7 +22,7 @@ private[github] object PlatformLive:
         repository: RepositoryRef,
         after: Maybe[Cursor],
         first: Int
-    ): ConnectionPage[PullRequest] < (Abort[GithubError] & Async) =
+    ): ConnectionPage[PullRequest] < (Abort[GitHubException] & Async) =
       post[GraphQl.PullRequestsEnvelope](GraphQl.listPullRequestsDocument(repository, after, first)).map(env =>
         GithubClient.lift(GraphQl.pullRequestsFrom(env))
       )
@@ -31,7 +31,7 @@ private[github] object PlatformLive:
         after: Maybe[Cursor],
         first: Int,
         replyDepth: ReplyDepth
-    ): ConnectionPage[Discussion] < (Abort[GithubError] & Async) =
+    ): ConnectionPage[Discussion] < (Abort[GitHubException] & Async) =
       post[GraphQl.DiscussionsEnvelope](GraphQl.listDiscussionsDocument(repository, after, first, replyDepth)).map(
         env =>
           GithubClient.lift(GraphQl.discussionsFrom(env))
@@ -41,7 +41,7 @@ private[github] object PlatformLive:
         after: Maybe[Cursor],
         first: Int,
         replyDepth: ReplyDepth
-    ): ConnectionPage[DiscussionComment] < (Abort[GithubError] & Async) =
+    ): ConnectionPage[DiscussionComment] < (Abort[GitHubException] & Async) =
       post[GraphQl.NodeRepliesEnvelope](
         GraphQl.listDiscussionRepliesDocument(commentId, after, first, replyDepth)
       ).map(env => GithubClient.lift(GraphQl.discussionRepliesFrom(env)))
@@ -50,7 +50,7 @@ private[github] object PlatformLive:
         number: IssueNumber,
         after: Maybe[Cursor],
         first: Int
-    ): ConnectionPage[IssueComment] < (Abort[GithubError] & Async) =
+    ): ConnectionPage[IssueComment] < (Abort[GitHubException] & Async) =
       post[GraphQl.IssueCommentsEnvelope](GraphQl.listIssueCommentsDocument(repository, number, after, first)).map(
         env => GithubClient.lift(GraphQl.issueCommentsFrom(env))
       )
@@ -59,7 +59,7 @@ private[github] object PlatformLive:
         number: PullRequestNumber,
         after: Maybe[Cursor],
         first: Int
-    ): ConnectionPage[IssueComment] < (Abort[GithubError] & Async) =
+    ): ConnectionPage[IssueComment] < (Abort[GitHubException] & Async) =
       post[GraphQl.PullRequestCommentsEnvelope](
         GraphQl.listPullRequestCommentsDocument(repository, number, after, first)
       ).map(env => GithubClient.lift(GraphQl.pullRequestCommentsFrom(env)))
@@ -69,18 +69,18 @@ private[github] object PlatformLive:
         after: Maybe[Cursor],
         first: Int,
         replyDepth: ReplyDepth
-    ): ConnectionPage[DiscussionComment] < (Abort[GithubError] & Async) =
+    ): ConnectionPage[DiscussionComment] < (Abort[GitHubException] & Async) =
       post[GraphQl.DiscussionCommentsEnvelope](
         GraphQl.listDiscussionCommentsDocument(repository, number, after, first, replyDepth)
       ).map(env => GithubClient.lift(GraphQl.discussionCommentsFrom(env)))
-    def getIssue(repository: RepositoryRef, number: IssueNumber): Maybe[Issue] < (Abort[GithubError] & Async) =
+    def getIssue(repository: RepositoryRef, number: IssueNumber): Maybe[Issue] < (Abort[GitHubException] & Async) =
       post[GraphQl.SingleIssueEnvelope](GraphQl.getIssueDocument(repository, number)).map(env =>
         GithubClient.lift(GraphQl.issueFrom(env))
       )
     def getPullRequest(
         repository: RepositoryRef,
         number: PullRequestNumber
-    ): Maybe[PullRequest] < (Abort[GithubError] & Async) =
+    ): Maybe[PullRequest] < (Abort[GitHubException] & Async) =
       post[GraphQl.SinglePullRequestEnvelope](GraphQl.getPullRequestDocument(repository, number)).map(env =>
         GithubClient.lift(GraphQl.pullRequestFrom(env))
       )
@@ -88,18 +88,18 @@ private[github] object PlatformLive:
         repository: RepositoryRef,
         number: DiscussionNumber,
         replyDepth: ReplyDepth
-    ): Maybe[Discussion] < (Abort[GithubError] & Async) =
+    ): Maybe[Discussion] < (Abort[GitHubException] & Async) =
       post[GraphQl.SingleDiscussionEnvelope](GraphQl.getDiscussionDocument(repository, number, replyDepth)).map(env =>
         GithubClient.lift(GraphQl.discussionFrom(env))
       )
 
-    private def post[A: Schema](request: GraphQl.Request): A < (Abort[GithubError] & Async) =
+    private def post[A: Schema](request: GraphQl.Request): A < (Abort[GitHubException] & Async) =
       postBody(request)
 
-    private def post[A: Schema](request: GraphQl.NodeReplyRequest): A < (Abort[GithubError] & Async) =
+    private def post[A: Schema](request: GraphQl.NodeReplyRequest): A < (Abort[GitHubException] & Async) =
       postBody(request)
 
-    private def postBody[A: Schema, B: Schema](body: B): A < (Abort[GithubError] & Async) =
+    private def postBody[A: Schema, B: Schema](body: B): A < (Abort[GitHubException] & Async) =
       val send =
         HttpClient.withConfig(
           HttpClientConfig()
@@ -112,14 +112,14 @@ private[github] object PlatformLive:
       Abort.run[HttpException](send).map {
         case Result.Success(body) => body
         case Result.Failure(err)  => Abort.fail(mapHttp(err))
-        case Result.Panic(err)    => Abort.fail(GithubError.Transport(err.getMessage))
+        case Result.Panic(err)    => Abort.fail(GitHubException.Transport(err.getMessage))
       }
 
-    private def mapHttp(err: HttpException): GithubError =
+    private def mapHttp(err: HttpException): GitHubException =
       err match
         case status: HttpStatusException =>
           status.status.code match
-            case 401 => GithubError.Unauthorized(status.getMessage)
-            case 403 => GithubError.RateLimited(status.getMessage)
-            case _   => GithubError.Transport(status.getMessage)
-        case other => GithubError.Transport(other.getMessage)
+            case 401 => GitHubException.Unauthorized(status.getMessage)
+            case 403 => GitHubException.RateLimited(status.getMessage)
+            case _   => GitHubException.Transport(status.getMessage)
+        case other => GitHubException.Transport(other.getMessage)

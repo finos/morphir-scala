@@ -7,7 +7,7 @@ import morphir.connector.github.internal.GhAuth
 
 /** Supplies a GitHub access token to a live client. The host installs one named source. */
 trait TokenProvider:
-  def token: Token < (Abort[GithubError] & Async)
+  def token: Token < (Abort[GitHubException] & Async)
 
 object TokenProvider:
 
@@ -65,42 +65,42 @@ object TokenProvider:
           case Absent         => Chunk.empty
       )
 
-  private[github] def parseFlag(value: String): Token < Abort[GithubError] =
+  private[github] def parseFlag(value: String): Token < Abort[GitHubException] =
     parseNamed("GitHub token flag", value)
 
-  private[github] def parseGitHubToken(value: String): Token < Abort[GithubError] =
+  private[github] def parseGitHubToken(value: String): Token < Abort[GitHubException] =
     parseNamed("GITHUB_TOKEN", value)
 
-  private def parseNamed(name: String, value: String): Token < Abort[GithubError] =
+  private def parseNamed(name: String, value: String): Token < Abort[GitHubException] =
     Token.parse(value) match
       case Present(parsed) => parsed
-      case Absent          => Abort.fail(GithubError.Unauthorized(s"$name is blank"))
+      case Absent          => Abort.fail(GitHubException.Unauthorized(s"$name is blank"))
 
-  private[github] def parseGhStdout(stdout: String): Token < Abort[GithubError] =
+  private[github] def parseGhStdout(stdout: String): Token < Abort[GitHubException] =
     Token.parse(stdout) match
       case Present(parsed) => parsed
-      case Absent          => Abort.fail(GithubError.Unauthorized("gh auth token returned a blank token"))
+      case Absent          => Abort.fail(GitHubException.Unauthorized("gh auth token returned a blank token"))
 
   private final class ConstProvider(value: Token) extends TokenProvider:
-    def token: Token < (Abort[GithubError] & Async) =
+    def token: Token < (Abort[GitHubException] & Async) =
       value
 
   private object FlagsProvider extends TokenProvider:
-    def token: Token < (Abort[GithubError] & Async) =
+    def token: Token < (Abort[GitHubException] & Async) =
       parseFlag(morphir.connector.github.token())
 
   private object GitHubActionsProvider extends TokenProvider:
-    def token: Token < (Abort[GithubError] & Async) =
+    def token: Token < (Abort[GitHubException] & Async) =
       parseGitHubToken(GITHUB_TOKEN())
 
   private final class VaultProvider(store: SecretStore, service: String, account: String) extends TokenProvider:
-    def token: Token < (Abort[GithubError] & Async) =
+    def token: Token < (Abort[GitHubException] & Async) =
       Abort.run[SecretError](store.get(service, account)).map {
         case Result.Success(Present(raw)) => parseNamed(s"$service/$account", raw)
         case Result.Success(Absent)       =>
-          Abort.fail(GithubError.Unauthorized(s"no secret for $service/$account"))
-        case Result.Failure(err) => Abort.fail(GithubError.Unauthorized(err.getMessage))
-        case Result.Panic(err)   => Abort.fail(GithubError.Unauthorized(err.getMessage))
+          Abort.fail(GitHubException.Unauthorized(s"no secret for $service/$account"))
+        case Result.Failure(err) => Abort.fail(GitHubException.Unauthorized(err.getMessage))
+        case Result.Panic(err)   => Abort.fail(GitHubException.Unauthorized(err.getMessage))
       }
 
   private final class GitHubCliProvider(
@@ -108,5 +108,5 @@ object TokenProvider:
       hostname: Maybe[String],
       auth: GhAuth
   ) extends TokenProvider:
-    def token: Token < (Abort[GithubError] & Async) =
+    def token: Token < (Abort[GitHubException] & Async) =
       auth.stdout(gitHubCliArgs(user, hostname)).map(parseGhStdout)

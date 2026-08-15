@@ -30,7 +30,7 @@ The live client methods take `Env[TokenProvider]`. That is the start: the client
 
 ```scala
 trait TokenProvider:
-  def token: Token < (Abort[GithubError] & Async)
+  def token: Token < (Abort[GitHubException] & Async)
 ```
 
 `TokenProvider.const(token)` wraps a value the host already has. `GithubClient.live(token)` stays as that helper so scripts and tests need no `Env`.
@@ -77,8 +77,8 @@ Proposed layers:
 | `TokenProvider.const(token)` | `TokenProvider` | `Any` |
 | `TokenProvider.flags` | `TokenProvider` | `Any` |
 | `TokenProvider.gitHubActions` | `TokenProvider` | `Any` |
-| `TokenProvider.gitHubCli(user, hostname)` | `TokenProvider` | `Abort[GithubError]` and `Async` |
-| `TokenProvider.vault(service, account)` | `TokenProvider` | `Env[SecretStore]`, `Abort[GithubError]`, and `Async` |
+| `TokenProvider.gitHubCli(user, hostname)` | `TokenProvider` | `Abort[GitHubException]` and `Async` |
+| `TokenProvider.vault(service, account)` | `TokenProvider` | `Env[SecretStore]`, `Abort[GitHubException]`, and `Async` |
 | `SecretStore.macOsKeychain` | `SecretStore` | `Abort[SecretError]` and `Async` |
 | `SecretStore.javaKeychain` | `SecretStore` | `Abort[SecretError]` and `Async` (JVM) |
 
@@ -142,7 +142,7 @@ trait SecretStore:
   def get(service: String, account: String): Maybe[String] < (Abort[SecretError] & Async)
 ```
 
-A missing entry is `Absent`. The GitHub vault adapter turns `Absent` or a failed `parse` into `GithubError.Unauthorized`.
+A missing entry is `Absent`. The GitHub vault adapter turns `Absent` or a failed `parse` into `GitHubException.Unauthorized`.
 
 Two early backends:
 

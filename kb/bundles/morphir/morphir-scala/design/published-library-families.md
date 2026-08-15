@@ -53,7 +53,7 @@ The module holds GitHub-shaped types (issue, pull request, discussion), a redact
 
 Each listed issue, pull request, and discussion carries author, createdAt, updatedAt, labels, and comments. createdAt and updatedAt are `Maybe[java.time.Instant]`. GitHub DateTime is an ISO-8601 UTC string; decode uses `Instant.parse`. Discussions also carry upvoteCount, an accepted answer, and nested comment replies. `listDiscussions` takes a `ReplyDepth` (default one level). Listing methods return `ConnectionPage`. Callers page with `after` and `first`. Nested comments are a `ConnectionPage`. `listIssueComments`, `listPullRequestComments`, and `listDiscussionComments` page past the first hundred. `listDiscussionReplies` pages further replies for a comment id from the connection cursor. `getIssue`, `getPullRequest`, and `getDiscussion` look up one object by repository number and return `Maybe` (`Absent` when GitHub returns null). Issue, pull request, and discussion numbers are opaque types (`IssueNumber`, `PullRequestNumber`, `DiscussionNumber`). `GithubNumber` is their union. `IssueOrPullRequestNumber` is the issue and pull request pair. Shared operations such as `toInt` live on the union. `GithubNumber.fold` is overloaded on the member type. `@targetName` gives each overload a distinct JVM bytecode name, because the opaque types erase to `Int`. Cursors are `Cursor`. A discussion comment node id is `DiscussionCommentId`. Page size `first` remains `Int`. Public models have `Render` instances. Opaque numbers and ids print as `issue:975`, `pr:3`, `discussion:100`, `cursor:c1`, and `dc:DC_1`. Issue and pull request comments have no upvoteCount. GitHub's IssueComment is not Votable.
 
-Listing methods return `ConnectionPage[A] < (Abort[GithubError] & Async)`. Recorded JSON decode is pure `Result` lifted into that row. Live HTTP cannot be a bare `Result`.
+Listing methods return `ConnectionPage[A] < (Abort[GitHubException] & Async)`. Recorded JSON decode is pure `Result` lifted into that row. Live HTTP cannot be a bare `Result`.
 
 `kyo-caliban` is a GraphQL server and is out of scope. The client path is still `caliban-client` plus an HTTP backend, against a **subset** of GitHub's schema. REST is used only for endpoints GraphQL lacks. The `gh` CLI is a later sibling module, `morphir/connector/github-cli`, and may be JVM-only.
 
@@ -82,7 +82,7 @@ Node.
 Scala Native does not take `kyo-http`. The published `kyo-net_native0.5_3-1.0.0-RC6` artifact was generated on a Linux
 host. `KqueueBindingsImpl` is a throwing stub (`sys/event.h` unavailable). `EpollBindingsImpl` still references Linux
 `epoll` / `eventfd` / `io_uring` symbols. OpenSSL link flags would not fix that. `GithubClient.live` exists on Native
-and listing fails with `GithubError.Transport`.
+and listing fails with `GitHubException.Transport`.
 
 Recorded GraphQL fixtures run on all three. Tests do not call `api.github.com`. Live listing builds GraphQL
 documents from the generated `caliban-client` helpers.
