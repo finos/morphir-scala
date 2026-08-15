@@ -1,8 +1,9 @@
 # Subset of GitHub's GraphQL schema for morphir-connector-github.
 #
 # Hand-authored to name the operations this module will call. Not a copy of GitHub's full
-# schema.docs.graphql. When codegen first runs, pin the upstream schema commit in README.md
-# and regenerate from a cut-down SDL taken from that pin.
+# schema.docs.graphql. Checked against github/docs
+# src/graphql/data/fpt/schema.docs.graphql at
+# 4919b704c4cee5b6cd41377455b15ed829f83aa2 (2026-08-13).
 #
 # Codegen (checked-in Scala, not a Mill task):
 #   ./mill morphir/connector/github/schema/gen-client.scala

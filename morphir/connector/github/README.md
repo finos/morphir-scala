@@ -58,10 +58,12 @@ Abort.run[GithubError](client.listIssues(RepositoryRef("owner", "repo")))
 
 The operations this module will call are declared in [`schema/github-subset.graphql`](./schema/github-subset.graphql).
 That file is a hand-authored subset of GitHub's public schema, not a copy of the full `schema.docs.graphql`.
+The subset was checked against GitHub's free-plan public schema in
+[`github/docs` at `4919b704c4cee5b6cd41377455b15ed829f83aa2`](https://github.com/github/docs/blob/4919b704c4cee5b6cd41377455b15ed829f83aa2/src/graphql/data/fpt/schema.docs.graphql)
+(2026-08-13).
 
 Generated Scala is **checked in**, produced by a Mill script rather than a Mill module task. Caliban's codegen
-plugin is sbt-shaped; the script is the documented command. Pin the upstream schema commit here when the subset is
-cut from a known GitHub schema revision.
+plugin is sbt-shaped; the script is the documented command.
 
 ```text
 ./mill morphir/connector/github/schema/gen-client.scala
