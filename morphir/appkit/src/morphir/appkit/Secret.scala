@@ -6,7 +6,7 @@ import kyo.*
 final class Secret private (raw: String) derives CanEqual:
   private[morphir] def unsafeReveal: String = raw
   override def toString: String             = "Secret(redacted)"
-  override def equals(other: Any): Boolean =
+  override def equals(other: Any): Boolean  =
     other match
       case that: Secret => unsafeReveal == that.unsafeReveal
       case _            => false

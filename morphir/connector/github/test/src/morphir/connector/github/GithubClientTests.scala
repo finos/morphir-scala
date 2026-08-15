@@ -22,12 +22,12 @@ class GithubClientTests extends SnapshotTest[Any]:
   )(effect: A < (Env[SecretStore] & Abort[GitHubException] & Async)): Result[GitHubException, A] < Async =
     Abort.run[GitHubException](Env.run(store)(effect))
 
-  private def issueNo(n: Int): IssueNumber              = IssueNumber.fromWire(n)
-  private def prNo(n: Int): PullRequestNumber           = PullRequestNumber.fromWire(n)
-  private def discNo(n: Int): DiscussionNumber          = DiscussionNumber.fromWire(n)
-  private def cursor(s: String): Cursor                 = Cursor.fromWire(s)
-  private def commentId(s: String): DiscussionCommentId = DiscussionCommentId.fromWire(s)
-  private def pageSize(n: Int): PageSize                = PageSize.fromWire(n)
+  private def issueNo(n: Int): IssueNumber                     = IssueNumber.fromWire(n)
+  private def prNo(n: Int): PullRequestNumber                  = PullRequestNumber.fromWire(n)
+  private def discNo(n: Int): DiscussionNumber                 = DiscussionNumber.fromWire(n)
+  private def cursor(s: String): Cursor                        = Cursor.fromWire(s)
+  private def commentId(s: String): DiscussionCommentId        = DiscussionCommentId.fromWire(s)
+  private def pageSize(n: Int): PageSize                       = PageSize.fromWire(n)
   private def repo(owner: String, name: String): RepositoryRef =
     RepositoryRef.parse(owner, name) match
       case Present(value) => value
@@ -197,8 +197,8 @@ class GithubClientTests extends SnapshotTest[Any]:
       }
     }
     "returns empty pull requests and discussions by default" in {
-      val client = GithubClient.fixture()
-      val repository   = repo("owner", "repo")
+      val client     = GithubClient.fixture()
+      val repository = repo("owner", "repo")
       run(client.listPullRequests(repository)).map {
         case Result.Success(page) => assert(page.nodes.isEmpty)
         case _                    => assert(false)
@@ -208,7 +208,7 @@ class GithubClientTests extends SnapshotTest[Any]:
       val issueComments = ConnectionPage(nodes = Chunk(IssueComment(body = Present("issue"))))
       val prComments    = ConnectionPage(nodes = Chunk(IssueComment(body = Present("pr"))))
       val client        = GithubClient.fixture(issueComments = issueComments, pullRequestComments = prComments)
-      val repository          = repo("owner", "repo")
+      val repository    = repo("owner", "repo")
       for
         issueResult <- run(
           IssueOrPullRequestNumber.fold(issueNo(1))(
@@ -374,8 +374,8 @@ class GithubClientTests extends SnapshotTest[Any]:
         """{"data":{"repository":{"pullRequests":{"nodes":[{"number":3,"title":"pr","body":"desc","url":"https://example.test/3"}]}}}}"""
       val discussions =
         """{"data":{"repository":{"discussions":{"nodes":[{"number":4,"title":"disc","body":null,"url":"https://example.test/4"}]}}}}"""
-      val client = GithubClient.recorded(pullRequests = prs, discussions = discussions)
-      val repository   = repo("owner", "repo")
+      val client     = GithubClient.recorded(pullRequests = prs, discussions = discussions)
+      val repository = repo("owner", "repo")
       for
         prResult   <- run(client.listPullRequests(repository))
         discResult <- run(client.listDiscussions(repository))

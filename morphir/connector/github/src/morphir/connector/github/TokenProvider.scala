@@ -97,7 +97,7 @@ object TokenProvider:
     def token: Token < (Abort[GitHubException] & Async) =
       Abort.run[SecretException](store.get(service, account)).map {
         case Result.Success(Present(secret)) => parseNamed(s"$service/$account", secret.unsafeReveal)
-        case Result.Success(Absent)       =>
+        case Result.Success(Absent)          =>
           Abort.fail(GitHubException.Unauthorized(s"no secret for $service/$account"))
         case Result.Failure(err) => Abort.fail(GitHubException.Unauthorized(err.getMessage))
         case Result.Panic(err)   => Abort.fail(GitHubException.Unauthorized(err.getMessage))

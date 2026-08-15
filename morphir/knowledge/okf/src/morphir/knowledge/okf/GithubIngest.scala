@@ -7,8 +7,8 @@ import morphir.langkit.markdown.{ParseError, Parser}
 /**
  * Maps GitHub-shaped values onto OKF concepts. GitHub types stay in the connector; OKF types stay here.
  *
- * Full ingest (pagination, provenance, round-trip with `kb/`) is later work. This skeleton proves the boundary
- * compiles on JVM, JS, and Native.
+ * Full ingest (pagination, provenance, round-trip with `kb/`) is later work. This skeleton proves the boundary compiles
+ * on JVM, JS, and Native.
  */
 object GithubIngest:
 

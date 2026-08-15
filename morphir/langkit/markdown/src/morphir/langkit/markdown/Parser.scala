@@ -6,9 +6,9 @@ import morphir.langkit.core.Span
 /**
  * Stub parser for ATX headings and paragraphs.
  *
- * This is not a CommonMark parser. It exists so tests run on JVM, JS, and Native while the production parser is
- * still an open question. Do not take `commonmark-java` here. ATX headings still terminate at the end of their
- * line, so a heading is never merged with the following block when only a single newline separates them.
+ * This is not a CommonMark parser. It exists so tests run on JVM, JS, and Native while the production parser is still
+ * an open question. Do not take `commonmark-java` here. ATX headings still terminate at the end of their line, so a
+ * heading is never merged with the following block when only a single newline separates them.
  */
 object Parser:
 
@@ -38,11 +38,11 @@ object Parser:
 
   /** Split into block chunks. Blank lines separate paragraphs; an ATX heading line is always its own chunk. */
   private def splitBlocks(source: String): List[SourceChunk] =
-    val result           = List.newBuilder[SourceChunk]
-    var paragraphStart   = -1
-    var paragraphEnd     = -1
-    var lineStart        = 0
-    var i                = 0
+    val result         = List.newBuilder[SourceChunk]
+    var paragraphStart = -1
+    var paragraphEnd   = -1
+    var lineStart      = 0
+    var i              = 0
 
     def flushParagraph(): Unit =
       if paragraphStart >= 0 then
