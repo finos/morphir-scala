@@ -26,10 +26,17 @@ object ElectronPorts:
     }
 
   /**
-   * Main-process port for one window over ipcMain + webContents. Facade glue; exercised by the desktop shell's Electron
-   * smoke test, not unit tests.
+   * Main-process port for one window. Facade glue; exercised by the desktop shell's Electron smoke test, not unit
+   * tests.
    */
-  def mainPort(web: facades.WebContents, channel: String = "morphir-rpc", capacity: Int = 64): IpcPort < Sync =
+  def mainPort(window: ElectronApp.Window): IpcPort < Sync =
+    mainPort(window.underlying.webContents)
+
+  private[electron] def mainPort(
+      web: facades.WebContents,
+      channel: String = "morphir-rpc",
+      capacity: Int = 64
+  ): IpcPort < Sync =
     Channel.initUnscoped[String](capacity).map { in =>
       facades.ipcMain.on(
         channel,
