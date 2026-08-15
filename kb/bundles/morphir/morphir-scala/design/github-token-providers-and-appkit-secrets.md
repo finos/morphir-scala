@@ -53,7 +53,7 @@ flowchart TB
   subgraph github ["morphir/connector/github proposed"]
     tp["TokenProvider"]
     const["const"]
-    flags["flags StaticFlag"]
+    flags["object token"]
     gh["gitHubCli"]
     vault["vault adapter"]
     const -->|"is"| tp
@@ -99,7 +99,9 @@ There is no public string accessor. The HTTP layer uses `private[github] def uns
 
 ### Flags
 
-`object token extends StaticFlag[String]("")` lives in `morphir.connector.github`. Kyo's key is the fully qualified name `morphir.connector.github.token`. The environment variable is `MORPHIR_CONNECTOR_GITHUB_TOKEN`. The system property is `morphir.connector.github.token`. The default is empty. Blank becomes `Unauthorized`.
+The flag is `object token extends StaticFlag[String]("")` in package `morphir.connector.github`. Kyo's key is that fully qualified name. The environment variable is `MORPHIR_CONNECTOR_GITHUB_TOKEN`. The system property is `morphir.connector.github.token`. The default is empty. Blank becomes `Unauthorized`.
+
+The token class cannot live in that same package at the JVM level. `Token.class` and `token.class` collide on macOS and Windows. The class and companion are `private[github]` in `internal`. The public package exports them, so hosts still write `morphir.connector.github.Token`. The StaticFlag object keeps the public JVM name.
 
 This flag does not also read `GITHUB_TOKEN` or `GH_TOKEN`. Those remain host or `gh` concerns.
 
@@ -154,7 +156,7 @@ Electron remains a later leaf ([intent 0025](../../../intent/0025-electron-appki
 
 ### Tests
 
-Tests do not call `api.github.com`. Flag tests set the system property. `gh` and keychain use a fake `SecretStore` or a process seam. The `gh` seam records `--user` and `--hostname` when present. CI does not require a real Keychain.
+Tests do not call `api.github.com`. Flag tests assert `token.name` and `token.envName`, and that a blank value is `Unauthorized`. They do not set the system property in-process: `StaticFlag` reads once at class load. `gh` and keychain use a fake `SecretStore` or a process seam. The `gh` seam records `--user` and `--hostname` when present. CI does not require a real Keychain.
 
 ## Alternatives
 
