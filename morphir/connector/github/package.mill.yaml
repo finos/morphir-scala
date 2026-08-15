@@ -1,0 +1,35 @@
+extends: Module
+
+object jvm:
+  extends: [build.MorphirJVMModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps, build.MorphirCalibanClientMvnDeps]
+  moduleDeps: [build.morphir.appkit.jvm, build.morphir.prelude.jvm]
+  mvnDeps: !append
+  - io.getkyo::kyo-config
+  - io.getkyo::kyo-http
+  - io.getkyo::kyo-schema
+  - io.getkyo::kyo-schema-json
+  object test:
+    extends: [ScalaTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps, build.MorphirKyoSnapshotTestMvnDeps, build.MorphirConnectorGithubSnapshotEnv]
+
+object js:
+  extends: [build.MorphirJSModule, build.MorphirJSNodeModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps, build.MorphirCalibanClientMvnDeps]
+  moduleDeps: [build.morphir.appkit.js, build.morphir.prelude.js]
+  mvnDeps: !append
+  - io.getkyo::kyo-config
+  - io.getkyo::kyo-http
+  - io.getkyo::kyo-schema
+  - io.getkyo::kyo-schema-json
+  object test:
+    extends: [ScalaJSTests, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps, build.MorphirKyoSnapshotTestMvnDeps, build.MorphirConnectorGithubSnapshotEnv, build.MorphirConnectorGithubSnapshotJsEnv]
+
+object native:
+  extends: [build.MorphirNativeModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps, build.MorphirCalibanClientMvnDeps]
+  moduleDeps: [build.morphir.appkit.native, build.morphir.prelude.native]
+  mvnDeps: !append
+  - io.getkyo::kyo-config
+  - io.getkyo::kyo-schema
+  - io.getkyo::kyo-schema-json
+  object test:
+    extends: [ScalaNativeTests, millbuild.KyoTestNative, build.MorphirKyoTestMvnDeps, build.MorphirKyoSnapshotTestMvnDeps, build.MorphirConnectorGithubSnapshotEnv]
+    mvnDeps: !append
+    - org.scala-native::test-interface::0.5.12

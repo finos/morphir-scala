@@ -1,0 +1,1 @@
+query{repository(owner:"acme",name:"widgets"){issue(number:1){number title body url author{login url} createdAt updatedAt labels(first:100){nodes{name}} comments(first:100){pageInfo{hasNextPage endCursor} nodes{author{login url} body createdAt updatedAt}}}}}

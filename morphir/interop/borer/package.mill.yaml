@@ -4,20 +4,20 @@ object jvm:
   extends: [build.MorphirJVMModule, build.MorphirPublishModule, build.MorphirScoverage]
   moduleDeps: [build.morphir.jvm]
   mvnDeps:
-  - io.bullet::borer-core:1.16.2
-  - io.bullet::borer-derivation:1.16.2
+  - io.bullet::borer-core
+  - io.bullet::borer-derivation
   object test:
     extends: [ScoverageTests, TestModule.ZioTest]
     moduleDeps: !append
     - build.morphir.testing.generators.jvm
     - build.morphir.testing.zio.jvm
     mvnDeps:
-    - io.bullet::borer-core:1.16.2
-    - io.bullet::borer-derivation:1.16.2
+    - io.bullet::borer-core
+    - io.bullet::borer-derivation
 
 object js:
   extends: [build.MorphirJSModule, build.MorphirPublishModule]
   moduleDeps: [build.morphir.js]
   mvnDeps:
-  - io.bullet::borer-core::1.16.2
-  - io.bullet::borer-derivation::1.16.2
+  - io.bullet::borer-core
+  - io.bullet::borer-derivation

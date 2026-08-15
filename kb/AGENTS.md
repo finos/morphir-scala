@@ -48,7 +48,8 @@ directory from being mistaken for a bundle:
   `type` field. Bundle-level orientation belongs in `index.md`.
 
 A group's `README.md` should list its bundles and record any constraints shared across them (which upstream sources
-are authoritative, which are off-limits).
+are authoritative, which are off-limits). Bundles in the same grouping directory are **co-located**. A Glossary or
+Data Dictionary in one of them is a valid term catalog for the others. See [Glossaries and data dictionaries](#glossaries-and-data-dictionaries).
 
 ## Mirrored bundles
 
@@ -94,18 +95,20 @@ Every concept document starts with a YAML frontmatter block.
 - Follow the style cards in [`.agents/skills/kb/styles/`](../.agents/skills/kb/styles/README.md): `voice.md`,
   `diagrams.md`, and `altitude.md` for every document, plus the register card (`article.md`, `whitepaper.md`,
   or `reference.md`) that the document's `type` selects. The cards apply to new and touched content; do not
-  sweep existing prose.
+  sweep existing prose. `voice.md` sets the audience: junior to early mid-level. Supply background on the
+  page, as a summary, as a Glossary or Data Dictionary link (same bundle or co-located sibling is enough to
+  skip an inline sidebar), as another kb link, or as an external link (least preferred).
 - Prefer a captioned Mermaid diagram (or an SVG asset) over prose narration when the subject is a flow,
   lifecycle, structure, or state machine.
 - Size documents to capability stories (`altitude.md`): each capability in flight has one narrative home, a
   Design Note that tells its accurate story and links its research, constraints, open questions, and intents.
   A fine-grained concept must be reachable from a narrative home; an intent must read as a feature definition
-  on its own. Split a document only for reuse, an independent version pin, or a register boundary, never
-  merely for length.
+  on its own. Split a document only for reuse, an independent version pin, a register boundary, a Glossary, or
+  a Data Dictionary, never merely for length.
 
 ### Required
 
-- `type` — short string naming the kind of concept (`Playbook`, `Metric`, `Module`, `Attested Computation`, …).
+- `type` — short string naming the kind of concept (`Playbook`, `Glossary`, `Data Dictionary`, `Design Note`, …).
   This is the only universally required field; consumers route, filter, and present on it. Type values are not
   centrally registered, so pick self-explanatory names and reuse the ones already present in the bundle rather than
   inventing near-synonyms.
@@ -178,6 +181,20 @@ when you learn more, it is a Design Note.
 
 Full guidance: [`.claude/skills/kb/references/decisions.md`](../.claude/skills/kb/references/decisions.md), and the
 reasoning in [decision 0004](./bundles/morphir/morphir-scala/decisions/0004-decision-records-are-a-third-register.md).
+
+## Glossaries and data dictionaries
+
+A **Glossary** (`type: Glossary`) is the bundle's word list: term, then a short meaning. A **Data Dictionary**
+(`type: Data Dictionary`) is the bundle's catalog of named fields, types, flags, or columns. Both use the
+reference register. Prefer `glossary.md` and `data-dictionary.md` at the bundle root.
+
+They exist so a Design Note can keep moving. Link the term instead of pausing for a sidebar definition. That
+is the right call when the catalog is in the same bundle, or in a co-located sibling (another bundle under the
+same grouping directory, such as `kb/bundles/morphir/`). Linking a glossary farther away is still a kb link;
+it does not replace naming the term on first use.
+
+Do not copy glossary entries back onto the narrative page. [kb/CONTEXT.md](./CONTEXT.md) is the vocabulary of
+`kb/` itself. It is not a bundle concept. Bundle glossaries do not repeat it.
 
 ## Cross-linking
 

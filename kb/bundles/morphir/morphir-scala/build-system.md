@@ -44,3 +44,24 @@ test platforms, the knowledge base check, and local CI.
 Declared with the `mvn""` interpolator — `ivy""` is deprecated in Mill 1.x. For JS and Native dependencies the
 double-colon form (`group::artifact::version`) is required; a single colon cross-builds only by Scala version and
 silently resolves the JVM jar.
+
+A library suite is two or more artifacts that share one pin in `Versions`. Kyo, ZIO core, zio-json,
+zio-prelude, zio-config, zio-schema, fs2, upickle, borer, metaconfig and scala-java-time are suites. Mill
+`depManagement` on `MorphirSuiteBom` applies those pins. None of those publishers are imported as a Maven BOM
+with `bomMvnDeps`.
+
+A module that already extends `MorphirJVMModule` (or `MorphirJSModule` / `MorphirNativeModule`) adds extra suite
+artifacts in YAML without a version:
+
+```yaml
+mvnDeps: !append
+- io.getkyo::kyo-config
+- dev.zio::zio-json
+```
+
+Do not add a new `Morphir*MvnDeps` trait per artifact. Fetch traits still name a bundle that always travels
+together (kyo-core plus kyo-prelude, kyo-test, and so on). When a suite gains a member, add it to that object's
+`managed` in `mill-build/src/millbuild/deps.scala`.
+
+A one-off library that is not a suite names its version in YAML. Still use `mvnDeps: !append`, because a bare
+`mvnDeps:` replaces inherited deps.

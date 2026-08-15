@@ -19,9 +19,10 @@ concept files, and optionally a register name per file.
      neighbour concept, a `description` that does not stand alone or does not match its index bullet.
    - **Register**: missing sections the card requires (a white-paper with no rejected alternatives, a
      reference with no baseline pin, an article that opens with theory), content in the wrong register.
-   - **Altitude**: a concept no capability narrative reaches, an intent too thin to define its feature, a
+     - **Altitude**: a concept no capability narrative reaches, an intent too thin to define its feature, a
      narrative home that has drifted behind the documents it links, or a split that altitude.md's criteria do
-     not justify.
+     not justify. A Glossary or Data Dictionary in the same bundle (or a co-located sibling) is a justified
+     split. Flag a narrative that inlines a long definition sidebar instead of linking that catalog.
    - **Diagrams**: prose that narrates a flow, structure, or state machine a diagram would show better
      (flag per diagrams.md); existing figures with no numbered `Figure N:` caption, numbering out of document
      order, unlabeled edges, more than one idea, or content that drifted from the claims around them.
