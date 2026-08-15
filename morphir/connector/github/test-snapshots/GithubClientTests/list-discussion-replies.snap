@@ -1,0 +1,1 @@
+query{node(id:"DC_1"){__typename ... on DiscussionComment{replies(first:100,after:"cursor-1"){pageInfo{hasNextPage endCursor} nodes{id author{login url} body createdAt updatedAt upvoteCount replies(first:100){pageInfo{hasNextPage endCursor} nodes{id author{login url} body createdAt updatedAt upvoteCount}}}}}}}

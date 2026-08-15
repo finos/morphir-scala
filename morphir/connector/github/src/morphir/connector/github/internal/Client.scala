@@ -5,6 +5,11 @@ import caliban.client._
 
 object Client {
 
+  type Node
+  object Node {
+    def id: SelectionBuilder[Node, String] = _root_.caliban.client.SelectionBuilder.Field("id", Scalar())
+  }
+
   type Repository
   object Repository {
     def issues[A](first: scala.Option[Int] = None)(innerSelection: SelectionBuilder[IssueConnection, A])(implicit
@@ -30,6 +35,27 @@ object Client {
       OptionOf(Obj(innerSelection)),
       arguments = List(Argument("first", first, "Int"))
     )
+    def issue[A](number: Int)(innerSelection: SelectionBuilder[Issue, A])(implicit
+        encoder0: ArgEncoder[Int]
+    ): SelectionBuilder[Repository, scala.Option[A]] = _root_.caliban.client.SelectionBuilder.Field(
+      "issue",
+      OptionOf(Obj(innerSelection)),
+      arguments = List(Argument("number", number, "Int!"))
+    )
+    def pullRequest[A](number: Int)(innerSelection: SelectionBuilder[PullRequest, A])(implicit
+        encoder0: ArgEncoder[Int]
+    ): SelectionBuilder[Repository, scala.Option[A]] = _root_.caliban.client.SelectionBuilder.Field(
+      "pullRequest",
+      OptionOf(Obj(innerSelection)),
+      arguments = List(Argument("number", number, "Int!"))
+    )
+    def discussion[A](number: Int)(innerSelection: SelectionBuilder[Discussion, A])(implicit
+        encoder0: ArgEncoder[Int]
+    ): SelectionBuilder[Repository, scala.Option[A]] = _root_.caliban.client.SelectionBuilder.Field(
+      "discussion",
+      OptionOf(Obj(innerSelection)),
+      arguments = List(Argument("number", number, "Int!"))
+    )
   }
 
   type Actor
@@ -47,6 +73,14 @@ object Client {
   object LabelConnection {
     def nodes[A](innerSelection: SelectionBuilder[Label, A]): SelectionBuilder[LabelConnection, List[A]] =
       _root_.caliban.client.SelectionBuilder.Field("nodes", ListOf(Obj(innerSelection)))
+  }
+
+  type PageInfo
+  object PageInfo {
+    def hasNextPage: SelectionBuilder[PageInfo, Boolean] =
+      _root_.caliban.client.SelectionBuilder.Field("hasNextPage", Scalar())
+    def endCursor: SelectionBuilder[PageInfo, scala.Option[String]] =
+      _root_.caliban.client.SelectionBuilder.Field("endCursor", OptionOf(Scalar()))
   }
 
   type IssueComment
@@ -69,6 +103,7 @@ object Client {
 
   type DiscussionComment
   object DiscussionComment {
+    def id: SelectionBuilder[DiscussionComment, String] = _root_.caliban.client.SelectionBuilder.Field("id", Scalar())
     def author[A](innerSelection: SelectionBuilder[Actor, A]): SelectionBuilder[DiscussionComment, scala.Option[A]] =
       _root_.caliban.client.SelectionBuilder.Field("author", OptionOf(Obj(innerSelection)))
     def body: SelectionBuilder[DiscussionComment, scala.Option[String]] =
@@ -79,13 +114,16 @@ object Client {
       _root_.caliban.client.SelectionBuilder.Field("updatedAt", Scalar())
     def upvoteCount: SelectionBuilder[DiscussionComment, Int] =
       _root_.caliban.client.SelectionBuilder.Field("upvoteCount", Scalar())
-    def replies[A](first: scala.Option[Int] =
-      None)(innerSelection: SelectionBuilder[DiscussionCommentConnection, A])(implicit
-        encoder0: ArgEncoder[scala.Option[Int]]
+    def replies[A](
+        first: scala.Option[Int] = None,
+        after: scala.Option[String] = None
+    )(innerSelection: SelectionBuilder[DiscussionCommentConnection, A])(implicit
+        encoder0: ArgEncoder[scala.Option[Int]],
+        encoder1: ArgEncoder[scala.Option[String]]
     ): SelectionBuilder[DiscussionComment, scala.Option[A]] = _root_.caliban.client.SelectionBuilder.Field(
       "replies",
       OptionOf(Obj(innerSelection)),
-      arguments = List(Argument("first", first, "Int"))
+      arguments = List(Argument("first", first, "Int"), Argument("after", after, "String"))
     )
   }
 
@@ -94,6 +132,8 @@ object Client {
     def nodes[A](innerSelection: SelectionBuilder[DiscussionComment, A])
         : SelectionBuilder[DiscussionCommentConnection, List[A]] =
       _root_.caliban.client.SelectionBuilder.Field("nodes", ListOf(Obj(innerSelection)))
+    def pageInfo[A](innerSelection: SelectionBuilder[PageInfo, A]): SelectionBuilder[DiscussionCommentConnection, A] =
+      _root_.caliban.client.SelectionBuilder.Field("pageInfo", Obj(innerSelection))
   }
 
   type IssueConnection
@@ -219,6 +259,24 @@ object Client {
         "repository",
         OptionOf(Obj(innerSelection)),
         arguments = List(Argument("owner", owner, "String!"), Argument("name", name, "String!"))
+      )
+    def node[A](id: String)(onDiscussionComment: SelectionBuilder[DiscussionComment, A])(implicit
+        encoder0: ArgEncoder[String]
+    ): SelectionBuilder[_root_.caliban.client.Operations.RootQuery, scala.Option[A]] =
+      _root_.caliban.client.SelectionBuilder.Field(
+        "node",
+        OptionOf(ChoiceOf(Map("DiscussionComment" -> Obj(onDiscussionComment)))),
+        arguments = List(Argument("id", id, "ID!"))
+      )
+    def nodeOption[A](id: String)(onDiscussionComment: scala.Option[SelectionBuilder[DiscussionComment, A]] =
+      None)(implicit
+        encoder0: ArgEncoder[String]
+    ): SelectionBuilder[_root_.caliban.client.Operations.RootQuery, scala.Option[scala.Option[A]]] =
+      _root_.caliban.client.SelectionBuilder.Field(
+        "node",
+        OptionOf(ChoiceOf(Map("DiscussionComment" ->
+          onDiscussionComment.fold[FieldBuilder[scala.Option[A]]](NullField)(a => OptionOf(Obj(a)))))),
+        arguments = List(Argument("id", id, "ID!"))
       )
   }
 

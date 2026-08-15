@@ -18,12 +18,46 @@ private[github] object PlatformLive:
       post[GraphQl.PullRequestsEnvelope](GraphQl.listPullRequestsDocument(repository)).map(env =>
         GithubClient.lift(GraphQl.pullRequestsFrom(env))
       )
-    def listDiscussions(repository: RepositoryRef): Chunk[Discussion] < (Abort[GithubError] & Async) =
-      post[GraphQl.DiscussionsEnvelope](GraphQl.listDiscussionsDocument(repository)).map(env =>
+    def listDiscussions(
+        repository: RepositoryRef,
+        replyDepth: ReplyDepth
+    ): Chunk[Discussion] < (Abort[GithubError] & Async) =
+      post[GraphQl.DiscussionsEnvelope](GraphQl.listDiscussionsDocument(repository, replyDepth)).map(env =>
         GithubClient.lift(GraphQl.discussionsFrom(env))
+      )
+    def listDiscussionReplies(
+        commentId: String,
+        after: Maybe[String],
+        first: Int,
+        replyDepth: ReplyDepth
+    ): ConnectionPage[DiscussionComment] < (Abort[GithubError] & Async) =
+      post[GraphQl.NodeRepliesEnvelope](
+        GraphQl.listDiscussionRepliesDocument(commentId, after, first, replyDepth)
+      ).map(env => GithubClient.lift(GraphQl.discussionRepliesFrom(env)))
+    def getIssue(repository: RepositoryRef, number: Int): Maybe[Issue] < (Abort[GithubError] & Async) =
+      post[GraphQl.SingleIssueEnvelope](GraphQl.getIssueDocument(repository, number)).map(env =>
+        GithubClient.lift(GraphQl.issueFrom(env))
+      )
+    def getPullRequest(repository: RepositoryRef, number: Int): Maybe[PullRequest] < (Abort[GithubError] & Async) =
+      post[GraphQl.SinglePullRequestEnvelope](GraphQl.getPullRequestDocument(repository, number)).map(env =>
+        GithubClient.lift(GraphQl.pullRequestFrom(env))
+      )
+    def getDiscussion(
+        repository: RepositoryRef,
+        number: Int,
+        replyDepth: ReplyDepth
+    ): Maybe[Discussion] < (Abort[GithubError] & Async) =
+      post[GraphQl.SingleDiscussionEnvelope](GraphQl.getDiscussionDocument(repository, number, replyDepth)).map(env =>
+        GithubClient.lift(GraphQl.discussionFrom(env))
       )
 
     private def post[A: Schema](request: GraphQl.Request): A < (Abort[GithubError] & Async) =
+      postBody(request)
+
+    private def post[A: Schema](request: GraphQl.NodeReplyRequest): A < (Abort[GithubError] & Async) =
+      postBody(request)
+
+    private def postBody[A: Schema, B: Schema](body: B): A < (Abort[GithubError] & Async) =
       val send =
         HttpClient.withConfig(
           HttpClientConfig()
@@ -31,7 +65,7 @@ private[github] object PlatformLive:
             .filter(HttpFilter.client.bearerAuth(token.value))
             .filter(HttpFilter.client.addHeader("User-Agent", "morphir-connector-github"))
         ) {
-          HttpClient.postJson[A]("/graphql", request)
+          HttpClient.postJson[A]("/graphql", body)
         }
       Abort.run[HttpException](send).map {
         case Result.Success(body) => body

@@ -14,6 +14,7 @@
   [Continuous Integration](/continuous-integration.md).
 * **Creation**: Added [Published library families are kit, connector, appkit, langkit, and knowledge](/decisions/0013-published-library-families.md).
 * **Creation**: Added [Published library families](/design/published-library-families.md).
+* **Creation**: Added [GitHub token providers and appkit secrets](/design/github-token-providers-and-appkit-secrets.md).
 
 ## 2026-08-13
 

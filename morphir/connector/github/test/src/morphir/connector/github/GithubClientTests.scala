@@ -230,7 +230,7 @@ class GithubClientTests extends SnapshotTest[Any]:
         createdAt = Present(java.time.Instant.parse("2026-01-02T05:00:00Z")),
         updatedAt = Present(java.time.Instant.parse("2026-01-02T05:00:00Z")),
         upvoteCount = 4,
-        replies = Chunk(reply)
+        replies = ConnectionPage(nodes = Chunk(reply))
       )
       run(GithubClient.recorded(discussions = json).listDiscussions(RepositoryRef("owner", "repo"))).map {
         case Result.Success(items) =>
@@ -246,8 +246,69 @@ class GithubClientTests extends SnapshotTest[Any]:
                 updatedAt = Present(java.time.Instant.parse("2026-01-03T04:05:06Z")),
                 upvoteCount = 7,
                 labels = Chunk(Label("q-and-a")),
-                answer = Present(comment.copy(replies = Chunk.empty)),
+                answer = Present(comment.copy(replies = ConnectionPage())),
                 comments = Chunk(comment)
+              )
+            )
+          )
+        case _ => assert(false)
+      }
+    }
+    "decodes a single issue by number" in {
+      val json =
+        """{"data":{"repository":{"issue":{"number":1,"title":"title","body":"body","url":"https://example.test/1"}}}}"""
+      run(GithubClient.recorded(issue = json).getIssue(RepositoryRef("owner", "repo"), 1)).map {
+        case Result.Success(Present(issue)) =>
+          assert(issue == Issue(1, "title", Present("body"), "https://example.test/1"))
+        case _ => assert(false)
+      }
+    }
+    "treats a missing issue as Absent" in {
+      val json = """{"data":{"repository":{"issue":null}}}"""
+      run(GithubClient.recorded(issue = json).getIssue(RepositoryRef("owner", "repo"), 99)).map {
+        case Result.Success(Absent) => assert(true)
+        case _                      => assert(false)
+      }
+    }
+    "decodes a single pull request by number" in {
+      val json =
+        """{"data":{"repository":{"pullRequest":{"number":3,"title":"pr","body":"desc","url":"https://example.test/3"}}}}"""
+      run(GithubClient.recorded(pullRequest = json).getPullRequest(RepositoryRef("owner", "repo"), 3)).map {
+        case Result.Success(Present(pr)) =>
+          assert(pr == PullRequest(3, "pr", Present("desc"), "https://example.test/3"))
+        case _ => assert(false)
+      }
+    }
+    "decodes a single discussion by number" in {
+      val json =
+        """{"data":{"repository":{"discussion":{"number":4,"title":"disc","body":null,"url":"https://example.test/4"}}}}"""
+      run(GithubClient.recorded(discussion = json).getDiscussion(RepositoryRef("owner", "repo"), 4)).map {
+        case Result.Success(Present(item)) =>
+          assert(item == Discussion(4, "disc", Absent, "https://example.test/4"))
+        case _ => assert(false)
+      }
+    }
+    "decodes a page of additional discussion replies" in {
+      val json =
+        """{"data":{"node":{"replies":{"pageInfo":{"hasNextPage":true,"endCursor":"cursor-2"},"nodes":[{
+          |"id":"DC_2","author":{"login":"ada","url":"https://github.com/ada"},
+          |"body":"thanks","createdAt":"2026-01-02T06:00:00Z","updatedAt":"2026-01-02T06:00:00Z","upvoteCount":1
+        }]}}}}""".stripMargin.replaceAll("\n", "")
+      run(
+        GithubClient.recorded(discussionReplies = json).listDiscussionReplies("DC_1", after = Present("cursor-1"))
+      ).map {
+        case Result.Success(page) =>
+          assert(page.hasNextPage)
+          assert(page.endCursor == Present("cursor-2"))
+          assert(
+            page.nodes == Chunk(
+              DiscussionComment(
+                id = Present("DC_2"),
+                author = Present(Actor("ada", "https://github.com/ada")),
+                body = Present("thanks"),
+                createdAt = Present(java.time.Instant.parse("2026-01-02T06:00:00Z")),
+                updatedAt = Present(java.time.Instant.parse("2026-01-02T06:00:00Z")),
+                upvoteCount = 1
               )
             )
           )
@@ -274,6 +335,42 @@ class GithubClientTests extends SnapshotTest[Any]:
     "matches the blessed list-discussions snapshot" in {
       val request = GraphQl.listDiscussionsDocument(RepositoryRef("acme", "widgets"))
       assertSnapshot(request.query, "list-discussions")
+    }
+    "omits replies when reply depth is zero" in {
+      val request = GraphQl.listDiscussionsDocument(RepositoryRef("acme", "widgets"), ReplyDepth.none)
+      assert(!request.query.contains("replies"))
+    }
+    "nests a second replies selection when reply depth is two" in {
+      val request = GraphQl.listDiscussionsDocument(RepositoryRef("acme", "widgets"), ReplyDepth(2))
+      assertSnapshot(request.query, "list-discussions-depth-2")
+    }
+  }
+
+  "GraphQl.listDiscussionRepliesDocument" - {
+    "matches the blessed list-discussion-replies snapshot" in {
+      val request = GraphQl.listDiscussionRepliesDocument("DC_1", after = Present("cursor-1"))
+      assertSnapshot(request.query, "list-discussion-replies")
+    }
+  }
+
+  "GraphQl.getIssueDocument" - {
+    "matches the blessed get-issue snapshot" in {
+      val request = GraphQl.getIssueDocument(RepositoryRef("acme", "widgets"), 1)
+      assertSnapshot(request.query, "get-issue")
+    }
+  }
+
+  "GraphQl.getPullRequestDocument" - {
+    "matches the blessed get-pull-request snapshot" in {
+      val request = GraphQl.getPullRequestDocument(RepositoryRef("acme", "widgets"), 3)
+      assertSnapshot(request.query, "get-pull-request")
+    }
+  }
+
+  "GraphQl.getDiscussionDocument" - {
+    "matches the blessed get-discussion snapshot" in {
+      val request = GraphQl.getDiscussionDocument(RepositoryRef("acme", "widgets"), 4)
+      assertSnapshot(request.query, "get-discussion")
     }
   }
 

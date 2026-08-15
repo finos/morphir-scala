@@ -3,8 +3,11 @@
 A Kyo GitHub GraphQL client for issues, pull requests, and discussions. No Morphir types, no OKF types.
 
 Listing includes author, UTC `createdAt` / `updatedAt` as `Maybe[java.time.Instant]`, labels, and comments.
-Discussions also include upvote count, an accepted answer, and one level of comment replies. Issue and pull request
-comments have no upvote count.
+Discussions include upvote count, an accepted answer, and nested comment replies. `listDiscussions` takes a
+`ReplyDepth` (default one level). `listDiscussionReplies` pages further replies for a comment id using the
+connection cursor. `getIssue`, `getPullRequest`, and `getDiscussion` look up one object by repository number and
+return `Maybe` (`Absent` when GitHub returns null). Issue and pull request comments have no upvote count and no
+reply tree.
 
 Tests replay recorded GraphQL JSON envelopes and do not call `api.github.com`.
 
@@ -23,7 +26,9 @@ HTTP does not run in browsers. A `fetch` backend is not planned: GitHub GraphQL 
 problem. Electron uses this Node backend. On Scala Native, listing fails with `GithubError.Transport` until a kyo-net
 Native artifact links kqueue. See the published-library-families Design Note.
 
-Listing methods return `Chunk[A] < (Abort[GithubError] & Async)`:
+Listing methods return `Chunk[A] < (Abort[GithubError] & Async)`. `getIssue`, `getPullRequest`, and `getDiscussion`
+return `Maybe[A]`. `listDiscussionReplies` returns `ConnectionPage[DiscussionComment]` so a caller can page with
+`endCursor`:
 
 ```scala
 import kyo.*

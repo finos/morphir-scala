@@ -11,14 +11,22 @@ scalar URI
 scalar ID
 scalar DateTime
 
+interface Node {
+  id: ID!
+}
+
 type Query {
   repository(owner: String!, name: String!): Repository
+  node(id: ID!): Node
 }
 
 type Repository {
   issues(first: Int): IssueConnection
   pullRequests(first: Int): PullRequestConnection
   discussions(first: Int): DiscussionConnection
+  issue(number: Int!): Issue
+  pullRequest(number: Int!): PullRequest
+  discussion(number: Int!): Discussion
 }
 
 type Actor {
@@ -34,6 +42,11 @@ type LabelConnection {
   nodes: [Label!]!
 }
 
+type PageInfo {
+  hasNextPage: Boolean!
+  endCursor: String
+}
+
 type IssueComment {
   author: Actor
   body: String
@@ -45,17 +58,19 @@ type IssueCommentConnection {
   nodes: [IssueComment!]!
 }
 
-type DiscussionComment {
+type DiscussionComment implements Node {
+  id: ID!
   author: Actor
   body: String
   createdAt: DateTime!
   updatedAt: DateTime!
   upvoteCount: Int!
-  replies(first: Int): DiscussionCommentConnection
+  replies(first: Int, after: String): DiscussionCommentConnection
 }
 
 type DiscussionCommentConnection {
   nodes: [DiscussionComment!]!
+  pageInfo: PageInfo!
 }
 
 type IssueConnection {

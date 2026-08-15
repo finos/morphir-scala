@@ -24,10 +24,15 @@ client does not belong in `kit`.
 ## Approach
 
 Publish `morphir/connector/github` as `org.finos.morphir::morphir-connector-github`, compiling for JVM, JS, and Native.
-The public surface is a token, a typed error ADT, GitHub-shaped issue, pull request, and discussion types, and a
-client that lists those objects for a repository. No OKF type and no Morphir IR type appears in the module.
+The public surface is a redacted token class, a typed error ADT, GitHub-shaped issue, pull request, and discussion types, and a
+client that lists those objects for a repository. Live calls take `Env[TokenProvider]`. The host installs one named provider
+(const, kyo `StaticFlag`, `gh auth token` with optional user and hostname, or an appkit `SecretStore` adapter) as a Kyo `Layer`. See
+[GitHub token providers and appkit secrets](../morphir/morphir-scala/design/github-token-providers-and-appkit-secrets.md).
+No OKF type and no Morphir IR type appears in the module.
 Listing includes author, UTC timestamps as `Maybe[java.time.Instant]`, labels, and comments.
-Discussions also include upvoteCount, an accepted answer, and one level of comment replies.
+Discussions also include upvoteCount, an accepted answer, and nested comment replies.
+`listDiscussions` takes a `ReplyDepth` (default one level). `listDiscussionReplies` pages further replies by comment id.
+`getIssue`, `getPullRequest`, and `getDiscussion` look up one object by repository number and return `Maybe`.
 Issue and pull request comments have no upvoteCount.
 
 The client consumes GitHub's GraphQL API. `kyo-caliban` is a GraphQL server and is out of scope. Generated Scala

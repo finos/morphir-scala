@@ -24,5 +24,25 @@ private[github] object PlatformLive:
       Abort.fail(GithubError.Transport(detail))
     def listPullRequests(repository: RepositoryRef): Chunk[PullRequest] < (Abort[GithubError] & Async) =
       Abort.fail(GithubError.Transport(detail))
-    def listDiscussions(repository: RepositoryRef): Chunk[Discussion] < (Abort[GithubError] & Async) =
+    def listDiscussions(
+        repository: RepositoryRef,
+        replyDepth: ReplyDepth
+    ): Chunk[Discussion] < (Abort[GithubError] & Async) =
+      Abort.fail(GithubError.Transport(detail))
+    def listDiscussionReplies(
+        commentId: String,
+        after: Maybe[String],
+        first: Int,
+        replyDepth: ReplyDepth
+    ): ConnectionPage[DiscussionComment] < (Abort[GithubError] & Async) =
+      Abort.fail(GithubError.Transport(detail))
+    def getIssue(repository: RepositoryRef, number: Int): Maybe[Issue] < (Abort[GithubError] & Async) =
+      Abort.fail(GithubError.Transport(detail))
+    def getPullRequest(repository: RepositoryRef, number: Int): Maybe[PullRequest] < (Abort[GithubError] & Async) =
+      Abort.fail(GithubError.Transport(detail))
+    def getDiscussion(
+        repository: RepositoryRef,
+        number: Int,
+        replyDepth: ReplyDepth
+    ): Maybe[Discussion] < (Abort[GithubError] & Async) =
       Abort.fail(GithubError.Transport(detail))

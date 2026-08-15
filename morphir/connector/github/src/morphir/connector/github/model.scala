@@ -3,6 +3,21 @@ package morphir.connector.github
 import java.time.Instant
 import kyo.*
 
+/** How many nested discussion-reply levels to select. Zero omits replies. Negative values are treated as zero. */
+final case class ReplyDepth(levels: Int) derives CanEqual:
+  def normalized: Int = math.max(0, levels)
+
+object ReplyDepth:
+  val none: ReplyDepth = ReplyDepth(0)
+  val one: ReplyDepth  = ReplyDepth(1)
+
+/** One page of a GitHub GraphQL connection, including the cursor for the next page. */
+final case class ConnectionPage[A](
+    nodes: Chunk[A] = Chunk.empty,
+    hasNextPage: Boolean = false,
+    endCursor: Maybe[String] = Absent
+) derives CanEqual, Schema
+
 /** Owner and repository name as GitHub's `repository(owner, name)` arguments. */
 final case class RepositoryRef(owner: String, name: String) derives CanEqual
 
@@ -20,14 +35,15 @@ final case class IssueComment(
     updatedAt: Maybe[Instant] = Absent
 ) derives CanEqual, Schema
 
-/** A discussion comment or a one-level reply. GitHub's `DiscussionComment` is `Votable`. */
+/** A discussion comment. GitHub's `DiscussionComment` is `Votable` and has nested replies. */
 final case class DiscussionComment(
+    id: Maybe[String] = Absent,
     author: Maybe[Actor] = Absent,
     body: Maybe[String] = Absent,
     createdAt: Maybe[Instant] = Absent,
     updatedAt: Maybe[Instant] = Absent,
     upvoteCount: Int = 0,
-    replies: Chunk[DiscussionComment] = Chunk.empty
+    replies: ConnectionPage[DiscussionComment] = ConnectionPage()
 ) derives CanEqual, Schema
 
 /** A GitHub issue. Field names follow GitHub's GraphQL `Issue` type, not OKF. */

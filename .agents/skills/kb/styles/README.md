@@ -3,7 +3,7 @@
 Style cards for writing and reviewing content under `kb/`. They are plain markdown so any agent or editor can
 apply them; nothing here depends on a specific AI tool.
 
-- [voice.md](./voice.md) applies to every register: sentence mechanics, vocabulary, and the banned-pattern list.
+- [voice.md](./voice.md) applies to every register: audience (junior to early mid-level), sentence mechanics, vocabulary, and the banned-pattern list.
 - [diagrams.md](./diagrams.md) also applies to every register: when a Mermaid diagram or SVG clarifies a point
   better than prose, and the rules for using one.
 - [altitude.md](./altitude.md) also applies to every register: documents are sized to capability stories, each

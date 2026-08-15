@@ -50,6 +50,10 @@ state machine, follow `diagrams.md` there: a captioned Mermaid diagram or SVG be
 **Open with the answer.** Someone arriving from a search result should learn the thing in the first paragraph. Build
 up to it and they will leave first.
 
+**Write for a junior to early mid-level developer.** See `voice.md` Audience. Do not assume PhD-level or deep
+domain knowledge. When background is required, include it, summarize it, link a kb concept, or (least preferred)
+link an external reference so the kb does not grow a page for every upstream detail.
+
 **Say what is unresolved.** A knowledge base earns trust by being honest about its edges. Where sources disagree,
 record the disagreement and say which is authoritative — or that neither is. Where you did not verify something, say
 so. A concept that quietly smooths over a contradiction is worse than no concept.

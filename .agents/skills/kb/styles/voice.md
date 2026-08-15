@@ -2,6 +2,20 @@
 
 Rules for every kb register. The register cards add structure on top; this card governs the sentences.
 
+## Audience
+
+Write for a junior to early mid-level developer. Do not require a PhD, and do not assume deep domain knowledge.
+A reader who knows general programming should be able to follow the page.
+
+When a claim needs background, supply it in this order:
+
+1. Include the background on the page, in a few sentences.
+2. Summarize it, then continue.
+3. Link to another concept in this knowledge base.
+4. Link an external reference. Least preferred. Allowed so the kb stays focused and does not grow a new page for every upstream detail.
+
+Name the term, say what it is, then use it. A link is not a substitute for that first sentence when the rest of the page depends on the term.
+
 ## Mechanics
 
 - Active voice, present tense. "The executor records the skip", not "the skip is recorded by the executor".

@@ -49,9 +49,9 @@ Public APIs in the new modules use `kyo.Maybe` and typed failure. Pure decode us
 
 Artifact `org.finos.morphir::morphir-connector-github`. Package `morphir.connector.github`. JVM, JS, and Native.
 
-The module holds GitHub-shaped types (issue, pull request, discussion), a token, a typed error ADT, and a client that can list those objects for a repository. It holds no OKF types and no Morphir IR types.
+The module holds GitHub-shaped types (issue, pull request, discussion), a redacted token class, a typed error ADT, and a client that can list those objects for a repository. Live calls take `Env[TokenProvider]`. Named providers (const, flags, `gh`, vault) install via Kyo `Layer`. Vault read lives in appkit as `SecretStore`. See [GitHub token providers and appkit secrets](/design/github-token-providers-and-appkit-secrets.md). It holds no OKF types and no Morphir IR types.
 
-Each listed issue, pull request, and discussion carries author, createdAt, updatedAt, labels, and comments. createdAt and updatedAt are `Maybe[java.time.Instant]`. GitHub DateTime is an ISO-8601 UTC string; decode uses `Instant.parse`. Discussions also carry upvoteCount, an accepted answer, and one level of comment replies. Issue and pull request comments have no upvoteCount. GitHub's IssueComment is not Votable.
+Each listed issue, pull request, and discussion carries author, createdAt, updatedAt, labels, and comments. createdAt and updatedAt are `Maybe[java.time.Instant]`. GitHub DateTime is an ISO-8601 UTC string; decode uses `Instant.parse`. Discussions also carry upvoteCount, an accepted answer, and nested comment replies. `listDiscussions` takes a `ReplyDepth` (default one level). `listDiscussionReplies` pages further replies for a comment id from the connection cursor. `getIssue`, `getPullRequest`, and `getDiscussion` look up one object by repository number and return `Maybe` (`Absent` when GitHub returns null). Issue and pull request comments have no upvoteCount. GitHub's IssueComment is not Votable.
 
 Listing methods return `Chunk[A] < (Abort[GithubError] & Async)`. Recorded JSON decode is pure `Result` lifted into that row. Live HTTP cannot be a bare `Result`.
 
@@ -107,7 +107,7 @@ The kb skill (`KbModel.scala` and friends) does not move in this pass. The publi
 
 ### `morphir/appkit`
 
-A reserved mill container with a README. No `electron` or `codeium` children until those intents leave the backlog.
+Artifact `org.finos.morphir::morphir-appkit`. Package `morphir.appkit`. First surface is `SecretStore` plus macOS Keychain and JVM java-keychain backends. This is host capability, not a vault kit and not Electron. GitHub's vault `TokenProvider` depends on it. Detail: [GitHub token providers and appkit secrets](/design/github-token-providers-and-appkit-secrets.md). `electron` and `codeium` children wait on [0025](../../../intent/0025-electron-appkit.md) and [0026](../../../intent/0026-codeium-appkit.md).
 
 ## Delivery intents
 
