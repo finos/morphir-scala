@@ -2,6 +2,10 @@
 
 A Kyo GitHub GraphQL client for issues, pull requests, and discussions. No Morphir types, no OKF types.
 
+Listing includes author, UTC `createdAt` / `updatedAt` as `Maybe[java.time.Instant]`, labels, and comments.
+Discussions also include upvote count, an accepted answer, and one level of comment replies. Issue and pull request
+comments have no upvote count.
+
 Tests replay recorded GraphQL JSON envelopes and do not call `api.github.com`.
 
 `kyo-caliban` is a GraphQL server and is not used here.

@@ -435,12 +435,12 @@ trait MorphirKyoHttpMvnDeps extends ScalaModule {
 }
 
 /** Absolute kyo-test snapshot directory for the GitHub connector. Mill's test sandbox would otherwise swallow relative paths. */
+def githubConnectorSnapshotDir: String =
+  (workspaceDir / "morphir" / "connector" / "github" / "test-snapshots").toNIO.toAbsolutePath.normalize.toString
+
 trait MorphirConnectorGithubSnapshotEnv extends ScalaModule {
   override def forkEnv: T[Map[String, String]] = Task {
-    super.forkEnv() ++ Map(
-      "MORPHIR_CONNECTOR_GITHUB_SNAPSHOT_DIR" ->
-        (workspaceDir / "morphir" / "connector" / "github" / "test-snapshots").toString
-    )
+    super.forkEnv() ++ Map("MORPHIR_CONNECTOR_GITHUB_SNAPSHOT_DIR" -> githubConnectorSnapshotDir)
   }
 }
 
@@ -448,8 +448,7 @@ trait MorphirConnectorGithubSnapshotEnv extends ScalaModule {
 trait MorphirConnectorGithubSnapshotJsEnv extends ScalaJSModule {
   import mill.scalajslib.api.JsEnvConfig
   override def jsEnvConfig: T[JsEnvConfig] = Task {
-    val dir   = (workspaceDir / "morphir" / "connector" / "github" / "test-snapshots").toString
-    val extra = Map("MORPHIR_CONNECTOR_GITHUB_SNAPSHOT_DIR" -> dir)
+    val extra = Map("MORPHIR_CONNECTOR_GITHUB_SNAPSHOT_DIR" -> githubConnectorSnapshotDir)
     super.jsEnvConfig() match
       case node: JsEnvConfig.NodeJs => node.copy(env = node.env ++ extra)
       case other                    => other

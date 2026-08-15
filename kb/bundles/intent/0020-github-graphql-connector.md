@@ -26,6 +26,9 @@ client does not belong in `kit`.
 Publish `morphir/connector/github` as `org.finos.morphir::morphir-connector-github`, compiling for JVM, JS, and Native.
 The public surface is a token, a typed error ADT, GitHub-shaped issue, pull request, and discussion types, and a
 client that lists those objects for a repository. No OKF type and no Morphir IR type appears in the module.
+Listing includes author, UTC timestamps as `Maybe[java.time.Instant]`, labels, and comments.
+Discussions also include upvoteCount, an accepted answer, and one level of comment replies.
+Issue and pull request comments have no upvoteCount.
 
 The client consumes GitHub's GraphQL API. `kyo-caliban` is a GraphQL server and is out of scope. Generated Scala
 comes from `caliban-client` against a vendored **subset** of GitHub's schema, checked in and produced by the Mill

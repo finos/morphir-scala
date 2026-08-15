@@ -51,6 +51,8 @@ Artifact `org.finos.morphir::morphir-connector-github`. Package `morphir.connect
 
 The module holds GitHub-shaped types (issue, pull request, discussion), a token, a typed error ADT, and a client that can list those objects for a repository. It holds no OKF types and no Morphir IR types.
 
+Each listed issue, pull request, and discussion carries author, createdAt, updatedAt, labels, and comments. createdAt and updatedAt are `Maybe[java.time.Instant]`. GitHub DateTime is an ISO-8601 UTC string; decode uses `Instant.parse`. Discussions also carry upvoteCount, an accepted answer, and one level of comment replies. Issue and pull request comments have no upvoteCount. GitHub's IssueComment is not Votable.
+
 Listing methods return `Chunk[A] < (Abort[GithubError] & Async)`. Recorded JSON decode is pure `Result` lifted into that row. Live HTTP cannot be a bare `Result`.
 
 `kyo-caliban` is a GraphQL server and is out of scope. The client path is still `caliban-client` plus an HTTP backend, against a **subset** of GitHub's schema. REST is used only for endpoints GraphQL lacks. The `gh` CLI is a later sibling module, `morphir/connector/github-cli`, and may be JVM-only.

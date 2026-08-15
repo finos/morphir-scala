@@ -32,6 +32,70 @@ object Client {
     )
   }
 
+  type Actor
+  object Actor {
+    def login: SelectionBuilder[Actor, String] = _root_.caliban.client.SelectionBuilder.Field("login", Scalar())
+    def url: SelectionBuilder[Actor, String]   = _root_.caliban.client.SelectionBuilder.Field("url", Scalar())
+  }
+
+  type Label
+  object Label {
+    def name: SelectionBuilder[Label, String] = _root_.caliban.client.SelectionBuilder.Field("name", Scalar())
+  }
+
+  type LabelConnection
+  object LabelConnection {
+    def nodes[A](innerSelection: SelectionBuilder[Label, A]): SelectionBuilder[LabelConnection, List[A]] =
+      _root_.caliban.client.SelectionBuilder.Field("nodes", ListOf(Obj(innerSelection)))
+  }
+
+  type IssueComment
+  object IssueComment {
+    def author[A](innerSelection: SelectionBuilder[Actor, A]): SelectionBuilder[IssueComment, scala.Option[A]] =
+      _root_.caliban.client.SelectionBuilder.Field("author", OptionOf(Obj(innerSelection)))
+    def body: SelectionBuilder[IssueComment, scala.Option[String]] =
+      _root_.caliban.client.SelectionBuilder.Field("body", OptionOf(Scalar()))
+    def createdAt: SelectionBuilder[IssueComment, String] =
+      _root_.caliban.client.SelectionBuilder.Field("createdAt", Scalar())
+    def updatedAt: SelectionBuilder[IssueComment, String] =
+      _root_.caliban.client.SelectionBuilder.Field("updatedAt", Scalar())
+  }
+
+  type IssueCommentConnection
+  object IssueCommentConnection {
+    def nodes[A](innerSelection: SelectionBuilder[IssueComment, A]): SelectionBuilder[IssueCommentConnection, List[A]] =
+      _root_.caliban.client.SelectionBuilder.Field("nodes", ListOf(Obj(innerSelection)))
+  }
+
+  type DiscussionComment
+  object DiscussionComment {
+    def author[A](innerSelection: SelectionBuilder[Actor, A]): SelectionBuilder[DiscussionComment, scala.Option[A]] =
+      _root_.caliban.client.SelectionBuilder.Field("author", OptionOf(Obj(innerSelection)))
+    def body: SelectionBuilder[DiscussionComment, scala.Option[String]] =
+      _root_.caliban.client.SelectionBuilder.Field("body", OptionOf(Scalar()))
+    def createdAt: SelectionBuilder[DiscussionComment, String] =
+      _root_.caliban.client.SelectionBuilder.Field("createdAt", Scalar())
+    def updatedAt: SelectionBuilder[DiscussionComment, String] =
+      _root_.caliban.client.SelectionBuilder.Field("updatedAt", Scalar())
+    def upvoteCount: SelectionBuilder[DiscussionComment, Int] =
+      _root_.caliban.client.SelectionBuilder.Field("upvoteCount", Scalar())
+    def replies[A](first: scala.Option[Int] =
+      None)(innerSelection: SelectionBuilder[DiscussionCommentConnection, A])(implicit
+        encoder0: ArgEncoder[scala.Option[Int]]
+    ): SelectionBuilder[DiscussionComment, scala.Option[A]] = _root_.caliban.client.SelectionBuilder.Field(
+      "replies",
+      OptionOf(Obj(innerSelection)),
+      arguments = List(Argument("first", first, "Int"))
+    )
+  }
+
+  type DiscussionCommentConnection
+  object DiscussionCommentConnection {
+    def nodes[A](innerSelection: SelectionBuilder[DiscussionComment, A])
+        : SelectionBuilder[DiscussionCommentConnection, List[A]] =
+      _root_.caliban.client.SelectionBuilder.Field("nodes", ListOf(Obj(innerSelection)))
+  }
+
   type IssueConnection
   object IssueConnection {
     def nodes[A](innerSelection: SelectionBuilder[Issue, A]): SelectionBuilder[IssueConnection, List[A]] =
@@ -58,6 +122,25 @@ object Client {
     def body: SelectionBuilder[Issue, scala.Option[String]] =
       _root_.caliban.client.SelectionBuilder.Field("body", OptionOf(Scalar()))
     def url: SelectionBuilder[Issue, String] = _root_.caliban.client.SelectionBuilder.Field("url", Scalar())
+    def author[A](innerSelection: SelectionBuilder[Actor, A]): SelectionBuilder[Issue, scala.Option[A]] =
+      _root_.caliban.client.SelectionBuilder.Field("author", OptionOf(Obj(innerSelection)))
+    def createdAt: SelectionBuilder[Issue, String] = _root_.caliban.client.SelectionBuilder.Field("createdAt", Scalar())
+    def updatedAt: SelectionBuilder[Issue, String] = _root_.caliban.client.SelectionBuilder.Field("updatedAt", Scalar())
+    def labels[A](first: scala.Option[Int] = None)(innerSelection: SelectionBuilder[LabelConnection, A])(implicit
+        encoder0: ArgEncoder[scala.Option[Int]]
+    ): SelectionBuilder[Issue, scala.Option[A]] = _root_.caliban.client.SelectionBuilder.Field(
+      "labels",
+      OptionOf(Obj(innerSelection)),
+      arguments = List(Argument("first", first, "Int"))
+    )
+    def comments[A](first: scala.Option[Int] =
+      None)(innerSelection: SelectionBuilder[IssueCommentConnection, A])(implicit
+        encoder0: ArgEncoder[scala.Option[Int]]
+    ): SelectionBuilder[Issue, scala.Option[A]] = _root_.caliban.client.SelectionBuilder.Field(
+      "comments",
+      OptionOf(Obj(innerSelection)),
+      arguments = List(Argument("first", first, "Int"))
+    )
   }
 
   type PullRequest
@@ -68,6 +151,27 @@ object Client {
     def body: SelectionBuilder[PullRequest, scala.Option[String]] =
       _root_.caliban.client.SelectionBuilder.Field("body", OptionOf(Scalar()))
     def url: SelectionBuilder[PullRequest, String] = _root_.caliban.client.SelectionBuilder.Field("url", Scalar())
+    def author[A](innerSelection: SelectionBuilder[Actor, A]): SelectionBuilder[PullRequest, scala.Option[A]] =
+      _root_.caliban.client.SelectionBuilder.Field("author", OptionOf(Obj(innerSelection)))
+    def createdAt: SelectionBuilder[PullRequest, String] =
+      _root_.caliban.client.SelectionBuilder.Field("createdAt", Scalar())
+    def updatedAt: SelectionBuilder[PullRequest, String] =
+      _root_.caliban.client.SelectionBuilder.Field("updatedAt", Scalar())
+    def labels[A](first: scala.Option[Int] = None)(innerSelection: SelectionBuilder[LabelConnection, A])(implicit
+        encoder0: ArgEncoder[scala.Option[Int]]
+    ): SelectionBuilder[PullRequest, scala.Option[A]] = _root_.caliban.client.SelectionBuilder.Field(
+      "labels",
+      OptionOf(Obj(innerSelection)),
+      arguments = List(Argument("first", first, "Int"))
+    )
+    def comments[A](first: scala.Option[Int] =
+      None)(innerSelection: SelectionBuilder[IssueCommentConnection, A])(implicit
+        encoder0: ArgEncoder[scala.Option[Int]]
+    ): SelectionBuilder[PullRequest, scala.Option[A]] = _root_.caliban.client.SelectionBuilder.Field(
+      "comments",
+      OptionOf(Obj(innerSelection)),
+      arguments = List(Argument("first", first, "Int"))
+    )
   }
 
   type Discussion
@@ -78,6 +182,32 @@ object Client {
     def body: SelectionBuilder[Discussion, scala.Option[String]] =
       _root_.caliban.client.SelectionBuilder.Field("body", OptionOf(Scalar()))
     def url: SelectionBuilder[Discussion, String] = _root_.caliban.client.SelectionBuilder.Field("url", Scalar())
+    def author[A](innerSelection: SelectionBuilder[Actor, A]): SelectionBuilder[Discussion, scala.Option[A]] =
+      _root_.caliban.client.SelectionBuilder.Field("author", OptionOf(Obj(innerSelection)))
+    def createdAt: SelectionBuilder[Discussion, String] =
+      _root_.caliban.client.SelectionBuilder.Field("createdAt", Scalar())
+    def updatedAt: SelectionBuilder[Discussion, String] =
+      _root_.caliban.client.SelectionBuilder.Field("updatedAt", Scalar())
+    def upvoteCount: SelectionBuilder[Discussion, Int] =
+      _root_.caliban.client.SelectionBuilder.Field("upvoteCount", Scalar())
+    def labels[A](first: scala.Option[Int] = None)(innerSelection: SelectionBuilder[LabelConnection, A])(implicit
+        encoder0: ArgEncoder[scala.Option[Int]]
+    ): SelectionBuilder[Discussion, scala.Option[A]] = _root_.caliban.client.SelectionBuilder.Field(
+      "labels",
+      OptionOf(Obj(innerSelection)),
+      arguments = List(Argument("first", first, "Int"))
+    )
+    def answer[A](innerSelection: SelectionBuilder[DiscussionComment, A])
+        : SelectionBuilder[Discussion, scala.Option[A]] =
+      _root_.caliban.client.SelectionBuilder.Field("answer", OptionOf(Obj(innerSelection)))
+    def comments[A](first: scala.Option[Int] =
+      None)(innerSelection: SelectionBuilder[DiscussionCommentConnection, A])(implicit
+        encoder0: ArgEncoder[scala.Option[Int]]
+    ): SelectionBuilder[Discussion, scala.Option[A]] = _root_.caliban.client.SelectionBuilder.Field(
+      "comments",
+      OptionOf(Obj(innerSelection)),
+      arguments = List(Argument("first", first, "Int"))
+    )
   }
 
   type Query = _root_.caliban.client.Operations.RootQuery

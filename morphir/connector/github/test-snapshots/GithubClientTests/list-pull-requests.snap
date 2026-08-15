@@ -1,1 +1,1 @@
-query{repository(owner:"acme",name:"widgets"){pullRequests(first:100){nodes{number title body url}}}}
+query{repository(owner:"acme",name:"widgets"){pullRequests(first:100){nodes{number title body url author{login url} createdAt updatedAt labels(first:100){nodes{name}} comments(first:100){nodes{author{login url} body createdAt updatedAt}}}}}}
