@@ -12,28 +12,38 @@ object Client {
 
   type Repository
   object Repository {
-    def issues[A](first: scala.Option[Int] = None)(innerSelection: SelectionBuilder[IssueConnection, A])(implicit
-        encoder0: ArgEncoder[scala.Option[Int]]
+    def issues[A](
+        first: scala.Option[Int] = None,
+        after: scala.Option[String] = None
+    )(innerSelection: SelectionBuilder[IssueConnection, A])(implicit
+        encoder0: ArgEncoder[scala.Option[Int]],
+        encoder1: ArgEncoder[scala.Option[String]]
     ): SelectionBuilder[Repository, scala.Option[A]] = _root_.caliban.client.SelectionBuilder.Field(
       "issues",
       OptionOf(Obj(innerSelection)),
-      arguments = List(Argument("first", first, "Int"))
+      arguments = List(Argument("first", first, "Int"), Argument("after", after, "String"))
     )
-    def pullRequests[A](first: scala.Option[Int] =
-      None)(innerSelection: SelectionBuilder[PullRequestConnection, A])(implicit
-        encoder0: ArgEncoder[scala.Option[Int]]
+    def pullRequests[A](
+        first: scala.Option[Int] = None,
+        after: scala.Option[String] = None
+    )(innerSelection: SelectionBuilder[PullRequestConnection, A])(implicit
+        encoder0: ArgEncoder[scala.Option[Int]],
+        encoder1: ArgEncoder[scala.Option[String]]
     ): SelectionBuilder[Repository, scala.Option[A]] = _root_.caliban.client.SelectionBuilder.Field(
       "pullRequests",
       OptionOf(Obj(innerSelection)),
-      arguments = List(Argument("first", first, "Int"))
+      arguments = List(Argument("first", first, "Int"), Argument("after", after, "String"))
     )
-    def discussions[A](first: scala.Option[Int] =
-      None)(innerSelection: SelectionBuilder[DiscussionConnection, A])(implicit
-        encoder0: ArgEncoder[scala.Option[Int]]
+    def discussions[A](
+        first: scala.Option[Int] = None,
+        after: scala.Option[String] = None
+    )(innerSelection: SelectionBuilder[DiscussionConnection, A])(implicit
+        encoder0: ArgEncoder[scala.Option[Int]],
+        encoder1: ArgEncoder[scala.Option[String]]
     ): SelectionBuilder[Repository, scala.Option[A]] = _root_.caliban.client.SelectionBuilder.Field(
       "discussions",
       OptionOf(Obj(innerSelection)),
-      arguments = List(Argument("first", first, "Int"))
+      arguments = List(Argument("first", first, "Int"), Argument("after", after, "String"))
     )
     def issue[A](number: Int)(innerSelection: SelectionBuilder[Issue, A])(implicit
         encoder0: ArgEncoder[Int]
@@ -140,18 +150,24 @@ object Client {
   object IssueConnection {
     def nodes[A](innerSelection: SelectionBuilder[Issue, A]): SelectionBuilder[IssueConnection, List[A]] =
       _root_.caliban.client.SelectionBuilder.Field("nodes", ListOf(Obj(innerSelection)))
+    def pageInfo[A](innerSelection: SelectionBuilder[PageInfo, A]): SelectionBuilder[IssueConnection, A] =
+      _root_.caliban.client.SelectionBuilder.Field("pageInfo", Obj(innerSelection))
   }
 
   type PullRequestConnection
   object PullRequestConnection {
     def nodes[A](innerSelection: SelectionBuilder[PullRequest, A]): SelectionBuilder[PullRequestConnection, List[A]] =
       _root_.caliban.client.SelectionBuilder.Field("nodes", ListOf(Obj(innerSelection)))
+    def pageInfo[A](innerSelection: SelectionBuilder[PageInfo, A]): SelectionBuilder[PullRequestConnection, A] =
+      _root_.caliban.client.SelectionBuilder.Field("pageInfo", Obj(innerSelection))
   }
 
   type DiscussionConnection
   object DiscussionConnection {
     def nodes[A](innerSelection: SelectionBuilder[Discussion, A]): SelectionBuilder[DiscussionConnection, List[A]] =
       _root_.caliban.client.SelectionBuilder.Field("nodes", ListOf(Obj(innerSelection)))
+    def pageInfo[A](innerSelection: SelectionBuilder[PageInfo, A]): SelectionBuilder[DiscussionConnection, A] =
+      _root_.caliban.client.SelectionBuilder.Field("pageInfo", Obj(innerSelection))
   }
 
   type Issue

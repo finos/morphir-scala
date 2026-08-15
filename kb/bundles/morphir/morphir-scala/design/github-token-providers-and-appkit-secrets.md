@@ -18,7 +18,7 @@ A PAT is a secret string GitHub accepts as a Bearer token. A vault here means th
 
 Kyo is the effect system this module uses. `Env[A]` means the running program must be given an `A` before it can run. A `Layer` is a recipe that builds that `A`, and any dependencies it needs. `Env.runLayer` installs those recipes at the edge of the program.
 
-A vault is not GitHub-specific. Other Morphir tools will need the same read. It is not a kit: a kit wraps one Scala library Morphir builds on ([decision 0012](/decisions/0012-published-library-families.md)). It is not a dedicated vault module either. Appkit is the family for host applications (CLIs, Electron). `SecretStore` is an early appkit surface, not a secrets kit.
+A vault is not GitHub-specific. Other Morphir tools will need the same read. It is not a kit: a kit wraps one Scala library Morphir builds on ([decision 0013](/decisions/0013-published-library-families.md)). It is not a dedicated vault module either. Appkit is the family for host applications (CLIs, Electron). `SecretStore` is an early appkit surface, not a secrets kit.
 
 `Token` is a `final class` with a private constructor. It is not a case class and not an opaque `String`. Case class `toString`, `copy`, and `productIterator` leak the secret. An opaque alias is still a `String` at runtime.
 

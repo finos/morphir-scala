@@ -492,3 +492,5 @@ docs/superpowers/
 .beads/*.db
 .beads-credential-key
 .beads/proxieddb/
+# Workspace-gate lock sits beside .beads/, so .beads/.gitignore cannot cover it.
+*.gate.lock*

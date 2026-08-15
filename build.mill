@@ -125,9 +125,10 @@ trait MorphirJSModule extends MorphirCommonCrossModule with ScalaJSModule {
   def platform       = Platform.JS
   def scalaJSVersion = Task { ScalaVers.scalaJSVersion }
 
-  /** YAML `group::artifact` (no version, one colon-pair) parses as non-platformed. Bind it as platformed so
-    * extra kyo jars listed that way resolve to the Scala.js artifact, not the JVM jar. Mill's
-    * `resolvedDepsWarnNonPlatform` check runs on the unbound coords and would false-positive after this bind.
+  /** YAML `group::artifact` (no version, one colon-pair) parses as non-platformed. Bind library coords as
+    * platformed so extra suite jars resolve to the Scala.js artifact, not the JVM jar. Compiler and scalac-plugin
+    * coords stay unplatformed: `scala3-compiler_sjs1_3` does not exist. Mill's `resolvedDepsWarnNonPlatform` check
+    * runs on the unbound coords and would false-positive after this bind.
     */
   override def bindDependency: Task[Dep => BoundDep] = Task.Anon { (dep: Dep) =>
     super.bindDependency()(platformScalaDep(dep))
@@ -383,15 +384,25 @@ trait ToolsJSDocSources extends ScalaJSModule {
 
 /** Bind a Scala binary/full-cross dep as platformed. YAML `group::artifact` (empty version) parses as
   * `CrossVersion.Binary(platformed = false)`; without this, JS and Native silently resolve the JVM jar.
-  * Java coords (`group:artifact`) are `Constant` and are left alone.
+  * Java coords (`group:artifact`) are `Constant` and are left alone. Compiler and scalac-plugin artifacts are
+  * not published as platformed jars, so they stay as Mill declared them.
   */
 def platformScalaDep(dep: Dep): Dep =
-  dep.cross match
-    case mill.api.CrossVersion.Binary(false) =>
-      dep.copy(cross = mill.api.CrossVersion.Binary(true))
-    case mill.api.CrossVersion.Full(false) =>
-      dep.copy(cross = mill.api.CrossVersion.Full(true))
-    case _ => dep
+  if isCompilerOrPluginDep(dep) then dep
+  else
+    dep.cross match
+      case mill.api.CrossVersion.Binary(false) =>
+        dep.copy(cross = mill.api.CrossVersion.Binary(true))
+      case mill.api.CrossVersion.Full(false) =>
+        dep.copy(cross = mill.api.CrossVersion.Full(true))
+      case _ => dep
+
+def isCompilerOrPluginDep(dep: Dep): Boolean =
+  val org  = dep.dep.module.organization.value
+  val name = dep.dep.module.name.value
+  (org == "org.scala-lang" && name.contains("compiler")) ||
+  (org == "org.scala-js" && name.contains("compiler")) ||
+  (org == "org.scala-native" && (name == "nscplugin" || name.contains("compiler")))
 
 /** Pins every known library suite (kyo, zio, fs2, upickle, borer, metaconfig, scala-java-time) through Mill
   * `depManagement`. Each suite's version lives once in [[millbuild.Versions]]. Extra suite jars belong in YAML

@@ -49,16 +49,16 @@ class GithubClientTests extends SnapshotTest[Any]:
       val issue  = Issue(1, "title", Present("body"), "https://example.test/1")
       val client = GithubClient.fixture(issues = Chunk(issue))
       run(client.listIssues(RepositoryRef("owner", "repo"))).map {
-        case Result.Success(issues) => assert(issues == Chunk(issue))
-        case _                      => assert(false)
+        case Result.Success(page) => assert(page.nodes == Chunk(issue))
+        case _                    => assert(false)
       }
     }
     "returns empty pull requests and discussions by default" in {
       val client = GithubClient.fixture()
       val repo   = RepositoryRef("owner", "repo")
       run(client.listPullRequests(repo)).map {
-        case Result.Success(prs) => assert(prs.isEmpty)
-        case _                   => assert(false)
+        case Result.Success(page) => assert(page.nodes.isEmpty)
+        case _                    => assert(false)
       }
     }
   }
@@ -69,8 +69,29 @@ class GithubClientTests extends SnapshotTest[Any]:
         """{"data":{"repository":{"issues":{"nodes":[{"number":1,"title":"title","body":"body","url":"https://example.test/1"}]}}}}"""
       val client = GithubClient.recorded(issues = json)
       run(client.listIssues(RepositoryRef("owner", "repo"))).map {
-        case Result.Success(issues) =>
-          assert(issues == Chunk(Issue(1, "title", Present("body"), "https://example.test/1")))
+        case Result.Success(page) =>
+          assert(page.nodes == Chunk(Issue(1, "title", Present("body"), "https://example.test/1")))
+        case _ => assert(false)
+      }
+    }
+    "decodes issue pageInfo from a GraphQL envelope" in {
+      val json =
+        """{"data":{"repository":{"issues":{"pageInfo":{"hasNextPage":true,"endCursor":"c2"},"nodes":[{"number":1,"title":"title","body":"body","url":"https://example.test/1"}]}}}}"""
+      run(GithubClient.recorded(issues = json).listIssues(RepositoryRef("owner", "repo"))).map {
+        case Result.Success(page) =>
+          assert(page.hasNextPage)
+          assert(page.endCursor == Present("c2"))
+          assert(page.nodes == Chunk(Issue(1, "title", Present("body"), "https://example.test/1")))
+        case _ => assert(false)
+      }
+    }
+    "treats missing issue pageInfo as the last page" in {
+      val json =
+        """{"data":{"repository":{"issues":{"nodes":[{"number":1,"title":"title","body":"body","url":"https://example.test/1"}]}}}}"""
+      run(GithubClient.recorded(issues = json).listIssues(RepositoryRef("owner", "repo"))).map {
+        case Result.Success(page) =>
+          assert(!page.hasNextPage)
+          assert(page.endCursor == Absent)
         case _ => assert(false)
       }
     }
@@ -78,8 +99,8 @@ class GithubClientTests extends SnapshotTest[Any]:
       val json =
         """{"data":{"repository":{"issues":{"nodes":[{"number":2,"title":"untitled","body":null,"url":"https://example.test/2"}]}}}}"""
       run(GithubClient.recorded(issues = json).listIssues(RepositoryRef("owner", "repo"))).map {
-        case Result.Success(issues) =>
-          assert(issues == Chunk(Issue(2, "untitled", Absent, "https://example.test/2")))
+        case Result.Success(page) =>
+          assert(page.nodes == Chunk(Issue(2, "untitled", Absent, "https://example.test/2")))
         case _ => assert(false)
       }
     }
@@ -99,9 +120,9 @@ class GithubClientTests extends SnapshotTest[Any]:
       val ada = Present(Actor("ada", "https://github.com/ada"))
       val bob = Present(Actor("bob", "https://github.com/bob"))
       run(GithubClient.recorded(issues = json).listIssues(RepositoryRef("owner", "repo"))).map {
-        case Result.Success(items) =>
+        case Result.Success(page) =>
           assert(
-            items == Chunk(
+            page.nodes == Chunk(
               Issue(
                 number = 1,
                 title = "title",
@@ -149,9 +170,9 @@ class GithubClientTests extends SnapshotTest[Any]:
       val ada = Present(Actor("ada", "https://github.com/ada"))
       val bob = Present(Actor("bob", "https://github.com/bob"))
       run(GithubClient.recorded(pullRequests = json).listPullRequests(RepositoryRef("owner", "repo"))).map {
-        case Result.Success(items) =>
+        case Result.Success(page) =>
           assert(
-            items == Chunk(
+            page.nodes == Chunk(
               PullRequest(
                 number = 3,
                 title = "pr",
@@ -187,21 +208,21 @@ class GithubClientTests extends SnapshotTest[Any]:
         discResult <- run(client.listDiscussions(repo))
       yield
         prResult match
-          case Result.Success(items) =>
-            assert(items == Chunk(PullRequest(3, "pr", Present("desc"), "https://example.test/3")))
+          case Result.Success(page) =>
+            assert(page.nodes == Chunk(PullRequest(3, "pr", Present("desc"), "https://example.test/3")))
           case _ => assert(false)
         discResult match
-          case Result.Success(items) =>
-            assert(items == Chunk(Discussion(4, "disc", Absent, "https://example.test/4")))
+          case Result.Success(page) =>
+            assert(page.nodes == Chunk(Discussion(4, "disc", Absent, "https://example.test/4")))
           case _ => assert(false)
     }
     "decodes who posted a discussion" in {
       val json =
         """{"data":{"repository":{"discussions":{"nodes":[{"number":4,"title":"disc","body":null,"url":"https://example.test/4","author":{"login":"ada","url":"https://github.com/ada"}}]}}}}"""
       run(GithubClient.recorded(discussions = json).listDiscussions(RepositoryRef("owner", "repo"))).map {
-        case Result.Success(items) =>
+        case Result.Success(page) =>
           assert(
-            items == Chunk(
+            page.nodes == Chunk(
               Discussion(
                 4,
                 "disc",
@@ -254,9 +275,9 @@ class GithubClientTests extends SnapshotTest[Any]:
         replies = ConnectionPage(nodes = Chunk(reply))
       )
       run(GithubClient.recorded(discussions = json).listDiscussions(RepositoryRef("owner", "repo"))).map {
-        case Result.Success(items) =>
+        case Result.Success(page) =>
           assert(
-            items == Chunk(
+            page.nodes == Chunk(
               Discussion(
                 number = 4,
                 title = "disc",
@@ -343,12 +364,24 @@ class GithubClientTests extends SnapshotTest[Any]:
       val request = GraphQl.listIssuesDocument(RepositoryRef("acme", "widgets"))
       assertSnapshot(request.query, "list-issues")
     }
+    "passes after and first into the issues query" in {
+      val request =
+        GraphQl.listIssuesDocument(RepositoryRef("acme", "widgets"), after = Present("cursor1"), first = 50)
+      assert(request.query.contains("after:\"cursor1\""))
+      assert(request.query.contains("first:50"))
+    }
   }
 
   "GraphQl.listPullRequestsDocument" - {
     "matches the blessed list-pull-requests snapshot" in {
       val request = GraphQl.listPullRequestsDocument(RepositoryRef("acme", "widgets"))
       assertSnapshot(request.query, "list-pull-requests")
+    }
+    "passes after and first into the pull requests query" in {
+      val request =
+        GraphQl.listPullRequestsDocument(RepositoryRef("acme", "widgets"), after = Present("cursor1"), first = 50)
+      assert(request.query.contains("after:\"cursor1\""))
+      assert(request.query.contains("first:50"))
     }
   }
 
@@ -357,12 +390,18 @@ class GithubClientTests extends SnapshotTest[Any]:
       val request = GraphQl.listDiscussionsDocument(RepositoryRef("acme", "widgets"))
       assertSnapshot(request.query, "list-discussions")
     }
+    "passes after and first into the discussions query" in {
+      val request =
+        GraphQl.listDiscussionsDocument(RepositoryRef("acme", "widgets"), after = Present("cursor1"), first = 50)
+      assert(request.query.contains("after:\"cursor1\""))
+      assert(request.query.contains("first:50"))
+    }
     "omits replies when reply depth is zero" in {
-      val request = GraphQl.listDiscussionsDocument(RepositoryRef("acme", "widgets"), ReplyDepth.none)
+      val request = GraphQl.listDiscussionsDocument(RepositoryRef("acme", "widgets"), replyDepth = ReplyDepth.none)
       assert(!request.query.contains("replies"))
     }
     "nests a second replies selection when reply depth is two" in {
-      val request = GraphQl.listDiscussionsDocument(RepositoryRef("acme", "widgets"), ReplyDepth(2))
+      val request = GraphQl.listDiscussionsDocument(RepositoryRef("acme", "widgets"), replyDepth = ReplyDepth(2))
       assertSnapshot(request.query, "list-discussions-depth-2")
     }
   }

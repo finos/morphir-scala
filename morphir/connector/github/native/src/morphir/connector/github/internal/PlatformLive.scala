@@ -20,14 +20,24 @@ private[github] object PlatformLive:
     StubClient()
 
   private final class StubClient() extends GithubClient:
-    def listIssues(repository: RepositoryRef): Chunk[Issue] < (Abort[GithubError] & Async) =
+    def listIssues(
+        repository: RepositoryRef,
+        after: Maybe[String],
+        first: Int
+    ): ConnectionPage[Issue] < (Abort[GithubError] & Async) =
       Abort.fail(GithubError.Transport(detail))
-    def listPullRequests(repository: RepositoryRef): Chunk[PullRequest] < (Abort[GithubError] & Async) =
+    def listPullRequests(
+        repository: RepositoryRef,
+        after: Maybe[String],
+        first: Int
+    ): ConnectionPage[PullRequest] < (Abort[GithubError] & Async) =
       Abort.fail(GithubError.Transport(detail))
     def listDiscussions(
         repository: RepositoryRef,
+        after: Maybe[String],
+        first: Int,
         replyDepth: ReplyDepth
-    ): Chunk[Discussion] < (Abort[GithubError] & Async) =
+    ): ConnectionPage[Discussion] < (Abort[GithubError] & Async) =
       Abort.fail(GithubError.Transport(detail))
     def listDiscussionReplies(
         commentId: String,

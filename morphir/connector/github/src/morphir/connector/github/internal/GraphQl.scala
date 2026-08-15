@@ -119,27 +119,43 @@ private[github] object GraphQl:
   val emptyPullRequest: String = """{"data":{"repository":{"pullRequest":null}}}"""
   val emptyDiscussion: String  = """{"data":{"repository":{"discussion":null}}}"""
 
-  def listIssuesDocument(repository: RepositoryRef): Request =
+  def listIssuesDocument(
+      repository: RepositoryRef,
+      after: Maybe[String] = Absent,
+      first: Int = 100
+  ): Request =
     queryDocument(
       repository,
-      Client.Repository.issues(Some(100))(
-        Client.IssueConnection.nodes(issueSelection)
+      Client.Repository.issues(Some(first), cursorArg(after))(
+        Client.IssueConnection.pageInfo(pageInfoSelection) ~
+          Client.IssueConnection.nodes(issueSelection)
       )
     )
 
-  def listPullRequestsDocument(repository: RepositoryRef): Request =
+  def listPullRequestsDocument(
+      repository: RepositoryRef,
+      after: Maybe[String] = Absent,
+      first: Int = 100
+  ): Request =
     queryDocument(
       repository,
-      Client.Repository.pullRequests(Some(100))(
-        Client.PullRequestConnection.nodes(pullRequestSelection)
+      Client.Repository.pullRequests(Some(first), cursorArg(after))(
+        Client.PullRequestConnection.pageInfo(pageInfoSelection) ~
+          Client.PullRequestConnection.nodes(pullRequestSelection)
       )
     )
 
-  def listDiscussionsDocument(repository: RepositoryRef, replyDepth: ReplyDepth = ReplyDepth.one): Request =
+  def listDiscussionsDocument(
+      repository: RepositoryRef,
+      after: Maybe[String] = Absent,
+      first: Int = 100,
+      replyDepth: ReplyDepth = ReplyDepth.one
+  ): Request =
     queryDocument(
       repository,
-      Client.Repository.discussions(Some(100))(
-        Client.DiscussionConnection.nodes(discussionSelection(replyDepth.normalized))
+      Client.Repository.discussions(Some(first), cursorArg(after))(
+        Client.DiscussionConnection.pageInfo(pageInfoSelection) ~
+          Client.DiscussionConnection.nodes(discussionSelection(replyDepth.normalized))
       )
     )
 
@@ -175,19 +191,21 @@ private[github] object GraphQl:
   ): Request =
     queryDocument(repository, Client.Repository.discussion(number)(discussionSelection(replyDepth.normalized)))
 
-  def decodeIssues(json: String): Result[GithubError, Chunk[Issue]] =
-    decodeEnvelope(json, summon[Schema[IssuesEnvelope]], _.errors) { envelope =>
-      envelope.data.flatMap(_.repository).map(_.issues.nodes.map(toIssue)).getOrElse(Chunk.empty)
+  def decodeIssues(json: String): Result[GithubError, ConnectionPage[Issue]] =
+    decodeEnvelopeValue(json, summon[Schema[IssuesEnvelope]], _.errors) { envelope =>
+      envelope.data.flatMap(_.repository).map(repo => page(repo.issues, toIssue)).getOrElse(ConnectionPage())
     }
 
-  def decodePullRequests(json: String): Result[GithubError, Chunk[PullRequest]] =
-    decodeEnvelope(json, summon[Schema[PullRequestsEnvelope]], _.errors) { envelope =>
-      envelope.data.flatMap(_.repository).map(_.pullRequests.nodes.map(toPullRequest)).getOrElse(Chunk.empty)
+  def decodePullRequests(json: String): Result[GithubError, ConnectionPage[PullRequest]] =
+    decodeEnvelopeValue(json, summon[Schema[PullRequestsEnvelope]], _.errors) { envelope =>
+      envelope.data.flatMap(
+        _.repository
+      ).map(repo => page(repo.pullRequests, toPullRequest)).getOrElse(ConnectionPage())
     }
 
-  def decodeDiscussions(json: String): Result[GithubError, Chunk[Discussion]] =
-    decodeEnvelope(json, summon[Schema[DiscussionsEnvelope]], _.errors) { envelope =>
-      envelope.data.flatMap(_.repository).map(_.discussions.nodes.map(toDiscussion)).getOrElse(Chunk.empty)
+  def decodeDiscussions(json: String): Result[GithubError, ConnectionPage[Discussion]] =
+    decodeEnvelopeValue(json, summon[Schema[DiscussionsEnvelope]], _.errors) { envelope =>
+      envelope.data.flatMap(_.repository).map(repo => page(repo.discussions, toDiscussion)).getOrElse(ConnectionPage())
     }
 
   def decodeDiscussionReplies(json: String): Result[GithubError, ConnectionPage[DiscussionComment]] =
@@ -210,22 +228,24 @@ private[github] object GraphQl:
       envelope.data.flatMap(_.repository).flatMap(_.discussion).map(toDiscussion)
     }
 
-  def issuesFrom(envelope: IssuesEnvelope): Result[GithubError, Chunk[Issue]] =
+  def issuesFrom(envelope: IssuesEnvelope): Result[GithubError, ConnectionPage[Issue]] =
     fromErrors(
       envelope.errors,
-      envelope.data.flatMap(_.repository).map(_.issues.nodes.map(toIssue)).getOrElse(Chunk.empty)
+      envelope.data.flatMap(_.repository).map(repo => page(repo.issues, toIssue)).getOrElse(ConnectionPage())
     )
 
-  def pullRequestsFrom(envelope: PullRequestsEnvelope): Result[GithubError, Chunk[PullRequest]] =
+  def pullRequestsFrom(envelope: PullRequestsEnvelope): Result[GithubError, ConnectionPage[PullRequest]] =
     fromErrors(
       envelope.errors,
-      envelope.data.flatMap(_.repository).map(_.pullRequests.nodes.map(toPullRequest)).getOrElse(Chunk.empty)
+      envelope.data.flatMap(
+        _.repository
+      ).map(repo => page(repo.pullRequests, toPullRequest)).getOrElse(ConnectionPage())
     )
 
-  def discussionsFrom(envelope: DiscussionsEnvelope): Result[GithubError, Chunk[Discussion]] =
+  def discussionsFrom(envelope: DiscussionsEnvelope): Result[GithubError, ConnectionPage[Discussion]] =
     fromErrors(
       envelope.errors,
-      envelope.data.flatMap(_.repository).map(_.discussions.nodes.map(toDiscussion)).getOrElse(Chunk.empty)
+      envelope.data.flatMap(_.repository).map(repo => page(repo.discussions, toDiscussion)).getOrElse(ConnectionPage())
     )
 
   def discussionRepliesFrom(envelope: NodeRepliesEnvelope): Result[GithubError, ConnectionPage[DiscussionComment]] =
@@ -367,11 +387,22 @@ private[github] object GraphQl:
     )
 
   private def toConnectionPage(conn: Nodes[WireDiscussionComment]): ConnectionPage[DiscussionComment] =
+    page(conn, toDiscussionComment)
+
+  private def page[A, B](conn: Nodes[A], toValue: A => B): ConnectionPage[B] =
     ConnectionPage(
-      nodes = conn.nodes.map(toDiscussionComment),
+      nodes = conn.nodes.map(toValue),
       hasNextPage = conn.pageInfo.map(_.hasNextPage).getOrElse(false),
       endCursor = conn.pageInfo.flatMap(_.endCursor)
     )
+
+  private def cursorArg(after: Maybe[String]): Option[String] =
+    after match
+      case Present(cursor) => Some(cursor)
+      case Absent          => None
+
+  private val pageInfoSelection =
+    Client.PageInfo.hasNextPage ~ Client.PageInfo.endCursor
 
   private def queryDocument[A](
       repository: RepositoryRef,
@@ -385,13 +416,6 @@ private[github] object GraphQl:
       case Present(errs) if errs.nonEmpty =>
         Result.fail(GithubError.GraphQl(errs.map(_.message).mkString("; ")))
       case _ => Result.succeed(value)
-
-  private def decodeEnvelope[A, B](
-      json: String,
-      schema: Schema[A],
-      errorsOf: A => Maybe[Chunk[Error]]
-  )(nodesOf: A => Chunk[B]): Result[GithubError, Chunk[B]] =
-    decodeEnvelopeValue(json, schema, errorsOf)(nodesOf)
 
   private def decodeEnvelopeValue[A, B](
       json: String,

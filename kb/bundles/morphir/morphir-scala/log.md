@@ -12,6 +12,8 @@
   `mill-libs-scalalib` as `provided`; `integration` is absent from the resolve inventory. Live Central SNAPSHOT
   resolution is confirmed by the next `develop` publish job after merge. See
   [Continuous Integration](/continuous-integration.md).
+* **Update**: Recorded that GitHub listing methods return `ConnectionPage` and take `after` / `first`, in
+  [Published library families](/design/published-library-families.md).
 * **Update**: Recorded that extra artifacts from a versioned suite are YAML `mvnDeps: !append` without a
   version, pinned by Mill `depManagement` on `MorphirSuiteBom` (`Deps.managedSuites`), in
   [Build System](/build-system.md).

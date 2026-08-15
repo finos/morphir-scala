@@ -21,9 +21,9 @@ type Query {
 }
 
 type Repository {
-  issues(first: Int): IssueConnection
-  pullRequests(first: Int): PullRequestConnection
-  discussions(first: Int): DiscussionConnection
+  issues(first: Int, after: String): IssueConnection
+  pullRequests(first: Int, after: String): PullRequestConnection
+  discussions(first: Int, after: String): DiscussionConnection
   issue(number: Int!): Issue
   pullRequest(number: Int!): PullRequest
   discussion(number: Int!): Discussion
@@ -75,14 +75,17 @@ type DiscussionCommentConnection {
 
 type IssueConnection {
   nodes: [Issue!]!
+  pageInfo: PageInfo!
 }
 
 type PullRequestConnection {
   nodes: [PullRequest!]!
+  pageInfo: PageInfo!
 }
 
 type DiscussionConnection {
   nodes: [Discussion!]!
+  pageInfo: PageInfo!
 }
 
 type Issue {

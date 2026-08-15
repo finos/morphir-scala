@@ -10,20 +10,31 @@ private[github] object PlatformLive:
     LiveClient(token)
 
   private final class LiveClient(token: Token) extends GithubClient:
-    def listIssues(repository: RepositoryRef): Chunk[Issue] < (Abort[GithubError] & Async) =
-      post[GraphQl.IssuesEnvelope](GraphQl.listIssuesDocument(repository)).map(env =>
+    def listIssues(
+        repository: RepositoryRef,
+        after: Maybe[String],
+        first: Int
+    ): ConnectionPage[Issue] < (Abort[GithubError] & Async) =
+      post[GraphQl.IssuesEnvelope](GraphQl.listIssuesDocument(repository, after, first)).map(env =>
         GithubClient.lift(GraphQl.issuesFrom(env))
       )
-    def listPullRequests(repository: RepositoryRef): Chunk[PullRequest] < (Abort[GithubError] & Async) =
-      post[GraphQl.PullRequestsEnvelope](GraphQl.listPullRequestsDocument(repository)).map(env =>
+    def listPullRequests(
+        repository: RepositoryRef,
+        after: Maybe[String],
+        first: Int
+    ): ConnectionPage[PullRequest] < (Abort[GithubError] & Async) =
+      post[GraphQl.PullRequestsEnvelope](GraphQl.listPullRequestsDocument(repository, after, first)).map(env =>
         GithubClient.lift(GraphQl.pullRequestsFrom(env))
       )
     def listDiscussions(
         repository: RepositoryRef,
+        after: Maybe[String],
+        first: Int,
         replyDepth: ReplyDepth
-    ): Chunk[Discussion] < (Abort[GithubError] & Async) =
-      post[GraphQl.DiscussionsEnvelope](GraphQl.listDiscussionsDocument(repository, replyDepth)).map(env =>
-        GithubClient.lift(GraphQl.discussionsFrom(env))
+    ): ConnectionPage[Discussion] < (Abort[GithubError] & Async) =
+      post[GraphQl.DiscussionsEnvelope](GraphQl.listDiscussionsDocument(repository, after, first, replyDepth)).map(
+        env =>
+          GithubClient.lift(GraphQl.discussionsFrom(env))
       )
     def listDiscussionReplies(
         commentId: String,

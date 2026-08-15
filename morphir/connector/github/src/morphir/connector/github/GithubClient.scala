@@ -7,19 +7,29 @@ import morphir.connector.github.internal.PlatformLive
 /**
  * Lists issues, pull requests, and discussions for a repository, and looks up one of those objects by number.
  *
- * [[GithubClient.recorded]] replays GraphQL JSON envelopes. [[GithubClient.fixture]] replays already-decoded values.
- * [[GithubClient.live]] posts to GitHub over `kyo-http` on the JVM and on Node.js. Pass a [[Token]] or take
- * [[TokenProvider]] from [[kyo.Env]]. On Scala Native, listing fails with [[GithubError.Transport]] because the
- * published kyo-net Native artifact at 1.0.0-RC6 does not link kqueue on macOS. Tests use recorded or fixture clients
- * and do not call `api.github.com`.
+ * List methods return [[ConnectionPage]] and accept `after` / `first` so a caller can page. [[GithubClient.recorded]]
+ * replays GraphQL JSON envelopes. [[GithubClient.fixture]] replays already-decoded values. [[GithubClient.live]] posts
+ * to GitHub over `kyo-http` on the JVM and on Node.js. Pass a [[Token]] or take [[TokenProvider]] from [[kyo.Env]]. On
+ * Scala Native, listing fails with [[GithubError.Transport]] because the published kyo-net Native artifact at 1.0.0-RC6
+ * does not link kqueue on macOS. Tests use recorded or fixture clients and do not call `api.github.com`.
  */
 trait GithubClient:
-  def listIssues(repository: RepositoryRef): Chunk[Issue] < (Abort[GithubError] & Async)
-  def listPullRequests(repository: RepositoryRef): Chunk[PullRequest] < (Abort[GithubError] & Async)
+  def listIssues(
+      repository: RepositoryRef,
+      after: Maybe[String] = Absent,
+      first: Int = 100
+  ): ConnectionPage[Issue] < (Abort[GithubError] & Async)
+  def listPullRequests(
+      repository: RepositoryRef,
+      after: Maybe[String] = Absent,
+      first: Int = 100
+  ): ConnectionPage[PullRequest] < (Abort[GithubError] & Async)
   def listDiscussions(
       repository: RepositoryRef,
+      after: Maybe[String] = Absent,
+      first: Int = 100,
       replyDepth: ReplyDepth = ReplyDepth.one
-  ): Chunk[Discussion] < (Abort[GithubError] & Async)
+  ): ConnectionPage[Discussion] < (Abort[GithubError] & Async)
   def listDiscussionReplies(
       commentId: String,
       after: Maybe[String] = Absent,
@@ -79,15 +89,25 @@ object GithubClient:
       pullRequest: Maybe[PullRequest],
       discussion: Maybe[Discussion]
   ) extends GithubClient:
-    def listIssues(repository: RepositoryRef): Chunk[Issue] < (Abort[GithubError] & Async) =
-      issues
-    def listPullRequests(repository: RepositoryRef): Chunk[PullRequest] < (Abort[GithubError] & Async) =
-      pullRequests
+    def listIssues(
+        repository: RepositoryRef,
+        after: Maybe[String],
+        first: Int
+    ): ConnectionPage[Issue] < (Abort[GithubError] & Async) =
+      ConnectionPage(nodes = issues)
+    def listPullRequests(
+        repository: RepositoryRef,
+        after: Maybe[String],
+        first: Int
+    ): ConnectionPage[PullRequest] < (Abort[GithubError] & Async) =
+      ConnectionPage(nodes = pullRequests)
     def listDiscussions(
         repository: RepositoryRef,
+        after: Maybe[String],
+        first: Int,
         replyDepth: ReplyDepth
-    ): Chunk[Discussion] < (Abort[GithubError] & Async) =
-      discussions
+    ): ConnectionPage[Discussion] < (Abort[GithubError] & Async) =
+      ConnectionPage(nodes = discussions)
     def listDiscussionReplies(
         commentId: String,
         after: Maybe[String],
@@ -115,14 +135,24 @@ object GithubClient:
       pullRequestJson: String,
       discussionJson: String
   ) extends GithubClient:
-    def listIssues(repository: RepositoryRef): Chunk[Issue] < (Abort[GithubError] & Async) =
+    def listIssues(
+        repository: RepositoryRef,
+        after: Maybe[String],
+        first: Int
+    ): ConnectionPage[Issue] < (Abort[GithubError] & Async) =
       lift(GraphQl.decodeIssues(issuesJson))
-    def listPullRequests(repository: RepositoryRef): Chunk[PullRequest] < (Abort[GithubError] & Async) =
+    def listPullRequests(
+        repository: RepositoryRef,
+        after: Maybe[String],
+        first: Int
+    ): ConnectionPage[PullRequest] < (Abort[GithubError] & Async) =
       lift(GraphQl.decodePullRequests(pullRequestsJson))
     def listDiscussions(
         repository: RepositoryRef,
+        after: Maybe[String],
+        first: Int,
         replyDepth: ReplyDepth
-    ): Chunk[Discussion] < (Abort[GithubError] & Async) =
+    ): ConnectionPage[Discussion] < (Abort[GithubError] & Async) =
       lift(GraphQl.decodeDiscussions(discussionsJson))
     def listDiscussionReplies(
         commentId: String,
