@@ -109,6 +109,8 @@ object Client {
   object IssueCommentConnection {
     def nodes[A](innerSelection: SelectionBuilder[IssueComment, A]): SelectionBuilder[IssueCommentConnection, List[A]] =
       _root_.caliban.client.SelectionBuilder.Field("nodes", ListOf(Obj(innerSelection)))
+    def pageInfo[A](innerSelection: SelectionBuilder[PageInfo, A]): SelectionBuilder[IssueCommentConnection, A] =
+      _root_.caliban.client.SelectionBuilder.Field("pageInfo", Obj(innerSelection))
   }
 
   type DiscussionComment
@@ -189,13 +191,16 @@ object Client {
       OptionOf(Obj(innerSelection)),
       arguments = List(Argument("first", first, "Int"))
     )
-    def comments[A](first: scala.Option[Int] =
-      None)(innerSelection: SelectionBuilder[IssueCommentConnection, A])(implicit
-        encoder0: ArgEncoder[scala.Option[Int]]
+    def comments[A](
+        first: scala.Option[Int] = None,
+        after: scala.Option[String] = None
+    )(innerSelection: SelectionBuilder[IssueCommentConnection, A])(implicit
+        encoder0: ArgEncoder[scala.Option[Int]],
+        encoder1: ArgEncoder[scala.Option[String]]
     ): SelectionBuilder[Issue, scala.Option[A]] = _root_.caliban.client.SelectionBuilder.Field(
       "comments",
       OptionOf(Obj(innerSelection)),
-      arguments = List(Argument("first", first, "Int"))
+      arguments = List(Argument("first", first, "Int"), Argument("after", after, "String"))
     )
   }
 
@@ -220,13 +225,16 @@ object Client {
       OptionOf(Obj(innerSelection)),
       arguments = List(Argument("first", first, "Int"))
     )
-    def comments[A](first: scala.Option[Int] =
-      None)(innerSelection: SelectionBuilder[IssueCommentConnection, A])(implicit
-        encoder0: ArgEncoder[scala.Option[Int]]
+    def comments[A](
+        first: scala.Option[Int] = None,
+        after: scala.Option[String] = None
+    )(innerSelection: SelectionBuilder[IssueCommentConnection, A])(implicit
+        encoder0: ArgEncoder[scala.Option[Int]],
+        encoder1: ArgEncoder[scala.Option[String]]
     ): SelectionBuilder[PullRequest, scala.Option[A]] = _root_.caliban.client.SelectionBuilder.Field(
       "comments",
       OptionOf(Obj(innerSelection)),
-      arguments = List(Argument("first", first, "Int"))
+      arguments = List(Argument("first", first, "Int"), Argument("after", after, "String"))
     )
   }
 
@@ -256,13 +264,16 @@ object Client {
     def answer[A](innerSelection: SelectionBuilder[DiscussionComment, A])
         : SelectionBuilder[Discussion, scala.Option[A]] =
       _root_.caliban.client.SelectionBuilder.Field("answer", OptionOf(Obj(innerSelection)))
-    def comments[A](first: scala.Option[Int] =
-      None)(innerSelection: SelectionBuilder[DiscussionCommentConnection, A])(implicit
-        encoder0: ArgEncoder[scala.Option[Int]]
+    def comments[A](
+        first: scala.Option[Int] = None,
+        after: scala.Option[String] = None
+    )(innerSelection: SelectionBuilder[DiscussionCommentConnection, A])(implicit
+        encoder0: ArgEncoder[scala.Option[Int]],
+        encoder1: ArgEncoder[scala.Option[String]]
     ): SelectionBuilder[Discussion, scala.Option[A]] = _root_.caliban.client.SelectionBuilder.Field(
       "comments",
       OptionOf(Obj(innerSelection)),
-      arguments = List(Argument("first", first, "Int"))
+      arguments = List(Argument("first", first, "Int"), Argument("after", after, "String"))
     )
   }
 

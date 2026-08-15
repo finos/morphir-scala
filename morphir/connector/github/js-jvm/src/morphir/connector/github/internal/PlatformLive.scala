@@ -45,6 +45,34 @@ private[github] object PlatformLive:
       post[GraphQl.NodeRepliesEnvelope](
         GraphQl.listDiscussionRepliesDocument(commentId, after, first, replyDepth)
       ).map(env => GithubClient.lift(GraphQl.discussionRepliesFrom(env)))
+    def listIssueComments(
+        repository: RepositoryRef,
+        number: Int,
+        after: Maybe[String],
+        first: Int
+    ): ConnectionPage[IssueComment] < (Abort[GithubError] & Async) =
+      post[GraphQl.IssueCommentsEnvelope](GraphQl.listIssueCommentsDocument(repository, number, after, first)).map(
+        env => GithubClient.lift(GraphQl.issueCommentsFrom(env))
+      )
+    def listPullRequestComments(
+        repository: RepositoryRef,
+        number: Int,
+        after: Maybe[String],
+        first: Int
+    ): ConnectionPage[IssueComment] < (Abort[GithubError] & Async) =
+      post[GraphQl.PullRequestCommentsEnvelope](
+        GraphQl.listPullRequestCommentsDocument(repository, number, after, first)
+      ).map(env => GithubClient.lift(GraphQl.pullRequestCommentsFrom(env)))
+    def listDiscussionComments(
+        repository: RepositoryRef,
+        number: Int,
+        after: Maybe[String],
+        first: Int,
+        replyDepth: ReplyDepth
+    ): ConnectionPage[DiscussionComment] < (Abort[GithubError] & Async) =
+      post[GraphQl.DiscussionCommentsEnvelope](
+        GraphQl.listDiscussionCommentsDocument(repository, number, after, first, replyDepth)
+      ).map(env => GithubClient.lift(GraphQl.discussionCommentsFrom(env)))
     def getIssue(repository: RepositoryRef, number: Int): Maybe[Issue] < (Abort[GithubError] & Async) =
       post[GraphQl.SingleIssueEnvelope](GraphQl.getIssueDocument(repository, number)).map(env =>
         GithubClient.lift(GraphQl.issueFrom(env))

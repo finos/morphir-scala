@@ -132,12 +132,14 @@ class GithubClientTests extends SnapshotTest[Any]:
                 createdAt = Present(java.time.Instant.parse("2026-01-02T03:04:05Z")),
                 updatedAt = Present(java.time.Instant.parse("2026-01-03T04:05:06Z")),
                 labels = Chunk(Label("bug")),
-                comments = Chunk(
-                  IssueComment(
-                    author = bob,
-                    body = Present("repro?"),
-                    createdAt = Present(java.time.Instant.parse("2026-01-02T05:00:00Z")),
-                    updatedAt = Present(java.time.Instant.parse("2026-01-02T05:00:00Z"))
+                comments = ConnectionPage(
+                  nodes = Chunk(
+                    IssueComment(
+                      author = bob,
+                      body = Present("repro?"),
+                      createdAt = Present(java.time.Instant.parse("2026-01-02T05:00:00Z")),
+                      updatedAt = Present(java.time.Instant.parse("2026-01-02T05:00:00Z"))
+                    )
                   )
                 )
               )
@@ -182,12 +184,14 @@ class GithubClientTests extends SnapshotTest[Any]:
                 createdAt = Present(java.time.Instant.parse("2026-01-02T03:04:05Z")),
                 updatedAt = Present(java.time.Instant.parse("2026-01-03T04:05:06Z")),
                 labels = Chunk(Label("enhancement")),
-                comments = Chunk(
-                  IssueComment(
-                    author = bob,
-                    body = Present("lgtm"),
-                    createdAt = Present(java.time.Instant.parse("2026-01-02T05:00:00Z")),
-                    updatedAt = Present(java.time.Instant.parse("2026-01-02T05:00:00Z"))
+                comments = ConnectionPage(
+                  nodes = Chunk(
+                    IssueComment(
+                      author = bob,
+                      body = Present("lgtm"),
+                      createdAt = Present(java.time.Instant.parse("2026-01-02T05:00:00Z")),
+                      updatedAt = Present(java.time.Instant.parse("2026-01-02T05:00:00Z"))
+                    )
                   )
                 )
               )
@@ -289,7 +293,7 @@ class GithubClientTests extends SnapshotTest[Any]:
                 upvoteCount = 7,
                 labels = Chunk(Label("q-and-a")),
                 answer = Present(comment.copy(replies = ConnectionPage())),
-                comments = Chunk(comment)
+                comments = ConnectionPage(nodes = Chunk(comment))
               )
             )
           )
@@ -357,6 +361,35 @@ class GithubClientTests extends SnapshotTest[Any]:
         case _ => assert(false)
       }
     }
+    "decodes a page of additional issue comments" in {
+      val json =
+        """{"data":{"repository":{"issue":{"comments":{"pageInfo":{"hasNextPage":true,"endCursor":"c2"},"nodes":[{
+          |"author":{"login":"bob","url":"https://github.com/bob"},
+          |"body":"repro?","createdAt":"2026-01-02T05:00:00Z","updatedAt":"2026-01-02T05:00:00Z"
+        }]}}}}}""".stripMargin.replaceAll("\n", "")
+      run(
+        GithubClient.recorded(issueComments = json).listIssueComments(
+          RepositoryRef("owner", "repo"),
+          1,
+          after = Present("c1")
+        )
+      ).map {
+        case Result.Success(page) =>
+          assert(page.hasNextPage)
+          assert(page.endCursor == Present("c2"))
+          assert(
+            page.nodes == Chunk(
+              IssueComment(
+                author = Present(Actor("bob", "https://github.com/bob")),
+                body = Present("repro?"),
+                createdAt = Present(java.time.Instant.parse("2026-01-02T05:00:00Z")),
+                updatedAt = Present(java.time.Instant.parse("2026-01-02T05:00:00Z"))
+              )
+            )
+          )
+        case _ => assert(false)
+      }
+    }
   }
 
   "GraphQl.listIssuesDocument" - {
@@ -410,6 +443,33 @@ class GithubClientTests extends SnapshotTest[Any]:
     "matches the blessed list-discussion-replies snapshot" in {
       val request = GraphQl.listDiscussionRepliesDocument("DC_1", after = Present("cursor-1"))
       assertSnapshot(request.query, "list-discussion-replies")
+    }
+  }
+
+  "GraphQl.listIssueCommentsDocument" - {
+    "matches the blessed list-issue-comments snapshot" in {
+      val request = GraphQl.listIssueCommentsDocument(RepositoryRef("acme", "widgets"), 1)
+      assertSnapshot(request.query, "list-issue-comments")
+    }
+    "passes after and first into the issue comments query" in {
+      val request =
+        GraphQl.listIssueCommentsDocument(RepositoryRef("acme", "widgets"), 1, after = Present("cursor1"), first = 50)
+      assert(request.query.contains("after:\"cursor1\""))
+      assert(request.query.contains("first:50"))
+    }
+  }
+
+  "GraphQl.listPullRequestCommentsDocument" - {
+    "matches the blessed list-pull-request-comments snapshot" in {
+      val request = GraphQl.listPullRequestCommentsDocument(RepositoryRef("acme", "widgets"), 3)
+      assertSnapshot(request.query, "list-pull-request-comments")
+    }
+  }
+
+  "GraphQl.listDiscussionCommentsDocument" - {
+    "matches the blessed list-discussion-comments snapshot" in {
+      val request = GraphQl.listDiscussionCommentsDocument(RepositoryRef("acme", "widgets"), 4)
+      assertSnapshot(request.query, "list-discussion-comments")
     }
   }
 

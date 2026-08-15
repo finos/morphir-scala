@@ -46,6 +46,28 @@ private[github] object PlatformLive:
         replyDepth: ReplyDepth
     ): ConnectionPage[DiscussionComment] < (Abort[GithubError] & Async) =
       Abort.fail(GithubError.Transport(detail))
+    def listIssueComments(
+        repository: RepositoryRef,
+        number: Int,
+        after: Maybe[String],
+        first: Int
+    ): ConnectionPage[IssueComment] < (Abort[GithubError] & Async) =
+      Abort.fail(GithubError.Transport(detail))
+    def listPullRequestComments(
+        repository: RepositoryRef,
+        number: Int,
+        after: Maybe[String],
+        first: Int
+    ): ConnectionPage[IssueComment] < (Abort[GithubError] & Async) =
+      Abort.fail(GithubError.Transport(detail))
+    def listDiscussionComments(
+        repository: RepositoryRef,
+        number: Int,
+        after: Maybe[String],
+        first: Int,
+        replyDepth: ReplyDepth
+    ): ConnectionPage[DiscussionComment] < (Abort[GithubError] & Async) =
+      Abort.fail(GithubError.Transport(detail))
     def getIssue(repository: RepositoryRef, number: Int): Maybe[Issue] < (Abort[GithubError] & Async) =
       Abort.fail(GithubError.Transport(detail))
     def getPullRequest(repository: RepositoryRef, number: Int): Maybe[PullRequest] < (Abort[GithubError] & Async) =

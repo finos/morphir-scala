@@ -1,5 +1,11 @@
 # Log
 
+## 2026-08-15
+
+* **Update**: Recorded that nested GitHub comments are a `ConnectionPage`, with `listIssueComments`,
+  `listPullRequestComments`, and `listDiscussionComments`, in
+  [Published library families](/design/published-library-families.md).
+
 ## 2026-08-14
 
 * **Update**: Hosted CI mill invocations pass `--ticker false`. See [Continuous Integration](/continuous-integration.md).

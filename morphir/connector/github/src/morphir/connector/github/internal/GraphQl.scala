@@ -110,11 +110,39 @@ private[github] object GraphQl:
   final case class SingleDiscussionEnvelope(data: Maybe[SingleDiscussionData], errors: Maybe[Chunk[Error]] = Absent)
       derives Schema
 
+  final case class IssueCommentsNode(comments: Maybe[Nodes[WireIssueComment]] = Absent) derives Schema
+  final case class IssueCommentsRepository(issue: Maybe[IssueCommentsNode] = Absent) derives Schema
+  final case class IssueCommentsData(repository: Maybe[IssueCommentsRepository]) derives Schema
+  final case class IssueCommentsEnvelope(data: Maybe[IssueCommentsData], errors: Maybe[Chunk[Error]] = Absent)
+      derives Schema
+
+  final case class PullRequestCommentsNode(comments: Maybe[Nodes[WireIssueComment]] = Absent) derives Schema
+  final case class PullRequestCommentsRepository(pullRequest: Maybe[PullRequestCommentsNode] = Absent) derives Schema
+  final case class PullRequestCommentsData(repository: Maybe[PullRequestCommentsRepository]) derives Schema
+  final case class PullRequestCommentsEnvelope(
+      data: Maybe[PullRequestCommentsData],
+      errors: Maybe[Chunk[Error]] = Absent
+  ) derives Schema
+
+  final case class DiscussionCommentsNode(comments: Maybe[Nodes[WireDiscussionComment]] = Absent) derives Schema
+  final case class DiscussionCommentsRepository(discussion: Maybe[DiscussionCommentsNode] = Absent) derives Schema
+  final case class DiscussionCommentsData(repository: Maybe[DiscussionCommentsRepository]) derives Schema
+  final case class DiscussionCommentsEnvelope(
+      data: Maybe[DiscussionCommentsData],
+      errors: Maybe[Chunk[Error]] = Absent
+  ) derives Schema
+
   val emptyIssues: String            = """{"data":{"repository":{"issues":{"nodes":[]}}}}"""
   val emptyPullRequests: String      = """{"data":{"repository":{"pullRequests":{"nodes":[]}}}}"""
   val emptyDiscussions: String       = """{"data":{"repository":{"discussions":{"nodes":[]}}}}"""
   val emptyDiscussionReplies: String =
     """{"data":{"node":{"replies":{"nodes":[],"pageInfo":{"hasNextPage":false,"endCursor":null}}}}}"""
+  val emptyIssueComments: String =
+    """{"data":{"repository":{"issue":{"comments":{"nodes":[],"pageInfo":{"hasNextPage":false,"endCursor":null}}}}}}"""
+  val emptyPullRequestComments: String =
+    """{"data":{"repository":{"pullRequest":{"comments":{"nodes":[],"pageInfo":{"hasNextPage":false,"endCursor":null}}}}}}"""
+  val emptyDiscussionComments: String =
+    """{"data":{"repository":{"discussion":{"comments":{"nodes":[],"pageInfo":{"hasNextPage":false,"endCursor":null}}}}}}"""
   val emptyIssue: String       = """{"data":{"repository":{"issue":null}}}"""
   val emptyPullRequest: String = """{"data":{"repository":{"pullRequest":null}}}"""
   val emptyDiscussion: String  = """{"data":{"repository":{"discussion":null}}}"""
@@ -191,6 +219,48 @@ private[github] object GraphQl:
   ): Request =
     queryDocument(repository, Client.Repository.discussion(number)(discussionSelection(replyDepth.normalized)))
 
+  def listIssueCommentsDocument(
+      repository: RepositoryRef,
+      number: Int,
+      after: Maybe[String] = Absent,
+      first: Int = 100
+  ): Request =
+    queryDocument(
+      repository,
+      Client.Repository.issue(number)(
+        Client.Issue.comments(Some(first), cursorArg(after))(issueCommentsSelection)
+      )
+    )
+
+  def listPullRequestCommentsDocument(
+      repository: RepositoryRef,
+      number: Int,
+      after: Maybe[String] = Absent,
+      first: Int = 100
+  ): Request =
+    queryDocument(
+      repository,
+      Client.Repository.pullRequest(number)(
+        Client.PullRequest.comments(Some(first), cursorArg(after))(issueCommentsSelection)
+      )
+    )
+
+  def listDiscussionCommentsDocument(
+      repository: RepositoryRef,
+      number: Int,
+      after: Maybe[String] = Absent,
+      first: Int = 100,
+      replyDepth: ReplyDepth = ReplyDepth.one
+  ): Request =
+    queryDocument(
+      repository,
+      Client.Repository.discussion(number)(
+        Client.Discussion.comments(Some(first), cursorArg(after))(
+          discussionCommentsSelection(replyDepth.normalized)
+        )
+      )
+    )
+
   def decodeIssues(json: String): Result[GithubError, ConnectionPage[Issue]] =
     decodeEnvelopeValue(json, summon[Schema[IssuesEnvelope]], _.errors) { envelope =>
       envelope.data.flatMap(_.repository).map(repo => page(repo.issues, toIssue)).getOrElse(ConnectionPage())
@@ -228,6 +298,27 @@ private[github] object GraphQl:
       envelope.data.flatMap(_.repository).flatMap(_.discussion).map(toDiscussion)
     }
 
+  def decodeIssueComments(json: String): Result[GithubError, ConnectionPage[IssueComment]] =
+    decodeEnvelopeValue(json, summon[Schema[IssueCommentsEnvelope]], _.errors) { envelope =>
+      envelope.data.flatMap(_.repository).flatMap(_.issue).flatMap(_.comments).map(page(_, toIssueComment)).getOrElse(
+        ConnectionPage()
+      )
+    }
+
+  def decodePullRequestComments(json: String): Result[GithubError, ConnectionPage[IssueComment]] =
+    decodeEnvelopeValue(json, summon[Schema[PullRequestCommentsEnvelope]], _.errors) { envelope =>
+      envelope.data.flatMap(_.repository).flatMap(_.pullRequest).flatMap(_.comments).map(
+        page(_, toIssueComment)
+      ).getOrElse(ConnectionPage())
+    }
+
+  def decodeDiscussionComments(json: String): Result[GithubError, ConnectionPage[DiscussionComment]] =
+    decodeEnvelopeValue(json, summon[Schema[DiscussionCommentsEnvelope]], _.errors) { envelope =>
+      envelope.data.flatMap(_.repository).flatMap(_.discussion).flatMap(_.comments).map(toConnectionPage).getOrElse(
+        ConnectionPage()
+      )
+    }
+
   def issuesFrom(envelope: IssuesEnvelope): Result[GithubError, ConnectionPage[Issue]] =
     fromErrors(
       envelope.errors,
@@ -263,6 +354,32 @@ private[github] object GraphQl:
   def discussionFrom(envelope: SingleDiscussionEnvelope): Result[GithubError, Maybe[Discussion]] =
     fromErrors(envelope.errors, envelope.data.flatMap(_.repository).flatMap(_.discussion).map(toDiscussion))
 
+  def issueCommentsFrom(envelope: IssueCommentsEnvelope): Result[GithubError, ConnectionPage[IssueComment]] =
+    fromErrors(
+      envelope.errors,
+      envelope.data.flatMap(_.repository).flatMap(_.issue).flatMap(_.comments).map(page(_, toIssueComment)).getOrElse(
+        ConnectionPage()
+      )
+    )
+
+  def pullRequestCommentsFrom(envelope: PullRequestCommentsEnvelope)
+      : Result[GithubError, ConnectionPage[IssueComment]] =
+    fromErrors(
+      envelope.errors,
+      envelope.data.flatMap(_.repository).flatMap(_.pullRequest).flatMap(_.comments).map(
+        page(_, toIssueComment)
+      ).getOrElse(ConnectionPage())
+    )
+
+  def discussionCommentsFrom(envelope: DiscussionCommentsEnvelope)
+      : Result[GithubError, ConnectionPage[DiscussionComment]] =
+    fromErrors(
+      envelope.errors,
+      envelope.data.flatMap(_.repository).flatMap(_.discussion).flatMap(_.comments).map(toConnectionPage).getOrElse(
+        ConnectionPage()
+      )
+    )
+
   private val actorSelection = Client.Actor.login ~ Client.Actor.url
 
   private val issueCommentSelection =
@@ -270,6 +387,13 @@ private[github] object GraphQl:
       Client.IssueComment.body ~
       Client.IssueComment.createdAt ~
       Client.IssueComment.updatedAt
+
+  private val pageInfoSelection =
+    Client.PageInfo.hasNextPage ~ Client.PageInfo.endCursor
+
+  private val issueCommentsSelection =
+    Client.IssueCommentConnection.pageInfo(pageInfoSelection) ~
+      Client.IssueCommentConnection.nodes(issueCommentSelection)
 
   private val discussionReplySelection =
     Client.DiscussionComment.id ~
@@ -289,6 +413,10 @@ private[github] object GraphQl:
           ) ~ Client.DiscussionCommentConnection.nodes(discussionCommentSelection(replyDepth - 1))
         )).map(_ => ())
 
+  private def discussionCommentsSelection(replyDepth: Int) =
+    Client.DiscussionCommentConnection.pageInfo(pageInfoSelection) ~
+      Client.DiscussionCommentConnection.nodes(discussionCommentSelection(replyDepth))
+
   private val issueSelection =
     Client.Issue.number ~
       Client.Issue.title ~
@@ -298,7 +426,7 @@ private[github] object GraphQl:
       Client.Issue.createdAt ~
       Client.Issue.updatedAt ~
       Client.Issue.labels(Some(100))(Client.LabelConnection.nodes(Client.Label.name)) ~
-      Client.Issue.comments(Some(100))(Client.IssueCommentConnection.nodes(issueCommentSelection))
+      Client.Issue.comments(Some(100))(issueCommentsSelection)
 
   private val pullRequestSelection =
     Client.PullRequest.number ~
@@ -309,7 +437,7 @@ private[github] object GraphQl:
       Client.PullRequest.createdAt ~
       Client.PullRequest.updatedAt ~
       Client.PullRequest.labels(Some(100))(Client.LabelConnection.nodes(Client.Label.name)) ~
-      Client.PullRequest.comments(Some(100))(Client.IssueCommentConnection.nodes(issueCommentSelection))
+      Client.PullRequest.comments(Some(100))(issueCommentsSelection)
 
   private def discussionSelection(replyDepth: Int) =
     Client.Discussion.number ~
@@ -322,9 +450,7 @@ private[github] object GraphQl:
       Client.Discussion.upvoteCount ~
       Client.Discussion.labels(Some(100))(Client.LabelConnection.nodes(Client.Label.name)) ~
       Client.Discussion.answer(discussionCommentSelection(replyDepth)) ~
-      Client.Discussion.comments(Some(100))(
-        Client.DiscussionCommentConnection.nodes(discussionCommentSelection(replyDepth))
-      )
+      Client.Discussion.comments(Some(100))(discussionCommentsSelection(replyDepth))
 
   private def toIssue(wire: WireIssue): Issue =
     Issue(
@@ -336,7 +462,7 @@ private[github] object GraphQl:
       createdAt = wire.createdAt,
       updatedAt = wire.updatedAt,
       labels = wire.labels.map(_.nodes).getOrElse(Chunk.empty),
-      comments = wire.comments.map(_.nodes.map(toIssueComment)).getOrElse(Chunk.empty)
+      comments = wire.comments.map(page(_, toIssueComment)).getOrElse(ConnectionPage())
     )
 
   private def toIssueComment(wire: WireIssueComment): IssueComment =
@@ -357,7 +483,7 @@ private[github] object GraphQl:
       createdAt = wire.createdAt,
       updatedAt = wire.updatedAt,
       labels = wire.labels.map(_.nodes).getOrElse(Chunk.empty),
-      comments = wire.comments.map(_.nodes.map(toIssueComment)).getOrElse(Chunk.empty)
+      comments = wire.comments.map(page(_, toIssueComment)).getOrElse(ConnectionPage())
     )
 
   private def toDiscussion(wire: WireDiscussion): Discussion =
@@ -372,7 +498,7 @@ private[github] object GraphQl:
       upvoteCount = wire.upvoteCount,
       labels = wire.labels.map(_.nodes).getOrElse(Chunk.empty),
       answer = wire.answer.map(toDiscussionComment),
-      comments = wire.comments.map(_.nodes.map(toDiscussionComment)).getOrElse(Chunk.empty)
+      comments = wire.comments.map(toConnectionPage).getOrElse(ConnectionPage())
     )
 
   private def toDiscussionComment(wire: WireDiscussionComment): DiscussionComment =
@@ -400,9 +526,6 @@ private[github] object GraphQl:
     after match
       case Present(cursor) => Some(cursor)
       case Absent          => None
-
-  private val pageInfoSelection =
-    Client.PageInfo.hasNextPage ~ Client.PageInfo.endCursor
 
   private def queryDocument[A](
       repository: RepositoryRef,

@@ -56,6 +56,7 @@ type IssueComment {
 
 type IssueCommentConnection {
   nodes: [IssueComment!]!
+  pageInfo: PageInfo!
 }
 
 type DiscussionComment implements Node {
@@ -98,7 +99,7 @@ type Issue {
   createdAt: DateTime!
   updatedAt: DateTime!
   labels(first: Int): LabelConnection
-  comments(first: Int): IssueCommentConnection
+  comments(first: Int, after: String): IssueCommentConnection
 }
 
 type PullRequest {
@@ -111,7 +112,7 @@ type PullRequest {
   createdAt: DateTime!
   updatedAt: DateTime!
   labels(first: Int): LabelConnection
-  comments(first: Int): IssueCommentConnection
+  comments(first: Int, after: String): IssueCommentConnection
 }
 
 type Discussion {
@@ -126,5 +127,5 @@ type Discussion {
   upvoteCount: Int!
   labels(first: Int): LabelConnection
   answer: DiscussionComment
-  comments(first: Int): DiscussionCommentConnection
+  comments(first: Int, after: String): DiscussionCommentConnection
 }

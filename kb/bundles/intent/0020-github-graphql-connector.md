@@ -32,7 +32,9 @@ No OKF type and no Morphir IR type appears in the module.
 Listing includes author, UTC timestamps as `Maybe[java.time.Instant]`, labels, and comments.
 Discussions also include upvoteCount, an accepted answer, and nested comment replies.
 `listDiscussions` takes a `ReplyDepth` (default one level). Listing methods return `ConnectionPage` and take `after`
-and `first` so a caller can page. `listDiscussionReplies` pages further replies by comment id.
+and `first` so a caller can page. Nested comments on an issue, pull request, or discussion are also a `ConnectionPage`.
+`listIssueComments`, `listPullRequestComments`, and `listDiscussionComments` page past the first hundred.
+`listDiscussionReplies` pages further replies by comment id.
 `getIssue`, `getPullRequest`, and `getDiscussion` look up one object by repository number and return `Maybe`.
 Issue and pull request comments have no upvoteCount.
 

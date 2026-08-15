@@ -56,7 +56,7 @@ final case class Issue(
     createdAt: Maybe[Instant] = Absent,
     updatedAt: Maybe[Instant] = Absent,
     labels: Chunk[Label] = Chunk.empty,
-    comments: Chunk[IssueComment] = Chunk.empty
+    comments: ConnectionPage[IssueComment] = ConnectionPage()
 ) derives CanEqual, Schema
 
 /** A GitHub pull request. Field names follow GitHub's GraphQL `PullRequest` type, not OKF. */
@@ -69,7 +69,7 @@ final case class PullRequest(
     createdAt: Maybe[Instant] = Absent,
     updatedAt: Maybe[Instant] = Absent,
     labels: Chunk[Label] = Chunk.empty,
-    comments: Chunk[IssueComment] = Chunk.empty
+    comments: ConnectionPage[IssueComment] = ConnectionPage()
 ) derives CanEqual, Schema
 
 /** A GitHub discussion. Field names follow GitHub's GraphQL `Discussion` type, not OKF. */
@@ -84,5 +84,5 @@ final case class Discussion(
     upvoteCount: Int = 0,
     labels: Chunk[Label] = Chunk.empty,
     answer: Maybe[DiscussionComment] = Absent,
-    comments: Chunk[DiscussionComment] = Chunk.empty
+    comments: ConnectionPage[DiscussionComment] = ConnectionPage()
 ) derives CanEqual, Schema

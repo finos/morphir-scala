@@ -5,7 +5,9 @@ A Kyo GitHub GraphQL client for issues, pull requests, and discussions. No Morph
 Listing includes author, UTC `createdAt` / `updatedAt` as `Maybe[java.time.Instant]`, labels, and comments.
 Discussions include upvote count, an accepted answer, and nested comment replies. `listDiscussions` takes a
 `ReplyDepth` (default one level). Listing methods return `ConnectionPage` and take `after` / `first` so a caller
-can page. `listDiscussionReplies` pages further replies for a comment id using the connection cursor. `getIssue`, `getPullRequest`, and `getDiscussion` look up one object by repository number and
+can page. Nested comments are also a `ConnectionPage`. `listIssueComments`, `listPullRequestComments`, and
+`listDiscussionComments` page past the first hundred. `listDiscussionReplies` pages further replies for a comment
+id using the connection cursor. `getIssue`, `getPullRequest`, and `getDiscussion` look up one object by repository number and
 return `Maybe` (`Absent` when GitHub returns null). Issue and pull request comments have no upvote count and no
 reply tree.
 
@@ -38,8 +40,8 @@ problem. Electron uses this Node backend. On Scala Native, listing fails with `G
 Native artifact links kqueue. See the published-library-families Design Note.
 
 Listing methods return `ConnectionPage[A] < (Abort[GithubError] & Async)`. Pass `after` and `first` to page.
-`getIssue`, `getPullRequest`, and `getDiscussion`
-return `Maybe[A]`. `listDiscussionReplies` uses the same page type for further replies on a comment:
+`getIssue`, `getPullRequest`, and `getDiscussion` return `Maybe[A]`. Nested comments use the same page type;
+`listIssueComments`, `listPullRequestComments`, `listDiscussionComments`, and `listDiscussionReplies` page further:
 
 ```scala
 import kyo.*
