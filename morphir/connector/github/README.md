@@ -59,7 +59,11 @@ val json =
   """{"data":{"repository":{"issues":{"nodes":[{"number":1,"title":"title","body":"body","url":"https://example.test/1"}]}}}}"""
 val client = GithubClient.recorded(issues = json)
 
-Abort.run[GitHubException](client.listIssues(RepositoryRef("owner", "repo")))
+Abort.run[GitHubException](
+  RepositoryRef.parse("owner", "repo") match
+    case Present(repo) => client.listIssues(repo)
+    case Absent        => Abort.fail(GitHubException.Transport("invalid repository"))
+)
 ```
 
 ## Schema subset and codegen

@@ -182,7 +182,15 @@ final case class ConnectionPage[A](
 ) derives CanEqual, Schema
 
 /** Owner and repository name as GitHub's `repository(owner, name)` arguments. */
-final case class RepositoryRef(owner: String, name: String) derives CanEqual
+final case class RepositoryRef private (owner: String, name: String) derives CanEqual
+
+object RepositoryRef:
+  /** Accepts non-blank owner and name after trim. Rejects whitespace-only values. */
+  def parse(owner: String, name: String): Maybe[RepositoryRef] =
+    val trimmedOwner = owner.trim
+    val trimmedName  = name.trim
+    if trimmedOwner.isEmpty || trimmedName.isEmpty then Absent
+    else Present(RepositoryRef(trimmedOwner, trimmedName))
 
 /** A GitHub actor (user, bot, or organization) as GraphQL `Actor.login` and `Actor.url`. */
 final case class Actor(login: String, url: String) derives CanEqual, Schema

@@ -7,7 +7,8 @@ import morphir.langkit.core.Span
  * Stub parser for ATX headings and paragraphs.
  *
  * This is not a CommonMark parser. It exists so tests run on JVM, JS, and Native while the production parser is
- * still an open question. Do not take `commonmark-java` here.
+ * still an open question. Do not take `commonmark-java` here. ATX headings still terminate at the end of their
+ * line, so a heading is never merged with the following block when only a single newline separates them.
  */
 object Parser:
 
@@ -16,7 +17,7 @@ object Parser:
     Result.succeed(Document(blocks, Span(0, source.length)))
 
   private def parseBlocks(source: String): Chunk[Block] =
-    val chunks = splitParagraphs(source)
+    val chunks = splitBlocks(source)
     Chunk.from(chunks.iterator.map(parseChunk).toList)
 
   private def parseChunk(chunk: SourceChunk): Block =
@@ -35,17 +36,37 @@ object Parser:
 
   private final case class SourceChunk(text: String, offset: Int)
 
-  private def splitParagraphs(source: String): List[SourceChunk] =
-    val result = List.newBuilder[SourceChunk]
-    var start  = 0
-    var i      = 0
-    while i < source.length do
-      if i + 1 < source.length && source.charAt(i) == '\n' && source.charAt(i + 1) == '\n' then
-        val piece = source.substring(start, i)
-        if piece.trim.nonEmpty then result += SourceChunk(piece, start)
-        i += 2
-        start = i
+  /** Split into block chunks. Blank lines separate paragraphs; an ATX heading line is always its own chunk. */
+  private def splitBlocks(source: String): List[SourceChunk] =
+    val result           = List.newBuilder[SourceChunk]
+    var paragraphStart   = -1
+    var paragraphEnd     = -1
+    var lineStart        = 0
+    var i                = 0
+
+    def flushParagraph(): Unit =
+      if paragraphStart >= 0 then
+        val piece = source.substring(paragraphStart, paragraphEnd)
+        if piece.trim.nonEmpty then result += SourceChunk(piece, paragraphStart)
+        paragraphStart = -1
+        paragraphEnd = -1
+
+    def emitLine(start: Int, end: Int): Unit =
+      val text = source.substring(start, end)
+      if text.trim.isEmpty then flushParagraph()
+      else if !headingPrefix(text.trim).isEmpty then
+        flushParagraph()
+        result += SourceChunk(text, start)
+      else
+        if paragraphStart < 0 then paragraphStart = start
+        paragraphEnd = end
+
+    while i <= source.length do
+      if i == source.length || source.charAt(i) == '\n' then
+        emitLine(lineStart, i)
+        i += 1
+        lineStart = i
       else i += 1
-    val last = source.substring(start)
-    if last.trim.nonEmpty then result += SourceChunk(last, start)
+
+    flushParagraph()
     result.result()

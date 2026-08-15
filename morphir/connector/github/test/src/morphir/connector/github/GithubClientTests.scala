@@ -28,6 +28,10 @@ class GithubClientTests extends SnapshotTest[Any]:
   private def cursor(s: String): Cursor                 = Cursor.fromWire(s)
   private def commentId(s: String): DiscussionCommentId = DiscussionCommentId.fromWire(s)
   private def pageSize(n: Int): PageSize                = PageSize.fromWire(n)
+  private def repo(owner: String, name: String): RepositoryRef =
+    RepositoryRef.parse(owner, name) match
+      case Present(value) => value
+      case Absent         => throw new IllegalArgumentException(s"fixture repo($owner, $name)")
 
   "GitHubException" - {
     "is catchable as MorphirException" in {
@@ -40,6 +44,30 @@ class GithubClientTests extends SnapshotTest[Any]:
     "renders its variant and message" in
       assert(Render.asString(GitHubException.Unauthorized("missing token")) ==
         "GitHubException.Unauthorized: missing token")
+    "maps 403 rate-limit wording to RateLimited and other 403s to Forbidden" in {
+      assert(
+        GitHubException.fromHttpStatus(403, "API rate limit exceeded") ==
+          GitHubException.RateLimited("API rate limit exceeded")
+      )
+      assert(
+        GitHubException.fromHttpStatus(403, "Resource not accessible by integration") ==
+          GitHubException.Forbidden("Resource not accessible by integration")
+      )
+      assert(
+        GitHubException.fromHttpStatus(401, "Bad credentials") ==
+          GitHubException.Unauthorized("Bad credentials")
+      )
+    }
+  }
+
+  "RepositoryRef" - {
+    "rejects blank or whitespace-only owner or name" in {
+      assert(RepositoryRef.parse("", "repo").isEmpty)
+      assert(RepositoryRef.parse("owner", "  ").isEmpty)
+      assert(RepositoryRef.parse("  ", "repo").isEmpty)
+    }
+    "trims owner and name" in
+      assert(RepositoryRef.parse("  owner  ", "  repo  ") == Present(repo("owner", "repo")))
   }
 
   "Token" - {
@@ -163,15 +191,15 @@ class GithubClientTests extends SnapshotTest[Any]:
     "returns the recorded issues" in {
       val issue  = Issue(issueNo(1), "title", Present("body"), "https://example.test/1")
       val client = GithubClient.fixture(issues = Chunk(issue))
-      run(client.listIssues(RepositoryRef("owner", "repo"))).map {
+      run(client.listIssues(repo("owner", "repo"))).map {
         case Result.Success(page) => assert(page.nodes == Chunk(issue))
         case _                    => assert(false)
       }
     }
     "returns empty pull requests and discussions by default" in {
       val client = GithubClient.fixture()
-      val repo   = RepositoryRef("owner", "repo")
-      run(client.listPullRequests(repo)).map {
+      val repository   = repo("owner", "repo")
+      run(client.listPullRequests(repository)).map {
         case Result.Success(page) => assert(page.nodes.isEmpty)
         case _                    => assert(false)
       }
@@ -180,18 +208,18 @@ class GithubClientTests extends SnapshotTest[Any]:
       val issueComments = ConnectionPage(nodes = Chunk(IssueComment(body = Present("issue"))))
       val prComments    = ConnectionPage(nodes = Chunk(IssueComment(body = Present("pr"))))
       val client        = GithubClient.fixture(issueComments = issueComments, pullRequestComments = prComments)
-      val repo          = RepositoryRef("owner", "repo")
+      val repository          = repo("owner", "repo")
       for
         issueResult <- run(
           IssueOrPullRequestNumber.fold(issueNo(1))(
-            issue = n => client.listIssueComments(repo, n),
-            pullRequest = n => client.listPullRequestComments(repo, n)
+            issue = n => client.listIssueComments(repository, n),
+            pullRequest = n => client.listPullRequestComments(repository, n)
           )
         )
         prResult <- run(
           IssueOrPullRequestNumber.fold(prNo(3))(
-            issue = n => client.listIssueComments(repo, n),
-            pullRequest = n => client.listPullRequestComments(repo, n)
+            issue = n => client.listIssueComments(repository, n),
+            pullRequest = n => client.listPullRequestComments(repository, n)
           )
         )
       yield
@@ -209,7 +237,7 @@ class GithubClientTests extends SnapshotTest[Any]:
       val json =
         """{"data":{"repository":{"issues":{"nodes":[{"number":1,"title":"title","body":"body","url":"https://example.test/1"}]}}}}"""
       val client = GithubClient.recorded(issues = json)
-      run(client.listIssues(RepositoryRef("owner", "repo"))).map {
+      run(client.listIssues(repo("owner", "repo"))).map {
         case Result.Success(page) =>
           assert(page.nodes == Chunk(Issue(issueNo(1), "title", Present("body"), "https://example.test/1")))
         case _ => assert(false)
@@ -218,7 +246,7 @@ class GithubClientTests extends SnapshotTest[Any]:
     "decodes issue pageInfo from a GraphQL envelope" in {
       val json =
         """{"data":{"repository":{"issues":{"pageInfo":{"hasNextPage":true,"endCursor":"c2"},"nodes":[{"number":1,"title":"title","body":"body","url":"https://example.test/1"}]}}}}"""
-      run(GithubClient.recorded(issues = json).listIssues(RepositoryRef("owner", "repo"))).map {
+      run(GithubClient.recorded(issues = json).listIssues(repo("owner", "repo"))).map {
         case Result.Success(page) =>
           assert(page.hasNextPage)
           assert(page.endCursor == Present(cursor("c2")))
@@ -229,7 +257,7 @@ class GithubClientTests extends SnapshotTest[Any]:
     "treats missing issue pageInfo as the last page" in {
       val json =
         """{"data":{"repository":{"issues":{"nodes":[{"number":1,"title":"title","body":"body","url":"https://example.test/1"}]}}}}"""
-      run(GithubClient.recorded(issues = json).listIssues(RepositoryRef("owner", "repo"))).map {
+      run(GithubClient.recorded(issues = json).listIssues(repo("owner", "repo"))).map {
         case Result.Success(page) =>
           assert(!page.hasNextPage)
           assert(page.endCursor == Absent)
@@ -239,7 +267,7 @@ class GithubClientTests extends SnapshotTest[Any]:
     "treats a null issue body as Absent" in {
       val json =
         """{"data":{"repository":{"issues":{"nodes":[{"number":2,"title":"untitled","body":null,"url":"https://example.test/2"}]}}}}"""
-      run(GithubClient.recorded(issues = json).listIssues(RepositoryRef("owner", "repo"))).map {
+      run(GithubClient.recorded(issues = json).listIssues(repo("owner", "repo"))).map {
         case Result.Success(page) =>
           assert(page.nodes == Chunk(Issue(issueNo(2), "untitled", Absent, "https://example.test/2")))
         case _ => assert(false)
@@ -260,7 +288,7 @@ class GithubClientTests extends SnapshotTest[Any]:
         }]}}}}""".stripMargin.replaceAll("\n", "")
       val ada = Present(Actor("ada", "https://github.com/ada"))
       val bob = Present(Actor("bob", "https://github.com/bob"))
-      run(GithubClient.recorded(issues = json).listIssues(RepositoryRef("owner", "repo"))).map {
+      run(GithubClient.recorded(issues = json).listIssues(repo("owner", "repo"))).map {
         case Result.Success(page) =>
           assert(
             page.nodes == Chunk(
@@ -291,7 +319,7 @@ class GithubClientTests extends SnapshotTest[Any]:
     }
     "fails with GraphQl when the envelope carries errors" in {
       val json = """{"data":null,"errors":[{"message":"API rate limit exceeded"}]}"""
-      run(GithubClient.recorded(issues = json).listIssues(RepositoryRef("owner", "repo"))).map {
+      run(GithubClient.recorded(issues = json).listIssues(repo("owner", "repo"))).map {
         case Result.Failure(GitHubException.GraphQl(detail)) =>
           assert(detail.contains("API rate limit exceeded"))
         case _ => assert(false)
@@ -312,7 +340,7 @@ class GithubClientTests extends SnapshotTest[Any]:
         }]}}}}""".stripMargin.replaceAll("\n", "")
       val ada = Present(Actor("ada", "https://github.com/ada"))
       val bob = Present(Actor("bob", "https://github.com/bob"))
-      run(GithubClient.recorded(pullRequests = json).listPullRequests(RepositoryRef("owner", "repo"))).map {
+      run(GithubClient.recorded(pullRequests = json).listPullRequests(repo("owner", "repo"))).map {
         case Result.Success(page) =>
           assert(
             page.nodes == Chunk(
@@ -347,10 +375,10 @@ class GithubClientTests extends SnapshotTest[Any]:
       val discussions =
         """{"data":{"repository":{"discussions":{"nodes":[{"number":4,"title":"disc","body":null,"url":"https://example.test/4"}]}}}}"""
       val client = GithubClient.recorded(pullRequests = prs, discussions = discussions)
-      val repo   = RepositoryRef("owner", "repo")
+      val repository   = repo("owner", "repo")
       for
-        prResult   <- run(client.listPullRequests(repo))
-        discResult <- run(client.listDiscussions(repo))
+        prResult   <- run(client.listPullRequests(repository))
+        discResult <- run(client.listDiscussions(repository))
       yield
         prResult match
           case Result.Success(page) =>
@@ -364,7 +392,7 @@ class GithubClientTests extends SnapshotTest[Any]:
     "decodes who posted a discussion" in {
       val json =
         """{"data":{"repository":{"discussions":{"nodes":[{"number":4,"title":"disc","body":null,"url":"https://example.test/4","author":{"login":"ada","url":"https://github.com/ada"}}]}}}}"""
-      run(GithubClient.recorded(discussions = json).listDiscussions(RepositoryRef("owner", "repo"))).map {
+      run(GithubClient.recorded(discussions = json).listDiscussions(repo("owner", "repo"))).map {
         case Result.Success(page) =>
           assert(
             page.nodes == Chunk(
@@ -419,7 +447,7 @@ class GithubClientTests extends SnapshotTest[Any]:
         upvoteCount = 4,
         replies = ConnectionPage(nodes = Chunk(reply))
       )
-      run(GithubClient.recorded(discussions = json).listDiscussions(RepositoryRef("owner", "repo"))).map {
+      run(GithubClient.recorded(discussions = json).listDiscussions(repo("owner", "repo"))).map {
         case Result.Success(page) =>
           assert(
             page.nodes == Chunk(
@@ -444,7 +472,7 @@ class GithubClientTests extends SnapshotTest[Any]:
     "decodes a single issue by number" in {
       val json =
         """{"data":{"repository":{"issue":{"number":1,"title":"title","body":"body","url":"https://example.test/1"}}}}"""
-      run(GithubClient.recorded(issue = json).getIssue(RepositoryRef("owner", "repo"), issueNo(1))).map {
+      run(GithubClient.recorded(issue = json).getIssue(repo("owner", "repo"), issueNo(1))).map {
         case Result.Success(Present(issue)) =>
           assert(issue == Issue(issueNo(1), "title", Present("body"), "https://example.test/1"))
         case _ => assert(false)
@@ -452,7 +480,7 @@ class GithubClientTests extends SnapshotTest[Any]:
     }
     "treats a missing issue as Absent" in {
       val json = """{"data":{"repository":{"issue":null}}}"""
-      run(GithubClient.recorded(issue = json).getIssue(RepositoryRef("owner", "repo"), issueNo(99))).map {
+      run(GithubClient.recorded(issue = json).getIssue(repo("owner", "repo"), issueNo(99))).map {
         case Result.Success(Absent) => assert(true)
         case _                      => assert(false)
       }
@@ -460,7 +488,7 @@ class GithubClientTests extends SnapshotTest[Any]:
     "decodes a single pull request by number" in {
       val json =
         """{"data":{"repository":{"pullRequest":{"number":3,"title":"pr","body":"desc","url":"https://example.test/3"}}}}"""
-      run(GithubClient.recorded(pullRequest = json).getPullRequest(RepositoryRef("owner", "repo"), prNo(3))).map {
+      run(GithubClient.recorded(pullRequest = json).getPullRequest(repo("owner", "repo"), prNo(3))).map {
         case Result.Success(Present(pr)) =>
           assert(pr == PullRequest(prNo(3), "pr", Present("desc"), "https://example.test/3"))
         case _ => assert(false)
@@ -469,7 +497,7 @@ class GithubClientTests extends SnapshotTest[Any]:
     "decodes a single discussion by number" in {
       val json =
         """{"data":{"repository":{"discussion":{"number":4,"title":"disc","body":null,"url":"https://example.test/4"}}}}"""
-      run(GithubClient.recorded(discussion = json).getDiscussion(RepositoryRef("owner", "repo"), discNo(4))).map {
+      run(GithubClient.recorded(discussion = json).getDiscussion(repo("owner", "repo"), discNo(4))).map {
         case Result.Success(Present(item)) =>
           assert(item == Discussion(discNo(4), "disc", Absent, "https://example.test/4"))
         case _ => assert(false)
@@ -512,7 +540,7 @@ class GithubClientTests extends SnapshotTest[Any]:
         }]}}}}}""".stripMargin.replaceAll("\n", "")
       run(
         GithubClient.recorded(issueComments = json).listIssueComments(
-          RepositoryRef("owner", "repo"),
+          repo("owner", "repo"),
           issueNo(1),
           after = Present(cursor("c1"))
         )
@@ -537,13 +565,13 @@ class GithubClientTests extends SnapshotTest[Any]:
 
   "GraphQl.listIssuesDocument" - {
     "matches the blessed list-issues snapshot" in {
-      val request = GraphQl.listIssuesDocument(RepositoryRef("acme", "widgets"))
+      val request = GraphQl.listIssuesDocument(repo("acme", "widgets"))
       assertSnapshot(request.query, "list-issues")
     }
     "passes after and first into the issues query" in {
       val request =
         GraphQl.listIssuesDocument(
-          RepositoryRef("acme", "widgets"),
+          repo("acme", "widgets"),
           after = Present(cursor("cursor1")),
           first = pageSize(50)
         )
@@ -554,13 +582,13 @@ class GithubClientTests extends SnapshotTest[Any]:
 
   "GraphQl.listPullRequestsDocument" - {
     "matches the blessed list-pull-requests snapshot" in {
-      val request = GraphQl.listPullRequestsDocument(RepositoryRef("acme", "widgets"))
+      val request = GraphQl.listPullRequestsDocument(repo("acme", "widgets"))
       assertSnapshot(request.query, "list-pull-requests")
     }
     "passes after and first into the pull requests query" in {
       val request =
         GraphQl.listPullRequestsDocument(
-          RepositoryRef("acme", "widgets"),
+          repo("acme", "widgets"),
           after = Present(cursor("cursor1")),
           first = pageSize(50)
         )
@@ -571,13 +599,13 @@ class GithubClientTests extends SnapshotTest[Any]:
 
   "GraphQl.listDiscussionsDocument" - {
     "matches the blessed list-discussions snapshot" in {
-      val request = GraphQl.listDiscussionsDocument(RepositoryRef("acme", "widgets"))
+      val request = GraphQl.listDiscussionsDocument(repo("acme", "widgets"))
       assertSnapshot(request.query, "list-discussions")
     }
     "passes after and first into the discussions query" in {
       val request =
         GraphQl.listDiscussionsDocument(
-          RepositoryRef("acme", "widgets"),
+          repo("acme", "widgets"),
           after = Present(cursor("cursor1")),
           first = pageSize(50)
         )
@@ -585,11 +613,11 @@ class GithubClientTests extends SnapshotTest[Any]:
       assert(request.query.contains("first:50"))
     }
     "omits replies when reply depth is zero" in {
-      val request = GraphQl.listDiscussionsDocument(RepositoryRef("acme", "widgets"), replyDepth = ReplyDepth.none)
+      val request = GraphQl.listDiscussionsDocument(repo("acme", "widgets"), replyDepth = ReplyDepth.none)
       assert(!request.query.contains("replies"))
     }
     "nests a second replies selection when reply depth is two" in {
-      val request = GraphQl.listDiscussionsDocument(RepositoryRef("acme", "widgets"), replyDepth = ReplyDepth(2))
+      val request = GraphQl.listDiscussionsDocument(repo("acme", "widgets"), replyDepth = ReplyDepth(2))
       assertSnapshot(request.query, "list-discussions-depth-2")
     }
   }
@@ -603,13 +631,13 @@ class GithubClientTests extends SnapshotTest[Any]:
 
   "GraphQl.listIssueCommentsDocument" - {
     "matches the blessed list-issue-comments snapshot" in {
-      val request = GraphQl.listIssueCommentsDocument(RepositoryRef("acme", "widgets"), issueNo(1))
+      val request = GraphQl.listIssueCommentsDocument(repo("acme", "widgets"), issueNo(1))
       assertSnapshot(request.query, "list-issue-comments")
     }
     "passes after and first into the issue comments query" in {
       val request =
         GraphQl.listIssueCommentsDocument(
-          RepositoryRef("acme", "widgets"),
+          repo("acme", "widgets"),
           issueNo(1),
           after = Present(cursor("cursor1")),
           first = pageSize(50)
@@ -621,35 +649,35 @@ class GithubClientTests extends SnapshotTest[Any]:
 
   "GraphQl.listPullRequestCommentsDocument" - {
     "matches the blessed list-pull-request-comments snapshot" in {
-      val request = GraphQl.listPullRequestCommentsDocument(RepositoryRef("acme", "widgets"), prNo(3))
+      val request = GraphQl.listPullRequestCommentsDocument(repo("acme", "widgets"), prNo(3))
       assertSnapshot(request.query, "list-pull-request-comments")
     }
   }
 
   "GraphQl.listDiscussionCommentsDocument" - {
     "matches the blessed list-discussion-comments snapshot" in {
-      val request = GraphQl.listDiscussionCommentsDocument(RepositoryRef("acme", "widgets"), discNo(4))
+      val request = GraphQl.listDiscussionCommentsDocument(repo("acme", "widgets"), discNo(4))
       assertSnapshot(request.query, "list-discussion-comments")
     }
   }
 
   "GraphQl.getIssueDocument" - {
     "matches the blessed get-issue snapshot" in {
-      val request = GraphQl.getIssueDocument(RepositoryRef("acme", "widgets"), issueNo(1))
+      val request = GraphQl.getIssueDocument(repo("acme", "widgets"), issueNo(1))
       assertSnapshot(request.query, "get-issue")
     }
   }
 
   "GraphQl.getPullRequestDocument" - {
     "matches the blessed get-pull-request snapshot" in {
-      val request = GraphQl.getPullRequestDocument(RepositoryRef("acme", "widgets"), prNo(3))
+      val request = GraphQl.getPullRequestDocument(repo("acme", "widgets"), prNo(3))
       assertSnapshot(request.query, "get-pull-request")
     }
   }
 
   "GraphQl.getDiscussionDocument" - {
     "matches the blessed get-discussion snapshot" in {
-      val request = GraphQl.getDiscussionDocument(RepositoryRef("acme", "widgets"), discNo(4))
+      val request = GraphQl.getDiscussionDocument(repo("acme", "widgets"), discNo(4))
       assertSnapshot(request.query, "get-discussion")
     }
   }

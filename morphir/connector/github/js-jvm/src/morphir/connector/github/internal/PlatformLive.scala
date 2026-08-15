@@ -118,8 +118,11 @@ private[github] object PlatformLive:
     private def mapHttp(err: HttpException): GitHubException =
       err match
         case status: HttpStatusException =>
-          status.status.code match
-            case 401 => GitHubException.Unauthorized(status.getMessage)
-            case 403 => GitHubException.RateLimited(status.getMessage)
-            case _   => GitHubException.Transport(status.getMessage)
+          GitHubException.fromHttpStatus(status.status.code, statusDetail(status))
         case other => GitHubException.Transport(other.getMessage)
+
+    private def statusDetail(status: HttpStatusException): String =
+      val message = Option(status.getMessage).map(_.trim).filter(_.nonEmpty)
+      message.getOrElse {
+        Option(status.body).map(_.toString.trim).filter(_.nonEmpty).getOrElse("")
+      }
