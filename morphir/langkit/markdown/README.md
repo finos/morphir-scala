@@ -19,3 +19,29 @@ Parser.parse("# Title\n\nHello") match
   case kyo.Result.Success(doc) => doc.blocks
   case kyo.Result.Failure(err) => throw err
 ```
+
+## Fenced code info
+
+CommonMark treats the fence info string as opaque. `FenceInfo` keeps that string as `raw` and derives conventions
+on top:
+
+- `language` — first bare token, or the first Pandoc class when the info is brace-led (`{.haskell}`)
+- `args` / `flags` / `option` — CLI-style tokens after the language (Kyo doctest: `doctest:expect=runs`,
+  `doctest:setup`, `noformat`)
+- `id` / `classes` / `attributes` — Pandoc brace attributes (`{#id .class key=value}`), including the combo form
+  `scala {.numberLines}`
+
+Construct only through `FenceInfo.parse` (or `FenceInfo.empty`). The constructor is package-private so callers cannot
+assemble fields that disagree with `raw`.
+
+```scala
+val info = FenceInfo.parse("scala doctest:expect=runs noformat")
+info.language                 // Present("scala")
+info.option("doctest:expect") // Present("runs")
+info.flag("noformat")         // true
+
+val pandoc = FenceInfo.parse("{#mycode .haskell .numberLines startFrom=\"100\"}")
+pandoc.language // Present("haskell")
+pandoc.id       // Present("mycode")
+pandoc.classes  // Chunk("numberLines")
+```

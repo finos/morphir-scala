@@ -14,8 +14,8 @@ final case class SourceRef(
  * Parsed OKF frontmatter. Accessors are permissive: a missing field is [[kyo.Absent]], so a later check can report
  * every problem instead of failing on the first.
  *
- * Snake-case OKF keys map through `@rename`. `-Yretain-trees` is off by default (opt in with `MorphirRetainTrees`)
- * so `Tag[Maybe[A]]` works (see https://github.com/getkyo/kyo/issues/1883).
+ * Snake-case OKF keys map through `@rename`. `-Yretain-trees` is off by default (opt in with `MorphirRetainTrees`) so
+ * `Tag[Maybe[A]]` works (see https://github.com/getkyo/kyo/issues/1883).
  */
 final case class Frontmatter(
     `type`: Maybe[String] = Absent,

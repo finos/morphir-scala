@@ -31,8 +31,8 @@ object Parser:
             i += 1
           case Absent =>
             fenceOpen(line.text) match
-              case Present((marker, info)) =>
-                val (block, next) = readFencedCode(lines, i, marker, info)
+              case Present(open) =>
+                val (block, next) = readFencedCode(lines, i, open)
                 blocks += block
                 i = next
               case Absent =>
@@ -51,17 +51,19 @@ object Parser:
                       i = next
     Chunk.from(blocks.result())
 
-  private def readFencedCode(lines: Vector[Line], start: Int, marker: Char, info: String): (Block, Int) =
+  private type FenceOpen = (marker: Char, length: Int, indentation: Int, info: String)
+
+  private def readFencedCode(lines: Vector[Line], start: Int, open: FenceOpen): (Block, Int) =
     val opening = lines(start)
     var i       = start + 1
     val body    = StringBuilder()
     var closed  = false
     while i < lines.length && !closed do
       val line = lines(i)
-      if isClosingFence(line.text, marker) then closed = true
+      if isClosingFence(line.text, open.marker, open.length) then closed = true
       else
         if body.nonEmpty then body.append('\n')
-        body.append(line.text)
+        body.append(removeFenceIndentation(line.text, open.indentation))
         i += 1
     val endLine = if closed then lines(i) else lines(lines.length - 1)
     val end     = endLine.offset + endLine.text.length
@@ -71,7 +73,7 @@ object Parser:
         body.toString
       else body.toString
     val next = if closed then i + 1 else i
-    (Block.FencedCode(info, content, Span.fromStartEnd(opening.offset, end)), next)
+    (Block.FencedCode(FenceInfo.parse(open.info), content, Span.fromStartEnd(opening.offset, end)), next)
 
   private def readParagraph(lines: Vector[Line], start: Int): (Block, Int) =
     val first = lines(start)
@@ -141,18 +143,43 @@ object Parser:
     then Present((hashes.length, text.drop(hashes.length + 1)))
     else Absent
 
-  private def fenceOpen(text: String): Maybe[(Char, String)] =
-    val trimmed = text.stripLeading
-    val marker  = trimmed.headOption.filter(c => c == '`' || c == '~')
-    marker match
-      case Some(ch) =>
-        val run = trimmed.takeWhile(_ == ch)
-        if run.length >= 3 && !trimmed.drop(run.length).contains(ch) then
-          Present((ch, trimmed.drop(run.length).trim))
-        else Absent
-      case None => Absent
+  private def fenceOpen(text: String): Maybe[FenceOpen] =
+    fenceIndent(text).flatMap { case (indentation = indentation, rest = trimmed) =>
+      val marker = trimmed.headOption.filter(c => c == '`' || c == '~')
+      marker match
+        case Some(ch) =>
+          val run  = trimmed.takeWhile(_ == ch)
+          val info = trimmed.drop(run.length)
+          if run.length >= 3 && (ch != '`' || !info.contains(ch)) then
+            Present((
+              marker = ch,
+              length = run.length,
+              indentation = indentation,
+              info = trimSpacesOrTabs(info)
+            ))
+          else Absent
+        case None => Absent
+    }
 
-  private def isClosingFence(text: String, marker: Char): Boolean =
-    val trimmed = text.stripLeading
-    val run     = trimmed.takeWhile(_ == marker)
-    run.length >= 3 && trimmed.drop(run.length).trim.isEmpty
+  private def isClosingFence(text: String, marker: Char, openingLength: Int): Boolean =
+    fenceIndent(text).exists { case (rest = trimmed) =>
+      val run = trimmed.takeWhile(_ == marker)
+      run.length >= openingLength && isSpacesOrTabs(trimmed.drop(run.length))
+    }
+
+  private def fenceIndent(text: String): Maybe[(indentation: Int, rest: String)] =
+    val indent = text.takeWhile(_ == ' ').length
+    if indent <= 3 then Present((indentation = indent, rest = text.drop(indent))) else Absent
+
+  private def removeFenceIndentation(text: String, indentation: Int): String =
+    text.drop(math.min(indentation, text.takeWhile(_ == ' ').length))
+
+  private def isSpacesOrTabs(text: String): Boolean =
+    text.forall(char => char == ' ' || char == '\t')
+
+  private def trimSpacesOrTabs(text: String): String =
+    val start = text.indexWhere(char => char != ' ' && char != '\t')
+    if start == -1 then ""
+    else
+      val end = text.lastIndexWhere(char => char != ' ' && char != '\t')
+      text.substring(start, end + 1)
