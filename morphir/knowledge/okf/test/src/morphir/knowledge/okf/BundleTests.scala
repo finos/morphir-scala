@@ -6,7 +6,7 @@ import kyo.test.*
 class BundleTests extends Test[Any]:
 
   "Bundle.parse" - {
-    "loads index, log, a nested index, and a concept from in-memory files" in {
+    "loads index, logs, a nested index, and a concept from in-memory files" in {
       val files = Map(
         "index.md" ->
           """---
@@ -21,6 +21,12 @@ class BundleTests extends Test[Any]:
             |
             |## 2026-08-15
             |* **Creation**: Added a concept.
+            |""".stripMargin,
+        "design/log.md" ->
+          """# Design log
+            |
+            |## 2026-08-15
+            |* **Update**: Nested log entry.
             |""".stripMargin,
         "design/index.md" ->
           """---
@@ -44,7 +50,8 @@ class BundleTests extends Test[Any]:
           assert(bundle.slug == "example")
           assert(bundle.okfVersion == "0.2")
           assert(bundle.index.kind == DocKind.RootIndex)
-          assert(bundle.log.isDefined)
+          assert(bundle.logs.size == 2)
+          assert(bundle.logs.map(_.path).toSet == Set("log.md", "design/log.md"))
           assert(bundle.subIndexes.size == 1)
           assert(bundle.subIndexes(0).path == "design/index.md")
           assert(bundle.concepts.size == 1)

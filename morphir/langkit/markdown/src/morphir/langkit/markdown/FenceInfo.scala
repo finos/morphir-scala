@@ -208,16 +208,28 @@ object FenceInfo:
       var depth = 0
       var i     = 0
       var done  = false
+      var quote = Option.empty[Char]
       while i < text.length && !done do
-        text.charAt(i) match
-          case '{' =>
-            depth += 1
-            i += 1
-          case '}' =>
-            depth -= 1
-            i += 1
-            if depth == 0 then done = true
-          case _ => i += 1
+        val ch = text.charAt(i)
+        quote match
+          case Some(q) =>
+            if ch == '\\' && i + 1 < text.length then i += 2
+            else
+              if ch == q then quote = None
+              i += 1
+          case None =>
+            ch match
+              case '"' | '\'' =>
+                quote = Some(ch)
+                i += 1
+              case '{' =>
+                depth += 1
+                i += 1
+              case '}' =>
+                depth -= 1
+                i += 1
+                if depth == 0 then done = true
+              case _ => i += 1
       if depth == 0 && done then Present((contents = text.substring(1, i - 1), rest = text.substring(i)))
       else Absent
 
@@ -244,9 +256,29 @@ object FenceInfo:
       while i < text.length && isSpaceOrTab(text.charAt(i)) do i += 1
       if i < text.length then
         val start = i
-        while i < text.length && !isSpaceOrTab(text.charAt(i)) do i += 1
-        result += text.substring(start, i)
+        val first = text.charAt(i)
+        if first == '"' || first == '\'' then
+          i = skipQuoted(text, i)
+          result += text.substring(start, i)
+        else
+          while i < text.length && !isSpaceOrTab(text.charAt(i)) do
+            if text.charAt(i) == '=' && i + 1 < text.length && isQuote(text.charAt(i + 1)) then
+              i = skipQuoted(text, i + 1)
+            else i += 1
+          result += text.substring(start, i)
     result.result()
+
+  private def isQuote(char: Char): Boolean =
+    char == '"' || char == '\''
+
+  /** Advance past a quoted span starting at `quoteIndex` (the opening quote). Leaves `i` after the closer. */
+  private def skipQuoted(text: String, quoteIndex: Int): Int =
+    val quote = text.charAt(quoteIndex)
+    var i     = quoteIndex + 1
+    while i < text.length && text.charAt(i) != quote do
+      if text.charAt(i) == '\\' && i + 1 < text.length then i += 2
+      else i += 1
+    if i < text.length then i + 1 else i
 
   private def isSpaceOrTab(char: Char): Boolean =
     char == ' ' || char == '\t'

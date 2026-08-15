@@ -45,6 +45,12 @@ class FenceInfoTests extends Test[Any]:
       assert(info.args.isEmpty)
       assert(info.flags.isEmpty)
     }
+    "keeps spaces inside quoted Pandoc attribute values" in {
+      val info = FenceInfo.parse("{title=\"hello world\" caption='a b'}")
+      assert(info.option("title") == Present("hello world"))
+      assert(info.option("caption") == Present("a b"))
+      assert(info.classes.isEmpty)
+    }
     "parses a bare language with a trailing Pandoc brace block" in {
       val info = FenceInfo.parse("scala {.numberLines startFrom=\"100\"}")
       assert(info.language == Present("scala"))

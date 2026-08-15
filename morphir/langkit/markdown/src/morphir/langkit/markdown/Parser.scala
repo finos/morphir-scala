@@ -12,8 +12,8 @@ import morphir.langkit.core.Span
 object Parser:
 
   def parse(source: String): Result[ParseError, Document] =
-    val normalized = source.replace("\r\n", "\n")
-    Result.succeed(Document(parseBlocks(normalized), Span(0, normalized.length)))
+    // Keep the caller's coordinate space: do not rewrite CRLF before measuring spans.
+    Result.succeed(Document(parseBlocks(source), Span(0, source.length)))
 
   private final case class Line(offset: Int, text: String)
 
@@ -129,7 +129,8 @@ object Parser:
       var i      = 0
       while i < source.length do
         if source.charAt(i) == '\n' then
-          result += Line(start, source.substring(start, i))
+          val end = if i > start && source.charAt(i - 1) == '\r' then i - 1 else i
+          result += Line(start, source.substring(start, end))
           i += 1
           start = i
         else i += 1

@@ -53,6 +53,23 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) => assert(doc.span == Span(0, source.length))
         case _                   => assert(false)
     }
+    "keeps original offsets when the source uses CRLF line endings" in {
+      val source = "# Title\r\n\r\nHello"
+      Parser.parse(source) match
+        case Result.Success(doc) =>
+          assert(doc.span == Span(0, source.length))
+          assert(doc.blocks.size == 2)
+          doc.blocks(0) match
+            case Block.Heading(1, "Title", span) =>
+              assert(span == Span(0, "# Title".length))
+            case _ => assert(false)
+          doc.blocks(1) match
+            case Block.Paragraph("Hello", span) =>
+              assert(span.offset == source.indexOf("Hello"))
+              assert(span.length == "Hello".length)
+            case _ => assert(false)
+        case _ => assert(false)
+    }
     "accepts an empty document" in {
       Parser.parse("") match
         case Result.Success(doc) => assert(doc.blocks.isEmpty)

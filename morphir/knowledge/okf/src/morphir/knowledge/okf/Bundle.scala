@@ -7,7 +7,7 @@ final case class Bundle(
     slug: String,
     okfVersion: String,
     index: Concept,
-    log: Maybe[Concept] = Absent,
+    logs: Chunk[Concept] = Chunk.empty,
     subIndexes: Chunk[Concept] = Chunk.empty,
     concepts: Chunk[Concept] = Chunk.empty
 ) derives CanEqual
@@ -28,14 +28,14 @@ object Bundle:
               Result.fail(OkfError.InvalidFrontmatter("root index.md must carry okf_version"))
             case Present(version) =>
               parseMembers(files).map { members =>
-                val log        = Chunk.from(members.filter(_.kind == DocKind.Log)).headOption
+                val logs       = Chunk.from(members.filter(_.kind == DocKind.Log))
                 val subIndexes = Chunk.from(members.filter(_.kind == DocKind.SubIndex))
                 val concepts   = Chunk.from(members.filter(_.kind == DocKind.Concept))
                 Bundle(
                   slug = slug,
                   okfVersion = version,
                   index = index,
-                  log = log.fold(Absent)(Present(_)),
+                  logs = logs,
                   subIndexes = subIndexes,
                   concepts = concepts
                 )
