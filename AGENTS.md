@@ -133,7 +133,7 @@ morphir-scala/
 │   ├── interop/             # Interoperability modules (borer, zio-json)
 │   ├── kit/                 # Kits: extensions and bridges per upstream library (e.g. kit/kyo)
 │   ├── connector/           # External-system clients (e.g. connector/github)
-│   ├── appkit/              # Host-application integrations (reserved; electron and codeium later)
+│   ├── appkit/              # Host-application integrations (SecretStore; electron and codeium later)
 │   ├── knowledge/           # Knowledge encodings (okf); not contrib/knowledge
 │   ├── langkit/             # Language toolkits: shared core, tree query DSL, Elm, markdown, itest
 │   ├── runtime/             # Morphir runtime
@@ -314,8 +314,14 @@ that capability is invisible to downstream consumers.
 4. Declare dependents' `moduleDeps` per platform, and remember that `moduleDeps:` in YAML *replaces* the inherited
    value — inside a nested `object test:` use `moduleDeps: !append [...]` to keep the implicit dependency on the
    enclosing module
-5. For JS and Native dependencies use the double-colon form (`group::artifact::version`); a single colon cross-builds
-   only by Scala version and silently resolves the JVM jar
+5. For JS and Native dependencies that are not a managed suite, use the double-colon form
+   (`group::artifact::version`); a single colon cross-builds only by Scala version and silently resolves the JVM
+   jar. Extra artifacts from a suite whose version lives in `Versions` omit the version (`io.getkyo::kyo-config`,
+   `dev.zio::zio-json`): `MorphirSuiteBom` supplies the pin through Mill `depManagement`, and the JS/Native
+   modules bind those coords as platformed. When a suite gains a member, add it to that object's `managed` in
+   `mill-build/src/millbuild/deps.scala`.
+6. A bare `mvnDeps:` in YAML *replaces* inherited deps. Use `mvnDeps: !append` to keep the suite trait's jars
+   and add more. Do not add a new `Morphir*MvnDeps` trait per artifact.
 
 ### Fixing Compilation Errors
 

@@ -26,7 +26,7 @@ flowchart LR
   gh -->|"issues PRs discussions"| okf
 ```
 
-**Figure 1:** proposed first skeletons and the two dependency edges. Appkit is reserved and has no mill children yet.
+**Figure 1:** proposed first skeletons and the two dependency edges. Appkit publishes `SecretStore` at `morphir/appkit`.
 
 ## Why this is in flight
 
@@ -49,7 +49,7 @@ Public APIs in the new modules use `kyo.Maybe` and typed failure. Pure decode us
 
 Artifact `org.finos.morphir::morphir-connector-github`. Package `morphir.connector.github`. JVM, JS, and Native.
 
-The module holds GitHub-shaped types (issue, pull request, discussion), a redacted token class, a typed error ADT, and a client that can list those objects for a repository. Live calls take `Env[TokenProvider]`. Named providers (const, flags, `gh`, vault) install via Kyo `Layer`. Vault read lives in appkit as `SecretStore`. See [GitHub token providers and appkit secrets](/design/github-token-providers-and-appkit-secrets.md). It holds no OKF types and no Morphir IR types.
+The module holds GitHub-shaped types (issue, pull request, discussion), a redacted token class, a typed error ADT, and a client that can list those objects for a repository. Live calls take `Env[TokenProvider]`. Named providers (const, flags, GitHub Actions `GITHUB_TOKEN`, `gh`, vault) install via Kyo `Layer`. Vault read lives in appkit as `SecretStore`. See [GitHub token providers and appkit secrets](/design/github-token-providers-and-appkit-secrets.md). It holds no OKF types and no Morphir IR types.
 
 Each listed issue, pull request, and discussion carries author, createdAt, updatedAt, labels, and comments. createdAt and updatedAt are `Maybe[java.time.Instant]`. GitHub DateTime is an ISO-8601 UTC string; decode uses `Instant.parse`. Discussions also carry upvoteCount, an accepted answer, and nested comment replies. `listDiscussions` takes a `ReplyDepth` (default one level). `listDiscussionReplies` pages further replies for a comment id from the connection cursor. `getIssue`, `getPullRequest`, and `getDiscussion` look up one object by repository number and return `Maybe` (`Absent` when GitHub returns null). Issue and pull request comments have no upvoteCount. GitHub's IssueComment is not Votable.
 
@@ -107,7 +107,7 @@ The kb skill (`KbModel.scala` and friends) does not move in this pass. The publi
 
 ### `morphir/appkit`
 
-Artifact `org.finos.morphir::morphir-appkit`. Package `morphir.appkit`. First surface is `SecretStore` plus macOS Keychain and JVM java-keychain backends. This is host capability, not a vault kit and not Electron. GitHub's vault `TokenProvider` depends on it. Detail: [GitHub token providers and appkit secrets](/design/github-token-providers-and-appkit-secrets.md). `electron` and `codeium` children wait on [0025](../../../intent/0025-electron-appkit.md) and [0026](../../../intent/0026-codeium-appkit.md).
+Artifact `org.finos.morphir::morphir-appkit`. Package `morphir.appkit`. First surface is `SecretStore` plus macOS Keychain and JVM java-keychain backends. `javaKeychain` pins `com.github.javakeyring:java-keyring:1.0.4` as an implementation detail. `macOsKeychain` runs `security find-generic-password`. This is host capability, not a vault kit and not Electron. GitHub's vault `TokenProvider` depends on it. Detail: [GitHub token providers and appkit secrets](/design/github-token-providers-and-appkit-secrets.md). `electron` and `codeium` children wait on [0025](../../../intent/0025-electron-appkit.md) and [0026](../../../intent/0026-codeium-appkit.md).
 
 ## Delivery intents
 

@@ -54,10 +54,12 @@ flowchart TB
     tp["TokenProvider"]
     const["const"]
     flags["object token"]
+    actions["gitHubActions"]
     gh["gitHubCli"]
     vault["vault adapter"]
     const -->|"is"| tp
     flags -->|"is"| tp
+    actions -->|"is"| tp
     gh -->|"is"| tp
     vault -->|"is"| tp
     vault -->|"reads"| store
@@ -74,6 +76,7 @@ Proposed layers:
 | --- | --- | --- |
 | `TokenProvider.const(token)` | `TokenProvider` | `Any` |
 | `TokenProvider.flags` | `TokenProvider` | `Any` |
+| `TokenProvider.gitHubActions` | `TokenProvider` | `Any` |
 | `TokenProvider.gitHubCli(user, hostname)` | `TokenProvider` | `Abort[GithubError]` and `Async` |
 | `TokenProvider.vault(service, account)` | `TokenProvider` | `Env[SecretStore]`, `Abort[GithubError]`, and `Async` |
 | `SecretStore.macOsKeychain` | `SecretStore` | `Abort[SecretError]` and `Async` |
@@ -103,11 +106,17 @@ The flag is `object token extends StaticFlag[String]("")` in package `morphir.co
 
 The token class cannot live in that same package at the JVM level. `Token.class` and `token.class` collide on macOS and Windows. The class and companion are `private[github]` in `internal`. The public package exports them, so hosts still write `morphir.connector.github.Token`. The StaticFlag object keeps the public JVM name.
 
-This flag does not also read `GITHUB_TOKEN` or `GH_TOKEN`. Those remain host or `gh` concerns.
+This flag does not also read `GITHUB_TOKEN` or `GH_TOKEN`.
+
+### GitHub Actions
+
+GitHub Actions injects `GITHUB_TOKEN` into the job environment. Kyo `StaticFlag` builds the env name from the Scala object's fully qualified name, so `object token` cannot read `GITHUB_TOKEN`. `TokenProvider.gitHubActions` reads `GITHUB_TOKEN` once through `Flag.apply` and caches it on `object GITHUB_TOKEN`. Blank becomes `Unauthorized`.
+
+The host still picks one source. `flags` does not fall back to `GITHUB_TOKEN`. `gitHubActions` does not fall back to `MORPHIR_CONNECTOR_GITHUB_TOKEN`. `GH_TOKEN` stays a `gh` concern; use `gitHubCli` for that.
 
 `StaticFlag` resolves once per process. `DynamicFlag` is later work if a host must rotate without restart.
 
-The GitHub module takes `kyo-config` for this flag.
+The GitHub module takes `kyo-config` for these flags.
 
 ### GitHub CLI
 
@@ -142,21 +151,21 @@ Two early JVM-facing backends:
 
 JS and Native keep the `SecretStore` trait. `javaKeychain` is JVM-only, the same kind of split as live GitHub HTTP.
 
-Which Java keyring artifact to pin is unverified until implementation.
+Which Java keyring artifact to pin is `com.github.javakeyring:java-keyring:1.0.4`. It is a JVM implementation detail of `javaKeychain`, not a published kit. `macOsKeychain` runs `security find-generic-password`. Native process spawn for `security` is still missing.
 
-Kit does not depend on connector. GitHub may depend on appkit for the vault adapter. Flags and `gh` do not depend on appkit.
+Kit does not depend on connector. GitHub depends on appkit for the vault adapter. Flags, Actions, and `gh` do not need the store at construction.
 
 Electron remains a later leaf ([intent 0025](../../../intent/0025-electron-appkit.md)).
 
 ### Delivery order
 
 1. `TokenProvider`, `Env` on live methods, `const`, redacted `Token`, `live(token)`.
-2. `TokenProvider.flags`, then `TokenProvider.gitHubCli`.
+2. `TokenProvider.flags`, `TokenProvider.gitHubActions`, then `TokenProvider.gitHubCli`.
 3. Appkit `SecretStore` with both vault backends, then `TokenProvider.vault`.
 
 ### Tests
 
-Tests do not call `api.github.com`. Flag tests assert `token.name` and `token.envName`, and that a blank value is `Unauthorized`. They do not set the system property in-process: `StaticFlag` reads once at class load. `gh` and keychain use a fake `SecretStore` or a process seam. The `gh` seam records `--user` and `--hostname` when present. CI does not require a real Keychain.
+Tests do not call `api.github.com`. Flag tests assert `token.name` and `token.envName`, and that a blank value is `Unauthorized`. They do not set the system property in-process: `StaticFlag` reads once at class load. `gitHubActions` tests parse a `GITHUB_TOKEN` value and, when the process env is set (GitHub Actions), only check that lookup succeeds. `gh` and keychain use a fake `SecretStore` or a process seam. The `gh` seam records `--user` and `--hostname` when present. CI does not require a real Keychain.
 
 ## Alternatives
 
@@ -176,11 +185,8 @@ Tests do not call `api.github.com`. Flag tests assert `token.name` and `token.en
 
 ## Unresolved
 
-- The exact Java keyring Maven coordinate for `javaKeychain`.
-- Whether `macOsKeychain` is `security(1)` or the Mac backend of the same Java library.
 - Whether `.provide` needs `kyo-combinators` on the GitHub classpath, or `Env.runLayer` from prelude is enough.
 - `DynamicFlag` for in-process rotation.
 - Native process spawn for `gh` and `security`.
-- Whether `morphir/appkit` is a family-root mill module or `morphir/appkit/core`. The working name is `morphir/appkit` publishing `morphir-appkit`.
 
 A Decision Record is not warranted until the first providers ship and the mill path is in the build.

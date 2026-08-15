@@ -26,7 +26,7 @@ client does not belong in `kit`.
 Publish `morphir/connector/github` as `org.finos.morphir::morphir-connector-github`, compiling for JVM, JS, and Native.
 The public surface is a redacted token class, a typed error ADT, GitHub-shaped issue, pull request, and discussion types, and a
 client that lists those objects for a repository. Live calls take `Env[TokenProvider]`. The host installs one named provider
-(const, kyo `StaticFlag` `token`, `gh auth token` with optional user and hostname, or an appkit `SecretStore` adapter) as a Kyo `Layer`. See
+(const, kyo `StaticFlag` named `token`, `GITHUB_TOKEN` via `gitHubActions`, `gh auth token` with optional user and hostname, or an appkit `SecretStore` adapter) as a Kyo `Layer`. See
 [GitHub token providers and appkit secrets](../morphir/morphir-scala/design/github-token-providers-and-appkit-secrets.md).
 No OKF type and no Morphir IR type appears in the module.
 Listing includes author, UTC timestamps as `Maybe[java.time.Instant]`, labels, and comments.

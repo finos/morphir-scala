@@ -3,6 +3,8 @@ package morphir.connector.github
 import kyo.*
 import kyo.test.*
 import kyo.test.snapshot.*
+import morphir.appkit.SecretStore
+import morphir.connector.github.internal.GhAuth
 import morphir.connector.github.internal.GraphQl
 
 class GithubClientTests extends SnapshotTest[Any]:
@@ -12,6 +14,11 @@ class GithubClientTests extends SnapshotTest[Any]:
 
   private def run[A](effect: A < (Abort[GithubError] & Async)): Result[GithubError, A] < Async =
     Abort.run[GithubError](effect)
+
+  private def runVault[A](
+      store: SecretStore
+  )(effect: A < (Env[SecretStore] & Abort[GithubError] & Async)): Result[GithubError, A] < Async =
+    Abort.run[GithubError](Env.run(store)(effect))
 
   "Token" - {
     "rejects a blank string" in
@@ -399,6 +406,133 @@ class GithubClientTests extends SnapshotTest[Any]:
             case _ => assert(false)
           }
         case Absent => assert(false)
+    }
+  }
+
+  "TokenProvider.flags" - {
+    "names the flag morphir.connector.github.token" in {
+      assert(token.name == "morphir.connector.github.token")
+      assert(token.envName == "MORPHIR_CONNECTOR_GITHUB_TOKEN")
+    }
+    "fails Unauthorized when the flag value is blank" in
+      run(TokenProvider.parseFlag("")).map {
+        case Result.Failure(GithubError.Unauthorized(detail)) =>
+          assert(detail.nonEmpty)
+        case _ => assert(false)
+      }
+    "parses a flag value into a Token" in {
+      val secret = "ghp_" + ("x" * 32) + "abcd"
+      run(TokenProvider.parseFlag(secret)).map {
+        case Result.Success(got) =>
+          assert(got.toString == "Token(ghp_...abcd)")
+        case _ => assert(false)
+      }
+    }
+    "fails Unauthorized when the process flag is the default blank" in {
+      if token.source == Flag.Source.Default then
+        run(TokenProvider.flags.token).map {
+          case Result.Failure(GithubError.Unauthorized(_)) => assert(true)
+          case _                                           => assert(false)
+        }
+      else assert(token.source != Flag.Source.Default)
+    }
+  }
+
+  "TokenProvider.gitHubActions" - {
+    "reads GITHUB_TOKEN" in
+      assert(GITHUB_TOKEN.name == "GITHUB_TOKEN")
+    "fails Unauthorized when GITHUB_TOKEN is blank" in
+      run(TokenProvider.parseGitHubToken("")).map {
+        case Result.Failure(GithubError.Unauthorized(detail)) =>
+          assert(detail.contains("GITHUB_TOKEN"))
+        case _ => assert(false)
+      }
+    "parses a GITHUB_TOKEN value into a Token" in {
+      val secret = "ghs_" + ("x" * 32) + "abcd"
+      run(TokenProvider.parseGitHubToken(secret)).map {
+        case Result.Success(got) =>
+          assert(got.toString == "Token(ghs_...abcd)")
+        case _ => assert(false)
+      }
+    }
+    "uses the process GITHUB_TOKEN when it is set" in {
+      if GITHUB_TOKEN().isEmpty then
+        run(TokenProvider.gitHubActions.token).map {
+          case Result.Failure(GithubError.Unauthorized(_)) => assert(true)
+          case _                                           => assert(false)
+        }
+      else
+        run(TokenProvider.gitHubActions.token).map {
+          case Result.Success(got) =>
+            assert(got.toString.startsWith("Token("))
+          case _ => assert(false)
+        }
+    }
+  }
+
+  "TokenProvider.gitHubCli" - {
+    "asks gh auth token with no account flags by default" in
+      assert(TokenProvider.gitHubCliArgs(Absent, Absent) == Chunk("auth", "token"))
+    "passes --hostname and --user when present" in {
+      val args = TokenProvider.gitHubCliArgs(Present("ada"), Present("github.com"))
+      assert(args == Chunk("auth", "token", "--hostname", "github.com", "--user", "ada"))
+    }
+    "yields the token from gh stdout" in {
+      val secret = "ghp_" + ("x" * 32) + "abcd"
+      val auth   = GhAuth.succeed(secret)
+      run(TokenProvider.gitHubCli(Absent, Absent, auth).token).map {
+        case Result.Success(got) => assert(got.toString == "Token(ghp_...abcd)")
+        case _                   => assert(false)
+      }
+    }
+    "fails Unauthorized when gh stdout is blank" in
+      run(TokenProvider.gitHubCli(Absent, Absent, GhAuth.succeed("  ")).token).map {
+        case Result.Failure(GithubError.Unauthorized(_)) => assert(true)
+        case _                                           => assert(false)
+      }
+    "fails Unauthorized when gh fails" in {
+      val auth = GhAuth.fail(GithubError.Unauthorized("gh: not logged in"))
+      run(TokenProvider.gitHubCli(Absent, Absent, auth).token).map {
+        case Result.Failure(GithubError.Unauthorized(detail)) =>
+          assert(detail.contains("not logged in"))
+        case _ => assert(false)
+      }
+    }
+    "records --user when the host names an account" in {
+      val secret = "ghp_" + ("x" * 32) + "abcd"
+      val auth   = new GhAuth:
+        def stdout(args: Chunk[String]) =
+          if args == Chunk("auth", "token", "--user", "ada") then secret
+          else Abort.fail(GithubError.Unauthorized(s"unexpected args: $args"))
+      run(TokenProvider.gitHubCli(Present("ada"), Absent, auth).token).map {
+        case Result.Success(got) => assert(got.toString == "Token(ghp_...abcd)")
+        case _                   => assert(false)
+      }
+    }
+  }
+
+  "TokenProvider.vault" - {
+    "yields the token from SecretStore" in {
+      val secret = "ghp_" + ("x" * 32) + "abcd"
+      val store  = SecretStore.const(("gh", "morphir", secret))
+      runVault(store)(TokenProvider.vault("gh", "morphir").map(_.token)).map {
+        case Result.Success(got) => assert(got.toString == "Token(ghp_...abcd)")
+        case _                   => assert(false)
+      }
+    }
+    "fails Unauthorized when the entry is missing" in {
+      val store = SecretStore.const()
+      runVault(store)(TokenProvider.vault("gh", "morphir").map(_.token)).map {
+        case Result.Failure(GithubError.Unauthorized(_)) => assert(true)
+        case _                                           => assert(false)
+      }
+    }
+    "fails Unauthorized when the stored value is blank" in {
+      val store = SecretStore.const(("gh", "morphir", "  "))
+      runVault(store)(TokenProvider.vault("gh", "morphir").map(_.token)).map {
+        case Result.Failure(GithubError.Unauthorized(_)) => assert(true)
+        case _                                           => assert(false)
+      }
     }
   }
 

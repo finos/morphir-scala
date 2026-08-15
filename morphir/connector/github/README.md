@@ -11,8 +11,14 @@ reply tree.
 
 `Token` does not print the secret. Long GitHub tokens show a type prefix and the last four characters
 (`Token(ghp_...abcd)`). Short values print `Token(redacted)`. `GithubClient.live(token)` still takes a parsed
-token. `GithubClient.live` (no args) reads `Env[TokenProvider]`. `TokenProvider.const` wraps a token; flags, `gh`,
-and vault providers come next.
+token. `GithubClient.live` (no args) reads `Env[TokenProvider]`. `TokenProvider.const` wraps a token.
+`TokenProvider.flags` reads `morphir.connector.github.token` (`MORPHIR_CONNECTOR_GITHUB_TOKEN`). A blank flag is
+`Unauthorized`. `TokenProvider.gitHubActions` reads `GITHUB_TOKEN`, which GitHub Actions sets automatically. Neither
+provider falls back to the other, and neither reads `GH_TOKEN`. `TokenProvider.gitHubCli` runs `gh auth token`
+and takes optional `user` and `hostname`. A missing `gh` binary or a non-zero exit is `Unauthorized`. Scala Native
+fails that lookup with `Transport` until a process floor exists. `TokenProvider.vault` reads
+`Env[SecretStore]` from `morphir-appkit`. A missing or blank entry is `Unauthorized`. Tests use
+`SecretStore.const` and do not open a real Keychain.
 
 Tests replay recorded GraphQL JSON envelopes and do not call `api.github.com`.
 

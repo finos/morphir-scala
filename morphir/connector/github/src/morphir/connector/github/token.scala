@@ -1,30 +1,14 @@
 package morphir.connector.github
 
+export morphir.connector.github.internal.Token
+
 import kyo.*
 
-/** A GitHub access token. Blank input is rejected rather than stored. Logs show only a prefix and suffix. */
-final class Token private (raw: String) derives CanEqual:
-  private[github] def unsafeReveal: String = raw
-  override def toString: String            = Token.redacted(raw)
-  override def equals(other: Any): Boolean =
-    other match
-      case that: Token => unsafeReveal == that.unsafeReveal
-      case _           => false
-  override def hashCode: Int = 0
+/** GitHub access token from a process flag. Empty by default. Env `MORPHIR_CONNECTOR_GITHUB_TOKEN`. */
+object token extends StaticFlag[String]("")
 
-object Token:
-
-  private val MinHidden        = 16
-  private val SuffixLen        = 4
-  private val DefaultPrefixLen = 4
-  private val KnownPrefixes    = List("github_pat_", "gho_", "ghu_", "ghs_", "ghr_", "ghp_")
-
-  def parse(raw: String): Maybe[Token] =
-    val trimmed = raw.trim
-    if trimmed.isEmpty then Absent else Present(Token(trimmed))
-
-  private def redacted(raw: String): String =
-    val prefix = KnownPrefixes.find(raw.startsWith).getOrElse(raw.take(DefaultPrefixLen))
-    val hidden = raw.length - prefix.length - SuffixLen
-    if hidden < MinHidden then "Token(redacted)"
-    else s"Token($prefix...${raw.substring(raw.length - SuffixLen)})"
+/** Process env `GITHUB_TOKEN`. GitHub Actions sets this automatically. */
+object GITHUB_TOKEN:
+  val name: String             = "GITHUB_TOKEN"
+  private val resolved: String = Flag(name, "")
+  def apply(): String          = resolved
