@@ -8,28 +8,22 @@ import morphir.ui.AppShell.Region
 object RegionPanel:
 
   object Css:
-    val rightbar         = "rightbar"
-    val bottombar        = "bottombar"
-    val head             = "region-head"
-    val slideRightEnter  = "slide-right-enter"
-    val slideRightLeave  = "slide-right-leave"
-    val slideBottomEnter = "slide-bottom-enter"
-    val slideBottomLeave = "slide-bottom-leave"
-    val body             = "region-body"
+    val rightbar  = "rightbar"
+    val bottombar = "bottombar"
+    val head      = "region-head"
+    val body      = "region-body"
 
-  def right(region: Region, width: Signal[PanelSize]): UI =
+  def right(region: Region): UI =
     div.cssClass(Css.rightbar)(
       div.cssClass(Css.head)(region.title),
       div.cssClass(Css.body)(region.body)
-    ).enterTransition(Css.slideRightEnter).leaveTransition(Css.slideRightLeave)
-      .style(width.map(size => Style.width(size.px.px)))
+    )
 
-  def bottom(region: Region, height: Signal[PanelSize]): UI =
+  def bottom(region: Region): UI =
     div.cssClass(Css.bottombar)(
       div.cssClass(Css.head)(region.title),
       div.cssClass(Css.body)(region.body)
-    ).enterTransition(Css.slideBottomEnter).leaveTransition(Css.slideBottomLeave)
-      .style(height.map(size => Style.height(size.px.px)))
+    )
 
   import kyo.*
   import kyo.Style
@@ -47,10 +41,9 @@ object RegionPanel:
           .flexShrink(0)
           .bg(Tokens.hex("#121017"))
           .borderLeft(1.px, Tokens.hex("#241f30"))
-          .transition(_.all, 180, _.easeInOut)
+          .overflow(_.hidden)
+          .transition(_.all, Tokens.slideMs, _.easeInOut)
       )
-      .rule(Css.slideRightEnter, Style.translate(24.px, 0.px).opacity(0))
-      .rule(Css.slideRightLeave, Style.translate(24.px, 0.px).opacity(0))
       .rule(
         Css.bottombar,
         Style
@@ -60,10 +53,9 @@ object RegionPanel:
           .flexShrink(0)
           .bg(Tokens.hex("#121017"))
           .borderTop(1.px, Tokens.hex("#241f30"))
-          .transition(_.all, 180, _.easeInOut)
+          .overflow(_.hidden)
+          .transition(_.all, Tokens.slideMs, _.easeInOut)
       )
-      .rule(Css.slideBottomEnter, Style.translate(0.px, 24.px).opacity(0))
-      .rule(Css.slideBottomLeave, Style.translate(0.px, 24.px).opacity(0))
       .rule(
         Css.head,
         Style

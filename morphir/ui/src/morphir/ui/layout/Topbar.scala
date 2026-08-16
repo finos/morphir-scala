@@ -59,7 +59,7 @@ object Topbar:
             Icons.sidebar
           ),
           div.cssClass("brand")(span("morphir").cssClass("brand-mark"), span("DESKTOP").cssClass("brand-sub"))
-        ).style(state.leftWidth.map(size => Style.width(size.px.px))),
+        ),
         div.cssClass(Css.rest)(crumbTitle, rightCluster)
       )
 

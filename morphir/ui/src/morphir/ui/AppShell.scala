@@ -59,10 +59,9 @@ object AppShell:
         layout.Topbar.view("Settings", settingsLabel(key), version, state, customChrome, leftVisibility)
       else layout.Topbar.view("morphir", sectionTitle, version, state, customChrome, leftVisibility)
 
-    def sidebar(route: ShellRoute, key: SettingsKey, leftVisibility: RegionVisibility): UI =
-      if leftVisibility.isCollapsed then div.cssClass("sidebar-hidden").hidden(true)
-      else if route.isSettings then layout.SettingsSidebar.view(settingsSections, key, state, state.leftWidth)
-      else layout.Sidebar.view(nav, openSettings, state.leftWidth)
+    def sidebar(route: ShellRoute, key: SettingsKey): UI =
+      if route.isSettings then layout.SettingsSidebar.view(settingsSections, key, state)
+      else layout.Sidebar.view(nav, openSettings)
 
     def content(route: ShellRoute, key: SettingsKey): UI =
       if route.isSettings then
@@ -83,9 +82,7 @@ object AppShell:
         },
         div.cssClass(layout.Shell.Css.body)(
           state.route.render { route =>
-            state.settingsSection.render { key =>
-              state.left.render(visibility => sidebar(route, key, visibility))
-            }
+            state.settingsSection.render(key => sidebar(route, key))
           },
           state.left.render { visibility =>
             if visibility.isCollapsed then div.cssClass("left-handle-hidden").hidden(true)
@@ -102,10 +99,8 @@ object AppShell:
               }
             },
             state.route.render { route =>
-              state.bottom.render { visibility =>
-                if route.isSettings || visibility.isCollapsed then div.cssClass("bottom-hidden").hidden(true)
-                else layout.RegionPanel.bottom(bottomRegion, state.bottomHeight)
-              }
+              if route.isSettings then div.cssClass("bottom-hidden").hidden(true)
+              else layout.RegionPanel.bottom(bottomRegion)
             }
           ),
           state.route.render { route =>
@@ -115,15 +110,16 @@ object AppShell:
             }
           },
           state.route.render { route =>
-            state.right.render { visibility =>
-              if route.isSettings || visibility.isCollapsed then div.cssClass("right-hidden").hidden(true)
-              else layout.RegionPanel.right(rightRegion, state.rightWidth)
-            }
+            if route.isSettings then div.cssClass("right-hidden").hidden(true)
+            else layout.RegionPanel.right(rightRegion)
           }
         )
       )
     }
 
-  /** Wires pointer drags on the resize strips to the store. Hosts call this once, after mounting the shell. */
-  def attachResizeHandles(state: ShellState): Unit < Sync =
-    morphir.ui.internal.PointerResize.attach(state)
+  /**
+   * Wires the shell to the live DOM: pointer drags on the resize strips, and the animated region sizes. Hosts call this
+   * once, before mounting.
+   */
+  def attachShellDom(state: ShellState): Unit < Async =
+    morphir.ui.internal.PointerResize.attach(state).andThen(morphir.ui.internal.PanelMotion.attach(state))

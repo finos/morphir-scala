@@ -10,8 +10,6 @@ object Sidebar:
 
   object Css:
     val root       = "sidebar"
-    val slideEnter = "slide-left-enter"
-    val slideLeave = "slide-left-leave"
     val brand      = "brand"
     val brandMark  = "brand-mark"
     val brandSub   = "brand-sub"
@@ -23,8 +21,7 @@ object Sidebar:
 
   def view(
       nav: Chunk[NavItem],
-      onSettings: => Any < Async,
-      width: Signal[PanelSize]
+      onSettings: => Any < Async
   ): UI =
     div.cssClass(Css.root)(
       div.cssClass(Css.navSection)("Workspace"),
@@ -32,8 +29,7 @@ object Sidebar:
       div.cssClass(Css.foot)(
         div.cssClass(Shell.Css.iconBtn).id("settings-button").onClick(onSettings)(Icons.gear)
       )
-    ).enterTransition(Css.slideEnter).leaveTransition(Css.slideLeave)
-      .style(width.map(size => Style.width(size.px.px)))
+    )
 
   private def navRow(item: NavItem): UI =
     val base = div.cssClass(Css.navItem)
@@ -56,10 +52,10 @@ object Sidebar:
           .bg(Tokens.hex("#121017"))
           .borderRight(1.px, Tokens.hex("#241f30"))
           .padding(6.px, 12.px, 18.px, 12.px)
-          .transition(_.all, 180, _.easeInOut)
+          .overflow(_.hidden)
+          .transition(_.all, Tokens.slideMs, _.easeInOut)
       )
-      .rule(Css.slideEnter, Style.translate(-24.px, 0.px).opacity(0))
-      .rule(Css.slideLeave, Style.translate(-24.px, 0.px).opacity(0)).rule(
+      .rule(
         Css.brand,
         Style
           .display(_.flex)

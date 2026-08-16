@@ -22,6 +22,9 @@ object Tokens:
   val monoFont  = """ui-monospace, "SF Mono", Menlo, monospace"""
   val sansFont  = """-apple-system, "Segoe UI", system-ui, sans-serif"""
 
+  /** How long a shell region takes to slide in or out. */
+  val slideMs = 320
+
   def sheet: Stylesheet =
     Stylesheet.empty.vars(
       "bg"         -> bg,

@@ -46,6 +46,20 @@ transport; store commands asserted on signal values with no DOM; views rendered 
 `UI.runRender(ui).take(1)` (the stream never ends — it emits on every signal change); and the
 Electron smoke test driving the real app.
 
+## Animation and other DOM-level work
+
+Some behaviour cannot be expressed as a pure `UI` value. Pointer drags have no kyo-ui events at RC6, and animation
+runs into a sharper limit: a reactive `style` binding re-creates the element on every emission, so the browser never
+sees a start value and a CSS transition cannot play. Both therefore live in small adapters under
+`morphir.ui.internal`, hidden with `private[ui]` and reached through one public entry (`AppShell.attachShellDom`).
+
+The rule that keeps them honest: **an adapter reads the store and writes the DOM; it never owns state.**
+`PointerResize` turns drags into `resize*` commands, and `PanelMotion` subscribes to the store's extent signals and
+sets the size on the element already on screen, letting the panel's own typed transition animate it. Collapsing a
+region drives its extent to zero rather than unmounting it, which is what lets the neighbours reflow with the slide.
+Adapters are proven in the Electron smoke run rather than in unit tests; the store's commands and the views stay
+unit-tested as usual.
+
 ## Package layout
 
 ```

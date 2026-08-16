@@ -88,6 +88,19 @@ final case class ShellState(
 
   def selectSettingsSection(section: SettingsKey): Unit < Sync = settingsSection.set(section)
 
+  /**
+   * The width the left column should render at: its dragged size, or zero while it is collapsed. Collapsing changes
+   * this signal rather than unmounting the panel, so the CSS transition can play and the neighbours reflow with it.
+   */
+  def leftExtent(using Frame): Signal[Int] =
+    left.combineLatest(leftWidth).map((visibility, size) => if visibility.isCollapsed then 0 else size.px)
+
+  def rightExtent(using Frame): Signal[Int] =
+    right.combineLatest(rightWidth).map((visibility, size) => if visibility.isCollapsed then 0 else size.px)
+
+  def bottomExtent(using Frame): Signal[Int] =
+    bottom.combineLatest(bottomHeight).map((visibility, size) => if visibility.isCollapsed then 0 else size.px)
+
   /** Turn region animation on or off. */
   def toggleAnimations: Unit < Sync = animations.getAndUpdate(_.toggled).unit
 

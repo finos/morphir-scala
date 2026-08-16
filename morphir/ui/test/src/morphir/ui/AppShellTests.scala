@@ -19,6 +19,10 @@ class AppShellTests extends Test[Any]:
     )
   )
 
+  /** The signal's value right now: streamCurrent emits it, then would go on emitting changes. */
+  def current(signal: Signal[Int]): Int < Async =
+    signal.streamCurrent.take(1).run.map(_.head)
+
   def renderOnce(ui: UI): String < Async =
     UI.runRender(ui).take(1).run.map(_.mkString)
 
@@ -50,38 +54,37 @@ class AppShellTests extends Test[Any]:
         }
       }
 
-    "left collapse hides the sidebar and moves the toggle into the topbar" in
+    "left collapse moves the toggle into the topbar" in
       AppShell.ShellState.init(left = Collapsed).map { state =>
         renderOnce(sampleShell(state)).map { html =>
           assert(
-            !html.contains("nav-item") && !html.contains("brand") &&
+            !html.contains("brand-zone") &&
               html.contains("titlebar-left") && html.contains("sidebar-toggle") && html.contains("IR Packages")
           )
         }
       }
 
-    "right and bottom collapse hide their regions but keep the toggles" in
+    "collapsed regions stay mounted so the slide can play" in
       AppShell.ShellState.init(right = Collapsed, bottom = Collapsed).map { state =>
         renderOnce(sampleShell(state)).map { html =>
           assert(
-            !html.contains("Inspector") && !html.contains("bottombar") &&
+            html.contains("rightbar") && html.contains("bottombar") &&
               html.contains("right-toggle") && html.contains("bottom-toggle")
           )
         }
       }
 
-    "toggling the refs re-renders each region" in
+    "collapsing drives each region's extent to zero" in
       AppShell.ShellState.init().map { state =>
         for
-          first  <- renderOnce(sampleShell(state))
-          _      <- state.left.set(Collapsed)
-          _      <- state.right.set(Collapsed)
-          _      <- state.bottom.set(Collapsed)
-          second <- renderOnce(sampleShell(state))
-        yield assert(
-          first.contains("IR Explorer") && first.contains("Inspector") && first.contains("bottombar") &&
-            !second.contains("IR Explorer") && !second.contains("Inspector") && !second.contains("bottombar")
-        )
+          openLeft    <- current(state.leftExtent)
+          _           <- state.left.set(Collapsed)
+          closedLeft  <- current(state.leftExtent)
+          _           <- state.right.set(Collapsed)
+          closedRight <- current(state.rightExtent)
+          _           <- state.bottom.set(Collapsed)
+          closedFoot  <- current(state.bottomExtent)
+        yield assert(openLeft == 224 && closedLeft == 0 && closedRight == 0 && closedFoot == 0)
       }
 
     "custom chrome inserts the lights inset; default omits it" in
@@ -136,27 +139,24 @@ class AppShellTests extends Test[Any]:
         yield assert(right.px == PanelBounds.right.min && bottom.px == PanelBounds.bottom.max)
       }
 
-    "a resized region renders at its new size" in
+    "a resized region reports its new extent" in
       AppShell.ShellState.init().map { state =>
         for
-          _    <- state.resizeLeft(360)
-          html <- renderOnce(sampleShell(state))
-        yield assert(html.contains("360px"))
+          _      <- state.resizeLeft(360)
+          extent <- current(state.leftExtent)
+        yield assert(extent == 360)
       }
   }
 
   "AppShell motion" - {
 
-    "panels declare their enter and leave transitions" in
-      AppShell.ShellState.init().map { state =>
-        renderOnce(sampleShell(state)).map { html =>
-          assert(
-            html.contains("data-kyo-enter") && html.contains("data-kyo-leave") &&
-              html.contains("slide-left-enter") && html.contains("slide-right-enter") &&
-              html.contains("slide-bottom-enter")
-          )
-        }
-      }
+    "panels carry the shared slide duration" in {
+      val css = Theme.css
+      assert(
+        css.contains(s"${morphir.ui.theme.Tokens.slideMs}ms") &&
+          css.contains(".sidebar") && css.contains(".rightbar") && css.contains(".bottombar")
+      )
+    }
 
     "toggling animations flips the root motion class" in
       AppShell.ShellState.init().map { state =>

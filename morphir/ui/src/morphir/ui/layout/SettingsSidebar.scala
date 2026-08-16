@@ -20,8 +20,7 @@ object SettingsSidebar:
   def view(
       sections: Chunk[SettingsSection],
       selected: SettingsKey,
-      state: ShellState,
-      width: Signal[PanelSize]
+      state: ShellState
   ): UI =
     div.cssClass(Sidebar.Css.root)(
       div.cssClass(Sidebar.Css.navSection)("Settings"),
@@ -30,7 +29,7 @@ object SettingsSidebar:
         Icons.back,
         span("Back").cssClass(Css.label)
       )
-    ).style(width.map(size => Style.width(size.px.px)))
+    )
 
   private def row(section: SettingsSection, selected: SettingsKey, state: ShellState): UI =
     val base = div.cssClass(Css.item)

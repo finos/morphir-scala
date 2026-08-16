@@ -86,7 +86,7 @@ object RendererMain:
           _ <- client.notify[String]("morphir/shell/smokeDone", "done")
           // Attach before mounting: runMount does not return while the app is on screen, and the drag
           // adapter listens on the document, so it needs no mounted element.
-          _ <- AppShell.attachResizeHandles(state)
+          _ <- AppShell.attachShellDom(state)
           _ <- UI.runMount(ui)
           _ <- Async.never
         yield ()
