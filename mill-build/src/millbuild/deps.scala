@@ -142,10 +142,12 @@ object Deps {
       val `kyo-core`          = mvn"io.getkyo::kyo-core::${Versions.kyo}"
       val `kyo-data`          = mvn"io.getkyo::kyo-data::${Versions.kyo}"
       val `kyo-http`          = mvn"io.getkyo::kyo-http::${Versions.kyo}"
+      val `kyo-jsonrpc`       = mvn"io.getkyo::kyo-jsonrpc::${Versions.kyo}"
       val `kyo-prelude`       = mvn"io.getkyo::kyo-prelude::${Versions.kyo}"
       val `kyo-schema`        = mvn"io.getkyo::kyo-schema::${Versions.kyo}"
       val `kyo-schema-json`   = mvn"io.getkyo::kyo-schema-json::${Versions.kyo}"
       val `kyo-schema-yaml`   = mvn"io.getkyo::kyo-schema-yaml::${Versions.kyo}"
+      val `kyo-ui`            = mvn"io.getkyo::kyo-ui::${Versions.kyo}"
       val `kyo-zio`           = mvn"io.getkyo::kyo-zio::${Versions.kyo}"
       val `kyo-test-api`      = mvn"io.getkyo::kyo-test-api::${Versions.kyo}"
       val `kyo-test-prop`     = mvn"io.getkyo::kyo-test-prop::${Versions.kyo}"
@@ -159,10 +161,12 @@ object Deps {
         `kyo-core`,
         `kyo-data`,
         `kyo-http`,
+        `kyo-jsonrpc`,
         `kyo-prelude`,
         `kyo-schema`,
         `kyo-schema-json`,
         `kyo-schema-yaml`,
+        `kyo-ui`,
         `kyo-zio`,
         `kyo-test-api`,
         `kyo-test-prop`,

@@ -30,8 +30,12 @@ echo "Running JS tests..."
     + \
     "morphir.__.js.__.test" \
     + \
-    "morphir.__.wasm.__.test" \
-    + \
-    "morphir.__.wasm.fullLinkJS"
+    "morphir.__.wasm.__.test"
+
+# The Wasm `fullLinkJS` tasks link one at a time. Each holds the largest working set in this task,
+# and running several concurrently exhausted the daemon heap inside the linker's BinaryWriter
+# (`OutOfMemoryError` in `WebAssemblyLinkerBackend.writeWasmFile`) once a third Wasm variant joined
+# the build. Serial here costs a few minutes; parallel costs the whole job.
+./mill -i -k -j 1 "morphir.__.wasm.fullLinkJS"
 
 echo "JS tests completed successfully"

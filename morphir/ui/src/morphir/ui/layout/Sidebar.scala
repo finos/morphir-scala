@@ -1,0 +1,123 @@
+package morphir.ui.layout
+
+import kyo.*
+import kyo.UI.*
+import morphir.ui.AppShell.NavItem
+import morphir.ui.icons.Icons
+
+/** The expanded left sidebar: header (toggle + brand), nav list, settings footer. */
+object Sidebar:
+
+  object Css:
+    val root       = "sidebar"
+    val brand      = "brand"
+    val brandMark  = "brand-mark"
+    val brandSub   = "brand-sub"
+    val navSection = "nav-section"
+    val navItem    = "nav-item"
+    val navActive  = "active"
+    val navDot     = "nav-dot"
+    val foot       = "sidebar-foot"
+
+  def view(
+      nav: Chunk[NavItem],
+      onSettings: => Any < Async
+  ): UI =
+    div.cssClass(Css.root)(
+      div.cssClass(Css.navSection)("Workspace"),
+      fragment(nav.toSeq.map(navRow)*),
+      div.cssClass(Css.foot)(
+        div.cssClass(Shell.Css.iconBtn).id("settings-button").onClick(onSettings)(Icons.gear)
+      )
+    )
+
+  private def navRow(item: NavItem): UI =
+    val base = div.cssClass(Css.navItem)
+    val elem = if item.active then base.cssClass(Css.navActive) else base
+    elem(span("").cssClass(Css.navDot), item.label)
+
+  import morphir.ui.theme.Tokens
+
+  def sheet: Stylesheet =
+    val mono = Style.FontFamily.Custom(Tokens.monoFont)
+    Stylesheet.empty
+      .rule(
+        Css.root,
+        Style
+          .display(_.flex)
+          .column
+          .width(224.px)
+          .flexGrow(0)
+          .flexShrink(0)
+          .bg(Tokens.cssVar("rail"))
+          .borderRight(1.px, Tokens.cssVar("edge"))
+          .padding(6.px, 12.px, 18.px, 12.px)
+          .overflow(_.hidden)
+          .transition(_.all, Tokens.slideMs, _.easeInOut)
+      )
+      .rule(
+        Css.brand,
+        Style
+          .display(_.flex)
+          .row
+          .align(_.baseline)
+          .gap(8.px)
+          .padding(0.px, 10.px)
+          .fontWeight(_.w700)
+          .fontSize(17.px)
+          .letterSpacing(-0.01.em)
+      )
+      .rule(
+        Css.brandSub,
+        Style.fontFamily(mono).fontSize(9.px).fontWeight(_.w600).letterSpacing(0.22.em).color(Tokens.cssVar("muted2"))
+      )
+      .rule(
+        Css.navSection,
+        Style
+          .fontFamily(mono)
+          .fontSize(10.px)
+          .fontWeight(_.w600)
+          .letterSpacing(0.16.em)
+          .textTransform(_.uppercase)
+          .color(Tokens.cssVar("muted2"))
+          .padding(16.px, 10.px, 6.px, 10.px)
+      )
+      .rule(
+        Css.navItem,
+        Style
+          .display(_.flex)
+          .row
+          .align(_.center)
+          .gap(10.px)
+          .padding(8.px, 10.px)
+          .margin(1.px, 0.px)
+          .rounded(8.px)
+          .color(Tokens.cssVar("nav"))
+          .fontWeight(_.w500)
+          .cursor(_.defaultCursor)
+          .hover(_.bg(Tokens.cssVar("hover-soft")).color(Tokens.cssVar("text")))
+      )
+      .rule(
+        Selector.cls(s"${Css.navItem}.${Css.navActive}"),
+        Style
+          .bgGradient(
+            _.toRight,
+            (Style.Color.rgba(214, 64, 159, 0.16), 0.pct),
+            (Style.Color.rgba(139, 92, 246, 0.10), 100.pct)
+          )
+          .color(Tokens.cssVar("text-strong"))
+      )
+      .rule(Css.navDot, Style.width(6.px).height(6.px).rounded(50.pct).bg(Tokens.cssVar("dot")).flexShrink(0))
+      .rule(
+        Selector.cls(s"${Css.navItem}.${Css.navActive}").descendant(Selector.cls(Css.navDot)),
+        Style.bg(Tokens.cssVar("accent"))
+      )
+      .rule(
+        Css.foot,
+        Style
+          .display(_.flex)
+          .row
+          .align(_.center)
+          .margin(Length.Auto, Length.Px(0), Length.Px(0), Length.Px(0))
+          .padding(6.px, 4.px, 0.px, 4.px)
+      )

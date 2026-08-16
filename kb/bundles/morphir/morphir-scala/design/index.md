@@ -9,6 +9,7 @@ Design Notes evolve through research and implementation. Accepted choices belong
 * [Package URL-centered package management](/design/package-url-package-management.md) - A design for PURL identities, reproducible materialization, and packages outside ecosystem registries.
 * [Multi-frontend pipeline and workspace boundaries](/design/pipeline-workspace-boundaries.md) - A design for shared buildkit phases, workspace normalization, frontend isolation, and issue #930.
 * [Mill Morphir plugin architecture](/design/mill-morphir-plugin-architecture.md) - Design for publishable Mill plugins that acquire tools and compose Morphir generation with host-language builds.
+* [morphir-ui architecture](/design/morphir-ui-architecture.md) - Store/signal/view structure, package layout, and the typed-stylesheet-first styling rule for the kyo-ui client surface.
 
 ## Research references
 

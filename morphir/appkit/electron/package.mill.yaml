@@ -1,0 +1,11 @@
+extends: Module
+
+object js:
+  extends: [build.MorphirJSModule, build.MorphirJSNodeModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps]
+  moduleDeps: [build.morphir.appkit.js]
+  mvnDeps: !append
+  - io.getkyo::kyo-jsonrpc
+  - io.getkyo::kyo-schema
+  - io.getkyo::kyo-schema-json
+  object test:
+    extends: [ScalaJSTests, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
