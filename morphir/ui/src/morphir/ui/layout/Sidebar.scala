@@ -18,7 +18,6 @@ object Sidebar:
     val navActive  = "active"
     val navDot     = "nav-dot"
     val foot       = "sidebar-foot"
-    val footMeta   = "foot-meta"
 
   def view(
       nav: Chunk[NavItem],
@@ -28,8 +27,7 @@ object Sidebar:
       div.cssClass(Css.navSection)("Workspace"),
       fragment(nav.toSeq.map(navRow)*),
       div.cssClass(Css.foot)(
-        div.cssClass(Shell.Css.iconBtn).id("settings-button").onClick(onSettings)(Icons.gear),
-        span("morphir-scala · kyo-ui").cssClass(Css.footMeta)
+        div.cssClass(Shell.Css.iconBtn).id("settings-button").onClick(onSettings)(Icons.gear)
       )
     )
 
@@ -117,8 +115,6 @@ object Sidebar:
           .display(_.flex)
           .row
           .align(_.center)
-          .justify(_.spaceBetween)
           .margin(Length.Auto, Length.Px(0), Length.Px(0), Length.Px(0))
           .padding(6.px, 4.px, 0.px, 4.px)
       )
-      .rule(Css.footMeta, Style.fontFamily(mono).fontSize(11.px).color(Tokens.cssVar("muted2")))
