@@ -92,7 +92,10 @@ object Topbar:
           .bg(Tokens.hex("#121017"))
           .borderRight(1.px, Tokens.hex("#241f30"))
       )
-      .rule(Selector.cls(s"${Css.brandZone}.${Css.lightsInset}"), Style.padding(0.px, 12.px, 0.px, 64.px))
+      .rule(
+        Selector.cls(s"${Css.brandZone}.${Css.lightsInset}"),
+        Style.padding(0.px, 12.px, 0.px, Tokens.trafficLightInset.px)
+      )
       .rule(
         Selector.cls(s"${Css.brandZone}.${Css.lightsInset}").descendant(Selector.cls("brand-sub")),
         Style.displayNone
@@ -105,7 +108,10 @@ object Topbar:
         Css.left,
         Style.display(_.flex).row.align(_.center).gap(12.px).flexGrow(1).padding(0.px, 0.px, 0.px, 22.px)
       )
-      .rule(Selector.cls(s"${Css.left}.${Css.lightsInset}"), Style.padding(0.px, 0.px, 0.px, 78.px))
+      .rule(
+        Selector.cls(s"${Css.left}.${Css.lightsInset}"),
+        Style.padding(0.px, 0.px, 0.px, Tokens.trafficLightInset.px)
+      )
       .rule(
         Css.right,
         Style.display(_.flex).row.align(_.center).gap(8.px).padding(0.px, 22.px, 0.px, 0.px)
