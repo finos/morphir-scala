@@ -2,6 +2,7 @@ package morphir.ui
 
 import kyo.*
 import morphir.ui.layout.{RegionPanel, Shell, Sidebar, Topbar}
+import morphir.ui.{IrExplorerView, KnowledgeBrowserView}
 import morphir.ui.theme.{Base, Tokens}
 
 /**
@@ -12,7 +13,8 @@ import morphir.ui.theme.{Base, Tokens}
 object Theme:
 
   def sheet: Stylesheet =
-    Tokens.sheet ++ Base.sheet ++ Shell.sheet ++ Sidebar.sheet ++ Topbar.sheet ++ RegionPanel.sheet
+    Tokens.sheet ++ Base.sheet ++ Shell.sheet ++ Sidebar.sheet ++ Topbar.sheet ++ RegionPanel.sheet ++
+      IrExplorerView.sheet ++ KnowledgeBrowserView.sheet
 
   /** Each rule here names the missing typed vocabulary that forces it to stay raw. */
   private val quarantineCss: String =
@@ -35,29 +37,5 @@ object Theme:
       |}
       |""".stripMargin
 
-  private val legacyCss: String =
-    """
-      |#ir-packages, #ir-modules, #kb-bundles { list-style: none; }
-      |#ir-packages li, #ir-modules li, #kb-bundles li {
-      |  padding: 9px 4px; border-bottom: 1px solid #221d2e; font: 13px var(--mono);
-      |}
-      |#ir-packages li:last-child, #ir-modules li:last-child, #kb-bundles li:last-child { border-bottom: 0; }
-      |#ir-packages li:hover, #ir-modules li:hover { background: #1f1a29; }
-      |#kb-intents { width: 100%; border-collapse: collapse; font-size: 13px; }
-      |#kb-intents th {
-      |  text-align: left; font: 600 10px var(--mono); letter-spacing: 0.14em; text-transform: uppercase;
-      |  color: var(--muted2); padding: 4px 10px 10px 4px; border-bottom: 1px solid var(--panel-edge);
-      |}
-      |#kb-intents td { padding: 9px 10px 9px 4px; border-bottom: 1px solid #221d2e; }
-      |#kb-intents tr:last-child td { border-bottom: 0; }
-      |#kb-intents td:first-child { font: 600 12px var(--mono); color: var(--accent2); }
-      |#kb-intents td:nth-child(3) { font: 600 11px var(--mono); color: #f2b7dd; }
-      |#kb-intents td:nth-child(4) { font: 12px var(--mono); color: var(--muted2); }
-      |#ir-definition pre {
-      |  background: #131019; border: 1px solid #241f30; border-radius: 8px;
-      |  padding: 12px 14px; font: 12.5px var(--mono); overflow-x: auto;
-      |}
-      """.stripMargin
-
   def css: String =
-    sheet.render + "\n" + Base.rawCss + quarantineCss + legacyCss
+    sheet.render + "\n" + Base.rawCss + quarantineCss
