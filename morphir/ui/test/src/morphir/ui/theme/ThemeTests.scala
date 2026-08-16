@@ -1,0 +1,47 @@
+package morphir.ui.theme
+
+import kyo.*
+import kyo.test.*
+import morphir.ui.Theme
+import morphir.ui.layout.{RegionPanel, Shell, Sidebar, Topbar}
+
+class ThemeTests extends Test[Any]:
+
+  /** Every class name the layout emits must be styled by the aggregated stylesheet. */
+  val layoutClasses = List(
+    Shell.Css.app,
+    Shell.Css.main,
+    Shell.Css.content,
+    Shell.Css.iconBtn,
+    Shell.Css.panel,
+    Sidebar.Css.root,
+    Sidebar.Css.head,
+    Sidebar.Css.navItem,
+    Sidebar.Css.foot,
+    Topbar.Css.root,
+    Topbar.Css.chip,
+    RegionPanel.Css.rightbar,
+    RegionPanel.Css.bottombar,
+    RegionPanel.Css.head
+  )
+
+  "Theme" - {
+
+    "renders tokens as CSS variables" in {
+      val css = Theme.css
+      assert(css.contains("--accent") && css.contains("--bg") && css.contains(":root"))
+    }
+
+    "renders the typed body rule" in
+      assert(Theme.css.contains("body"))
+
+    "styles every layout class" in {
+      val css     = Theme.css
+      val missing = layoutClasses.filterNot(c => css.contains(s".$c"))
+      assert(missing.isEmpty)
+    }
+
+    "keeps the app-region quarantine" in
+      assert(Theme.css.contains("-webkit-app-region"))
+  }
+end ThemeTests

@@ -1,37 +1,23 @@
 package morphir.ui
 
+import morphir.ui.theme.{Base, Tokens}
+
 /**
- * The morphir client theme: a dark, T3-code-style application shell — deep violet-black surfaces, one magenta→violet
- * accent, mono type for data. Plain CSS keyed to the classes [[AppShell]] emits and the stable `ir-*` / `kb-*` ids the
- * views carry, so any host (Electron renderer, browser page) can adopt it by injecting one stylesheet.
+ * The morphir client theme, aggregated for hosts: typed token/base stylesheets rendered plus the raw remainders.
+ * `legacyCss` shrinks as layout and component rules migrate to typed sheets; the quarantine block holds only properties
+ * the typed vocabulary cannot express and is meant to stay tiny.
  */
 object Theme:
 
-  val css: String =
+  /** Frameless-window drag regions: `-webkit-app-region` has no typed Style property at RC6. */
+  private val quarantineCss: String =
     """
-      |:root {
-      |  --bg: #0f0d14;
-      |  --surface: #16131d;
-      |  --panel: #1a1622;
-      |  --panel-edge: #2a2438;
-      |  --text: #e8e4f1;
-      |  --muted: #8d849e;
-      |  --muted2: #6f6785;
-      |  --accent: #d6409f;
-      |  --accent2: #8b5cf6;
-      |  --mono: ui-monospace, "SF Mono", Menlo, monospace;
-      |}
-      |* { box-sizing: border-box; margin: 0; padding: 0; }
-      |html, body { height: 100%; }
-      |body {
-      |  background: var(--bg);
-      |  color: var(--text);
-      |  font: 14px/1.55 -apple-system, "Segoe UI", system-ui, sans-serif;
-      |  -webkit-font-smoothing: antialiased;
-      |}
-      |::selection { background: rgba(214, 64, 159, 0.35); }
-      |::-webkit-scrollbar { width: 10px; }
-      |::-webkit-scrollbar-thumb { background: #2a2438; border-radius: 5px; }
+      |.sidebar-head, .topbar { -webkit-app-region: drag; }
+      |.icon-btn, .nav-item, .chip { -webkit-app-region: no-drag; }
+      |""".stripMargin
+
+  private val legacyCss: String =
+    """
       |
       |.app { display: flex; flex-direction: row; height: 100vh; }
       |
@@ -81,13 +67,11 @@ object Theme:
       |
       |/* Custom-chrome (frameless window) support: the host app owns the title bar. The spacer keeps
       |   clear of the macOS traffic-light overlay; drag regions make the chrome move the window. */
-      |.sidebar-head, .topbar { -webkit-app-region: drag; }
       |.topbar-left { display: flex; flex-direction: row; align-items: center; gap: 12px; }
       |.topbar.lights-inset { padding-left: 78px; }
       |.sidebar-head.lights-inset { padding-left: 64px; }
       |.sidebar-head.lights-inset .brand-sub { display: none; }
       |.sidebar-head.lights-inset .brand { padding-bottom: 0; }
-      |.icon-btn, .nav-item, .chip { -webkit-app-region: no-drag; }
       |
       |.topbar-right { display: flex; flex-direction: row; align-items: center; gap: 8px; }
       |.rightbar {
@@ -155,3 +139,5 @@ object Theme:
       |  padding: 12px 14px; font: 12.5px var(--mono); overflow-x: auto;
       |}
       |""".stripMargin
+
+  def css: String = (Tokens.sheet ++ Base.sheet).render + "\n" + Base.rawCss + quarantineCss + legacyCss
