@@ -1,4 +1,5 @@
-// Boot the real app visibly, capture proof-of-window after load, keep running.
+// Dev tool: boots the app the way `scripts/run.sh` does, then snapshots the window to /tmp so a
+// change can be checked without a screen recording. Not part of the shipped app.
 const { app, BrowserWindow } = require('electron')
 const { start } = require('./dist/main.js')
 start(__dirname)
