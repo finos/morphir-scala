@@ -32,6 +32,9 @@ private[ui] object PanelMotion:
       // Changing route or the animation setting rebuilds the tree, so the fresh elements need the current sizes.
       _ <- reapplyOn(state.route.streamChanges.map(_ => ()), state)
       _ <- reapplyOn(state.animations.streamChanges.map(_ => ()), state)
+      // Collapsing the sidebar swaps the titlebar's brand zone out and expanding builds a new one, which starts at
+      // the stylesheet's default width. Re-applying a frame later keeps it in step with a dragged sidebar.
+      _ <- reapplyOn(state.left.streamChanges.map(_ => ()), state)
     yield ()
 
   private def watch[A: Tag](signal: Signal[A])(writes: (A => Unit)*)(using CanEqual[A, A]): Unit < Async =

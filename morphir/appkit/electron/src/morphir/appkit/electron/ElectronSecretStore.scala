@@ -32,4 +32,12 @@ object ElectronSecretStore:
   private def safeStorageCipher: SecretCipher =
     new SecretCipher:
       def decrypt(bytes: Chunk[Byte]): String < (Abort[SecretException] & Async) =
-        Sync.defer(facades.safeStorage.decryptString(facades.toBuffer(bytes.toArray)))
+        // safeStorage throws when the OS key has changed, encryption is unavailable, or the blob is corrupt.
+        // Those are ordinary lookup failures, so they belong in the declared channel rather than in a panic.
+        Abort.catching[Throwable](failure => SecretException.LookupFailed(describe(failure)))(
+          Sync.defer(facades.safeStorage.decryptString(facades.toBuffer(bytes.toArray)))
+        )
+
+  private def describe(failure: Throwable): String =
+    val detail = Option(failure.getMessage).filter(_.nonEmpty).getOrElse(failure.toString)
+    s"safeStorage could not decrypt the stored secret: $detail"
