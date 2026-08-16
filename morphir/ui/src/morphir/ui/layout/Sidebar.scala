@@ -49,8 +49,8 @@ object Sidebar:
           .width(224.px)
           .flexGrow(0)
           .flexShrink(0)
-          .bg(Tokens.hex("#121017"))
-          .borderRight(1.px, Tokens.hex("#241f30"))
+          .bg(Tokens.cssVar("rail"))
+          .borderRight(1.px, Tokens.cssVar("edge"))
           .padding(6.px, 12.px, 18.px, 12.px)
           .overflow(_.hidden)
           .transition(_.all, Tokens.slideMs, _.easeInOut)
@@ -92,10 +92,10 @@ object Sidebar:
           .padding(8.px, 10.px)
           .margin(1.px, 0.px)
           .rounded(8.px)
-          .color(Tokens.hex("#a89fbe"))
+          .color(Tokens.cssVar("nav"))
           .fontWeight(_.w500)
           .cursor(_.defaultCursor)
-          .hover(_.bg(Tokens.hex("#1a1622")).color(Tokens.cssVar("text")))
+          .hover(_.bg(Tokens.cssVar("hover-soft")).color(Tokens.cssVar("text")))
       )
       .rule(
         Selector.cls(s"${Css.navItem}.${Css.navActive}"),
@@ -105,9 +105,9 @@ object Sidebar:
             (Style.Color.rgba(214, 64, 159, 0.16), 0.pct),
             (Style.Color.rgba(139, 92, 246, 0.10), 100.pct)
           )
-          .color(Tokens.hex("#ffffff"))
+          .color(Tokens.cssVar("text-strong"))
       )
-      .rule(Css.navDot, Style.width(6.px).height(6.px).rounded(50.pct).bg(Tokens.hex("#3d3550")).flexShrink(0))
+      .rule(Css.navDot, Style.width(6.px).height(6.px).rounded(50.pct).bg(Tokens.cssVar("dot")).flexShrink(0))
       .rule(
         Selector.cls(s"${Css.navItem}.${Css.navActive}").descendant(Selector.cls(Css.navDot)),
         Style.bg(Tokens.cssVar("accent"))

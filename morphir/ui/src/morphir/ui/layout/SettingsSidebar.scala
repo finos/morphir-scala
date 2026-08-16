@@ -52,14 +52,14 @@ object SettingsSidebar:
           .padding(8.px, 10.px)
           .margin(1.px, 0.px)
           .rounded(8.px)
-          .color(Tokens.hex("#a89fbe"))
+          .color(Tokens.cssVar("nav"))
           .fontWeight(_.w500)
           .cursor(_.pointer)
-          .hover(_.bg(Tokens.hex("#1a1622")).color(Tokens.cssVar("text")))
+          .hover(_.bg(Tokens.cssVar("hover-soft")).color(Tokens.cssVar("text")))
       )
       .rule(
         Selector.cls(s"${Css.item}.${Css.active}"),
-        Style.bg(Tokens.hex("#1f1a29")).color(Tokens.hex("#ffffff"))
+        Style.bg(Tokens.cssVar("hover")).color(Tokens.cssVar("text-strong"))
       )
       .rule(
         Css.back,
@@ -73,6 +73,6 @@ object SettingsSidebar:
           .rounded(8.px)
           .color(Tokens.cssVar("muted"))
           .cursor(_.pointer)
-          .hover(_.bg(Tokens.hex("#1a1622")).color(Tokens.cssVar("text")))
+          .hover(_.bg(Tokens.cssVar("hover-soft")).color(Tokens.cssVar("text")))
       )
       .rule(Css.label, Style.fontWeight(_.w500))

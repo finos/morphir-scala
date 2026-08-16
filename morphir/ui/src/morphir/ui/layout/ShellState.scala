@@ -32,6 +32,23 @@ object SettingsKey:
   given CanEqual[SettingsKey, SettingsKey]       = CanEqual.derived
 
 /**
+ * Which palette the shell paints with. `System` follows the host's `prefers-color-scheme`; the other two pin it.
+ */
+enum ColorScheme derives CanEqual:
+  case System, Light, Dark
+
+  /** The class the shell root carries for this scheme. */
+  def cssClass: String = this match
+    case System => morphir.ui.theme.Tokens.Scheme.system
+    case Light  => morphir.ui.theme.Tokens.Scheme.light
+    case Dark   => morphir.ui.theme.Tokens.Scheme.dark
+
+  def label: String = this match
+    case System => "System"
+    case Light  => "Light"
+    case Dark   => "Dark"
+
+/**
  * Whether the shell animates region transitions. Off is a first-class setting, not a missing Boolean: reduced-motion
  * users and screenshot tests both want it.
  */
@@ -76,7 +93,8 @@ final case class ShellState(
     leftWidth: SignalRef[PanelSize],
     rightWidth: SignalRef[PanelSize],
     bottomHeight: SignalRef[PanelSize],
-    animations: SignalRef[AnimationSetting]
+    animations: SignalRef[AnimationSetting],
+    colorScheme: SignalRef[ColorScheme]
 ):
 
   /** Leave the workspace for the settings surface, landing on `section`. */
@@ -101,6 +119,9 @@ final case class ShellState(
   def bottomExtent(using Frame): Signal[Int] =
     bottom.combineLatest(bottomHeight).map((visibility, size) => if visibility.isCollapsed then 0 else size.px)
 
+  /** Paint the shell with the chosen palette. */
+  def selectColorScheme(scheme: ColorScheme): Unit < Sync = colorScheme.set(scheme)
+
   /** Turn region animation on or off. */
   def toggleAnimations: Unit < Sync = animations.getAndUpdate(_.toggled).unit
 
@@ -114,6 +135,7 @@ final case class ShellState(
       _ <- rightWidth.set(PanelSize.clamped(ShellDefaults.rightWidth, PanelBounds.right))
       _ <- bottomHeight.set(PanelSize.clamped(ShellDefaults.bottomHeight, PanelBounds.bottom))
       _ <- animations.set(AnimationSetting.Enabled)
+      _ <- colorScheme.set(ShellDefaults.colorScheme)
     yield ()
 
   /** Resize commands. Each clamps into its region's bounds, so a drag that runs past the edge simply stops. */
@@ -126,6 +148,7 @@ object ShellDefaults:
   val leftWidth    = 224
   val rightWidth   = 300
   val bottomHeight = 180
+  val colorScheme  = ColorScheme.Dark
 
 object ShellState:
   def init(
@@ -137,7 +160,8 @@ object ShellState:
       leftWidth: Int = ShellDefaults.leftWidth,
       rightWidth: Int = ShellDefaults.rightWidth,
       bottomHeight: Int = ShellDefaults.bottomHeight,
-      animations: AnimationSetting = AnimationSetting.Enabled
+      animations: AnimationSetting = AnimationSetting.Enabled,
+      colorScheme: ColorScheme = ShellDefaults.colorScheme
   ): ShellState < Sync =
     for
       leftRef    <- Signal.initRef(left)
@@ -149,4 +173,16 @@ object ShellState:
       rightSize  <- Signal.initRef(PanelSize.clamped(rightWidth, PanelBounds.right))
       bottomSize <- Signal.initRef(PanelSize.clamped(bottomHeight, PanelBounds.bottom))
       motionRef  <- Signal.initRef(animations)
-    yield ShellState(leftRef, rightRef, bottomRef, routeRef, sectionRef, leftSize, rightSize, bottomSize, motionRef)
+      schemeRef  <- Signal.initRef(colorScheme)
+    yield ShellState(
+      leftRef,
+      rightRef,
+      bottomRef,
+      routeRef,
+      sectionRef,
+      leftSize,
+      rightSize,
+      bottomSize,
+      motionRef,
+      schemeRef
+    )

@@ -36,17 +36,17 @@ object IrExplorerView:
           Selector.id(id).child(Selector.tag("li")),
           Style
             .padding(9.px, 4.px)
-            .borderBottom(1.px, Tokens.hex("#221d2e"))
+            .borderBottom(1.px, Tokens.cssVar("row-edge"))
             .fontFamily(mono)
             .fontSize(13.px)
-            .hover(_.bg(Tokens.hex("#1f1a29")))
+            .hover(_.bg(Tokens.cssVar("hover")))
         )
     rowsOf(Css.packages) ++ rowsOf(Css.modules) ++
       Stylesheet.empty.rule(
         Selector.id(Css.definition).descendant(Selector.tag("pre")),
         Style
-          .bg(Tokens.hex("#131019"))
-          .border(1.px, Tokens.hex("#241f30"))
+          .bg(Tokens.cssVar("code-bg"))
+          .border(1.px, Tokens.cssVar("edge"))
           .rounded(8.px)
           .padding(12.px, 14.px)
           .fontFamily(mono)

@@ -70,50 +70,51 @@ object AppShell:
       else div.cssClass(layout.Shell.Css.content)(fragment(panels.toSeq*))
 
     state.animations.render { motion =>
-      val root =
-        if motion.isEnabled then div.cssClass(layout.Shell.Css.app)
-        else div.cssClass(layout.Shell.Css.app).cssClass(layout.Shell.Css.noMotion)
-      root.id("app-root")(
-        state.route.render { route =>
-          state.settingsSection.render { key =>
-            state.left.render(visibility => titlebar(route, key, visibility))
-          }
-        },
-        div.cssClass(layout.Shell.Css.body)(
+      state.colorScheme.render { scheme =>
+        val themed = div.cssClass(layout.Shell.Css.app).cssClass(scheme.cssClass)
+        val root   = if motion.isEnabled then themed else themed.cssClass(layout.Shell.Css.noMotion)
+        root.id("app-root")(
           state.route.render { route =>
-            state.settingsSection.render(key => sidebar(route, key))
+            state.settingsSection.render { key =>
+              state.left.render(visibility => titlebar(route, key, visibility))
+            }
           },
-          state.left.render { visibility =>
-            if visibility.isCollapsed then div.cssClass("left-handle-hidden").hidden(true)
-            else layout.ResizeHandle.column(layout.ResizeHandle.leftId)
-          },
-          div.cssClass(layout.Shell.Css.main)(
+          div.cssClass(layout.Shell.Css.body)(
             state.route.render { route =>
-              state.settingsSection.render(key => content(route, key))
+              state.settingsSection.render(key => sidebar(route, key))
             },
+            state.left.render { visibility =>
+              if visibility.isCollapsed then div.cssClass("left-handle-hidden").hidden(true)
+              else layout.ResizeHandle.column(layout.ResizeHandle.leftId)
+            },
+            div.cssClass(layout.Shell.Css.main)(
+              state.route.render { route =>
+                state.settingsSection.render(key => content(route, key))
+              },
+              state.route.render { route =>
+                state.bottom.render { visibility =>
+                  if route.isSettings || visibility.isCollapsed then div.cssClass("bottom-handle-hidden").hidden(true)
+                  else layout.ResizeHandle.row(layout.ResizeHandle.bottomId)
+                }
+              },
+              state.route.render { route =>
+                if route.isSettings then div.cssClass("bottom-hidden").hidden(true)
+                else layout.RegionPanel.bottom(bottomRegion)
+              }
+            ),
             state.route.render { route =>
-              state.bottom.render { visibility =>
-                if route.isSettings || visibility.isCollapsed then div.cssClass("bottom-handle-hidden").hidden(true)
-                else layout.ResizeHandle.row(layout.ResizeHandle.bottomId)
+              state.right.render { visibility =>
+                if route.isSettings || visibility.isCollapsed then div.cssClass("right-handle-hidden").hidden(true)
+                else layout.ResizeHandle.column(layout.ResizeHandle.rightId)
               }
             },
             state.route.render { route =>
-              if route.isSettings then div.cssClass("bottom-hidden").hidden(true)
-              else layout.RegionPanel.bottom(bottomRegion)
+              if route.isSettings then div.cssClass("right-hidden").hidden(true)
+              else layout.RegionPanel.right(rightRegion)
             }
-          ),
-          state.route.render { route =>
-            state.right.render { visibility =>
-              if route.isSettings || visibility.isCollapsed then div.cssClass("right-handle-hidden").hidden(true)
-              else layout.ResizeHandle.column(layout.ResizeHandle.rightId)
-            }
-          },
-          state.route.render { route =>
-            if route.isSettings then div.cssClass("right-hidden").hidden(true)
-            else layout.RegionPanel.right(rightRegion)
-          }
+          )
         )
-      )
+      }
     }
 
   /**

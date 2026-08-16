@@ -87,7 +87,7 @@ object Topbar:
           .align(_.center)
           .height(52.px)
           .flexShrink(0)
-          .borderBottom(1.px, Tokens.hex("#241f30"))
+          .borderBottom(1.px, Tokens.cssVar("edge"))
           .bg(Tokens.cssVar("surface"))
       )
       .rule(
@@ -101,8 +101,8 @@ object Topbar:
           .height(100.pct)
           .flexShrink(0)
           .padding(0.px, 12.px)
-          .bg(Tokens.hex("#121017"))
-          .borderRight(1.px, Tokens.hex("#241f30"))
+          .bg(Tokens.cssVar("rail"))
+          .borderRight(1.px, Tokens.cssVar("edge"))
       )
       .rule(
         Selector.cls(s"${Css.brandZone}.${Css.lightsInset}"),
@@ -148,7 +148,7 @@ object Topbar:
           .color(Tokens.cssVar("muted"))
           .fontSize(12.5.px)
           .cursor(_.pointer)
-          .hover(_.bg(Tokens.hex("#1f1a29")).color(Tokens.cssVar("text")))
+          .hover(_.bg(Tokens.cssVar("hover")).color(Tokens.cssVar("text")))
       )
       .rule(Css.actionLabel, Style.fontWeight(_.w500))
       .rule(
@@ -159,7 +159,7 @@ object Topbar:
           .fontWeight(_.w600)
           .padding(3.px, 10.px)
           .rounded(999.px)
-          .color(Tokens.hex("#f2b7dd"))
+          .color(Tokens.cssVar("accent-text"))
           .bg(Style.Color.rgba(214, 64, 159, 0.14))
           .border(1.px, Style.Color.rgba(214, 64, 159, 0.35))
       )

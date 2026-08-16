@@ -18,7 +18,11 @@ object Shell:
 
   def sheet: Stylesheet =
     Stylesheet.empty
-      .rule(Css.app, Style.display(_.flex).column.height(Length.Vh(100)))
+      // The scheme vars are scoped to this element, so it — not the body above it — paints the surface.
+      .rule(
+        Css.app,
+        Style.display(_.flex).column.height(Length.Vh(100)).bg(Tokens.cssVar("bg")).color(Tokens.cssVar("text"))
+      )
       .rule(Css.body, Style.display(_.flex).row.flexGrow(1).minWidth(0.px))
       .rule(Css.main, Style.display(_.flex).column.flexGrow(1).minWidth(0.px))
       .rule(
@@ -33,7 +37,7 @@ object Shell:
           .rounded(8.px)
           .color(Tokens.cssVar("muted"))
           .cursor(_.pointer)
-          .hover(_.bg(Tokens.hex("#1f1a29")).color(Tokens.cssVar("text")))
+          .hover(_.bg(Tokens.cssVar("hover")).color(Tokens.cssVar("text")))
       )
       .rule(
         Selector.cls(s"${Css.content}.${Css.settings}"),

@@ -18,6 +18,7 @@ object SettingsView:
     val description = "settings-description"
     val value       = "settings-value"
     val control     = "settings-control"
+    val intro       = "settings-intro"
 
   /** A settings row's trailing cell: a read-only value, or an interactive control such as a [[Toggle]]. */
   enum Trailing:
@@ -31,6 +32,14 @@ object SettingsView:
       Row(label, description, Trailing.Value(text))
     def control(label: String, description: String, control: UI): Row =
       Row(label, description, Trailing.Control(control))
+
+  /** A group whose body is arbitrary content — a picker, a preview — rather than labelled rows. */
+  def contentGroup(title: String, description: String, body: UI): UI =
+    section.cssClass(Css.group)(
+      h2(title).cssClass(Css.groupTitle),
+      div.cssClass(Css.intro)(description),
+      body
+    )
 
   def group(title: String, rows: Chunk[Row]): UI =
     section.cssClass(Css.group)(
@@ -67,17 +76,21 @@ object SettingsView:
           .justify(_.spaceBetween)
           .gap(24.px)
           .padding(12.px, 0.px)
-          .borderBottom(1.px, Tokens.hex("#221d2e"))
+          .borderBottom(1.px, Tokens.cssVar("row-edge"))
       )
       .rule(Css.rowText, Style.display(_.flex).column.gap(3.px).minWidth(0.px))
       .rule(Css.label, Style.fontWeight(_.w500))
       .rule(Css.description, Style.fontSize(12.5.px).color(Tokens.cssVar("muted2")))
+      .rule(
+        Css.intro,
+        Style.fontSize(12.5.px).color(Tokens.cssVar("muted2")).padding(0.px, 0.px, 12.px, 0.px)
+      )
       .rule(Css.control, Style.display(_.flex).row.align(_.center).flexShrink(0))
       .rule(
         Css.value,
         Style
           .fontFamily(Style.FontFamily.Custom(Tokens.monoFont))
           .fontSize(12.px)
-          .color(Tokens.hex("#f2b7dd"))
+          .color(Tokens.cssVar("accent-text"))
           .flexShrink(0)
       )

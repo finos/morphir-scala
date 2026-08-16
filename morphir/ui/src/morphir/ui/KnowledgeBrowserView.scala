@@ -50,7 +50,7 @@ object KnowledgeBrowserView:
       )
       .rule(
         table.descendant(Selector.tag("td")),
-        Style.padding(9.px, 10.px, 9.px, 4.px).borderBottom(1.px, Tokens.hex("#221d2e"))
+        Style.padding(9.px, 10.px, 9.px, 4.px).borderBottom(1.px, Tokens.cssVar("row-edge"))
       )
       .rule(
         table.descendant(Selector.tag("td").pseudo("first-child")),
@@ -58,7 +58,7 @@ object KnowledgeBrowserView:
       )
       .rule(
         table.descendant(Selector.tag("td").pseudo("nth-child(3)")),
-        Style.fontFamily(mono).fontSize(11.px).fontWeight(_.w600).color(Tokens.hex("#f2b7dd"))
+        Style.fontFamily(mono).fontSize(11.px).fontWeight(_.w600).color(Tokens.cssVar("accent-text"))
       )
       .rule(
         table.descendant(Selector.tag("td").pseudo("nth-child(4)")),

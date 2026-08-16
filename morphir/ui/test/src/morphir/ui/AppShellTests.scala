@@ -2,7 +2,7 @@ package morphir.ui
 
 import kyo.*
 import kyo.test.*
-import morphir.ui.layout.{PanelBounds, SettingsKey, ShellRoute}
+import morphir.ui.layout.{ColorScheme, PanelBounds, SettingsKey, ShellRoute}
 import morphir.ui.layout.RegionVisibility.Collapsed
 
 class AppShellTests extends Test[Any]:
@@ -216,6 +216,51 @@ class AppShellTests extends Test[Any]:
           _   <- state.toggleAnimations
           off <- renderOnce(toggle)
         yield assert(on.contains("toggle on") && !off.contains("toggle on"))
+      }
+  }
+
+  "AppShell colour scheme" - {
+
+    "the shell ships dark and says so on the root" in
+      AppShell.ShellState.init().map { state =>
+        for
+          scheme <- state.colorScheme.get
+          html   <- renderOnce(sampleShell(state))
+        yield assert(scheme == ColorScheme.Dark && html.contains(morphir.ui.theme.Tokens.Scheme.dark))
+      }
+
+    "selecting a scheme repaints the root" in
+      AppShell.ShellState.init().map { state =>
+        for
+          _      <- state.selectColorScheme(ColorScheme.Light)
+          light  <- renderOnce(sampleShell(state))
+          _      <- state.selectColorScheme(ColorScheme.System)
+          system <- renderOnce(sampleShell(state))
+        yield assert(
+          light.contains(morphir.ui.theme.Tokens.Scheme.light) &&
+            !light.contains(morphir.ui.theme.Tokens.Scheme.dark) &&
+            system.contains(morphir.ui.theme.Tokens.Scheme.system)
+        )
+      }
+
+    "the picker marks the active card and offers all three" in
+      AppShell.ShellState.init(colorScheme = ColorScheme.Light).map { state =>
+        renderOnce(SchemePicker.view(state.colorScheme, state.selectColorScheme)).map { html =>
+          assert(
+            html.contains("scheme-system") && html.contains("scheme-light") && html.contains("scheme-dark") &&
+              html.contains("System") && html.contains("Light") && html.contains("Dark") &&
+              html.contains("scheme-card active")
+          )
+        }
+      }
+
+    "restore defaults puts the scheme back to dark" in
+      AppShell.ShellState.init().map { state =>
+        for
+          _      <- state.selectColorScheme(ColorScheme.Light)
+          _      <- state.restoreDefaults
+          scheme <- state.colorScheme.get
+        yield assert(scheme == morphir.ui.layout.ShellDefaults.colorScheme)
       }
   }
 

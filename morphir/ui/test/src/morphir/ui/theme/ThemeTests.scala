@@ -47,6 +47,14 @@ class ThemeTests extends Test[Any]:
       assert(missing.isEmpty)
     }
 
+    "carries a palette for every colour scheme" in {
+      val css = Theme.css
+      assert(
+        css.contains(s".${Tokens.Scheme.light}") && css.contains(s".${Tokens.Scheme.dark}") &&
+          css.contains(s".${Tokens.Scheme.system}") && css.contains("prefers-color-scheme: dark")
+      )
+    }
+
     "keeps the app-region quarantine" in
       assert(Theme.css.contains("-webkit-app-region"))
   }

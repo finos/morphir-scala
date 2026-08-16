@@ -2,7 +2,7 @@ package morphir.ui
 
 import kyo.*
 import morphir.ui.layout.{RegionPanel, ResizeHandle, SettingsSidebar, Shell, Sidebar, Topbar}
-import morphir.ui.{IrExplorerView, KnowledgeBrowserView, SettingsView, Toggle}
+import morphir.ui.{IrExplorerView, KnowledgeBrowserView, SchemePicker, SettingsView, Toggle}
 import morphir.ui.theme.{Base, Tokens}
 
 /**
@@ -15,7 +15,8 @@ object Theme:
   def sheet: Stylesheet =
     Tokens.sheet ++ Base.sheet ++ Shell.sheet ++ Sidebar.sheet ++ Topbar.sheet ++ RegionPanel.sheet ++
       ResizeHandle.sheet ++
-      SettingsSidebar.sheet ++ SettingsView.sheet ++ Toggle.sheet ++ IrExplorerView.sheet ++ KnowledgeBrowserView.sheet
+      SettingsSidebar.sheet ++ SettingsView.sheet ++ Toggle.sheet ++ SchemePicker.sheet ++ IrExplorerView.sheet ++
+      KnowledgeBrowserView.sheet
 
   /** Each rule here names the missing typed vocabulary that forces it to stay raw. */
   private val quarantineCss: String =

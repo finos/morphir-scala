@@ -3,7 +3,7 @@ package morphir.desktop.renderer
 import kyo.*
 import kyo.UI.*
 import morphir.appkit.electron.*
-import morphir.ui.{AppShell, IrExplorerView, KnowledgeBrowserView, SettingsView, Theme, Toggle}
+import morphir.ui.{AppShell, IrExplorerView, KnowledgeBrowserView, SchemePicker, SettingsView, Theme, Toggle}
 import morphir.ui.layout.SettingsKey
 import morphir.ui.services.*
 import scala.scalajs.js
@@ -125,10 +125,14 @@ object RendererMain:
         SettingsKey("appearance"),
         "Appearance",
         Chunk(
+          SettingsView.contentGroup(
+            "Colour scheme",
+            "Choose how morphir looks. System follows your operating system.",
+            SchemePicker.view(state.colorScheme, state.selectColorScheme)
+          ),
           SettingsView.group(
             "Theme",
             Chunk(
-              SettingsView.Row.value("Colour scheme", "Surfaces, text and panel borders.", "Dark"),
               SettingsView.Row.value("Accent", "Highlights, active nav and the version chip.", "magenta → violet"),
               SettingsView.Row.value("Window chrome", "Frameless window with app-drawn titlebar.", "Custom")
             )
