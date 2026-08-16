@@ -40,7 +40,7 @@ class AppShellTests extends Test[Any]:
         renderOnce(sampleShell(state)).map { html =>
           assert(
             !html.contains("nav-item") && !html.contains("brand") &&
-              html.contains("topbar-left") && html.contains("sidebar-toggle") && html.contains("IR Packages")
+              html.contains("titlebar-left") && html.contains("sidebar-toggle") && html.contains("IR Packages")
           )
         }
       }

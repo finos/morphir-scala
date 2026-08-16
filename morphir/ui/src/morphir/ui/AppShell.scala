@@ -38,21 +38,23 @@ object AppShell:
   ): UI =
     div.cssClass(layout.Shell.Css.app).id("app-root")(
       state.left.render { visibility =>
-        if visibility.isCollapsed then div.cssClass("sidebar-hidden").hidden(true)
-        else layout.Sidebar.view(nav, state.left, onSettings, customChrome)
+        layout.Topbar.view(sectionTitle, version, state, customChrome, leftVisibility = visibility)
       },
-      div.cssClass(layout.Shell.Css.main)(
+      div.cssClass(layout.Shell.Css.body)(
         state.left.render { visibility =>
-          layout.Topbar.view(sectionTitle, version, state, customChrome, leftVisibility = visibility)
+          if visibility.isCollapsed then div.cssClass("sidebar-hidden").hidden(true)
+          else layout.Sidebar.view(nav, onSettings)
         },
-        div.cssClass(layout.Shell.Css.content)(fragment(panels.toSeq*)),
-        state.bottom.render { visibility =>
-          if visibility.isCollapsed then div.cssClass("bottom-hidden").hidden(true)
-          else layout.RegionPanel.bottom(bottomRegion)
+        div.cssClass(layout.Shell.Css.main)(
+          div.cssClass(layout.Shell.Css.content)(fragment(panels.toSeq*)),
+          state.bottom.render { visibility =>
+            if visibility.isCollapsed then div.cssClass("bottom-hidden").hidden(true)
+            else layout.RegionPanel.bottom(bottomRegion)
+          }
+        ),
+        state.right.render { visibility =>
+          if visibility.isCollapsed then div.cssClass("right-hidden").hidden(true)
+          else layout.RegionPanel.right(rightRegion)
         }
-      ),
-      state.right.render { visibility =>
-        if visibility.isCollapsed then div.cssClass("right-hidden").hidden(true)
-        else layout.RegionPanel.right(rightRegion)
-      }
+      )
     )

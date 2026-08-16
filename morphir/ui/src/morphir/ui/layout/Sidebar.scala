@@ -9,36 +9,22 @@ import morphir.ui.icons.Icons
 object Sidebar:
 
   object Css:
-    val root        = "sidebar"
-    val head        = "sidebar-head"
-    val headLeft    = "head-left"
-    val lightsInset = "lights-inset"
-    val brand       = "brand"
-    val brandMark   = "brand-mark"
-    val brandSub    = "brand-sub"
-    val navSection  = "nav-section"
-    val navItem     = "nav-item"
-    val navActive   = "active"
-    val navDot      = "nav-dot"
-    val foot        = "sidebar-foot"
-    val footMeta    = "foot-meta"
+    val root       = "sidebar"
+    val brand      = "brand"
+    val brandMark  = "brand-mark"
+    val brandSub   = "brand-sub"
+    val navSection = "nav-section"
+    val navItem    = "nav-item"
+    val navActive  = "active"
+    val navDot     = "nav-dot"
+    val foot       = "sidebar-foot"
+    val footMeta   = "foot-meta"
 
   def view(
       nav: Chunk[NavItem],
-      left: SignalRef[RegionVisibility],
-      onSettings: => Any < Async,
-      customChrome: Boolean
+      onSettings: => Any < Async
   ): UI =
     div.cssClass(Css.root)(
-      (if customChrome then div.cssClass(Css.head).cssClass(Css.lightsInset).id("titlebar-drag")
-       else div.cssClass(Css.head)) (
-        div.cssClass(Css.headLeft)(
-          div.cssClass(
-            Shell.Css.iconBtn
-          ).id("sidebar-toggle").onClick(left.set(RegionVisibility.Collapsed))(Icons.sidebar),
-          div.cssClass(Css.brand)(span("morphir").cssClass(Css.brandMark), span("DESKTOP").cssClass(Css.brandSub))
-        )
-      ),
       div.cssClass(Css.navSection)("Workspace"),
       fragment(nav.toSeq.map(navRow)*),
       div.cssClass(Css.foot)(
@@ -67,16 +53,8 @@ object Sidebar:
           .flexShrink(0)
           .bg(Tokens.hex("#121017"))
           .borderRight(1.px, Tokens.hex("#241f30"))
-          .padding(0.px, 12.px, 18.px, 12.px)
-      )
-      .rule(
-        Css.head,
-        Style.display(_.flex).row.align(_.center).height(52.px).flexShrink(0).padding(0.px, 2.px, 0.px, 0.px)
-      )
-      .rule(Selector.cls(s"${Css.head}.${Css.lightsInset}"), Style.padding(0.px, 0.px, 0.px, 64.px))
-      .rule(Selector.cls(s"${Css.head}.${Css.lightsInset}").descendant(Selector.cls(Css.brandSub)), Style.displayNone)
-      .rule(Css.headLeft, Style.display(_.flex).row.align(_.center).gap(8.px))
-      .rule(
+          .padding(6.px, 12.px, 18.px, 12.px)
+      ).rule(
         Css.brand,
         Style
           .display(_.flex)

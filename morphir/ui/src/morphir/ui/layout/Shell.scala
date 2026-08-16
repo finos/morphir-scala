@@ -4,6 +4,7 @@ package morphir.ui.layout
 object Shell:
   object Css:
     val app     = "app"
+    val body    = "app-body"
     val main    = "main"
     val content = "content"
     val iconBtn = "icon-btn"
@@ -15,7 +16,8 @@ object Shell:
 
   def sheet: Stylesheet =
     Stylesheet.empty
-      .rule(Css.app, Style.display(_.flex).row.height(Length.Vh(100)))
+      .rule(Css.app, Style.display(_.flex).column.height(Length.Vh(100)))
+      .rule(Css.body, Style.display(_.flex).row.flexGrow(1).minWidth(0.px))
       .rule(Css.main, Style.display(_.flex).column.flexGrow(1).minWidth(0.px))
       .rule(
         Css.iconBtn,

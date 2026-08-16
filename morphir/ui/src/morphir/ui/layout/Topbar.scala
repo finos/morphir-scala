@@ -5,15 +5,18 @@ import kyo.UI.*
 import morphir.ui.icons.Icons
 
 /**
- * The topbar slot: breadcrumb (plus the sidebar toggle when the sidebar is collapsed) on the left, version chip and the
- * right/bottom region toggles on the right.
+ * The full-width titlebar: a brand zone over the sidebar column (traffic-light inset, left toggle, brand), the
+ * breadcrumb over the content, and — always at the far right of the window — the version chip and the bottom/right
+ * region toggles. When the sidebar is collapsed the brand zone disappears and the left toggle joins the breadcrumb.
  */
 object Topbar:
 
   object Css:
-    val root        = "topbar"
-    val left        = "topbar-left"
-    val right       = "topbar-right"
+    val root        = "titlebar"
+    val brandZone   = "brand-zone"
+    val rest        = "titlebar-rest"
+    val left        = "titlebar-left"
+    val right       = "titlebar-right"
     val title       = "topbar-title"
     val crumb       = "crumb"
     val chip        = "chip"
@@ -26,22 +29,9 @@ object Topbar:
       customChrome: Boolean,
       leftVisibility: RegionVisibility
   ): UI =
-    val titleGroup =
+    val crumbTitle =
       div.cssClass(Css.title)(span("morphir / ").cssClass(Css.crumb), sectionTitle)
-    val leftGroup =
-      if leftVisibility.isCollapsed then
-        div.cssClass(Css.left)(
-          div.cssClass(
-            Shell.Css.iconBtn
-          ).id("sidebar-toggle").onClick(state.left.set(RegionVisibility.Expanded))(Icons.sidebar),
-          titleGroup
-        )
-      else titleGroup
-    val bar =
-      if leftVisibility.isCollapsed && customChrome then div.cssClass(Css.root).cssClass(Css.lightsInset)
-      else div.cssClass(Css.root)
-    bar(
-      leftGroup,
+    val rightCluster =
       div.cssClass(Css.right)(
         span(s"v$version").cssClass(Css.chip).id("app-version"),
         div.cssClass(Shell.Css.iconBtn).id("bottom-toggle").onClick(state.bottom.getAndUpdate(_.toggled))(
@@ -51,7 +41,26 @@ object Topbar:
           Icons.panelRight
         )
       )
-    )
+    if leftVisibility.isCollapsed then
+      div.cssClass(Css.root).id("titlebar")(
+        (if customChrome then div.cssClass(Css.left).cssClass(Css.lightsInset) else div.cssClass(Css.left)) (
+          div.cssClass(Shell.Css.iconBtn).id("sidebar-toggle").onClick(state.left.set(RegionVisibility.Expanded))(
+            Icons.sidebar
+          ),
+          crumbTitle
+        ),
+        rightCluster
+      )
+    else
+      div.cssClass(Css.root).id("titlebar")(
+        (if customChrome then div.cssClass(Css.brandZone).cssClass(Css.lightsInset) else div.cssClass(Css.brandZone)) (
+          div.cssClass(Shell.Css.iconBtn).id("sidebar-toggle").onClick(state.left.set(RegionVisibility.Collapsed))(
+            Icons.sidebar
+          ),
+          div.cssClass("brand")(span("morphir").cssClass("brand-mark"), span("DESKTOP").cssClass("brand-sub"))
+        ),
+        div.cssClass(Css.rest)(crumbTitle, rightCluster)
+      )
 
   import morphir.ui.theme.Tokens
 
@@ -63,16 +72,43 @@ object Topbar:
           .display(_.flex)
           .row
           .align(_.center)
-          .justify(_.spaceBetween)
           .height(52.px)
           .flexShrink(0)
-          .padding(0.px, 22.px)
           .borderBottom(1.px, Tokens.hex("#241f30"))
           .bg(Tokens.cssVar("surface"))
       )
-      .rule(Selector.cls(s"${Css.root}.${Css.lightsInset}"), Style.padding(0.px, 22.px, 0.px, 78.px))
-      .rule(Css.left, Style.display(_.flex).row.align(_.center).gap(12.px))
-      .rule(Css.right, Style.display(_.flex).row.align(_.center).gap(8.px))
+      .rule(
+        Css.brandZone,
+        Style
+          .display(_.flex)
+          .row
+          .align(_.center)
+          .gap(8.px)
+          .width(224.px)
+          .height(100.pct)
+          .flexShrink(0)
+          .padding(0.px, 12.px)
+          .bg(Tokens.hex("#121017"))
+          .borderRight(1.px, Tokens.hex("#241f30"))
+      )
+      .rule(Selector.cls(s"${Css.brandZone}.${Css.lightsInset}"), Style.padding(0.px, 12.px, 0.px, 64.px))
+      .rule(
+        Selector.cls(s"${Css.brandZone}.${Css.lightsInset}").descendant(Selector.cls("brand-sub")),
+        Style.displayNone
+      )
+      .rule(
+        Css.rest,
+        Style.display(_.flex).row.align(_.center).justify(_.spaceBetween).flexGrow(1).padding(0.px, 22.px)
+      )
+      .rule(
+        Css.left,
+        Style.display(_.flex).row.align(_.center).gap(12.px).flexGrow(1).padding(0.px, 0.px, 0.px, 22.px)
+      )
+      .rule(Selector.cls(s"${Css.left}.${Css.lightsInset}"), Style.padding(0.px, 0.px, 0.px, 78.px))
+      .rule(
+        Css.right,
+        Style.display(_.flex).row.align(_.center).gap(8.px).padding(0.px, 22.px, 0.px, 0.px)
+      )
       .rule(
         Css.title,
         Style.display(_.flex).row.align(_.baseline).gap(4.px).fontWeight(_.w600).fontSize(14.px)

@@ -20,7 +20,7 @@ object Theme:
   private val quarantineCss: String =
     """
       |/* -webkit-app-region: no typed property (frameless-window drag regions). */
-      |.sidebar-head, .topbar { -webkit-app-region: drag; }
+      |.titlebar { -webkit-app-region: drag; }
       |.icon-btn, .nav-item, .chip { -webkit-app-region: no-drag; }
       |/* CSS grid: no typed vocabulary at RC6. */
       |.content {
