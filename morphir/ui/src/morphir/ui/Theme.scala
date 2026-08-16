@@ -1,128 +1,48 @@
 package morphir.ui
 
+import kyo.*
+import morphir.ui.layout.{RegionPanel, Shell, Sidebar, Topbar}
 import morphir.ui.theme.{Base, Tokens}
 
 /**
- * The morphir client theme, aggregated for hosts: typed token/base stylesheets rendered plus the raw remainders.
- * `legacyCss` shrinks as layout and component rules migrate to typed sheets; the quarantine block holds only properties
- * the typed vocabulary cannot express and is meant to stay tiny.
+ * The morphir client theme, aggregated for hosts: the typed stylesheets of the theme and layout packages rendered to
+ * one string, plus two raw blocks. `legacyCss` holds the component rules still awaiting migration; `quarantineCss`
+ * holds only properties the typed vocabulary cannot express at RC6 and is meant to stay tiny.
  */
 object Theme:
 
-  /** Frameless-window drag regions: `-webkit-app-region` has no typed Style property at RC6. */
+  def sheet: Stylesheet =
+    Tokens.sheet ++ Base.sheet ++ Shell.sheet ++ Sidebar.sheet ++ Topbar.sheet ++ RegionPanel.sheet
+
+  /** Each rule here names the missing typed vocabulary that forces it to stay raw. */
   private val quarantineCss: String =
     """
+      |/* -webkit-app-region: no typed property (frameless-window drag regions). */
       |.sidebar-head, .topbar { -webkit-app-region: drag; }
       |.icon-btn, .nav-item, .chip { -webkit-app-region: no-drag; }
-      |""".stripMargin
-
-  private val legacyCss: String =
-    """
-      |
-      |.app { display: flex; flex-direction: row; height: 100vh; }
-      |
-      |.sidebar {
-      |  width: 224px; flex: none; display: flex; flex-direction: column;
-      |  background: #121017; border-right: 1px solid #241f30; padding: 0 12px 18px;
-      |}
-      |.brand {
-      |  display: flex; flex-direction: row; align-items: baseline; gap: 8px; padding: 0 10px;
-      |  font-weight: 700; font-size: 17px; letter-spacing: -0.01em;
-      |}
-      |.brand-mark {
-      |  background: linear-gradient(120deg, var(--accent), var(--accent2));
-      |  -webkit-background-clip: text; background-clip: text; color: transparent;
-      |}
-      |.brand-sub { font: 600 9px var(--mono); letter-spacing: 0.22em; color: var(--muted2); }
-      |.nav-section { font: 600 10px var(--mono); letter-spacing: 0.16em; color: var(--muted2);
-      |  text-transform: uppercase; padding: 16px 10px 6px; }
-      |.nav-item {
-      |  display: flex; flex-direction: row; align-items: center; gap: 10px; padding: 8px 10px; margin: 1px 0;
-      |  border-radius: 8px; color: #a89fbe; font-weight: 500; cursor: default;
-      |}
-      |.nav-item:hover { background: #1a1622; color: var(--text); }
-      |.nav-item.active {
-      |  background: linear-gradient(90deg, rgba(214, 64, 159, 0.16), rgba(139, 92, 246, 0.10));
-      |  color: #fff; box-shadow: inset 2px 0 0 var(--accent);
-      |}
-      |.nav-dot { width: 6px; height: 6px; border-radius: 50%; background: #3d3550; flex: none; }
-      |.nav-item.active .nav-dot { background: var(--accent); }
-      |.sidebar-foot {
-      |  margin-top: auto; padding: 6px 4px 0; display: flex; flex-direction: row;
-      |  align-items: center; justify-content: space-between;
-      |}
-      |.icon-btn {
-      |  width: 30px; height: 30px; border-radius: 8px; display: flex; flex-direction: row;
-      |  align-items: center; justify-content: center; color: var(--muted); cursor: pointer;
-      |}
-      |.icon-btn:hover { background: #1f1a29; color: var(--text); }
-      |.icon-btn svg { display: block; }
-      |.foot-meta { font: 11px var(--mono); color: var(--muted2); }
-      |
-      |.sidebar-head {
-      |  height: 52px; flex: none; display: flex; flex-direction: row; align-items: center;
-      |  padding-right: 2px;
-      |}
-      |.head-left { display: flex; flex-direction: row; align-items: center; gap: 8px; }
-      |
-      |/* Custom-chrome (frameless window) support: the host app owns the title bar. The spacer keeps
-      |   clear of the macOS traffic-light overlay; drag regions make the chrome move the window. */
-      |.topbar-left { display: flex; flex-direction: row; align-items: center; gap: 12px; }
-      |.topbar.lights-inset { padding-left: 78px; }
-      |.sidebar-head.lights-inset { padding-left: 64px; }
-      |.sidebar-head.lights-inset .brand-sub { display: none; }
-      |.sidebar-head.lights-inset .brand { padding-bottom: 0; }
-      |
-      |.topbar-right { display: flex; flex-direction: row; align-items: center; gap: 8px; }
-      |.rightbar {
-      |  width: 300px; flex: none; display: flex; flex-direction: column;
-      |  background: #121017; border-left: 1px solid #241f30;
-      |}
-      |.bottombar {
-      |  height: 180px; flex: none; display: flex; flex-direction: column;
-      |  background: #121017; border-top: 1px solid #241f30;
-      |}
-      |.region-head {
-      |  height: 36px; flex: none; display: flex; flex-direction: row; align-items: center;
-      |  padding: 0 14px; font: 600 10px var(--mono); letter-spacing: 0.16em; text-transform: uppercase;
-      |  color: var(--muted2); border-bottom: 1px solid #1d1828;
-      |}
-      |.region-body { flex: 1; overflow: auto; padding: 12px 14px; font-size: 13px; }
-      |.region-body pre { font: 12px var(--mono); }
-      |
-      |.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-      |.topbar {
-      |  height: 52px; flex: none; display: flex; flex-direction: row; align-items: center; justify-content: space-between;
-      |  padding: 0 22px; border-bottom: 1px solid #241f30; background: var(--surface);
-      |}
-      |.topbar-title { display: flex; flex-direction: row; align-items: baseline; gap: 4px; font-weight: 600; font-size: 14px; }
-      |.topbar-title .crumb { color: var(--muted2); font-weight: 400; }
-      |.chip {
-      |  font: 600 11px var(--mono); padding: 3px 10px; border-radius: 999px;
-      |  color: #f2b7dd; background: rgba(214, 64, 159, 0.14); border: 1px solid rgba(214, 64, 159, 0.35);
-      |}
-      |
+      |/* CSS grid: no typed vocabulary at RC6. */
       |.content {
       |  flex: 1; overflow: auto; padding: 22px;
       |  display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 16px;
       |  align-content: start;
       |}
-      |.panel {
-      |  background: var(--panel); border: 1px solid var(--panel-edge); border-radius: 12px;
-      |  padding: 16px 18px 8px; min-width: 0;
+      |/* inset box-shadow: Style.shadow has no inset arm. */
+      |.nav-item.active { box-shadow: inset 2px 0 0 var(--accent); }
+      |/* background-clip: text (gradient text) is not in the BackgroundClip enum. */
+      |.brand-mark {
+      |  background: linear-gradient(120deg, var(--accent), var(--accent2));
+      |  -webkit-background-clip: text; background-clip: text; color: transparent;
       |}
-      |.panel > h2 {
-      |  font: 600 10px var(--mono); letter-spacing: 0.18em; text-transform: uppercase;
-      |  color: var(--muted2); padding-bottom: 12px;
-      |}
-      |
+      |""".stripMargin
+
+  private val legacyCss: String =
+    """
       |#ir-packages, #ir-modules, #kb-bundles { list-style: none; }
       |#ir-packages li, #ir-modules li, #kb-bundles li {
       |  padding: 9px 4px; border-bottom: 1px solid #221d2e; font: 13px var(--mono);
       |}
       |#ir-packages li:last-child, #ir-modules li:last-child, #kb-bundles li:last-child { border-bottom: 0; }
       |#ir-packages li:hover, #ir-modules li:hover { background: #1f1a29; }
-      |
       |#kb-intents { width: 100%; border-collapse: collapse; font-size: 13px; }
       |#kb-intents th {
       |  text-align: left; font: 600 10px var(--mono); letter-spacing: 0.14em; text-transform: uppercase;
@@ -133,11 +53,11 @@ object Theme:
       |#kb-intents td:first-child { font: 600 12px var(--mono); color: var(--accent2); }
       |#kb-intents td:nth-child(3) { font: 600 11px var(--mono); color: #f2b7dd; }
       |#kb-intents td:nth-child(4) { font: 12px var(--mono); color: var(--muted2); }
-      |
       |#ir-definition pre {
       |  background: #131019; border: 1px solid #241f30; border-radius: 8px;
       |  padding: 12px 14px; font: 12.5px var(--mono); overflow-x: auto;
       |}
-      |""".stripMargin
+      """.stripMargin
 
-  def css: String = (Tokens.sheet ++ Base.sheet).render + "\n" + Base.rawCss + quarantineCss + legacyCss
+  def css: String =
+    sheet.render + "\n" + Base.rawCss + quarantineCss + legacyCss
