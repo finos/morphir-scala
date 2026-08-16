@@ -25,7 +25,7 @@ object Sidebar:
 
   def view(
       nav: Chunk[NavItem],
-      left: SignalRef[Boolean],
+      left: SignalRef[RegionVisibility],
       onSettings: => Any < Async,
       customChrome: Boolean
   ): UI =
@@ -33,7 +33,9 @@ object Sidebar:
       (if customChrome then div.cssClass(Css.head).cssClass(Css.lightsInset).id("titlebar-drag")
        else div.cssClass(Css.head)) (
         div.cssClass(Css.headLeft)(
-          div.cssClass(Shell.Css.iconBtn).id("sidebar-toggle").onClick(left.set(true))(Icons.sidebar),
+          div.cssClass(
+            Shell.Css.iconBtn
+          ).id("sidebar-toggle").onClick(left.set(RegionVisibility.Collapsed))(Icons.sidebar),
           div.cssClass(Css.brand)(span("morphir").cssClass(Css.brandMark), span("DESKTOP").cssClass(Css.brandSub))
         )
       ),

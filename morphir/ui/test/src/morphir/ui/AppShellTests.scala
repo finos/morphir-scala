@@ -2,6 +2,7 @@ package morphir.ui
 
 import kyo.*
 import kyo.test.*
+import morphir.ui.layout.RegionVisibility.Collapsed
 
 class AppShellTests extends Test[Any]:
 
@@ -35,7 +36,7 @@ class AppShellTests extends Test[Any]:
       }
 
     "left collapse hides the sidebar and moves the toggle into the topbar" in
-      AppShell.ShellState.init(leftCollapsed = true).map { state =>
+      AppShell.ShellState.init(left = Collapsed).map { state =>
         renderOnce(sampleShell(state)).map { html =>
           assert(
             !html.contains("nav-item") && !html.contains("brand") &&
@@ -45,7 +46,7 @@ class AppShellTests extends Test[Any]:
       }
 
     "right and bottom collapse hide their regions but keep the toggles" in
-      AppShell.ShellState.init(rightCollapsed = true, bottomCollapsed = true).map { state =>
+      AppShell.ShellState.init(right = Collapsed, bottom = Collapsed).map { state =>
         renderOnce(sampleShell(state)).map { html =>
           assert(
             !html.contains("Inspector") && !html.contains("bottombar") &&
@@ -58,9 +59,9 @@ class AppShellTests extends Test[Any]:
       AppShell.ShellState.init().map { state =>
         for
           first  <- renderOnce(sampleShell(state))
-          _      <- state.left.set(true)
-          _      <- state.right.set(true)
-          _      <- state.bottom.set(true)
+          _      <- state.left.set(Collapsed)
+          _      <- state.right.set(Collapsed)
+          _      <- state.bottom.set(Collapsed)
           second <- renderOnce(sampleShell(state))
         yield assert(
           first.contains("IR Explorer") && first.contains("Inspector") && first.contains("bottombar") &&

@@ -24,28 +24,30 @@ object Topbar:
       version: String,
       state: ShellState,
       customChrome: Boolean,
-      leftCollapsed: Boolean
+      leftVisibility: RegionVisibility
   ): UI =
     val titleGroup =
       div.cssClass(Css.title)(span("morphir / ").cssClass(Css.crumb), sectionTitle)
     val leftGroup =
-      if leftCollapsed then
+      if leftVisibility.isCollapsed then
         div.cssClass(Css.left)(
-          div.cssClass(Shell.Css.iconBtn).id("sidebar-toggle").onClick(state.left.set(false))(Icons.sidebar),
+          div.cssClass(
+            Shell.Css.iconBtn
+          ).id("sidebar-toggle").onClick(state.left.set(RegionVisibility.Expanded))(Icons.sidebar),
           titleGroup
         )
       else titleGroup
     val bar =
-      if leftCollapsed && customChrome then div.cssClass(Css.root).cssClass(Css.lightsInset)
+      if leftVisibility.isCollapsed && customChrome then div.cssClass(Css.root).cssClass(Css.lightsInset)
       else div.cssClass(Css.root)
     bar(
       leftGroup,
       div.cssClass(Css.right)(
         span(s"v$version").cssClass(Css.chip).id("app-version"),
-        div.cssClass(Shell.Css.iconBtn).id("bottom-toggle").onClick(state.bottom.getAndUpdate(v => !v))(
+        div.cssClass(Shell.Css.iconBtn).id("bottom-toggle").onClick(state.bottom.getAndUpdate(_.toggled))(
           Icons.panelBottom
         ),
-        div.cssClass(Shell.Css.iconBtn).id("right-toggle").onClick(state.right.getAndUpdate(v => !v))(
+        div.cssClass(Shell.Css.iconBtn).id("right-toggle").onClick(state.right.getAndUpdate(_.toggled))(
           Icons.panelRight
         )
       )

@@ -37,22 +37,22 @@ object AppShell:
       customChrome: Boolean = false
   ): UI =
     div.cssClass(layout.Shell.Css.app).id("app-root")(
-      state.left.render { isCollapsed =>
-        if isCollapsed then div.cssClass("sidebar-hidden").hidden(true)
+      state.left.render { visibility =>
+        if visibility.isCollapsed then div.cssClass("sidebar-hidden").hidden(true)
         else layout.Sidebar.view(nav, state.left, onSettings, customChrome)
       },
       div.cssClass(layout.Shell.Css.main)(
-        state.left.render { isCollapsed =>
-          layout.Topbar.view(sectionTitle, version, state, customChrome, leftCollapsed = isCollapsed)
+        state.left.render { visibility =>
+          layout.Topbar.view(sectionTitle, version, state, customChrome, leftVisibility = visibility)
         },
         div.cssClass(layout.Shell.Css.content)(fragment(panels.toSeq*)),
-        state.bottom.render { isCollapsed =>
-          if isCollapsed then div.cssClass("bottom-hidden").hidden(true)
+        state.bottom.render { visibility =>
+          if visibility.isCollapsed then div.cssClass("bottom-hidden").hidden(true)
           else layout.RegionPanel.bottom(bottomRegion)
         }
       ),
-      state.right.render { isCollapsed =>
-        if isCollapsed then div.cssClass("right-hidden").hidden(true)
+      state.right.render { visibility =>
+        if visibility.isCollapsed then div.cssClass("right-hidden").hidden(true)
         else layout.RegionPanel.right(rightRegion)
       }
     )
