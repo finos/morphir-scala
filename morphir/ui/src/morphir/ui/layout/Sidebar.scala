@@ -133,6 +133,12 @@ object Sidebar:
       )
       .rule(
         Css.foot,
-        Style.display(_.flex).row.align(_.center).justify(_.spaceBetween).padding(6.px, 4.px, 0.px, 4.px)
+        Style
+          .display(_.flex)
+          .row
+          .align(_.center)
+          .justify(_.spaceBetween)
+          .margin(Length.Auto, Length.Px(0), Length.Px(0), Length.Px(0))
+          .padding(6.px, 4.px, 0.px, 4.px)
       )
       .rule(Css.footMeta, Style.fontFamily(mono).fontSize(11.px).color(Tokens.cssVar("muted2")))
