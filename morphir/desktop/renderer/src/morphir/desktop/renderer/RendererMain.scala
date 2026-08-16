@@ -3,7 +3,7 @@ package morphir.desktop.renderer
 import kyo.*
 import kyo.UI.*
 import morphir.appkit.electron.*
-import morphir.ui.{IrExplorerView, KnowledgeBrowserView}
+import morphir.ui.{AppShell, IrExplorerView, KnowledgeBrowserView, Theme}
 import morphir.ui.services.*
 import scala.scalajs.js
 import scala.scalajs.js.annotation.*
@@ -21,8 +21,15 @@ object RendererMain:
       def postMessage(message: String): Unit                   = { val _ = raw.postMessage(message) }
       def onMessage(handler: js.Function1[String, Unit]): Unit = { val _ = raw.onMessage(handler) }
 
+  private def injectTheme(): Unit =
+    val doc   = js.Dynamic.global.document
+    val style = doc.createElement("style")
+    style.textContent = Theme.css
+    val _ = doc.head.appendChild(style)
+
   @JSExportTopLevel("morphirRendererStart")
   def start(): Unit =
+    injectTheme()
     val ws = WorkspaceRef("/demo")
 
     val program =
@@ -38,11 +45,20 @@ object RendererMain:
             KnowledgeRpc.methods.intentIndex,
             IntentIndexRequest(ws)
           )
-          ui = div(
-            h1(s"Morphir Desktop ${version.version}").id("app-title"),
-            section(h2("IR"), IrExplorerView.packageList(packages.packages)),
-            section(h2("Knowledge"), KnowledgeBrowserView.intentTable(intents.intents))
-          ).id("app-root")
+          ui = AppShell.shell(
+            sectionTitle = "Overview",
+            version = version.version,
+            nav = Chunk(
+              AppShell.NavItem("Overview", active = true),
+              AppShell.NavItem("IR Explorer"),
+              AppShell.NavItem("Knowledge"),
+              AppShell.NavItem("Intents")
+            ),
+            panels = Chunk(
+              AppShell.panel("IR Packages", IrExplorerView.packageList(packages.packages)),
+              AppShell.panel("Intent Lifecycle", KnowledgeBrowserView.intentTable(intents.intents))
+            )
+          )
           _ <- client.notify[String]("morphir/shell/smokeDone", "done")
           _ <- UI.runMount(ui)
           _ <- Async.never
