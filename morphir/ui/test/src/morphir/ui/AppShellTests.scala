@@ -8,54 +8,72 @@ class AppShellTests extends Test[Any]:
   def renderOnce(ui: UI): String < Async =
     UI.runRender(ui).take(1).run.map(_.mkString)
 
-  def sampleShell(collapsed: SignalRef[Boolean], customChrome: Boolean = false): UI =
+  def sampleShell(state: AppShell.ShellState, customChrome: Boolean = false): UI =
     AppShell.shell(
       sectionTitle = "Overview",
       version = "1.2.3",
       nav = Chunk(AppShell.NavItem("IR Explorer", active = true), AppShell.NavItem("Knowledge")),
       panels = Chunk(AppShell.panel("IR Packages", UI.p("body"))),
-      collapsed = collapsed,
+      rightRegion = AppShell.Region("Inspector", UI.p("right-body")),
+      bottomRegion = AppShell.Region("Log", UI.p("bottom-body")),
+      state = state,
       customChrome = customChrome
     )
 
   "AppShell" - {
 
-    "shell renders sidebar, nav, topbar chip, panels, toggle and settings" in
-      Signal.initRef(false).map { collapsed =>
-        renderOnce(sampleShell(collapsed)).map { html =>
+    "expanded shell renders all three regions with their toggles" in
+      AppShell.ShellState.init().map { state =>
+        renderOnce(sampleShell(state)).map { html =>
           assert(
-            html.contains("sidebar") && html.contains("nav-item") && html.contains("IR Explorer") &&
-              html.contains("v1.2.3") && html.contains("panel") && html.contains("IR Packages") &&
-              html.contains("settings-button") && html.contains("sidebar-toggle") && html.contains("<svg")
+            html.contains("nav-item") && html.contains("IR Explorer") && html.contains("v1.2.3") &&
+              html.contains("sidebar-toggle") && html.contains("right-toggle") && html.contains("bottom-toggle") &&
+              html.contains("rightbar") && html.contains("Inspector") &&
+              html.contains("bottombar") && html.contains("Log") && html.contains("settings-button")
           )
         }
       }
 
-    "collapsed shell hides the sidebar and moves the toggle into the topbar" in
-      Signal.initRef(true).map { collapsed =>
-        renderOnce(sampleShell(collapsed)).map { html =>
+    "left collapse hides the sidebar and moves the toggle into the topbar" in
+      AppShell.ShellState.init(leftCollapsed = true).map { state =>
+        renderOnce(sampleShell(state)).map { html =>
           assert(
-            !html.contains("nav-item") && !html.contains("brand") && !html.contains("IR Explorer") &&
+            !html.contains("nav-item") && !html.contains("brand") &&
               html.contains("topbar-left") && html.contains("sidebar-toggle") && html.contains("IR Packages")
           )
         }
       }
 
-    "toggling the ref re-renders the sidebar variant" in
-      Signal.initRef(false).map { collapsed =>
-        for
-          first  <- renderOnce(sampleShell(collapsed))
-          _      <- collapsed.set(true)
-          second <- renderOnce(sampleShell(collapsed))
-        yield assert(first.contains("IR Explorer") && !second.contains("IR Explorer") && second.contains("topbar-left"))
+    "right and bottom collapse hide their regions but keep the toggles" in
+      AppShell.ShellState.init(rightCollapsed = true, bottomCollapsed = true).map { state =>
+        renderOnce(sampleShell(state)).map { html =>
+          assert(
+            !html.contains("Inspector") && !html.contains("bottombar") &&
+              html.contains("right-toggle") && html.contains("bottom-toggle")
+          )
+        }
       }
 
-    "custom chrome adds the titlebar drag spacer; default omits it" in
-      Signal.initRef(false).map { collapsed =>
+    "toggling the refs re-renders each region" in
+      AppShell.ShellState.init().map { state =>
         for
-          plain  <- renderOnce(sampleShell(collapsed))
-          chrome <- renderOnce(sampleShell(collapsed, customChrome = true))
-        yield assert(!plain.contains("titlebar-drag") && chrome.contains("titlebar-drag"))
+          first  <- renderOnce(sampleShell(state))
+          _      <- state.left.set(true)
+          _      <- state.right.set(true)
+          _      <- state.bottom.set(true)
+          second <- renderOnce(sampleShell(state))
+        yield assert(
+          first.contains("IR Explorer") && first.contains("Inspector") && first.contains("bottombar") &&
+            !second.contains("IR Explorer") && !second.contains("Inspector") && !second.contains("bottombar")
+        )
+      }
+
+    "custom chrome inserts the lights inset; default omits it" in
+      AppShell.ShellState.init().map { state =>
+        for
+          plain  <- renderOnce(sampleShell(state))
+          chrome <- renderOnce(sampleShell(state, customChrome = true))
+        yield assert(!plain.contains("lights-inset") && chrome.contains("lights-inset"))
       }
   }
 end AppShellTests

@@ -35,16 +35,20 @@ object RendererMain:
     val program =
       Scope.run {
         for
-          collapsed <- Signal.initRef(false)
-          port      <- ElectronPorts.rendererPort(bridgeFromWindow)
-          client    <- JsonRpcHandler.init(ElectronIpcTransport.fromPort(port))
-          version   <-
+          state   <- AppShell.ShellState.init()
+          port    <- ElectronPorts.rendererPort(bridgeFromWindow)
+          client  <- JsonRpcHandler.init(ElectronIpcTransport.fromPort(port))
+          version <-
             client.call[AppVersionRequest, AppVersionResponse](ShellRpc.methods.appVersion, AppVersionRequest())
           packages <-
             client.call[ListPackagesRequest, ListPackagesResponse](IrRpc.methods.listPackages, ListPackagesRequest(ws))
           intents <- client.call[IntentIndexRequest, IntentIndexResponse](
             KnowledgeRpc.methods.intentIndex,
             IntentIndexRequest(ws)
+          )
+          definition <- client.call[DefinitionRequest, DefinitionResponse](
+            IrRpc.methods.definition,
+            DefinitionRequest(ws, DefinitionRef("Morphir.SDK", "List", "map"))
           )
           ui = AppShell.shell(
             sectionTitle = "Overview",
@@ -59,7 +63,14 @@ object RendererMain:
               AppShell.panel("IR Packages", IrExplorerView.packageList(packages.packages)),
               AppShell.panel("Intent Lifecycle", KnowledgeBrowserView.intentTable(intents.intents))
             ),
-            collapsed = collapsed,
+            rightRegion = AppShell.Region("Inspector", IrExplorerView.definitionCard(definition.definition)),
+            bottomRegion = AppShell.Region(
+              "Log",
+              UI.pre(
+                s"morphir-rpc connected\nservices: ir, knowledge, shell\napp version ${version.version}\nworkspace ${ws.path}"
+              )
+            ),
+            state = state,
             customChrome = true
           )
           _ <- client.notify[String]("morphir/shell/smokeDone", "done")

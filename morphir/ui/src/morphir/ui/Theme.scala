@@ -75,18 +75,36 @@ object Theme:
       |
       |.sidebar-head {
       |  height: 52px; flex: none; display: flex; flex-direction: row; align-items: center;
-      |  justify-content: space-between; padding-right: 2px;
+      |  padding-right: 2px;
       |}
+      |.head-left { display: flex; flex-direction: row; align-items: center; gap: 8px; }
       |
       |/* Custom-chrome (frameless window) support: the host app owns the title bar. The spacer keeps
       |   clear of the macOS traffic-light overlay; drag regions make the chrome move the window. */
       |.sidebar-head, .topbar { -webkit-app-region: drag; }
       |.topbar-left { display: flex; flex-direction: row; align-items: center; gap: 12px; }
       |.topbar.lights-inset { padding-left: 78px; }
-      |.sidebar-head.lights-inset { padding-left: 62px; }
+      |.sidebar-head.lights-inset { padding-left: 64px; }
       |.sidebar-head.lights-inset .brand-sub { display: none; }
       |.sidebar-head.lights-inset .brand { padding-bottom: 0; }
       |.icon-btn, .nav-item, .chip { -webkit-app-region: no-drag; }
+      |
+      |.topbar-right { display: flex; flex-direction: row; align-items: center; gap: 8px; }
+      |.rightbar {
+      |  width: 300px; flex: none; display: flex; flex-direction: column;
+      |  background: #121017; border-left: 1px solid #241f30;
+      |}
+      |.bottombar {
+      |  height: 180px; flex: none; display: flex; flex-direction: column;
+      |  background: #121017; border-top: 1px solid #241f30;
+      |}
+      |.region-head {
+      |  height: 36px; flex: none; display: flex; flex-direction: row; align-items: center;
+      |  padding: 0 14px; font: 600 10px var(--mono); letter-spacing: 0.16em; text-transform: uppercase;
+      |  color: var(--muted2); border-bottom: 1px solid #1d1828;
+      |}
+      |.region-body { flex: 1; overflow: auto; padding: 12px 14px; font-size: 13px; }
+      |.region-body pre { font: 12px var(--mono); }
       |
       |.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
       |.topbar {
