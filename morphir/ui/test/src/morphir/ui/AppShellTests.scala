@@ -2,7 +2,7 @@ package morphir.ui
 
 import kyo.*
 import kyo.test.*
-import morphir.ui.layout.{SettingsKey, ShellRoute}
+import morphir.ui.layout.{PanelBounds, SettingsKey, ShellRoute}
 import morphir.ui.layout.RegionVisibility.Collapsed
 
 class AppShellTests extends Test[Any]:
@@ -90,6 +90,58 @@ class AppShellTests extends Test[Any]:
           plain  <- renderOnce(sampleShell(state))
           chrome <- renderOnce(sampleShell(state, customChrome = true))
         yield assert(!plain.contains("lights-inset") && chrome.contains("lights-inset"))
+      }
+  }
+
+  "AppShell resizing" - {
+
+    "each region renders its own drag strip" in
+      AppShell.ShellState.init().map { state =>
+        renderOnce(sampleShell(state)).map { html =>
+          assert(
+            html.contains("left-resize") && html.contains("right-resize") && html.contains("bottom-resize") &&
+              html.contains("resize-vertical") && html.contains("resize-horizontal")
+          )
+        }
+      }
+
+    "a collapsed region hides its strip with the region" in
+      AppShell.ShellState.init(right = Collapsed).map { state =>
+        renderOnce(sampleShell(state)).map { html =>
+          assert(html.contains("left-resize") && !html.contains("right-resize"))
+        }
+      }
+
+    "resize commands clamp into the region bounds" in
+      AppShell.ShellState.init().map { state =>
+        for
+          _         <- state.resizeLeft(40)
+          tooNarrow <- state.leftWidth.get
+          _         <- state.resizeLeft(9000)
+          tooWide   <- state.leftWidth.get
+          _         <- state.resizeLeft(300)
+          inRange   <- state.leftWidth.get
+        yield assert(
+          tooNarrow.px == PanelBounds.left.min && tooWide.px == PanelBounds.left.max && inRange.px == 300
+        )
+      }
+
+    "each region clamps against its own bounds" in
+      AppShell.ShellState.init().map { state =>
+        for
+          _      <- state.resizeRight(10)
+          right  <- state.rightWidth.get
+          _      <- state.resizeBottom(9000)
+          bottom <- state.bottomHeight.get
+        yield assert(right.px == PanelBounds.right.min && bottom.px == PanelBounds.bottom.max)
+      }
+
+    "a resized region renders at its new size" in
+      AppShell.ShellState.init().map { state =>
+        for
+          _    <- state.resizeLeft(360)
+          html <- renderOnce(sampleShell(state))
+        yield assert(html.contains("360px"))
       }
   }
 

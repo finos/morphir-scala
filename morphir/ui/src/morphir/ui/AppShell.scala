@@ -61,8 +61,8 @@ object AppShell:
 
     def sidebar(route: ShellRoute, key: SettingsKey, leftVisibility: RegionVisibility): UI =
       if leftVisibility.isCollapsed then div.cssClass("sidebar-hidden").hidden(true)
-      else if route.isSettings then layout.SettingsSidebar.view(settingsSections, key, state)
-      else layout.Sidebar.view(nav, openSettings)
+      else if route.isSettings then layout.SettingsSidebar.view(settingsSections, key, state, state.leftWidth)
+      else layout.Sidebar.view(nav, openSettings, state.leftWidth)
 
     def content(route: ShellRoute, key: SettingsKey): UI =
       if route.isSettings then
@@ -83,22 +83,42 @@ object AppShell:
             state.left.render(visibility => sidebar(route, key, visibility))
           }
         },
+        state.left.render { visibility =>
+          if visibility.isCollapsed then div.cssClass("left-handle-hidden").hidden(true)
+          else layout.ResizeHandle.column(layout.ResizeHandle.leftId)
+        },
         div.cssClass(layout.Shell.Css.main)(
           state.route.render { route =>
             state.settingsSection.render(key => content(route, key))
           },
           state.route.render { route =>
             state.bottom.render { visibility =>
+              if route.isSettings || visibility.isCollapsed then div.cssClass("bottom-handle-hidden").hidden(true)
+              else layout.ResizeHandle.row(layout.ResizeHandle.bottomId)
+            }
+          },
+          state.route.render { route =>
+            state.bottom.render { visibility =>
               if route.isSettings || visibility.isCollapsed then div.cssClass("bottom-hidden").hidden(true)
-              else layout.RegionPanel.bottom(bottomRegion)
+              else layout.RegionPanel.bottom(bottomRegion, state.bottomHeight)
             }
           }
         ),
         state.route.render { route =>
           state.right.render { visibility =>
+            if route.isSettings || visibility.isCollapsed then div.cssClass("right-handle-hidden").hidden(true)
+            else layout.ResizeHandle.column(layout.ResizeHandle.rightId)
+          }
+        },
+        state.route.render { route =>
+          state.right.render { visibility =>
             if route.isSettings || visibility.isCollapsed then div.cssClass("right-hidden").hidden(true)
-            else layout.RegionPanel.right(rightRegion)
+            else layout.RegionPanel.right(rightRegion, state.rightWidth)
           }
         }
       )
     )
+
+  /** Wires pointer drags on the resize strips to the store. Hosts call this once, after mounting the shell. */
+  def attachResizeHandles(state: ShellState): Unit < Sync =
+    morphir.ui.internal.PointerResize.attach(state)

@@ -21,7 +21,8 @@ object Sidebar:
 
   def view(
       nav: Chunk[NavItem],
-      onSettings: => Any < Async
+      onSettings: => Any < Async,
+      width: Signal[PanelSize]
   ): UI =
     div.cssClass(Css.root)(
       div.cssClass(Css.navSection)("Workspace"),
@@ -29,7 +30,7 @@ object Sidebar:
       div.cssClass(Css.foot)(
         div.cssClass(Shell.Css.iconBtn).id("settings-button").onClick(onSettings)(Icons.gear)
       )
-    )
+    ).style(width.map(size => Style.width(size.px.px)))
 
   private def navRow(item: NavItem): UI =
     val base = div.cssClass(Css.navItem)

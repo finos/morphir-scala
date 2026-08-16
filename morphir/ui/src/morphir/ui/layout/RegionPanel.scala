@@ -13,17 +13,17 @@ object RegionPanel:
     val head      = "region-head"
     val body      = "region-body"
 
-  def right(region: Region): UI =
+  def right(region: Region, width: Signal[PanelSize]): UI =
     div.cssClass(Css.rightbar)(
       div.cssClass(Css.head)(region.title),
       div.cssClass(Css.body)(region.body)
-    )
+    ).style(width.map(size => Style.width(size.px.px)))
 
-  def bottom(region: Region): UI =
+  def bottom(region: Region, height: Signal[PanelSize]): UI =
     div.cssClass(Css.bottombar)(
       div.cssClass(Css.head)(region.title),
       div.cssClass(Css.body)(region.body)
-    )
+    ).style(height.map(size => Style.height(size.px.px)))
 
   import kyo.*
   import kyo.Style
