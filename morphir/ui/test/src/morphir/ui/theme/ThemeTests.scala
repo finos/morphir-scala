@@ -2,8 +2,8 @@ package morphir.ui.theme
 
 import kyo.*
 import kyo.test.*
-import morphir.ui.Theme
-import morphir.ui.layout.{RegionPanel, Shell, Sidebar, Topbar}
+import morphir.ui.{SettingsView, Theme}
+import morphir.ui.layout.{RegionPanel, SettingsSidebar, Shell, Sidebar, Topbar}
 
 class ThemeTests extends Test[Any]:
 
@@ -24,7 +24,11 @@ class ThemeTests extends Test[Any]:
     Topbar.Css.chip,
     RegionPanel.Css.rightbar,
     RegionPanel.Css.bottombar,
-    RegionPanel.Css.head
+    RegionPanel.Css.head,
+    SettingsSidebar.Css.item,
+    SettingsSidebar.Css.back,
+    SettingsView.Css.group,
+    SettingsView.Css.row
   )
 
   "Theme" - {

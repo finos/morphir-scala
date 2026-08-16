@@ -58,6 +58,19 @@ object Icons:
           .r(3)
       )
 
+  /** Lucide `arrow-left` glyph: leave the settings surface. */
+  def back: UI =
+    Svg.svg.viewBox(Svg.ViewBox(0, 0, 24, 24)).width(16).height(16)(
+      strokedLine(19, 12, 5, 12),
+      Svg.path
+        .fill(Svg.Paint.None)
+        .stroke(Svg.Paint.CurrentColor)
+        .strokeWidth(1.6)
+        .strokeLinecap(Svg.StrokeLinecap.Round)
+        .strokeLinejoin(Svg.StrokeLinejoin.Round)
+        .d(Svg.PathData.raw("M12 19l-7-7 7-7"))
+    )
+
   private def strokedRect: Svg.Rect =
     Svg.rect
       .fill(Svg.Paint.None)

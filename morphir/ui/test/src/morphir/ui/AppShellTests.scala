@@ -2,9 +2,22 @@ package morphir.ui
 
 import kyo.*
 import kyo.test.*
+import morphir.ui.layout.{SettingsKey, ShellRoute}
 import morphir.ui.layout.RegionVisibility.Collapsed
 
 class AppShellTests extends Test[Any]:
+
+  val generalKey    = SettingsKey("general")
+  val appearanceKey = SettingsKey("appearance")
+
+  val settingsSections = Chunk(
+    AppShell.SettingsSection(generalKey, "General", Chunk(SettingsView.group("Workspace", Chunk.empty))),
+    AppShell.SettingsSection(
+      appearanceKey,
+      "Appearance",
+      Chunk(SettingsView.group("Theme", Chunk(SettingsView.Row("Accent", "Highlight colour", "magenta"))))
+    )
+  )
 
   def renderOnce(ui: UI): String < Async =
     UI.runRender(ui).take(1).run.map(_.mkString)
@@ -18,6 +31,7 @@ class AppShellTests extends Test[Any]:
       rightRegion = AppShell.Region("Inspector", UI.p("right-body")),
       bottomRegion = AppShell.Region("Log", UI.p("bottom-body")),
       state = state,
+      settingsSections = settingsSections,
       customChrome = customChrome
     )
 
@@ -27,7 +41,8 @@ class AppShellTests extends Test[Any]:
       AppShell.ShellState.init().map { state =>
         renderOnce(sampleShell(state)).map { html =>
           assert(
-            html.contains("nav-item") && html.contains("IR Explorer") && html.contains("v1.2.3") &&
+            html.contains("app-body") && html.contains("brand-zone") && html.contains("nav-item") &&
+              html.contains("IR Explorer") && html.contains("v1.2.3") &&
               html.contains("sidebar-toggle") && html.contains("right-toggle") && html.contains("bottom-toggle") &&
               html.contains("rightbar") && html.contains("Inspector") &&
               html.contains("bottombar") && html.contains("Log") && html.contains("settings-button")
@@ -75,6 +90,60 @@ class AppShellTests extends Test[Any]:
           plain  <- renderOnce(sampleShell(state))
           chrome <- renderOnce(sampleShell(state, customChrome = true))
         yield assert(!plain.contains("lights-inset") && chrome.contains("lights-inset"))
+      }
+  }
+
+  "AppShell settings surface" - {
+
+    "openSettings routes to settings and lands on the given section" in
+      AppShell.ShellState.init().map { state =>
+        for
+          _       <- state.openSettings(appearanceKey)
+          route   <- state.route.get
+          section <- state.settingsSection.get
+        yield assert(route == ShellRoute.Settings && section == appearanceKey)
+      }
+
+    "closeSettings returns to the workspace" in
+      AppShell.ShellState.init(route = ShellRoute.Settings).map { state =>
+        state.closeSettings.andThen(state.route.get).map(route => assert(route == ShellRoute.Workspace))
+      }
+
+    "the settings route renders the section list, back row and section content" in
+      AppShell.ShellState.init(route = ShellRoute.Settings).map { state =>
+        renderOnce(sampleShell(state)).map { html =>
+          assert(
+            html.contains("settings-item") && html.contains("General") && html.contains("Appearance") &&
+              html.contains("settings-back") && html.contains("settings-content") &&
+              html.contains("Settings /") && html.contains("Workspace") &&
+              !html.contains("IR Explorer") && !html.contains("Inspector") && !html.contains("bottombar")
+          )
+        }
+      }
+
+    "selecting a section swaps the content" in
+      AppShell.ShellState.init(route = ShellRoute.Settings).map { state =>
+        for
+          first  <- renderOnce(sampleShell(state))
+          _      <- state.selectSettingsSection(appearanceKey)
+          second <- renderOnce(sampleShell(state))
+        yield assert(
+          first.contains("Workspace") && !first.contains("Highlight colour") &&
+            second.contains("Highlight colour") && second.contains("Settings / ")
+        )
+      }
+
+    "leaving settings restores the workspace surface" in
+      AppShell.ShellState.init(route = ShellRoute.Settings).map { state =>
+        for
+          settings  <- renderOnce(sampleShell(state))
+          _         <- state.closeSettings
+          workspace <- renderOnce(sampleShell(state))
+        yield assert(
+          settings.contains("settings-back") &&
+            !workspace.contains("settings-back") && workspace.contains("IR Explorer") &&
+            workspace.contains("Inspector")
+        )
       }
   }
 end AppShellTests

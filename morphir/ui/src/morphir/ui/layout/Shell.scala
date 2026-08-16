@@ -3,12 +3,13 @@ package morphir.ui.layout
 /** Class names shared across the shell chrome. */
 object Shell:
   object Css:
-    val app     = "app"
-    val body    = "app-body"
-    val main    = "main"
-    val content = "content"
-    val iconBtn = "icon-btn"
-    val panel   = "panel"
+    val app      = "app"
+    val body     = "app-body"
+    val main     = "main"
+    val content  = "content"
+    val iconBtn  = "icon-btn"
+    val panel    = "panel"
+    val settings = "content-settings"
 
   import kyo.*
   import kyo.Style
@@ -32,6 +33,10 @@ object Shell:
           .color(Tokens.cssVar("muted"))
           .cursor(_.pointer)
           .hover(_.bg(Tokens.hex("#1f1a29")).color(Tokens.cssVar("text")))
+      )
+      .rule(
+        Selector.cls(s"${Css.content}.${Css.settings}"),
+        Style.padding(28.px, 40.px).maxWidth(980.px)
       )
       .rule(
         Css.panel,

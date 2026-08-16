@@ -3,14 +3,16 @@ package morphir.ui
 import kyo.*
 import kyo.UI.*
 import morphir.ui.layout
+import morphir.ui.layout.{RegionVisibility, SettingsKey, ShellRoute}
 
 /**
- * Application chrome shared by every morphir client: collapsible left sidebar, right panel and bottom panel around a
- * central panel grid, with a topbar carrying the breadcrumb, version chip and the right/bottom toggles. Composition
- * only — the pieces live in [[morphir.ui.layout]]; styling in [[Theme]].
+ * Application chrome shared by every morphir client: a full-width titlebar over a body of collapsible left, right and
+ * bottom regions. The gear in the sidebar footer switches the whole surface to settings — its own section list beside
+ * the matching settings content — and Back returns to the workspace. Composition only; the pieces live in
+ * [[morphir.ui.layout]], styling in [[Theme]].
  *
- * All three collapsed states live in a [[layout.ShellState]] of host-owned [[kyo.SignalRef]]s, so the shell stays a
- * pure value and the host decides whether the state is ephemeral or persisted.
+ * Region visibility, the active route and the selected settings section live in a [[layout.ShellState]] of host-owned
+ * [[kyo.SignalRef]]s. Views read its signals and call its commands; they never write a ref themselves.
  */
 object AppShell:
 
@@ -18,6 +20,9 @@ object AppShell:
 
   /** A titled side/bottom region. */
   final case class Region(title: String, body: UI)
+
+  /** One entry in the settings surface: the key that identifies it, its sidebar label, and its content. */
+  final case class SettingsSection(key: SettingsKey, label: String, panels: Chunk[UI])
 
   type ShellState = layout.ShellState
   val ShellState = layout.ShellState
@@ -33,28 +38,67 @@ object AppShell:
       rightRegion: Region,
       bottomRegion: Region,
       state: ShellState,
-      onSettings: => Any < Async = (),
+      settingsSections: Chunk[SettingsSection] = Chunk.empty,
       customChrome: Boolean = false
   ): UI =
+
+    def sectionFor(key: SettingsKey): Maybe[SettingsSection] =
+      Maybe.fromOption(settingsSections.toSeq.find(_.key == key))
+
+    def settingsLabel(key: SettingsKey): String =
+      sectionFor(key).map(_.label).getOrElse("Settings")
+
+    def settingsPanels(key: SettingsKey): Chunk[UI] =
+      sectionFor(key).map(_.panels).getOrElse(Chunk.empty)
+
+    def openSettings: Unit < Async =
+      state.openSettings(settingsSections.headOption.map(_.key).getOrElse(SettingsKey("general")))
+
+    def titlebar(route: ShellRoute, key: SettingsKey, leftVisibility: RegionVisibility): UI =
+      if route.isSettings then
+        layout.Topbar.view("Settings", settingsLabel(key), version, state, customChrome, leftVisibility)
+      else layout.Topbar.view("morphir", sectionTitle, version, state, customChrome, leftVisibility)
+
+    def sidebar(route: ShellRoute, key: SettingsKey, leftVisibility: RegionVisibility): UI =
+      if leftVisibility.isCollapsed then div.cssClass("sidebar-hidden").hidden(true)
+      else if route.isSettings then layout.SettingsSidebar.view(settingsSections, key, state)
+      else layout.Sidebar.view(nav, openSettings)
+
+    def content(route: ShellRoute, key: SettingsKey): UI =
+      if route.isSettings then
+        div.cssClass(layout.Shell.Css.content).cssClass(layout.Shell.Css.settings).id("settings-content")(
+          fragment(settingsPanels(key).toSeq*)
+        )
+      else div.cssClass(layout.Shell.Css.content)(fragment(panels.toSeq*))
+
     div.cssClass(layout.Shell.Css.app).id("app-root")(
-      state.left.render { visibility =>
-        layout.Topbar.view(sectionTitle, version, state, customChrome, leftVisibility = visibility)
+      state.route.render { route =>
+        state.settingsSection.render { key =>
+          state.left.render(visibility => titlebar(route, key, visibility))
+        }
       },
       div.cssClass(layout.Shell.Css.body)(
-        state.left.render { visibility =>
-          if visibility.isCollapsed then div.cssClass("sidebar-hidden").hidden(true)
-          else layout.Sidebar.view(nav, onSettings)
+        state.route.render { route =>
+          state.settingsSection.render { key =>
+            state.left.render(visibility => sidebar(route, key, visibility))
+          }
         },
         div.cssClass(layout.Shell.Css.main)(
-          div.cssClass(layout.Shell.Css.content)(fragment(panels.toSeq*)),
-          state.bottom.render { visibility =>
-            if visibility.isCollapsed then div.cssClass("bottom-hidden").hidden(true)
-            else layout.RegionPanel.bottom(bottomRegion)
+          state.route.render { route =>
+            state.settingsSection.render(key => content(route, key))
+          },
+          state.route.render { route =>
+            state.bottom.render { visibility =>
+              if route.isSettings || visibility.isCollapsed then div.cssClass("bottom-hidden").hidden(true)
+              else layout.RegionPanel.bottom(bottomRegion)
+            }
           }
         ),
-        state.right.render { visibility =>
-          if visibility.isCollapsed then div.cssClass("right-hidden").hidden(true)
-          else layout.RegionPanel.right(rightRegion)
+        state.route.render { route =>
+          state.right.render { visibility =>
+            if route.isSettings || visibility.isCollapsed then div.cssClass("right-hidden").hidden(true)
+            else layout.RegionPanel.right(rightRegion)
+          }
         }
       )
     )

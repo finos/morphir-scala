@@ -23,6 +23,7 @@ object Topbar:
     val lightsInset = "lights-inset"
 
   def view(
+      crumbPrefix: String,
       sectionTitle: String,
       version: String,
       state: ShellState,
@@ -30,7 +31,7 @@ object Topbar:
       leftVisibility: RegionVisibility
   ): UI =
     val crumbTitle =
-      div.cssClass(Css.title)(span("morphir / ").cssClass(Css.crumb), sectionTitle)
+      div.cssClass(Css.title)(span(s"$crumbPrefix / ").cssClass(Css.crumb), sectionTitle)
     val rightCluster =
       div.cssClass(Css.right)(
         span(s"v$version").cssClass(Css.chip).id("app-version"),

@@ -1,8 +1,8 @@
 package morphir.ui
 
 import kyo.*
-import morphir.ui.layout.{RegionPanel, Shell, Sidebar, Topbar}
-import morphir.ui.{IrExplorerView, KnowledgeBrowserView}
+import morphir.ui.layout.{RegionPanel, SettingsSidebar, Shell, Sidebar, Topbar}
+import morphir.ui.{IrExplorerView, KnowledgeBrowserView, SettingsView}
 import morphir.ui.theme.{Base, Tokens}
 
 /**
@@ -14,7 +14,7 @@ object Theme:
 
   def sheet: Stylesheet =
     Tokens.sheet ++ Base.sheet ++ Shell.sheet ++ Sidebar.sheet ++ Topbar.sheet ++ RegionPanel.sheet ++
-      IrExplorerView.sheet ++ KnowledgeBrowserView.sheet
+      SettingsSidebar.sheet ++ SettingsView.sheet ++ IrExplorerView.sheet ++ KnowledgeBrowserView.sheet
 
   /** Each rule here names the missing typed vocabulary that forces it to stay raw. */
   private val quarantineCss: String =
@@ -28,6 +28,8 @@ object Theme:
       |  display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 16px;
       |  align-content: start;
       |}
+      |/* The settings surface stacks its groups in one column. */
+      |.content.content-settings { grid-template-columns: minmax(0, 1fr); gap: 0; }
       |/* inset box-shadow: Style.shadow has no inset arm. */
       |.nav-item.active { box-shadow: inset 2px 0 0 var(--accent); }
       |/* background-clip: text (gradient text) is not in the BackgroundClip enum. */
