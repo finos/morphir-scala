@@ -55,7 +55,9 @@ sees a start value and a CSS transition cannot play. Both therefore live in smal
 
 The rule that keeps them honest: **an adapter reads the store and writes the DOM; it never owns state.**
 `PointerResize` turns drags into `resize*` commands, and `PanelMotion` subscribes to the store's extent signals and
-sets the size on the element already on screen, letting the panel's own typed transition animate it. Collapsing a
+sets the size on the element already on screen, letting the panel's own typed transition animate it. The animation
+setting is honoured one level up, by a class on the shell root: the root re-renders when the setting changes, so an
+inline gate written by an adapter would be lost along with the element it was written to. Collapsing a
 region drives its extent to zero rather than unmounting it, which is what lets the neighbours reflow with the slide.
 Adapters are proven in the Electron smoke run rather than in unit tests; the store's commands and the views stay
 unit-tested as usual.

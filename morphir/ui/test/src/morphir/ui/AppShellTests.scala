@@ -158,6 +158,31 @@ class AppShellTests extends Test[Any]:
       )
     }
 
+    "animations are on by default" in
+      AppShell.ShellState.init().map { state =>
+        for
+          setting <- state.animations.get
+          html    <- renderOnce(sampleShell(state))
+        yield assert(setting == morphir.ui.layout.AnimationSetting.Enabled && !html.contains("no-motion"))
+      }
+
+    "the appearance toggle starts on" in
+      AppShell.ShellState.init().map { state =>
+        renderOnce(Toggle.view("animations-toggle", state.animations.map(_.isEnabled), state.toggleAnimations))
+          .map(html => assert(html.contains("toggle on")))
+      }
+
+    "turning animations back on restores the animated root" in
+      AppShell.ShellState.init().map { state =>
+        for
+          _        <- state.toggleAnimations
+          off      <- renderOnce(sampleShell(state))
+          _        <- state.toggleAnimations
+          setting  <- state.animations.get
+          restored <- renderOnce(sampleShell(state))
+        yield assert(off.contains("no-motion") && setting.isEnabled && !restored.contains("no-motion"))
+      }
+
     "toggling animations flips the root motion class" in
       AppShell.ShellState.init().map { state =>
         for
