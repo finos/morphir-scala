@@ -126,7 +126,7 @@ object RendererMain:
         "Appearance",
         Chunk(
           SettingsView.contentGroup(
-            "Colour scheme",
+            "Color scheme",
             "Choose how morphir looks. System follows your operating system.",
             SchemePicker.view(state.colorScheme, state.selectColorScheme)
           ),

@@ -47,7 +47,7 @@ class ThemeTests extends Test[Any]:
       assert(missing.isEmpty)
     }
 
-    "carries a palette for every colour scheme" in {
+    "carries a palette for every color scheme" in {
       val css = Theme.css
       assert(
         css.contains(s".${Tokens.Scheme.light}") && css.contains(s".${Tokens.Scheme.dark}") &&

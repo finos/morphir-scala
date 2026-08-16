@@ -5,7 +5,7 @@ import kyo.UI.*
 import morphir.ui.layout.ColorScheme
 
 /**
- * The colour-scheme picker: one card per scheme, each showing a miniature of the shell painted in that scheme, with the
+ * The color-scheme picker: one card per scheme, each showing a miniature of the shell painted in that scheme, with the
  * active card outlined. Reads the scheme signal and runs a command on click.
  */
 object SchemePicker:

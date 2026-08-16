@@ -4,7 +4,7 @@ import kyo.*
 import kyo.Style.Color
 
 /**
- * The design tokens of the morphir client theme. Every colour the shell paints is a CSS custom property, so a colour
+ * The design tokens of the morphir client theme. Every color the shell paints is a CSS custom property, so a color
  * scheme is a set of values rather than a second stylesheet: [[sheet]] emits the dark palette at the root, the light
  * palette scoped to the light class, and the light palette again inside a `prefers-color-scheme: light` query for the
  * hosts that follow the system.

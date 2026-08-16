@@ -85,7 +85,7 @@ Styles are kyo-ui `Stylesheet`/`Style` values by default: tokens once as CSS var
 rendered to the single string hosts inject. `scopedVars` on a `data-theme` selector is the intended
 door to alternate themes.
 
-Because every colour the shell paints is a token, a colour scheme is a set of values rather than a second stylesheet:
+Because every color the shell paints is a token, a color scheme is a set of values rather than a second stylesheet:
 `Tokens.sheet` emits the dark palette at the root and the light palette under `scopedVars`, and the shell root carries
 a scheme class. Note that the vars are scoped to that root, so the root — not the document body above it — has to paint
 the surface. `System` follows the host: kyo types `prefers-color-scheme: dark` only, so the light palette is the base

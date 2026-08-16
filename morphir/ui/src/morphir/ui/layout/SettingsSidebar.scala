@@ -7,7 +7,7 @@ import morphir.ui.icons.Icons
 
 /**
  * The settings surface's left column: one row per settings section, and a Back row that returns to the workspace.
- * Shares the sidebar shell (width, colour, border) with [[Sidebar]].
+ * Shares the sidebar shell (width, color, border) with [[Sidebar]].
  */
 object SettingsSidebar:
 

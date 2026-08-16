@@ -15,7 +15,7 @@ class AppShellTests extends Test[Any]:
     AppShell.SettingsSection(
       appearanceKey,
       "Appearance",
-      Chunk(SettingsView.group("Theme", Chunk(SettingsView.Row.value("Accent", "Highlight colour", "magenta"))))
+      Chunk(SettingsView.group("Theme", Chunk(SettingsView.Row.value("Accent", "Highlight color", "magenta"))))
     )
   )
 
@@ -219,7 +219,7 @@ class AppShellTests extends Test[Any]:
       }
   }
 
-  "AppShell colour scheme" - {
+  "AppShell color scheme" - {
 
     "the shell ships dark and says so on the root" in
       AppShell.ShellState.init().map { state =>
@@ -299,8 +299,8 @@ class AppShellTests extends Test[Any]:
           _      <- state.selectSettingsSection(appearanceKey)
           second <- renderOnce(sampleShell(state))
         yield assert(
-          first.contains("Workspace") && !first.contains("Highlight colour") &&
-            second.contains("Highlight colour") && second.contains("Settings / ")
+          first.contains("Workspace") && !first.contains("Highlight color") &&
+            second.contains("Highlight color") && second.contains("Settings / ")
         )
       }
 
