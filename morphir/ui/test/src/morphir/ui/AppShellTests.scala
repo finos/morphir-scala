@@ -20,7 +20,8 @@ class AppShellTests extends Test[Any]:
       renderOnce(ui).map { html =>
         assert(
           html.contains("sidebar") && html.contains("nav-item") && html.contains("IR Explorer") &&
-            html.contains("v1.2.3") && html.contains("panel") && html.contains("IR Packages")
+            html.contains("v1.2.3") && html.contains("panel") && html.contains("IR Packages") &&
+            html.contains("settings-button") && html.contains("<svg")
         )
       }
     }

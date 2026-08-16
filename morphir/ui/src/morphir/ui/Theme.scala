@@ -61,7 +61,17 @@ object Theme:
       |}
       |.nav-dot { width: 6px; height: 6px; border-radius: 50%; background: #3d3550; flex: none; }
       |.nav-item.active .nav-dot { background: var(--accent); }
-      |.sidebar-foot { margin-top: auto; padding: 10px; font: 11px var(--mono); color: var(--muted2); }
+      |.sidebar-foot {
+      |  margin-top: auto; padding: 6px 4px 0; display: flex; flex-direction: row;
+      |  align-items: center; justify-content: space-between;
+      |}
+      |.icon-btn {
+      |  width: 30px; height: 30px; border-radius: 8px; display: flex; flex-direction: row;
+      |  align-items: center; justify-content: center; color: var(--muted); cursor: pointer;
+      |}
+      |.icon-btn:hover { background: #1f1a29; color: var(--text); }
+      |.icon-btn svg { display: block; }
+      |.foot-meta { font: 11px var(--mono); color: var(--muted2); }
       |
       |.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
       |.topbar {
