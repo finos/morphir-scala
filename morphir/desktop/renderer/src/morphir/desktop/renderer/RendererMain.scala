@@ -3,7 +3,7 @@ package morphir.desktop.renderer
 import kyo.*
 import kyo.UI.*
 import morphir.appkit.electron.*
-import morphir.ui.{AppShell, IrExplorerView, KnowledgeBrowserView, SettingsView, Theme}
+import morphir.ui.{AppShell, IrExplorerView, KnowledgeBrowserView, SettingsView, Theme, Toggle}
 import morphir.ui.layout.SettingsKey
 import morphir.ui.services.*
 import scala.scalajs.js
@@ -80,7 +80,7 @@ object RendererMain:
               )
             ),
             state = state,
-            settingsSections = settingsSections(version.version, recents.workspaces, bundles.bundles),
+            settingsSections = settingsSections(version.version, recents.workspaces, bundles.bundles, state),
             customChrome = true
           )
           _ <- client.notify[String]("morphir/shell/smokeDone", "done")
@@ -99,7 +99,8 @@ object RendererMain:
   private def settingsSections(
       version: String,
       recents: Chunk[WorkspaceRef],
-      bundles: Chunk[BundleInfo]
+      bundles: Chunk[BundleInfo],
+      state: AppShell.ShellState
   ): Chunk[AppShell.SettingsSection] =
     Chunk(
       AppShell.SettingsSection(
@@ -109,13 +110,13 @@ object RendererMain:
           SettingsView.group(
             "Workspace",
             Chunk(
-              SettingsView.Row("Active workspace", "The workspace the explorer reads from.", "/demo"),
-              SettingsView.Row(
+              SettingsView.Row.value("Active workspace", "The workspace the explorer reads from.", "/demo"),
+              SettingsView.Row.value(
                 "Recent workspaces",
                 "Workspaces the shell offers on open.",
                 recents.headOption.map(_.path).getOrElse("none")
               ),
-              SettingsView.Row("Reopen on launch", "Restore the last workspace at startup.", "On")
+              SettingsView.Row.value("Reopen on launch", "Restore the last workspace at startup.", "On")
             )
           )
         )
@@ -127,9 +128,19 @@ object RendererMain:
           SettingsView.group(
             "Theme",
             Chunk(
-              SettingsView.Row("Colour scheme", "Surfaces, text and panel borders.", "Dark"),
-              SettingsView.Row("Accent", "Highlights, active nav and the version chip.", "magenta → violet"),
-              SettingsView.Row("Window chrome", "Frameless window with app-drawn titlebar.", "Custom")
+              SettingsView.Row.value("Colour scheme", "Surfaces, text and panel borders.", "Dark"),
+              SettingsView.Row.value("Accent", "Highlights, active nav and the version chip.", "magenta → violet"),
+              SettingsView.Row.value("Window chrome", "Frameless window with app-drawn titlebar.", "Custom")
+            )
+          ),
+          SettingsView.group(
+            "Motion",
+            Chunk(
+              SettingsView.Row.control(
+                "Panel animations",
+                "Slide the side and bottom panels in and out.",
+                Toggle.view("animations-toggle", state.animations.map(_.isEnabled), state.toggleAnimations)
+              )
             )
           )
         )
@@ -141,21 +152,25 @@ object RendererMain:
           SettingsView.group(
             "Morphir services",
             Chunk(
-              SettingsView.Row("IR", "Packages, modules and definitions.", IrRpc.methods.listPackages),
-              SettingsView.Row(
+              SettingsView.Row.value("IR", "Packages, modules and definitions.", IrRpc.methods.listPackages),
+              SettingsView.Row.value(
                 "Knowledge",
                 "Bundles, concepts and the intent index.",
                 KnowledgeRpc.methods.intentIndex
               ),
-              SettingsView.Row("Shell", "Host affordances: dialogs, recents, version.", ShellRpc.methods.appVersion)
+              SettingsView.Row.value(
+                "Shell",
+                "Host affordances: dialogs, recents, version.",
+                ShellRpc.methods.appVersion
+              )
             )
           ),
           SettingsView.group(
             "Transport",
             Chunk(
-              SettingsView.Row("Protocol", "One JSON-RPC envelope per message.", "kyo-jsonrpc"),
-              SettingsView.Row("Wire", "Renderer to main over the preload bridge.", "Electron IPC"),
-              SettingsView.Row("Listening ports", "The renderer never opens a socket.", "none")
+              SettingsView.Row.value("Protocol", "One JSON-RPC envelope per message.", "kyo-jsonrpc"),
+              SettingsView.Row.value("Wire", "Renderer to main over the preload bridge.", "Electron IPC"),
+              SettingsView.Row.value("Listening ports", "The renderer never opens a socket.", "none")
             )
           )
         )
@@ -167,7 +182,7 @@ object RendererMain:
           SettingsView.group(
             "Bundles",
             bundles.map(bundle =>
-              SettingsView.Row(bundle.title, s"Bundle ${bundle.slug}.", s"${bundle.conceptCount} concepts")
+              SettingsView.Row.value(bundle.title, s"Bundle ${bundle.slug}.", s"${bundle.conceptCount} concepts")
             )
           )
         )
@@ -179,9 +194,13 @@ object RendererMain:
           SettingsView.group(
             "morphir-desktop",
             Chunk(
-              SettingsView.Row("Application version", "Reported by the shell service.", version),
-              SettingsView.Row("Client library", "Views and the service contract.", "morphir-ui"),
-              SettingsView.Row("Host integration", "Facades, transport and secret store.", "morphir-appkit-electron")
+              SettingsView.Row.value("Application version", "Reported by the shell service.", version),
+              SettingsView.Row.value("Client library", "Views and the service contract.", "morphir-ui"),
+              SettingsView.Row.value(
+                "Host integration",
+                "Facades, transport and secret store.",
+                "morphir-appkit-electron"
+              )
             )
           )
         )

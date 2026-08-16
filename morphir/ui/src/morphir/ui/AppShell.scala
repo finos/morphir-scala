@@ -71,53 +71,58 @@ object AppShell:
         )
       else div.cssClass(layout.Shell.Css.content)(fragment(panels.toSeq*))
 
-    div.cssClass(layout.Shell.Css.app).id("app-root")(
-      state.route.render { route =>
-        state.settingsSection.render { key =>
-          state.left.render(visibility => titlebar(route, key, visibility))
-        }
-      },
-      div.cssClass(layout.Shell.Css.body)(
+    state.animations.render { motion =>
+      val root =
+        if motion.isEnabled then div.cssClass(layout.Shell.Css.app)
+        else div.cssClass(layout.Shell.Css.app).cssClass(layout.Shell.Css.noMotion)
+      root.id("app-root")(
         state.route.render { route =>
           state.settingsSection.render { key =>
-            state.left.render(visibility => sidebar(route, key, visibility))
+            state.left.render(visibility => titlebar(route, key, visibility))
           }
         },
-        state.left.render { visibility =>
-          if visibility.isCollapsed then div.cssClass("left-handle-hidden").hidden(true)
-          else layout.ResizeHandle.column(layout.ResizeHandle.leftId)
-        },
-        div.cssClass(layout.Shell.Css.main)(
+        div.cssClass(layout.Shell.Css.body)(
           state.route.render { route =>
-            state.settingsSection.render(key => content(route, key))
+            state.settingsSection.render { key =>
+              state.left.render(visibility => sidebar(route, key, visibility))
+            }
           },
+          state.left.render { visibility =>
+            if visibility.isCollapsed then div.cssClass("left-handle-hidden").hidden(true)
+            else layout.ResizeHandle.column(layout.ResizeHandle.leftId)
+          },
+          div.cssClass(layout.Shell.Css.main)(
+            state.route.render { route =>
+              state.settingsSection.render(key => content(route, key))
+            },
+            state.route.render { route =>
+              state.bottom.render { visibility =>
+                if route.isSettings || visibility.isCollapsed then div.cssClass("bottom-handle-hidden").hidden(true)
+                else layout.ResizeHandle.row(layout.ResizeHandle.bottomId)
+              }
+            },
+            state.route.render { route =>
+              state.bottom.render { visibility =>
+                if route.isSettings || visibility.isCollapsed then div.cssClass("bottom-hidden").hidden(true)
+                else layout.RegionPanel.bottom(bottomRegion, state.bottomHeight)
+              }
+            }
+          ),
           state.route.render { route =>
-            state.bottom.render { visibility =>
-              if route.isSettings || visibility.isCollapsed then div.cssClass("bottom-handle-hidden").hidden(true)
-              else layout.ResizeHandle.row(layout.ResizeHandle.bottomId)
+            state.right.render { visibility =>
+              if route.isSettings || visibility.isCollapsed then div.cssClass("right-handle-hidden").hidden(true)
+              else layout.ResizeHandle.column(layout.ResizeHandle.rightId)
             }
           },
           state.route.render { route =>
-            state.bottom.render { visibility =>
-              if route.isSettings || visibility.isCollapsed then div.cssClass("bottom-hidden").hidden(true)
-              else layout.RegionPanel.bottom(bottomRegion, state.bottomHeight)
+            state.right.render { visibility =>
+              if route.isSettings || visibility.isCollapsed then div.cssClass("right-hidden").hidden(true)
+              else layout.RegionPanel.right(rightRegion, state.rightWidth)
             }
           }
-        ),
-        state.route.render { route =>
-          state.right.render { visibility =>
-            if route.isSettings || visibility.isCollapsed then div.cssClass("right-handle-hidden").hidden(true)
-            else layout.ResizeHandle.column(layout.ResizeHandle.rightId)
-          }
-        },
-        state.route.render { route =>
-          state.right.render { visibility =>
-            if route.isSettings || visibility.isCollapsed then div.cssClass("right-hidden").hidden(true)
-            else layout.RegionPanel.right(rightRegion, state.rightWidth)
-          }
-        }
+        )
       )
-    )
+    }
 
   /** Wires pointer drags on the resize strips to the store. Hosts call this once, after mounting the shell. */
   def attachResizeHandles(state: ShellState): Unit < Sync =

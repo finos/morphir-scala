@@ -2,7 +2,7 @@ package morphir.ui
 
 import kyo.*
 import morphir.ui.layout.{RegionPanel, ResizeHandle, SettingsSidebar, Shell, Sidebar, Topbar}
-import morphir.ui.{IrExplorerView, KnowledgeBrowserView, SettingsView}
+import morphir.ui.{IrExplorerView, KnowledgeBrowserView, SettingsView, Toggle}
 import morphir.ui.theme.{Base, Tokens}
 
 /**
@@ -15,7 +15,7 @@ object Theme:
   def sheet: Stylesheet =
     Tokens.sheet ++ Base.sheet ++ Shell.sheet ++ Sidebar.sheet ++ Topbar.sheet ++ RegionPanel.sheet ++
       ResizeHandle.sheet ++
-      SettingsSidebar.sheet ++ SettingsView.sheet ++ IrExplorerView.sheet ++ KnowledgeBrowserView.sheet
+      SettingsSidebar.sheet ++ SettingsView.sheet ++ Toggle.sheet ++ IrExplorerView.sheet ++ KnowledgeBrowserView.sheet
 
   /** Each rule here names the missing typed vocabulary that forces it to stay raw. */
   private val quarantineCss: String =
@@ -31,6 +31,11 @@ object Theme:
       |}
       |/* The settings surface stacks its groups in one column. */
       |.content.content-settings { grid-template-columns: minmax(0, 1fr); gap: 0; }
+      |/* Disabling motion needs a universal selector and !important to beat the typed per-element
+      | * transitions; neither is expressible in Style. */
+      |.no-motion *, .no-motion *::before, .no-motion *::after {
+      |  transition: none !important; animation: none !important;
+      |}
       |/* col-resize / row-resize are not in the typed Cursor enum; the body classes keep the cursor
       | * steady while a drag outruns the 5px strip. */
       |.resize-vertical { cursor: col-resize; }

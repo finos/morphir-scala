@@ -32,6 +32,19 @@ object SettingsKey:
   given CanEqual[SettingsKey, SettingsKey]       = CanEqual.derived
 
 /**
+ * Whether the shell animates region transitions. Off is a first-class setting, not a missing Boolean: reduced-motion
+ * users and screenshot tests both want it.
+ */
+enum AnimationSetting derives CanEqual:
+  case Enabled, Disabled
+
+  def toggled: AnimationSetting = this match
+    case Enabled  => Disabled
+    case Disabled => Enabled
+
+  def isEnabled: Boolean = this == Enabled
+
+/**
  * A shell region's size in CSS pixels, kept inside the region's own bounds by its smart constructor so no view can
  * install a degenerate width or height.
  */
@@ -62,7 +75,8 @@ final case class ShellState(
     settingsSection: SignalRef[SettingsKey],
     leftWidth: SignalRef[PanelSize],
     rightWidth: SignalRef[PanelSize],
-    bottomHeight: SignalRef[PanelSize]
+    bottomHeight: SignalRef[PanelSize],
+    animations: SignalRef[AnimationSetting]
 ):
 
   /** Leave the workspace for the settings surface, landing on `section`. */
@@ -73,6 +87,9 @@ final case class ShellState(
   def closeSettings: Unit < Sync = route.set(ShellRoute.Workspace)
 
   def selectSettingsSection(section: SettingsKey): Unit < Sync = settingsSection.set(section)
+
+  /** Turn region animation on or off. */
+  def toggleAnimations: Unit < Sync = animations.getAndUpdate(_.toggled).unit
 
   /** Resize commands. Each clamps into its region's bounds, so a drag that runs past the edge simply stops. */
   def resizeLeft(px: Int): Unit < Sync   = leftWidth.set(PanelSize.clamped(px, PanelBounds.left))
@@ -88,7 +105,8 @@ object ShellState:
       settingsSection: SettingsKey = SettingsKey("general"),
       leftWidth: Int = 224,
       rightWidth: Int = 300,
-      bottomHeight: Int = 180
+      bottomHeight: Int = 180,
+      animations: AnimationSetting = AnimationSetting.Enabled
   ): ShellState < Sync =
     for
       leftRef    <- Signal.initRef(left)
@@ -99,4 +117,5 @@ object ShellState:
       leftSize   <- Signal.initRef(PanelSize.clamped(leftWidth, PanelBounds.left))
       rightSize  <- Signal.initRef(PanelSize.clamped(rightWidth, PanelBounds.right))
       bottomSize <- Signal.initRef(PanelSize.clamped(bottomHeight, PanelBounds.bottom))
-    yield ShellState(leftRef, rightRef, bottomRef, routeRef, sectionRef, leftSize, rightSize, bottomSize)
+      motionRef  <- Signal.initRef(animations)
+    yield ShellState(leftRef, rightRef, bottomRef, routeRef, sectionRef, leftSize, rightSize, bottomSize, motionRef)

@@ -17,8 +17,20 @@ object SettingsView:
     val label       = "settings-label"
     val description = "settings-description"
     val value       = "settings-value"
+    val control     = "settings-control"
 
-  final case class Row(label: String, description: String, value: String)
+  /** A settings row's trailing cell: a read-only value, or an interactive control such as a [[Toggle]]. */
+  enum Trailing:
+    case Value(text: String)
+    case Control(ui: UI)
+
+  final case class Row(label: String, description: String, trailing: Trailing)
+
+  object Row:
+    def value(label: String, description: String, text: String): Row =
+      Row(label, description, Trailing.Value(text))
+    def control(label: String, description: String, control: UI): Row =
+      Row(label, description, Trailing.Control(control))
 
   def group(title: String, rows: Chunk[Row]): UI =
     section.cssClass(Css.group)(
@@ -32,7 +44,9 @@ object SettingsView:
         div.cssClass(Css.label)(entry.label),
         div.cssClass(Css.description)(entry.description)
       ),
-      span(entry.value).cssClass(Css.value)
+      entry.trailing match
+        case Trailing.Value(text) => span(text).cssClass(Css.value)
+        case Trailing.Control(ui) => div.cssClass(Css.control)(ui)
     )
 
   import morphir.ui.theme.Tokens
@@ -58,6 +72,7 @@ object SettingsView:
       .rule(Css.rowText, Style.display(_.flex).column.gap(3.px).minWidth(0.px))
       .rule(Css.label, Style.fontWeight(_.w500))
       .rule(Css.description, Style.fontSize(12.5.px).color(Tokens.cssVar("muted2")))
+      .rule(Css.control, Style.display(_.flex).row.align(_.center).flexShrink(0))
       .rule(
         Css.value,
         Style

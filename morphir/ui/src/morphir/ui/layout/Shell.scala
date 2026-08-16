@@ -10,6 +10,7 @@ object Shell:
     val iconBtn  = "icon-btn"
     val panel    = "panel"
     val settings = "content-settings"
+    val noMotion = "no-motion"
 
   import kyo.*
   import kyo.Style

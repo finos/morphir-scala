@@ -15,7 +15,7 @@ class AppShellTests extends Test[Any]:
     AppShell.SettingsSection(
       appearanceKey,
       "Appearance",
-      Chunk(SettingsView.group("Theme", Chunk(SettingsView.Row("Accent", "Highlight colour", "magenta"))))
+      Chunk(SettingsView.group("Theme", Chunk(SettingsView.Row.value("Accent", "Highlight colour", "magenta"))))
     )
   )
 
@@ -142,6 +142,55 @@ class AppShellTests extends Test[Any]:
           _    <- state.resizeLeft(360)
           html <- renderOnce(sampleShell(state))
         yield assert(html.contains("360px"))
+      }
+  }
+
+  "AppShell motion" - {
+
+    "panels declare their enter and leave transitions" in
+      AppShell.ShellState.init().map { state =>
+        renderOnce(sampleShell(state)).map { html =>
+          assert(
+            html.contains("data-kyo-enter") && html.contains("data-kyo-leave") &&
+              html.contains("slide-left-enter") && html.contains("slide-right-enter") &&
+              html.contains("slide-bottom-enter")
+          )
+        }
+      }
+
+    "toggling animations flips the root motion class" in
+      AppShell.ShellState.init().map { state =>
+        for
+          animated <- renderOnce(sampleShell(state))
+          _        <- state.toggleAnimations
+          setting  <- state.animations.get
+          still    <- renderOnce(sampleShell(state))
+        yield assert(
+          !animated.contains("no-motion") && !setting.isEnabled && still.contains("no-motion")
+        )
+      }
+
+    "a settings row can carry a control instead of a value" in
+      AppShell.ShellState.init().map { state =>
+        val row = SettingsView.Row.control(
+          "Animations",
+          "Slide panels in and out.",
+          Toggle.view("animations-toggle", state.animations.map(_.isEnabled), state.toggleAnimations)
+        )
+        renderOnce(SettingsView.group("Motion", Chunk(row))).map { html =>
+          assert(html.contains("settings-control") && html.contains("animations-toggle") &&
+            html.contains("toggle-knob"))
+        }
+      }
+
+    "the toggle reflects the setting it reads" in
+      AppShell.ShellState.init().map { state =>
+        val toggle = Toggle.view("animations-toggle", state.animations.map(_.isEnabled), state.toggleAnimations)
+        for
+          on  <- renderOnce(toggle)
+          _   <- state.toggleAnimations
+          off <- renderOnce(toggle)
+        yield assert(on.contains("toggle on") && !off.contains("toggle on"))
       }
   }
 
