@@ -20,28 +20,40 @@ object Topbar:
     val title       = "topbar-title"
     val crumb       = "crumb"
     val chip        = "chip"
+    val action      = "titlebar-action"
+    val actionLabel = "titlebar-action-label"
     val lightsInset = "lights-inset"
 
   def view(
-      crumbPrefix: String,
+      route: ShellRoute,
       sectionTitle: String,
       version: String,
       state: ShellState,
       customChrome: Boolean,
       leftVisibility: RegionVisibility
   ): UI =
-    val crumbTitle =
+    val crumbPrefix = if route.isSettings then "Settings" else "morphir"
+    val crumbTitle  =
       div.cssClass(Css.title)(span(s"$crumbPrefix / ").cssClass(Css.crumb), sectionTitle)
+    // The settings surface has no regions to collapse, so it offers the one action that belongs to settings instead.
     val rightCluster =
-      div.cssClass(Css.right)(
-        span(s"v$version").cssClass(Css.chip).id("app-version"),
-        div.cssClass(Shell.Css.iconBtn).id("bottom-toggle").onClick(state.bottom.getAndUpdate(_.toggled))(
-          Icons.panelBottom
-        ),
-        div.cssClass(Shell.Css.iconBtn).id("right-toggle").onClick(state.right.getAndUpdate(_.toggled))(
-          Icons.panelRight
+      if route.isSettings then
+        div.cssClass(Css.right)(
+          div.cssClass(Css.action).id("restore-defaults").onClick(state.restoreDefaults)(
+            Icons.restore,
+            span("Restore defaults").cssClass(Css.actionLabel)
+          )
         )
-      )
+      else
+        div.cssClass(Css.right)(
+          span(s"v$version").cssClass(Css.chip).id("app-version"),
+          div.cssClass(Shell.Css.iconBtn).id("bottom-toggle").onClick(state.bottom.getAndUpdate(_.toggled))(
+            Icons.panelBottom
+          ),
+          div.cssClass(Shell.Css.iconBtn).id("right-toggle").onClick(state.right.getAndUpdate(_.toggled))(
+            Icons.panelRight
+          )
+        )
     if leftVisibility.isCollapsed then
       div.cssClass(Css.root).id("titlebar")(
         (if customChrome then div.cssClass(Css.left).cssClass(Css.lightsInset) else div.cssClass(Css.left)) (
@@ -124,6 +136,21 @@ object Topbar:
         Selector.cls(Css.title).descendant(Selector.cls(Css.crumb)),
         Style.color(Tokens.cssVar("muted2")).fontWeight(_.w400)
       )
+      .rule(
+        Css.action,
+        Style
+          .display(_.flex)
+          .row
+          .align(_.center)
+          .gap(7.px)
+          .padding(5.px, 10.px)
+          .rounded(8.px)
+          .color(Tokens.cssVar("muted"))
+          .fontSize(12.5.px)
+          .cursor(_.pointer)
+          .hover(_.bg(Tokens.hex("#1f1a29")).color(Tokens.cssVar("text")))
+      )
+      .rule(Css.actionLabel, Style.fontWeight(_.w500))
       .rule(
         Css.chip,
         Style

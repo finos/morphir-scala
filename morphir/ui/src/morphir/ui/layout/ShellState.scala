@@ -104,10 +104,28 @@ final case class ShellState(
   /** Turn region animation on or off. */
   def toggleAnimations: Unit < Sync = animations.getAndUpdate(_.toggled).unit
 
+  /** Put the shell back the way it ships: every region open at its default size, animations on. */
+  def restoreDefaults: Unit < Sync =
+    for
+      _ <- left.set(RegionVisibility.Expanded)
+      _ <- right.set(RegionVisibility.Expanded)
+      _ <- bottom.set(RegionVisibility.Expanded)
+      _ <- leftWidth.set(PanelSize.clamped(ShellDefaults.leftWidth, PanelBounds.left))
+      _ <- rightWidth.set(PanelSize.clamped(ShellDefaults.rightWidth, PanelBounds.right))
+      _ <- bottomHeight.set(PanelSize.clamped(ShellDefaults.bottomHeight, PanelBounds.bottom))
+      _ <- animations.set(AnimationSetting.Enabled)
+    yield ()
+
   /** Resize commands. Each clamps into its region's bounds, so a drag that runs past the edge simply stops. */
   def resizeLeft(px: Int): Unit < Sync   = leftWidth.set(PanelSize.clamped(px, PanelBounds.left))
   def resizeRight(px: Int): Unit < Sync  = rightWidth.set(PanelSize.clamped(px, PanelBounds.right))
   def resizeBottom(px: Int): Unit < Sync = bottomHeight.set(PanelSize.clamped(px, PanelBounds.bottom))
+
+/** The sizes and settings the shell ships with, shared by [[ShellState.init]] and `restoreDefaults`. */
+object ShellDefaults:
+  val leftWidth    = 224
+  val rightWidth   = 300
+  val bottomHeight = 180
 
 object ShellState:
   def init(
@@ -116,9 +134,9 @@ object ShellState:
       bottom: RegionVisibility = RegionVisibility.Expanded,
       route: ShellRoute = ShellRoute.Workspace,
       settingsSection: SettingsKey = SettingsKey("general"),
-      leftWidth: Int = 224,
-      rightWidth: Int = 300,
-      bottomHeight: Int = 180,
+      leftWidth: Int = ShellDefaults.leftWidth,
+      rightWidth: Int = ShellDefaults.rightWidth,
+      bottomHeight: Int = ShellDefaults.bottomHeight,
       animations: AnimationSetting = AnimationSetting.Enabled
   ): ShellState < Sync =
     for

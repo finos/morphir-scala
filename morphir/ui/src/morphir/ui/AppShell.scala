@@ -55,9 +55,8 @@ object AppShell:
       state.openSettings(settingsSections.headOption.map(_.key).getOrElse(SettingsKey("general")))
 
     def titlebar(route: ShellRoute, key: SettingsKey, leftVisibility: RegionVisibility): UI =
-      if route.isSettings then
-        layout.Topbar.view("Settings", settingsLabel(key), version, state, customChrome, leftVisibility)
-      else layout.Topbar.view("morphir", sectionTitle, version, state, customChrome, leftVisibility)
+      val title = if route.isSettings then settingsLabel(key) else sectionTitle
+      layout.Topbar.view(route, title, version, state, customChrome, leftVisibility)
 
     def sidebar(route: ShellRoute, key: SettingsKey): UI =
       if route.isSettings then layout.SettingsSidebar.view(settingsSections, key, state)

@@ -71,6 +71,25 @@ object Icons:
         .d(Svg.PathData.raw("M12 19l-7-7 7-7"))
     )
 
+  /** Lucide `rotate-ccw` glyph: put settings back to their defaults. */
+  def restore: UI =
+    Svg.svg.viewBox(Svg.ViewBox(0, 0, 24, 24)).width(15).height(15)(
+      Svg.path
+        .fill(Svg.Paint.None)
+        .stroke(Svg.Paint.CurrentColor)
+        .strokeWidth(1.7)
+        .strokeLinecap(Svg.StrokeLinecap.Round)
+        .strokeLinejoin(Svg.StrokeLinejoin.Round)
+        .d(Svg.PathData.raw("M3 12a9 9 0 1 0 3-6.7L3 8")),
+      Svg.path
+        .fill(Svg.Paint.None)
+        .stroke(Svg.Paint.CurrentColor)
+        .strokeWidth(1.7)
+        .strokeLinecap(Svg.StrokeLinecap.Round)
+        .strokeLinejoin(Svg.StrokeLinejoin.Round)
+        .d(Svg.PathData.raw("M3 3v5h5"))
+    )
+
   private def strokedRect: Svg.Rect =
     Svg.rect
       .fill(Svg.Paint.None)

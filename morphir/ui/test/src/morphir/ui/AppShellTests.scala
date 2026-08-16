@@ -259,6 +259,47 @@ class AppShellTests extends Test[Any]:
         )
       }
 
+    "the settings titlebar swaps region toggles for restore defaults" in
+      AppShell.ShellState.init(route = ShellRoute.Settings).map { state =>
+        renderOnce(sampleShell(state)).map { html =>
+          assert(
+            html.contains("restore-defaults") && html.contains("Restore defaults") &&
+              !html.contains("right-toggle") && !html.contains("bottom-toggle") && !html.contains("app-version")
+          )
+        }
+      }
+
+    "the workspace titlebar keeps the region toggles and the version chip" in
+      AppShell.ShellState.init().map { state =>
+        renderOnce(sampleShell(state)).map { html =>
+          assert(
+            html.contains("right-toggle") && html.contains("bottom-toggle") && html.contains("app-version") &&
+              !html.contains("restore-defaults")
+          )
+        }
+      }
+
+    "restore defaults puts every region and the animation setting back" in
+      AppShell.ShellState.init(route = ShellRoute.Settings).map { state =>
+        for
+          _         <- state.right.set(Collapsed)
+          _         <- state.bottom.set(Collapsed)
+          _         <- state.resizeLeft(400)
+          _         <- state.toggleAnimations
+          _         <- state.restoreDefaults
+          leftSize  <- current(state.leftExtent)
+          rightSize <- current(state.rightExtent)
+          footSize  <- current(state.bottomExtent)
+          motion    <- state.animations.get
+          route     <- state.route.get
+        yield assert(
+          leftSize == morphir.ui.layout.ShellDefaults.leftWidth &&
+            rightSize == morphir.ui.layout.ShellDefaults.rightWidth &&
+            footSize == morphir.ui.layout.ShellDefaults.bottomHeight &&
+            motion.isEnabled && route == ShellRoute.Settings
+        )
+      }
+
     "leaving settings restores the workspace surface" in
       AppShell.ShellState.init(route = ShellRoute.Settings).map { state =>
         for
