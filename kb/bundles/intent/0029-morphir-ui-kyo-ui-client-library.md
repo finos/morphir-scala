@@ -37,3 +37,7 @@ Two things live here:
 Scala.js first: the module starts JS-only, written platform-neutral so the JVM platform is a later
 `package.mill.yaml` addition, not a rewrite. A Wasm link variant compiles in CI to keep that axis open.
 Public APIs follow the Kyo-module rules: `Maybe`/`Result`, machinery in `internal`.
+
+The narrative home for the library's structure is the
+[morphir-ui architecture Design Note](../morphir/morphir-scala/design/morphir-ui-architecture.md):
+store/signal/view unidirectional flow, the package layout, and the typed-stylesheet-first styling rule.
