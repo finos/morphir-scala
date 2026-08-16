@@ -1,0 +1,10 @@
+{
+  "name": "morphir-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Morphir desktop shell (proof of stack)",
+  "main": "main.cjs",
+  "devDependencies": {
+    "electron": "^37.2.0"
+  }
+}

@@ -312,9 +312,17 @@ jobs:
         # Kept in step with .config/mise/tasks/test/js — the `wasm` link variants
         # sit beside their `js` sibling, so `morphir.__.js.__` never matches them.
         # `-j 4` matches that task; see the comment there for why the Scala.js
-        # link phase needs a parallelism cap against the daemon's `-Xmx4g`.
+        # link phase needs a parallelism cap against the daemon's heap.
         run: |
-          ./mill --ticker false -i -k -j 4 "morphir.__.js.__.compile" + "morphir.__.js.publishArtifacts" + "morphir.__.js.__.test" + "morphir.__.wasm.__.test" + "morphir.__.wasm.fullLinkJS"
+          ./mill --ticker false -i -k -j 4 "morphir.__.js.__.compile" + "morphir.__.js.publishArtifacts" + "morphir.__.js.__.test" + "morphir.__.wasm.__.test"
+
+      - name: Link the WebAssembly variants
+        # Serial on purpose: a Wasm `fullLinkJS` holds the largest working set of any task in this
+        # job, and running several at once exhausted the daemon heap inside the linker's
+        # BinaryWriter. Splitting it out keeps the test phase parallel while the links go one at a
+        # time. See .config/mise/tasks/test/js.
+        run: |
+          ./mill --ticker false -i -k -j 1 "morphir.__.wasm.fullLinkJS"
 
       - name: Cache JS build output
         # when in master repo: all commits to main branch and all additional tags
