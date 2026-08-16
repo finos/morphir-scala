@@ -4,8 +4,11 @@ import kyo.*
 import kyo.UI.*
 
 /**
- * Application chrome shared by every morphir client: left sidebar (brand + navigation + settings footer), topbar
- * (context + version chip), and a panel grid for content. Styled by [[Theme.css]].
+ * Application chrome shared by every morphir client: collapsible left sidebar (brand + navigation + settings footer),
+ * topbar (context + version chip), and a panel grid for content. Styled by [[Theme.css]].
+ *
+ * The sidebar's collapsed state is a [[kyo.SignalRef]] owned by the host, so the shell stays a pure value and the host
+ * decides whether the state is ephemeral or persisted.
  */
 object AppShell:
 
@@ -19,18 +22,14 @@ object AppShell:
       version: String,
       nav: Chunk[NavItem],
       panels: Chunk[UI],
+      collapsed: SignalRef[Boolean],
       onSettings: => Any < Async = ()
   ): UI =
     div.cssClass("app").id("app-root")(
-      div.cssClass("sidebar")(
-        div.cssClass("brand")(span("morphir").cssClass("brand-mark"), span("DESKTOP").cssClass("brand-sub")),
-        div.cssClass("nav-section")("Workspace"),
-        fragment(nav.toSeq.map(_.render)*),
-        div.cssClass("sidebar-foot")(
-          div.cssClass("icon-btn").id("settings-button").onClick(onSettings)(gearIcon),
-          span("morphir-scala · kyo-ui").cssClass("foot-meta")
-        )
-      ),
+      collapsed.render { isCollapsed =>
+        if isCollapsed then railSidebar(nav, collapsed, onSettings)
+        else fullSidebar(nav, collapsed, onSettings)
+      },
       div.cssClass("main")(
         div.cssClass("topbar")(
           div.cssClass("topbar-title")(span("morphir / ").cssClass("crumb"), sectionTitle),
@@ -39,6 +38,53 @@ object AppShell:
         div.cssClass("content")(fragment(panels.toSeq*))
       )
     )
+
+  private def fullSidebar(nav: Chunk[NavItem], collapsed: SignalRef[Boolean], onSettings: => Any < Async): UI =
+    div.cssClass("sidebar")(
+      div.cssClass("sidebar-head")(
+        div.cssClass("brand")(span("morphir").cssClass("brand-mark"), span("DESKTOP").cssClass("brand-sub")),
+        div.cssClass("icon-btn").id("sidebar-toggle").onClick(collapsed.set(true))(panelIcon)
+      ),
+      div.cssClass("nav-section")("Workspace"),
+      fragment(nav.toSeq.map(_.navRow)*),
+      div.cssClass("sidebar-foot")(
+        div.cssClass("icon-btn").id("settings-button").onClick(onSettings)(gearIcon),
+        span("morphir-scala · kyo-ui").cssClass("foot-meta")
+      )
+    )
+
+  private def railSidebar(nav: Chunk[NavItem], collapsed: SignalRef[Boolean], onSettings: => Any < Async): UI =
+    div.cssClass("sidebar").cssClass("rail")(
+      div.cssClass("icon-btn").id("sidebar-toggle").onClick(collapsed.set(false))(panelIcon),
+      div.cssClass("rail-divider"),
+      fragment(nav.toSeq.map(_.railRow)*),
+      div.cssClass("rail-spacer"),
+      div.cssClass("icon-btn").id("settings-button").onClick(onSettings)(gearIcon)
+    )
+
+  /** Lucide `panel-left` glyph: the sidebar collapse/expand toggle. */
+  private def panelIcon: UI =
+    Svg.svg
+      .viewBox(Svg.ViewBox(0, 0, 24, 24))
+      .width(16)
+      .height(16)(
+        Svg.rect
+          .fill(Svg.Paint.None)
+          .stroke(Svg.Paint.CurrentColor)
+          .strokeWidth(2.0)
+          .x(3)
+          .y(3)
+          .width(18)
+          .height(18)
+          .rx(2),
+        Svg.line
+          .stroke(Svg.Paint.CurrentColor)
+          .strokeWidth(2.0)
+          .x1(9)
+          .y1(3)
+          .x2(9)
+          .y2(21)
+      )
 
   /** Lucide `settings` glyph, stroke-drawn in the current text color. */
   private def gearIcon: UI =
@@ -67,7 +113,12 @@ object AppShell:
       )
 
   extension (item: NavItem)
-    private def render: UI =
+    private def navRow: UI =
       val base = div.cssClass("nav-item")
       val elem = if item.active then base.cssClass("active") else base
       elem(span("").cssClass("nav-dot"), item.label)
+
+    private def railRow: UI =
+      val base = div.cssClass("rail-nav-item")
+      val elem = if item.active then base.cssClass("active") else base
+      elem(span("").cssClass("nav-dot"))

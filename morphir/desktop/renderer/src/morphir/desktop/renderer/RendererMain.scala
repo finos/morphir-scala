@@ -35,9 +35,10 @@ object RendererMain:
     val program =
       Scope.run {
         for
-          port    <- ElectronPorts.rendererPort(bridgeFromWindow)
-          client  <- JsonRpcHandler.init(ElectronIpcTransport.fromPort(port))
-          version <-
+          collapsed <- Signal.initRef(false)
+          port      <- ElectronPorts.rendererPort(bridgeFromWindow)
+          client    <- JsonRpcHandler.init(ElectronIpcTransport.fromPort(port))
+          version   <-
             client.call[AppVersionRequest, AppVersionResponse](ShellRpc.methods.appVersion, AppVersionRequest())
           packages <-
             client.call[ListPackagesRequest, ListPackagesResponse](IrRpc.methods.listPackages, ListPackagesRequest(ws))
@@ -57,7 +58,8 @@ object RendererMain:
             panels = Chunk(
               AppShell.panel("IR Packages", IrExplorerView.packageList(packages.packages)),
               AppShell.panel("Intent Lifecycle", KnowledgeBrowserView.intentTable(intents.intents))
-            )
+            ),
+            collapsed = collapsed
           )
           _ <- client.notify[String]("morphir/shell/smokeDone", "done")
           _ <- UI.runMount(ui)

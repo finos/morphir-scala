@@ -73,6 +73,23 @@ object Theme:
       |.icon-btn svg { display: block; }
       |.foot-meta { font: 11px var(--mono); color: var(--muted2); }
       |
+      |.sidebar-head {
+      |  display: flex; flex-direction: row; align-items: center; justify-content: space-between;
+      |  padding-right: 2px;
+      |}
+      |.sidebar.rail { width: 56px; padding: 18px 10px; align-items: center; }
+      |.rail-divider { height: 1px; width: 24px; background: #241f30; margin: 12px 0; flex: none; }
+      |.rail-nav-item {
+      |  width: 30px; height: 30px; border-radius: 8px; display: flex; flex-direction: row;
+      |  align-items: center; justify-content: center; margin: 2px 0;
+      |}
+      |.rail-nav-item:hover { background: #1f1a29; }
+      |.rail-nav-item.active {
+      |  background: linear-gradient(90deg, rgba(214, 64, 159, 0.16), rgba(139, 92, 246, 0.10));
+      |}
+      |.rail-nav-item.active .nav-dot { background: var(--accent); }
+      |.rail-spacer { flex: 1; }
+      |
       |.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
       |.topbar {
       |  height: 52px; flex: none; display: flex; flex-direction: row; align-items: center; justify-content: space-between;
