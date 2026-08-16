@@ -37,10 +37,10 @@ object Theme:
       |
       |.sidebar {
       |  width: 224px; flex: none; display: flex; flex-direction: column;
-      |  background: #121017; border-right: 1px solid #241f30; padding: 18px 12px;
+      |  background: #121017; border-right: 1px solid #241f30; padding: 0 12px 18px;
       |}
       |.brand {
-      |  display: flex; flex-direction: row; align-items: baseline; gap: 8px; padding: 2px 10px 18px;
+      |  display: flex; flex-direction: row; align-items: baseline; gap: 8px; padding: 0 10px;
       |  font-weight: 700; font-size: 17px; letter-spacing: -0.01em;
       |}
       |.brand-mark {
@@ -49,7 +49,7 @@ object Theme:
       |}
       |.brand-sub { font: 600 9px var(--mono); letter-spacing: 0.22em; color: var(--muted2); }
       |.nav-section { font: 600 10px var(--mono); letter-spacing: 0.16em; color: var(--muted2);
-      |  text-transform: uppercase; padding: 14px 10px 6px; }
+      |  text-transform: uppercase; padding: 16px 10px 6px; }
       |.nav-item {
       |  display: flex; flex-direction: row; align-items: center; gap: 10px; padding: 8px 10px; margin: 1px 0;
       |  border-radius: 8px; color: #a89fbe; font-weight: 500; cursor: default;
@@ -74,8 +74,8 @@ object Theme:
       |.foot-meta { font: 11px var(--mono); color: var(--muted2); }
       |
       |.sidebar-head {
-      |  display: flex; flex-direction: row; align-items: center; justify-content: space-between;
-      |  padding-right: 2px;
+      |  height: 52px; flex: none; display: flex; flex-direction: row; align-items: center;
+      |  justify-content: space-between; padding-right: 2px;
       |}
       |
       |/* Custom-chrome (frameless window) support: the host app owns the title bar. The spacer keeps
@@ -83,7 +83,7 @@ object Theme:
       |.sidebar-head, .topbar { -webkit-app-region: drag; }
       |.topbar-left { display: flex; flex-direction: row; align-items: center; gap: 12px; }
       |.topbar.lights-inset { padding-left: 78px; }
-      |.sidebar-head.lights-inset { padding-left: 62px; min-height: 34px; }
+      |.sidebar-head.lights-inset { padding-left: 62px; }
       |.sidebar-head.lights-inset .brand-sub { display: none; }
       |.sidebar-head.lights-inset .brand { padding-bottom: 0; }
       |.icon-btn, .nav-item, .chip { -webkit-app-region: no-drag; }

@@ -32,7 +32,7 @@ object Main:
       ElectronApp.WindowOptions(
         show = !smokeMode,
         preloadPath = Present(s"$appDir/preload.cjs"),
-        chrome = ElectronApp.Chrome.Custom(trafficLightX = 16, trafficLightY = 24),
+        chrome = ElectronApp.Chrome.Custom(trafficLightX = 16, trafficLightY = 20),
         backgroundColor = Present("#0f0d14")
       )
     )
