@@ -59,7 +59,8 @@ object RendererMain:
               AppShell.panel("IR Packages", IrExplorerView.packageList(packages.packages)),
               AppShell.panel("Intent Lifecycle", KnowledgeBrowserView.intentTable(intents.intents))
             ),
-            collapsed = collapsed
+            collapsed = collapsed,
+            customChrome = true
           )
           _ <- client.notify[String]("morphir/shell/smokeDone", "done")
           _ <- UI.runMount(ui)

@@ -15,11 +15,22 @@ object ElectronApp:
     def loadFile(path: String): Unit =
       val _ = underlying.loadFile(path)
 
+  /**
+   * How the window frame is drawn. [[Chrome.Native]] keeps the platform title bar. [[Chrome.Custom]] hides it so the
+   * app draws its own chrome; on macOS the traffic lights stay as a native overlay at the given inset, and the renderer
+   * must mark drag regions (`-webkit-app-region`) itself.
+   */
+  enum Chrome derives CanEqual:
+    case Native
+    case Custom(trafficLightX: Int = 14, trafficLightY: Int = 14)
+
   final case class WindowOptions(
       width: Int = 1100,
       height: Int = 780,
       show: Boolean = true,
-      preloadPath: Maybe[String] = Absent
+      preloadPath: Maybe[String] = Absent,
+      chrome: Chrome = Chrome.Native,
+      backgroundColor: Maybe[String] = Absent
   )
 
   def whenReady(run: => Unit): Unit =
@@ -32,16 +43,21 @@ object ElectronApp:
     options.preloadPath match
       case Present(path) => webPreferences.preload = path
       case Absent        => ()
-    val browserWindow = new facades.BrowserWindow(
-      js.Dynamic
-        .literal(
-          width = options.width,
-          height = options.height,
-          show = options.show,
-          webPreferences = webPreferences
-        )
-        .asInstanceOf[js.Object]
+    val windowOptions = js.Dynamic.literal(
+      width = options.width,
+      height = options.height,
+      show = options.show,
+      webPreferences = webPreferences
     )
+    options.backgroundColor match
+      case Present(color) => windowOptions.backgroundColor = color
+      case Absent         => ()
+    options.chrome match
+      case Chrome.Custom(x, y) =>
+        windowOptions.titleBarStyle = "hiddenInset"
+        windowOptions.trafficLightPosition = js.Dynamic.literal(x = x, y = y)
+      case Chrome.Native => ()
+    val browserWindow = new facades.BrowserWindow(windowOptions.asInstanceOf[js.Object])
     Window(browserWindow)
 
   def appVersion: String = facades.app.getVersion()

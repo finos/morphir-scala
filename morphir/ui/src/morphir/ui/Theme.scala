@@ -90,6 +90,15 @@ object Theme:
       |.rail-nav-item.active .nav-dot { background: var(--accent); }
       |.rail-spacer { flex: 1; }
       |
+      |/* Custom-chrome (frameless window) support: the host app owns the title bar. The spacer keeps
+      |   clear of the macOS traffic-light overlay; drag regions make the chrome move the window. */
+      |.titlebar-drag { height: 30px; flex: none; -webkit-app-region: drag; }
+      |.sidebar-head, .topbar { -webkit-app-region: drag; }
+      |.sidebar-head.lights-inset { padding-left: 62px; min-height: 34px; }
+      |.sidebar-head.lights-inset .brand-sub { display: none; }
+      |.sidebar-head.lights-inset .brand { padding-bottom: 0; }
+      |.icon-btn, .nav-item, .rail-nav-item, .chip { -webkit-app-region: no-drag; }
+      |
       |.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
       |.topbar {
       |  height: 52px; flex: none; display: flex; flex-direction: row; align-items: center; justify-content: space-between;

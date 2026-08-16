@@ -8,13 +8,14 @@ class AppShellTests extends Test[Any]:
   def renderOnce(ui: UI): String < Async =
     UI.runRender(ui).take(1).run.map(_.mkString)
 
-  def sampleShell(collapsed: SignalRef[Boolean]): UI =
+  def sampleShell(collapsed: SignalRef[Boolean], customChrome: Boolean = false): UI =
     AppShell.shell(
       sectionTitle = "Overview",
       version = "1.2.3",
       nav = Chunk(AppShell.NavItem("IR Explorer", active = true), AppShell.NavItem("Knowledge")),
       panels = Chunk(AppShell.panel("IR Packages", UI.p("body"))),
-      collapsed = collapsed
+      collapsed = collapsed,
+      customChrome = customChrome
     )
 
   "AppShell" - {
@@ -47,6 +48,14 @@ class AppShellTests extends Test[Any]:
           _      <- collapsed.set(true)
           second <- renderOnce(sampleShell(collapsed))
         yield assert(first.contains("IR Explorer") && !second.contains("IR Explorer") && second.contains("rail"))
+      }
+
+    "custom chrome adds the titlebar drag spacer; default omits it" in
+      Signal.initRef(false).map { collapsed =>
+        for
+          plain  <- renderOnce(sampleShell(collapsed))
+          chrome <- renderOnce(sampleShell(collapsed, customChrome = true))
+        yield assert(!plain.contains("titlebar-drag") && chrome.contains("titlebar-drag"))
       }
   }
 end AppShellTests

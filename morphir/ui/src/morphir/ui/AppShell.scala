@@ -23,12 +23,13 @@ object AppShell:
       nav: Chunk[NavItem],
       panels: Chunk[UI],
       collapsed: SignalRef[Boolean],
-      onSettings: => Any < Async = ()
+      onSettings: => Any < Async = (),
+      customChrome: Boolean = false
   ): UI =
     div.cssClass("app").id("app-root")(
       collapsed.render { isCollapsed =>
-        if isCollapsed then railSidebar(nav, collapsed, onSettings)
-        else fullSidebar(nav, collapsed, onSettings)
+        if isCollapsed then railSidebar(nav, collapsed, onSettings, customChrome)
+        else fullSidebar(nav, collapsed, onSettings, customChrome)
       },
       div.cssClass("main")(
         div.cssClass("topbar")(
@@ -39,9 +40,15 @@ object AppShell:
       )
     )
 
-  private def fullSidebar(nav: Chunk[NavItem], collapsed: SignalRef[Boolean], onSettings: => Any < Async): UI =
+  private def fullSidebar(
+      nav: Chunk[NavItem],
+      collapsed: SignalRef[Boolean],
+      onSettings: => Any < Async,
+      customChrome: Boolean
+  ): UI =
     div.cssClass("sidebar")(
-      div.cssClass("sidebar-head")(
+      (if customChrome then div.cssClass("sidebar-head").cssClass("lights-inset").id("titlebar-drag")
+       else div.cssClass("sidebar-head")) (
         div.cssClass("brand")(span("morphir").cssClass("brand-mark"), span("DESKTOP").cssClass("brand-sub")),
         div.cssClass("icon-btn").id("sidebar-toggle").onClick(collapsed.set(true))(panelIcon)
       ),
@@ -53,8 +60,14 @@ object AppShell:
       )
     )
 
-  private def railSidebar(nav: Chunk[NavItem], collapsed: SignalRef[Boolean], onSettings: => Any < Async): UI =
+  private def railSidebar(
+      nav: Chunk[NavItem],
+      collapsed: SignalRef[Boolean],
+      onSettings: => Any < Async,
+      customChrome: Boolean
+  ): UI =
     div.cssClass("sidebar").cssClass("rail")(
+      if customChrome then div.cssClass("titlebar-drag").id("titlebar-drag") else UI.empty,
       div.cssClass("icon-btn").id("sidebar-toggle").onClick(collapsed.set(false))(panelIcon),
       div.cssClass("rail-divider"),
       fragment(nav.toSeq.map(_.railRow)*),

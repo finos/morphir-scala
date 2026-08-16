@@ -31,7 +31,9 @@ object Main:
     val window = ElectronApp.createWindow(
       ElectronApp.WindowOptions(
         show = !smokeMode,
-        preloadPath = Present(s"$appDir/preload.cjs")
+        preloadPath = Present(s"$appDir/preload.cjs"),
+        chrome = ElectronApp.Chrome.Custom(trafficLightX = 16, trafficLightY = 24),
+        backgroundColor = Present("#0f0d14")
       )
     )
     window.loadFile("index.html")
