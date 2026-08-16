@@ -6,10 +6,14 @@ app.whenReady().then(() => {
   setTimeout(async () => {
     try {
       const win = BrowserWindow.getAllWindows()[0]
-      const hasSpacer = await win.webContents.executeJavaScript('!!document.getElementById("titlebar-drag")')
-      const dragCss = await win.webContents.executeJavaScript('getComputedStyle(document.querySelector(".topbar")).webkitAppRegion')
-      fs.writeFileSync('/tmp/chrome-probe.txt', `spacer=${hasSpacer} topbarDrag=${dragCss}\n`)
-      fs.writeFileSync('/tmp/morphir-chrome.png', (await win.webContents.capturePage()).toPNG())
+      fs.writeFileSync('/tmp/chrome-expanded.png', (await win.webContents.capturePage()).toPNG())
+      await win.webContents.executeJavaScript('document.getElementById("sidebar-toggle").click()')
+      await new Promise(r => setTimeout(r, 600))
+      fs.writeFileSync('/tmp/chrome-collapsed.png', (await win.webContents.capturePage()).toPNG())
+      const back = await win.webContents.executeJavaScript('document.getElementById("sidebar-toggle").click(); "ok"')
+      await new Promise(r => setTimeout(r, 600))
+      const cls = await win.webContents.executeJavaScript('document.querySelectorAll(".sidebar").length')
+      fs.writeFileSync('/tmp/chrome-probe.txt', `roundtrip sidebars=${cls}\n`)
       win.focus()
     } catch (e) { fs.writeFileSync('/tmp/chrome-probe.txt', 'FAILED ' + e) }
   }, 6000)

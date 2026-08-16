@@ -77,27 +77,16 @@ object Theme:
       |  display: flex; flex-direction: row; align-items: center; justify-content: space-between;
       |  padding-right: 2px;
       |}
-      |.sidebar.rail { width: 56px; padding: 18px 10px; align-items: center; }
-      |.rail-divider { height: 1px; width: 24px; background: #241f30; margin: 12px 0; flex: none; }
-      |.rail-nav-item {
-      |  width: 30px; height: 30px; border-radius: 8px; display: flex; flex-direction: row;
-      |  align-items: center; justify-content: center; margin: 2px 0;
-      |}
-      |.rail-nav-item:hover { background: #1f1a29; }
-      |.rail-nav-item.active {
-      |  background: linear-gradient(90deg, rgba(214, 64, 159, 0.16), rgba(139, 92, 246, 0.10));
-      |}
-      |.rail-nav-item.active .nav-dot { background: var(--accent); }
-      |.rail-spacer { flex: 1; }
       |
       |/* Custom-chrome (frameless window) support: the host app owns the title bar. The spacer keeps
       |   clear of the macOS traffic-light overlay; drag regions make the chrome move the window. */
-      |.titlebar-drag { height: 30px; flex: none; -webkit-app-region: drag; }
       |.sidebar-head, .topbar { -webkit-app-region: drag; }
+      |.topbar-left { display: flex; flex-direction: row; align-items: center; gap: 12px; }
+      |.topbar.lights-inset { padding-left: 78px; }
       |.sidebar-head.lights-inset { padding-left: 62px; min-height: 34px; }
       |.sidebar-head.lights-inset .brand-sub { display: none; }
       |.sidebar-head.lights-inset .brand { padding-bottom: 0; }
-      |.icon-btn, .nav-item, .rail-nav-item, .chip { -webkit-app-region: no-drag; }
+      |.icon-btn, .nav-item, .chip { -webkit-app-region: no-drag; }
       |
       |.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
       |.topbar {

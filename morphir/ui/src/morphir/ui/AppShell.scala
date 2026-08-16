@@ -28,14 +28,25 @@ object AppShell:
   ): UI =
     div.cssClass("app").id("app-root")(
       collapsed.render { isCollapsed =>
-        if isCollapsed then railSidebar(nav, collapsed, onSettings, customChrome)
+        if isCollapsed then div.cssClass("sidebar-hidden").hidden(true)
         else fullSidebar(nav, collapsed, onSettings, customChrome)
       },
       div.cssClass("main")(
-        div.cssClass("topbar")(
-          div.cssClass("topbar-title")(span("morphir / ").cssClass("crumb"), sectionTitle),
-          span(s"v$version").cssClass("chip").id("app-version")
-        ),
+        collapsed.render { isCollapsed =>
+          if isCollapsed then
+            (if customChrome then div.cssClass("topbar").cssClass("lights-inset") else div.cssClass("topbar")) (
+              div.cssClass("topbar-left")(
+                div.cssClass("icon-btn").id("sidebar-toggle").onClick(collapsed.set(false))(panelIcon),
+                div.cssClass("topbar-title")(span("morphir / ").cssClass("crumb"), sectionTitle)
+              ),
+              span(s"v$version").cssClass("chip").id("app-version")
+            )
+          else
+            div.cssClass("topbar")(
+              div.cssClass("topbar-title")(span("morphir / ").cssClass("crumb"), sectionTitle),
+              span(s"v$version").cssClass("chip").id("app-version")
+            )
+        },
         div.cssClass("content")(fragment(panels.toSeq*))
       )
     )
@@ -58,21 +69,6 @@ object AppShell:
         div.cssClass("icon-btn").id("settings-button").onClick(onSettings)(gearIcon),
         span("morphir-scala · kyo-ui").cssClass("foot-meta")
       )
-    )
-
-  private def railSidebar(
-      nav: Chunk[NavItem],
-      collapsed: SignalRef[Boolean],
-      onSettings: => Any < Async,
-      customChrome: Boolean
-  ): UI =
-    div.cssClass("sidebar").cssClass("rail")(
-      if customChrome then div.cssClass("titlebar-drag").id("titlebar-drag") else UI.empty,
-      div.cssClass("icon-btn").id("sidebar-toggle").onClick(collapsed.set(false))(panelIcon),
-      div.cssClass("rail-divider"),
-      fragment(nav.toSeq.map(_.railRow)*),
-      div.cssClass("rail-spacer"),
-      div.cssClass("icon-btn").id("settings-button").onClick(onSettings)(gearIcon)
     )
 
   /** Lucide `panel-left` glyph: the sidebar collapse/expand toggle. */
@@ -130,8 +126,3 @@ object AppShell:
       val base = div.cssClass("nav-item")
       val elem = if item.active then base.cssClass("active") else base
       elem(span("").cssClass("nav-dot"), item.label)
-
-    private def railRow: UI =
-      val base = div.cssClass("rail-nav-item")
-      val elem = if item.active then base.cssClass("active") else base
-      elem(span("").cssClass("nav-dot"))

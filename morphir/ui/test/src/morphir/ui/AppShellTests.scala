@@ -31,12 +31,12 @@ class AppShellTests extends Test[Any]:
         }
       }
 
-    "collapsed shell renders the rail without nav labels" in
+    "collapsed shell hides the sidebar and moves the toggle into the topbar" in
       Signal.initRef(true).map { collapsed =>
         renderOnce(sampleShell(collapsed)).map { html =>
           assert(
-            html.contains("rail") && html.contains("rail-nav-item") &&
-              !html.contains("IR Explorer") && html.contains("sidebar-toggle") && html.contains("settings-button")
+            !html.contains("nav-item") && !html.contains("brand") && !html.contains("IR Explorer") &&
+              html.contains("topbar-left") && html.contains("sidebar-toggle") && html.contains("IR Packages")
           )
         }
       }
@@ -47,7 +47,7 @@ class AppShellTests extends Test[Any]:
           first  <- renderOnce(sampleShell(collapsed))
           _      <- collapsed.set(true)
           second <- renderOnce(sampleShell(collapsed))
-        yield assert(first.contains("IR Explorer") && !second.contains("IR Explorer") && second.contains("rail"))
+        yield assert(first.contains("IR Explorer") && !second.contains("IR Explorer") && second.contains("topbar-left"))
       }
 
     "custom chrome adds the titlebar drag spacer; default omits it" in
