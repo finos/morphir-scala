@@ -1,4 +1,6 @@
-package morphir.desktop.main
+package morphir.desktop.boot
+
+import morphir.desktop.main.DemoServices
 
 import kyo.*
 import morphir.appkit.electron.*
