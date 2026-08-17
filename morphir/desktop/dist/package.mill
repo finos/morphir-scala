@@ -12,6 +12,7 @@ package build.morphir.desktop.dist
 import mill.*
 import mill.api.{BuildCtx, PathRef}
 import mill.scalalib.*
+import org.finos.morphir.mill.publish.Sha256Digest
 import org.finos.morphir.mill.publish.desktop.{DesktopPlatform, DesktopReleaseLayout}
 import build.MorphirPublishBase
 
@@ -27,24 +28,47 @@ trait DesktopDistModule extends Cross.Module[String] with JavaModule with Morphi
   override def artifactName               = Task { desktopPlatform.artifactName }
   override def packageDescription: String = "Morphir desktop application distribution"
 
-  /** Directory holding canonicalized release assets; written by `ci.desktop.canonicalize`. */
-  def releaseDirPath = Task.Input {
-    Task.env
+  private def resolveReleaseDir(env: Map[String, String]): os.Path =
+    env
       .get("MORPHIR_DESKTOP_RELEASE_DIR")
       .map(value => os.Path(value, BuildCtx.workspaceRoot))
       .getOrElse(BuildCtx.workspaceRoot / ".dev" / "dist" / "desktop" / "release")
-      .toString
+
+  /** Directory holding canonicalized release assets; written by `ci.desktop.canonicalize`. */
+  def releaseDirPath = Task.Input {
+    resolveReleaseDir(Task.env).toString
+  }
+
+  /**
+   * Digest of every file currently staged in the release directory, keyed by file name; empty when
+   * the directory does not exist. A `Task.Input` reading `Task.env` and the filesystem directly (no
+   * other task calls, since `Task.Input` forbids `Task#apply()`), so it re-evaluates on every run.
+   * [[archive]] depends on this rather than checking the filesystem itself, so a re-canonicalized
+   * archive — same name, different bytes — is honestly reported as changed instead of being served
+   * from a stale cached `PathRef`.
+   */
+  def releaseDirDigest = Task.Input {
+    val dir = resolveReleaseDir(Task.env)
+    if (!os.exists(dir)) Map.empty[String, String]
+    else
+      BuildCtx.withFilesystemCheckerDisabled {
+        os.list(dir)
+          .filter(os.isFile(_))
+          .map(file => file.last -> Sha256Digest.ofFile(file))
+          .toMap
+      }
   }
 
   /** The archive published as this module's main artifact. */
   def archive = Task {
-    val name = DesktopReleaseLayout.archiveName(desktopPlatform, publishVersion())
-    val file = os.Path(releaseDirPath()) / name
-    if (!os.exists(file))
+    val name    = DesktopReleaseLayout.archiveName(desktopPlatform, publishVersion())
+    val digests = releaseDirDigest()
+    if (!digests.contains(name))
       throw new IllegalStateException(
-        s"missing desktop archive $file — run ci.desktop.canonicalize before publishing"
+        s"missing desktop archive $name in ${releaseDirPath()} — run ci.desktop.canonicalize before publishing"
       )
-    PathRef(file)
+    val file = os.Path(releaseDirPath()) / name
+    BuildCtx.withFilesystemCheckerDisabled(PathRef(file))
   }
 
   override def publishArtifactsDefaultPayload(
