@@ -25,37 +25,44 @@ why something did not show up where you expected it.
 | Desktop archives, installers and checksums | GitHub Releases | `morphir-desktop-<os>-<arch>-<version>.<ext>` |
 | CLI | Coursier channel | `org.finos.morphir:morphir-main_3`, resolved as `latest.release` |
 
-Two paths reach these destinations. The library and plugin path runs from ordinary pushes and needs
-nothing beyond the `ci` gate. The desktop path only starts once a GitHub Release is published. Figure 1
-shows both, end to end.
+Two aggregate gates stand between a trigger and anything leaving the repository: `ci` for lint, tests
+and knowledge base checks, and `packaging` for the desktop build. Packaging runs on ordinary pushes and
+pull requests as well as releases, but only a published release reaches a publishing step. Figure 1
+shows every path, end to end.
 
 ```mermaid
 flowchart TD
-    PR[Pull request] --> Gate[ci aggregate gate: lint, tests, kb checks]
+    PR[Pull request] --> Gate[ci gate: lint, tests, kb checks]
     Push[Push to main, 0.4.x or develop] --> Gate
-    Rel[GitHub Release published]
-    Rel --> Gate
+    Rel[GitHub Release published] --> Gate
     Dispatch[Manual dispatch] --> Gate
 
-    Gate -->|main or develop: snapshot coordinate| Publish[publish job: ci.publish]
-    Gate -->|0.4.x or a tag: milestone/release coordinate| Publish
+    Gate -->|main or develop: snapshot coordinate| Publish[publish: ci.publish]
+    Gate -->|0.4.x or a tag: milestone or release coordinate| Publish
     Publish -->|serial upload, one module at a time| Sonatype[(Sonatype Central)]
 
-    Rel -->|five platform runners, needs the ci gate| Package[desktop-package matrix]
-    Package -->|raw electron-builder output, one workflow artifact per platform| Canon[desktop-release: canonicalize]
+    Gate --> Matrix[desktop-matrix: five platforms on a push or release, linux-amd64 on a pull request]
+    Matrix --> Package[desktop-package: one runner per platform]
+    Package -->|raw electron-builder output, one artifact per platform| CiVerify[desktop-verify: canonicalize and verify, no signing, no upload]
+    Matrix --> Packaging[packaging gate]
+    Package --> Packaging
+    CiVerify --> Packaging
+
+    Packaging -->|published release only| Canon[desktop-release: canonicalize]
     Canon -->|renamed assets, .sha256 sidecars, checksums.txt| Sign[sign checksums.txt with the PGP key]
     Sign -->|checksums.txt.asc| Verify[verify: seven checks]
     Verify -->|all checks pass| GhRelease[githubRelease: upload every asset]
-    Verify -->|all checks pass| DesktopSonatype[sonatype: five coordinates, one deployment]
+    GhRelease -->|then, in sequence| DesktopSonatype[sonatype: five coordinates, one deployment]
     GhRelease -->|archives, installers, checksums| GhAssets[(GitHub Release assets)]
     DesktopSonatype -->|archives only| Sonatype
 
     Sonatype -.->|coursier resolves latest.release| Cli[CLI install]
 ```
 
-**Figure 1:** Two independent triggers feed two independent destinations. The library path runs on
-every qualifying push; the desktop path only starts from a published GitHub Release, fans out to five
-packaging runners, then funnels back through one runner that signs, verifies, and only then uploads.
+**Figure 1:** Notice where the two gates sit. Everything above `packaging` runs on ordinary pull
+requests and pushes, so a broken desktop build surfaces where it was introduced; everything below it
+runs only for a published release, and signing comes before verification, which comes before either
+upload.
 
 ## Triggers
 
