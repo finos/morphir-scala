@@ -176,7 +176,8 @@ trait MorphirCiModule extends Module {
      * Upload every canonicalized asset to the release for `tag`.
      *
      * If no release exists for the tag, one is created as a **draft**. Publishing a release is a human
-     * action; a tag push must not announce one on its own.
+     * action, and the workflow only reaches this task on `release: published` — it has no `push: tags:`
+     * trigger, so a bare tag push never runs it.
      */
     def githubRelease(tag: String) = Task.Command(exclusive = true) {
       runGithubRelease(os.Path(releaseDirPath()), tag)

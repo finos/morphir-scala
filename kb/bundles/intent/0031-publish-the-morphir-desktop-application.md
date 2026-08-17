@@ -55,7 +55,8 @@ produce raw electron-builder output, and a single runner canonicalizes the names
 and drives both uploads. The naming and inventory rules are ordinary Scala in the Mill plugin, unit
 tested, rather than shell spread across five runners.
 
-Both destinations fire on tags and published releases only. Library snapshot publishing on `main` and
+Both destinations fire only when a GitHub Release is published (the workflow carries no `push: tags:`
+trigger, so a bare tag push alone does not run this flow). Library snapshot publishing on `main` and
 `develop` is unchanged, and the desktop modules are deliberately excluded from that sweep.
 
 The same contract is meant to carry the Morphir CLI later, packaged with GraalVM native-image instead of
