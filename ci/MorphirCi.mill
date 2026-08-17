@@ -4,7 +4,7 @@ import build.{`mill-plugins` => millPlugins}
 import mill.*
 import mill.api.{BuildCtx, DefaultTaskModule, Evaluator, ModuleRef, Result, SelectMode, TaskCtx}
 import mill.util.VcsVersion
-import millbuild.{LintSelectors, SnapshotVersion}
+import millbuild.{JsTestSelectors, LintSelectors, SnapshotVersion}
 import org.finos.morphir.mill.publish.{MillPublishEnvFile, MillSonatypeEnv, PgpSecret, PublishSelectors}
 import org.finos.morphir.mill.publish.desktop.{
   DesktopPlatform,
@@ -387,6 +387,48 @@ trait MorphirCiModule extends Module {
       case Left(msg) => throw new Exception(s"ci.lint $sourcesSelector failed: $msg")
       case Right(_)  => ()
     }
+  }
+
+  /**
+   * The "Run JS tests" phase of the `test-js` / `test-js-desktop` CI jobs — compile, publish, and
+   * both JS and Wasm test runs — scoped to `group` (`"platform"` or `"desktop"`).
+   *
+   * `morphir.ui`, `morphir.desktop` and `morphir.appkit.electron` link a big enough working set that
+   * running them alongside the rest of the JS tree OOM'd the Scala.js linker inside its source-map
+   * printer (morphir-oyn). Splitting the load across two CI jobs — two runners, two daemons — needs
+   * two disjoint, exhaustive subsets of the same wildcard, which a Mill selector cannot express by
+   * itself, so this resolves the full wildcard and hands it to [[JsTestSelectors]] to partition. See
+   * that object for why the split is exhaustive and disjoint by construction, and why an empty
+   * bucket is a hard failure rather than a silently-passing no-op.
+   */
+  def testJs(evaluator: Evaluator, group: String) = Task.Command(exclusive = true) {
+    runJsGroup(evaluator, JsTestSelectors.mainPhaseSelectors, group, "ci.testJs")
+  }
+
+  /**
+   * The "Link the WebAssembly variants" phase of [[testJs]] — kept a separate command so CI can run
+   * it at `-j 1` while the rest of the phase runs at higher concurrency; see
+   * `.config/mise/tasks/test/js` for why Wasm links are serialized.
+   */
+  def testJsWasmLink(evaluator: Evaluator, group: String) = Task.Command(exclusive = true) {
+    runJsGroup(evaluator, Seq(JsTestSelectors.wasmLinkSelector), group, "ci.testJsWasmLink")
+  }
+
+  private def runJsGroup(
+      evaluator: Evaluator,
+      selectors: Seq[String],
+      group: String,
+      what: String
+  )(using TaskCtx): Unit = {
+    val resolved = selectors.flatMap { selector =>
+      unwrap(evaluator.resolveSegments(Seq(selector), SelectMode.Multi), s"resolve $selector").map(_.render)
+    }
+    val kept = JsTestSelectors.selectGroup(resolved, group, what) match {
+      case Right(selected) => selected
+      case Left(message)   => throw new Exception(message)
+    }
+    Task.log.info(s"$what: evaluating ${kept.size} targets (group=$group)")
+    evaluateAll(evaluator, kept, s"$what (group=$group)")
   }
 
   /**
