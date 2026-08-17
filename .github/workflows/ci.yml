@@ -543,7 +543,19 @@ jobs:
 
       - name: Resolve publish version
         shell: bash
-        run: echo "MORPHIR_DESKTOP_VERSION=$(./mill --ticker false -i show ci.desktop.version | tr -d '\"')" >> "$GITHUB_ENV"
+        # `mill show` is not guaranteed to put the value alone on stdout — a bootstrap or daemon line
+        # can precede it, and writing that straight into $GITHUB_ENV produces a second line with no
+        # `KEY=`, which the runner rejects with "Unable to process file command 'env' successfully".
+        # Take the last line, strip the JSON quotes, and refuse an empty result rather than carrying
+        # a blank version into electron-builder, where it would surface as a confusing packaging error.
+        run: |
+          version="$(./mill --ticker false -i show ci.desktop.version | tail -n 1 | tr -d '"')"
+          if [[ -z "$version" ]]; then
+            echo "ci.desktop.version resolved to an empty string" >&2
+            exit 1
+          fi
+          echo "resolved desktop version: $version"
+          echo "MORPHIR_DESKTOP_VERSION=$version" >> "$GITHUB_ENV"
 
       - name: Package
         shell: bash
