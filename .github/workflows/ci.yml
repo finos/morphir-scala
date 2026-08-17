@@ -282,6 +282,12 @@ jobs:
           ./mill --ticker false -i morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery
           ./mill --ticker false -i morphir.runtime.classic.jvm.test
 
+  # Split from test-js-desktop (morphir-oyn): linking morphir.ui, morphir.desktop and
+  # morphir.appkit.electron alongside the rest of the JS/Wasm tree in one Mill daemon pushed the
+  # Scala.js linker past the 8 GB heap in .mill-jvm-opts, OOM-ing inside the source-map printer.
+  # ci.testJs / ci.testJsWasmLink (ci/MorphirCi.mill) resolve the shared wildcards once and split
+  # them by millbuild.JsTestSelectors so the two peaks land on two runners with two daemons; "platform"
+  # here is everything *except* the desktop/UI subset that test-js-desktop takes.
   test-js:
     runs-on: ubuntu-latest
     # 45 rather than the 30 the other test jobs use. The "Run JS tests" step alone has finished in
@@ -314,12 +320,14 @@ jobs:
         uses: coursier/cache-action@v8
 
       - name: Run JS tests
-        # Kept in step with .config/mise/tasks/test/js — the `wasm` link variants
-        # sit beside their `js` sibling, so `morphir.__.js.__` never matches them.
-        # `-j 4` matches that task; see the comment there for why the Scala.js
-        # link phase needs a parallelism cap against the daemon's heap.
+        # Kept in step with .config/mise/tasks/test/js for the underlying selectors, but `-j 2`
+        # rather than that task's `-j 4` default: a GitHub-hosted runner is smaller than a developer
+        # machine and shares its 8 GB daemon heap (.mill-jvm-opts) with everything else on the box.
+        # ci.testJs partitions the shared wildcard by millbuild.JsTestSelectors; "platform" is every
+        # JS/Wasm test module except morphir.ui/morphir.desktop/morphir.appkit.electron, which
+        # test-js-desktop covers instead.
         run: |
-          ./mill --ticker false -i -k -j 4 "morphir.__.js.__.compile" + "morphir.__.js.publishArtifacts" + "morphir.__.js.__.test" + "morphir.__.wasm.__.test"
+          ./mill --ticker false -i -k -j 2 ci.testJs --group platform
 
       - name: Link the WebAssembly variants
         # Serial on purpose: a Wasm `fullLinkJS` holds the largest working set of any task in this
@@ -327,7 +335,7 @@ jobs:
         # BinaryWriter. Splitting it out keeps the test phase parallel while the links go one at a
         # time. See .config/mise/tasks/test/js.
         run: |
-          ./mill --ticker false -i -k -j 1 "morphir.__.wasm.fullLinkJS"
+          ./mill --ticker false -i -k -j 1 ci.testJsWasmLink --group platform
 
       - name: Cache JS build output
         # when in master repo: all commits to main branch and all additional tags
@@ -341,7 +349,59 @@ jobs:
           # points at $HOME and `out/mill-daemon/mill-workspace` back at the repo root —
           # so it walks the whole runner home and a cyclical path, taking minutes when it
           # works and failing the job outright when it hits an unreadable file or the cycle.
-          key: ${{ runner.os }}-mill-js-${{matrix.java}}-${{ github.sha }}
+          # `-platform` distinguishes this from test-js-desktop's own save under the same commit.
+          key: ${{ runner.os }}-mill-js-platform-${{matrix.java}}-${{ github.sha }}
+
+  # See test-js above for why this job exists (morphir-oyn): morphir.ui, morphir.desktop and
+  # morphir.appkit.electron are the desktop/UI half of the same JS/Wasm wildcard, split out by
+  # ci.testJs --group desktop so their link load lands on its own runner and daemon.
+  test-js-desktop:
+    runs-on: ubuntu-latest
+    # Kept in step with test-js's own reasoning for 45 rather than 30.
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        java: ["25"] # Note there is no need to actually run this for multiple JVM versions for JS
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Setup Scala and Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: ${{ matrix.java }}
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v8
+
+      - name: Run JS tests (desktop/UI)
+        # See test-js's "Run JS tests" step for the `-j 2` reasoning. "desktop" is
+        # morphir.ui/morphir.desktop/morphir.appkit.electron, the subset test-js excludes.
+        run: |
+          ./mill --ticker false -i -k -j 2 ci.testJs --group desktop
+
+      - name: Link the WebAssembly variants (desktop/UI)
+        # Serial for the same reason as test-js's own Wasm link step.
+        run: |
+          ./mill --ticker false -i -k -j 1 ci.testJsWasmLink --group desktop
+
+      - name: Cache JS build output
+        # when in master repo: all commits to main branch and all additional tags
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/')
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            out/morphir/**/js/
+          # See test-js's own cache step; `-desktop` distinguishes this save under the same commit.
+          key: ${{ runner.os }}-mill-js-desktop-${{matrix.java}}-${{ github.sha }}
 
   # Scala Native is currently scoped to the langkit and kit modules ported from
   # krueger, plus buildkit/core and prelude. It gets its own job rather than riding along
@@ -375,7 +435,7 @@ jobs:
 
       - name: Run Native tests
         # Kept in step with .config/mise/tasks/test/native — `-j 4` caps the
-        # concurrent `nativeLink` tasks against the daemon's `-Xmx4g`.
+        # concurrent `nativeLink` tasks against the daemon's `-Xmx8g` (.mill-jvm-opts).
         run: |
           ./mill --ticker false -i -k -j 4 "morphir.__.native.__.compile" + "morphir.__.native.publishArtifacts" + "morphir.__.native.__.test"
 
@@ -702,12 +762,21 @@ jobs:
             out/morphir/**/jvm/
           key: ${{ runner.os }}-mill-jvm-25-${{ github.sha }}
 
-      - name: Restore JS Build Output From Cache
+      - name: Restore JS Build Output From Cache (platform)
+        # test-js and test-js-desktop (morphir-oyn) save under two distinct keys — see their own
+        # "Cache JS build output" steps — so both are restored here to get the full tree back.
         uses: actions/cache/restore@v6
         with:
           path: |
             out/morphir/**/js/
-          key: ${{ runner.os }}-mill-js-25-${{ github.sha }}
+          key: ${{ runner.os }}-mill-js-platform-25-${{ github.sha }}
+
+      - name: Restore JS Build Output From Cache (desktop)
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            out/morphir/**/js/
+          key: ${{ runner.os }}-mill-js-desktop-25-${{ github.sha }}
 
       - name: Configure snapshot version
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
@@ -739,7 +808,7 @@ jobs:
   ci:
     if: ${{ always() }}
     runs-on: ubuntu-latest
-    needs: [lint, squire-policy, knowledge-base, test-js, test-jvm, test-native, mill-morphir-unit, mill-morphir-integration, morphir-elm-projects, runtime-generated-fixtures, runtime-tests]
+    needs: [lint, squire-policy, knowledge-base, test-js, test-js-desktop, test-jvm, test-native, mill-morphir-unit, mill-morphir-integration, morphir-elm-projects, runtime-generated-fixtures, runtime-tests]
     steps:
       - name: Verify required CI jobs succeeded
         run: |
@@ -747,6 +816,7 @@ jobs:
           test "${{ needs.squire-policy.result }}" = "success"
           test "${{ needs.knowledge-base.result }}" = "success"
           test "${{ needs.test-js.result }}" = "success"
+          test "${{ needs.test-js-desktop.result }}" = "success"
           test "${{ needs.test-jvm.result }}" = "success"
           test "${{ needs.test-native.result }}" = "success"
           test "${{ needs.mill-morphir-unit.result }}" = "success"
