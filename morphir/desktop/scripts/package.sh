@@ -11,7 +11,12 @@ VERSION="${2:?version required}"
 cd "$(dirname "$0")/../../.."
 
 # Release builds use fullLinkJS; scripts/assemble.sh uses fastLinkJS for the dev loop.
-./mill morphir.desktop.boot.js.fullLinkJS morphir.desktop.renderer.js.fullLinkJS
+#
+# The `+` is required. Two task selectors written side by side are not two tasks: Mill reads the
+# second as an argument to the first, links only the boot bundle, and exits 0. That failure is
+# invisible on a machine where the renderer was linked at some earlier point, and shows up on a
+# fresh checkout as a missing directory much later in the script.
+./mill morphir.desktop.boot.js.fullLinkJS + morphir.desktop.renderer.js.fullLinkJS
 
 APP="morphir/desktop/app"
 mkdir -p "$APP/dist"
