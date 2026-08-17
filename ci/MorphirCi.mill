@@ -7,6 +7,7 @@ import mill.util.VcsVersion
 import millbuild.{LintSelectors, SnapshotVersion}
 import org.finos.morphir.mill.publish.{MillPublishEnvFile, MillSonatypeEnv, PgpSecret, PublishSelectors}
 import org.finos.morphir.mill.publish.desktop.{
+  DesktopPlatform,
   DesktopRelease,
   DesktopReleaseChecks,
   DesktopReleaseLayout,
@@ -166,9 +167,14 @@ trait MorphirCiModule extends Module {
      * Empties the release directory first, so a second run at a different version in the same
      * workspace does not leave the previous version's assets and sidecars behind for
      * `githubRelease` to upload alongside the current ones.
+     *
+     * `platforms` is a comma-separated token list (`DesktopPlatform.token`), defaulting to all five —
+     * the release path. CI packaging a pull request stages only `linux-amd64`, so it passes that one
+     * token; `DesktopRelease.canonicalize` would otherwise fail demanding the other four.
      */
-    def canonicalize() = Task.Command(exclusive = true) {
-      runCanonicalize(os.Path(stagingRootPath()), os.Path(releaseDirPath()), version())
+    def canonicalize(platforms: String = DesktopPlatform.AllTokens) = Task.Command(exclusive = true) {
+      val selected = parsePlatforms(platforms)
+      runCanonicalize(os.Path(stagingRootPath()), os.Path(releaseDirPath()), version(), selected)
     }
 
     /**
@@ -179,30 +185,46 @@ trait MorphirCiModule extends Module {
      * before either upload. `ci.desktop.all` passes `false`: it runs canonicalize immediately followed by
      * verify with no signing step in between, so `checksums.txt.asc` does not exist yet there.
      *
+     * `platforms` mirrors [[canonicalize]]'s option: a comma-separated token list, defaulting to all five,
+     * so CI verifying a pull request's packaging checks exactly the subset it packaged.
+     *
      * Throws with every collected problem (across every failing check) when any check fails, so a reader
      * sees the whole picture rather than the first line.
      */
-    def verify(requireSignature: Boolean = true) = Task.Command(exclusive = true) {
-      runVerify(os.Path(releaseDirPath()), version(), requireSignature)
-    }
+    def verify(requireSignature: Boolean = true, platforms: String = DesktopPlatform.AllTokens) =
+      Task.Command(exclusive = true) {
+        val selected = parsePlatforms(platforms)
+        runVerify(os.Path(releaseDirPath()), version(), requireSignature, selected)
+      }
+
+    private def parsePlatforms(platforms: String)(using TaskCtx): Seq[DesktopPlatform] =
+      DesktopPlatform
+        .parseTokens(platforms)
+        .fold(message => throw new Exception(s"ci.desktop: $message"), identity)
 
     // Command bodies live in private helpers so `all` can sequence them. A Task.Command cannot be
     // invoked from another command body — the same reason `sonatype.all` calls `runArtifactPhase`
     // and `runUploadPhase` rather than its sibling commands.
-    private def runCanonicalize(staging: os.Path, release: os.Path, version: String)(using
-        TaskCtx
-    ): Unit = {
+    private def runCanonicalize(
+        staging: os.Path,
+        release: os.Path,
+        version: String,
+        platforms: Seq[DesktopPlatform]
+    )(using TaskCtx): Unit = {
       val manifest = DesktopRelease
-        .canonicalize(staging, release, version)
+        .canonicalize(staging, release, version, platforms)
         .fold(message => throw new Exception(s"ci.desktop.canonicalize failed: $message"), identity)
       manifest.entries.foreach(entry => Task.log.info(s"ci.desktop: ${entry.name} ${entry.sha256}"))
       Task.log.info(s"ci.desktop: ${manifest.entries.size} assets in $release")
     }
 
-    private def runVerify(release: os.Path, version: String, requireSignature: Boolean)(using
-        TaskCtx
-    ): Unit = {
-      val snapshot = ReleaseSnapshot.read(release, version)
+    private def runVerify(
+        release: os.Path,
+        version: String,
+        requireSignature: Boolean,
+        platforms: Seq[DesktopPlatform]
+    )(using TaskCtx): Unit = {
+      val snapshot = ReleaseSnapshot.read(release, version, platforms)
       val checks   = DesktopReleaseChecks.defaults(requireSignature)
       val outcomes = ReleaseVerifier.run(checks, snapshot)
       outcomes.foreach { outcome =>
@@ -316,8 +338,9 @@ trait MorphirCiModule extends Module {
     def all(evaluator: Evaluator, tag: String) = Task.Command(exclusive = true) {
       val release = os.Path(releaseDirPath())
       val desktopVersion = version()
-      runCanonicalize(os.Path(stagingRootPath()), release, desktopVersion)
-      runVerify(release, desktopVersion, requireSignature = false)
+      val allPlatforms = DesktopPlatform.values.toSeq
+      runCanonicalize(os.Path(stagingRootPath()), release, desktopVersion, allPlatforms)
+      runVerify(release, desktopVersion, requireSignature = false, allPlatforms)
       runGithubRelease(release, tag)
       runSonatype(evaluator, desktopVersion)
     }

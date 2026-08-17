@@ -61,14 +61,35 @@ packaging runners, then funnels back through one runner that signs, verifies, an
 
 | Event | GitHub Actions trigger | Condition | What runs |
 | --- | --- | --- | --- |
-| Pull request | `pull_request` | into `main`, `0.4.x`, `develop` | `ci` gate only; nothing publishes |
-| Push | `push` | to `main`, `0.4.x`, `develop` | `ci` gate, then `publish` once it passes |
-| Release published | `release`, `types: [published]` | not scoped to a branch | `ci` gate, then `publish`, `desktop-package` and `desktop-release` |
+| Pull request | `pull_request` | into `main`, `0.4.x`, `develop` | `ci` gate; nothing publishes. Desktop packaging also runs, `linux-amd64` alone, unless the switch below turns it off |
+| Push | `push` | to `main`, `0.4.x`, `develop` | `ci` gate, then `publish` once it passes. Desktop packaging also runs, all five platforms, unless the switch below turns it off |
+| Release published | `release`, `types: [published]` | not scoped to a branch | `ci` gate, then `publish`; desktop packaging (all five platforms) and `desktop-release` — the switch below never applies here |
 | Manual dispatch | `workflow_dispatch` | whichever ref is chosen | the same jobs that ref would otherwise trigger |
 
 The workflow has no `push: tags:` trigger. A bare `git push --tags` never runs anything on its own.
 Publishing a release, not pushing a tag, is what starts the flow: that is the routine path for both the
 library releases and the desktop release.
+
+### Desktop packaging in ordinary CI
+
+Desktop packaging is no longer release-only. It also runs from a pull request and from a push, so a change
+that breaks `electron-builder`, the Scala.js link, or canonicalization is caught where it was introduced
+rather than at release time. Four jobs carry this:
+
+| Job | Does |
+| --- | --- |
+| `desktop-matrix` | Computes the platform set: all five tokens on a tag, a published release, or a push to `main`, `develop` or `0.4.x`; `linux-amd64` alone everywhere else (a pull request). Outputs both the matrix JSON and the same set as a comma-separated token list. |
+| `desktop-package` | The same packaging matrix described below, now sized from `desktop-matrix`'s output instead of always covering all five. |
+| `desktop-verify` | Downloads the packaged artifacts, normalizes staging the way `desktop-release` does, then runs `ci.desktop.canonicalize` and `ci.desktop.verify` over exactly that subset — signature check relaxed, since nothing signs `checksums.txt` here and a pull request carries no GPG secret. No signing and no upload happen in this job, or anywhere in ordinary CI. |
+| `packaging` | Aggregates the three above, the way `ci` aggregates lint and the test jobs — except it accepts a skip on every member, not only a success, since the switch below can legitimately skip all three. |
+
+The repository variable `MORPHIR_CI_PACKAGE_DESKTOP` is the switch: unset, or set to anything other than
+`false`, packaging runs; set to `false`, it does not. It is a repository variable, not a workflow `env:`,
+because GitHub Actions does not expose the `env` context inside a job's `if:` condition — an `env`-based
+switch would evaluate empty there and the gated jobs would never run. A maintainer flips it from repository
+settings, no commit required. Tags and published releases ignore it entirely: turning off ordinary-CI
+packaging must never weaken a real release. `desktop-release` depends on `packaging` rather than on
+`desktop-package` directly, exactly as `publish` depends on the whole `ci` gate rather than one test job.
 
 ## Publishing libraries and plugins
 
@@ -98,7 +119,7 @@ Five platform tokens cover the desktop application, each packaged on a runner th
 | `linux-aarch64` | `ubuntu-24.04-arm` | tar.gz | AppImage, deb |
 | `win-amd64` | `windows-latest` | zip | exe |
 
-The release then runs as one ordered sequence:
+On a tag or a published release, all five package and the release then runs as one ordered sequence:
 
 | # | Step | Runs on | What it does |
 | --- | --- | --- | --- |
@@ -108,6 +129,16 @@ The release then runs as one ordered sequence:
 | 4 | `verify` | same runner | runs seven named checks against the release directory |
 | 5 | `githubRelease --tag` | same runner | uploads every file in the release directory to that tag's release |
 | 6 | `sonatype` | same runner | uploads all five archives to Sonatype Central in one deployment |
+
+Outside a release, [desktop packaging in ordinary CI](#desktop-packaging-in-ordinary-ci) runs steps 1, 2 and
+4 only, restricted to whatever subset `desktop-matrix` computed, with step 4's signature check relaxed and
+no step 3, 5 or 6 — see that section for the job breakdown.
+
+`canonicalize` and `verify` both take a `--platforms` option: a comma-separated list of the tokens above,
+defaulting to all five. `DesktopRelease.canonicalize` fails, naming every missing platform, if any requested
+token has no staged directory — correct for a release, where every platform must be present, and why a
+subset option exists at all: a pull request stages only the one platform `desktop-matrix` chose for it. An
+unrecognized or blank token in the list is also rejected, naming the valid tokens.
 
 `canonicalize` and `verify` are pure preparation: they read and write files, and make no network call.
 `verify` exists because the digests are computed once, during canonicalization, on the runner that staged

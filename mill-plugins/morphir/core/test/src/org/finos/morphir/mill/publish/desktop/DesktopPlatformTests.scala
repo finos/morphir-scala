@@ -44,5 +44,62 @@ object DesktopPlatformTests extends TestSuite {
       assert(DesktopPlatform.fromBuilder("linux", "x64") == Some(DesktopPlatform.LinuxAmd64))
       assert(DesktopPlatform.fromBuilder("win", "arm64") == None)
     }
+
+    test("AllTokens joins every token in declaration order") {
+      assert(DesktopPlatform.AllTokens == "mac-aarch64,mac-amd64,linux-amd64,linux-aarch64,win-amd64")
+    }
+
+    test("parseTokens accepts a single known token") {
+      assert(DesktopPlatform.parseTokens("linux-amd64") == Right(Seq(DesktopPlatform.LinuxAmd64)))
+    }
+
+    test("parseTokens accepts a comma-separated subset, preserving order") {
+      assert(
+        DesktopPlatform.parseTokens("win-amd64,mac-aarch64") ==
+          Right(Seq(DesktopPlatform.WinAmd64, DesktopPlatform.MacAarch64))
+      )
+    }
+
+    test("parseTokens trims whitespace around tokens") {
+      assert(DesktopPlatform.parseTokens(" linux-amd64 , win-amd64 ") == Right(Seq(DesktopPlatform.LinuxAmd64, DesktopPlatform.WinAmd64)))
+    }
+
+    test("parseTokens on AllTokens round-trips every platform in declaration order") {
+      assert(DesktopPlatform.parseTokens(DesktopPlatform.AllTokens) == Right(DesktopPlatform.values.toSeq))
+    }
+
+    test("parseTokens rejects an unknown token, naming the valid tokens") {
+      val result = DesktopPlatform.parseTokens("solaris-sparc")
+      assert(result.isLeft)
+      assert(result.left.toOption.exists(_.contains("solaris-sparc")))
+      assert(result.left.toOption.exists(_.contains("mac-aarch64")))
+      assert(result.left.toOption.exists(_.contains("win-amd64")))
+    }
+
+    test("parseTokens rejects one unknown token among otherwise-known ones") {
+      val result = DesktopPlatform.parseTokens("linux-amd64,bogus")
+      assert(result.isLeft)
+      assert(result.left.toOption.exists(_.contains("bogus")))
+    }
+
+    test("parseTokens rejects an empty string, naming the valid tokens") {
+      val result = DesktopPlatform.parseTokens("")
+      assert(result.isLeft)
+      assert(result.left.toOption.exists(_.contains("mac-aarch64")))
+    }
+
+    test("parseTokens rejects a blank token from a stray comma") {
+      val trailing = DesktopPlatform.parseTokens("linux-amd64,")
+      assert(trailing.isLeft)
+      val leading = DesktopPlatform.parseTokens(",linux-amd64")
+      assert(leading.isLeft)
+      val doubled = DesktopPlatform.parseTokens("linux-amd64,,win-amd64")
+      assert(doubled.isLeft)
+    }
+
+    test("parseTokens rejects a whitespace-only token") {
+      val result = DesktopPlatform.parseTokens("linux-amd64,   ,win-amd64")
+      assert(result.isLeft)
+    }
   }
 }
