@@ -86,5 +86,47 @@ object DesktopReleaseTests extends TestSuite {
       assert(result.isLeft)
       assert(os.list(output).isEmpty)
     }
+
+    test("canonicalizing at a new version removes stale assets and sidecars from a previous version") {
+      val staging = os.temp.dir()
+      val output  = os.temp.dir()
+      stage(staging)
+
+      DesktopRelease.canonicalize(staging, output, "0.4.1", platforms).toOption.get
+      assert(os.exists(output / "morphir-desktop-mac-aarch64-0.4.1.zip"))
+      assert(os.exists(output / "morphir-desktop-mac-aarch64-0.4.1.zip.sha256"))
+      assert(os.exists(output / "morphir-desktop-mac-aarch64-0.4.1.dmg"))
+      assert(os.exists(output / "morphir-desktop-win-amd64-0.4.1.zip"))
+
+      DesktopRelease.canonicalize(staging, output, "0.4.2", platforms).toOption.get
+
+      assert(!os.exists(output / "morphir-desktop-mac-aarch64-0.4.1.zip"))
+      assert(!os.exists(output / "morphir-desktop-mac-aarch64-0.4.1.zip.sha256"))
+      assert(!os.exists(output / "morphir-desktop-mac-aarch64-0.4.1.dmg"))
+      assert(!os.exists(output / "morphir-desktop-win-amd64-0.4.1.zip"))
+      assert(os.exists(output / "morphir-desktop-mac-aarch64-0.4.2.zip"))
+      val remaining = os.list(output).map(_.last)
+      assert(remaining.filterNot(_ == DesktopReleaseLayout.ChecksumsFileName).forall(_.contains("0.4.2")))
+    }
+
+    test("a failed canonicalize leaves a pre-existing output directory untouched") {
+      val staging = os.temp.dir()
+      val output  = os.temp.dir()
+      stage(staging)
+      DesktopRelease.canonicalize(staging, output, version, platforms).toOption.get
+
+      val before = os.list(output).map(_.last).toSet
+      val beforeContents = before.map(name => name -> os.read(output / name)).toMap
+      assert(before.nonEmpty)
+
+      // Drop one platform's staged directory so `collect` fails validation before any write.
+      os.remove.all(staging / "win-amd64")
+      val result = DesktopRelease.canonicalize(staging, output, "0.4.9", platforms)
+
+      assert(result.isLeft)
+      val after = os.list(output).map(_.last).toSet
+      assert(after == before)
+      after.foreach(name => assert(os.read(output / name) == beforeContents(name)))
+    }
   }
 }

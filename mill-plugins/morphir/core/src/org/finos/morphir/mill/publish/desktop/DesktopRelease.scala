@@ -14,6 +14,10 @@ final case class ReleaseManifest(version: String, entries: Seq[ManifestEntry])
  * `<outputDir>/morphir-desktop-<token>-<version>.<ext>` with a `.sha256` sidecar, plus one `checksums.txt` covering
  * every asset.
  *
+ * `outputDir` is treated as fully owned, derived output: a successful run empties it first, so it ends up
+ * containing exactly the current manifest and nothing left over from a previous version. A failed run — one
+ * where the staging tree does not validate — never touches a pre-existing `outputDir`.
+ *
  * Only archives are flagged as Maven artifacts; installers are GitHub-Releases-only.
  */
 object DesktopRelease {
@@ -27,6 +31,12 @@ object DesktopRelease {
     else if (platforms.isEmpty) Left("no desktop platforms requested")
     else
       collect(stagingRoot, platforms).map { staged =>
+        // The output directory is derived, fully-owned output: clear whatever a previous run at a
+        // different version left behind before writing the current manifest, so no stale asset or
+        // `.sha256` sidecar survives to be picked up by `runGithubRelease`, which uploads every file
+        // in this directory. This runs only after `collect` above has validated the whole staging
+        // tree, so a failed run never touches a pre-existing output directory.
+        if (os.exists(outputDir)) os.remove.all(outputDir)
         os.makeDir.all(outputDir)
         val entries = staged.flatMap { case (assets, directory) =>
           val archiveEntry = copyAsset(

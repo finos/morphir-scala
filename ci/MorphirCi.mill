@@ -160,7 +160,13 @@ trait MorphirCiModule extends Module {
         .fold(message => throw new IllegalArgumentException(message), identity)
     }
 
-    /** Rename staged output to canonical names, write `.sha256` sidecars and `checksums.txt`. */
+    /**
+     * Rename staged output to canonical names, write `.sha256` sidecars and `checksums.txt`.
+     *
+     * Empties the release directory first, so a second run at a different version in the same
+     * workspace does not leave the previous version's assets and sidecars behind for
+     * `githubRelease` to upload alongside the current ones.
+     */
     def canonicalize() = Task.Command(exclusive = true) {
       runCanonicalize(os.Path(stagingRootPath()), os.Path(releaseDirPath()), version())
     }
