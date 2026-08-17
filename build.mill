@@ -58,7 +58,11 @@ object scoverage extends ScoverageReport {
   def scoverageVersion = Vers.scoverage
 }
 
-trait MorphirPublishModule extends PublishModule with JavaModule with Mima with SonatypeCentralPublishModule {
+/**
+ * Version and POM policy shared by every Morphir publishable, including the desktop distributions,
+ * which are not JVM libraries and must not carry Mima.
+ */
+trait MorphirPublishBase extends PublishModule with SonatypeCentralPublishModule {
   import mill.scalalib.publish.*
 
   def publishVersionEnvironment = Task.Input {
@@ -83,6 +87,8 @@ trait MorphirPublishModule extends PublishModule with JavaModule with Mima with 
     )
   )
 }
+
+trait MorphirPublishModule extends MorphirPublishBase with JavaModule with Mima
 
 trait MorphirIntelligencePublishModule extends MorphirPublishModule {
   import mill.scalalib.publish.*

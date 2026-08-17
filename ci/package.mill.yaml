@@ -18,6 +18,9 @@ libraryExcludedPrefixes:
 # Drop any module whose Mill path contains one of these substrings (All / Libraries resolve).
 excludedModuleSubstrings:
   - ".integration."
+  # Desktop distributions publish through ci.desktop, which stages archives first. They must never be
+  # swept into the library/plugin publish set — there is no archive on a snapshot run.
+  - ".desktop.dist."
 
 # Serial Sonatype upload via one evaluate per module (SLF4J / morphir-scala#957).
 uploadJobs: 1
