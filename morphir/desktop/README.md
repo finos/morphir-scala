@@ -27,20 +27,34 @@ Every release asset is published twice, under the same filename:
 The platform tokens are `mac-aarch64`, `mac-amd64`, `linux-amd64`, `linux-aarch64` and `win-amd64`,
 matching Mill's native launcher naming.
 
-A per-asset `.sha256` sidecar only proves the file was not corrupted in transit — an attacker able to
-replace an asset can replace its sidecar too. The trust anchor is the detached GPG signature over
-`checksums.txt`, made with the same key that signs Morphir's Maven Central artifacts (fingerprint
-`2EEC FCE1 591B 5738 B39C 6F8D 6EE7 E9F9 A7EC 903E`). Verify the signature first, then check the asset
-against the signed manifest:
+Verify what you download. A per-asset `.sha256` sidecar only proves the file was not corrupted in
+transit — an attacker able to replace an asset can replace its sidecar too — so treat this as a first
+check, not the whole story:
+
+```bash
+sha256sum -c --ignore-missing checksums.txt
+```
+
+`--ignore-missing` skips entries for assets you did not download, so checking one file does not fail
+on the other eleven listed in `checksums.txt`.
+
+The stronger check is the detached GPG signature over `checksums.txt`, made with the key that signs
+Morphir's Maven Central artifacts (fingerprint `2EEC FCE1 591B 5738 B39C 6F8D 6EE7 E9F9 A7EC 903E`,
+verified against published `.jar.asc` signatures under `org.finos.morphir`). **That key is not yet
+published to a public keyserver** — `keys.openpgp.org` holds it without a verified user ID, and
+`keyserver.ubuntu.com` has no record of it at all — so `gpg --recv-keys` cannot fetch a usable copy
+today. Once it is published, importing and verifying looks like this:
 
 ```bash
 gpg --keyserver keys.openpgp.org --recv-keys 2EECFCE1591B5738B39C6F8D6EE7E9F9A7EC903E
 gpg --verify checksums.txt.asc checksums.txt
-sha256sum -c --ignore-missing checksums.txt
 ```
 
-`--ignore-missing` skips entries for assets you did not download, so verifying one file does not fail
-on the other eleven listed in `checksums.txt`.
+Until then, you can still run `gpg --verify checksums.txt.asc checksums.txt` without importing
+anything: gpg reports the signing key id even when it cannot complete verification. Compare that id
+against the last 16 hex digits of the fingerprint above (`6EE7E9F9A7EC903E`). This is weaker than a
+full verification — it confirms which key signed, not that the key belongs to this project — but it
+is the only signature-based check available until the key is on a keyserver.
 
 Builds are unsigned until code-signing certificates are in place. On macOS, clear the quarantine
 attribute after verifying the checksum:
