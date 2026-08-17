@@ -284,7 +284,12 @@ jobs:
 
   test-js:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 45 rather than the 30 the other test jobs use. The "Run JS tests" step alone has finished in
+    # under 15 minutes and has also exceeded 30 on the same branch with no JS sources changed, and a
+    # timed-out job is reported as *cancelled*, which reads like an unrelated failure. Pull requests
+    # always pay a cold build here: the JS build cache is keyed by the exact commit SHA and is only
+    # saved on main, develop, 0.4.x and tags, so a PR can never restore it.
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
