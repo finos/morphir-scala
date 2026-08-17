@@ -6,7 +6,13 @@ import mill.api.{BuildCtx, DefaultTaskModule, Evaluator, ModuleRef, Result, Sele
 import mill.util.VcsVersion
 import millbuild.{LintSelectors, SnapshotVersion}
 import org.finos.morphir.mill.publish.{MillPublishEnvFile, MillSonatypeEnv, PgpSecret, PublishSelectors}
-import org.finos.morphir.mill.publish.desktop.{DesktopRelease, DesktopReleaseLayout}
+import org.finos.morphir.mill.publish.desktop.{
+  DesktopRelease,
+  DesktopReleaseChecks,
+  DesktopReleaseLayout,
+  ReleaseSnapshot,
+  ReleaseVerifier
+}
 
 /**
  * CI commands that YAML cannot express. Morphir inventory knobs for libraries live in
@@ -159,6 +165,21 @@ trait MorphirCiModule extends Module {
       runCanonicalize(os.Path(stagingRootPath()), os.Path(releaseDirPath()), version())
     }
 
+    /**
+     * Pre-publish check phase: read the release directory back into a [[ReleaseSnapshot]] and run every
+     * [[DesktopReleaseChecks]] check against it, logging each check's name and outcome.
+     *
+     * `--require-signature` defaults to `true` — the workflow's real use, run after the signing step and
+     * before either upload. `ci.desktop.all` passes `false`: it runs canonicalize immediately followed by
+     * verify with no signing step in between, so `checksums.txt.asc` does not exist yet there.
+     *
+     * Throws with every collected problem (across every failing check) when any check fails, so a reader
+     * sees the whole picture rather than the first line.
+     */
+    def verify(requireSignature: Boolean = true) = Task.Command(exclusive = true) {
+      runVerify(os.Path(releaseDirPath()), version(), requireSignature)
+    }
+
     // Command bodies live in private helpers so `all` can sequence them. A Task.Command cannot be
     // invoked from another command body — the same reason `sonatype.all` calls `runArtifactPhase`
     // and `runUploadPhase` rather than its sibling commands.
@@ -170,6 +191,24 @@ trait MorphirCiModule extends Module {
         .fold(message => throw new Exception(s"ci.desktop.canonicalize failed: $message"), identity)
       manifest.entries.foreach(entry => Task.log.info(s"ci.desktop: ${entry.name} ${entry.sha256}"))
       Task.log.info(s"ci.desktop: ${manifest.entries.size} assets in $release")
+    }
+
+    private def runVerify(release: os.Path, version: String, requireSignature: Boolean)(using
+        TaskCtx
+    ): Unit = {
+      val snapshot = ReleaseSnapshot.read(release, version)
+      val checks   = DesktopReleaseChecks.defaults(requireSignature)
+      val outcomes = ReleaseVerifier.run(checks, snapshot)
+      outcomes.foreach { outcome =>
+        if (outcome.passed) Task.log.info(s"ci.desktop.verify: ${outcome.name} PASSED")
+        else outcome.problems.foreach(problem => Task.log.error(s"ci.desktop.verify: ${outcome.name} FAILED: $problem"))
+      }
+      val problems = outcomes.flatMap(_.problems)
+      if (problems.nonEmpty)
+        throw new Exception(
+          s"ci.desktop.verify: ${problems.size} problem(s) found in $release:\n" + problems.map(p => s"  - $p").mkString("\n")
+        )
+      Task.log.info(s"ci.desktop.verify: ${outcomes.size} checks passed (requireSignature=$requireSignature)")
     }
 
     /**
@@ -259,11 +298,20 @@ trait MorphirCiModule extends Module {
       }
     }
 
-    /** Canonicalize, then both destinations. */
+    /**
+     * Canonicalize, verify, then both destinations.
+     *
+     * Verifies with `requireSignature = false`: this command runs canonicalize immediately followed by
+     * verify, with no signing step in between (signing is a workflow step, not something `canonicalize`
+     * does), so `checksums.txt.asc` does not exist yet at this point in a local `ci.desktop.all` run. The
+     * workflow itself runs `ci.desktop.verify` separately — with the default `requireSignature = true` —
+     * after its own signing step and before either upload.
+     */
     def all(evaluator: Evaluator, tag: String) = Task.Command(exclusive = true) {
       val release = os.Path(releaseDirPath())
       val desktopVersion = version()
       runCanonicalize(os.Path(stagingRootPath()), release, desktopVersion)
+      runVerify(release, desktopVersion, requireSignature = false)
       runGithubRelease(release, tag)
       runSonatype(evaluator, desktopVersion)
     }

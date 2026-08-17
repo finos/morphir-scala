@@ -551,6 +551,12 @@ jobs:
           gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" \
             --detach-sign --armor "$MORPHIR_DESKTOP_RELEASE_DIR/checksums.txt"
 
+      # Runs after signing (so checksums.txt.asc exists) and before either upload, with the default
+      # requireSignature = true: this is the one place the signature check can run, since neither
+      # ci.desktop.canonicalize nor a local ci.desktop.all run produces checksums.txt.asc.
+      - name: Verify release assets
+        run: ./mill --ticker false -i ci.desktop.verify
+
       - name: Upload to the GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
