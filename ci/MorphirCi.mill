@@ -254,7 +254,7 @@ trait MorphirCiModule extends Module {
       }
     }
 
-    /** Upload the five desktop archives to Sonatype Central as one bundle. */
+    /** Upload the five desktop archives to Sonatype Central in one deployment. */
     def sonatype(evaluator: Evaluator) = Task.Command(exclusive = true) {
       runSonatype(evaluator, version())
     }

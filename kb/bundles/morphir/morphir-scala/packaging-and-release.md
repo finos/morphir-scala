@@ -46,7 +46,7 @@ flowchart TD
     Canon -->|renamed assets, .sha256 sidecars, checksums.txt| Sign[sign checksums.txt with the PGP key]
     Sign -->|checksums.txt.asc| Verify[verify: seven checks]
     Verify -->|all checks pass| GhRelease[githubRelease: upload every asset]
-    Verify -->|all checks pass| DesktopSonatype[sonatype: one bundle, five archives]
+    Verify -->|all checks pass| DesktopSonatype[sonatype: five coordinates, one deployment]
     GhRelease -->|archives, installers, checksums| GhAssets[(GitHub Release assets)]
     DesktopSonatype -->|archives only| Sonatype
 
@@ -107,7 +107,7 @@ The release then runs as one ordered sequence:
 | 3 | Sign `checksums.txt` | same runner | GPG detached signature over `checksums.txt`, producing `checksums.txt.asc` |
 | 4 | `verify` | same runner | runs seven named checks against the release directory |
 | 5 | `githubRelease --tag` | same runner | uploads every file in the release directory to that tag's release |
-| 6 | `sonatype` | same runner | uploads all five archives to Sonatype Central as one bundle |
+| 6 | `sonatype` | same runner | uploads all five archives to Sonatype Central in one deployment |
 
 `canonicalize` and `verify` are pure preparation: they read and write files, and make no network call.
 `verify` exists because the digests are computed once, during canonicalization, on the runner that staged
@@ -140,7 +140,13 @@ The Maven layout is the archive plus a POM, with no sources jar and no javadoc j
 (`morphir-desktop-<version>`), so nothing releases unless all five validate together. Sonatype Central's
 `AUTOMATIC` publishing type releases a deployment irrevocably on success; five separate deployments could
 leave a partial release with no way to re-run it if, say, the third of five failed after the first two had
-already gone public. One bundle is what makes this step safely retriable.
+already gone public. One deployment is what makes this step safely retriable.
+
+The word bundle describes the upload, not the artifacts. Maven Central still receives five separate
+coordinates, each with its own POM, archive and signatures, and a consumer resolves
+`org.finos.morphir:morphir-desktop-mac-aarch64` exactly as it would any other artifact. A Sonatype
+deployment bundle is simply the unit Central validates and releases: one zip in Maven repository layout
+that can carry many coordinates at once.
 
 ## Versions
 
