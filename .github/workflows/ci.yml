@@ -757,16 +757,26 @@ jobs:
     runs-on: ubuntu-latest
     needs: [desktop-matrix, desktop-package, desktop-verify]
     steps:
-      # Unlike `ci`, every member here may legitimately be skipped: MORPHIR_CI_PACKAGE_DESKTOP=false
-      # skips desktop-matrix outside a tag or release, and desktop-package and desktop-verify then
-      # skip in cascade — a disabled switch must not fail the branch. Failure and cancellation are
-      # never acceptable. desktop-matrix is asserted too: if it fails (rather than being skipped by
-      # the switch), the other two skip in cascade, and an aggregate that only tolerated skips on
-      # desktop-package and desktop-verify would hide that failure.
-      - name: Verify packaging jobs succeeded or were skipped
+      # Unlike `ci`, a skip can be legitimate here — MORPHIR_CI_PACKAGE_DESKTOP=false stands the whole
+      # phase down outside a tag or release. But a skip is ambiguous on its own: desktop-package also
+      # skips when `ci` fails upstream, and that must not read as green. desktop-matrix is what
+      # disambiguates. It is gated by the switch and depends on nothing else, so:
+      #
+      #   desktop-matrix skipped  -> the switch is off; every member must be skipped together.
+      #   desktop-matrix ran      -> packaging was expected to run; a skip below it is a cascade from
+      #                              an upstream failure, and only success is acceptable.
+      #
+      # Failure and cancellation are never acceptable in either branch.
+      - name: Verify packaging jobs succeeded, or stood down together
         run: |
-          [[ "${{ needs.desktop-matrix.result }}" == "success" || "${{ needs.desktop-matrix.result }}" == "skipped" ]]
-          [[ "${{ needs.desktop-package.result }}" == "success" || "${{ needs.desktop-package.result }}" == "skipped" ]]
-          [[ "${{ needs.desktop-verify.result }}" == "success" || "${{ needs.desktop-verify.result }}" == "skipped" ]]
+          matrix='${{ needs.desktop-matrix.result }}'
+          package='${{ needs.desktop-package.result }}'
+          verify='${{ needs.desktop-verify.result }}'
+          echo "desktop-matrix=$matrix desktop-package=$package desktop-verify=$verify"
+          if [[ "$matrix" == "skipped" ]]; then
+            [[ "$package" == "skipped" && "$verify" == "skipped" ]]
+          else
+            [[ "$matrix" == "success" && "$package" == "success" && "$verify" == "success" ]]
+          fi
       - name: Aggregate of desktop packaging
         run: echo "packaging passed"
