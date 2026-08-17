@@ -25,12 +25,22 @@ Every release asset is published twice, under the same filename:
   `org.finos.morphir:morphir-desktop-<os>-<arch>:<version>`.
 
 The platform tokens are `mac-aarch64`, `mac-amd64`, `linux-amd64`, `linux-aarch64` and `win-amd64`,
-matching Mill's native launcher naming. Verify a download before running it:
+matching Mill's native launcher naming.
+
+A per-asset `.sha256` sidecar only proves the file was not corrupted in transit — an attacker able to
+replace an asset can replace its sidecar too. The trust anchor is the detached GPG signature over
+`checksums.txt`, made with the same key that signs Morphir's Maven Central artifacts (fingerprint
+`2EEC FCE1 591B 5738 B39C 6F8D 6EE7 E9F9 A7EC 903E`). Verify the signature first, then check the asset
+against the signed manifest:
 
 ```bash
-sha256sum -c morphir-desktop-mac-aarch64-<version>.zip.sha256
+gpg --keyserver keys.openpgp.org --recv-keys 2EECFCE1591B5738B39C6F8D6EE7E9F9A7EC903E
 gpg --verify checksums.txt.asc checksums.txt
+sha256sum -c --ignore-missing checksums.txt
 ```
+
+`--ignore-missing` skips entries for assets you did not download, so verifying one file does not fail
+on the other eleven listed in `checksums.txt`.
 
 Builds are unsigned until code-signing certificates are in place. On macOS, clear the quarantine
 attribute after verifying the checksum:
