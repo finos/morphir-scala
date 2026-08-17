@@ -427,7 +427,7 @@ jobs:
           - token: mac-aarch64
             runner: macos-14
           - token: mac-amd64
-            runner: macos-13
+            runner: macos-15-intel
           - token: linux-amd64
             runner: ubuntu-24.04
           - token: linux-aarch64
