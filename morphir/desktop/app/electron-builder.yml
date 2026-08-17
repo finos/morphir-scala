@@ -1,0 +1,35 @@
+# Release packaging for the Morphir desktop shell.
+#
+# `artifactName` only keeps electron-builder's own output free of spaces and product-name casing.
+# Canonical naming is not done here: `ci.desktop.canonicalize` renames by extension, so this file
+# can change without breaking the release contract.
+appId: org.finos.morphir.desktop
+productName: Morphir Desktop
+copyright: Copyright © FINOS
+artifactName: ${name}-${version}-${os}-${arch}.${ext}
+directories:
+  output: release
+  buildResources: build
+files:
+  - main.cjs
+  - preload.cjs
+  - index.html
+  - dist/**/*
+  - package.json
+mac:
+  target:
+    - zip
+    - dmg
+  category: public.app-category.developer-tools
+  # Notarization runs only when the Apple credentials are present; see scripts/package.sh.
+  notarize: false
+win:
+  target:
+    - zip
+    - nsis
+linux:
+  target:
+    - tar.gz
+    - AppImage
+    - deb
+  category: Development

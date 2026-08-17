@@ -5,6 +5,7 @@
   "description": "Morphir desktop shell (proof of stack)",
   "main": "main.cjs",
   "devDependencies": {
-    "electron": "^37.2.0"
+    "electron": "^37.2.0",
+    "electron-builder": "^25.1.8"
   }
 }
