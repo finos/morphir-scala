@@ -414,6 +414,150 @@ jobs:
           # See the JS job: the key deliberately does not hash `out`.
           key: ${{ runner.os }}-mill-jvm-${{matrix.java}}-${{ github.sha }}
 
+  desktop-package:
+    # Desktop binaries ship on tags and published releases only. Snapshot pushes to main/develop keep
+    # publishing libraries and skip this entirely — five runners per merge is not worth it.
+    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'release')
+    needs: [ci]
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - token: mac-aarch64
+            runner: macos-14
+          - token: mac-amd64
+            runner: macos-13
+          - token: linux-amd64
+            runner: ubuntu-24.04
+          - token: linux-aarch64
+            runner: ubuntu-24.04-arm
+          - token: win-amd64
+            runner: windows-latest
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: "25"
+          distribution: temurin
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v8
+
+      - name: Resolve publish version
+        shell: bash
+        run: echo "MORPHIR_DESKTOP_VERSION=$(./mill --ticker false -i show ci.desktop.version | tr -d '\"')" >> "$GITHUB_ENV"
+
+      - name: Package
+        shell: bash
+        env:
+          # electron-builder signs when these are present and builds unsigned when they are absent.
+          CSC_LINK: ${{ secrets.ORG_MORPHIR_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.ORG_MORPHIR_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.ORG_MORPHIR_APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.ORG_MORPHIR_APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.ORG_MORPHIR_APPLE_TEAM_ID }}
+        run: ./morphir/desktop/scripts/package.sh "${{ matrix.token }}" "$MORPHIR_DESKTOP_VERSION"
+
+      - name: Upload raw packaging output
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.token }}
+          path: morphir/desktop/app/release/
+          if-no-files-found: error
+
+  desktop-release:
+    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'release')
+    needs: [ci, desktop-package]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    # The workflow default is contents: read, which cannot upload release assets.
+    permissions:
+      contents: write
+
+    concurrency: publish-desktop-${{ github.sha }}
+
+    env:
+      LANG: "en_US.UTF-8"
+      LC_MESSAGES: "en_US.UTF-8"
+      LC_ALL: "en_US.UTF-8"
+      MORPHIR_DESKTOP_STAGING_DIR: .dev/dist/desktop/staging
+      MORPHIR_DESKTOP_RELEASE_DIR: .dev/dist/desktop/release
+
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: "25"
+          distribution: temurin
+
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v8
+
+      - name: Download packaging output
+        uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-*
+          path: ${{ env.MORPHIR_DESKTOP_STAGING_DIR }}
+
+      # download-artifact names each directory after the artifact (desktop-<token>); the staging
+      # contract is <root>/<token>, so strip the prefix.
+      - name: Normalize staging layout
+        run: |
+          cd "$MORPHIR_DESKTOP_STAGING_DIR"
+          for directory in desktop-*; do
+            mv "$directory" "${directory#desktop-}"
+          done
+          ls -R .
+
+      - name: Canonicalize assets and write checksums
+        run: ./mill --ticker false -i ci.desktop.canonicalize
+
+      - name: Sign checksums.txt
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.ORG_MORPHIR_CI_GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.ORG_MORPHIR_CI_GPG_PASSPHRASE }}
+        run: |
+          printf '%s' "$GPG_PRIVATE_KEY" | base64 --decode | gpg --batch --import
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" \
+            --detach-sign --armor "$MORPHIR_DESKTOP_RELEASE_DIR/checksums.txt"
+
+      - name: Upload to the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.event.release.tag_name || github.ref_name }}"
+          ./mill --ticker false -i ci.desktop.githubRelease --tag "$TAG"
+
+      - name: Publish archives to Maven Central
+        env:
+          SONATYPE_USERNAME: ${{ secrets.ORG_MORPHIR_MAVEN_DEPLOY_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.ORG_MORPHIR_MAVEN_DEPLOY_PASSWORD }}
+          GPG_PRIVATE_KEY: ${{ secrets.ORG_MORPHIR_CI_GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.ORG_MORPHIR_CI_GPG_PASSPHRASE }}
+        run: |
+          # Same two-process dance as the library publish: Task.env is snapshotted at mill start.
+          envfile="${RUNNER_TEMP:-/tmp}/mill-publish.env"
+          trap 'rm -f "$envfile"' EXIT
+          ./mill --ticker false -i ci.sonatype.writeMillEnv --path "$envfile"
+          set -a
+          # shellcheck disable=SC1090
+          source "$envfile"
+          set +a
+          ./mill --ticker false -i ci.desktop.sonatype
+
   publish:
     # when in master repo: all commits to main branch and all additional tags
     if: github.repository == 'finos/morphir-scala' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/'))
