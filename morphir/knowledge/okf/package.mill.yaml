@@ -16,7 +16,7 @@ object js:
   - io.getkyo::kyo-schema
   - io.getkyo::kyo-schema-yaml
   object test:
-    extends: [ScalaJSTests, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
+    extends: [ScalaJSTests, build.MorphirJSTestNoSourceMap, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
 
 object native:
   extends: [build.MorphirNativeModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps]

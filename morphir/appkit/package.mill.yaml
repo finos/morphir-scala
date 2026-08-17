@@ -12,7 +12,7 @@ object js:
   extends: [build.MorphirJSModule, build.MorphirJSNodeModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps]
   moduleDeps: [build.morphir.prelude.js]
   object test:
-    extends: [ScalaJSTests, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
+    extends: [ScalaJSTests, build.MorphirJSTestNoSourceMap, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
 
 object native:
   extends: [build.MorphirNativeModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps]

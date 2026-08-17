@@ -20,7 +20,7 @@ object js:
   - com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-core::2.38.9
   - com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::2.38.9
   object test:
-    extends: [ScalaJSTests, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
+    extends: [ScalaJSTests, build.MorphirJSTestNoSourceMap, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
 
 # WebAssembly linker variant. Compiles the same sources as `js` and depends on the `js` modules of core/trees — only
 # the Scala.js link output differs, so a `main.wasm` binary and an ES-module JS loader are emitted. Deliberately not a
@@ -34,7 +34,7 @@ object wasm:
   - com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-core::2.38.9
   - com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros::2.38.9
   object test:
-    extends: [ScalaJSTests, build.MorphirWasmTests, millbuild.KyoTestWasm, build.MorphirKyoTestMvnDeps]
+    extends: [ScalaJSTests, build.MorphirJSTestNoSourceMap, build.MorphirWasmTests, millbuild.KyoTestWasm, build.MorphirKyoTestMvnDeps]
 
 object native:
   extends: [build.MorphirNativeModule, build.MorphirKyoCoreMvnDeps]

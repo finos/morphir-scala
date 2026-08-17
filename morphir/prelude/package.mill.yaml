@@ -8,14 +8,14 @@ object jvm:
 object js:
   extends: [build.MorphirJSModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps]
   object test:
-    extends: [ScalaJSTests, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
+    extends: [ScalaJSTests, build.MorphirJSTestNoSourceMap, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
 
 # WebAssembly linker variant; not a publish module — see morphir/buildkit/core/package.mill.yaml for the reasoning,
 # which applies unchanged here.
 object wasm:
   extends: [build.MorphirWasmModule, build.MorphirKyoCoreMvnDeps]
   object test:
-    extends: [ScalaJSTests, build.MorphirWasmTests, millbuild.KyoTestWasm, build.MorphirKyoTestMvnDeps]
+    extends: [ScalaJSTests, build.MorphirJSTestNoSourceMap, build.MorphirWasmTests, millbuild.KyoTestWasm, build.MorphirKyoTestMvnDeps]
 
 object native:
   extends: [build.MorphirNativeModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps]

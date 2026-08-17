@@ -16,7 +16,7 @@ object js:
   - com.github.j-mie6::parsley::4.6.2
   - io.github.kitlangton::neotype::0.4.10
   object test:
-    extends: [ScalaJSTests, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
+    extends: [ScalaJSTests, build.MorphirJSTestNoSourceMap, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
 
 object native:
   extends: [build.MorphirNativeModule, build.MorphirKyoCoreMvnDeps]
