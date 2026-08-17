@@ -471,7 +471,16 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: desktop-${{ matrix.token }}
-          path: morphir/desktop/app/release/
+          # electron-builder also leaves unpacked app trees (mac-arm64/, linux-unpacked/, …) next to the
+          # archives and installers; only the distributable extensions are wanted downstream, and the glob
+          # keeps the files directly under the artifact root to match the desktop-release staging contract.
+          path: |
+            morphir/desktop/app/release/*.zip
+            morphir/desktop/app/release/*.tar.gz
+            morphir/desktop/app/release/*.dmg
+            morphir/desktop/app/release/*.exe
+            morphir/desktop/app/release/*.AppImage
+            morphir/desktop/app/release/*.deb
           if-no-files-found: error
 
   desktop-release:
@@ -530,7 +539,15 @@ jobs:
           GPG_PRIVATE_KEY: ${{ secrets.ORG_MORPHIR_CI_GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.ORG_MORPHIR_CI_GPG_PASSPHRASE }}
         run: |
-          printf '%s' "$GPG_PRIVATE_KEY" | base64 --decode | gpg --batch --import
+          # The org secret's encoding is not documented, so accept the same three forms
+          # PgpSecret.toMillBase64 accepts (mill-plugins/morphir/core/src/org/finos/morphir/mill/publish/PgpSecret.scala):
+          # ASCII-armored plaintext, base64-of-armor, or base64-of-binary. A plain `base64 --decode`
+          # would fail fast under `-e -o pipefail` if the secret is armored plaintext.
+          if printf '%s' "$GPG_PRIVATE_KEY" | grep -q "BEGIN PGP PRIVATE KEY"; then
+            printf '%s' "$GPG_PRIVATE_KEY" | gpg --batch --import
+          else
+            printf '%s' "$GPG_PRIVATE_KEY" | base64 --decode | gpg --batch --import
+          fi
           gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" \
             --detach-sign --armor "$MORPHIR_DESKTOP_RELEASE_DIR/checksums.txt"
 
