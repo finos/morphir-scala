@@ -21,8 +21,14 @@ branches.
 | `test-jvm` | JVM tests, including the Cucumber/JUnit5 `langkit.itest` suite |
 | `test-js` | ScalaJS tests, including the WebAssembly link variants |
 | `test-native` | Scala Native tests |
-| `publish` | Sonatype publication via Mill `ci.publish`. Branch snapshots on `main` and `develop`; VCS milestones and releases on `0.4.x` and tags. The publish set is whatever Mill resolves for `__.publishSonatypeCentral`, including the Mill Morphir plugin family (`org.finos.morphir.mill`); the test-only `integration` module is not a publish module and is not uploaded. Destination tasks live under `ci.sonatype.*`. `ci.githubReleases.*` is reserved and not built yet. |
+| `publish` | Sonatype publication via Mill `ci.publish`. Branch snapshots on `main` and `develop`; VCS milestones and releases on `0.4.x` and tags. The publish set is whatever Mill resolves for `__.publishSonatypeCentral`, including the Mill Morphir plugin family (`org.finos.morphir.mill`); the test-only `integration` module is not a publish module and is not uploaded. Destination tasks live under `ci.sonatype.*`. |
+| `desktop-package` | Matrix job, one runner per platform token (`mac-aarch64`, `mac-amd64`, `linux-amd64`, `linux-aarch64`, `win-amd64`). Links Scala.js with `fullLinkJS` and runs `electron-builder`, then uploads the raw output as a workflow artifact. Runs only when a GitHub Release publishes or the ref is a tag. |
+| `desktop-release` | One Linux runner. Canonicalizes the staged assets, signs `checksums.txt`, verifies, then uploads to the GitHub Release and to Sonatype Central as one bundle. Destination tasks live under `ci.desktop.*`. Same trigger scope as `desktop-package`, and needs it to finish first. |
 | `ci` | Aggregate gate — depends on lint, knowledge-base and all three test jobs |
+
+See [Packaging and Release](/packaging-and-release.md) for what `publish`, `desktop-package` and
+`desktop-release` actually ship, the ordered steps each one runs, and the signing keys involved. This page is
+the job inventory; that one is the release story.
 
 CI runs on pull requests into `main`, `0.4.x`, and `develop`; pushes to those same branches; published releases; and
 manual dispatch. Older runs of the same pull request are cancelled automatically. Hosted mill invocations pass

@@ -1,5 +1,13 @@
 # Log
 
+## 2026-08-17
+
+* **Creation**: Added [Packaging and Release](/packaging-and-release.md), covering the destinations, triggers,
+  ordered steps and signing keys for the library, plugin and desktop publish paths.
+* **Update**: Corrected [Continuous Integration](/continuous-integration.md): the GitHub Release destination
+  shipped as `ci.desktop.*`, not the reserved `ci.githubReleases.*` the job table used to name. Added the
+  `desktop-package` and `desktop-release` jobs and linked to Packaging and Release for the full picture.
+
 ## 2026-08-15
 
 * **Update**: Recorded that GitHub list paging takes opaque `PageSize`, that `GitHubException` has a safe `Render`,
