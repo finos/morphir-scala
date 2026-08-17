@@ -6,7 +6,7 @@ import mill.api.{BuildCtx, DefaultTaskModule, Evaluator, ModuleRef, Result, Sele
 import mill.util.VcsVersion
 import millbuild.{LintSelectors, SnapshotVersion}
 import org.finos.morphir.mill.publish.{MillPublishEnvFile, MillSonatypeEnv, PgpSecret, PublishSelectors}
-import org.finos.morphir.mill.publish.desktop.{DesktopPlatform, DesktopRelease, DesktopReleaseLayout}
+import org.finos.morphir.mill.publish.desktop.{DesktopRelease, DesktopReleaseLayout}
 
 /**
  * CI commands that YAML cannot express. Morphir inventory knobs for libraries live in
@@ -209,29 +209,63 @@ trait MorphirCiModule extends Module {
       }
     }
 
-    /** Upload the per-platform archives to Sonatype Central, serially. */
+    /** Upload the five desktop archives to Sonatype Central as one bundle. */
     def sonatype(evaluator: Evaluator) = Task.Command(exclusive = true) {
-      runSonatype(evaluator)
+      runSonatype(evaluator, version())
     }
 
-    private def runSonatype(evaluator: Evaluator)(using TaskCtx): Unit = {
-      val selectors = DesktopPlatform.values.toSeq.map { platform =>
-        s"morphir.desktop.dist.platform[${platform.token}].publishSonatypeCentral"
-      }
-      Task.log.info(s"ci.desktop: uploading ${selectors.size} desktop archives to Sonatype")
-      if (dryRun) Task.log.info(s"DRY_RUN: would evaluate ${selectors.mkString(" + ")}")
+    /**
+     * Upload the five desktop archives to Sonatype Central as a single deployment.
+     *
+     * The per-module `publishSonatypeCentral` (used by libraries and plugins) hardcodes
+     * `bundleName = None`, so five archives means five separate Central deployments. Each one
+     * defaults to `PublishingType.AUTOMATIC`, so it is released — made public — irrevocably the
+     * moment it succeeds. If, say, the third of five failed, the first two would already be public,
+     * and a retry would fail outright: Central rejects re-uploading a version that already exists.
+     *
+     * `publishAll` accepts a `bundleName` and folds every artifact into one deployment, so nothing is
+     * released until all five upload and validate together — a failed run publishes nothing, and the
+     * step is safely retriable.
+     *
+     * The `platform[_]` cross wildcard selects exactly the five `DesktopPlatform` modules under
+     * `morphir.desktop.dist` — nothing else in the build is swept in.
+     *
+     * The bundle name embeds `desktopVersion` (the same `version()`, the dist modules publish under).
+     * That value is always a released, non-SNAPSHOT version here: this task only runs from the
+     * `desktop-release` workflow job (tags and published releases), which never sets
+     * `MORPHIR_PUBLISH_MODE=snapshot`. That matters because `publishAll` refuses a `bundleName`
+     * outright when any selected artifact resolves to a SNAPSHOT version.
+     */
+    private def runSonatype(evaluator: Evaluator, desktopVersion: String)(using TaskCtx): Unit = {
+      val artifactsSelector = "morphir.desktop.dist.platform[_].publishArtifacts"
+      val bundleName        = s"morphir-desktop-$desktopVersion"
+      val tokens = Seq(
+        "mill.javalib.SonatypeCentralPublishModule/publishAll",
+        "--publishArtifacts",
+        artifactsSelector,
+        "--bundleName",
+        bundleName
+      )
+      Task.log.info(s"ci.desktop: uploading desktop archives to Sonatype as bundle '$bundleName'")
+      if (dryRun) Task.log.info(s"DRY_RUN: would evaluate ${tokens.mkString(" ")}")
       else {
         ensureMillPublishEnv()
-        selectors.foreach(selector => evaluateAll(evaluator, Seq(selector), s"publishSonatypeCentral $selector"))
+        evaluateAll(
+          evaluator,
+          tokens,
+          s"publishAll (desktop bundle $bundleName)",
+          selectMode = SelectMode.Separated
+        )
       }
     }
 
     /** Canonicalize, then both destinations. */
     def all(evaluator: Evaluator, tag: String) = Task.Command(exclusive = true) {
       val release = os.Path(releaseDirPath())
-      runCanonicalize(os.Path(stagingRootPath()), release, version())
+      val desktopVersion = version()
+      runCanonicalize(os.Path(stagingRootPath()), release, desktopVersion)
       runGithubRelease(release, tag)
-      runSonatype(evaluator)
+      runSonatype(evaluator, desktopVersion)
     }
   }
 
@@ -403,10 +437,11 @@ trait MorphirCiModule extends Module {
   private def evaluateAll(
       evaluator: Evaluator,
       selectors: Seq[String],
-      what: String
+      what: String,
+      selectMode: SelectMode = SelectMode.Multi
   ): Unit = {
     if selectors.isEmpty then throw new Exception(s"$what: no selectors")
-    val evalResult = unwrap(evaluator.evaluate(selectors, SelectMode.Multi), what)
+    val evalResult = unwrap(evaluator.evaluate(selectors, selectMode), what)
     evalResult.values.toEither match {
       case Left(msg) => throw new Exception(s"$what failed: $msg")
       case Right(_)  => ()
