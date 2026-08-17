@@ -15,8 +15,30 @@ cd "$(dirname "$0")/../../.."
 
 APP="morphir/desktop/app"
 mkdir -p "$APP/dist"
-cp out/morphir/desktop/boot/js/fullLinkJS.dest/main.js "$APP/dist/main.js"
-cp out/morphir/desktop/renderer/js/fullLinkJS.dest/main.js "$APP/dist/renderer.js"
+
+# Copy the linked bundle out of a Mill task's dest directory, without assuming its filename.
+# The name comes from the Scala.js module ID and the link mode, and hardcoding `main.js` here
+# failed in CI while holding locally, with nothing in the error to say what was there instead.
+# Listing the directory on failure is the point: the next person gets the answer, not a guess.
+copy_linked_bundle() {
+  local dest="$1" target="$2"
+  if [ ! -d "$dest" ]; then
+    echo "no link output directory at $dest" >&2
+    exit 1
+  fi
+  local src
+  src="$(find "$dest" -maxdepth 1 -type f -name '*.js' ! -name '*.js.map' | head -n 1)"
+  if [ -z "$src" ]; then
+    echo "no linked .js file in $dest — contents:" >&2
+    ls -la "$dest" >&2
+    exit 1
+  fi
+  echo "linked bundle: $src -> $target"
+  cp "$src" "$target"
+}
+
+copy_linked_bundle out/morphir/desktop/boot/js/fullLinkJS.dest "$APP/dist/main.js"
+copy_linked_bundle out/morphir/desktop/renderer/js/fullLinkJS.dest "$APP/dist/renderer.js"
 
 case "$TOKEN" in
   mac-aarch64)   BUILDER_ARGS=(--mac --arm64) ;;
