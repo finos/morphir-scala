@@ -434,10 +434,14 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libuv1-dev
 
       - name: Run Native tests
-        # Kept in step with .config/mise/tasks/test/native — `-j 4` caps the
-        # concurrent `nativeLink` tasks against the daemon's `-Xmx8g` (.mill-jvm-opts).
+        # Kept in step with .config/mise/tasks/test/native for the selectors, but `-j 2` rather than
+        # that task's `-j 4`: every `nativeLink` runs inside the one Mill daemon and holds a full
+        # linker working set, so the constraint is that daemon's `-Xmx8g` (.mill-jvm-opts), and 8 GB
+        # is already half of a 16 GB GitHub-hosted runner. At `-j 4` this job died with
+        # `java.lang.OutOfMemoryError: Java heap space` and then sat until the 30-minute job timeout,
+        # which GitHub reports as *cancelled* rather than failed. Same reasoning as the JS jobs.
         run: |
-          ./mill --ticker false -i -k -j 4 "morphir.__.native.__.compile" + "morphir.__.native.publishArtifacts" + "morphir.__.native.__.test"
+          ./mill --ticker false -i -k -j 2 "morphir.__.native.__.compile" + "morphir.__.native.publishArtifacts" + "morphir.__.native.__.test"
 
   test-jvm:
     runs-on: ubuntu-latest
