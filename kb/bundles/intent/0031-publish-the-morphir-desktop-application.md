@@ -46,6 +46,14 @@ Integrity travels with every download. Each release asset carries a `.sha256` si
 format, so verification needs no special tool, and one `checksums.txt` covers the whole release under a
 detached GPG signature made with the key that already signs the Maven artifacts.
 
+Two kinds of key are at work here, and they stay apart. The PGP key that signs `checksums.txt` is the one
+that already signs the Maven artifacts, deliberately reused so a release needs no new key material. Code
+signing is different: macOS and Windows want their own platform certificates, and those live in their own
+secrets, read only by the packaging runners. electron-builder signs when it finds them and produces an
+unsigned build when it does not, so the two concerns can be populated on different schedules. Today only
+the PGP key exists; the separation is what lets a platform certificate arrive later without touching the
+signing of the release itself.
+
 Native installers — dmg, NSIS, AppImage, deb — go to the GitHub Release only. Maven Central carries the
 portable archives, which are what an automated consumer can extract; an installer is not something a
 build can act on.
