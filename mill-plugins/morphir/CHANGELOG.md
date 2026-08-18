@@ -10,10 +10,16 @@ it for entries not yet assigned to a release.
 ## [0.5.0-M05]
 
 ### Changed
-- The plugins now version independently of the libraries, continuing from `0.5.0-M04` rather than
-  restarting, so an existing consumer never sees a version move backwards.
+- The plugins now version independently of the libraries. `0.5.0-M05` is chosen to sit above
+  `0.5.0-M04` below, the last version tagged in the repository's previously shared stream, rather
+  than to continue a published series — the plugin family has never been published on its own.
 
 ## [0.5.0-M04] - 2026-04-22
 
-### Added
-- Released as part of the shared library stream; see the GitHub releases for detail.
+### Note
+- Not a plugin-family release. `mill-plugins/` did not exist at the `v0.5.0-M04` tag, and
+  `org.finos.morphir.mill` has no artifacts on Maven Central — the plugin family has never been
+  published. This heading records only where the family's floor comes from: `0.5.0-M04` was the
+  last version tagged in the repository's shared stream before the plugins gained their own tag
+  namespace, so `startingVersion` here protects against regressing below that shared history even
+  though nothing under `org.finos.morphir.mill` was ever released at it.

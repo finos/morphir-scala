@@ -44,8 +44,10 @@ twelve commits past the `0.5.0-M04` tag that had already shipped. Under the new 
 release line the build is heading *toward*: `0.6.0-M01-12-SNAPSHOT` means twelve commits into work that will become
 `0.6.0-M01`. Anyone explaining an old library coordinate needs this distinction — the number after the base version
 no longer counts forward from the last release, it counts down to the next one. The Mill plugin family's own
-numbering continues from `0.5.0-M04` rather than restarting at `0.1.0`, so a version never moves backwards for an
-existing plugin consumer even though the plugins now version independently of the libraries.
+floor starts at `0.5.0-M04` rather than `0.1.0` — the last version tagged in the repository's previously shared
+stream, not a version the plugin family itself ever published; the family has never been published on its own.
+The floor just keeps its eventual first release from reading as a regression against that shared history, even
+though the plugins now version independently of the libraries.
 
 See the [Packaging and release Capability](../morphir/morphir-scala/packaging-and-release.md) for the mechanics —
 the Versions section, the release-routing table and Figure 1 — and `ci/MorphirCi.mill` / `build.mill` /

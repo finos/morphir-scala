@@ -256,10 +256,12 @@ changelog names next: `0.6.0-M01-12-SNAPSHOT` means twelve commits toward `0.6.0
 shipped yet. Anyone explaining an old coordinate needs this distinction — the direction the number
 counts changed, not just its starting point.
 
-The Mill plugin family's own numbering **continues from `0.5.0-M04`** rather than restarting at
-`0.1.0`: its `startingVersion` floor is set to the version already published under the shared stream,
-so a version can never move backwards for an existing plugin consumer even though the artifactIds are
-unchanged and the plugins now version independently of the libraries.
+The Mill plugin family's own numbering **starts its floor at `0.5.0-M04`** rather than `0.1.0` —
+not because a plugin release already shipped there, but because that is the last version tagged in
+the repository's previously shared stream. The plugin family has never been published on its own:
+`mill-plugins/` did not exist at that tag, and `org.finos.morphir.mill` carries no artifacts on Maven
+Central. The floor exists so the family's eventual first release cannot read as a regression against
+that shared history, even though the plugins now version independently of the libraries.
 
 Squire operationalizes the convention with four commands, all calling the same code the build calls:
 `squire changelog check` (validated in the `squire-policy` CI job), `squire changelog show`, `squire
