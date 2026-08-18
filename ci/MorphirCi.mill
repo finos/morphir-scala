@@ -1,10 +1,10 @@
 package build.ci
 
 import build.{`mill-plugins` => millPlugins}
+import build.morphir.{desktop => desktopArea}
 import mill.*
 import mill.api.{BuildCtx, DefaultTaskModule, Evaluator, ModuleRef, Result, SelectMode, TaskCtx}
-import mill.util.VcsVersion
-import millbuild.{JsTestSelectors, LintSelectors, SnapshotVersion}
+import millbuild.{JsTestSelectors, LintSelectors}
 import org.finos.morphir.mill.publish.{MillPublishEnvFile, MillSonatypeEnv, PgpSecret, PublishSelectors}
 import org.finos.morphir.mill.publish.desktop.{
   DesktopPlatform,
@@ -148,17 +148,16 @@ trait MorphirCiModule extends Module {
         .toString
     }
 
-    private def publishVersionEnvironment = Task.Input {
-      Seq("MORPHIR_PUBLISH_MODE", "MORPHIR_PUBLISH_BRANCH")
-        .flatMap(name => Task.env.get(name).map(name -> _))
-        .toMap
-    }
-
-    /** Same version the libraries publish under. */
+    /**
+     * The desktop area's own stream version — read straight from a `platform[<token>]` dist module
+     * rather than recomposed here, so the packaging jobs and the dist modules cannot disagree
+     * about what is being built. Every `platform[<token>]` module shares the same
+     * [[MorphirVersionedModule]] namespace (`versionNamespace = Some("desktop")`), changelog and tag
+     * stream, so the token picked to read it from is arbitrary; `linux-amd64` is used elsewhere in
+     * this object as the canonical single-platform default.
+     */
     def version = Task {
-      SnapshotVersion
-        .select(VcsVersion.vcsState(), publishVersionEnvironment())
-        .fold(message => throw new IllegalArgumentException(message), identity)
+      desktopArea.dist.platform(DesktopPlatform.LinuxAmd64.token).streamVersion()
     }
 
     /**

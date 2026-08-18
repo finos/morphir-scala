@@ -20,6 +20,11 @@ trait MorphirMillPlugin extends Cross.Module[String] with ScalaModule with Scala
   )
   override def scalacOptions = Seq("-Wunused:all", "-deprecation")
 
+  /** The plugin family versions and releases together, independently of the libraries. */
+  override def versionNamespace = Task { Some("mill-plugins") }
+  override def startingVersion  = Task { Some("0.5.0-M04") }
+  override def changelog        = Task.Source(mill.api.BuildCtx.workspaceRoot / "mill-plugins" / "morphir" / "CHANGELOG.md")
+
   /**
    * A task-local Maven repository for fresh-consumer tests.
    *

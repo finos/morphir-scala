@@ -29,7 +29,6 @@ import mill.scalajslib.api.ModuleKind
 import mill.contrib.buildinfo.BuildInfo
 import mill.contrib.scoverage.{ScoverageModule, ScoverageReport}
 import com.github.lolgab.mill.mima.*
-import mill.util.VcsVersion
 import scala.concurrent.duration.DurationInt
 
 /**
@@ -59,22 +58,134 @@ object scoverage extends ScoverageReport {
 }
 
 /**
- * Version and POM policy shared by every Morphir publishable, including the desktop distributions,
- * which are not JVM libraries and must not carry Mima.
+ * An independently versioned area: a changelog supplies the release line, git supplies the
+ * pre-release markers, and the tag namespace keeps this stream's tags apart from every other's.
+ *
+ * The configuration members are Tasks rather than plain defs so a `package.mill.yaml` can set them
+ * with literals, the same way `ci/package.mill.yaml` sets `libraryModulePrefix` and `uploadJobs`.
+ * Both are `Option`-typed: the root area genuinely has no namespace and an area may genuinely have
+ * no floor, and a `""` sentinel would only create a case someone forgets to handle.
  */
-trait MorphirPublishBase extends PublishModule with SonatypeCentralPublishModule {
-  import mill.scalalib.publish.*
+trait MorphirVersionedModule extends Module {
+  import org.finos.morphir.mill.publish.version.*
 
-  def publishVersionEnvironment = Task.Input {
+  /** None is the root stream, tagged `v*`. Some("desktop") is tagged `desktop/v*`. */
+  def versionNamespace = Task { Option.empty[String] }
+
+  /**
+   * Optional floor; the changelog's release line may not regress below it.
+   *
+   * The default is the root/library stream's own floor, `0.5.0-M04` — the last version this
+   * repository's shared tag line published before independent streams existed, and the one stream
+   * with real published history (~40 tags) to protect. The plugin family and the desktop
+   * application override this with their own floor; leaving the root stream on `None` left the one
+   * area with anything to lose unprotected, while the two areas that have never published anything
+   * carried one. Mirrored in `SquireChangelog.Areas` (`.claude/skills/squire/SquireChangelog.scala`)
+   * so the CI policy gate validates against the same value.
+   */
+  def startingVersion = Task { Some("0.5.0-M04") }
+
+  /**
+   * The area's changelog.
+   *
+   * A `Task.Source` for two reasons: Mill then invalidates the version when someone edits a release
+   * line, and reading the file is legal under Mill's execution-time filesystem checker, which
+   * rejects undeclared reads inside a plain `Task`.
+   *
+   * The libraries' changelog lives at the repository root, not per-module, so the default reads from
+   * there; the plugin family and the desktop application override this to their own namespaced file.
+   */
+  def changelog = Task.Source(mill.api.BuildCtx.workspaceRoot / "CHANGELOG.md")
+
+  /**
+   * A cheap, always-fresh fingerprint of the working copy: HEAD, whether the tree is dirty, the full
+   * tag list, and the current branch.
+   *
+   * This exists to invalidate [[gitState]]. Git state changes without any file in the module
+   * changing, so something has to be re-read every run — but a `Task.Input` body may not call
+   * another task (`allowTaskReferences = false`), so it cannot know the namespace. HEAD and the
+   * dirty flag are not enough on their own: creating or deleting a tag at the current commit changes
+   * neither, and that is precisely what happens when someone cuts a release. The tag list closes
+   * that hole. It is deliberately unfiltered — namespace-independent, same as the rest of this
+   * fingerprint — and kept as the raw `git tag --list` text rather than a digest of it: this
+   * repository has few tags today, so hashing would only obscure the value for no benefit.
+   * Over-invalidating merely costs a recomputation; under-invalidating would publish the wrong
+   * version. The branch is namespace-independent too, and rides along here for the same reason —
+   * [[streamVersion]] needs it to infer a snapshot when no publish mode is set.
+   */
+  def gitFingerprint = Task.Input {
+    val root = mill.api.BuildCtx.workspaceRoot
+    def git(args: String*): String = {
+      val result = os.proc("git" +: args).call(cwd = root, check = false, stdout = os.Pipe, stderr = os.Pipe)
+      if (result.exitCode != 0)
+        throw new IllegalStateException(
+          s"git ${args.mkString(" ")} failed (exit ${result.exitCode}): ${result.err.text().trim}"
+        )
+      result.out.text().trim
+    }
+    (
+      git("rev-parse", "HEAD"),
+      git("status", "--porcelain").nonEmpty,
+      git("tag", "--list"),
+      git("rev-parse", "--abbrev-ref", "HEAD")
+    )
+  }
+
+  /** Git state for this area's stream, recomputed whenever [[gitFingerprint]] moves. */
+  def gitState = Task {
+    gitFingerprint() // dependency: this is what makes the cache honest
+    GitStream
+      .resolve(mill.api.BuildCtx.workspaceRoot, TagStream(versionNamespace()))
+      .fold(message => throw new IllegalStateException(message), identity)
+  }
+
+  /** The current branch, e.g. for a snapshot qualifier when no publish mode is set. A detached HEAD
+    * reports the literal `HEAD`, which normalises to a usable qualifier same as any other name.
+    */
+  def gitBranch = Task {
+    gitFingerprint()._4
+  }
+
+  def publishMode = Task.Input {
     Seq("MORPHIR_PUBLISH_MODE", "MORPHIR_PUBLISH_BRANCH")
       .flatMap(name => Task.env.get(name).map(name -> _))
       .toMap
   }
-  def publishVersion = Task {
-    SnapshotVersion
-      .select(VcsVersion.vcsState(), publishVersionEnvironment())
-      .fold(message => throw new IllegalArgumentException(message), identity)
+
+  /** The version this area publishes. */
+  def streamVersion = Task {
+    val source = changelog().path
+    if (!os.exists(source))
+      throw new IllegalStateException(
+        s"$source: an independently versioned area requires a changelog"
+      )
+    val text   = os.read(source)
+    val stream = TagStream(versionNamespace())
+    val state  = gitState()
+    val env    = publishMode()
+    // Only an explicit MORPHIR_PUBLISH_MODE=snapshot request makes this a real publish; see
+    // StreamVersion.compose for why that (and a release, tracked separately by `mode`) is the line
+    // between a dirty tree that must fail and one that must not block an ordinary local compile.
+    val explicitPublish = env.get("MORPHIR_PUBLISH_MODE").contains("snapshot")
+    val result = for {
+      line    <- Changelog.releaseLine(text, source.toString)
+      mode    <- StreamVersion.resolveMode(env, state, stream, line, gitBranch())
+      version <- StreamVersion.compose(line, startingVersion(), state, mode, stream, explicitPublish)
+    } yield version
+    result.fold(message => throw new IllegalArgumentException(message), identity)
   }
+}
+
+/**
+ * Version and POM policy shared by every Morphir publishable, including the desktop distributions,
+ * which are not JVM libraries and must not carry Mima.
+ */
+trait MorphirPublishBase extends PublishModule with SonatypeCentralPublishModule with MorphirVersionedModule {
+  import mill.scalalib.publish.*
+
+  /** The area's own stream version. See [[MorphirVersionedModule]]. */
+  def publishVersion = Task { streamVersion() }
+
   def packageDescription: String = s"The $artifactName package"
   def pomSettings                = PomSettings(
     description = packageDescription,
@@ -298,22 +409,17 @@ trait MorphirCliBuildInfo extends MorphirVersionBuildInfo {
   * Intentionally does **not** extend [[PublishModule]]. Intelligence is unpublished (#950); mixing in
   * `PublishModule` typed `moduleDeps` as `Seq[PublishModule]` and broke Graph/generate once the SDK lost
   * its publish trait while remaining a module dependency of this CLI.
+  *
+  * [[MorphirVersionedModule]] only needs `Module`, not `PublishModule`, so mixing it in here for
+  * [[intelligenceVersion]] does not reintroduce that problem. It takes the trait's defaults — the root
+  * stream (`versionNamespace = None`), the repository's own `CHANGELOG.md` — the same stream the
+  * libraries publish under, which is what the old env-driven `SnapshotVersion` selection also read.
   */
-trait MorphirIntelligenceBuildInfo extends BuildInfo with ScalaModule {
+trait MorphirIntelligenceBuildInfo extends BuildInfo with ScalaModule with MorphirVersionedModule {
   def buildInfoPackageName = "org.finos.morphir.intelligence.buildinfo"
   override def buildInfoObjectName = "BuildInfo"
 
-  /** Same env-driven version selection as [[MorphirPublishModule.publishVersion]], without requiring PublishModule. */
-  def intelligenceVersionEnvironment = Task.Input {
-    Seq("MORPHIR_PUBLISH_MODE", "MORPHIR_PUBLISH_BRANCH")
-      .flatMap(name => Task.env.get(name).map(name -> _))
-      .toMap
-  }
-  def intelligenceVersion = Task {
-    SnapshotVersion
-      .select(VcsVersion.vcsState(), intelligenceVersionEnvironment())
-      .fold(message => throw new IllegalArgumentException(message), identity)
-  }
+  def intelligenceVersion = Task { streamVersion() }
 
   def buildInfoMembers = Seq(
     BuildInfo.Value("version", intelligenceVersion()),
