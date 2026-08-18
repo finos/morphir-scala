@@ -15,7 +15,10 @@ object Parser:
   private val BlocksPhase = ScanPhase("markdown.blocks")
   private val LinesPhase  = ScanPhase("markdown.lines")
 
-  def parse(source: String, budget: ScanBudget = ScanBudget.default): Result[ParseError, Document] =
+  def parse(source: String): Result[ParseError, Document] =
+    parse(source, ScanBudget.default)
+
+  def parse(source: String, budget: ScanBudget): Result[ParseError, Document] =
     parseWithMetrics(source, budget) match
       case Result.Success((document, _)) => Result.succeed(document)
       case Result.Failure(error)         => Result.fail(error)
