@@ -52,8 +52,10 @@ object DesktopReleaseInventoryTests extends TestSuite {
     }
 
     test("a tar.gz is not mistaken for another gz-suffixed file") {
+      // linux-amd64 rather than linux-aarch64: only the x64 leg declares a deb, because
+      // electron-builder's fpm build cannot execute on arm64.
       val result = DesktopReleaseInventory.classify(
-        DesktopPlatform.LinuxAarch64,
+        DesktopPlatform.LinuxAmd64,
         Seq("app.tar.gz", "app.AppImage", "app.deb", "notes.txt.gz")
       )
       assert(result.map(_.archive) == Right("app.tar.gz"))

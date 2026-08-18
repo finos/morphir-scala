@@ -58,10 +58,25 @@ case "$TOKEN" in
   mac-aarch64)   BUILDER_ARGS=(--mac --arm64) ;;
   mac-amd64)     BUILDER_ARGS=(--mac --x64) ;;
   linux-amd64)   BUILDER_ARGS=(--linux --x64) ;;
-  linux-aarch64) BUILDER_ARGS=(--linux --arm64) ;;
+  # No deb on arm64: electron-builder shells out to fpm, and the only build it publishes is
+  # `fpm-1.9.3-2.3.1-linux-x86`, which cannot execute on an arm64 runner. tar.gz and AppImage are
+  # named explicitly here so this leg does not inherit the deb target from electron-builder.yml.
+  linux-aarch64) BUILDER_ARGS=(--linux tar.gz AppImage --arm64) ;;
   win-amd64)     BUILDER_ARGS=(--win --x64) ;;
   *) echo "unknown platform token: $TOKEN" >&2; exit 1 ;;
 esac
+
+# GitHub Actions sets an `env:` entry to the empty string when its secret does not exist, so the
+# signing variables arrive defined-but-empty rather than absent. electron-builder treats a defined
+# CSC_LINK as a certificate path, resolves the empty value to the working directory, and fails with
+# "<dir> not a file" — which is how both macOS legs died while Linux and Windows, which do not sign
+# by default, went through. Unsetting the empty ones restores the intended behaviour: sign when a
+# certificate is configured, build unsigned when one is not.
+for signing_var in CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
+  if [ -z "${!signing_var:-}" ]; then
+    unset "$signing_var" || true
+  fi
+done
 
 cd "$APP"
 npm ci

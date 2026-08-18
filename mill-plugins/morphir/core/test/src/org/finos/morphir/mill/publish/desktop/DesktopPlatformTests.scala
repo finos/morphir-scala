@@ -26,6 +26,9 @@ object DesktopPlatformTests extends TestSuite {
       assert(DesktopPlatform.MacAarch64.installerExts == Seq("dmg"))
       assert(DesktopPlatform.WinAmd64.installerExts == Seq("exe"))
       assert(DesktopPlatform.LinuxAmd64.installerExts == Seq("AppImage", "deb"))
+      // arm64 ships no deb: electron-builder builds one through fpm, and the only fpm build it
+      // publishes is linux-x86, which cannot execute on an arm64 runner.
+      assert(DesktopPlatform.LinuxAarch64.installerExts == Seq("AppImage"))
     }
 
     test("allExts lists the archive first, then installers") {
