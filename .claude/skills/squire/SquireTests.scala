@@ -1,7 +1,7 @@
 //| scalaVersion: 3.8.4
 //| mainClass: kyo.test.runner.Cli
 //| resources: [test-resources]
-//| moduleDeps: [squire.scala, SquireCellar.scala, SquireRepo.scala, SquireTracking.scala]
+//| moduleDeps: [squire.scala, SquireCellar.scala, SquireRepo.scala, SquireTracking.scala, SquireChangelog.scala]
 //| mvnDeps:
 //| - io.getkyo::kyo-test-api:1.0.0-RC6
 //| - io.getkyo::kyo-test-runner:1.0.0-RC6
@@ -492,8 +492,9 @@ object SquireCiPolicy:
       case path => List(path)
 
   def assertSquireCiPolicy(workflow: String): Unit =
-    val jobName  = "squire-policy:"
-    val stepName = "Test Squire and release policy"
+    val jobName          = "squire-policy:"
+    val stepName         = "Test Squire and release policy"
+    val changelogStepName = "Check the independent-version-stream changelogs"
     expect(
       workflow.linesIterator.count(_ == s"  $jobName") == 1,
       "workflow must contain exactly one squire-policy job"
@@ -506,14 +507,15 @@ object SquireCiPolicy:
     val headers = policy.linesIterator.collect {
       case line if line.startsWith("      - name: ") => line.stripPrefix("      - name: ")
     }.toList
-    expect(stepStarts.size == 5, s"unexpected squire-policy step count: ${stepStarts.size}")
+    expect(stepStarts.size == 6, s"unexpected squire-policy step count: ${stepStarts.size}")
     expect(
       headers == List(
         "Checkout current branch",
         "Setup Scala and Java",
         "Cache scala dependencies",
         "Setup mise",
-        stepName
+        stepName,
+        changelogStepName
       ),
       s"unexpected squire-policy steps: $headers"
     )
@@ -523,6 +525,16 @@ object SquireCiPolicy:
     val step = indentedBlock(policy, s"- name: $stepName", 6)
     expect(scalar(step, "run") == "mise run test:squire", s"$stepName must run test:squire exactly")
     expect(count(workflow, "mise run test:squire") == 1, "workflow must invoke test:squire exactly once")
+
+    val changelogStep = indentedBlock(policy, s"- name: $changelogStepName", 6)
+    expect(
+      scalar(changelogStep, "run") == ".claude/skills/squire/squire changelog check",
+      s"$changelogStepName must run squire changelog check exactly"
+    )
+    expect(
+      count(workflow, ".claude/skills/squire/squire changelog check") == 1,
+      "workflow must invoke squire changelog check exactly once"
+    )
 
     val ci        = indentedBlock(workflow, "ci:", 2)
     val aggregate = inlineList(ci, "needs")
@@ -565,7 +577,11 @@ class SquireCliSpec extends Test[Any]:
         List("spec", "export"),
         List("schemas", "build"),
         List("schemas", "compare"),
-        List("schemas", "validate")
+        List("schemas", "validate"),
+        List("changelog", "check"),
+        List("changelog", "show"),
+        List("release", "prepare"),
+        List("release", "status")
       )
 
       assert(SquireApp.commands.flatMap(_.names).toSet == expected)
@@ -1258,7 +1274,8 @@ class SquireMetaSpec extends Test[Any]:
           "SquireBranchSpec",
           "SquireTrackingSpec",
           "SquireSchemasSpec",
-          "SquireSpecSpec"
+          "SquireSpecSpec",
+          "SquireChangelogSpec"
         )
       )
     }
@@ -1733,6 +1750,8 @@ class SquireCiPolicySpec extends Test[Any]:
       val policyJob  = s"  squire-policy:\n$policy"
       val policyStep = s"      - name: Test Squire and release policy\n" +
         indentedBlock(policy, "- name: Test Squire and release policy", 6)
+      val changelogStep = s"      - name: Check the independent-version-stream changelogs\n" +
+        indentedBlock(policy, "- name: Check the independent-version-stream changelogs", 6)
       val checkout = "      - name: Checkout current branch\n" +
         "        uses: actions/checkout@v7.0.1"
       val aggregate      = inlineList(indentedBlock(workflow, "ci:", 2), "needs")
@@ -1753,6 +1772,16 @@ class SquireCiPolicySpec extends Test[Any]:
           policyStep),
         "changed command" -> {
           val changedPolicy = replaceOnce(policyJob, "mise run test:squire", "mise run lint")
+          replaceOnce(workflow, policyJob, changedPolicy)
+        },
+        "changelog step moved into lint" -> replaceOnce(
+          replaceOnce(workflow, changelogStep, ""),
+          "      - name: Lint code\n        run: ./mill --ticker false -i ci.lint",
+          "      - name: Lint code\n        run: ./mill --ticker false -i ci.lint\n" + changelogStep
+        ),
+        "changelog check command changed" -> {
+          val changedPolicy =
+            replaceOnce(policyJob, ".claude/skills/squire/squire changelog check", ".claude/skills/squire/squire changelog show")
           replaceOnce(workflow, policyJob, changedPolicy)
         },
         "job dependency added" -> replaceOnce(
@@ -6127,3 +6156,283 @@ final class TestEnvPlatform(
   override def deleteProbe(path: Path): Unit = deleteProbeFn match
     case Present(value) => value(path)
     case Absent         => super.deleteProbe(path)
+
+class SquireChangelogSpec extends Test[Any]:
+  import SquireChangelogFixtures.*
+
+  "changelog check" - {
+    "passes on a well-formed changelog with one undated heading" in {
+      for
+        root   <- SquireFixtures.scratch("changelog-check-ok")
+        _      <- writeAllAreas(root, validLibraries, validMillPlugins, validDesktop)
+        report <- SquireChangelog.check(root)
+      yield assert(
+        report.ok && report.outcomes.forall(_.status == "ok") &&
+          report.outcomes.find(_.area == "libraries").exists(_.releaseLine.exists(_ == "1.2.3")) &&
+          report.outcomes.find(_.area == "mill-plugins").exists(_.releaseLine.exists(_ == "0.5.0-M05")) &&
+          report.outcomes.find(_.area == "desktop").exists(_.releaseLine.exists(_ == "0.2.0"))
+      )
+    }
+
+    "fails naming the file when there is no undated heading" in {
+      for
+        root     <- SquireFixtures.scratch("changelog-check-none")
+        _        <- writeAllAreas(root, noUndated, validMillPlugins, validDesktop)
+        report   <- SquireChangelog.check(root)
+        libraries = report.outcomes.find(_.area == "libraries").get
+      yield assert(
+        !report.ok && libraries.status == "issue" &&
+          libraries.detail.exists(message => message.contains("CHANGELOG.md") && message.contains("no undated release heading"))
+      )
+    }
+
+    "fails naming both when there are two undated headings" in {
+      for
+        root        <- SquireFixtures.scratch("changelog-check-two")
+        _           <- writeAllAreas(root, validLibraries, twoUndated, validDesktop)
+        report      <- SquireChangelog.check(root)
+        millPlugins  = report.outcomes.find(_.area == "mill-plugins").get
+      yield assert(
+        !report.ok && millPlugins.status == "issue" &&
+          millPlugins.detail.exists(message =>
+            message.contains("0.5.0-M06") && message.contains("0.5.0-M05") &&
+              message.contains("expected one undated release heading")
+          )
+      )
+    }
+
+    "fails when the release line is below the area's starting version" in {
+      for
+        root   <- SquireFixtures.scratch("changelog-check-floor")
+        _      <- writeAllAreas(root, validLibraries, validMillPlugins, belowFloorDesktop)
+        report <- SquireChangelog.check(root)
+        desktop = report.outcomes.find(_.area == "desktop").get
+      yield assert(
+        !report.ok && desktop.status == "issue" && desktop.releaseLine.exists(_ == "0.0.5") &&
+          desktop.detail.exists(message => message.contains("0.0.5") && message.contains("0.1.0"))
+      )
+    }
+  }
+
+  "changelog show" - {
+    "prints the release line for each area without enforcing the floor" in {
+      for
+        root     <- SquireFixtures.scratch("changelog-show")
+        _        <- writeAllAreas(root, validLibraries, validMillPlugins, belowFloorDesktop)
+        report   <- SquireChangelog.show(root)
+        rendered  = SquireChangelog.renderChangelogReport(report)
+        desktop   = report.outcomes.find(_.area == "desktop").get
+      yield assert(
+        report.ok && desktop.status == "ok" && desktop.releaseLine.exists(_ == "0.0.5") &&
+          rendered.contains("release line 1.2.3") && rendered.contains("release line 0.5.0-M05") &&
+          rendered.contains("release line 0.0.5")
+      )
+    }
+  }
+
+  "release prepare" - {
+    "dates the undated heading with the date it is given and inserts the next undated heading above it" in {
+      for
+        root    <- SquireFixtures.scratch("release-prepare")
+        _       <- writeAllAreas(root, preparable, validMillPlugins, validDesktop)
+        result  <- SquireChangelog.prepare(root, "libraries", "2026-08-18")
+        updated <- Sync.defer(Files.readString((root / "CHANGELOG.md").toJava))
+      yield
+        val unreleasedIndex = updated.indexOf("## [Unreleased]")
+        val datedIndex      = updated.indexOf("## [0.6.0-M01] - 2026-08-18")
+        assert(
+          result.version == "0.6.0-M01" && result.date == "2026-08-18" && result.tag == "v0.6.0-M01" &&
+            result.gitTagCommand == "git tag v0.6.0-M01" &&
+            unreleasedIndex >= 0 && datedIndex > unreleasedIndex &&
+            !updated.contains("## [0.6.0-M01]\n\n### Added") &&
+            updated.contains("## [0.5.0-M04] - 2026-04-22")
+        )
+    }
+
+    "refuses, without writing, when the changelog has no undated heading to date" in {
+      for
+        root   <- SquireFixtures.scratch("release-prepare-refuse")
+        _      <- writeAllAreas(root, noUndated, validMillPlugins, validDesktop)
+        before <- Sync.defer(Files.readString((root / "CHANGELOG.md").toJava))
+        result <- Abort.run[SquireError](SquireChangelog.prepare(root, "libraries", "2026-08-18"))
+        after  <- Sync.defer(Files.readString((root / "CHANGELOG.md").toJava))
+      yield assert(result.isFailure && before == after)
+    }
+
+    "refuses an unknown area and a malformed date without writing" in {
+      for
+        root         <- SquireFixtures.scratch("release-prepare-bad-input")
+        _            <- writeAllAreas(root, validLibraries, validMillPlugins, validDesktop)
+        before       <- Sync.defer(Files.readString((root / "CHANGELOG.md").toJava))
+        unknownArea  <- Abort.run[SquireError](SquireChangelog.prepare(root, "nope", "2026-08-18"))
+        badDate      <- Abort.run[SquireError](SquireChangelog.prepare(root, "libraries", "not-a-date"))
+        after        <- Sync.defer(Files.readString((root / "CHANGELOG.md").toJava))
+      yield assert(unknownArea.isFailure && badDate.isFailure && before == after)
+    }
+  }
+
+  "release status" - {
+    "reports which stream a tag would release and whether tag and changelog agree" in {
+      val statusRunner = RuleRunner { request =>
+        val pattern = request.argv.lastOption.getOrElse("")
+        val stdout = pattern match
+          case "v*"              => ""
+          case "mill-plugins/v*" => "mill-plugins/v0.5.0-M05\n"
+          case "desktop/v*"      => "desktop/v9.9.9\n"
+          case _                 => ""
+        ProcessResult(request, 0, stdout, "")
+      }
+      for
+        root        <- SquireFixtures.scratch("release-status")
+        _           <- writeAllAreas(root, validLibraries, millPluginsWithRelease, validDesktop)
+        report      <- SquireChangelog.status(root, statusRunner)
+        libraries    = report.areas.find(_.area == "libraries").get
+        millPlugins  = report.areas.find(_.area == "mill-plugins").get
+        desktop      = report.areas.find(_.area == "desktop").get
+      yield assert(
+        !report.ok &&
+          libraries.status == "pending" && libraries.tag.exists(_ == "v1.2.3") &&
+          millPlugins.status == "released" && millPlugins.tag.exists(_ == "mill-plugins/v0.5.0-M05") &&
+          desktop.status == "issue" &&
+          desktop.detail.exists(message => message.contains("desktop/v9.9.9") && message.contains("does not record"))
+      )
+    }
+  }
+
+  "squire CLI wiring" - {
+    "routes changelog check, show, and release prepare through SquireCli with correct exit codes" in {
+      for
+        root          <- SquireFixtures.scratch("changelog-cli")
+        _             <- writeAllAreas(root, preparable, validMillPlugins, validDesktop)
+        checkOutput    = new StringBuilder
+        checkExit     <- SquireCli.runChangelogCheck(ChangelogCheckOpts(json = true), root, value => checkOutput.append(value))
+        showOutput     = new StringBuilder
+        showExit      <- SquireCli.runChangelogShow(ChangelogShowOpts(), root, value => showOutput.append(value))
+        prepareOutput  = new StringBuilder
+        prepareExit <-
+          SquireCli.runReleasePrepare(
+            ReleasePrepareOpts(area = Some("libraries"), date = Some("2026-08-18")),
+            root,
+            value => prepareOutput.append(value)
+          )
+        checkReport = SquireJson.decode[ChangelogReport](checkOutput.result().trim)
+      yield assert(
+        checkExit == 0 && checkReport.exists(_.ok) &&
+          showExit == 0 && showOutput.result().contains("release line 0.6.0-M01") &&
+          prepareExit == 0 && prepareOutput.result().contains("git tag v0.6.0-M01")
+      )
+    }
+
+    "release prepare requires --area" in {
+      for
+        root   <- SquireFixtures.scratch("changelog-cli-missing-area")
+        result <- Abort.run[SquireError](SquireCli.runReleasePrepare(ReleasePrepareOpts(), root, _ => ()))
+      yield assert(result.isFailure)
+    }
+  }
+
+object SquireChangelogFixtures:
+  val validLibraries: String =
+    """# Changelog
+      |
+      |## [1.2.3]
+      |
+      |### Added
+      |- widget
+      |""".stripMargin
+
+  val validMillPlugins: String =
+    """# Changelog
+      |
+      |## [0.5.0-M05]
+      |
+      |### Changed
+      |- widget
+      |""".stripMargin
+
+  val validDesktop: String =
+    """# Changelog
+      |
+      |## [0.2.0]
+      |
+      |### Added
+      |- widget
+      |""".stripMargin
+
+  val belowFloorDesktop: String =
+    """# Changelog
+      |
+      |## [0.0.5]
+      |
+      |### Added
+      |- widget
+      |""".stripMargin
+
+  val noUndated: String =
+    """# Changelog
+      |
+      |## [1.2.3] - 2026-01-01
+      |
+      |### Added
+      |- widget
+      |""".stripMargin
+
+  val twoUndated: String =
+    """# Changelog
+      |
+      |## [0.5.0-M06]
+      |
+      |## [0.5.0-M05]
+      |
+      |### Changed
+      |- widget
+      |
+      |## [0.5.0-M04] - 2026-04-22
+      |
+      |### Added
+      |- widget
+      |""".stripMargin
+
+  val preparable: String =
+    """# Changelog
+      |
+      |All notable changes are recorded here.
+      |
+      |## [0.6.0-M01]
+      |
+      |### Added
+      |- widget
+      |
+      |## [0.5.0-M04] - 2026-04-22
+      |
+      |### Added
+      |- gadget
+      |""".stripMargin
+
+  val millPluginsWithRelease: String =
+    """# Changelog
+      |
+      |## [0.5.0-M06]
+      |
+      |### Changed
+      |- widget
+      |
+      |## [0.5.0-M05] - 2026-06-01
+      |
+      |### Changed
+      |- widget
+      |""".stripMargin
+
+  def writeChangelog(root: Path, path: String, text: String): Unit < Sync =
+    Sync.defer {
+      val target = root / path
+      Files.createDirectories(target.parent.get.toJava)
+      Files.writeString(target.toJava, text)
+    }
+
+  def writeAllAreas(root: Path, libraries: String, millPlugins: String, desktop: String): Unit < Sync =
+    for
+      _ <- writeChangelog(root, "CHANGELOG.md", libraries)
+      _ <- writeChangelog(root, "mill-plugins/morphir/CHANGELOG.md", millPlugins)
+      _ <- writeChangelog(root, "morphir/desktop/CHANGELOG.md", desktop)
+    yield ()

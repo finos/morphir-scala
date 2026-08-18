@@ -61,6 +61,8 @@ jobs:
           experimental: true
       - name: Test Squire and release policy
         run: mise run test:squire
+      - name: Check the independent-version-stream changelogs
+        run: .claude/skills/squire/squire changelog check
 
   knowledge-base:
     runs-on: ubuntu-latest

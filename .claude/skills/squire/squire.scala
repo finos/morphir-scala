@@ -1,6 +1,6 @@
 //| scalaVersion: 3.8.4
 //| mainClass: SquireApp
-//| moduleDeps: [SquireModel.scala, SquireProcess.scala, SquireEnv.scala, SquireDoctor.scala, SquireCellar.scala, SquireRepo.scala, SquireBranch.scala, SquireTracking.scala, SquireSchemas.scala, SquireSpec.scala]
+//| moduleDeps: [SquireModel.scala, SquireProcess.scala, SquireEnv.scala, SquireDoctor.scala, SquireCellar.scala, SquireRepo.scala, SquireBranch.scala, SquireTracking.scala, SquireSchemas.scala, SquireSpec.scala, SquireChangelog.scala]
 //| mvnDeps:
 //| - io.getkyo::kyo-case-app:1.0.0-RC6
 
@@ -114,6 +114,16 @@ final case class SchemasValidateOpts(
     @HelpMessage("Document directory") documents: Option[String] = None,
     @HelpMessage("Output the typed result as JSON") json: Boolean = false
 )
+
+final case class ChangelogCheckOpts(@HelpMessage("Output the typed result as JSON") json: Boolean = false)
+final case class ChangelogShowOpts(@HelpMessage("Output the typed result as JSON") json: Boolean = false)
+
+final case class ReleasePrepareOpts(
+    @HelpMessage("Area to prepare: libraries, mill-plugins, or desktop") area: Option[String] = None,
+    @HelpMessage("Release date, yyyy-MM-dd; defaults to today") date: Option[String] = None,
+    @HelpMessage("Output the typed result as JSON") json: Boolean = false
+)
+final case class ReleaseStatusOpts(@HelpMessage("Output the typed result as JSON") json: Boolean = false)
 
 object SquireCli:
   private val ExitFileEnvironment = "SQUIRE_EXIT_FILE"
@@ -561,6 +571,51 @@ object SquireCli:
       SquireSchemas.exitCode(report)
     }
 
+  def runChangelogCheck(
+      options: ChangelogCheckOpts,
+      root: Path,
+      output: String => Unit
+  ): Int < Sync =
+    SquireChangelog.check(root).map { report =>
+      output(if options.json then SquireJson.encode(report) + "\n" else SquireChangelog.renderChangelogReport(report))
+      if report.ok then 0 else 1
+    }
+
+  def runChangelogShow(
+      options: ChangelogShowOpts,
+      root: Path,
+      output: String => Unit
+  ): Int < Sync =
+    SquireChangelog.show(root).map { report =>
+      output(if options.json then SquireJson.encode(report) + "\n" else SquireChangelog.renderChangelogReport(report))
+      0
+    }
+
+  def runReleasePrepare(
+      options: ReleasePrepareOpts,
+      root: Path,
+      output: String => Unit
+  ): Int < (Sync & Abort[SquireError]) =
+    options.area match
+      case None => cliFailure("release prepare", "missing required argument --area")
+      case Some(area) =>
+        val date = options.date.getOrElse(java.time.LocalDate.now().toString)
+        SquireChangelog.prepare(root, area, date).map { result =>
+          output(if options.json then SquireJson.encode(result) + "\n" else SquireChangelog.renderPrepare(result))
+          0
+        }
+
+  def runReleaseStatus(
+      options: ReleaseStatusOpts,
+      root: Path,
+      runner: ProcessRunner,
+      output: String => Unit
+  ): Int < (Async & Sync & Abort[SquireError]) =
+    SquireChangelog.status(root, runner).map { report =>
+      output(if options.json then SquireJson.encode(report) + "\n" else SquireChangelog.renderReleaseStatus(report))
+      if report.ok then 0 else 1
+    }
+
   private def resolveOption(root: Path, value: Option[String], default: String): Path =
     resolvePath(root, value.getOrElse(default))
 
@@ -589,7 +644,11 @@ object SquireApp extends CommandsEntryPoint:
     SpecExportCmd,
     SchemasBuildCmd,
     SchemasCompareCmd,
-    SchemasValidateCmd
+    SchemasValidateCmd,
+    ChangelogCheckCmd,
+    ChangelogShowCmd,
+    ReleasePrepareCmd,
+    ReleaseStatusCmd
   )
 
   object AiEnvInfoCmd extends KyoCommand[AiEnvInfoOpts]:
@@ -903,6 +962,50 @@ object SquireApp extends CommandsEntryPoint:
             java.lang.System.out.print,
             java.lang.System.err.print
           )
+        }
+      )
+    }
+
+  object ChangelogCheckCmd extends KyoCommand[ChangelogCheckOpts]:
+    override def name  = "changelog check"
+    override def names = List(List("changelog", "check"))
+    run { options =>
+      SquireCli.runCommand(
+        SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+          SquireCli.runChangelogCheck(options, root, java.lang.System.out.print)
+        }
+      )
+    }
+
+  object ChangelogShowCmd extends KyoCommand[ChangelogShowOpts]:
+    override def name  = "changelog show"
+    override def names = List(List("changelog", "show"))
+    run { options =>
+      SquireCli.runCommand(
+        SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+          SquireCli.runChangelogShow(options, root, java.lang.System.out.print)
+        }
+      )
+    }
+
+  object ReleasePrepareCmd extends KyoCommand[ReleasePrepareOpts]:
+    override def name  = "release prepare"
+    override def names = List(List("release", "prepare"))
+    run { options =>
+      SquireCli.runCommand(
+        SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+          SquireCli.runReleasePrepare(options, root, java.lang.System.out.print)
+        }
+      )
+    }
+
+  object ReleaseStatusCmd extends KyoCommand[ReleaseStatusOpts]:
+    override def name  = "release status"
+    override def names = List(List("release", "status"))
+    run { options =>
+      SquireCli.runCommand(
+        SquireCli.projectRoot(Path(java.lang.System.getProperty("user.dir"))).flatMap { root =>
+          SquireCli.runReleaseStatus(options, root, LiveProcessRunner, java.lang.System.out.print)
         }
       )
     }
