@@ -438,28 +438,28 @@ jobs:
       - name: Install libuv
         run: sudo apt-get update && sudo apt-get install -y libuv1-dev
 
-      # Unlike test-js's own cache (save-only, gated to main/develop/0.4.x/tags, and restored only
-      # by `publish`), this restores *and* saves so the job benefits from its own cache: every run
-      # relinking from scratch is the underlying cost behind both timeout incidents in bead
-      # morphir-dru. The primary key is exact-commit like the JVM/JS caches, but `restore-keys` adds
-      # a prefix fallback so a run on a *new* commit still restores the most recent previous
-      # `out/morphir/**/native/` rather than starting cold — a plain exact-key cache (as in test-js)
-      # never pays off on its own job, only for a later job in the same run. A prefix hit means the
-      # restored tree is from a different commit than the one being built; that is safe rather than
-      # merely convenient because Mill keys every task on a hash of its own inputs (sources, upstream
-      # task outputs, its code fingerprint), not on wall-clock time or which commit produced `out/` —
-      # unchanged inputs are reused, changed ones are recomputed, exactly as within a single commit's
-      # incremental build. Nothing in `nativeLink`/`compile`/`test` here writes non-deterministic
-      # state outside that model (no unpinned "latest" resolution, no timestamp-keyed output), so
-      # nothing in this repo's Mill setup makes the cross-commit restore unsafe.
+      # Reuse of this job's own native build output. Unlike test-js's cache, which is save-only and
+      # restored by `publish` rather than by test-js itself, this both restores and saves, so a
+      # re-run of the same commit does not relink from scratch — the case that follows a timeout or
+      # an infrastructure flake, which is how bead morphir-dru was opened.
+      #
+      # It is deliberately exact-commit only. See the key below for what happened when it was not.
       - name: Cache Native build output
         uses: actions/cache@v6
         with:
           path: |
             out/morphir/**/native/
+          # Keyed by the exact commit, with no restore-keys fallback. A cross-commit restore was
+          # tried and reverted: it made this job reuse a `nativeLink` from a different commit, and
+          # 11 GithubClientTests snapshot assertions failed because a stale binary ran against
+          # current sources. The first run of that branch passed (empty cache) and the second failed
+          # (restored the first's output) — same configuration, so the restore was the only
+          # variable. Mill's own input hashing does not protect against this, because the restored
+          # task metadata is what tells Mill the work is already done.
+          #
+          # What remains is reuse across re-runs of the same commit, which is exactly the case that
+          # follows a timeout or an infrastructure flake. Cold runs stay cold; see bead morphir-dru.
           key: ${{ runner.os }}-mill-native-${{ matrix.java }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-mill-native-${{ matrix.java }}-
 
       - name: Run Native tests
         # Kept in step with .config/mise/tasks/test/native for the selectors, but `-j 2` rather than
