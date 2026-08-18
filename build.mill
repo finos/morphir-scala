@@ -59,6 +59,91 @@ object scoverage extends ScoverageReport {
 }
 
 /**
+ * An independently versioned area: a changelog supplies the release line, git supplies the
+ * pre-release markers, and the tag namespace keeps this stream's tags apart from every other's.
+ *
+ * The configuration members are Tasks rather than plain defs so a `package.mill.yaml` can set them
+ * with literals, the same way `ci/package.mill.yaml` sets `libraryModulePrefix` and `uploadJobs`.
+ * Both are `Option`-typed: the root area genuinely has no namespace and an area may genuinely have
+ * no floor, and a `""` sentinel would only create a case someone forgets to handle.
+ */
+trait MorphirVersionedModule extends Module {
+  import org.finos.morphir.mill.publish.version.*
+
+  /** None is the root stream, tagged `v*`. Some("desktop") is tagged `desktop/v*`. */
+  def versionNamespace = Task { Option.empty[String] }
+
+  /** Optional floor; the changelog's release line may not regress below it. */
+  def startingVersion = Task { Option.empty[String] }
+
+  /**
+   * The area's changelog.
+   *
+   * A `Task.Source` for two reasons: Mill then invalidates the version when someone edits a release
+   * line, and reading the file is legal under Mill's execution-time filesystem checker, which
+   * rejects undeclared reads inside a plain `Task`.
+   *
+   * The libraries' changelog lives at the repository root, not per-module, so the default reads from
+   * there; the plugin family and the desktop application override this to their own namespaced file.
+   */
+  def changelog = Task.Source(mill.api.BuildCtx.workspaceRoot / "CHANGELOG.md")
+
+  /**
+   * A cheap, always-fresh fingerprint of the working copy: HEAD and whether the tree is dirty.
+   *
+   * This exists to invalidate [[gitState]]. Git state changes without any file in the module
+   * changing, so something has to be re-read every run — but a `Task.Input` body may not call
+   * another task (`allowTaskReferences = false`), so it cannot know the namespace. It does not need
+   * to: the fingerprint is namespace-independent, and depending on it is enough to make the cached
+   * `gitState` recompute whenever the commit or the dirty flag moves.
+   */
+  def gitFingerprint = Task.Input {
+    val root   = mill.api.BuildCtx.workspaceRoot
+    val head   = os.proc("git", "rev-parse", "HEAD").call(cwd = root, check = false, stdout = os.Pipe, stderr = os.Pipe)
+    val status = os.proc("git", "status", "--porcelain").call(cwd = root, check = false, stdout = os.Pipe, stderr = os.Pipe)
+    (head.out.text().trim, status.out.text().trim.nonEmpty)
+  }
+
+  /** Git state for this area's stream, recomputed whenever [[gitFingerprint]] moves. */
+  def gitState = Task {
+    gitFingerprint() // dependency: this is what makes the cache honest
+    GitStream
+      .resolve(mill.api.BuildCtx.workspaceRoot, TagStream(versionNamespace()))
+      .fold(message => throw new IllegalStateException(message), identity)
+  }
+
+  def publishMode = Task.Input {
+    Seq("MORPHIR_PUBLISH_MODE", "MORPHIR_PUBLISH_BRANCH")
+      .flatMap(name => Task.env.get(name).map(name -> _))
+      .toMap
+  }
+
+  /** The version this area publishes. */
+  def streamVersion = Task {
+    val source = changelog().path
+    if (!os.exists(source))
+      throw new IllegalStateException(
+        s"$source: an independently versioned area requires a changelog"
+      )
+    val text = os.read(source)
+    val mode = publishMode().get("MORPHIR_PUBLISH_MODE") match {
+      case Some("snapshot") =>
+        publishMode().get("MORPHIR_PUBLISH_BRANCH").filter(_.nonEmpty) match {
+          case Some(branch) => PublishMode.Snapshot(branch)
+          case None => throw new IllegalArgumentException("MORPHIR_PUBLISH_BRANCH is required in snapshot mode")
+        }
+      case None | Some("") => PublishMode.Release
+      case Some(other)     => throw new IllegalArgumentException(s"unsupported MORPHIR_PUBLISH_MODE '$other'")
+    }
+    val result = for {
+      line    <- Changelog.releaseLine(text, source.toString)
+      version <- StreamVersion.compose(line, startingVersion(), gitState(), mode, TagStream(versionNamespace()))
+    } yield version
+    result.fold(message => throw new IllegalArgumentException(message), identity)
+  }
+}
+
+/**
  * Version and POM policy shared by every Morphir publishable, including the desktop distributions,
  * which are not JVM libraries and must not carry Mima.
  */

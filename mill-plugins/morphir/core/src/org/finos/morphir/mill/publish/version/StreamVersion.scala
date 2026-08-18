@@ -5,6 +5,10 @@ import java.util.Locale
 /** Git state for one stream: its nearest matching tag, and where HEAD sits relative to it. */
 final case class GitState(lastTag: Option[String], distance: Int, revision: String, dirty: Boolean)
 
+object GitState {
+  implicit val readWriter: upickle.default.ReadWriter[GitState] = upickle.default.macroRW
+}
+
 /** What a build is producing. */
 enum PublishMode {
   case Release
