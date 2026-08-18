@@ -1348,6 +1348,20 @@ class SquireCiPolicySpec extends Test[Any]:
     "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.trees,model,model.lowering,prelude,tests}.jvm.test"
   )
 
+  /**
+   * Mill's stderr, appended to a failure message rather than left only in `detail`.
+   *
+   * `SquireError.Failure` passes only `message` to `RuntimeException`, so when one of these escapes
+   * a kyo-test leaf as a thrown exception the reporter prints the exit code and nothing else — which
+   * is exactly what happened when a cold-cache launcher race produced exit 126 and the cause had to
+   * be inferred (bead morphir-47j). Widening `SquireError`'s own rendering would change every
+   * consumer of that format, including the exported spec reports the CLI tests assert on, so the
+   * stderr is folded in here at the one call site that needs it.
+   */
+  private def withStderr(message: String, stderr: String): String =
+    val trimmed = stderr.trim
+    if trimmed.isEmpty then message else s"$message\n$trimmed"
+
   private def resolveJvmTarget(selector: String): Set[String] < (Async & Abort[SquireError]) =
     LiveProcessRunner.run(
       ProcessRequest(
@@ -1361,7 +1375,7 @@ class SquireCiPolicySpec extends Test[Any]:
         Abort.fail(
           SquireError.Failure(
             "ci-policy",
-            s"could not resolve JVM selector $selector (exit ${result.exitCode})",
+            withStderr(s"could not resolve JVM selector $selector (exit ${result.exitCode})", result.stderr),
             Present(result.stderr.trim)
           )
         )
@@ -1385,7 +1399,7 @@ class SquireCiPolicySpec extends Test[Any]:
         Abort.fail(
           SquireError.Failure(
             "ci-policy",
-            s"could not resolve __.publishSonatypeCentral (exit ${result.exitCode})",
+            withStderr(s"could not resolve __.publishSonatypeCentral (exit ${result.exitCode})", result.stderr),
             Present(result.stderr.trim)
           )
         )

@@ -9,19 +9,8 @@ import kyo.*
 sealed abstract class SquireError(message: String) extends RuntimeException(message)
 
 object SquireError:
-  // `getMessage` is built from `area` and `detail` too, not just `message` — the CLI path
-  // (squire.scala's `renderError`) formats the case-class fields directly and never touches
-  // `getMessage`, but anywhere else an unhandled `SquireError` escapes as a thrown exception (for
-  // example a kyo-test leaf that lets `Abort[SquireError]` propagate) only `getMessage`/`toString`
-  // is available, and the default `RuntimeException` behavior would report `message` alone,
-  // silently dropping `detail` — the captured stderr of a failed subprocess, which is often the only
-  // evidence of what actually went wrong (see bead morphir-47j).
   final case class Failure(area: String, message: String, detail: Maybe[String] = Absent)
-      extends SquireError(
-        detail match
-          case Present(value) if value.nonEmpty => s"[$area] $message\n$value"
-          case _                                 => s"[$area] $message"
-      )
+      extends SquireError(message)
 
 object SquireJson:
   def encode[A: Schema](value: A): String = Json.encode(value)
