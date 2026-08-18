@@ -143,37 +143,6 @@ trait MorphirVersionedModule extends Module {
       .toMap
   }
 
-  /**
-   * Chooses what a build is producing.
-   *
-   * `MORPHIR_PUBLISH_MODE=snapshot` is explicit and unchanged. Absent or empty, the mode is
-   * inferred rather than assumed to be a release: a checkout sitting exactly on its stream's tag
-   * (distance zero) with that tag agreeing with the changelog's release line is a release: anything
-   * else — mid-stream, off-tag, or on a tag that disagrees — is a snapshot qualified by the current
-   * branch. This mirrors the old `SnapshotVersion.select`, which never hard-failed just because the
-   * environment was empty; the release-only default would fail every local build (and, since
-   * `publishVersion` feeds BuildInfo, every *compile*) unless the checkout happened to be exactly
-   * on a release tag.
-   */
-  private def resolvePublishMode(
-      env: Map[String, String],
-      state: GitState,
-      stream: TagStream,
-      releaseLine: String,
-      branch: String
-  ): Either[String, PublishMode] =
-    env.get("MORPHIR_PUBLISH_MODE") match {
-      case Some("snapshot") =>
-        env.get("MORPHIR_PUBLISH_BRANCH").filter(_.nonEmpty) match {
-          case Some(explicitBranch) => Right(PublishMode.Snapshot(explicitBranch))
-          case None                 => Left("MORPHIR_PUBLISH_BRANCH is required in snapshot mode")
-        }
-      case None | Some("") =>
-        val onRelease = state.distance == 0 && state.lastTag.contains(stream.tagFor(releaseLine))
-        Right(if (onRelease) PublishMode.Release else PublishMode.Snapshot(branch))
-      case Some(other) => Left(s"unsupported MORPHIR_PUBLISH_MODE '$other'")
-    }
-
   /** The version this area publishes. */
   def streamVersion = Task {
     val source = changelog().path
@@ -186,7 +155,7 @@ trait MorphirVersionedModule extends Module {
     val state  = gitState()
     val result = for {
       line    <- Changelog.releaseLine(text, source.toString)
-      mode    <- resolvePublishMode(publishMode(), state, stream, line, gitBranch())
+      mode    <- StreamVersion.resolveMode(publishMode(), state, stream, line, gitBranch())
       version <- StreamVersion.compose(line, startingVersion(), state, mode, stream)
     } yield version
     result.fold(message => throw new IllegalArgumentException(message), identity)

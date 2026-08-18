@@ -25,6 +25,39 @@ enum PublishMode {
 object StreamVersion {
   private val Revision = raw"^[0-9a-fA-F]{7,40}$$".r
 
+  /**
+   * Chooses what a build is producing.
+   *
+   * `MORPHIR_PUBLISH_MODE=snapshot` is explicit and unchanged: it requires `MORPHIR_PUBLISH_BRANCH` and produces
+   * exactly that snapshot. Absent or empty, the mode is *inferred* rather than assumed to be a release: a checkout
+   * sitting exactly on its stream's tag (distance zero) with that tag agreeing with the changelog's release line is a
+   * release; anything else — mid-stream, off-tag, or on a tag that disagrees — is a snapshot qualified by the given
+   * branch. Defaulting an empty environment straight to `Release` would hard-fail every build that is not sitting on
+   * a release tag, which is most of them; inferring keeps an empty environment behaviourally close to what
+   * `SnapshotVersion.select` did before independent streams existed, where no environment never hard-failed.
+   *
+   * `branch` is a parameter rather than read here so this stays pure and callers keep full control of where it comes
+   * from (git, an env var, whatever the caller's build tool exposes).
+   */
+  def resolveMode(
+      env: Map[String, String],
+      state: GitState,
+      stream: TagStream,
+      releaseLine: String,
+      branch: String
+  ): Either[String, PublishMode] =
+    env.get("MORPHIR_PUBLISH_MODE") match {
+      case Some("snapshot") =>
+        env.get("MORPHIR_PUBLISH_BRANCH").filter(_.nonEmpty) match {
+          case Some(explicitBranch) => Right(PublishMode.Snapshot(explicitBranch))
+          case None                 => Left("MORPHIR_PUBLISH_BRANCH is required in snapshot mode")
+        }
+      case None | Some("") =>
+        val onRelease = state.distance == 0 && state.lastTag.contains(stream.tagFor(releaseLine))
+        Right(if (onRelease) PublishMode.Release else PublishMode.Snapshot(branch))
+      case Some(other) => Left(s"unsupported MORPHIR_PUBLISH_MODE '$other'")
+    }
+
   def compose(
       releaseLine: String,
       startingVersion: Option[String],

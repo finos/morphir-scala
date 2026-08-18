@@ -107,5 +107,52 @@ object StreamVersionTests extends TestSuite {
         StreamVersion.compose("0.6.0-M01", None, clean.copy(distance = -1), PublishMode.Snapshot("main"), stream)
       assert(result.isLeft)
     }
+
+    test("resolveMode: MORPHIR_PUBLISH_MODE=snapshot with a branch stays explicit and unchanged") {
+      val onTag = GitState(Some("v0.6.0-M01"), 0, "abc123def", dirty = false)
+      val env   = Map("MORPHIR_PUBLISH_MODE" -> "snapshot", "MORPHIR_PUBLISH_BRANCH" -> "develop")
+      assert(
+        StreamVersion.resolveMode(env, onTag, stream, "0.6.0-M01", "main") ==
+          Right(PublishMode.Snapshot("develop"))
+      )
+    }
+
+    test("resolveMode: unset, distance zero, tag matches the release line -> Release") {
+      val onTag = GitState(Some("v0.6.0-M01"), 0, "abc123def", dirty = false)
+      assert(
+        StreamVersion.resolveMode(Map.empty, onTag, stream, "0.6.0-M01", "main") == Right(PublishMode.Release)
+      )
+    }
+
+    test("resolveMode: unset, distance zero, tag disagrees with the release line -> Snapshot, not an error") {
+      val onWrongTag = GitState(Some("v0.6.0-M02"), 0, "abc123def", dirty = false)
+      assert(
+        StreamVersion.resolveMode(Map.empty, onWrongTag, stream, "0.6.0-M01", "main") ==
+          Right(PublishMode.Snapshot("main"))
+      )
+    }
+
+    test("resolveMode: unset, distance greater than zero -> Snapshot even though the tag matches") {
+      val aheadOfTag = GitState(Some("v0.6.0-M01"), 3, "abc123def", dirty = false)
+      assert(
+        StreamVersion.resolveMode(Map.empty, aheadOfTag, stream, "0.6.0-M01", "develop") ==
+          Right(PublishMode.Snapshot("develop"))
+      )
+    }
+
+    test("resolveMode: unset, no tag in this stream at all -> Snapshot") {
+      val untagged = GitState(None, 7, "abc123def", dirty = false)
+      assert(
+        StreamVersion.resolveMode(Map.empty, untagged, stream, "0.6.0-M01", "main") ==
+          Right(PublishMode.Snapshot("main"))
+      )
+    }
+
+    test("resolveMode: an unsupported MORPHIR_PUBLISH_MODE value is still an error") {
+      val onTag  = GitState(Some("v0.6.0-M01"), 0, "abc123def", dirty = false)
+      val result = StreamVersion.resolveMode(Map("MORPHIR_PUBLISH_MODE" -> "bogus"), onTag, stream, "0.6.0-M01", "main")
+      assert(result.isLeft)
+      assert(result.left.toOption.exists(_.contains("bogus")))
+    }
   }
 }
