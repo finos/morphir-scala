@@ -114,8 +114,8 @@ object Parser:
         if body.nonEmpty && bodyEndedWithLf then body.append('\n')
         body.toString
 
-    // FenceInfo performs its own line-bounded interpretation of an already charged opening-line value.
-    Block.FencedCode(FenceInfo.parse(open.info), content, Span.fromStartEnd(opening.offset, end))
+    // The budgeted FenceInfo path reserves deterministic work and output before token materialization.
+    Block.FencedCode(FenceInfo.parseBudgeted(open.info, scanner), content, Span.fromStartEnd(opening.offset, end))
 
   private def readParagraph(scanner: SourceScanner, first: Line): Block =
     val text        = StringBuilder(first.text)

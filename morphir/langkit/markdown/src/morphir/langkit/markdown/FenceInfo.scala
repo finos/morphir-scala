@@ -1,6 +1,7 @@
 package morphir.langkit.markdown
 
 import kyo.*
+import morphir.langkit.core.scanner.*
 
 /**
  * Structured view of a CommonMark fenced-code info string.
@@ -21,6 +22,11 @@ sealed abstract case class FenceInfo private[markdown] (
 
 object FenceInfo:
 
+  /** Covers token text, token-list linkage, and derived metadata collection retention. */
+  private[markdown] val TokenOutputReservation: NodeCount = NodeCount(8L)
+
+  private val WorkUnitsPerCodeUnit = 8L
+
   val empty: FenceInfo =
     make(
       raw = "",
@@ -34,10 +40,17 @@ object FenceInfo:
 
   /** Derive structured fields from a CommonMark info string. Never fails the fence. */
   def parse(raw: String): FenceInfo =
+    parseWithReservation(raw)(() => ())
+
+  private[markdown] def parseBudgeted(raw: String, scanner: SourceScanner): FenceInfo =
+    scanner.chargeWork(WorkUnits(raw.length.toLong * WorkUnitsPerCodeUnit))
+    parseWithReservation(raw)(() => scanner.chargeOutputNodes(TokenOutputReservation))
+
+  private def parseWithReservation(raw: String)(reserveToken: () => Unit): FenceInfo =
     val trimmed = trimSpacesOrTabs(raw)
     if trimmed.isEmpty then empty
-    else if trimmed.charAt(0) == '{' then parseBraceLed(trimmed)
-    else parseBareLed(trimmed)
+    else if trimmed.charAt(0) == '{' then parseBraceLed(trimmed, reserveToken)
+    else parseBareLed(trimmed, reserveToken)
 
   extension (self: FenceInfo)
     def tokens: Chunk[String] =
@@ -64,10 +77,10 @@ object FenceInfo:
   ): FenceInfo =
     new FenceInfo(raw, language, args, id, classes, attributes, flags) {}
 
-  private def parseBraceLed(raw: String): FenceInfo =
+  private def parseBraceLed(raw: String, reserveToken: () => Unit): FenceInfo =
     extractBalancedBrace(raw) match
       case Present((contents = contents, rest = rest)) if isSpacesOrTabs(rest) =>
-        val attrs = parsePandocAttrs(contents, promoteFirstClass = true)
+        val attrs = parsePandocAttrs(contents, promoteFirstClass = true, reserveToken)
         make(
           raw = raw,
           language = attrs.language,
@@ -88,14 +101,14 @@ object FenceInfo:
           flags = Chunk.empty
         )
 
-  private def parseBareLed(raw: String): FenceInfo =
+  private def parseBareLed(raw: String, reserveToken: () => Unit): FenceInfo =
     splitTrailingBrace(raw) match
       case (cli = cli, brace = brace) =>
-        val cliTokens = splitTokens(cli)
+        val cliTokens = splitTokens(cli, reserveToken)
         if cliTokens.isEmpty then
           brace match
             case Present(contents) =>
-              val attrs = parsePandocAttrs(contents, promoteFirstClass = true)
+              val attrs = parsePandocAttrs(contents, promoteFirstClass = true, reserveToken)
               make(
                 raw = raw,
                 language = attrs.language,
@@ -127,7 +140,7 @@ object FenceInfo:
               case Absent        => flagsBuilder += token
           }
           val braceAttrs = brace match
-            case Present(contents) => parsePandocAttrs(contents, promoteFirstClass = false)
+            case Present(contents) => parsePandocAttrs(contents, promoteFirstClass = false, reserveToken)
             case Absent            => PandocAttrs.empty
           make(
             raw = raw,
@@ -156,8 +169,12 @@ object FenceInfo:
    *   [[FenceInfo.classes]]; when false (trailing braces after a bare language), every class stays in
    *   [[FenceInfo.classes]].
    */
-  private def parsePandocAttrs(contents: String, promoteFirstClass: Boolean): PandocAttrs =
-    val tokens   = splitTokens(contents)
+  private def parsePandocAttrs(
+      contents: String,
+      promoteFirstClass: Boolean,
+      reserveToken: () => Unit
+  ): PandocAttrs =
+    val tokens   = splitTokens(contents, reserveToken)
     var id       = Option.empty[String]
     val classBuf = List.newBuilder[String]
     val attrBuf  = List.newBuilder[(key: String, value: String)]
@@ -249,7 +266,7 @@ object FenceInfo:
       else value
     else value
 
-  private def splitTokens(text: String): List[String] =
+  private def splitTokens(text: String, reserveToken: () => Unit): List[String] =
     val result = List.newBuilder[String]
     var i      = 0
     while i < text.length do
@@ -259,12 +276,14 @@ object FenceInfo:
         val first = text.charAt(i)
         if first == '"' || first == '\'' then
           i = skipQuoted(text, i)
+          reserveToken()
           result += text.substring(start, i)
         else
           while i < text.length && !isSpaceOrTab(text.charAt(i)) do
             if text.charAt(i) == '=' && i + 1 < text.length && isQuote(text.charAt(i + 1)) then
               i = skipQuoted(text, i + 1)
             else i += 1
+          reserveToken()
           result += text.substring(start, i)
     result.result()
 

@@ -51,6 +51,11 @@ val unsafe = Parser.parse(source, ScanBudget.UnsafeUnbounded)
 isolation and accepts responsibility for resource containment. It does not change parse results or relax scanner
 cursor and progress invariants; it only removes the resource limits.
 
+The output-node budget includes the document, emitted blocks, and a conservative eight-unit reservation for every
+fenced-code metadata token. Metadata reservations happen before token materialization and cover retained token text,
+token-list linkage, and derived arguments, flags, classes, and attributes. This prevents whitespace-heavy fence info
+strings from amplifying into an unbounded metadata collection.
+
 ## Fenced code info
 
 CommonMark treats the fence info string as opaque. `FenceInfo` keeps that string as `raw` and derives conventions

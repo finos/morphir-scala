@@ -208,6 +208,48 @@ class ParserTests extends Test[Any]:
           assert(blocks == Chunk(Block.Heading(1, "Title", Span(0, 7))))
         case _ => assert(false)
     }
+    "budgets fence metadata tokens before whitespace-heavy allocation amplification" in {
+      val infoStrings = Chunk(
+        "scala " + ("flag " * 20000),
+        "{" + (".class " * 20000) + "}",
+        "scala " + ("key=value " * 10000)
+      )
+
+      infoStrings.foreach { info =>
+        val source = s"~~~ $info\n~~~"
+        val budget = ScanBudget.limited(
+          maxInputLength = InputSize.codeUnits(source.length.toLong + 1L),
+          maxWork = WorkUnits(100000000L),
+          maxNestingDepth = NestingDepth(16),
+          maxOutputNodes = NodeCount(10L)
+        )
+
+        Parser.parse(source, budget) match
+          case Result.Failure(ParseError.Scan(ScanFailure(ScanLimitExceeded.OutputNodes(limit, attempted), _, _))) =>
+            assert(limit == NodeCount(10L))
+            assert(attempted == NodeCount(17L))
+          case other => throw new AssertionError(s"expected typed metadata output exhaustion, got $other")
+      }
+    }
+    "accepts the exact fence metadata output boundary and preserves structured info" in {
+      val source        = "~~~ scala flag key=value {.class}\n~~~"
+      val metadataNodes = NodeCount(FenceInfo.TokenOutputReservation.toLong * 4L)
+      val budget        = ScanBudget.limited(
+        maxInputLength = InputSize.codeUnits(source.length.toLong),
+        maxWork = WorkUnits(10000L),
+        maxNestingDepth = NestingDepth(16),
+        maxOutputNodes = NodeCount(metadataNodes.toLong + 2L)
+      )
+
+      Parser.parse(source, budget) match
+        case Result.Success(Document(Chunk(Block.FencedCode(info, "", _)), _)) =>
+          assert(info == FenceInfo.parse("scala flag key=value {.class}"))
+          assert(info.language == Present("scala"))
+          assert(info.flag("flag"))
+          assert(info.option("key") == Present("value"))
+          assert(info.classes == Chunk("class"))
+        case other => throw new AssertionError(s"expected exact-boundary fence success, got $other")
+    }
     "reads an ATX heading and a paragraph" in {
       Parser.parse("# Title\n\nHello") match
         case Result.Success(doc) =>
@@ -427,6 +469,14 @@ class ParserTests extends Test[Any]:
   }
 
   "ParseError" - {
+    "exposes the root message and returns Syntax from its compatibility constructor" in {
+      val syntax: ParseError.Syntax = ParseError("expected closing fence")
+      val root: ParseError          = syntax
+
+      assert(root.message == "expected closing fence")
+      assert(root.getMessage == root.message)
+      assert(ParseError.unapply(root).contains(root.message))
+    }
     "keeps Syntax apply and unapply compatibility" in {
       val error = ParseError("expected closing fence")
       error match

@@ -67,6 +67,9 @@ before and one after by default, both overridable.
 `SourceScanner` gives parsers a scan-local cursor with deterministic ceilings for input length, work, nesting, and
 emitted nodes. The default entry point uses conservative safe limits, and a caller can supply narrower typed limits:
 
+A scanner session is mutable, single-owner state. It is not thread-safe and must not be shared across threads; keep
+all scanner use inside its `scan` callback on one execution path.
+
 ```scala
 import morphir.langkit.core.scanner.*
 
