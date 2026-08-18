@@ -1,7 +1,7 @@
 //| scalaVersion: 3.8.4
 //| mainClass: kyo.test.runner.Cli
 //| resources: [test-resources]
-//| moduleDeps: [squire.scala, SquireCellar.scala, SquireRepo.scala, SquireTracking.scala, SquireChangelog.scala]
+//| moduleDeps: [squire.scala, SquireCellar.scala, SquireRepo.scala, SquireTracking.scala, SquireChangelog.scala, SquireVersionCorpus.scala]
 //| mvnDeps:
 //| - io.getkyo::kyo-test-api:1.0.0-RC6
 //| - io.getkyo::kyo-test-runner:1.0.0-RC6
@@ -1464,6 +1464,52 @@ class SquireCiPolicySpec extends Test[Any]:
           )
         )
     }
+
+  /**
+   * The build's own area table, read back through Mill rather than by parsing `package.mill`.
+   *
+   * `ci.releaseAreas` reports what each area module declares. Comparing it to the corpus closes the second drift
+   * surface: `SquireChangelog.Areas` restates the same three namespaces, changelog paths and floors, and a floor
+   * raised in the build alone would otherwise leave `squire changelog check` validating the old one.
+   */
+  private def resolveReleaseAreas: List[SquireVersionCorpus.AreaCase] < (Async & Abort[SquireError]) =
+    LiveProcessRunner.run(
+      ProcessRequest(
+        Chunk((repositoryRoot / "mill").toString, "--ticker", "false", "show", "ci.releaseAreas"),
+        Present(repositoryRoot)
+      )
+    ).flatMap {
+      case ProcessResult(_, 0, stdout, _) =>
+        // `show` prefixes its own log lines, so take the JSON document rather than the whole stream.
+        val json = stdout.dropWhile(_ != '[')
+        SquireJson.decode[List[SquireVersionCorpus.BuildReleaseArea]](json) match
+          case Result.Success(rows) =>
+            rows.map(row =>
+              SquireVersionCorpus.AreaCase(row.name, row.namespace, row.changelogPath, row.startingVersion, "")
+            )
+          case failure =>
+            Abort.fail(SquireError.Failure("ci-policy", s"ci.releaseAreas did not decode: $failure"))
+      case result =>
+        Abort.fail(
+          SquireError.Failure(
+            "ci-policy",
+            withStderr(s"could not read ci.releaseAreas (exit ${result.exitCode})", result.stderr),
+            Present(result.stderr.trim)
+          )
+        )
+    }
+
+  "release areas" - {
+    "the build declares the areas the corpus declares" in {
+      val corpusDirectory = repositoryRoot / ".config" / "version-rules"
+      for
+        corpus <- SquireVersionCorpus.load(corpusDirectory)
+        actual <- resolveReleaseAreas
+      yield
+        val expected = corpus.areas.map(_.copy(millSelector = ""))
+        assert(actual == expected)
+    }
+  }
 
   "hosted CI policy" - {
     "targets the exact supported pull-request and push branches" in {
@@ -6283,6 +6329,95 @@ final class TestEnvPlatform(
 
 class SquireChangelogSpec extends Test[Any]:
   import SquireChangelogFixtures.*
+
+  // Same derivation the mise-policy suite uses: the tests run with the skill directory as the working directory.
+  private val corpusDirectory =
+    Path(java.lang.System.getProperty("user.dir")) / ".." / ".." / ".." / ".config" / "version-rules"
+
+  /**
+   * The port asserted against the corpus the originals are asserted against, in
+   * `mill-plugins/morphir/core/test/.../VersionCorpusTests.scala`. A rule that changes on one side alone fails here or
+   * there. The cases live in the data, so adding one needs no change in either suite.
+   */
+  "version rules corpus" - {
+    "parses and rejects exactly the versions the corpus names" in {
+      for corpus <- SquireVersionCorpus.load(corpusDirectory)
+      yield
+        val misparsed = corpus.semverParse.filter { expected =>
+          SquireVersion.SemVer.parse(expected.text) !=
+            Some(SquireVersion.SemVer(expected.major, expected.minor, expected.patch, expected.prerelease.toOption))
+        }
+        val accepted = corpus.semverRejects.filter(rejected => SquireVersion.SemVer.parse(rejected.text).isDefined)
+        assert(misparsed.isEmpty && accepted.isEmpty)
+    }
+
+    "orders every pair the way the corpus orders it" in {
+      for corpus <- SquireVersionCorpus.load(corpusDirectory)
+      yield
+        val misordered = corpus.semverCompare.filter { expected =>
+          SquireVersion.SemVer.compare(expected.left, expected.right) != Right(expected.sign)
+        }
+        val accepted = corpus.semverCompareRejects.filter { expected =>
+          !SquireVersion.SemVer.compare(expected.left, expected.right).left.exists(_.contains(expected.messageContains))
+        }
+        assert(misordered.isEmpty && accepted.isEmpty)
+    }
+
+    "derives the pattern, tag and version of every stream" in {
+      for corpus <- SquireVersionCorpus.load(corpusDirectory)
+      yield
+        val wrong = corpus.tagStreams.filter { expected =>
+          val stream = SquireVersion.TagStream(expected.namespace.toOption)
+          stream.pattern != expected.pattern ||
+          expected.tagFor.exists(pair => stream.tagFor(pair.version) != pair.tag) ||
+          expected.versionFromTag.exists(pair => stream.versionFromTag(pair.tag) != pair.version.toOption)
+        }
+        assert(wrong.isEmpty)
+    }
+
+    "reads every release line and fails with the exact message the corpus records" in {
+      for
+        corpus   <- SquireVersionCorpus.load(corpusDirectory)
+        accepted <- Kyo.foreach(corpus.changelogReleaseLine) { expected =>
+          SquireVersionCorpus.changelog(corpusDirectory, expected.file).map { text =>
+            (expected, SquireVersion.Changelog.releaseLine(text, expected.source))
+          }
+        }
+        rejected <- Kyo.foreach(corpus.changelogReleaseLineRejects) { expected =>
+          SquireVersionCorpus.changelog(corpusDirectory, expected.file).map { text =>
+            (expected, SquireVersion.Changelog.releaseLine(text, expected.source))
+          }
+        }
+      yield
+        val wrongLine    = accepted.filter((expected, actual) => actual != Right(expected.releaseLine))
+        val wrongMessage = rejected.filter((expected, actual) => actual != Left(expected.message))
+        assert(wrongLine.isEmpty && wrongMessage.isEmpty)
+    }
+
+    "lists every version heading in document order" in {
+      for
+        corpus <- SquireVersionCorpus.load(corpusDirectory)
+        actual <- Kyo.foreach(corpus.changelogHeadings) { expected =>
+          SquireVersionCorpus.changelog(corpusDirectory, expected.file).map { text =>
+            (expected, SquireVersion.Changelog.headings(text).toList)
+          }
+        }
+      yield
+        val wrong = actual.filter { (expected, headings) =>
+          headings != expected.headings.map(row => SquireVersion.ChangelogHeading(row.version, row.date.toOption))
+        }
+        assert(wrong.isEmpty)
+    }
+
+    "declares the same areas the corpus does" in {
+      for corpus <- SquireVersionCorpus.load(corpusDirectory)
+      yield
+        val expected = corpus.areas.map(area =>
+          ReleaseArea(area.name, area.namespace.toOption, area.changelogPath, area.startingVersion.toOption)
+        )
+        assert(SquireChangelog.Areas == expected)
+    }
+  }
 
   "changelog check" - {
     "passes on a well-formed changelog with one undated heading" in {
