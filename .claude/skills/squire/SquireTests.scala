@@ -2117,6 +2117,26 @@ class SquireMisePolicySpec extends Test[Any]:
         )
       case None => Right(())
 
+  /**
+   * The harness replaces PATH with its own `bin` so a task script can only reach the programs the policy approves, and
+   * that shadows the real `bash` with the recording shim. The shim therefore has to name a real bash by absolute path,
+   * and a hardcoded one does not travel: bash is `/bin/bash` on macOS and `/usr/bin/bash` on most Linux distributions.
+   * Naming the wrong one fails every test in this suite with exit 126 before any policy verdict is reached, which is
+   * how the policy went unverified on macOS. Resolve it from the ambient PATH, which is what a shell outside the
+   * sandbox would do, and fall back to the two conventional locations.
+   */
+  private lazy val ambientBash: String =
+    val fromPath = Option(java.lang.System.getenv("PATH")).getOrElse("")
+      .split(java.io.File.pathSeparator)
+      .iterator
+      .filter(_.nonEmpty)
+      .map(entry => java.nio.file.Path.of(entry, "bash"))
+    val conventional = List("/bin/bash", "/usr/bin/bash").iterator.map(java.nio.file.Path.of(_))
+    (fromPath ++ conventional)
+      .find(candidate => Files.isRegularFile(candidate) && Files.isExecutable(candidate))
+      .map(_.toString)
+      .getOrElse(throw new IllegalStateException("no executable bash found on PATH or in /bin or /usr/bin"))
+
   private def runTaskScript(
       script: Path,
       scriptText: String,
@@ -2138,7 +2158,7 @@ class SquireMisePolicySpec extends Test[Any]:
               List("bun", "npm", "npx").foreach(program =>
                 SquireLauncherFixtures.executable((bin / program).toJava, fakeTaskTool(program))
               )
-              SquireLauncherFixtures.executable((bin / "bash").toJava, "#!/bin/sh\nexec /usr/bin/bash \"$@\"\n")
+              SquireLauncherFixtures.executable((bin / "bash").toJava, s"#!/bin/sh\nexec $ambientBash \"$$@\"\n")
               log
             }
             _ <- Sync.defer(executionStarted())
@@ -3879,8 +3899,16 @@ object SquireFixtures:
   val javaExecutable: String =
     java.nio.file.Path.of(java.lang.System.getProperty("java.home"), "bin", "java").toString
 
+  /**
+   * Canonicalized on creation. `SquireRepo` resolves real paths on purpose: proving a destination is exactly inside
+   * its configured base is what stops a symlinked path component escaping it, so the argv it builds and the metadata
+   * it records name resolved paths. A scratch root that still carries a symlink therefore does not compare equal to
+   * what the code under test produces. On macOS every temp directory is one, because `java.io.tmpdir` sits under
+   * `/var/folders`, and `/var` is a symlink to `private/var`; on Linux the two spellings coincide and the difference
+   * stays invisible.
+   */
   def scratch(name: String): Path < Sync =
-    Sync.defer(Path(java.nio.file.Files.createTempDirectory(s"squire-$name-").toString))
+    Sync.defer(Path(java.nio.file.Files.createTempDirectory(s"squire-$name-").toRealPath().toString))
 
   def deleteRecursively(root: Path): Unit =
     if Files.exists(root.toJava) then
@@ -5297,20 +5325,30 @@ class SquireEnvSpec extends Test[Any]:
           1.seconds,
           SquireFixtures.platform(root, SquireEnv.CheckResult(Present(true), "ok", 0.0), varFolders = Some(root))
         )
+        // The check must report the effective JVM temp directory, not the `varFolders` fallback that names
+        // `/var/folders` on the live platform. Giving the two different values is what makes that assertion mean
+        // anything: with both set to the scratch root, "the detail does not say /var/folders" held on Linux only
+        // because a Linux temp path never contains that string, and failed on macOS, where the scratch root is
+        // itself under /var/folders. Neither outcome told us whether the check read the right member.
+        effective = root / "effective"
+        fallback  = root / "fallback-var-folders"
+        _      <- Sync.defer(Files.createDirectories(effective.toJava))
         report <- SquireEnv.report(
           1.seconds,
           SquireFixtures.platform(
             root,
             SquireEnv.CheckResult(Present(true), "ok", 0.0),
-            jvmTempDirectory = Present(root)
+            varFolders = Some(fallback),
+            jvmTempDirectory = Present(effective)
           ),
           root
         )
-        leftovers <- Sync.defer(SquireFixtures.probeFiles(root))
+        leftovers         <- Sync.defer(SquireFixtures.probeFiles(root))
+        effectiveLeftovers <- Sync.defer(SquireFixtures.probeFiles(effective))
       yield assert(
-        !absent && writable && leftovers.isEmpty &&
-          report.checks("var_folders_writable").detail.contains(root.toString) &&
-          !report.checks("var_folders_writable").detail.contains("/var/folders")
+        !absent && writable && leftovers.isEmpty && effectiveLeftovers.isEmpty &&
+          report.checks("var_folders_writable").detail.contains(effective.toString) &&
+          !report.checks("var_folders_writable").detail.contains(fallback.toString)
       )
     }
 
