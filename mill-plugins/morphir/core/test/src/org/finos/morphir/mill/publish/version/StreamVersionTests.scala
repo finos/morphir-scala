@@ -49,11 +49,25 @@ object StreamVersionTests extends TestSuite {
       )
     }
 
-    test("a dirty tree refuses to produce a version") {
+    test("a dirty tree refuses an explicit snapshot publish") {
       val messy  = clean.copy(dirty = true)
-      val result = StreamVersion.compose("0.6.0-M01", None, messy, PublishMode.Snapshot("main"), stream)
+      val result =
+        StreamVersion.compose("0.6.0-M01", None, messy, PublishMode.Snapshot("main"), stream, explicitPublish = true)
       assert(result.isLeft)
       assert(result.left.toOption.exists(_.contains("dirty")))
+    }
+
+    test("a dirty tree refuses a release even when not marked as an explicit publish") {
+      val messyOnTag = GitState(Some("v0.6.0-M01"), 0, "abc123def", dirty = true)
+      val result      = StreamVersion.compose("0.6.0-M01", None, messyOnTag, PublishMode.Release, stream)
+      assert(result.isLeft)
+      assert(result.left.toOption.exists(_.contains("dirty")))
+    }
+
+    test("a dirty tree with no publish mode produces a version marked dirty, not an error") {
+      val messy  = clean.copy(dirty = true)
+      val result = StreamVersion.compose("0.6.0-M01", None, messy, PublishMode.Snapshot("main"), stream)
+      assert(result == Right(s"0.6.0-M01-${messy.distance}-SNAPSHOT-DIRTY${messy.revision.take(8)}"))
     }
 
     test("a release line below the starting version fails quoting both") {
