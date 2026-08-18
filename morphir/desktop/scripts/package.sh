@@ -10,13 +10,22 @@ VERSION="${2:?version required}"
 
 cd "$(dirname "$0")/../../.."
 
+# The `./mill` launcher is a POSIX shell script that supports only Linux and macOS — on anything
+# else it prints "This native mill launcher supports only Linux and macOS." and exits 1. Under Git
+# Bash on a Windows runner `uname -s` reports MINGW64_NT-…, so the Windows build has to go through
+# `mill.bat`, which the repository ships alongside it.
+MILL="./mill"
+case "$(uname -s)" in
+  MINGW* | MSYS* | CYGWIN*) MILL="./mill.bat" ;;
+esac
+
 # Release builds use fullLinkJS; scripts/assemble.sh uses fastLinkJS for the dev loop.
 #
 # The `+` is required. Two task selectors written side by side are not two tasks: Mill reads the
 # second as an argument to the first, links only the boot bundle, and exits 0. That failure is
 # invisible on a machine where the renderer was linked at some earlier point, and shows up on a
 # fresh checkout as a missing directory much later in the script.
-./mill morphir.desktop.boot.js.fullLinkJS + morphir.desktop.renderer.js.fullLinkJS
+"$MILL" morphir.desktop.boot.js.fullLinkJS + morphir.desktop.renderer.js.fullLinkJS
 
 APP="morphir/desktop/app"
 mkdir -p "$APP/dist"
