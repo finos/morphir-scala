@@ -25,7 +25,7 @@ check that a downloaded file is the one that was built.
 ## Approach
 
 Publish the same binaries to two hosts, so an installation can come from whichever one a consumer
-already trusts — a person reaching for a GitHub Release, an automated build reaching for Maven Central.
+already trusts: a person reaching for a GitHub Release, an automated build reaching for Maven Central.
 
 The naming is what makes that work. Both hosts carry the identical filename tail, following the layout
 Mill uses for its own native launcher, so a downloader swaps only the base URL:
@@ -34,7 +34,7 @@ Mill uses for its own native launcher, so a downloader swaps only the base URL:
 morphir-desktop-<os>-<arch>-<version>.<zip|tar.gz>
 ```
 
-The tokens are Mill's — `mac-aarch64`, `mac-amd64`, `linux-amd64`, `linux-aarch64` — plus `win-amd64`,
+The tokens are Mill's own `mac-aarch64`, `mac-amd64`, `linux-amd64` and `linux-aarch64`, plus `win-amd64`,
 which Mill's own launcher does not support. Maven Central gets one artifactId per platform,
 `org.finos.morphir:morphir-desktop-<os>-<arch>`, with the archive as the main artifact rather than a jar.
 
@@ -47,14 +47,14 @@ format, so verification needs no special tool, and one `checksums.txt` covers th
 detached GPG signature made with the key that already signs the Maven artifacts.
 
 Two kinds of key are at work here, and they stay apart. The PGP key that signs `checksums.txt` is the one
-that already signs the Maven artifacts, deliberately reused so a release needs no new key material. Code
+that already signs the Maven artifacts, reused so a release needs no new key material. Code
 signing is different: macOS and Windows want their own platform certificates, and those live in their own
 secrets, read only by the packaging runners. electron-builder signs when it finds them and produces an
 unsigned build when it does not, so the two concerns can be populated on different schedules. Today only
 the PGP key exists; the separation is what lets a platform certificate arrive later without touching the
 signing of the release itself.
 
-Native installers — dmg, NSIS, AppImage, deb — go to the GitHub Release only. Maven Central carries the
+Native installers (dmg, NSIS, AppImage, deb) go to the GitHub Release only. Maven Central carries the
 portable archives, which are what an automated consumer can extract; an installer is not something a
 build can act on.
 

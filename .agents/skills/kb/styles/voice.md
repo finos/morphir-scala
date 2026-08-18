@@ -39,6 +39,14 @@ Name the term, say what it is, then use it. A same-bundle or co-located Glossary
 
 These read as machine-generated filler. Do not use them in kb content.
 
+The em-dash is the one that appears most and is always avoidable. Nothing in this knowledge base needs
+one: a comma, a colon, a pair of parentheses, or two sentences will carry the same meaning. Reach for
+the split first, because a dash usually marks a sentence carrying two thoughts.
+
+Rewriting is not the same as substituting. Replacing every dash with a comma produces comma-spliced
+prose, which is its own tell. Decide per sentence, and drop the clause outright when it turns out to
+be padding.
+
 | Pattern | Instead |
 | --- | --- |
 | Em-dashes | Use a comma, colon, parentheses, or split the sentence |
@@ -55,10 +63,21 @@ These read as machine-generated filler. Do not use them in kb content.
 | Triads for rhythm ("fast, safe, and scalable") | keep the ones you can defend, drop the rest |
 | A bolded topic phrase starting every bullet | write bullets as plain sentences |
 | Closing summary that restates the page | end when the content ends |
+| "Notice that", "Note that", "Observe that" | state the thing; the reader is already reading |
+| deliberately, genuinely, actually, precisely, simply (as emphasis) | delete the word, or say who decided and why |
+| "not X, it is Y" correcting a claim nobody made | state Y |
+| A paragraph whose first clause restates the heading above it | start with the content |
 
 The list is not a filter to run once at the end. Write without them.
 
 ## Scope
 
 Applies to new kb content and to any document already being edited for another reason. Existing prose is
-grandfathered until touched. Repository documents outside `kb/` follow their own conventions.
+grandfathered until touched. Repository documents outside `kb/` follow their own conventions, though a
+changelog that ships with a release is read as widely as anything in `kb/` and deserves the same care.
+
+Nothing checks any of this. `kb check` validates structure, frontmatter and links, not prose, so the
+table above holds only as far as the author applies it. The gap is measurable: authored kb content
+outside the mirrored `sources/` subtrees currently contains 826 em-dashes across 145 of its 159 files,
+written after this table existed. Treat that as evidence about how easily the rules slip rather than as
+licence, and clean what you touch.
