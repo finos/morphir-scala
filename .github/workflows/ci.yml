@@ -438,6 +438,29 @@ jobs:
       - name: Install libuv
         run: sudo apt-get update && sudo apt-get install -y libuv1-dev
 
+      # Unlike test-js's own cache (save-only, gated to main/develop/0.4.x/tags, and restored only
+      # by `publish`), this restores *and* saves so the job benefits from its own cache: every run
+      # relinking from scratch is the underlying cost behind both timeout incidents in bead
+      # morphir-dru. The primary key is exact-commit like the JVM/JS caches, but `restore-keys` adds
+      # a prefix fallback so a run on a *new* commit still restores the most recent previous
+      # `out/morphir/**/native/` rather than starting cold — a plain exact-key cache (as in test-js)
+      # never pays off on its own job, only for a later job in the same run. A prefix hit means the
+      # restored tree is from a different commit than the one being built; that is safe rather than
+      # merely convenient because Mill keys every task on a hash of its own inputs (sources, upstream
+      # task outputs, its code fingerprint), not on wall-clock time or which commit produced `out/` —
+      # unchanged inputs are reused, changed ones are recomputed, exactly as within a single commit's
+      # incremental build. Nothing in `nativeLink`/`compile`/`test` here writes non-deterministic
+      # state outside that model (no unpinned "latest" resolution, no timestamp-keyed output), so
+      # nothing in this repo's Mill setup makes the cross-commit restore unsafe.
+      - name: Cache Native build output
+        uses: actions/cache@v6
+        with:
+          path: |
+            out/morphir/**/native/
+          key: ${{ runner.os }}-mill-native-${{ matrix.java }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-mill-native-${{ matrix.java }}-
+
       - name: Run Native tests
         # Kept in step with .config/mise/tasks/test/native for the selectors, but `-j 2` rather than
         # that task's `-j 4`: every `nativeLink` runs inside the one Mill daemon and holds a full
