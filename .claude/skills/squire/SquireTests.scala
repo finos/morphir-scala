@@ -1264,8 +1264,52 @@ class SquireMetaSpec extends Test[Any]:
     }
   }
 
+// Warms the Mill launcher and the Coursier cache exactly once per JVM, before any of
+// SquireCiPolicySpec's leaves that shell out to a *real* `./mill resolve` (resolveJvmTarget,
+// resolvePublishTargets) get to run theirs. That closes the race in bead morphir-47j: on the first
+// push to develop after the desktop merge, with both caches cold, two concurrent `mill resolve`
+// invocations from those leaves failed in under a second (exit 1 "coursier cache not found", exit
+// 126 "found but could not execute" — consistent with one process exec'ing the native launcher while
+// another was still writing/chmod'ing it), when a genuine resolve takes about thirty seconds. Eleven
+// prior pull-request runs passed only because the cache happened to already be warm.
+//
+// This has to be a JVM-wide singleton, not a `val` on the spec class: kyo-test constructs one fresh
+// SquireCiPolicySpec instance per leaf and its LeafPool runs many of those instances concurrently
+// (verified by instrumenting a per-instance version of this warm-up — several instances' own
+// warm-ups still overlapped with siblings' real `mill resolve` calls, because "before this
+// instance's own leaf" is not "before every leaf"). A Scala `object`'s initializer, by contrast, is
+// guaranteed by the JVM class-initialization contract (JLS 12.4.2) to run at most once per
+// classloader: every thread that is first to touch it runs the initializer while every other
+// concurrent thread blocks until that finishes, and every later touch is a no-op. Routing the
+// warm-up through this object instead pins it to the process, not the instance, which is what
+// actually removes the race — and it removes it for a developer running this suite (or
+// `mise run test:squire`) on a machine with no ~/.cache/coursier or Mill launcher cache yet, not
+// only for a CI job with an equivalent workflow-level step.
+//
+// Best-effort and silent: a failure here is not reported directly. The leaves that actually need
+// Mill still perform their own real resolves and, since morphir-47j also makes SquireError surface
+// captured stderr, report a fully diagnosed failure if Mill genuinely cannot run — duplicating that
+// here would just be noise, and this warm-up existing purely to prevent a race is not itself a
+// condition worth failing the suite over.
+private object SquireMillLauncherWarmup:
+  private val skillDirectory = java.nio.file.Paths.get(java.lang.System.getProperty("user.dir"))
+  private val repositoryRoot = Path(skillDirectory.resolve("../../..").normalize.toString)
+
+  val exitCode: Int =
+    val builder =
+      new java.lang.ProcessBuilder((repositoryRoot / "mill").toString, "--ticker", "false", "resolve", "morphir")
+    builder.directory(repositoryRoot.toJava.toFile)
+    builder.redirectOutput(java.lang.ProcessBuilder.Redirect.DISCARD)
+    builder.redirectError(java.lang.ProcessBuilder.Redirect.DISCARD)
+    try builder.start().waitFor()
+    catch case _: java.io.IOException => -1
+
 class SquireCiPolicySpec extends Test[Any]:
   import SquireCiPolicy.*
+
+  // Touching `exitCode` forces (or, for every construction after the first, simply confirms) the
+  // one-time JVM-wide warm-up above to have finished before this instance's own leaf runs.
+  private val _millWarmedUp: Int = SquireMillLauncherWarmup.exitCode
 
   private val skillDirectory = java.nio.file.Paths.get(java.lang.System.getProperty("user.dir"))
   private val repositoryRoot = Path(skillDirectory.resolve("../../..").normalize.toString)
@@ -1304,6 +1348,20 @@ class SquireCiPolicySpec extends Test[Any]:
     "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.trees,model,model.lowering,prelude,tests}.jvm.test"
   )
 
+  /**
+   * Mill's stderr, appended to a failure message rather than left only in `detail`.
+   *
+   * `SquireError.Failure` passes only `message` to `RuntimeException`, so when one of these escapes
+   * a kyo-test leaf as a thrown exception the reporter prints the exit code and nothing else — which
+   * is exactly what happened when a cold-cache launcher race produced exit 126 and the cause had to
+   * be inferred (bead morphir-47j). Widening `SquireError`'s own rendering would change every
+   * consumer of that format, including the exported spec reports the CLI tests assert on, so the
+   * stderr is folded in here at the one call site that needs it.
+   */
+  private def withStderr(message: String, stderr: String): String =
+    val trimmed = stderr.trim
+    if trimmed.isEmpty then message else s"$message\n$trimmed"
+
   private def resolveJvmTarget(selector: String): Set[String] < (Async & Abort[SquireError]) =
     LiveProcessRunner.run(
       ProcessRequest(
@@ -1317,7 +1375,7 @@ class SquireCiPolicySpec extends Test[Any]:
         Abort.fail(
           SquireError.Failure(
             "ci-policy",
-            s"could not resolve JVM selector $selector (exit ${result.exitCode})",
+            withStderr(s"could not resolve JVM selector $selector (exit ${result.exitCode})", result.stderr),
             Present(result.stderr.trim)
           )
         )
@@ -1341,7 +1399,7 @@ class SquireCiPolicySpec extends Test[Any]:
         Abort.fail(
           SquireError.Failure(
             "ci-policy",
-            s"could not resolve __.publishSonatypeCentral (exit ${result.exitCode})",
+            withStderr(s"could not resolve __.publishSonatypeCentral (exit ${result.exitCode})", result.stderr),
             Present(result.stderr.trim)
           )
         )
