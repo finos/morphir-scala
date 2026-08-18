@@ -764,6 +764,11 @@ jobs:
     if: github.repository == 'finos/morphir-scala' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/'))
     needs: [ci]
 
+    # Without this the job inherits GitHub's six-hour default. An `apt-get update` wedged against
+    # unreachable Ubuntu mirrors held this job — and the whole run, including its logs — open for
+    # over half an hour with no upload attempted; six hours is not a useful thing to wait for.
+    timeout-minutes: 60
+
     runs-on: ubuntu-latest
 
     # only run one publish job for the same sha at the same time
@@ -844,6 +849,7 @@ jobs:
   ci:
     if: ${{ always() }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: [lint, squire-policy, knowledge-base, test-js, test-js-desktop, test-jvm, test-native, mill-morphir-unit, mill-morphir-integration, morphir-elm-projects, runtime-generated-fixtures, runtime-tests]
     steps:
       - name: Verify required CI jobs succeeded
@@ -866,6 +872,7 @@ jobs:
   packaging:
     if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: [desktop-matrix, desktop-package, desktop-verify]
     steps:
       # Unlike `ci`, a skip can be legitimate here — MORPHIR_CI_PACKAGE_DESKTOP=false stands the whole
