@@ -141,7 +141,9 @@ object StreamVersionTests extends TestSuite {
     }
 
     test("resolveMode: unset, no tag in this stream at all -> Snapshot") {
-      val untagged = GitState(None, 7, "abc123def", dirty = false)
+      // distance 0 is deliberate: it is the value that would otherwise allow Release, so the only
+      // thing forcing Snapshot here is the absent tag, not a nonzero distance.
+      val untagged = GitState(None, 0, "abc123def", dirty = false)
       assert(
         StreamVersion.resolveMode(Map.empty, untagged, stream, "0.6.0-M01", "main") ==
           Right(PublishMode.Snapshot("main"))
