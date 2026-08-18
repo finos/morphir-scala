@@ -12,116 +12,156 @@ import morphir.langkit.core.scanner.*
  */
 object Parser:
 
+  private val BlocksPhase = ScanPhase("markdown.blocks")
+  private val LinesPhase  = ScanPhase("markdown.lines")
+
   def parse(source: String, budget: ScanBudget = ScanBudget.default): Result[ParseError, Document] =
-    SourceScanner.scan(source, budget, phase = Some(ScanPhase("markdown.blocks"))) { scanner =>
-      // Task 6 replaces this materialization with scanner-backed block parsing.
-      val blocks = parseBlocks(scanner.remaining.text)
-      scanner.chargeOutputNodes(NodeCount(blocks.size.toLong + 1L))
+    SourceScanner.scan(source, budget, phase = Some(BlocksPhase)) { scanner =>
+      scanner.chargeOutputNodes(NodeCount.one)
+      val blocks = parseBlocks(scanner)
       // Keep the caller's coordinate space: do not rewrite CRLF before measuring spans.
       Document(blocks, Span(0, source.length))
     } match
       case ScanResult.Success(document) => Result.succeed(document)
       case ScanResult.Failure(error)    => Result.fail(ParseError.Scan(error))
 
-  private final case class Line(offset: Int, text: String)
+  private final case class Line(view: SourceView, text: String, terminatedByLf: Boolean):
+    def offset: Int = view.start.toInt
+    def end: Int    = view.end.toInt
+    def length: Int = view.length.toInt
 
-  private def parseBlocks(source: String): Chunk[Block] =
-    val lines  = splitLines(source)
+  private def parseBlocks(scanner: SourceScanner): Chunk[Block] =
     val blocks = List.newBuilder[Block]
-    var i      = 0
-    while i < lines.length do
-      val line = lines(i)
-      if line.text.trim.isEmpty then i += 1
-      else
-        headingPrefix(line.text.trim) match
-          case Present((level, rest)) =>
-            blocks += Block.Heading(level, rest.trim, Span(line.offset, line.text.length))
-            i += 1
-          case Absent =>
-            fenceOpen(line.text) match
-              case Present(open) =>
-                val (block, next) = readFencedCode(lines, i, open)
-                blocks += block
-                i = next
+    while !scanner.isAtEnd do
+      scanner.requireProgress(BlocksPhase) {
+        val line = readLine(scanner)
+        if !isBlank(scanner, line) then
+          val block =
+            headingPrefix(scanner, line) match
+              case Present((level, rest)) =>
+                Block.Heading(level, rest, Span(line.offset, line.length))
               case Absent =>
-                if isThematicBreak(line.text) then
-                  blocks += Block.ThematicBreak(Span(line.offset, line.text.length))
-                  i += 1
-                else
-                  unorderedItem(line.text) match
-                    case Present(_) =>
-                      val (block, next) = readUnorderedList(lines, i)
-                      blocks += block
-                      i = next
-                    case Absent =>
-                      val (block, next) = readParagraph(lines, i)
-                      blocks += block
-                      i = next
+                fenceOpen(scanner, line) match
+                  case Present(open) => readFencedCode(scanner, line, open)
+                  case Absent        =>
+                    if isThematicBreak(scanner, line) then Block.ThematicBreak(Span(line.offset, line.length))
+                    else
+                      unorderedItem(scanner, line) match
+                        case Present(item) => readUnorderedList(scanner, line, item)
+                        case Absent        => readParagraph(scanner, line)
+          scanner.chargeOutputNodes(NodeCount.one)
+          blocks += block
+      }
     Chunk.from(blocks.result())
+
+  private def readLine(scanner: SourceScanner): Line =
+    scanner.requireProgress(LinesPhase) {
+      val start              = scanner.mark
+      var previous           = Option.empty[Char]
+      var terminatedByLf     = false
+      var acquisitionRunning = true
+      while acquisitionRunning do
+        scanner.peek() match
+          case Some(char) =>
+            scanner.advance()
+            if char == '\n' then
+              terminatedByLf = true
+              acquisitionRunning = false
+            else previous = Some(char)
+          case None => acquisitionRunning = false
+
+      val rawEnd  = scanner.offset.toInt - (if terminatedByLf then 1 else 0)
+      val textEnd =
+        if terminatedByLf && previous.contains('\r') then rawEnd - 1
+        else rawEnd
+      val view = scanner.view(Span.fromStartEnd(start.toInt, textEnd))
+      scanner.chargeWork(WorkUnits(view.length.toInt.toLong))
+      Line(view, view.text, terminatedByLf)
+    }
 
   private type FenceOpen = (marker: Char, length: Int, indentation: Int, info: String)
 
-  private def readFencedCode(lines: Vector[Line], start: Int, open: FenceOpen): (Block, Int) =
-    val opening = lines(start)
-    var i       = start + 1
-    val body    = StringBuilder()
-    var closed  = false
-    while i < lines.length && !closed do
-      val line = lines(i)
-      if isClosingFence(line.text, open.marker, open.length) then closed = true
+  private def readFencedCode(scanner: SourceScanner, opening: Line, open: FenceOpen): Block =
+    val body            = StringBuilder()
+    var closed          = false
+    var closingEnd      = opening.end
+    var bodyEndedWithLf = false
+    while !scanner.isAtEnd && !closed do
+      val line = readLine(scanner)
+      if isClosingFence(scanner, line, open.marker, open.length) then
+        closed = true
+        closingEnd = line.end
       else
         if body.nonEmpty then body.append('\n')
-        body.append(removeFenceIndentation(line.text, open.indentation))
-        i += 1
-    val endLine = if closed then lines(i) else lines(lines.length - 1)
-    val end     = endLine.offset + endLine.text.length
+        body.append(removeFenceIndentation(scanner, line, open.indentation))
+        bodyEndedWithLf = line.terminatedByLf
+
+    val end     = if closed then closingEnd else scanner.offset.toInt
     val content =
       if closed then
         if body.nonEmpty then body.append('\n')
         body.toString
-      else body.toString
-    val next = if closed then i + 1 else i
-    (Block.FencedCode(FenceInfo.parse(open.info), content, Span.fromStartEnd(opening.offset, end)), next)
+      else
+        if body.nonEmpty && bodyEndedWithLf then body.append('\n')
+        body.toString
 
-  private def readParagraph(lines: Vector[Line], start: Int): (Block, Int) =
-    val first = lines(start)
-    var i     = start + 1
-    val text  = StringBuilder(first.text)
-    while i < lines.length && continuesParagraph(lines(i)) do
-      text.append('\n').append(lines(i).text)
-      i += 1
-    val last = lines(i - 1)
-    (Block.Paragraph(text.toString.trim, Span.fromStartEnd(first.offset, last.offset + last.text.length)), i)
+    // FenceInfo performs its own line-bounded interpretation of an already charged opening-line value.
+    Block.FencedCode(FenceInfo.parse(open.info), content, Span.fromStartEnd(opening.offset, end))
 
-  private def continuesParagraph(line: Line): Boolean =
-    line.text.trim.nonEmpty &&
-      fenceOpen(line.text).isEmpty &&
-      headingPrefix(line.text.trim).isEmpty &&
-      unorderedItem(line.text).isEmpty &&
-      !isThematicBreak(line.text)
+  private def readParagraph(scanner: SourceScanner, first: Line): Block =
+    val text        = StringBuilder(first.text)
+    var last        = first
+    var interrupted = false
+    while !scanner.isAtEnd && !interrupted do
+      val checkpoint = scanner.checkpoint()
+      val line       = readLine(scanner)
+      if continuesParagraph(scanner, line) then
+        text.append('\n').append(line.text)
+        last = line
+      else
+        scanner.restore(checkpoint)
+        interrupted = true
 
-  private def isThematicBreak(text: String): Boolean =
-    val compact = text.filterNot(_.isWhitespace)
-    compact.length >= 3 && (
-      compact.forall(_ == '-') || compact.forall(_ == '*') || compact.forall(_ == '_')
-    )
+    scanner.chargeWork(WorkUnits(text.length.toLong))
+    Block.Paragraph(text.toString.trim, Span.fromStartEnd(first.offset, last.end))
 
-  private def readUnorderedList(lines: Vector[Line], start: Int): (Block, Int) =
-    val first = lines(start)
-    var i     = start
+  private def continuesParagraph(scanner: SourceScanner, line: Line): Boolean =
+    !isBlank(scanner, line) &&
+      fenceOpen(scanner, line).isEmpty &&
+      headingPrefix(scanner, line).isEmpty &&
+      unorderedItem(scanner, line).isEmpty &&
+      !isThematicBreak(scanner, line)
+
+  private def isBlank(scanner: SourceScanner, line: Line): Boolean =
+    inspectLine(scanner, line)(_.trim.isEmpty)
+
+  private def isThematicBreak(scanner: SourceScanner, line: Line): Boolean =
+    inspectLine(scanner, line) { text =>
+      val compact = text.filterNot(_.isWhitespace)
+      compact.length >= 3 && (
+        compact.forall(_ == '-') || compact.forall(_ == '*') || compact.forall(_ == '_')
+      )
+    }
+
+  private def readUnorderedList(scanner: SourceScanner, first: Line, firstItem: String): Block =
     val items = List.newBuilder[String]
-    var done  = false
-    while i < lines.length && !done do
-      unorderedItem(lines(i).text) match
+    items += firstItem
+    var last = first
+    var done = false
+    while !scanner.isAtEnd && !done do
+      val checkpoint = scanner.checkpoint()
+      val line       = readLine(scanner)
+      unorderedItem(scanner, line) match
         case Present(item) =>
           items += item
-          i += 1
-        case Absent => done = true
-    val last = lines(i - 1)
-    (
-      Block.UnorderedList(Chunk.from(items.result()), Span.fromStartEnd(first.offset, last.offset + last.text.length)),
-      i
-    )
+          last = line
+        case Absent =>
+          scanner.restore(checkpoint)
+          done = true
+    Block.UnorderedList(Chunk.from(items.result()), Span.fromStartEnd(first.offset, last.end))
+
+  private def unorderedItem(scanner: SourceScanner, line: Line): Maybe[String] =
+    inspectLine(scanner, line)(unorderedItem)
 
   private def unorderedItem(text: String): Maybe[String] =
     val trimmed = text.stripLeading
@@ -129,28 +169,19 @@ object Parser:
     then Present(trimmed.drop(2).trim)
     else Absent
 
-  private def splitLines(source: String): Vector[Line] =
-    if source.isEmpty then Vector.empty
-    else
-      val result = Vector.newBuilder[Line]
-      var start  = 0
-      var i      = 0
-      while i < source.length do
-        if source.charAt(i) == '\n' then
-          val end = if i > start && source.charAt(i - 1) == '\r' then i - 1 else i
-          result += Line(start, source.substring(start, end))
-          i += 1
-          start = i
-        else i += 1
-      if start < source.length || source.charAt(source.length - 1) == '\n' then
-        result += Line(start, source.substring(start))
-      result.result()
+  private def headingPrefix(scanner: SourceScanner, line: Line): Maybe[(Int, String)] =
+    inspectLine(scanner, line) { text =>
+      headingPrefix(text.trim).map { case (level, rest) => (level, rest.trim) }
+    }
 
   private def headingPrefix(text: String): Maybe[(Int, String)] =
     val hashes = text.takeWhile(_ == '#')
     if hashes.nonEmpty && hashes.length <= 6 && text.length > hashes.length && text.charAt(hashes.length) == ' '
     then Present((hashes.length, text.drop(hashes.length + 1)))
     else Absent
+
+  private def fenceOpen(scanner: SourceScanner, line: Line): Maybe[FenceOpen] =
+    inspectLine(scanner, line)(fenceOpen)
 
   private def fenceOpen(text: String): Maybe[FenceOpen] =
     fenceIndent(text).flatMap { case (indentation = indentation, rest = trimmed) =>
@@ -170,6 +201,14 @@ object Parser:
         case None => Absent
     }
 
+  private def isClosingFence(
+      scanner: SourceScanner,
+      line: Line,
+      marker: Char,
+      openingLength: Int
+  ): Boolean =
+    inspectLine(scanner, line)(text => isClosingFence(text, marker, openingLength))
+
   private def isClosingFence(text: String, marker: Char, openingLength: Int): Boolean =
     fenceIndent(text).exists { case (rest = trimmed) =>
       val run = trimmed.takeWhile(_ == marker)
@@ -179,6 +218,9 @@ object Parser:
   private def fenceIndent(text: String): Maybe[(indentation: Int, rest: String)] =
     val indent = text.takeWhile(_ == ' ').length
     if indent <= 3 then Present((indentation = indent, rest = text.drop(indent))) else Absent
+
+  private def removeFenceIndentation(scanner: SourceScanner, line: Line, indentation: Int): String =
+    inspectLine(scanner, line)(text => removeFenceIndentation(text, indentation))
 
   private def removeFenceIndentation(text: String, indentation: Int): String =
     text.drop(math.min(indentation, text.takeWhile(_ == ' ').length))
@@ -192,3 +234,7 @@ object Parser:
     else
       val end = text.lastIndexWhere(char => char != ' ' && char != '\t')
       text.substring(start, end + 1)
+
+  private def inspectLine[A](scanner: SourceScanner, line: Line)(operation: String => A): A =
+    scanner.chargeWork(WorkUnits(line.length.toLong))
+    operation(line.text)

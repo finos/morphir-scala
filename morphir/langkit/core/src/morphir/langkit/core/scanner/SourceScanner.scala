@@ -132,6 +132,11 @@ final class SourceScanner private[scanner] (
     try operation
     finally currentNestingDepth -= 1L
 
+  /** Charge deterministic work performed outside cursor movement, such as a bounded pass over an acquired view. */
+  def chargeWork(units: WorkUnits): Unit =
+    requireActive()
+    if units.toLong != 0L then charge(units.toLong)
+
   def chargeOutputNodes(count: NodeCount): Unit =
     requireActive()
     if count.toLong != 0L then

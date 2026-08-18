@@ -101,6 +101,24 @@ class SourceScannerTests extends Test[Any]:
       assert(closedMessage(retained.offset).contains("scanner session is closed"))
     }
 
+    "charges explicit typed work at the exact boundary" in {
+      val phase  = ScanPhase("line-local inspection")
+      val result = SourceScanner.scan("", limited(input = 1L, work = 2L), Some(phase)) { scanner =>
+        scanner.chargeWork(WorkUnits(2L))
+        scanner.chargeWork(WorkUnits(1L))
+      }
+
+      assert(
+        result == ScanResult.Failure(
+          ScanFailure(
+            exceeded = ScanLimitExceeded.Work(limit = WorkUnits(2L), attempted = WorkUnits(3L)),
+            offset = SourceOffset.start,
+            phase = Some(phase)
+          )
+        )
+      )
+    }
+
     "returns the first work failure when the callback swallows exhaustion" in {
       val result = SourceScanner.scan("a", limited(input = 1L, work = 1L)) { scanner =>
         scanner.peek()
@@ -228,6 +246,7 @@ class SourceScannerTests extends Test[Any]:
       assert(closedMessage(retained.peek(CodeUnitCount.one)).contains(closed))
       assert(closedMessage(retained.advance()).contains(closed))
       assert(closedMessage(retained.advance(CodeUnitCount.one)).contains(closed))
+      assert(closedMessage(retained.chargeWork(WorkUnits(1L))).contains(closed))
       assert(closedMessage(retained.viewFrom(SourceOffset.start)).contains(closed))
       assert(closedMessage(retained.view(Span.zero)).contains(closed))
       assert(closedMessage(retained.remaining).contains(closed))
