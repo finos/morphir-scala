@@ -6,12 +6,17 @@ import scala.language.strictEquality
 
 class SourceScannerTests extends Test[Any]:
 
-  private def limited(input: Long, work: Long): ScanBudget.Limited =
+  private def limited(
+      input: Long,
+      work: Long,
+      nesting: Int = 1,
+      output: Long = 1L
+  ): ScanBudget.Limited =
     ScanBudget.limited(
       maxInputLength = InputSize.codeUnits(input),
       maxWork = WorkUnits(work),
-      maxNestingDepth = NestingDepth(1),
-      maxOutputNodes = NodeCount.one
+      maxNestingDepth = NestingDepth(nesting),
+      maxOutputNodes = NodeCount(output)
     )
 
   private def rejectsArgument(thunk: => Any): Boolean =
@@ -291,6 +296,286 @@ class SourceScannerTests extends Test[Any]:
         )
       )
       assert(unbounded == ScanResult.Success(SourceOffset.start))
+    }
+
+    "restores checkpoints without refunding speculative work" in {
+      val result = SourceScanner.scan("abc", limited(input = 3L, work = 4L)) { scanner =>
+        val checkpoint = scanner.checkpoint()
+        scanner.advance(CodeUnitCount(2))
+        assert(scanner.offset == SourceOffset(2))
+        scanner.restore(checkpoint)
+        assert(scanner.offset == SourceOffset.start)
+        scanner.advance(CodeUnitCount(2))
+        assert(scanner.offset == SourceOffset(2))
+        scanner.peek()
+      }
+
+      assert(
+        result == ScanResult.Failure(
+          ScanFailure(
+            exceeded = ScanLimitExceeded.Work(limit = WorkUnits(4L), attempted = WorkUnits(5L)),
+            offset = SourceOffset(2),
+            phase = None
+          )
+        )
+      )
+    }
+
+    "restores checkpoints captured before and after movement to their exact offsets" in {
+      val result = SourceScanner.scan("abc") { scanner =>
+        val before = scanner.checkpoint()
+        scanner.advance()
+        val after = scanner.checkpoint()
+        scanner.advance()
+        scanner.restore(after)
+        assert(scanner.offset == SourceOffset(1))
+        scanner.restore(before)
+        scanner.offset
+      }
+
+      assert(result == ScanResult.Success(SourceOffset.start))
+    }
+
+    "rejects foreign checkpoints without damaging the receiving scanner" in {
+      var foreign: ScanCheckpoint = null
+      SourceScanner.scan("a") { scanner => foreign = scanner.checkpoint() }
+
+      var retained: SourceScanner = null
+      val result                  = SourceScanner.scan("b") { scanner =>
+        retained = scanner
+        assert(rejectsArgument(scanner.restore(foreign)))
+        assert(scanner.peek().contains('b'))
+        scanner.offset
+      }
+
+      assert(result == ScanResult.Success(SourceOffset.start))
+      assert(closedMessage(retained.offset).contains("scanner session is closed"))
+    }
+
+    "rejects checkpoint restoration after the owning scanner closes" in {
+      var retained: SourceScanner    = null
+      var checkpoint: ScanCheckpoint = null
+      SourceScanner.scan("a") { scanner =>
+        retained = scanner
+        checkpoint = scanner.checkpoint()
+      }
+
+      assert(closedMessage(retained.restore(checkpoint)).contains("scanner session is closed"))
+    }
+
+    "requires successful parser phases to advance" in {
+      val phase  = ScanPhase("inline parser")
+      val result = SourceScanner.scan("a") { scanner =>
+        val value = scanner.requireProgress(phase) {
+          scanner.advance()
+          42
+        }
+        assert(value == 42)
+        scanner.offset
+      }
+
+      assert(result == ScanResult.Success(SourceOffset(1)))
+    }
+
+    "rejects parser phases that finish at their starting offset" in {
+      val phase                     = ScanPhase("block parser")
+      var stationaryMessage: String = null
+      var restoredMessage: String   = null
+
+      val result = SourceScanner.scan("a") { scanner =>
+        try scanner.requireProgress(phase)(())
+        catch case error: IllegalStateException => stationaryMessage = error.getMessage
+
+        val checkpoint = scanner.checkpoint()
+        try
+          scanner.requireProgress(phase) {
+            scanner.advance()
+            scanner.restore(checkpoint)
+          }
+        catch case error: IllegalStateException => restoredMessage = error.getMessage
+      }
+
+      assert(result == ScanResult.Success(()))
+      assert(stationaryMessage == "block parser made no progress")
+      assert(restoredMessage == "block parser made no progress")
+    }
+
+    "propagates requireProgress operation exceptions unchanged" in {
+      val expected          = new RuntimeException("phase failed")
+      var caught: Throwable = null
+
+      try SourceScanner.scan("a")(_.requireProgress(ScanPhase("parser"))(throw expected))
+      catch case error: Throwable => caught = error
+
+      assert(caught.eq(expected))
+    }
+
+    "enforces nesting at the exact boundary without entering rejected work" in {
+      val phase        = ScanPhase("nested parser")
+      var innerEntered = false
+      val result       = SourceScanner.scan("a", limited(input = 1L, work = 10L), Some(phase)) { scanner =>
+        scanner.withNesting {
+          scanner.withNesting {
+            innerEntered = true
+          }
+        }
+      }
+
+      assert(!innerEntered)
+      assert(
+        result == ScanResult.Failure(
+          ScanFailure(
+            exceeded = ScanLimitExceeded.Nesting(limit = NestingDepth(1), attempted = NestingDepth(2)),
+            offset = SourceOffset.start,
+            phase = Some(phase)
+          )
+        )
+      )
+    }
+
+    "unwinds accepted nesting after an ordinary exception" in {
+      val expected          = new RuntimeException("nested operation failed")
+      var caught: Throwable = null
+      val result            = SourceScanner.scan("a", limited(input = 1L, work = 10L)) { scanner =>
+        try scanner.withNesting(throw expected)
+        catch case error: Throwable => caught = error
+        scanner.withNesting(7)
+      }
+
+      assert(caught.eq(expected))
+      assert(result == ScanResult.Success(7))
+    }
+
+    "enforces output nodes at the exact boundary and keeps exhaustion sticky" in {
+      val phase             = ScanPhase("output builder")
+      var first: Throwable  = null
+      var second: Throwable = null
+      val result = SourceScanner.scan("a", limited(input = 1L, work = 10L, output = 2L), Some(phase)) { scanner =>
+        scanner.chargeOutputNodes(NodeCount(2L))
+        scanner.chargeOutputNodes(NodeCount(0L))
+        try scanner.chargeOutputNodes(NodeCount.one)
+        catch case error: Throwable => first = error
+        try scanner.chargeOutputNodes(NodeCount(0L))
+        catch case error: Throwable => second = error
+      }
+
+      assert(first != null)
+      assert(second.eq(first))
+      assert(
+        result == ScanResult.Failure(
+          ScanFailure(
+            exceeded = ScanLimitExceeded.OutputNodes(limit = NodeCount(2L), attempted = NodeCount(3L)),
+            offset = SourceOffset.start,
+            phase = Some(phase)
+          )
+        )
+      )
+    }
+
+    "contains swallowed nesting exhaustion and foreign replay" in {
+      var captured: Throwable = null
+      val first               = SourceScanner.scan("a", limited(input = 1L, work = 10L)) { scanner =>
+        scanner.withNesting {
+          try scanner.withNesting(())
+          catch case error: Throwable => captured = error
+        }
+        "ignored"
+      }
+
+      var secondScanner: SourceScanner = null
+      var replayed: Throwable          = null
+      try
+        SourceScanner.scan("b") { scanner =>
+          secondScanner = scanner
+          throw captured
+        }
+      catch case error: Throwable => replayed = error
+
+      assert(
+        first == ScanResult.Failure(
+          ScanFailure(
+            exceeded = ScanLimitExceeded.Nesting(limit = NestingDepth(1), attempted = NestingDepth(2)),
+            offset = SourceOffset.start,
+            phase = None
+          )
+        )
+      )
+      assert(replayed.eq(captured))
+      assert(closedMessage(secondScanner.offset).contains("scanner session is closed"))
+    }
+
+    "contains swallowed output exhaustion and foreign replay" in {
+      var captured: Throwable = null
+      val first               = SourceScanner.scan("a", limited(input = 1L, work = 10L)) { scanner =>
+        scanner.chargeOutputNodes(NodeCount.one)
+        try scanner.chargeOutputNodes(NodeCount.one)
+        catch case error: Throwable => captured = error
+        "ignored"
+      }
+
+      var secondScanner: SourceScanner = null
+      var replayed: Throwable          = null
+      try
+        SourceScanner.scan("b") { scanner =>
+          secondScanner = scanner
+          throw captured
+        }
+      catch case error: Throwable => replayed = error
+
+      assert(
+        first == ScanResult.Failure(
+          ScanFailure(
+            exceeded = ScanLimitExceeded.OutputNodes(limit = NodeCount.one, attempted = NodeCount(2L)),
+            offset = SourceOffset.start,
+            phase = None
+          )
+        )
+      )
+      assert(replayed.eq(captured))
+      assert(closedMessage(secondScanner.offset).contains("scanner session is closed"))
+    }
+
+    "keeps ownership progress and lifecycle invariants when budgets are unbounded" in {
+      var foreign: ScanCheckpoint = null
+      SourceScanner.scan("a") { scanner => foreign = scanner.checkpoint() }
+
+      var retained: SourceScanner = null
+      var own: ScanCheckpoint     = null
+      val result                  = SourceScanner.scan("abc", ScanBudget.UnsafeUnbounded) { scanner =>
+        retained = scanner
+        own = scanner.checkpoint()
+        assert(rejectsArgument(scanner.restore(foreign)))
+
+        def nest(remaining: Int): Int =
+          if remaining == 0 then 0
+          else scanner.withNesting(nest(remaining - 1) + 1)
+
+        assert(nest(32) == 32)
+        scanner.chargeOutputNodes(NodeCount(1024L))
+        scanner.requireProgress(ScanPhase("unbounded parser")) {
+          scanner.advance()
+        }
+        scanner.offset
+      }
+
+      assert(result == ScanResult.Success(SourceOffset(1)))
+      assert(closedMessage(retained.restore(own)).contains("scanner session is closed"))
+    }
+
+    "rejects every new operation after the scanner closes" in {
+      var retained: SourceScanner    = null
+      var checkpoint: ScanCheckpoint = null
+      SourceScanner.scan("a") { scanner =>
+        retained = scanner
+        checkpoint = scanner.checkpoint()
+      }
+
+      val closed = "scanner session is closed"
+      assert(closedMessage(retained.checkpoint()).contains(closed))
+      assert(closedMessage(retained.restore(checkpoint)).contains(closed))
+      assert(closedMessage(retained.requireProgress(ScanPhase("parser"))(())).contains(closed))
+      assert(closedMessage(retained.withNesting(())).contains(closed))
+      assert(closedMessage(retained.chargeOutputNodes(NodeCount.one)).contains(closed))
     }
 
     "saturates work arithmetic at Long.MaxValue" in {

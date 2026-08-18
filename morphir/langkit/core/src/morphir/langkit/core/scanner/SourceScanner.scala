@@ -22,11 +22,16 @@ object SourceScanner:
           )
         )
       case _ =>
-        val scanner = budget match
+        val ceilings = budget match
           case limited: ScanBudget.Limited =>
-            new SourceScanner(source, isWorkLimited = true, limited.maxWork.toLong, phase)
+            new BudgetCeilings(
+              maxWork = limited.maxWork,
+              maxNestingDepth = limited.maxNestingDepth,
+              maxOutputNodes = limited.maxOutputNodes
+            )
           case ScanBudget.UnsafeUnbounded =>
-            new SourceScanner(source, isWorkLimited = false, Long.MaxValue, phase)
+            null
+        val scanner = new SourceScanner(source, ceilings, phase)
 
         try
           try
@@ -35,7 +40,7 @@ object SourceScanner:
               case null      => ScanResult.Success(value)
               case exhausted => ScanResult.Failure(exhausted.failure)
           catch
-            case exhausted: WorkBudgetExhausted if exhausted.owner.eq(scanner) =>
+            case exhausted: BudgetExhausted if exhausted.owner.eq(scanner) =>
               ScanResult.Failure(exhausted.failure)
         finally scanner.close()
 
@@ -43,20 +48,38 @@ object SourceScanner:
     if increment >= Long.MaxValue - current then Long.MaxValue
     else current + increment
 
-  private final class WorkBudgetExhausted(val owner: SourceScanner, val failure: ScanFailure) extends ControlThrowable
+  private[scanner] final class BudgetCeilings(
+      val maxWork: WorkUnits,
+      val maxNestingDepth: NestingDepth,
+      val maxOutputNodes: NodeCount
+  )
+
+  private final class BudgetExhausted(val owner: SourceScanner, val failure: ScanFailure) extends ControlThrowable
+
+final class ScanCheckpoint private (private val owner: SourceScanner, private val savedOffset: Int)
+
+object ScanCheckpoint:
+  private[scanner] def create(owner: SourceScanner, offset: Int): ScanCheckpoint =
+    new ScanCheckpoint(owner, offset)
+
+  private[scanner] def belongsTo(checkpoint: ScanCheckpoint, scanner: SourceScanner): Boolean =
+    checkpoint.owner.eq(scanner)
+
+  private[scanner] def offset(checkpoint: ScanCheckpoint): Int = checkpoint.savedOffset
 
 final class SourceScanner private[scanner] (
     originalSource: String,
-    isWorkLimited: Boolean,
-    maxWork: Long,
+    ceilings: SourceScanner.BudgetCeilings | Null,
     phase: Option[ScanPhase]
 ):
-  import SourceScanner.WorkBudgetExhausted
+  import SourceScanner.BudgetExhausted
 
-  private var currentOffset                          = 0
-  private var consumedWork                           = 0L
-  private var active                                 = true
-  private var exhaustion: WorkBudgetExhausted | Null = null
+  private var currentOffset                      = 0
+  private var consumedWork                       = 0L
+  private var currentNestingDepth                = 0
+  private var outputNodes                        = 0L
+  private var active                             = true
+  private var exhaustion: BudgetExhausted | Null = null
 
   def source: String =
     requireActive()
@@ -73,6 +96,50 @@ final class SourceScanner private[scanner] (
   def mark: SourceOffset =
     requireActive()
     SourceOffset.unsafe(currentOffset)
+
+  def checkpoint(): ScanCheckpoint =
+    requireActive()
+    ScanCheckpoint.create(this, currentOffset)
+
+  def restore(checkpoint: ScanCheckpoint): Unit =
+    requireActive()
+    require(ScanCheckpoint.belongsTo(checkpoint, this), "checkpoint belongs to another scanner session")
+    currentOffset = ScanCheckpoint.offset(checkpoint)
+
+  def requireProgress[A](phase: ScanPhase)(operation: => A): A =
+    requireActive()
+    val start = currentOffset
+    val value = operation
+    requireActive()
+    if currentOffset == start then throw new IllegalStateException(s"${phase.value} made no progress")
+    value
+
+  def withNesting[A](operation: => A): A =
+    requireActive()
+    val attempted = if currentNestingDepth == Int.MaxValue then Int.MaxValue else currentNestingDepth + 1
+    if ceilings != null && attempted > ceilings.maxNestingDepth.toInt then
+      failBudget(
+        ScanLimitExceeded.Nesting(
+          limit = ceilings.maxNestingDepth,
+          attempted = NestingDepth.unsafe(attempted)
+        )
+      )
+    currentNestingDepth = attempted
+    try operation
+    finally currentNestingDepth -= 1
+
+  def chargeOutputNodes(count: NodeCount): Unit =
+    requireActive()
+    if count.toLong != 0L then
+      val attempted = SourceScanner.saturatingAdd(outputNodes, count.toLong)
+      if ceilings != null && attempted > ceilings.maxOutputNodes.toLong then
+        failBudget(
+          ScanLimitExceeded.OutputNodes(
+            limit = ceilings.maxOutputNodes,
+            attempted = NodeCount.unsafe(attempted)
+          )
+        )
+      outputNodes = attempted
 
   def peek(): Option[Char] = peek(CodeUnitCount(0))
 
@@ -113,21 +180,26 @@ final class SourceScanner private[scanner] (
 
   private def charge(increment: Long): Unit =
     val attempted = SourceScanner.saturatingAdd(consumedWork, increment)
-    if isWorkLimited && attempted > maxWork then
-      val exhausted = new WorkBudgetExhausted(
-        owner = this,
-        failure = ScanFailure(
-          exceeded = ScanLimitExceeded.Work(
-            limit = WorkUnits.unsafe(maxWork),
-            attempted = WorkUnits.unsafe(attempted)
-          ),
-          offset = SourceOffset.unsafe(currentOffset),
-          phase = phase
+    if ceilings != null && attempted > ceilings.maxWork.toLong then
+      failBudget(
+        ScanLimitExceeded.Work(
+          limit = ceilings.maxWork,
+          attempted = WorkUnits.unsafe(attempted)
         )
       )
-      exhaustion = exhausted
-      throw exhausted
     consumedWork = attempted
+
+  private def failBudget(exceeded: ScanLimitExceeded): Nothing =
+    val exhausted = new BudgetExhausted(
+      owner = this,
+      failure = ScanFailure(
+        exceeded = exceeded,
+        offset = SourceOffset.unsafe(currentOffset),
+        phase = phase
+      )
+    )
+    exhaustion = exhausted
+    throw exhausted
 
   private def requireActive(): Unit =
     if !active then throw new IllegalStateException("scanner session is closed")
