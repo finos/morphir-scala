@@ -512,18 +512,30 @@ jobs:
           key: ${{ runner.os }}-mill-jvm-${{matrix.java}}-${{ github.sha }}
 
   desktop-matrix:
-    # Tags and published releases always package all five platforms, ignoring the switch below —
-    # turning off ordinary-CI packaging must never weaken a real release. A push to main, develop or
-    # 0.4.x also packages all five; everything else (a pull request) packages linux-amd64 alone. This
-    # job just computes which; desktop-package and desktop-verify consume its outputs.
+    # A desktop/v* tag or the desktop release it came from always packages all five platforms,
+    # ignoring the switch below — turning off ordinary-CI packaging must never weaken a real
+    # release. A push to main, develop or 0.4.x also packages all five; everything else (a pull
+    # request, or a v*/mill-plugins/v* release, which are not this job's business) packages
+    # linux-amd64 alone. This job just computes which; desktop-package and desktop-verify consume
+    # its outputs.
+    #
+    # startsWith(github.ref, 'refs/tags/desktop/v') is deliberately namespaced: a bare v* library
+    # tag or a mill-plugins/v* plugin tag must not force full-platform packaging here, and must
+    # never reach desktop-release below. github.event_name == 'release' is dropped for the same
+    # reason it was wrong on desktop-release — it is true for every published release regardless
+    # of tag shape, so it would undo the namespacing. The ref already carries the tag for a
+    # release event, so startsWith(github.ref, ...) alone covers both a bare tag push and the
+    # release it was cut from.
     #
     # Gated by the repository variable MORPHIR_CI_PACKAGE_DESKTOP, unset or anything other than
     # "false" meaning enabled, so packaging runs today without anyone creating the variable and a
     # maintainer can disable it from repository settings without a commit. It must be `vars`, not a
     # workflow-level `env:` — GitHub Actions does not expose the `env` context inside a job-level
     # `if:` condition, so an `env:`-based switch would silently evaluate empty there and this job
-    # (and everything gated on it) would never run.
-    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'release' || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false')
+    # (and everything gated on it) would never run. This half is unchanged: it is what still
+    # exercises desktop packaging on an ordinary pull request or a v*/mill-plugins/v* release, as a
+    # smoke test that never uploads or publishes anything.
+    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/desktop/v') || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     outputs:
@@ -583,11 +595,15 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
   desktop-package:
-    # Desktop binaries ship on tags and published releases only regardless of the switch. Ordinary
-    # pushes and pull requests package too, gated by MORPHIR_CI_PACKAGE_DESKTOP (see desktop-matrix
-    # above), so a change that breaks electron-builder, the Scala.js link or canonicalization is
-    # caught in ordinary CI rather than at release time.
-    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'release' || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false')
+    # Desktop binaries ship on a desktop/v* tag or the release it came from, regardless of the
+    # switch — see desktop-matrix above for why the ref check is namespaced to that prefix and
+    # drops the separate github.event_name == 'release' check. Ordinary pushes and pull requests
+    # package too, gated by MORPHIR_CI_PACKAGE_DESKTOP (see desktop-matrix above), so a change that
+    # breaks electron-builder, the Scala.js link or canonicalization is caught in ordinary CI
+    # rather than at release time; that also means this job still runs, as a build-only smoke
+    # test, on a v* or mill-plugins/v* release while the switch is enabled — it just never
+    # publishes anything, which only desktop-release below does.
+    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/desktop/v') || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false')
     needs: [ci, desktop-matrix]
     timeout-minutes: 60
     strategy:
@@ -639,12 +655,13 @@ jobs:
           if-no-files-found: error
 
   desktop-verify:
-    # Runs whenever packaging ran (see desktop-matrix above): tags and published releases always,
-    # ordinary pushes and pull requests when the switch is enabled. No signing and no uploads happen
-    # here — this job only proves the packaged subset canonicalizes and passes the pre-publish checks,
-    # with the signature check relaxed the same way a local `ci.desktop.all` run relaxes it, since
-    # there is no GPG signing step and no secrets outside a release.
-    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'release' || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false')
+    # Runs whenever packaging ran (see desktop-matrix above): a desktop/v* tag or release always,
+    # ordinary pushes and pull requests when the switch is enabled — same namespacing as
+    # desktop-package. No signing and no uploads happen here — this job only proves the packaged
+    # subset canonicalizes and passes the pre-publish checks, with the signature check relaxed the
+    # same way a local `ci.desktop.all` run relaxes it, since there is no GPG signing step and no
+    # secrets outside a release.
+    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/desktop/v') || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false')
     needs: [desktop-matrix, desktop-package]
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -692,7 +709,18 @@ jobs:
         run: ./mill --ticker false -i ci.desktop.verify --require-signature false --platforms "${{ needs.desktop-matrix.outputs.platforms }}"
 
   desktop-release:
-    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'release')
+    # Namespaced to a desktop/v* tag alone. startsWith(github.ref, 'refs/tags/') matched every tag
+    # namespace, and github.event_name == 'release' is true for every published release regardless
+    # of tag shape — together those two clauses meant cutting a v* library release or a
+    # mill-plugins/v* plugin release also uploaded desktop binaries to that release and pushed
+    # desktop archives to Sonatype, which contradicts a release publishing exactly one stream. The
+    # ref already carries the tag on a release event, so startsWith(github.ref, 'refs/tags/desktop/v')
+    # alone covers a bare desktop/v* tag push and the release cut from it; a v* or mill-plugins/v*
+    # ref cannot match because those refs continue 'refs/tags/v' and 'refs/tags/m', never
+    # 'refs/tags/desktop/v'. Unlike desktop-matrix/-package/-verify above, this job has no
+    # MORPHIR_CI_PACKAGE_DESKTOP switch clause: it uploads and publishes, so it must never run
+    # outside an actual desktop release.
+    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/desktop/v')
     needs: [ci, packaging]
     runs-on: ubuntu-latest
     timeout-minutes: 30
