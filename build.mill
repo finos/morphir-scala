@@ -89,19 +89,31 @@ trait MorphirVersionedModule extends Module {
   def changelog = Task.Source(mill.api.BuildCtx.workspaceRoot / "CHANGELOG.md")
 
   /**
-   * A cheap, always-fresh fingerprint of the working copy: HEAD and whether the tree is dirty.
+   * A cheap, always-fresh fingerprint of the working copy: HEAD, whether the tree is dirty, and the
+   * full tag list.
    *
    * This exists to invalidate [[gitState]]. Git state changes without any file in the module
    * changing, so something has to be re-read every run — but a `Task.Input` body may not call
-   * another task (`allowTaskReferences = false`), so it cannot know the namespace. It does not need
-   * to: the fingerprint is namespace-independent, and depending on it is enough to make the cached
-   * `gitState` recompute whenever the commit or the dirty flag moves.
+   * another task (`allowTaskReferences = false`), so it cannot know the namespace. HEAD and the
+   * dirty flag are not enough on their own: creating or deleting a tag at the current commit changes
+   * neither, and that is precisely what happens when someone cuts a release. The tag list closes
+   * that hole. It is deliberately unfiltered — namespace-independent, same as the rest of this
+   * fingerprint — and kept as the raw `git tag --list` text rather than a digest of it: this
+   * repository has few tags today, so hashing would only obscure the value for no benefit.
+   * Over-invalidating merely costs a recomputation; under-invalidating would publish the wrong
+   * version.
    */
   def gitFingerprint = Task.Input {
-    val root   = mill.api.BuildCtx.workspaceRoot
-    val head   = os.proc("git", "rev-parse", "HEAD").call(cwd = root, check = false, stdout = os.Pipe, stderr = os.Pipe)
-    val status = os.proc("git", "status", "--porcelain").call(cwd = root, check = false, stdout = os.Pipe, stderr = os.Pipe)
-    (head.out.text().trim, status.out.text().trim.nonEmpty)
+    val root = mill.api.BuildCtx.workspaceRoot
+    def git(args: String*): String = {
+      val result = os.proc("git" +: args).call(cwd = root, check = false, stdout = os.Pipe, stderr = os.Pipe)
+      if (result.exitCode != 0)
+        throw new IllegalStateException(
+          s"git ${args.mkString(" ")} failed (exit ${result.exitCode}): ${result.err.text().trim}"
+        )
+      result.out.text().trim
+    }
+    (git("rev-parse", "HEAD"), git("status", "--porcelain").nonEmpty, git("tag", "--list"))
   }
 
   /** Git state for this area's stream, recomputed whenever [[gitFingerprint]] moves. */
