@@ -31,10 +31,13 @@ object StreamVersion {
    * `MORPHIR_PUBLISH_MODE=snapshot` is explicit and unchanged: it requires `MORPHIR_PUBLISH_BRANCH` and produces
    * exactly that snapshot. Absent or empty, the mode is *inferred* rather than assumed to be a release: a checkout
    * sitting exactly on its stream's tag (distance zero) with that tag agreeing with the changelog's release line is a
-   * release; anything else — mid-stream, off-tag, or on a tag that disagrees — is a snapshot qualified by the given
-   * branch. Defaulting an empty environment straight to `Release` would hard-fail every build that is not sitting on
-   * a release tag, which is most of them; inferring keeps an empty environment behaviourally close to what
-   * `SnapshotVersion.select` did before independent streams existed, where no environment never hard-failed.
+   * release; mid-stream, off-tag, or on a tag from another stream's namespace is a snapshot qualified by the given
+   * branch. A tag that sits in *this* stream's own namespace at distance zero but disagrees with the changelog is
+   * neither: publishing it as a snapshot would let a mistagged release quietly ship to the snapshot repository and
+   * report success, so that combination is an error instead — see `release` below for the same guarantee on the
+   * explicit-release path. Defaulting an empty environment straight to `Release` would hard-fail every build that is
+   * not sitting on a release tag, which is most of them; inferring keeps an empty environment behaviourally close to
+   * what `SnapshotVersion.select` did before independent streams existed, where no environment never hard-failed.
    *
    * `branch` is a parameter rather than read here so this stays pure and callers keep full control of where it comes
    * from (git, an env var, whatever the caller's build tool exposes).
@@ -53,8 +56,15 @@ object StreamVersion {
           case None                 => Left("MORPHIR_PUBLISH_BRANCH is required in snapshot mode")
         }
       case None | Some("") =>
-        val onRelease = state.distance == 0 && state.lastTag.contains(stream.tagFor(releaseLine))
-        Right(if (onRelease) PublishMode.Release else PublishMode.Snapshot(branch))
+        val onNamespaceTag =
+          state.distance == 0 && state.lastTag.exists(tag => stream.versionFromTag(tag).isDefined)
+        if (!onNamespaceTag) Right(PublishMode.Snapshot(branch))
+        else {
+          val tag      = state.lastTag.get
+          val expected = stream.tagFor(releaseLine)
+          if (tag == expected) Right(PublishMode.Release)
+          else Left(s"tag '$tag' does not match the release line '$releaseLine'; expected '$expected'")
+        }
       case Some(other) => Left(s"unsupported MORPHIR_PUBLISH_MODE '$other'")
     }
 

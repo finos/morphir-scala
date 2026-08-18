@@ -124,10 +124,20 @@ object StreamVersionTests extends TestSuite {
       )
     }
 
-    test("resolveMode: unset, distance zero, tag disagrees with the release line -> Snapshot, not an error") {
+    test("resolveMode: unset, distance zero, same-namespace tag disagrees with the release line -> error") {
       val onWrongTag = GitState(Some("v0.6.0-M02"), 0, "abc123def", dirty = false)
+      val result     = StreamVersion.resolveMode(Map.empty, onWrongTag, stream, "0.6.0-M01", "main")
+      assert(result.isLeft)
+      assert(result.left.toOption.exists(_.contains("v0.6.0-M02")))
+      assert(result.left.toOption.exists(_.contains("0.6.0-M01")))
+    }
+
+    test("resolveMode: unset, distance zero, a tag from another stream's namespace -> Snapshot, not an error") {
+      // A desktop/v* tag sitting at HEAD must never block or misjudge the library stream's own
+      // resolution: it belongs to a different namespace entirely, so it carries no opinion here.
+      val onDesktopTag = GitState(Some("desktop/v0.3.0"), 0, "abc123def", dirty = false)
       assert(
-        StreamVersion.resolveMode(Map.empty, onWrongTag, stream, "0.6.0-M01", "main") ==
+        StreamVersion.resolveMode(Map.empty, onDesktopTag, stream, "0.6.0-M01", "main") ==
           Right(PublishMode.Snapshot("main"))
       )
     }
