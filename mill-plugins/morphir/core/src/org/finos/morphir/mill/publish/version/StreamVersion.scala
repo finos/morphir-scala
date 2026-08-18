@@ -19,6 +19,8 @@ enum PublishMode {
  * the behavioural difference to exactly one thing.
  */
 object StreamVersion {
+  private val Revision = raw"^[0-9a-fA-F]{7,40}$$".r
+
   def compose(
       releaseLine: String,
       startingVersion: Option[String],
@@ -29,6 +31,11 @@ object StreamVersion {
     for {
       _ <- Either.cond(!state.dirty, (), "working tree is dirty")
       _ <- Either.cond(state.distance >= 0, (), "commit distance must not be negative")
+      _ <- Either.cond(
+        Revision.matches(state.revision),
+        (),
+        s"revision '${state.revision}' must be 7 to 40 hexadecimal characters"
+      )
       _ <- Either.cond(
         SemVer.parse(releaseLine).isDefined,
         (),

@@ -78,5 +78,34 @@ object StreamVersionTests extends TestSuite {
           Right("0.1.0-develop.7.gabc123-SNAPSHOT")
       )
     }
+
+    test("a revision that is too short fails, naming it") {
+      val shortRevision = clean.copy(revision = "abc12")
+      val result = StreamVersion.compose("0.6.0-M01", None, shortRevision, PublishMode.Snapshot("main"), stream)
+      assert(result.isLeft)
+      assert(result.left.toOption.exists(_.contains("abc12")))
+    }
+
+    test("a malformed revision is rejected regardless of mode") {
+      // The revision is only rendered on the non-main snapshot path, but the guard runs before the
+      // mode is inspected — the same way SnapshotVersion.format validates the revision ahead of
+      // branching. A release build must refuse a bad revision even though it never prints one.
+      val onTag  = GitState(Some("v0.6.0-M01"), 0, "ab", dirty = false)
+      val result = StreamVersion.compose("0.6.0-M01", None, onTag, PublishMode.Release, stream)
+      assert(result.isLeft)
+      assert(result.left.toOption.exists(_.contains("ab")))
+    }
+
+    test("a branch name that normalises to empty fails") {
+      val result = StreamVersion.compose("0.6.0-M01", None, clean, PublishMode.Snapshot("///"), stream)
+      assert(result.isLeft)
+      assert(result.left.toOption.exists(_.contains("empty")))
+    }
+
+    test("a negative distance fails") {
+      val result =
+        StreamVersion.compose("0.6.0-M01", None, clean.copy(distance = -1), PublishMode.Snapshot("main"), stream)
+      assert(result.isLeft)
+    }
   }
 }
