@@ -2,9 +2,9 @@
 
 Source positions and diagnostic rendering, shared by every langkit.
 
-This module is the bottom of the langkit stack. It has no dependencies beyond the standard library, knows nothing
-about any particular language, and holds what every parser needs regardless of what it parses: a way to name a region
-of source text, a way to show that region back to a human, and a way to say how much a finding matters.
+This module is the bottom of the langkit stack. It depends on Morphir Prelude and Kyo Core, knows nothing about any
+particular language, and holds what every parser needs regardless of what it parses: a way to name a region of source
+text, a way to show that region back to a human, and a way to say how much a finding matters.
 
 ## Positions
 
@@ -71,6 +71,7 @@ A scanner session is mutable, single-owner state. It is not thread-safe and must
 all scanner use inside its `scan` callback on one execution path.
 
 ```scala
+import kyo.Result
 import morphir.langkit.core.scanner.*
 
 val defaultScan = SourceScanner.scan(source) { scanner =>
@@ -78,17 +79,25 @@ val defaultScan = SourceScanner.scan(source) { scanner =>
   scanner.metrics
 }
 
-val budget = ScanBudget.limited(
+ScanBudget.limited(
   maxInputLength = InputSize.mebibytes(1),
   maxWork = WorkUnits(8L * 1024L * 1024L),
   maxNestingDepth = NestingDepth(128),
   maxOutputNodes = NodeCount(100000L)
-)
-val limitedScan = SourceScanner.scan(source, budget) { scanner =>
-  // Parser work goes here.
-  scanner.metrics
-}
+) match
+  case Result.Success(budget) =>
+    val limitedScan = SourceScanner.scan(source, budget) { scanner =>
+      // Parser work goes here.
+      scanner.metrics
+    }
+  case Result.Failure(error) =>
+    // Report invalid caller-supplied configuration; no scan occurs.
+  case Result.Panic(error) =>
+    // Handle an unexpected panic; no scan occurs.
 ```
+
+Invalid limits return a typed `ScanBudgetError` in `Result.Failure`; they do not throw. Keep caller-supplied
+configuration in this result-handling path rather than unwrapping it.
 
 Cursor movement and lookahead consume work. Use `chargeWork` for deterministic work performed outside cursor
 movement, `withNesting` around recursive descent, and `chargeOutputNodes` immediately before emitting syntax nodes.

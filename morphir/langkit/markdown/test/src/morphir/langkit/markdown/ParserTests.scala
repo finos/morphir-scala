@@ -26,8 +26,21 @@ class ParserTests extends Test[Any]:
       else smaller * 3L + 64L
     assert(larger <= bound, s"$name work grew from $smaller to $larger (bound $bound)")
 
-  private def tightWorkBudget(inputLength: Int): ScanBudget.Limited =
+  private def limitedBudget(
+      maxInputLength: InputSize,
+      maxWork: WorkUnits,
+      maxNestingDepth: NestingDepth,
+      maxOutputNodes: NodeCount
+  ): ScanBudget.Limited =
     ScanBudget.limited(
+      maxInputLength = maxInputLength,
+      maxWork = maxWork,
+      maxNestingDepth = maxNestingDepth,
+      maxOutputNodes = maxOutputNodes
+    ).getOrThrow
+
+  private def tightWorkBudget(inputLength: Int): ScanBudget.Limited =
+    limitedBudget(
       maxInputLength = InputSize.codeUnits(inputLength.toLong),
       maxWork = WorkUnits(32L),
       maxNestingDepth = NestingDepth(16),
@@ -103,7 +116,7 @@ class ParserTests extends Test[Any]:
       }
     }
     "maps an input-size ceiling to an exact typed scanner failure" in {
-      val budget = ScanBudget.limited(
+      val budget = limitedBudget(
         maxInputLength = InputSize.codeUnits(4L),
         maxWork = WorkUnits(100L),
         maxNestingDepth = NestingDepth(10),
@@ -125,7 +138,7 @@ class ParserTests extends Test[Any]:
         case _ => assert(false)
     }
     "reports incremental output exhaustion at the consumed heading end" in {
-      val budget = ScanBudget.limited(
+      val budget = limitedBudget(
         maxInputLength = InputSize.codeUnits(100L),
         maxWork = WorkUnits(100L),
         maxNestingDepth = NestingDepth(10),
@@ -144,7 +157,7 @@ class ParserTests extends Test[Any]:
         case _ => assert(false)
     }
     "charges deterministic work for scanner movement and line-local inspection" in {
-      val budget = ScanBudget.limited(
+      val budget = limitedBudget(
         maxInputLength = InputSize.codeUnits(100L),
         maxWork = WorkUnits(8L),
         maxNestingDepth = NestingDepth(10),
@@ -163,7 +176,7 @@ class ParserTests extends Test[Any]:
         case _ => assert(false)
     }
     "does not refund speculative paragraph lookahead work" in {
-      val budget = ScanBudget.limited(
+      val budget = limitedBudget(
         maxInputLength = InputSize.codeUnits(100L),
         maxWork = WorkUnits(30L),
         maxNestingDepth = NestingDepth(10),
@@ -183,7 +196,7 @@ class ParserTests extends Test[Any]:
         case _ => assert(false)
     }
     "accepts the exact incremental output ceiling and preserves the default result" in {
-      val budget = ScanBudget.limited(
+      val budget = limitedBudget(
         maxInputLength = InputSize.codeUnits(100L),
         maxWork = WorkUnits(100L),
         maxNestingDepth = NestingDepth(10),
@@ -193,7 +206,7 @@ class ParserTests extends Test[Any]:
       assert(Parser.parse("# Title", budget) == Parser.parse("# Title"))
     }
     "charges exactly one output node for an empty document" in {
-      val exact = ScanBudget.limited(
+      val exact = limitedBudget(
         maxInputLength = InputSize.codeUnits(1L),
         maxWork = WorkUnits(1L),
         maxNestingDepth = NestingDepth(1),
@@ -217,7 +230,7 @@ class ParserTests extends Test[Any]:
 
       infoStrings.foreach { info =>
         val source = s"~~~ $info\n~~~"
-        val budget = ScanBudget.limited(
+        val budget = limitedBudget(
           maxInputLength = InputSize.codeUnits(source.length.toLong + 1L),
           maxWork = WorkUnits(100000000L),
           maxNestingDepth = NestingDepth(16),
@@ -234,7 +247,7 @@ class ParserTests extends Test[Any]:
     "accepts the exact fence metadata output boundary and preserves structured info" in {
       val source        = "~~~ scala flag key=value {.class}\n~~~"
       val metadataNodes = NodeCount(FenceInfo.TokenOutputReservation.toLong * 4L)
-      val budget        = ScanBudget.limited(
+      val budget        = limitedBudget(
         maxInputLength = InputSize.codeUnits(source.length.toLong),
         maxWork = WorkUnits(10000L),
         maxNestingDepth = NestingDepth(16),

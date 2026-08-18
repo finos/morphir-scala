@@ -10,7 +10,8 @@ later if one compiles on JVM, JS, and Native.
 
 `org.finos.morphir::morphir-langkit-markdown` — JVM, Scala.js, and Scala Native.
 
-Depends on `morphir-langkit-core` for `Span`. A `QueryableTree` instance is later work against `morphir-langkit-trees`.
+Depends on `morphir-langkit-core` and Kyo Core; core brings Morphir Prelude for its typed exception hierarchy. A
+`QueryableTree` instance is later work against `morphir-langkit-trees`.
 
 ```scala
 import morphir.langkit.markdown.*
@@ -27,19 +28,28 @@ nodes. Resource exhaustion is returned as `Result.Failure(ParseError.Scan(...))`
 UTF-16 source offset:
 
 ```scala
+import kyo.Result
 import morphir.langkit.core.scanner.*
 import morphir.langkit.markdown.*
 
 val safe = Parser.parse(source)
 
-val smallerBudget = ScanBudget.limited(
+ScanBudget.limited(
   maxInputLength = InputSize.mebibytes(1),
   maxWork = WorkUnits(8L * 1024L * 1024L),
   maxNestingDepth = NestingDepth(128),
   maxOutputNodes = NodeCount(100000L)
-)
-val limited = Parser.parse(source, smallerBudget)
+) match
+  case Result.Success(smallerBudget) =>
+    val limited = Parser.parse(source, smallerBudget)
+  case Result.Failure(error) =>
+    // Report invalid caller-supplied configuration; no parse occurs.
+  case Result.Panic(error) =>
+    // Handle an unexpected panic; no parse occurs.
 ```
+
+Invalid limits return a typed `ScanBudgetError` in `Result.Failure`; they do not throw. Keep caller-supplied
+configuration in this result-handling path rather than unwrapping it.
 
 Trusted callers can explicitly remove the ceilings:
 
