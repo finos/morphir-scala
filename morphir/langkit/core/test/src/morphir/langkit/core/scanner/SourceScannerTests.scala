@@ -2,6 +2,7 @@ package morphir.langkit.core.scanner
 
 import kyo.test.*
 import morphir.langkit.core.Span
+import scala.compiletime.testing.typeCheckErrors
 import scala.language.strictEquality
 
 class SourceScannerTests extends Test[Any]:
@@ -336,6 +337,14 @@ class SourceScannerTests extends Test[Any]:
       assert(result == ScanResult.Success(SourceOffset.start))
     }
 
+    "does not expose checkpoint construction to scanner-package consumers" in {
+      val constructorErrors = typeCheckErrors("new SourceScanner.Checkpoint(null, 0)")
+      val factoryErrors     = typeCheckErrors("ScanCheckpoint.create(null, 0)")
+
+      assert(constructorErrors.nonEmpty)
+      assert(factoryErrors.nonEmpty)
+    }
+
     "rejects foreign checkpoints without damaging the receiving scanner" in {
       var foreign: ScanCheckpoint = null
       SourceScanner.scan("a") { scanner => foreign = scanner.checkpoint() }
@@ -472,6 +481,32 @@ class SourceScannerTests extends Test[Any]:
       )
     }
 
+    "rejects output beyond Long.MaxValue after accepting the exact ceiling" in {
+      var caught: Throwable = null
+      val result            = SourceScanner.scan(
+        "a",
+        limited(input = 1L, work = 10L, output = Long.MaxValue)
+      ) { scanner =>
+        scanner.chargeOutputNodes(NodeCount(Long.MaxValue))
+        try scanner.chargeOutputNodes(NodeCount.one)
+        catch case error: Throwable => caught = error
+      }
+
+      assert(caught != null)
+      assert(
+        result == ScanResult.Failure(
+          ScanFailure(
+            exceeded = ScanLimitExceeded.OutputNodes(
+              limit = NodeCount(Long.MaxValue),
+              attempted = NodeCount(Long.MaxValue)
+            ),
+            offset = SourceOffset.start,
+            phase = None
+          )
+        )
+      )
+    }
+
     "contains swallowed nesting exhaustion and foreign replay" in {
       var captured: Throwable = null
       val first               = SourceScanner.scan("a", limited(input = 1L, work = 10L)) { scanner =>
@@ -582,5 +617,11 @@ class SourceScannerTests extends Test[Any]:
       assert(SourceScanner.saturatingAdd(Long.MaxValue - 1L, 1L) == Long.MaxValue)
       assert(SourceScanner.saturatingAdd(Long.MaxValue - 1L, 2L) == Long.MaxValue)
       assert(SourceScanner.saturatingAdd(Long.MaxValue, 1L) == Long.MaxValue)
+    }
+
+    "detects work beyond Long.MaxValue despite saturated reporting" in {
+      assert(!SourceScanner.wouldExceedLimit(0L, Long.MaxValue, Long.MaxValue))
+      assert(!SourceScanner.wouldExceedLimit(Long.MaxValue - 1L, 1L, Long.MaxValue))
+      assert(SourceScanner.wouldExceedLimit(Long.MaxValue, 1L, Long.MaxValue))
     }
   }

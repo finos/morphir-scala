@@ -4,6 +4,11 @@ import morphir.langkit.core.Span
 import scala.util.control.ControlThrowable
 
 object SourceScanner:
+  final class Checkpoint private[SourceScanner] (
+      private[SourceScanner] val owner: SourceScanner,
+      private[SourceScanner] val savedOffset: Int
+  )
+
   def scan[A](
       source: String,
       budget: ScanBudget = ScanBudget.default,
@@ -48,6 +53,9 @@ object SourceScanner:
     if increment >= Long.MaxValue - current then Long.MaxValue
     else current + increment
 
+  private[scanner] def wouldExceedLimit(current: Long, increment: Long, limit: Long): Boolean =
+    current > limit || increment > limit - current
+
   private[scanner] final class BudgetCeilings(
       val maxWork: WorkUnits,
       val maxNestingDepth: NestingDepth,
@@ -56,16 +64,7 @@ object SourceScanner:
 
   private final class BudgetExhausted(val owner: SourceScanner, val failure: ScanFailure) extends ControlThrowable
 
-final class ScanCheckpoint private (private val owner: SourceScanner, private val savedOffset: Int)
-
-object ScanCheckpoint:
-  private[scanner] def create(owner: SourceScanner, offset: Int): ScanCheckpoint =
-    new ScanCheckpoint(owner, offset)
-
-  private[scanner] def belongsTo(checkpoint: ScanCheckpoint, scanner: SourceScanner): Boolean =
-    checkpoint.owner.eq(scanner)
-
-  private[scanner] def offset(checkpoint: ScanCheckpoint): Int = checkpoint.savedOffset
+type ScanCheckpoint = SourceScanner.Checkpoint
 
 final class SourceScanner private[scanner] (
     originalSource: String,
@@ -99,12 +98,12 @@ final class SourceScanner private[scanner] (
 
   def checkpoint(): ScanCheckpoint =
     requireActive()
-    ScanCheckpoint.create(this, currentOffset)
+    new SourceScanner.Checkpoint(this, currentOffset)
 
   def restore(checkpoint: ScanCheckpoint): Unit =
     requireActive()
-    require(ScanCheckpoint.belongsTo(checkpoint, this), "checkpoint belongs to another scanner session")
-    currentOffset = ScanCheckpoint.offset(checkpoint)
+    require(checkpoint.owner.eq(this), "checkpoint belongs to another scanner session")
+    currentOffset = checkpoint.savedOffset
 
   def requireProgress[A](phase: ScanPhase)(operation: => A): A =
     requireActive()
@@ -132,7 +131,8 @@ final class SourceScanner private[scanner] (
     requireActive()
     if count.toLong != 0L then
       val attempted = SourceScanner.saturatingAdd(outputNodes, count.toLong)
-      if ceilings != null && attempted > ceilings.maxOutputNodes.toLong then
+      if ceilings != null && SourceScanner.wouldExceedLimit(outputNodes, count.toLong, ceilings.maxOutputNodes.toLong)
+      then
         failBudget(
           ScanLimitExceeded.OutputNodes(
             limit = ceilings.maxOutputNodes,
@@ -180,7 +180,7 @@ final class SourceScanner private[scanner] (
 
   private def charge(increment: Long): Unit =
     val attempted = SourceScanner.saturatingAdd(consumedWork, increment)
-    if ceilings != null && attempted > ceilings.maxWork.toLong then
+    if ceilings != null && SourceScanner.wouldExceedLimit(consumedWork, increment, ceilings.maxWork.toLong) then
       failBudget(
         ScanLimitExceeded.Work(
           limit = ceilings.maxWork,
