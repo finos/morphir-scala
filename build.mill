@@ -72,8 +72,18 @@ trait MorphirVersionedModule extends Module {
   /** None is the root stream, tagged `v*`. Some("desktop") is tagged `desktop/v*`. */
   def versionNamespace = Task { Option.empty[String] }
 
-  /** Optional floor; the changelog's release line may not regress below it. */
-  def startingVersion = Task { Option.empty[String] }
+  /**
+   * Optional floor; the changelog's release line may not regress below it.
+   *
+   * The default is the root/library stream's own floor, `0.5.0-M04` — the last version this
+   * repository's shared tag line published before independent streams existed, and the one stream
+   * with real published history (~40 tags) to protect. The plugin family and the desktop
+   * application override this with their own floor; leaving the root stream on `None` left the one
+   * area with anything to lose unprotected, while the two areas that have never published anything
+   * carried one. Mirrored in `SquireChangelog.Areas` (`.claude/skills/squire/SquireChangelog.scala`)
+   * so the CI policy gate validates against the same value.
+   */
+  def startingVersion = Task { Some("0.5.0-M04") }
 
   /**
    * The area's changelog.

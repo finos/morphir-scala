@@ -167,7 +167,10 @@ object SquireChangelog:
   import SquireVersion.*
 
   val Areas: List[ReleaseArea] = List(
-    ReleaseArea("libraries", None, "CHANGELOG.md", None),
+    // Mirrors MorphirVersionedModule.startingVersion's default in build.mill: the libraries are the
+    // one stream with real published history (~40 tags), so — unlike the two never-published areas
+    // below, whose floors just sit above the shared tag line — this floor protects something.
+    ReleaseArea("libraries", None, "CHANGELOG.md", Some("0.5.0-M04")),
     ReleaseArea("mill-plugins", Some("mill-plugins"), "mill-plugins/morphir/CHANGELOG.md", Some("0.5.0-M04")),
     ReleaseArea("desktop", Some("desktop"), "morphir/desktop/CHANGELOG.md", Some("0.1.0"))
   )

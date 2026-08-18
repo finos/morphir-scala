@@ -6298,6 +6298,21 @@ class SquireChangelogSpec extends Test[Any]:
           desktop.detail.exists(message => message.contains("0.0.5") && message.contains("0.1.0"))
       )
     }
+
+    "fails when the libraries release line is below the shared floor" in {
+      // The libraries are the one stream with real published history (~40 tags): unlike the two
+      // never-published areas, a bad merge in its undated heading must not be free to publish below
+      // everything already shipped. See SquireChangelog.Areas.
+      for
+        root      <- SquireFixtures.scratch("changelog-check-libraries-floor")
+        _         <- writeAllAreas(root, belowFloorLibraries, validMillPlugins, validDesktop)
+        report    <- SquireChangelog.check(root)
+        libraries  = report.outcomes.find(_.area == "libraries").get
+      yield assert(
+        !report.ok && libraries.status == "issue" && libraries.releaseLine.exists(_ == "0.4.9") &&
+          libraries.detail.exists(message => message.contains("0.4.9") && message.contains("0.5.0-M04"))
+      )
+    }
   }
 
   "changelog show" - {
@@ -6427,6 +6442,15 @@ object SquireChangelogFixtures:
     """# Changelog
       |
       |## [1.2.3]
+      |
+      |### Added
+      |- widget
+      |""".stripMargin
+
+  val belowFloorLibraries: String =
+    """# Changelog
+      |
+      |## [0.4.9]
       |
       |### Added
       |- widget
