@@ -1,9 +1,10 @@
 package morphir.langkit.markdown
 
+import morphir.MorphirException
 import morphir.langkit.core.scanner.*
 
 /** A failure from the markdown parser. */
-sealed abstract class ParseError(val message: String) extends Exception(message)
+sealed abstract class ParseError(val message: String) extends MorphirException(message)
 
 object ParseError:
   final case class Syntax(override val message: String) extends ParseError(message)

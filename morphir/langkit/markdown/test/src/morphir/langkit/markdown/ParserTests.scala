@@ -2,6 +2,7 @@ package morphir.langkit.markdown
 
 import kyo.*
 import kyo.test.*
+import morphir.MorphirException
 import morphir.langkit.core.Span
 import morphir.langkit.core.scanner.*
 
@@ -512,5 +513,18 @@ class ParserTests extends Test[Any]:
       assert(error.isInstanceOf[Exception])
       assert(error.getMessage == "Markdown scan failed at offset 0 during markdown.blocks: InputLength(4,5)")
       assert(ParseError.unapply(error).contains(error.getMessage))
+    }
+    "unifies syntax and scanner failures as MorphirException values while retaining their messages" in {
+      val syntax: MorphirException = ParseError.Syntax("expected closing fence")
+      val scan: MorphirException   = ParseError.Scan(
+        ScanFailure(
+          exceeded = ScanLimitExceeded.Work(limit = WorkUnits(0L), attempted = WorkUnits(1L)),
+          offset = SourceOffset.start,
+          phase = None
+        )
+      )
+
+      assert(syntax.getMessage == "expected closing fence")
+      assert(scan.getMessage.startsWith("Markdown scan failed at offset 0"))
     }
   }
