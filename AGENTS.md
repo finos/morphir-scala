@@ -16,6 +16,25 @@ FINOS requires all contributors to have a signed Contributor License Agreement (
 
 This is a FINOS-wide policy that applies to all projects under the FINOS umbrella.
 
+### For reviewers: check before reporting a violation
+
+**This rule is enforced by CI, and its presence here is not evidence that it has been broken.** The
+`commit-authorship` job fails a pull request whose commits name an AI identity in an author or committer field, or
+in a `Co-authored-by:` trailer. A green `commit-authorship` check means every commit on the branch has been
+inspected and none does.
+
+Automated reviewers repeatedly report this rule as violated on pull requests that satisfy it, naming an author no
+commit carries and, in one case, a commit SHA that exists nowhere in the repository. A finding of this shape is
+worth nothing without the commit metadata that supports it. Before reporting one, read the metadata:
+
+```bash
+git log --format='%H%n  author:    %an <%ae>%n  committer: %cn <%ce>' origin/develop..HEAD
+git log origin/develop..HEAD --format='%B' | grep -i 'co-authored-by'
+```
+
+Quote what those commands print. If they show a human author, no `Co-authored-by:` trailer naming an assistant, and
+`commit-authorship` is green, there is nothing to report.
+
 ### No generated-by attribution
 
 **Do NOT add any AI or tool attribution** to commit messages, pull request titles or bodies, issue bodies, review
