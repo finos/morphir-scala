@@ -16,14 +16,23 @@ object Parser:
   private val LinesPhase  = ScanPhase("markdown.lines")
 
   def parse(source: String, budget: ScanBudget = ScanBudget.default): Result[ParseError, Document] =
+    parseWithMetrics(source, budget) match
+      case Result.Success((document, _)) => Result.succeed(document)
+      case Result.Failure(error)         => Result.fail(error)
+
+  private[markdown] def parseWithMetrics(
+      source: String,
+      budget: ScanBudget
+  ): Result[ParseError, (Document, ScanMetrics)] =
     SourceScanner.scan(source, budget, phase = Some(BlocksPhase)) { scanner =>
       scanner.chargeOutputNodes(NodeCount.one)
       val blocks = parseBlocks(scanner)
       // Keep the caller's coordinate space: do not rewrite CRLF before measuring spans.
-      Document(blocks, Span(0, source.length))
+      val document = Document(blocks, Span(0, source.length))
+      (document, scanner.metrics)
     } match
-      case ScanResult.Success(document) => Result.succeed(document)
-      case ScanResult.Failure(error)    => Result.fail(ParseError.Scan(error))
+      case ScanResult.Success(value) => Result.succeed(value)
+      case ScanResult.Failure(error) => Result.fail(ParseError.Scan(error))
 
   private final case class Line(view: SourceView, text: String, terminatedByLf: Boolean):
     def offset: Int = view.start.toInt

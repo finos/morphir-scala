@@ -7,12 +7,70 @@ import morphir.langkit.core.scanner.*
 
 class ParserTests extends Test[Any]:
 
+  private def parseMetrics(source: String): ScanMetrics =
+    Parser.parseWithMetrics(source, ScanBudget.UnsafeUnbounded) match
+      case Result.Success((_, metrics)) => metrics
+      case _                            => throw new AssertionError("unbounded parse unexpectedly failed")
+
+  private def assertLinearWork(name: String, input: Int => String)(using AssertScope): Unit =
+    val smallerSource = input(1024)
+    assert(smallerSource.length == 1024, s"$name fixture must be exactly 1,024 UTF-16 code units")
+    val smaller = parseMetrics(smallerSource).work.toLong
+
+    val largerSource = input(2048)
+    assert(largerSource.length == 2048, s"$name fixture must be exactly 2,048 UTF-16 code units")
+    val larger = parseMetrics(largerSource).work.toLong
+
+    val bound =
+      if smaller > (Long.MaxValue - 64L) / 3L then Long.MaxValue
+      else smaller * 3L + 64L
+    assert(larger <= bound, s"$name work grew from $smaller to $larger (bound $bound)")
+
+  private def tightWorkBudget(inputLength: Int): ScanBudget.Limited =
+    ScanBudget.limited(
+      maxInputLength = InputSize.codeUnits(inputLength.toLong),
+      maxWork = WorkUnits(32L),
+      maxNestingDepth = NestingDepth(16),
+      maxOutputNodes = NodeCount(16L)
+    )
+
+  private def assertWorkExhausted(source: String)(using AssertScope): Unit =
+    val result    = Parser.parse(source, tightWorkBudget(source.length))
+    val exhausted = result match
+      case Result.Failure(ParseError.Scan(ScanFailure(ScanLimitExceeded.Work(_, _), _, _))) => true
+      case _                                                                                => false
+    assert(exhausted, s"expected typed work exhaustion, got $result")
+
   "Parser.parse" - {
+    "has deterministic near-linear work growth for representative block inputs" in {
+      val inputs = Chunk[(String, Int => String)](
+        "paragraph"        -> (size => "a" * size),
+        "fence"            -> (size => "```\n" + ("a" * (size - 8)) + "\n```"),
+        "list"             -> (size => "- a\n" * (size / 4)),
+        "ambiguous prefix" -> (size => "#######\n" * (size / 8))
+      )
+
+      inputs.foreach { case (name, input) => assertLinearWork(name, input) }
+    }
+    "terminates hostile inputs through typed work exhaustion" in {
+      val hostile = Chunk(
+        "`" * 100000,
+        "~" * 100000,
+        "   - " * 20000,
+        "a\r\n" * 30000,
+        "\uD83D\uDE00" * 50000
+      )
+
+      hostile.foreach { source =>
+        assert(source.length.toLong < ScanBudget.default.maxInputLength.toLong)
+        assertWorkExhausted(source)
+      }
+    }
     "preserves exact documents across the existing block subset" in {
       val cases = Chunk(
-        "" -> Document(Chunk.empty, Span.zero),
-        "# Title" -> Document(Chunk(Block.Heading(1, "Title", Span(0, 7))), Span(0, 7)),
-        "alpha\nbeta" -> Document(Chunk(Block.Paragraph("alpha\nbeta", Span(0, 10))), Span(0, 10)),
+        ""                          -> Document(Chunk.empty, Span.zero),
+        "# Title"                   -> Document(Chunk(Block.Heading(1, "Title", Span(0, 7))), Span(0, 7)),
+        "alpha\nbeta"               -> Document(Chunk(Block.Paragraph("alpha\nbeta", Span(0, 10))), Span(0, 10)),
         "```scala\none\n\ntwo\n```" -> Document(
           Chunk(Block.FencedCode(FenceInfo.parse("scala"), "one\n\ntwo\n", Span(0, 21))),
           Span(0, 21)
@@ -29,7 +87,7 @@ class ParserTests extends Test[Any]:
           Chunk(Block.UnorderedList(Chunk("alpha", "beta"), Span(0, 14))),
           Span(0, 14)
         ),
-        "---" -> Document(Chunk(Block.ThematicBreak(Span(0, 3))), Span(0, 3)),
+        "---"      -> Document(Chunk(Block.ThematicBreak(Span(0, 3))), Span(0, 3)),
         "# A\n\nB" -> Document(
           Chunk(Block.Heading(1, "A", Span(0, 3)), Block.Paragraph("B", Span(5, 1))),
           Span(0, 6)

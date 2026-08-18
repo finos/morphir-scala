@@ -748,4 +748,57 @@ class SourceScannerTests extends Test[Any]:
       assert(SourceScanner.wouldExceedNesting(1, 1))
       assert(SourceScanner.wouldExceedNesting(Int.MaxValue, Int.MaxValue))
     }
+
+    "snapshots immutable typed metrics including maximum nesting depth" in {
+      var retained: SourceScanner = null
+      val result                  = SourceScanner.scan("abc", ScanBudget.UnsafeUnbounded) { scanner =>
+        retained = scanner
+        val empty = scanner.metrics
+        scanner.chargeWork(WorkUnits(3L))
+        scanner.peek()
+        scanner.advance()
+        scanner.chargeOutputNodes(NodeCount(2L))
+        scanner.withNesting {
+          scanner.withNesting {
+            assert(
+              scanner.metrics == ScanMetrics(
+                work = WorkUnits(5L),
+                outputNodes = NodeCount(2L),
+                maximumNestingDepth = NestingDepth(2)
+              )
+            )
+          }
+        }
+        scanner.chargeWork(WorkUnits(1L))
+        (empty, scanner.metrics)
+      }
+
+      assert(
+        result == ScanResult.Success((
+          ScanMetrics(WorkUnits(0L), NodeCount(0L), NestingDepth(0)),
+          ScanMetrics(WorkUnits(6L), NodeCount(2L), NestingDepth(2))
+        ))
+      )
+      assert(closedMessage(retained.metrics).contains("scanner session is closed"))
+    }
+
+    "saturates unbounded metric counters without wrapping" in {
+      val result = SourceScanner.scan("", ScanBudget.UnsafeUnbounded) { scanner =>
+        scanner.chargeWork(WorkUnits(Long.MaxValue))
+        scanner.chargeWork(WorkUnits(1L))
+        scanner.chargeOutputNodes(NodeCount(Long.MaxValue))
+        scanner.chargeOutputNodes(NodeCount.one)
+        scanner.metrics
+      }
+
+      assert(
+        result == ScanResult.Success(
+          ScanMetrics(
+            work = WorkUnits(Long.MaxValue),
+            outputNodes = NodeCount(Long.MaxValue),
+            maximumNestingDepth = NestingDepth(0)
+          )
+        )
+      )
+    }
   }

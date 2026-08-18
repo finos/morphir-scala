@@ -79,6 +79,7 @@ final class SourceScanner private[scanner] (
   private var currentOffset                      = 0
   private var consumedWork                       = 0L
   private var currentNestingDepth                = 0L
+  private var maximumNestingDepth                = 0
   private var outputNodes                        = 0L
   private var active                             = true
   private var exhaustion: BudgetExhausted | Null = null
@@ -98,6 +99,14 @@ final class SourceScanner private[scanner] (
   def mark: SourceOffset =
     requireActive()
     SourceOffset.unsafe(currentOffset)
+
+  def metrics: ScanMetrics =
+    requireActive()
+    ScanMetrics(
+      work = WorkUnits.unsafe(consumedWork),
+      outputNodes = NodeCount.unsafe(outputNodes),
+      maximumNestingDepth = NestingDepth.unsafe(maximumNestingDepth)
+    )
 
   def checkpoint(): ScanCheckpoint =
     requireActive()
@@ -129,6 +138,8 @@ final class SourceScanner private[scanner] (
         )
       )
     currentNestingDepth += 1L
+    if currentNestingDepth > maximumNestingDepth.toLong then
+      maximumNestingDepth = math.min(currentNestingDepth, Int.MaxValue.toLong).toInt
     try operation
     finally currentNestingDepth -= 1L
 

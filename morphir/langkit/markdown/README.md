@@ -20,6 +20,37 @@ Parser.parse("# Title\n\nHello") match
   case kyo.Result.Failure(err) => throw err
 ```
 
+## Parser budgets
+
+`Parser.parse` uses `ScanBudget.default`, which bounds input length, deterministic scanner work, nesting, and emitted
+nodes. Resource exhaustion is returned as `Result.Failure(ParseError.Scan(...))`, with the exact typed limit and
+UTF-16 source offset:
+
+```scala
+import morphir.langkit.core.scanner.*
+import morphir.langkit.markdown.*
+
+val safe = Parser.parse(source)
+
+val smallerBudget = ScanBudget.limited(
+  maxInputLength = InputSize.mebibytes(1),
+  maxWork = WorkUnits(8L * 1024L * 1024L),
+  maxNestingDepth = NestingDepth(128),
+  maxOutputNodes = NodeCount(100000L)
+)
+val limited = Parser.parse(source, smallerBudget)
+```
+
+Trusted callers can explicitly remove the ceilings:
+
+```scala
+val unsafe = Parser.parse(source, ScanBudget.UnsafeUnbounded)
+```
+
+`UnsafeUnbounded` is not the safe path. Use it only when the caller independently controls input size and execution
+isolation and accepts responsibility for resource containment. It does not change parse results or relax scanner
+cursor and progress invariants; it only removes the resource limits.
+
 ## Fenced code info
 
 CommonMark treats the fence info string as opaque. `FenceInfo` keeps that string as `raw` and derives conventions
