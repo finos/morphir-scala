@@ -89,8 +89,8 @@ trait MorphirVersionedModule extends Module {
   def changelog = Task.Source(mill.api.BuildCtx.workspaceRoot / "CHANGELOG.md")
 
   /**
-   * A cheap, always-fresh fingerprint of the working copy: HEAD, whether the tree is dirty, and the
-   * full tag list.
+   * A cheap, always-fresh fingerprint of the working copy: HEAD, whether the tree is dirty, the full
+   * tag list, and the current branch.
    *
    * This exists to invalidate [[gitState]]. Git state changes without any file in the module
    * changing, so something has to be re-read every run — but a `Task.Input` body may not call
@@ -101,7 +101,8 @@ trait MorphirVersionedModule extends Module {
    * fingerprint — and kept as the raw `git tag --list` text rather than a digest of it: this
    * repository has few tags today, so hashing would only obscure the value for no benefit.
    * Over-invalidating merely costs a recomputation; under-invalidating would publish the wrong
-   * version.
+   * version. The branch is namespace-independent too, and rides along here for the same reason —
+   * [[streamVersion]] needs it to infer a snapshot when no publish mode is set.
    */
   def gitFingerprint = Task.Input {
     val root = mill.api.BuildCtx.workspaceRoot
@@ -113,7 +114,12 @@ trait MorphirVersionedModule extends Module {
         )
       result.out.text().trim
     }
-    (git("rev-parse", "HEAD"), git("status", "--porcelain").nonEmpty, git("tag", "--list"))
+    (
+      git("rev-parse", "HEAD"),
+      git("status", "--porcelain").nonEmpty,
+      git("tag", "--list"),
+      git("rev-parse", "--abbrev-ref", "HEAD")
+    )
   }
 
   /** Git state for this area's stream, recomputed whenever [[gitFingerprint]] moves. */
@@ -124,11 +130,49 @@ trait MorphirVersionedModule extends Module {
       .fold(message => throw new IllegalStateException(message), identity)
   }
 
+  /** The current branch, e.g. for a snapshot qualifier when no publish mode is set. A detached HEAD
+    * reports the literal `HEAD`, which normalises to a usable qualifier same as any other name.
+    */
+  def gitBranch = Task {
+    gitFingerprint()._4
+  }
+
   def publishMode = Task.Input {
     Seq("MORPHIR_PUBLISH_MODE", "MORPHIR_PUBLISH_BRANCH")
       .flatMap(name => Task.env.get(name).map(name -> _))
       .toMap
   }
+
+  /**
+   * Chooses what a build is producing.
+   *
+   * `MORPHIR_PUBLISH_MODE=snapshot` is explicit and unchanged. Absent or empty, the mode is
+   * inferred rather than assumed to be a release: a checkout sitting exactly on its stream's tag
+   * (distance zero) with that tag agreeing with the changelog's release line is a release: anything
+   * else — mid-stream, off-tag, or on a tag that disagrees — is a snapshot qualified by the current
+   * branch. This mirrors the old `SnapshotVersion.select`, which never hard-failed just because the
+   * environment was empty; the release-only default would fail every local build (and, since
+   * `publishVersion` feeds BuildInfo, every *compile*) unless the checkout happened to be exactly
+   * on a release tag.
+   */
+  private def resolvePublishMode(
+      env: Map[String, String],
+      state: GitState,
+      stream: TagStream,
+      releaseLine: String,
+      branch: String
+  ): Either[String, PublishMode] =
+    env.get("MORPHIR_PUBLISH_MODE") match {
+      case Some("snapshot") =>
+        env.get("MORPHIR_PUBLISH_BRANCH").filter(_.nonEmpty) match {
+          case Some(explicitBranch) => Right(PublishMode.Snapshot(explicitBranch))
+          case None                 => Left("MORPHIR_PUBLISH_BRANCH is required in snapshot mode")
+        }
+      case None | Some("") =>
+        val onRelease = state.distance == 0 && state.lastTag.contains(stream.tagFor(releaseLine))
+        Right(if (onRelease) PublishMode.Release else PublishMode.Snapshot(branch))
+      case Some(other) => Left(s"unsupported MORPHIR_PUBLISH_MODE '$other'")
+    }
 
   /** The version this area publishes. */
   def streamVersion = Task {
@@ -137,19 +181,13 @@ trait MorphirVersionedModule extends Module {
       throw new IllegalStateException(
         s"$source: an independently versioned area requires a changelog"
       )
-    val text = os.read(source)
-    val mode = publishMode().get("MORPHIR_PUBLISH_MODE") match {
-      case Some("snapshot") =>
-        publishMode().get("MORPHIR_PUBLISH_BRANCH").filter(_.nonEmpty) match {
-          case Some(branch) => PublishMode.Snapshot(branch)
-          case None => throw new IllegalArgumentException("MORPHIR_PUBLISH_BRANCH is required in snapshot mode")
-        }
-      case None | Some("") => PublishMode.Release
-      case Some(other)     => throw new IllegalArgumentException(s"unsupported MORPHIR_PUBLISH_MODE '$other'")
-    }
+    val text   = os.read(source)
+    val stream = TagStream(versionNamespace())
+    val state  = gitState()
     val result = for {
       line    <- Changelog.releaseLine(text, source.toString)
-      version <- StreamVersion.compose(line, startingVersion(), gitState(), mode, TagStream(versionNamespace()))
+      mode    <- resolvePublishMode(publishMode(), state, stream, line, gitBranch())
+      version <- StreamVersion.compose(line, startingVersion(), state, mode, stream)
     } yield version
     result.fold(message => throw new IllegalArgumentException(message), identity)
   }
