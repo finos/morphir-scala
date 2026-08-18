@@ -47,7 +47,14 @@ object SquireCiPolicy:
       "(github.ref == 'refs/heads/main' || " +
       "github.ref == 'refs/heads/0.4.x' || " +
       "github.ref == 'refs/heads/develop' || " +
-      "startsWith(github.ref, 'refs/tags/'))"
+      "startsWith(github.ref, 'refs/tags/v'))"
+  val PublishPluginsPredicate =
+    "github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/mill-plugins/v')"
+  val DesktopPackagingPredicate =
+    "github.repository == 'finos/morphir-scala' && " +
+      "(startsWith(github.ref, 'refs/tags/desktop/v') || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false')"
+  val DesktopReleasePredicate =
+    "github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/desktop/v')"
   val CachePredicate =
     "github.ref == 'refs/heads/main' || " +
       "github.ref == 'refs/heads/0.4.x' || " +
@@ -148,6 +155,42 @@ object SquireCiPolicy:
     expect(
       !release.contains("BEGIN PGP PRIVATE KEY"),
       "Release step must not duplicate PgpSecret conversion in bash"
+    )
+
+  def assertPublishPluginsPolicy(workflow: String): Unit =
+    val job = indentedBlock(workflow, "publish-plugins:", 2)
+    expect(
+      scalar(job, "if") == PublishPluginsPredicate,
+      "publish-plugins predicate does not match the plugin-family release allowlist"
+    )
+    expect(scalar(job, "needs") == "[ci]", "publish-plugins must depend only on aggregate ci")
+    expect(
+      count(job, "./mill --ticker false -i ci.sonatype.plugins") == 1,
+      "publish-plugins job must invoke ci.sonatype.plugins exactly once"
+    )
+
+  /**
+   * The three packaging jobs (desktop-matrix, desktop-package, desktop-verify) share one guard: a
+   * desktop/v* tag or release always packages, and the MORPHIR_CI_PACKAGE_DESKTOP switch otherwise
+   * controls ordinary CI. desktop-release itself carries the narrower, switch-free guard: only a
+   * desktop/v* tag ships anything.
+   */
+  def assertDesktopReleaseGuards(workflow: String): Unit =
+    List("desktop-matrix:", "desktop-package:", "desktop-verify:").foreach { job =>
+      val block = indentedBlock(workflow, job, 2)
+      expect(
+        scalar(block, "if") == DesktopPackagingPredicate,
+        s"$job predicate does not match the desktop packaging allowlist"
+      )
+    }
+    val releaseJob = indentedBlock(workflow, "desktop-release:", 2)
+    expect(
+      scalar(releaseJob, "if") == DesktopReleasePredicate,
+      "desktop-release predicate does not match the desktop-only release allowlist"
+    )
+    expect(
+      scalar(releaseJob, "needs") == "[ci, packaging]",
+      "desktop-release must depend on aggregate ci and the packaging aggregate"
     )
 
   def assertCiMillTicker(workflow: String): Unit =
@@ -1431,6 +1474,49 @@ class SquireCiPolicySpec extends Test[Any]:
     "waits for aggregate CI and owns one guarded release path" in {
       assertPublishPolicy(workflow)
       assert(true)
+    }
+
+    "routes the plugin release and the desktop release to their own namespaced guards" in {
+      assertPublishPluginsPolicy(workflow)
+      assertDesktopReleaseGuards(workflow)
+
+      val broadenedPluginGuard = replaceOnce(
+        workflow,
+        "    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/mill-plugins/v')\n    needs: [ci]\n\n    # See the `publish` job",
+        "    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/')\n    needs: [ci]\n\n    # See the `publish` job"
+      )
+      val pluginGuardDroppedRepositoryCheck = replaceOnce(
+        workflow,
+        "    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/mill-plugins/v')\n    needs: [ci]\n\n    # See the `publish` job",
+        "    if: startsWith(github.ref, 'refs/tags/mill-plugins/v')\n    needs: [ci]\n\n    # See the `publish` job"
+      )
+      val broadenedDesktopReleaseGuard = replaceOnce(
+        workflow,
+        "    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/desktop/v')\n    needs: [ci, packaging]",
+        "    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/')\n    needs: [ci, packaging]"
+      )
+      val desktopMatrixGuardDroppedRepositoryCheck = replaceOnce(
+        workflow,
+        "    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/desktop/v') || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false')\n    runs-on: ubuntu-latest\n    timeout-minutes: 20",
+        "    if: startsWith(github.ref, 'refs/tags/desktop/v') || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false'\n    runs-on: ubuntu-latest\n    timeout-minutes: 20"
+      )
+      val desktopMatrixGuardLostSwitch = replaceOnce(
+        workflow,
+        "    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/desktop/v') || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false')\n    runs-on: ubuntu-latest\n    timeout-minutes: 20",
+        "    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/desktop/v')\n    runs-on: ubuntu-latest\n    timeout-minutes: 20"
+      )
+      val mutations = List(
+        broadenedPluginGuard,
+        pluginGuardDroppedRepositoryCheck,
+        broadenedDesktopReleaseGuard,
+        desktopMatrixGuardDroppedRepositoryCheck,
+        desktopMatrixGuardLostSwitch
+      )
+      assert(
+        mutations.forall(mutation =>
+          rejects(assertPublishPluginsPolicy, mutation) || rejects(assertDesktopReleaseGuards, mutation)
+        )
+      )
     }
 
     "disables the mill ticker on hosted workflow and mise mill invocations" in {
