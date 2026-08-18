@@ -1,10 +1,12 @@
 package build.ci
 
+import build.MorphirVersionedModule
 import build.{`mill-plugins` => millPlugins}
+import build.{morphir => morphirArea}
 import build.morphir.{desktop => desktopArea}
 import mill.*
 import mill.api.{BuildCtx, DefaultTaskModule, Evaluator, ModuleRef, Result, SelectMode, TaskCtx}
-import millbuild.{JsTestSelectors, LintSelectors}
+import millbuild.{JsTestSelectors, LintSelectors, MillVersions}
 import org.finos.morphir.mill.publish.{MillPublishEnvFile, MillSonatypeEnv, PgpSecret, PublishSelectors}
 import org.finos.morphir.mill.publish.desktop.{
   DesktopPlatform,
@@ -13,6 +15,18 @@ import org.finos.morphir.mill.publish.desktop.{
   DesktopReleaseLayout,
   ReleaseSnapshot,
   ReleaseVerifier
+}
+
+/** One independently versioned area, as [[MorphirCiModule.releaseAreas]] reports it. */
+case class ReleaseAreaRow(
+    name: String,
+    namespace: Option[String],
+    changelogPath: String,
+    startingVersion: Option[String]
+)
+
+object ReleaseAreaRow {
+  implicit val readWriter: upickle.default.ReadWriter[ReleaseAreaRow] = upickle.default.macroRW
 }
 
 /**
@@ -48,6 +62,39 @@ trait MorphirCiModule extends Module {
    * (SLF4J / #957). Values greater than 1 evaluate the batch under the outer `--jobs` setting.
    */
   def uploadJobs = Task { 1 }
+
+  /**
+   * The independently versioned areas as the build sees them, read from the modules that declare them rather than
+   * restated here.
+   *
+   * `squire changelog check` keeps its own copy of this table, in `SquireChangelog.Areas`, because a Mill script
+   * cannot depend on the build. `.config/version-rules/corpus.json` is where the two are pinned together, and this
+   * task is what lets a test read the build's side of it without parsing `package.mill`. Raising a floor here and
+   * forgetting the port would otherwise leave the CI policy gate validating the old one.
+   *
+   * Useful on its own: `./mill show ci.releaseAreas` answers "what does the build think it releases, and from which
+   * changelog" without reading three files.
+   */
+  def releaseAreas: T[Seq[ReleaseAreaRow]] = Task {
+    Seq(
+      releaseAreaRow("libraries", morphirArea.jvm)(),
+      releaseAreaRow("mill-plugins", millPlugins.morphir.core(MillVersions.oldest))(),
+      releaseAreaRow("desktop", desktopArea.dist.platform(DesktopPlatform.LinuxAmd64.token))()
+    )
+  }
+
+  /**
+   * Reads one module's area declaration. The changelog is reported workspace-relative, since an absolute path names
+   * this checkout rather than the repository.
+   */
+  private def releaseAreaRow(name: String, module: MorphirVersionedModule): Task[ReleaseAreaRow] = Task.Anon {
+    ReleaseAreaRow(
+      name = name,
+      namespace = module.versionNamespace(),
+      changelogPath = module.changelog().path.relativeTo(BuildCtx.workspaceRoot).toString,
+      startingVersion = module.startingVersion()
+    )
+  }
 
   /**
    * Publishable mill-morphir plugin Cross roots. `integration` is omitted (test-only).
