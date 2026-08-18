@@ -1,6 +1,7 @@
 package morphir.langkit.core.scanner
 
 import kyo.test.*
+import scala.language.strictEquality
 
 class ScanBudgetTests extends Test[Any]:
 
@@ -9,6 +10,14 @@ class ScanBudgetTests extends Test[Any]:
       thunk
       false
     catch case _: IllegalArgumentException | _: ArithmeticException => true
+
+  private def throwsArithmetic(thunk: => Any): Boolean =
+    try
+      thunk
+      false
+    catch
+      case _: ArithmeticException => true
+      case _: Throwable           => false
 
   "ScanBudget" - {
     "has positive typed defaults" in {
@@ -34,6 +43,42 @@ class ScanBudgetTests extends Test[Any]:
       assert(rejected)
     }
 
+    "rejects a zero work limit while all other limits are positive" in {
+      val rejected = rejects {
+        ScanBudget.limited(
+          maxInputLength = InputSize.codeUnits(1L),
+          maxWork = WorkUnits(0L),
+          maxNestingDepth = NestingDepth(1),
+          maxOutputNodes = NodeCount.one
+        )
+      }
+      assert(rejected)
+    }
+
+    "rejects a zero nesting limit while all other limits are positive" in {
+      val rejected = rejects {
+        ScanBudget.limited(
+          maxInputLength = InputSize.codeUnits(1L),
+          maxWork = WorkUnits(1L),
+          maxNestingDepth = NestingDepth(0),
+          maxOutputNodes = NodeCount.one
+        )
+      }
+      assert(rejected)
+    }
+
+    "rejects a zero output-node limit while all other limits are positive" in {
+      val rejected = rejects {
+        ScanBudget.limited(
+          maxInputLength = InputSize.codeUnits(1L),
+          maxWork = WorkUnits(1L),
+          maxNestingDepth = NestingDepth(1),
+          maxOutputNodes = NodeCount(0L)
+        )
+      }
+      assert(rejected)
+    }
+
     "preserves each distinct typed limit" in {
       val budget = ScanBudget.limited(
         maxInputLength = InputSize.codeUnits(11L),
@@ -49,7 +94,7 @@ class ScanBudgetTests extends Test[Any]:
     }
 
     "names the unsafe policy explicitly" in
-      assert(ScanBudget.UnsafeUnbounded == ScanBudget.UnsafeUnbounded)
+      assert(ScanBudget.UnsafeUnbounded.toString == "UnsafeUnbounded")
 
     "does not allow input and work limits to be swapped" in {
       val errors = scala.compiletime.testing.typeCheckErrors("""
@@ -66,6 +111,16 @@ class ScanBudgetTests extends Test[Any]:
   }
 
   "scan measures" - {
+    "support same-measure equality under strict equality" in {
+      assert(InputSize.codeUnits(1L) == InputSize.codeUnits(1L))
+      assert(CodeUnitCount.one == CodeUnitCount(1))
+      assert(WorkUnits(1L) == WorkUnits(1L))
+      assert(NestingDepth(1) == NestingDepth(1))
+      assert(NodeCount.one == NodeCount(1L))
+      assert(SourceOffset.start == SourceOffset(0))
+      assert(ScanPhase("tokenize") == ScanPhase("tokenize"))
+    }
+
     "reject negative input sizes" in
       assert(rejects(InputSize.codeUnits(-1L)))
     "reject negative mebibyte input sizes" in
@@ -86,6 +141,12 @@ class ScanBudgetTests extends Test[Any]:
     }
     "reject mebibyte overflow" in
       assert(rejects(InputSize.mebibytes(Long.MaxValue)))
+    "accept the exact mebibyte boundary and reject its successor with arithmetic overflow" in {
+      val codeUnitsPerMebibyte = 1024L * 1024L
+      val boundary             = Long.MaxValue / codeUnitsPerMebibyte
+      assert(InputSize.mebibytes(boundary).toLong == boundary * codeUnitsPerMebibyte)
+      assert(throwsArithmetic(InputSize.mebibytes(boundary + 1L)))
+    }
   }
 
   "ScanResult.map" - {

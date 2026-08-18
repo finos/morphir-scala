@@ -5,6 +5,8 @@ opaque type InputSize = Long
 object InputSize:
   private val CodeUnitsPerMebibyte = 1024L * 1024L
 
+  given CanEqual[InputSize, InputSize] = CanEqual.derived
+
   def codeUnits(value: Long): InputSize =
     require(value >= 0L, "input size must be non-negative")
     value
@@ -22,6 +24,8 @@ object InputSize:
 opaque type CodeUnitCount = Int
 
 object CodeUnitCount:
+  given CanEqual[CodeUnitCount, CodeUnitCount] = CanEqual.derived
+
   val one: CodeUnitCount = 1
 
   def apply(value: Int): CodeUnitCount =
@@ -33,6 +37,8 @@ object CodeUnitCount:
 opaque type WorkUnits = Long
 
 object WorkUnits:
+  given CanEqual[WorkUnits, WorkUnits] = CanEqual.derived
+
   def apply(value: Long): WorkUnits =
     require(value >= 0L, "work units must be non-negative")
     value
@@ -44,6 +50,8 @@ object WorkUnits:
 opaque type NestingDepth = Int
 
 object NestingDepth:
+  given CanEqual[NestingDepth, NestingDepth] = CanEqual.derived
+
   def apply(value: Int): NestingDepth =
     require(value >= 0, "nesting depth must be non-negative")
     value
@@ -55,6 +63,8 @@ object NestingDepth:
 opaque type NodeCount = Long
 
 object NodeCount:
+  given CanEqual[NodeCount, NodeCount] = CanEqual.derived
+
   val one: NodeCount = 1L
 
   def apply(value: Long): NodeCount =
@@ -68,6 +78,8 @@ object NodeCount:
 opaque type SourceOffset = Int
 
 object SourceOffset:
+  given CanEqual[SourceOffset, SourceOffset] = CanEqual.derived
+
   val start: SourceOffset = 0
 
   def apply(value: Int): SourceOffset =
@@ -81,6 +93,8 @@ object SourceOffset:
 opaque type ScanPhase = String
 
 object ScanPhase:
+  given CanEqual[ScanPhase, ScanPhase] = CanEqual.derived
+
   def apply(value: String): ScanPhase =
     require(!value.isBlank, "scan phase must be non-empty and non-blank")
     value
