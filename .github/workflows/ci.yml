@@ -50,9 +50,6 @@ jobs:
   # requests that satisfied it, each naming an author no commit carried. A green check here is the evidence that
   # settles it, and a red one names the commit and the field rather than asserting a violation in prose.
   commit-authorship:
-    # Pull requests only: the range this checks is the one the pull request adds, and a push carries no base to
-    # compare against. A push to a release branch has already been through this on the pull request that produced it.
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -63,9 +60,12 @@ jobs:
           fetch-depth: 0
 
       - name: Check commit authorship
+        # A pull request supplies its own base and head. A push supplies the commit it moved from, which is the
+        # range that push added. Neither is available on a release or a manual run, and the script falls back to the
+        # head commit alone rather than refusing to run — see its own comment on why it never checks whole history.
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: .github/scripts/check-commit-authorship.sh
 
   squire-policy:
@@ -1030,8 +1030,7 @@ jobs:
     steps:
       - name: Verify required CI jobs succeeded
         run: |
-          # Skipped is a pass here and only here: commit-authorship does not run on a push, which has no base ref.
-          test "${{ needs.commit-authorship.result }}" = "success" || test "${{ needs.commit-authorship.result }}" = "skipped"
+          test "${{ needs.commit-authorship.result }}" = "success"
           test "${{ needs.lint.result }}" = "success"
           test "${{ needs.squire-policy.result }}" = "success"
           test "${{ needs.knowledge-base.result }}" = "success"
