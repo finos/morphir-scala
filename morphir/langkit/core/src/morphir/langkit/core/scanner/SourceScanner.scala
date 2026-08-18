@@ -29,15 +29,21 @@ object SourceScanner:
             new SourceScanner(source, isWorkLimited = false, Long.MaxValue, phase)
 
         try
-          try ScanResult.Success(use(scanner))
-          catch case exhausted: WorkBudgetExhausted => ScanResult.Failure(exhausted.failure)
+          try
+            val value = use(scanner)
+            scanner.exhaustion match
+              case null      => ScanResult.Success(value)
+              case exhausted => ScanResult.Failure(exhausted.failure)
+          catch
+            case exhausted: WorkBudgetExhausted if exhausted.owner.eq(scanner) =>
+              ScanResult.Failure(exhausted.failure)
         finally scanner.close()
 
   private[scanner] def saturatingAdd(current: Long, increment: Long): Long =
     if increment >= Long.MaxValue - current then Long.MaxValue
     else current + increment
 
-  private final class WorkBudgetExhausted(val failure: ScanFailure) extends ControlThrowable
+  private final class WorkBudgetExhausted(val owner: SourceScanner, val failure: ScanFailure) extends ControlThrowable
 
 final class SourceScanner private[scanner] (
     originalSource: String,
@@ -47,9 +53,10 @@ final class SourceScanner private[scanner] (
 ):
   import SourceScanner.WorkBudgetExhausted
 
-  private var currentOffset = 0
-  private var consumedWork  = 0L
-  private var active        = true
+  private var currentOffset                          = 0
+  private var consumedWork                           = 0L
+  private var active                                 = true
+  private var exhaustion: WorkBudgetExhausted | Null = null
 
   def source: String =
     requireActive()
@@ -106,10 +113,10 @@ final class SourceScanner private[scanner] (
 
   private def charge(increment: Long): Unit =
     val attempted = SourceScanner.saturatingAdd(consumedWork, increment)
-    consumedWork = attempted
     if isWorkLimited && attempted > maxWork then
-      throw new WorkBudgetExhausted(
-        ScanFailure(
+      val exhausted = new WorkBudgetExhausted(
+        owner = this,
+        failure = ScanFailure(
           exceeded = ScanLimitExceeded.Work(
             limit = WorkUnits.unsafe(maxWork),
             attempted = WorkUnits.unsafe(attempted)
@@ -118,8 +125,12 @@ final class SourceScanner private[scanner] (
           phase = phase
         )
       )
+      exhaustion = exhausted
+      throw exhausted
+    consumedWork = attempted
 
   private def requireActive(): Unit =
     if !active then throw new IllegalStateException("scanner session is closed")
+    if exhaustion != null then throw exhaustion
 
   private def close(): Unit = active = false

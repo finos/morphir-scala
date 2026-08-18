@@ -74,8 +74,10 @@ class SourceScannerTests extends Test[Any]:
     }
 
     "fails at the exact work boundary before the rejected operation" in {
-      val phase  = ScanPhase("test")
-      val result = SourceScanner.scan("abc", limited(input = 3L, work = 2L), Some(phase)) { scanner =>
+      val phase                   = ScanPhase("test")
+      var retained: SourceScanner = null
+      val result                  = SourceScanner.scan("abc", limited(input = 3L, work = 2L), Some(phase)) { scanner =>
+        retained = scanner
         scanner.peek()
         scanner.advance()
         scanner.peek()
@@ -87,6 +89,81 @@ class SourceScannerTests extends Test[Any]:
             exceeded = ScanLimitExceeded.Work(limit = WorkUnits(2L), attempted = WorkUnits(3L)),
             offset = SourceOffset(1),
             phase = Some(phase)
+          )
+        )
+      )
+      assert(closedMessage(retained.offset).contains("scanner session is closed"))
+    }
+
+    "returns the first work failure when the callback swallows exhaustion" in {
+      val result = SourceScanner.scan("a", limited(input = 1L, work = 1L)) { scanner =>
+        scanner.peek()
+        try scanner.peek()
+        catch case _: Throwable => ()
+        "ignored"
+      }
+
+      assert(
+        result == ScanResult.Failure(
+          ScanFailure(
+            exceeded = ScanLimitExceeded.Work(limit = WorkUnits(1L), attempted = WorkUnits(2L)),
+            offset = SourceOffset.start,
+            phase = None
+          )
+        )
+      )
+    }
+
+    "propagates exhaustion replayed into a different scan and closes that scan" in {
+      val callbackFailure             = new RuntimeException("leave first callback")
+      var captured: Throwable         = null
+      var firstScanner: SourceScanner = null
+
+      try
+        SourceScanner.scan("a", limited(input = 1L, work = 1L)) { scanner =>
+          firstScanner = scanner
+          scanner.peek()
+          try scanner.peek()
+          catch case error: Throwable => captured = error
+          throw callbackFailure
+        }
+      catch case error: Throwable => assert(error.eq(callbackFailure))
+
+      var secondScanner: SourceScanner = null
+      var replayed: Throwable          = null
+      try
+        SourceScanner.scan("b") { scanner =>
+          secondScanner = scanner
+          throw captured
+        }
+      catch case error: Throwable => replayed = error
+
+      assert(captured != null)
+      assert(replayed.eq(captured))
+      assert(closedMessage(firstScanner.offset).contains("scanner session is closed"))
+      assert(closedMessage(secondScanner.offset).contains("scanner session is closed"))
+    }
+
+    "rethrows the same first exhaustion after repeated caught attempts" in {
+      var first: Throwable  = null
+      var second: Throwable = null
+      val result            = SourceScanner.scan("a", limited(input = 1L, work = 1L)) { scanner =>
+        scanner.peek()
+        try scanner.peek()
+        catch case error: Throwable => first = error
+        try scanner.peek()
+        catch case error: Throwable => second = error
+        ()
+      }
+
+      assert(first != null)
+      assert(second.eq(first))
+      assert(
+        result == ScanResult.Failure(
+          ScanFailure(
+            exceeded = ScanLimitExceeded.Work(limit = WorkUnits(1L), attempted = WorkUnits(2L)),
+            offset = SourceOffset.start,
+            phase = None
           )
         )
       )
@@ -117,13 +194,19 @@ class SourceScannerTests extends Test[Any]:
     }
 
     "propagates callback exceptions unchanged" in {
-      val expected          = new RuntimeException("callback failed")
-      var caught: Throwable = null
+      val expected                = new RuntimeException("callback failed")
+      var caught: Throwable       = null
+      var retained: SourceScanner = null
 
-      try SourceScanner.scan("a")(_ => throw expected)
+      try
+        SourceScanner.scan("a") { scanner =>
+          retained = scanner
+          throw expected
+        }
       catch case error: Throwable => caught = error
 
       assert(caught.eq(expected))
+      assert(closedMessage(retained.offset).contains("scanner session is closed"))
     }
 
     "closes a retained scanner after its callback returns" in {
@@ -154,6 +237,21 @@ class SourceScannerTests extends Test[Any]:
       }
 
       assert(result == ScanResult.Success(SourceOffset(source.length)))
+    }
+
+    "navigates an empty source without work" in {
+      val result = SourceScanner.scan("", limited(input = 1L, work = 1L)) { scanner =>
+        assert(scanner.offset == SourceOffset.start)
+        assert(scanner.isAtEnd)
+        assert(scanner.mark == SourceOffset.start)
+        assert(scanner.peek().isEmpty)
+        assert(scanner.peek(CodeUnitCount(Int.MaxValue)).isEmpty)
+        assert(scanner.remaining.isEmpty)
+        assert(scanner.remaining.span == Span.zero)
+        scanner.offset
+      }
+
+      assert(result == ScanResult.Success(SourceOffset.start))
     }
 
     "rejects invalid source-view ranges without cursor movement" in {
