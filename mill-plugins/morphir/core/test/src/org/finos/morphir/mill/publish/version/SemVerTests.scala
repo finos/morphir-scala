@@ -18,6 +18,22 @@ object SemVerTests extends TestSuite {
       assert(SemVer.parse("0.6") == None)
     }
 
+    test("rejects malformed prerelease identifiers") {
+      assert(SemVer.parse("1.2.3-alpha..1") == None)
+      assert(SemVer.parse("1.2.3-") == None)
+      assert(SemVer.parse("1.2.3-.1") == None)
+      assert(SemVer.parse("1.2.3-1.") == None)
+      assert(SemVer.parse("1.2.3-01") == None)
+      assert(SemVer.parse("1.2.3-alpha.01") == None)
+    }
+
+    test("keeps the prerelease identifiers semver does allow") {
+      assert(SemVer.parse("1.2.3-0") == Some(SemVer(1, 2, 3, Some("0"))))
+      assert(SemVer.parse("1.2.3-0a") == Some(SemVer(1, 2, 3, Some("0a"))))
+      assert(SemVer.parse("1.2.3-alpha.1") == Some(SemVer(1, 2, 3, Some("alpha.1"))))
+      assert(SemVer.parse("1.2.3-rc-1") == Some(SemVer(1, 2, 3, Some("rc-1"))))
+    }
+
     test("orders by numeric component") {
       assert(SemVer.compare("0.6.0", "0.5.9") == Right(1))
       assert(SemVer.compare("0.5.9", "0.6.0") == Right(-1))

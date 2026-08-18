@@ -6403,6 +6403,20 @@ class SquireChangelogSpec extends Test[Any]:
           desktop.detail.exists(message => message.contains("desktop/v9.9.9") && message.contains("does not record"))
       )
     }
+
+    "fails rather than reporting every area pending when the git probe itself fails" in {
+      val brokenRunner = RuleRunner { request =>
+        ProcessResult(request, 128, "", "fatal: not a git repository\n")
+      }
+      for
+        root   <- SquireFixtures.scratch("release-status-git-failure")
+        _      <- writeAllAreas(root, validLibraries, validMillPlugins, validDesktop)
+        result <- Abort.run[SquireError](SquireChangelog.status(root, brokenRunner))
+      yield assert(result match
+        case Result.Failure(error) => error.getMessage.contains("not a git repository")
+        case _                     => false
+      )
+    }
   }
 
   "squire CLI wiring" - {

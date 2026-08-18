@@ -517,9 +517,9 @@ jobs:
     # A desktop/v* tag or the desktop release it came from always packages all five platforms,
     # ignoring the switch below — turning off ordinary-CI packaging must never weaken a real
     # release. A push to main, develop or 0.4.x also packages all five; everything else (a pull
-    # request, or a v*/mill-plugins/v* release, which are not this job's business) packages
-    # linux-amd64 alone. This job just computes which; desktop-package and desktop-verify consume
-    # its outputs.
+    # request, or a v*/mill-plugins/v* release, which are not this job's business) packages the
+    # three-leg smoke matrix, one per operating system. This job just computes which;
+    # desktop-package and desktop-verify consume its outputs.
     #
     # startsWith(github.ref, 'refs/tags/desktop/v') is deliberately namespaced: a bare v* library
     # tag or a mill-plugins/v* plugin tag must not force full-platform packaging here, and must
@@ -549,12 +549,17 @@ jobs:
         id: matrix
         shell: bash
         run: |
-          if [[ "$GITHUB_REF" == refs/tags/* || "$GITHUB_EVENT_NAME" == "release" || "$GITHUB_REF" == "refs/heads/main" || "$GITHUB_REF" == "refs/heads/develop" || "$GITHUB_REF" == "refs/heads/0.4.x" ]]; then
+          # Namespaced for the same reason as the job's `if:` above: a bare v* library tag or a
+          # mill-plugins/v* plugin tag is not this job's business, and a generic refs/tags/* or
+          # "$GITHUB_EVENT_NAME" == "release" test would start all five packaging runners for one.
+          # The ref carries the tag on a release event too, so this covers a bare tag push and the
+          # release cut from it alike.
+          if [[ "$GITHUB_REF" == refs/tags/desktop/v* || "$GITHUB_REF" == "refs/heads/main" || "$GITHUB_REF" == "refs/heads/develop" || "$GITHUB_REF" == "refs/heads/0.4.x" ]]; then
             MATRIX='{"include":[{"token":"mac-aarch64","runner":"macos-14"},{"token":"mac-amd64","runner":"macos-15-intel"},{"token":"linux-amd64","runner":"ubuntu-24.04"},{"token":"linux-aarch64","runner":"ubuntu-24.04-arm"},{"token":"win-amd64","runner":"windows-latest"}]}'
             PLATFORMS="mac-aarch64,mac-amd64,linux-amd64,linux-aarch64,win-amd64"
           else
-            # A pull request packages one leg per operating system: linux-amd64, win-amd64 and
-            # mac-aarch64. Each covers machinery the others do not — fpm and AppImage on Linux, Git
+            # A pull request, or a v*/mill-plugins/v* release, packages one leg per operating
+            # system: linux-amd64, win-amd64 and mac-aarch64. Each covers machinery the others do not — fpm and AppImage on Linux, Git
             # Bash and mill.bat and NSIS on Windows, code signing and dmg on macOS — and all three
             # of those areas have produced a real packaging failure. What a pull request defers is
             # only the second architecture of an already-covered operating system, mac-amd64 and

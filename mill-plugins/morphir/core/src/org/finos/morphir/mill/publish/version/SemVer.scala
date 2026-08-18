@@ -7,10 +7,21 @@ object SemVer {
   private val Pattern = raw"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z.-]+))?$$".r
 
   def parse(text: String): Option[SemVer] = text match {
-    case Pattern(major, minor, patch, prerelease) =>
+    case Pattern(major, minor, patch, prerelease) if Option(prerelease).forall(validPrerelease) =>
       Some(SemVer(major.toInt, minor.toInt, patch.toInt, Option(prerelease)))
     case _ => None
   }
+
+  /**
+   * The character class in `Pattern` is not enough on its own: it admits `1.2.3-alpha..1` (an empty identifier) and
+   * `1.2.3-01` (a numeric identifier with a leading zero), both of which semver rejects. A typo of either shape in an
+   * undated changelog heading would otherwise pass the changelog gate and reach a published coordinate.
+   */
+  private def validPrerelease(prerelease: String): Boolean =
+    prerelease.split("\\.", -1).forall { identifier =>
+      identifier.nonEmpty &&
+      (!identifier.forall(_.isDigit) || identifier == "0" || !identifier.startsWith("0"))
+    }
 
   /**
    * Orders two versions, negative when `a` precedes `b`.

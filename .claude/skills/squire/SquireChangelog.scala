@@ -31,9 +31,16 @@ object SquireVersion:
     private val Pattern = raw"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z.-]+))?$$".r
 
     def parse(text: String): Option[SemVer] = text match
-      case Pattern(major, minor, patch, prerelease) =>
+      case Pattern(major, minor, patch, prerelease) if Option(prerelease).forall(validPrerelease) =>
         Some(SemVer(major.toInt, minor.toInt, patch.toInt, Option(prerelease)))
       case _ => None
+
+    /** Rejects empty identifiers (`1.2.3-alpha..1`) and leading-zero numeric ones (`1.2.3-01`), which `Pattern` admits. */
+    private def validPrerelease(prerelease: String): Boolean =
+      prerelease.split("\\.", -1).forall { identifier =>
+        identifier.nonEmpty &&
+        (!identifier.forall(_.isDigit) || identifier == "0" || !identifier.startsWith("0"))
+      }
 
     /** Orders two versions, negative when `a` precedes `b`. Mirrors `org.finos...version.SemVer.compare`. */
     def compare(a: String, b: String): Either[String, Int] =
@@ -357,9 +364,21 @@ object SquireChangelog:
         }
     }
 
+  /**
+   * A stream with no tag at HEAD exits 0 with empty output, so an empty list is the ordinary "not released yet"
+   * answer. A nonzero exit means the probe itself failed, for example outside a git worktree, and must not be
+   * flattened into that answer: every area would then read `pending` and `release status` would exit 0 having
+   * inspected nothing.
+   */
   private def headTagsForStream(root: Path, stream: TagStream, runner: ProcessRunner): List[String] < (Async & Abort[SquireError]) =
     runner.run(ProcessRequest(Chunk("git", "tag", "--points-at", "HEAD", "--list", stream.pattern), Present(root))).map { result =>
-      if result.exitCode != 0 then Nil
+      if result.exitCode != 0 then
+        Abort.fail(
+          SquireError.Failure(
+            "release",
+            s"git tag --points-at HEAD --list ${stream.pattern} failed (exit ${result.exitCode}): ${result.stderr.trim}"
+          )
+        )
       else result.stdout.linesIterator.map(_.trim).filter(_.nonEmpty).flatMap(stream.versionFromTag).toList
     }
 
