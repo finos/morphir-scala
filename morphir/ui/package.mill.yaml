@@ -9,7 +9,7 @@ object js:
   - io.getkyo::kyo-schema
   - io.getkyo::kyo-schema-json
   object test:
-    extends: [ScalaJSTests, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
+    extends: [ScalaJSTests, build.MorphirJSTestNoSourceMap, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
 
 # WebAssembly linker variant; not a publish module — see morphir/buildkit/core/package.mill.yaml for the reasoning,
 # which applies unchanged here.
@@ -22,4 +22,4 @@ object wasm:
   - io.getkyo::kyo-schema
   - io.getkyo::kyo-schema-json
   object test:
-    extends: [ScalaJSTests, build.MorphirWasmTests, millbuild.KyoTestWasm, build.MorphirKyoTestMvnDeps]
+    extends: [ScalaJSTests, build.MorphirJSTestNoSourceMap, build.MorphirWasmTests, millbuild.KyoTestWasm, build.MorphirKyoTestMvnDeps]

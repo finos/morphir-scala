@@ -10,5 +10,5 @@ object js:
   extends: [build.MorphirJSModule, build.MorphirPublishModule, build.MorphirKyoMvnDeps, build.MorphirKyoSchemaJsonMvnDeps]
   moduleDeps: [build.morphir.naming.js]
   object test:
-    extends: [ScalaJSTests, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps, build.MorphirKyoSchemaJsonMvnDeps]
+    extends: [ScalaJSTests, build.MorphirJSTestNoSourceMap, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps, build.MorphirKyoSchemaJsonMvnDeps]
     moduleKind: CommonJSModule

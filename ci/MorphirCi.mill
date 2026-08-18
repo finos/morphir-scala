@@ -3,15 +3,25 @@ package build.ci
 import build.{`mill-plugins` => millPlugins}
 import mill.*
 import mill.api.{BuildCtx, DefaultTaskModule, Evaluator, ModuleRef, Result, SelectMode, TaskCtx}
-import millbuild.LintSelectors
+import mill.util.VcsVersion
+import millbuild.{JsTestSelectors, LintSelectors, SnapshotVersion}
 import org.finos.morphir.mill.publish.{MillPublishEnvFile, MillSonatypeEnv, PgpSecret, PublishSelectors}
+import org.finos.morphir.mill.publish.desktop.{
+  DesktopPlatform,
+  DesktopRelease,
+  DesktopReleaseChecks,
+  DesktopReleaseLayout,
+  ReleaseSnapshot,
+  ReleaseVerifier
+}
 
 /**
  * CI commands that YAML cannot express. Morphir inventory knobs for libraries live in
  * `ci/package.mill.yaml`; publishable Mill plugins are [[pluginModules]] ModuleRefs.
  *
- * Slice 1: [[sonatype]] plus [[lint]]. Next destination: `githubReleases` (skill binaries) as a
- * sibling — reserved in comments, not nested under `publish`, and not a filesystem subfolder yet.
+ * Slice 1: [[sonatype]] plus [[lint]]. Slice 2: [[desktop]] — the Morphir desktop application, published
+ * to a GitHub Release (archives, installers, checksums) and to Maven Central (archives only, one
+ * artifactId per platform, mirroring `mill-dist-native-<os>-<arch>`).
  *
  * Dynamic task selection uses Mill's exclusive [[Evaluator]] commands (same mechanism as builtin
  * `resolve` / `show`). Nested `./mill` is intentionally avoided — under `mill -i` it deadlocks on
@@ -112,6 +122,231 @@ trait MorphirCiModule extends Module {
   }
 
   /**
+   * Desktop application destination.
+   *
+   * Packaging runs on native runners and uploads raw electron-builder output; this destination
+   * canonicalizes it once, then feeds both hosts. The dist modules are excluded from `ci.publish`
+   * (see `excludedModuleSubstrings`) because there is no archive to publish on a snapshot run.
+   */
+  object desktop extends Module {
+
+    /** Root the CI job downloads per-platform artifacts into: `<root>/<token>/…`. */
+    def stagingRootPath = Task.Input {
+      Task.env
+        .get("MORPHIR_DESKTOP_STAGING_DIR")
+        .map(value => os.Path(value, BuildCtx.workspaceRoot))
+        .getOrElse(BuildCtx.workspaceRoot / ".dev" / "dist" / "desktop" / "staging")
+        .toString
+    }
+
+    /** Directory the canonicalized assets are written to; the dist modules read the same path. */
+    def releaseDirPath = Task.Input {
+      Task.env
+        .get("MORPHIR_DESKTOP_RELEASE_DIR")
+        .map(value => os.Path(value, BuildCtx.workspaceRoot))
+        .getOrElse(BuildCtx.workspaceRoot / ".dev" / "dist" / "desktop" / "release")
+        .toString
+    }
+
+    private def publishVersionEnvironment = Task.Input {
+      Seq("MORPHIR_PUBLISH_MODE", "MORPHIR_PUBLISH_BRANCH")
+        .flatMap(name => Task.env.get(name).map(name -> _))
+        .toMap
+    }
+
+    /** Same version the libraries publish under. */
+    def version = Task {
+      SnapshotVersion
+        .select(VcsVersion.vcsState(), publishVersionEnvironment())
+        .fold(message => throw new IllegalArgumentException(message), identity)
+    }
+
+    /**
+     * Rename staged output to canonical names, write `.sha256` sidecars and `checksums.txt`.
+     *
+     * Empties the release directory first, so a second run at a different version in the same
+     * workspace does not leave the previous version's assets and sidecars behind for
+     * `githubRelease` to upload alongside the current ones.
+     *
+     * `platforms` is a comma-separated token list (`DesktopPlatform.token`), defaulting to all five —
+     * the release path. CI packaging a pull request stages only `linux-amd64`, so it passes that one
+     * token; `DesktopRelease.canonicalize` would otherwise fail demanding the other four.
+     */
+    def canonicalize(platforms: String = DesktopPlatform.AllTokens) = Task.Command(exclusive = true) {
+      val selected = parsePlatforms(platforms)
+      runCanonicalize(os.Path(stagingRootPath()), os.Path(releaseDirPath()), version(), selected)
+    }
+
+    /**
+     * Pre-publish check phase: read the release directory back into a [[ReleaseSnapshot]] and run every
+     * [[DesktopReleaseChecks]] check against it, logging each check's name and outcome.
+     *
+     * `--require-signature` defaults to `true` — the workflow's real use, run after the signing step and
+     * before either upload. `ci.desktop.all` passes `false`: it runs canonicalize immediately followed by
+     * verify with no signing step in between, so `checksums.txt.asc` does not exist yet there.
+     *
+     * `platforms` mirrors [[canonicalize]]'s option: a comma-separated token list, defaulting to all five,
+     * so CI verifying a pull request's packaging checks exactly the subset it packaged.
+     *
+     * Throws with every collected problem (across every failing check) when any check fails, so a reader
+     * sees the whole picture rather than the first line.
+     */
+    def verify(requireSignature: Boolean = true, platforms: String = DesktopPlatform.AllTokens) =
+      Task.Command(exclusive = true) {
+        val selected = parsePlatforms(platforms)
+        runVerify(os.Path(releaseDirPath()), version(), requireSignature, selected)
+      }
+
+    private def parsePlatforms(platforms: String)(using TaskCtx): Seq[DesktopPlatform] =
+      DesktopPlatform
+        .parseTokens(platforms)
+        .fold(message => throw new Exception(s"ci.desktop: $message"), identity)
+
+    // Command bodies live in private helpers so `all` can sequence them. A Task.Command cannot be
+    // invoked from another command body — the same reason `sonatype.all` calls `runArtifactPhase`
+    // and `runUploadPhase` rather than its sibling commands.
+    private def runCanonicalize(
+        staging: os.Path,
+        release: os.Path,
+        version: String,
+        platforms: Seq[DesktopPlatform]
+    )(using TaskCtx): Unit = {
+      val manifest = DesktopRelease
+        .canonicalize(staging, release, version, platforms)
+        .fold(message => throw new Exception(s"ci.desktop.canonicalize failed: $message"), identity)
+      manifest.entries.foreach(entry => Task.log.info(s"ci.desktop: ${entry.name} ${entry.sha256}"))
+      Task.log.info(s"ci.desktop: ${manifest.entries.size} assets in $release")
+    }
+
+    private def runVerify(
+        release: os.Path,
+        version: String,
+        requireSignature: Boolean,
+        platforms: Seq[DesktopPlatform]
+    )(using TaskCtx): Unit = {
+      val snapshot = ReleaseSnapshot.read(release, version, platforms)
+      val checks   = DesktopReleaseChecks.defaults(requireSignature)
+      val outcomes = ReleaseVerifier.run(checks, snapshot)
+      outcomes.foreach { outcome =>
+        if (outcome.passed) Task.log.info(s"ci.desktop.verify: ${outcome.name} PASSED")
+        else outcome.problems.foreach(problem => Task.log.error(s"ci.desktop.verify: ${outcome.name} FAILED: $problem"))
+      }
+      val problems = outcomes.flatMap(_.problems)
+      if (problems.nonEmpty)
+        throw new Exception(
+          s"ci.desktop.verify: ${problems.size} problem(s) found in $release:\n" + problems.map(p => s"  - $p").mkString("\n")
+        )
+      Task.log.info(s"ci.desktop.verify: ${outcomes.size} checks passed (requireSignature=$requireSignature)")
+    }
+
+    /**
+     * Upload every canonicalized asset to the release for `tag`.
+     *
+     * If no release exists for the tag, one is created as a **draft**. Publishing a release is a human
+     * action, and the workflow only reaches this task on `release: published` — it has no `push: tags:`
+     * trigger, so a bare tag push never runs it.
+     */
+    def githubRelease(tag: String) = Task.Command(exclusive = true) {
+      runGithubRelease(os.Path(releaseDirPath()), tag)
+    }
+
+    private def runGithubRelease(release: os.Path, tag: String)(using TaskCtx): Unit = {
+      require(tag.nonEmpty, "ci.desktop.githubRelease: --tag is required")
+      val assets  = os.list(release).filter(os.isFile).sortBy(_.last)
+      if (assets.isEmpty) throw new Exception(s"ci.desktop.githubRelease: no assets in $release")
+
+      val checksums = release / DesktopReleaseLayout.ChecksumsFileName
+      if (!os.exists(checksums))
+        throw new Exception(s"ci.desktop.githubRelease: missing $checksums — run canonicalize first")
+
+      if (dryRun) {
+        Task.log.info(s"DRY_RUN: would upload ${assets.size} assets to release $tag")
+      } else {
+        val exists = os.proc("gh", "release", "view", tag)
+          .call(cwd = BuildCtx.workspaceRoot, check = false)
+          .exitCode == 0
+        if (!exists) {
+          Task.log.info(s"ci.desktop: no release for $tag — creating a draft")
+          os.proc("gh", "release", "create", tag, "--draft", "--title", tag, "--generate-notes")
+            .call(cwd = BuildCtx.workspaceRoot)
+        }
+        os.proc("gh", "release", "upload", tag, assets.map(_.toString), "--clobber")
+          .call(cwd = BuildCtx.workspaceRoot)
+        Task.log.info(s"ci.desktop: uploaded ${assets.size} assets to $tag")
+      }
+    }
+
+    /** Upload the five desktop archives to Sonatype Central in one deployment. */
+    def sonatype(evaluator: Evaluator) = Task.Command(exclusive = true) {
+      runSonatype(evaluator, version())
+    }
+
+    /**
+     * Upload the five desktop archives to Sonatype Central as a single deployment.
+     *
+     * The per-module `publishSonatypeCentral` (used by libraries and plugins) hardcodes
+     * `bundleName = None`, so five archives means five separate Central deployments. Each one
+     * defaults to `PublishingType.AUTOMATIC`, so it is released — made public — irrevocably the
+     * moment it succeeds. If, say, the third of five failed, the first two would already be public,
+     * and a retry would fail outright: Central rejects re-uploading a version that already exists.
+     *
+     * `publishAll` accepts a `bundleName` and folds every artifact into one deployment, so nothing is
+     * released until all five upload and validate together — a failed run publishes nothing, and the
+     * step is safely retriable.
+     *
+     * The `platform[_]` cross wildcard selects exactly the five `DesktopPlatform` modules under
+     * `morphir.desktop.dist` — nothing else in the build is swept in.
+     *
+     * The bundle name embeds `desktopVersion` (the same `version()`, the dist modules publish under).
+     * That value is always a released, non-SNAPSHOT version here: this task only runs from the
+     * `desktop-release` workflow job (tags and published releases), which never sets
+     * `MORPHIR_PUBLISH_MODE=snapshot`. That matters because `publishAll` refuses a `bundleName`
+     * outright when any selected artifact resolves to a SNAPSHOT version.
+     */
+    private def runSonatype(evaluator: Evaluator, desktopVersion: String)(using TaskCtx): Unit = {
+      val artifactsSelector = "morphir.desktop.dist.platform[_].publishArtifacts"
+      val bundleName        = s"morphir-desktop-$desktopVersion"
+      val tokens = Seq(
+        "mill.javalib.SonatypeCentralPublishModule/publishAll",
+        "--publishArtifacts",
+        artifactsSelector,
+        "--bundleName",
+        bundleName
+      )
+      Task.log.info(s"ci.desktop: uploading desktop archives to Sonatype as bundle '$bundleName'")
+      if (dryRun) Task.log.info(s"DRY_RUN: would evaluate ${tokens.mkString(" ")}")
+      else {
+        ensureMillPublishEnv()
+        evaluateAll(
+          evaluator,
+          tokens,
+          s"publishAll (desktop bundle $bundleName)",
+          selectMode = SelectMode.Separated
+        )
+      }
+    }
+
+    /**
+     * Canonicalize, verify, then both destinations.
+     *
+     * Verifies with `requireSignature = false`: this command runs canonicalize immediately followed by
+     * verify, with no signing step in between (signing is a workflow step, not something `canonicalize`
+     * does), so `checksums.txt.asc` does not exist yet at this point in a local `ci.desktop.all` run. The
+     * workflow itself runs `ci.desktop.verify` separately — with the default `requireSignature = true` —
+     * after its own signing step and before either upload.
+     */
+    def all(evaluator: Evaluator, tag: String) = Task.Command(exclusive = true) {
+      val release = os.Path(releaseDirPath())
+      val desktopVersion = version()
+      val allPlatforms = DesktopPlatform.values.toSeq
+      runCanonicalize(os.Path(stagingRootPath()), release, desktopVersion, allPlatforms)
+      runVerify(release, desktopVersion, requireSignature = false, allPlatforms)
+      runGithubRelease(release, tag)
+      runSonatype(evaluator, desktopVersion)
+    }
+  }
+
+  /**
    * Scalafmt check over resolved `morphir.__.sources` tasks, including modules that do not mix in
    * `ScalafmtModule`.
    *
@@ -155,8 +390,50 @@ trait MorphirCiModule extends Module {
   }
 
   /**
-   * Cross-destination aggregator. CI calls `ci.publish`. Today that is Sonatype only; later also
-   * `ci.githubReleases`.
+   * The "Run JS tests" phase of the `test-js` / `test-js-desktop` CI jobs — compile, publish, and
+   * both JS and Wasm test runs — scoped to `group` (`"platform"` or `"desktop"`).
+   *
+   * `morphir.ui`, `morphir.desktop` and `morphir.appkit.electron` link a big enough working set that
+   * running them alongside the rest of the JS tree OOM'd the Scala.js linker inside its source-map
+   * printer (morphir-oyn). Splitting the load across two CI jobs — two runners, two daemons — needs
+   * two disjoint, exhaustive subsets of the same wildcard, which a Mill selector cannot express by
+   * itself, so this resolves the full wildcard and hands it to [[JsTestSelectors]] to partition. See
+   * that object for why the split is exhaustive and disjoint by construction, and why an empty
+   * bucket is a hard failure rather than a silently-passing no-op.
+   */
+  def testJs(evaluator: Evaluator, group: String) = Task.Command(exclusive = true) {
+    runJsGroup(evaluator, JsTestSelectors.mainPhaseSelectors, group, "ci.testJs")
+  }
+
+  /**
+   * The "Link the WebAssembly variants" phase of [[testJs]] — kept a separate command so CI can run
+   * it at `-j 1` while the rest of the phase runs at higher concurrency; see
+   * `.config/mise/tasks/test/js` for why Wasm links are serialized.
+   */
+  def testJsWasmLink(evaluator: Evaluator, group: String) = Task.Command(exclusive = true) {
+    runJsGroup(evaluator, Seq(JsTestSelectors.wasmLinkSelector), group, "ci.testJsWasmLink")
+  }
+
+  private def runJsGroup(
+      evaluator: Evaluator,
+      selectors: Seq[String],
+      group: String,
+      what: String
+  )(using TaskCtx): Unit = {
+    val resolved = selectors.flatMap { selector =>
+      unwrap(evaluator.resolveSegments(Seq(selector), SelectMode.Multi), s"resolve $selector").map(_.render)
+    }
+    val kept = JsTestSelectors.selectGroup(resolved, group, what) match {
+      case Right(selected) => selected
+      case Left(message)   => throw new Exception(message)
+    }
+    Task.log.info(s"$what: evaluating ${kept.size} targets (group=$group)")
+    evaluateAll(evaluator, kept, s"$what (group=$group)")
+  }
+
+  /**
+   * Cross-destination aggregator. CI calls `ci.publish`. Today that is Sonatype only; the desktop
+   * destination is `ci.desktop`, invoked by its own release job.
    */
   def publish(evaluator: Evaluator) = Task.Command(exclusive = true) {
     Task.log.info("ci.publish: running destination fan-out (sonatype)")
@@ -279,10 +556,11 @@ trait MorphirCiModule extends Module {
   private def evaluateAll(
       evaluator: Evaluator,
       selectors: Seq[String],
-      what: String
+      what: String,
+      selectMode: SelectMode = SelectMode.Multi
   ): Unit = {
     if selectors.isEmpty then throw new Exception(s"$what: no selectors")
-    val evalResult = unwrap(evaluator.evaluate(selectors, SelectMode.Multi), what)
+    val evalResult = unwrap(evaluator.evaluate(selectors, selectMode), what)
     evalResult.values.toEither match {
       case Left(msg) => throw new Exception(s"$what failed: $msg")
       case Right(_)  => ()

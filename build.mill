@@ -58,7 +58,11 @@ object scoverage extends ScoverageReport {
   def scoverageVersion = Vers.scoverage
 }
 
-trait MorphirPublishModule extends PublishModule with JavaModule with Mima with SonatypeCentralPublishModule {
+/**
+ * Version and POM policy shared by every Morphir publishable, including the desktop distributions,
+ * which are not JVM libraries and must not carry Mima.
+ */
+trait MorphirPublishBase extends PublishModule with SonatypeCentralPublishModule {
   import mill.scalalib.publish.*
 
   def publishVersionEnvironment = Task.Input {
@@ -83,6 +87,8 @@ trait MorphirPublishModule extends PublishModule with JavaModule with Mima with 
     )
   )
 }
+
+trait MorphirPublishModule extends MorphirPublishBase with JavaModule with Mima
 
 trait MorphirIntelligencePublishModule extends MorphirPublishModule {
   import mill.scalalib.publish.*
@@ -227,6 +233,28 @@ trait MorphirWasmModule extends MorphirJSModule with MorphirWasmLinker
  * silently duplicating the `js` module's run rather than exercising the Wasm output.
  */
 trait MorphirWasmTests extends mill.scalajslib.config.TestScalaJSConfigModule with MorphirWasmLinker
+
+/**
+ * Turns Scala.js source maps off for a test link.
+ *
+ * Mill's `ScalaJSModule` defaults `scalaJSSourceMap` to `true` (verified against the pinned Mill
+ * 1.2.0-RC1-46-16168f sources), and `ScalaJSTests` does not override it — a test object gets its own
+ * `true` independent of the module it tests. CI's `test-js` job OOM'd inside the source-map printer
+ * itself: `org.scalajs.linker.backend.javascript.Printers$JSTreePrinterWithSourceMap.print`, called
+ * from `ByteArrayWriter.ensureCapacity` (morphir-oyn). Nothing in CI reads a test link's source map,
+ * so turning it off there removes real linker work rather than trading one failure for another.
+ *
+ * Scoped to test objects only — mix this into `object test:`'s `extends:` list, not the module
+ * itself. A published `js`/`wasm` module keeps its source map for downstream debugging; only the
+ * `.test` submodule's own link is affected. Mix in after `ScalaJSTests` (and, for a Wasm test
+ * object, after [[MorphirWasmTests]] too) so this override wins — the same linearization
+ * [[MorphirWasmTests]] already relies on for `scalaJSExperimentalUseWebAssembly`.
+ *
+ * If OOMs return after this is turned back on, this is the frame to look at first.
+ */
+trait MorphirJSTestNoSourceMap extends ScalaJSModule {
+  override def scalaJSSourceMap: T[Boolean] = Task { false }
+}
 
 /** Shared BuildInfo wiring: version + scalaVersion members. Requires [[PublishModule]] + [[ScalaModule]].
   *

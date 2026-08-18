@@ -15,6 +15,6 @@ object js:
   - build.morphir.js
   - build.morphir.interop.zio.json.js
   object test:
-    extends: [ScalaJSTests, TestModule.ZioTest, build.MorphirTestsTestMvnDepsJS]
+    extends: [ScalaJSTests, build.MorphirJSTestNoSourceMap, TestModule.ZioTest, build.MorphirTestsTestMvnDepsJS]
     moduleKind: CommonJSModule
     moduleDeps: !append [build.morphir.testing.zio.js]

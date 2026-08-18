@@ -23,6 +23,11 @@ echo "Running JS tests..."
 # and naming modules added three more JS link targets. `.mill-jvm-opts` is
 # therefore at `-Xmx8g`, which fits GitHub's 16 GB runners. Treat `-j` and
 # `-Xmx` as one setting: lowering the heap means lowering this too.
+#
+# `-j 4` is this task's own default, tuned for a developer machine with headroom to spare. CI runs
+# at `-j 2` instead — see the `test-js` / `test-js-desktop` steps in .github/workflows/ci.yml — a
+# GitHub-hosted runner is smaller and shares its 8 GB daemon heap with everything else on the box,
+# so CI needs a lower cap even after morphir-oyn split the desktop/UI link load into its own job.
 ./mill -i -k -j 4 \
     "morphir.__.js.__.compile" \
     + \
