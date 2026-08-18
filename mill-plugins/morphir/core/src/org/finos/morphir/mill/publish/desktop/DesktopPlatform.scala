@@ -24,8 +24,12 @@ enum DesktopPlatform(
   case MacAmd64   extends DesktopPlatform("mac-amd64", "mac", "x64", ArchiveKind.Zip, Seq("dmg"))
   case LinuxAmd64
       extends DesktopPlatform("linux-amd64", "linux", "x64", ArchiveKind.TarGz, Seq("AppImage", "deb"))
+  // No deb here, unlike linux-amd64. electron-builder builds a deb by shelling out to fpm, and the
+  // only fpm build it publishes is `fpm-1.9.3-2.3.1-linux-x86`, which cannot execute on an arm64
+  // runner. Declaring the target anyway would make `expected-assets-present` demand a file no
+  // packaging run can produce.
   case LinuxAarch64
-      extends DesktopPlatform("linux-aarch64", "linux", "arm64", ArchiveKind.TarGz, Seq("AppImage", "deb"))
+      extends DesktopPlatform("linux-aarch64", "linux", "arm64", ArchiveKind.TarGz, Seq("AppImage"))
   case WinAmd64 extends DesktopPlatform("win-amd64", "win", "x64", ArchiveKind.Zip, Seq("exe"))
 
   /** Maven artifactId, and the leading part of every asset name for this platform. */
