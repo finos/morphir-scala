@@ -56,6 +56,9 @@ object SourceScanner:
   private[scanner] def wouldExceedLimit(current: Long, increment: Long, limit: Long): Boolean =
     current > limit || increment > limit - current
 
+  private[scanner] def wouldExceedNesting(current: Long, limit: Int): Boolean =
+    current >= limit.toLong
+
   private[scanner] final class BudgetCeilings(
       val maxWork: WorkUnits,
       val maxNestingDepth: NestingDepth,
@@ -75,7 +78,7 @@ final class SourceScanner private[scanner] (
 
   private var currentOffset                      = 0
   private var consumedWork                       = 0L
-  private var currentNestingDepth                = 0
+  private var currentNestingDepth                = 0L
   private var outputNodes                        = 0L
   private var active                             = true
   private var exhaustion: BudgetExhausted | Null = null
@@ -110,22 +113,24 @@ final class SourceScanner private[scanner] (
     val start = currentOffset
     val value = operation
     requireActive()
-    if currentOffset == start then throw new IllegalStateException(s"${phase.value} made no progress")
+    if currentOffset <= start then throw new IllegalStateException(s"${phase.value} made no progress")
     value
 
   def withNesting[A](operation: => A): A =
     requireActive()
-    val attempted = if currentNestingDepth == Int.MaxValue then Int.MaxValue else currentNestingDepth + 1
-    if ceilings != null && attempted > ceilings.maxNestingDepth.toInt then
+    if ceilings != null && SourceScanner.wouldExceedNesting(currentNestingDepth, ceilings.maxNestingDepth.toInt) then
+      val attempted =
+        if currentNestingDepth >= Int.MaxValue.toLong then Int.MaxValue
+        else (currentNestingDepth + 1L).toInt
       failBudget(
         ScanLimitExceeded.Nesting(
           limit = ceilings.maxNestingDepth,
           attempted = NestingDepth.unsafe(attempted)
         )
       )
-    currentNestingDepth = attempted
+    currentNestingDepth += 1L
     try operation
-    finally currentNestingDepth -= 1
+    finally currentNestingDepth -= 1L
 
   def chargeOutputNodes(count: NodeCount): Unit =
     requireActive()

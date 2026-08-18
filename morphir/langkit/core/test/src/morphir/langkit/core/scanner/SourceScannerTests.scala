@@ -409,6 +409,44 @@ class SourceScannerTests extends Test[Any]:
       assert(restoredMessage == "block parser made no progress")
     }
 
+    "rejects parser phases that restore from offset one to an earlier offset" in {
+      val phase                   = ScanPhase("backtracking parser")
+      var backwardMessage: String = null
+      val result                  = SourceScanner.scan("ab") { scanner =>
+        val earlier = scanner.checkpoint()
+        scanner.advance()
+        try scanner.requireProgress(phase)(scanner.restore(earlier))
+        catch case error: IllegalStateException => backwardMessage = error.getMessage
+        scanner.offset
+      }
+
+      assert(result == ScanResult.Success(SourceOffset.start))
+      assert(backwardMessage == "backtracking parser made no progress")
+    }
+
+    "rejects both backward legs when alternating between checkpoints" in {
+      val phase                  = ScanPhase("alternating parser")
+      var firstBackward: String  = null
+      var secondBackward: String = null
+      val result                 = SourceScanner.scan("ab") { scanner =>
+        val zero = scanner.checkpoint()
+        scanner.advance()
+        val one = scanner.checkpoint()
+
+        try scanner.requireProgress(phase)(scanner.restore(zero))
+        catch case error: IllegalStateException => firstBackward = error.getMessage
+
+        scanner.requireProgress(phase)(scanner.restore(one))
+
+        try scanner.requireProgress(phase)(scanner.restore(zero))
+        catch case error: IllegalStateException => secondBackward = error.getMessage
+      }
+
+      assert(result == ScanResult.Success(()))
+      assert(firstBackward == "alternating parser made no progress")
+      assert(secondBackward == "alternating parser made no progress")
+    }
+
     "propagates requireProgress operation exceptions unchanged" in {
       val expected          = new RuntimeException("phase failed")
       var caught: Throwable = null
@@ -597,6 +635,67 @@ class SourceScannerTests extends Test[Any]:
       assert(closedMessage(retained.restore(own)).contains("scanner session is closed"))
     }
 
+    "sustains repeated work and output charges only when unbounded" in {
+      val repetitions = 10000
+      val workLimited = SourceScanner.scan(
+        "a",
+        limited(input = 1L, work = repetitions.toLong - 1L, output = repetitions.toLong)
+      ) { scanner =>
+        var index = 0
+        while index < repetitions do
+          scanner.peek()
+          index += 1
+      }
+      val outputLimited = SourceScanner.scan(
+        "a",
+        limited(input = 1L, work = repetitions.toLong, output = repetitions.toLong - 1L)
+      ) { scanner =>
+        var index = 0
+        while index < repetitions do
+          scanner.chargeOutputNodes(NodeCount.one)
+          index += 1
+      }
+      val unbounded = SourceScanner.scan("a", ScanBudget.UnsafeUnbounded) { scanner =>
+        var workIndex = 0
+        while workIndex < repetitions do
+          scanner.peek()
+          workIndex += 1
+
+        var outputIndex = 0
+        while outputIndex < repetitions do
+          scanner.chargeOutputNodes(NodeCount.one)
+          outputIndex += 1
+
+        (workIndex, outputIndex)
+      }
+
+      assert(
+        workLimited == ScanResult.Failure(
+          ScanFailure(
+            exceeded = ScanLimitExceeded.Work(
+              limit = WorkUnits(repetitions.toLong - 1L),
+              attempted = WorkUnits(repetitions.toLong)
+            ),
+            offset = SourceOffset.start,
+            phase = None
+          )
+        )
+      )
+      assert(
+        outputLimited == ScanResult.Failure(
+          ScanFailure(
+            exceeded = ScanLimitExceeded.OutputNodes(
+              limit = NodeCount(repetitions.toLong - 1L),
+              attempted = NodeCount(repetitions.toLong)
+            ),
+            offset = SourceOffset.start,
+            phase = None
+          )
+        )
+      )
+      assert(unbounded == ScanResult.Success((repetitions, repetitions)))
+    }
+
     "rejects every new operation after the scanner closes" in {
       var retained: SourceScanner    = null
       var checkpoint: ScanCheckpoint = null
@@ -623,5 +722,11 @@ class SourceScannerTests extends Test[Any]:
       assert(!SourceScanner.wouldExceedLimit(0L, Long.MaxValue, Long.MaxValue))
       assert(!SourceScanner.wouldExceedLimit(Long.MaxValue - 1L, 1L, Long.MaxValue))
       assert(SourceScanner.wouldExceedLimit(Long.MaxValue, 1L, Long.MaxValue))
+    }
+
+    "detects saturated nesting attempts without incrementing Int.MaxValue" in {
+      assert(!SourceScanner.wouldExceedNesting(0, 1))
+      assert(SourceScanner.wouldExceedNesting(1, 1))
+      assert(SourceScanner.wouldExceedNesting(Int.MaxValue, Int.MaxValue))
     }
   }
