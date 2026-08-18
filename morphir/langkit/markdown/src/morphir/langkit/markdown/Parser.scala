@@ -2,6 +2,7 @@ package morphir.langkit.markdown
 
 import kyo.*
 import morphir.langkit.core.Span
+import morphir.langkit.core.scanner.*
 
 /**
  * A CommonMark subset parser: ATX headings, paragraphs, fenced code, unordered lists, and thematic breaks.
@@ -11,9 +12,16 @@ import morphir.langkit.core.Span
  */
 object Parser:
 
-  def parse(source: String): Result[ParseError, Document] =
-    // Keep the caller's coordinate space: do not rewrite CRLF before measuring spans.
-    Result.succeed(Document(parseBlocks(source), Span(0, source.length)))
+  def parse(source: String, budget: ScanBudget = ScanBudget.default): Result[ParseError, Document] =
+    SourceScanner.scan(source, budget, phase = Some(ScanPhase("markdown.blocks"))) { scanner =>
+      // Task 6 replaces this materialization with scanner-backed block parsing.
+      val blocks = parseBlocks(scanner.remaining.text)
+      scanner.chargeOutputNodes(NodeCount(blocks.size.toLong + 1L))
+      // Keep the caller's coordinate space: do not rewrite CRLF before measuring spans.
+      Document(blocks, Span(0, source.length))
+    } match
+      case ScanResult.Success(document) => Result.succeed(document)
+      case ScanResult.Failure(error)    => Result.fail(ParseError.Scan(error))
 
   private final case class Line(offset: Int, text: String)
 

@@ -1,4 +1,19 @@
 package morphir.langkit.markdown
 
+import morphir.langkit.core.scanner.*
+
 /** A failure from the markdown parser. */
-final case class ParseError(message: String) extends Exception(message)
+sealed abstract class ParseError(message: String) extends Exception(message)
+
+object ParseError:
+  final case class Syntax(message: String) extends ParseError(message)
+
+  final case class Scan(error: ScanFailure) extends ParseError(renderScanFailure(error))
+
+  def apply(message: String): ParseError = Syntax(message)
+
+  def unapply(error: ParseError): Some[String] = Some(error.getMessage)
+
+  private def renderScanFailure(error: ScanFailure): String =
+    val renderedPhase = error.phase.fold("")(phase => s" during ${phase.value}")
+    s"Markdown scan failed at offset ${error.offset.toInt}$renderedPhase: ${error.exceeded}"

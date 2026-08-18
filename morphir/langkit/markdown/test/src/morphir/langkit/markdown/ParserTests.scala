@@ -3,10 +3,69 @@ package morphir.langkit.markdown
 import kyo.*
 import kyo.test.*
 import morphir.langkit.core.Span
+import morphir.langkit.core.scanner.*
 
 class ParserTests extends Test[Any]:
 
   "Parser.parse" - {
+    "maps an input-size ceiling to an exact typed scanner failure" in {
+      val budget = ScanBudget.limited(
+        maxInputLength = InputSize.codeUnits(4L),
+        maxWork = WorkUnits(100L),
+        maxNestingDepth = NestingDepth(10),
+        maxOutputNodes = NodeCount(10L)
+      )
+
+      Parser.parse("hello", budget) match
+        case Result.Failure(ParseError.Scan(error)) =>
+          assert(
+            error == ScanFailure(
+              exceeded = ScanLimitExceeded.InputLength(
+                limit = InputSize.codeUnits(4L),
+                actual = InputSize.codeUnits(5L)
+              ),
+              offset = SourceOffset.start,
+              phase = Some(ScanPhase("markdown.blocks"))
+            )
+          )
+        case _ => assert(false)
+    }
+    "reports aggregate output exhaustion at the temporary scanner start offset" in {
+      val budget = ScanBudget.limited(
+        maxInputLength = InputSize.codeUnits(100L),
+        maxWork = WorkUnits(100L),
+        maxNestingDepth = NestingDepth(10),
+        maxOutputNodes = NodeCount.one
+      )
+
+      Parser.parse("# Title", budget) match
+        case Result.Failure(ParseError.Scan(error)) =>
+          assert(
+            error == ScanFailure(
+              exceeded = ScanLimitExceeded.OutputNodes(limit = NodeCount.one, attempted = NodeCount(2L)),
+              // Task 5 parses remaining.text without advancing; Task 6 moves this to the scanner-backed parser.
+              offset = SourceOffset.start,
+              phase = Some(ScanPhase("markdown.blocks"))
+            )
+          )
+        case _ => assert(false)
+    }
+    "accepts the exact aggregate output ceiling and preserves the default result" in {
+      val budget = ScanBudget.limited(
+        maxInputLength = InputSize.codeUnits(100L),
+        maxWork = WorkUnits(100L),
+        maxNestingDepth = NestingDepth(10),
+        maxOutputNodes = NodeCount(2L)
+      )
+
+      assert(Parser.parse("# Title", budget) == Parser.parse("# Title"))
+    }
+    "accepts an explicitly unsafe unbounded budget" in {
+      Parser.parse("# Title", ScanBudget.UnsafeUnbounded) match
+        case Result.Success(Document(blocks, _)) =>
+          assert(blocks == Chunk(Block.Heading(1, "Title", Span(0, 7))))
+        case _ => assert(false)
+    }
     "reads an ATX heading and a paragraph" in {
       Parser.parse("# Title\n\nHello") match
         case Result.Success(doc) =>
@@ -213,5 +272,31 @@ class ParserTests extends Test[Any]:
             case Block.Paragraph(text, _) => assert(text == "World")
             case _                        => assert(false)
         case _ => assert(false)
+    }
+  }
+
+  "ParseError" - {
+    "keeps Syntax apply and unapply compatibility" in {
+      val error = ParseError("expected closing fence")
+      error match
+        case ParseError(message) =>
+          assert(error == ParseError.Syntax("expected closing fence"))
+          assert(message == "expected closing fence")
+    }
+    "keeps typed scanner failures exception-compatible with a stable informative message" in {
+      val error = ParseError.Scan(
+        ScanFailure(
+          exceeded = ScanLimitExceeded.InputLength(
+            limit = InputSize.codeUnits(4L),
+            actual = InputSize.codeUnits(5L)
+          ),
+          offset = SourceOffset.start,
+          phase = Some(ScanPhase("markdown.blocks"))
+        )
+      )
+
+      assert(error.isInstanceOf[Exception])
+      assert(error.getMessage == "Markdown scan failed at offset 0 during markdown.blocks: InputLength(4,5)")
+      assert(ParseError.unapply(error).contains(error.getMessage))
     }
   }
