@@ -2,12 +2,13 @@
 type: Intent
 title: Independent version streams
 description: "Version the libraries, the Mill plugin family and the desktop application from their own changelogs and tag streams."
-state: InProgress
+state: Released
 kind: feature
 breaking: false
 created: 2026-08-18
 state_since: 2026-08-18
 tags: [versioning, release, build]
+capability: morphir/morphir-scala:/packaging-and-release.md
 ---
 
 # 0032 — Independent version streams
