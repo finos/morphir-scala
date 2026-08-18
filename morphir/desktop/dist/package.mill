@@ -28,6 +28,11 @@ trait DesktopDistModule extends Cross.Module[String] with JavaModule with Morphi
   override def artifactName               = Task { desktopPlatform.artifactName }
   override def packageDescription: String = "Morphir desktop application distribution"
 
+  /** The desktop application versions and releases independently of the libraries. */
+  override def versionNamespace = Task { Some("desktop") }
+  override def startingVersion  = Task { Some("0.1.0") }
+  override def changelog        = Task.Source(mill.api.BuildCtx.workspaceRoot / "morphir" / "desktop" / "CHANGELOG.md")
+
   private def resolveReleaseDir(env: Map[String, String]): os.Path =
     env
       .get("MORPHIR_DESKTOP_RELEASE_DIR")

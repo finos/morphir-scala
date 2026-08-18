@@ -159,19 +159,12 @@ trait MorphirVersionedModule extends Module {
  * Version and POM policy shared by every Morphir publishable, including the desktop distributions,
  * which are not JVM libraries and must not carry Mima.
  */
-trait MorphirPublishBase extends PublishModule with SonatypeCentralPublishModule {
+trait MorphirPublishBase extends PublishModule with SonatypeCentralPublishModule with MorphirVersionedModule {
   import mill.scalalib.publish.*
 
-  def publishVersionEnvironment = Task.Input {
-    Seq("MORPHIR_PUBLISH_MODE", "MORPHIR_PUBLISH_BRANCH")
-      .flatMap(name => Task.env.get(name).map(name -> _))
-      .toMap
-  }
-  def publishVersion = Task {
-    SnapshotVersion
-      .select(VcsVersion.vcsState(), publishVersionEnvironment())
-      .fold(message => throw new IllegalArgumentException(message), identity)
-  }
+  /** The area's own stream version. See [[MorphirVersionedModule]]. */
+  def publishVersion = Task { streamVersion() }
+
   def packageDescription: String = s"The $artifactName package"
   def pomSettings                = PomSettings(
     description = packageDescription,
