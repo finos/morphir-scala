@@ -284,7 +284,7 @@ object Versions {
   val spire                      = "0.18.0"
   val `tasty-query`              = "0.5.6"
   val upickle                    = "4.4.3"
-  val utest                      = "0.9.1"
+  val utest                      = "0.9.5"
   val zio                        = "2.1.26"
 
   val `zio-config`       = "4.0.8"
