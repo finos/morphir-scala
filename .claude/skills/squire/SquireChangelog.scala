@@ -132,7 +132,8 @@ final case class PrepareResult(
     version: String,
     date: String,
     tag: String,
-    gitTagCommand: String
+    gitTagCommand: String,
+    nextVersion: String
 ) derives Schema
 
 trait ChangelogFileSystem:
@@ -221,9 +222,17 @@ object SquireChangelog:
     }
 
   /**
-   * Dates the topmost undated heading and inserts a fresh `## [Unreleased]` staging bucket above it — never a
-   * guessed version, since only a person decides the next bump. Refuses, writing nothing, unless the changelog
-   * has exactly one undated version heading and `date` is `yyyy-MM-dd`.
+   * Dates the topmost undated heading and inserts a fresh undated heading above it for the next cycle, so
+   * `streamVersion`/`releaseLine` keeps resolving immediately afterwards instead of failing until a human
+   * hand-writes the next number. The default next heading is the just-dated version with its patch component
+   * incremented and its prerelease qualifier dropped; a person can always edit it before the next release.
+   *
+   * This is a post-release step, run *after* the tag it reports has already been pushed — not before. The
+   * commit `prepare` reads must still carry the undated heading naming the version being released, because
+   * that is what the release build matches against the tag; dating it here and only then re-committing would
+   * make the release build compare the tag to whatever heading is undated *next*, which no longer agrees.
+   * Refuses, writing nothing, unless the changelog has exactly one undated version heading and `date` is
+   * `yyyy-MM-dd`.
    */
   def prepare(
       root: Path,
@@ -250,30 +259,34 @@ object SquireChangelog:
         files.read(path).flatMap { text =>
           preparedText(text, area, date) match
             case Left(message) => Abort.fail(SquireError.Failure("release", message))
-            case Right((version, updated)) =>
+            case Right((version, nextVersion, updated)) =>
               files.write(path, updated).map { _ =>
                 val tag = TagStream(area.namespace).tagFor(version)
-                PrepareResult(area.name, area.changelogPath, version, date, tag, s"git tag $tag")
+                PrepareResult(area.name, area.changelogPath, version, date, tag, s"git tag $tag", nextVersion)
               }
         }
     }
 
-  private def preparedText(text: String, area: ReleaseArea, date: String): Either[String, (String, String)] =
+  /** The default next undated heading: the patch component incremented, the prerelease qualifier dropped. */
+  private def nextUndatedVersion(version: String): Either[String, String] =
+    SemVer.parse(version) match
+      case Some(SemVer(major, minor, patch, _)) => Right(s"$major.$minor.${patch + 1}")
+      case None                                 => Left(s"'$version' is not a semantic version")
+
+  private def preparedText(text: String, area: ReleaseArea, date: String): Either[String, (String, String, String)] =
     Changelog.releaseLine(text, area.changelogPath).flatMap { version =>
       val lines = text.split("\n", -1).toIndexedSeq
       Changelog.undatedHeadingLine(lines, version) match
         case None =>
           Left(s"${area.changelogPath}: could not find the undated heading line for $version to date")
         case Some(index) =>
-          val datedLine          = s"## [$version] - $date"
-          val withDatedLine      = lines.updated(index, datedLine)
-          val hasUnreleased      = lines.exists(_.trim.equalsIgnoreCase("## [Unreleased]"))
-          val prepared =
-            if hasUnreleased then withDatedLine
-            else
-              val (before, after) = withDatedLine.splitAt(index)
-              before ++ IndexedSeq("## [Unreleased]", "") ++ after
-          Right((version, prepared.mkString("\n")))
+          nextUndatedVersion(version).map { nextVersion =>
+            val datedLine        = s"## [$version] - $date"
+            val withDatedLine    = lines.updated(index, datedLine)
+            val (before, after)  = withDatedLine.splitAt(index)
+            val prepared         = before ++ IndexedSeq(s"## [$nextVersion]", "") ++ after
+            (version, nextVersion, prepared.mkString("\n"))
+          }
     }
 
   /** Reports, for every area, which stream a tag would release next and whether an existing tag on HEAD agrees with the changelog. */
@@ -374,4 +387,6 @@ object SquireChangelog:
     (rows :+ "" :+ summary).mkString("\n") + "\n"
 
   def renderPrepare(result: PrepareResult): String =
-    s"${result.changelogPath}: dated ${result.version} as ${result.date}\n${result.gitTagCommand}\n"
+    s"${result.changelogPath}: dated ${result.version} as ${result.date}\n" +
+      s"(this runs after the release, not before — ${result.gitTagCommand} should already be pushed)\n" +
+      s"next undated heading: ${result.nextVersion}\n"

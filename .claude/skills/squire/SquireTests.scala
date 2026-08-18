@@ -6317,21 +6317,26 @@ class SquireChangelogSpec extends Test[Any]:
   }
 
   "release prepare" - {
-    "dates the undated heading with the date it is given and inserts the next undated heading above it" in {
+    "dates the undated heading with the date it is given and inserts a real next undated heading above it" in {
       for
         root    <- SquireFixtures.scratch("release-prepare")
         _       <- writeAllAreas(root, preparable, validMillPlugins, validDesktop)
         result  <- SquireChangelog.prepare(root, "libraries", "2026-08-18")
         updated <- Sync.defer(Files.readString((root / "CHANGELOG.md").toJava))
+        // The build must be able to read a release line straight out of the file `prepare` just
+        // wrote — that is the whole point of not leaving `## [Unreleased]` behind.
+        rereadLine = SquireVersion.Changelog.releaseLine(updated, "CHANGELOG.md")
       yield
-        val unreleasedIndex = updated.indexOf("## [Unreleased]")
-        val datedIndex      = updated.indexOf("## [0.6.0-M01] - 2026-08-18")
+        val nextIndex  = updated.indexOf("## [0.6.1]")
+        val datedIndex = updated.indexOf("## [0.6.0-M01] - 2026-08-18")
         assert(
           result.version == "0.6.0-M01" && result.date == "2026-08-18" && result.tag == "v0.6.0-M01" &&
-            result.gitTagCommand == "git tag v0.6.0-M01" &&
-            unreleasedIndex >= 0 && datedIndex > unreleasedIndex &&
+            result.gitTagCommand == "git tag v0.6.0-M01" && result.nextVersion == "0.6.1" &&
+            nextIndex >= 0 && datedIndex > nextIndex &&
+            !updated.contains("## [Unreleased]") &&
             !updated.contains("## [0.6.0-M01]\n\n### Added") &&
-            updated.contains("## [0.5.0-M04] - 2026-04-22")
+            updated.contains("## [0.5.0-M04] - 2026-04-22") &&
+            rereadLine == Right("0.6.1")
         )
     }
 
