@@ -6,6 +6,7 @@ export SQUIRE_MISE_BIN
 (cd .claude/skills/squire && ./mill --no-server --ticker false SquireTests.scala)
 ./mill --ticker false mill-build/test/SnapshotVersionTests.scala
 ./mill --ticker false mill-build/test/LintSelectorsTests.scala
+./mill --ticker false mill-build/test/JsTestSelectorsTests.scala
 ./mill --ticker false mill-build/test/NodeToolchainTests.scala
 ./mill --ticker false mill-build/test/MorphirElmToolTests.scala
 ./mill --ticker false mill-build/test/MorphirElmProjectSandboxTests.scala

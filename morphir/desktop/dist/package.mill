@@ -1,0 +1,84 @@
+// Per-platform Maven publishables for the Morphir desktop application.
+//
+// A `.mill` file rather than YAML because `Cross[...]` cannot be expressed in YAML — the same escape
+// hatch `mill-plugins/morphir/package.mill` uses.
+//
+// The archive is NOT built here. Packaging runs on a matching operating system, so these modules read
+// the canonicalized asset written by `ci.desktop.canonicalize` and publish it as the main artifact.
+// Layout follows Mill's own native launcher (`mill-dist-native-mac-aarch64`): archive plus POM, and no
+// sources or javadoc jar.
+package build.morphir.desktop.dist
+
+import mill.*
+import mill.api.{BuildCtx, PathRef}
+import mill.scalalib.*
+import org.finos.morphir.mill.publish.Sha256Digest
+import org.finos.morphir.mill.publish.desktop.{DesktopPlatform, DesktopReleaseLayout}
+import build.MorphirPublishBase
+
+object platform extends Cross[DesktopDistModule](DesktopPlatform.values.toSeq.map(_.token))
+
+trait DesktopDistModule extends Cross.Module[String] with JavaModule with MorphirPublishBase {
+
+  def desktopPlatform: DesktopPlatform =
+    DesktopPlatform
+      .fromToken(crossValue)
+      .getOrElse(throw new IllegalArgumentException(s"unknown desktop platform token '$crossValue'"))
+
+  override def artifactName               = Task { desktopPlatform.artifactName }
+  override def packageDescription: String = "Morphir desktop application distribution"
+
+  private def resolveReleaseDir(env: Map[String, String]): os.Path =
+    env
+      .get("MORPHIR_DESKTOP_RELEASE_DIR")
+      .map(value => os.Path(value, BuildCtx.workspaceRoot))
+      .getOrElse(BuildCtx.workspaceRoot / ".dev" / "dist" / "desktop" / "release")
+
+  /** Directory holding canonicalized release assets; written by `ci.desktop.canonicalize`. */
+  def releaseDirPath = Task.Input {
+    resolveReleaseDir(Task.env).toString
+  }
+
+  /**
+   * Digest of every file currently staged in the release directory, keyed by file name; empty when
+   * the directory does not exist. A `Task.Input` reading `Task.env` and the filesystem directly (no
+   * other task calls, since `Task.Input` forbids `Task#apply()`), so it re-evaluates on every run.
+   * [[archive]] depends on this rather than checking the filesystem itself, so a re-canonicalized
+   * archive — same name, different bytes — is honestly reported as changed instead of being served
+   * from a stale cached `PathRef`.
+   */
+  def releaseDirDigest = Task.Input {
+    val dir = resolveReleaseDir(Task.env)
+    if (!os.exists(dir)) Map.empty[String, String]
+    else
+      BuildCtx.withFilesystemCheckerDisabled {
+        os.list(dir)
+          .filter(os.isFile(_))
+          .map(file => file.last -> Sha256Digest.ofFile(file))
+          .toMap
+      }
+  }
+
+  /** The archive published as this module's main artifact. */
+  def archive = Task {
+    val name    = DesktopReleaseLayout.archiveName(desktopPlatform, publishVersion())
+    val digests = releaseDirDigest()
+    if (!digests.contains(name))
+      throw new IllegalStateException(
+        s"missing desktop archive $name in ${releaseDirPath()} — run ci.desktop.canonicalize before publishing"
+      )
+    val file = os.Path(releaseDirPath()) / name
+    BuildCtx.withFilesystemCheckerDisabled(PathRef(file))
+  }
+
+  override def publishArtifactsDefaultPayload(
+      sources: Boolean,
+      docs: Boolean
+  ): Task[Map[os.SubPath, PathRef]] = Task.Anon {
+    val baseName = publishArtifactsBaseName()
+    Map(
+      os.SubPath(s"$baseName.pom")                            -> pom(),
+      os.SubPath(s"$baseName.${desktopPlatform.archive.ext}") -> archive()
+    )
+  }
+}

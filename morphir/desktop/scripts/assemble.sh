@@ -3,7 +3,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/../../.."
 
-./mill morphir.desktop.boot.js.fastLinkJS morphir.desktop.renderer.js.fastLinkJS
+# The `+` is required — two selectors side by side make Mill read the second as an argument to the
+# first, so only the boot bundle links and the run still exits 0. See scripts/package.sh.
+./mill morphir.desktop.boot.js.fastLinkJS + morphir.desktop.renderer.js.fastLinkJS
 
 APP="morphir/desktop/app"
 mkdir -p "$APP/dist"

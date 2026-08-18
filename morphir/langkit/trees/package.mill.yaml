@@ -16,7 +16,7 @@ object js:
   - io.github.kitlangton::neotype::0.4.10
   - com.kubuszok::kindlings-fast-show-pretty::0.1.0
   object test:
-    extends: [ScalaJSTests, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
+    extends: [ScalaJSTests, build.MorphirJSTestNoSourceMap, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
 
 object native:
   extends: [build.MorphirNativeModule, build.MorphirKyoCoreMvnDeps]

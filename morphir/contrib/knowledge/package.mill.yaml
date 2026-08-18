@@ -14,4 +14,4 @@ object js:
   mvnDeps: !append
   - com.lihaoyi::sourcecode::0.4.2
   object test:
-    extends: [ScalaJSTests, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
+    extends: [ScalaJSTests, build.MorphirJSTestNoSourceMap, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
