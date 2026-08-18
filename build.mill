@@ -29,7 +29,6 @@ import mill.scalajslib.api.ModuleKind
 import mill.contrib.buildinfo.BuildInfo
 import mill.contrib.scoverage.{ScoverageModule, ScoverageReport}
 import com.github.lolgab.mill.mima.*
-import mill.util.VcsVersion
 import scala.concurrent.duration.DurationInt
 
 /**
@@ -395,22 +394,17 @@ trait MorphirCliBuildInfo extends MorphirVersionBuildInfo {
   * Intentionally does **not** extend [[PublishModule]]. Intelligence is unpublished (#950); mixing in
   * `PublishModule` typed `moduleDeps` as `Seq[PublishModule]` and broke Graph/generate once the SDK lost
   * its publish trait while remaining a module dependency of this CLI.
+  *
+  * [[MorphirVersionedModule]] only needs `Module`, not `PublishModule`, so mixing it in here for
+  * [[intelligenceVersion]] does not reintroduce that problem. It takes the trait's defaults — the root
+  * stream (`versionNamespace = None`), the repository's own `CHANGELOG.md` — the same stream the
+  * libraries publish under, which is what the old env-driven `SnapshotVersion` selection also read.
   */
-trait MorphirIntelligenceBuildInfo extends BuildInfo with ScalaModule {
+trait MorphirIntelligenceBuildInfo extends BuildInfo with ScalaModule with MorphirVersionedModule {
   def buildInfoPackageName = "org.finos.morphir.intelligence.buildinfo"
   override def buildInfoObjectName = "BuildInfo"
 
-  /** Same env-driven version selection as [[MorphirPublishModule.publishVersion]], without requiring PublishModule. */
-  def intelligenceVersionEnvironment = Task.Input {
-    Seq("MORPHIR_PUBLISH_MODE", "MORPHIR_PUBLISH_BRANCH")
-      .flatMap(name => Task.env.get(name).map(name -> _))
-      .toMap
-  }
-  def intelligenceVersion = Task {
-    SnapshotVersion
-      .select(VcsVersion.vcsState(), intelligenceVersionEnvironment())
-      .fold(message => throw new IllegalArgumentException(message), identity)
-  }
+  def intelligenceVersion = Task { streamVersion() }
 
   def buildInfoMembers = Seq(
     BuildInfo.Value("version", intelligenceVersion()),
