@@ -23,6 +23,11 @@ import kyo.*
  * Keep any rule change mirrored in both places. `ChangelogTests.scala`, `SemVerTests.scala` and
  * `TagStreamTests.scala` under `mill-plugins/morphir/core` stay the source of truth for the rules themselves;
  * this file must keep matching them.
+ *
+ * That instruction is now enforced rather than merely stated. `.config/version-rules/corpus.json` holds the
+ * inputs and expected outputs both implementations must satisfy: `VersionCorpusTests` asserts the originals
+ * against it, and `SquireChangelogSpec` asserts this port against it. A rule changed on one side alone fails a
+ * test on the other. Add a case to the corpus rather than to one suite.
  */
 object SquireVersion:
   final case class SemVer(major: Int, minor: Int, patch: Int, prerelease: Option[String])
