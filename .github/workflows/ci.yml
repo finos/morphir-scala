@@ -42,6 +42,32 @@ jobs:
       - name: Lint code
         run: ./mill --ticker false -i ci.lint
 
+  # FINOS requires every contributor to have a signed CLA, and an AI agent cannot sign one, so an agent must not
+  # appear as an author, a committer or a co-author. AGENTS.md has stated that since the repository adopted agents;
+  # until now nothing checked it, which left the rule resting on whoever wrote the commit having read the document.
+  #
+  # It also gives the claim an answer. Automated reviewers have reported this rule as violated on eleven pull
+  # requests that satisfied it, each naming an author no commit carried. A green check here is the evidence that
+  # settles it, and a red one names the commit and the field rather than asserting a violation in prose.
+  commit-authorship:
+    # Pull requests only: the range this checks is the one the pull request adds, and a push carries no base to
+    # compare against. A push to a release branch has already been through this on the pull request that produced it.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v7.0.1
+        with:
+          # Both sides of the range have to be present to list the commits the pull request adds.
+          fetch-depth: 0
+
+      - name: Check commit authorship
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: .github/scripts/check-commit-authorship.sh
+
   squire-policy:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -1000,10 +1026,12 @@ jobs:
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [lint, squire-policy, knowledge-base, test-js, test-js-desktop, test-jvm, test-native, mill-morphir-unit, mill-morphir-integration, morphir-elm-projects, runtime-generated-fixtures, runtime-tests]
+    needs: [commit-authorship, lint, squire-policy, knowledge-base, test-js, test-js-desktop, test-jvm, test-native, mill-morphir-unit, mill-morphir-integration, morphir-elm-projects, runtime-generated-fixtures, runtime-tests]
     steps:
       - name: Verify required CI jobs succeeded
         run: |
+          # Skipped is a pass here and only here: commit-authorship does not run on a push, which has no base ref.
+          test "${{ needs.commit-authorship.result }}" = "success" || test "${{ needs.commit-authorship.result }}" = "skipped"
           test "${{ needs.lint.result }}" = "success"
           test "${{ needs.squire-policy.result }}" = "success"
           test "${{ needs.knowledge-base.result }}" = "success"
