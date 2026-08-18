@@ -3,8 +3,10 @@ package morphir.langkit.core.scanner
 import morphir.langkit.core.Span
 
 sealed abstract case class SourceView private (source: String, span: Span) derives CanEqual:
+  /** Inclusive start of this half-open source range, measured in UTF-16 code units. */
   def start: SourceOffset = SourceOffset(span.offset)
 
+  /** Exclusive end of this half-open source range, measured in UTF-16 code units. */
   def end: SourceOffset = SourceOffset(span.end)
 
   def length: CodeUnitCount = CodeUnitCount(span.length)
