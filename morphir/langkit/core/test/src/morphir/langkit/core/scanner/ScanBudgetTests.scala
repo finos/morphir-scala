@@ -1,6 +1,8 @@
 package morphir.langkit.core.scanner
 
+import kyo.*
 import kyo.test.*
+import morphir.MorphirException
 import scala.language.strictEquality
 
 class ScanBudgetTests extends Test[Any]:
@@ -31,66 +33,78 @@ class ScanBudgetTests extends Test[Any]:
       check(ScanBudget.default)
     }
 
-    "rejects a zero input limit while all other limits are positive" in {
-      val rejected = rejects {
+    "returns an input-length failure rather than throwing for a zero input limit" in
+      assert(
         ScanBudget.limited(
           maxInputLength = InputSize.codeUnits(0L),
           maxWork = WorkUnits(1L),
           maxNestingDepth = NestingDepth(1),
           maxOutputNodes = NodeCount.one
-        )
-      }
-      assert(rejected)
-    }
+        ) == Result.fail(ScanBudgetError.NonPositiveInputLength(InputSize.codeUnits(0L)))
+      )
 
-    "rejects a zero work limit while all other limits are positive" in {
-      val rejected = rejects {
+    "returns a work failure rather than throwing for a zero work limit" in
+      assert(
         ScanBudget.limited(
           maxInputLength = InputSize.codeUnits(1L),
           maxWork = WorkUnits(0L),
           maxNestingDepth = NestingDepth(1),
           maxOutputNodes = NodeCount.one
-        )
-      }
-      assert(rejected)
-    }
+        ) == Result.fail(ScanBudgetError.NonPositiveWork(WorkUnits(0L)))
+      )
 
-    "rejects a zero nesting limit while all other limits are positive" in {
-      val rejected = rejects {
+    "returns a nesting-depth failure rather than throwing for a zero nesting limit" in
+      assert(
         ScanBudget.limited(
           maxInputLength = InputSize.codeUnits(1L),
           maxWork = WorkUnits(1L),
           maxNestingDepth = NestingDepth(0),
           maxOutputNodes = NodeCount.one
-        )
-      }
-      assert(rejected)
-    }
+        ) == Result.fail(ScanBudgetError.NonPositiveNestingDepth(NestingDepth(0)))
+      )
 
-    "rejects a zero output-node limit while all other limits are positive" in {
-      val rejected = rejects {
+    "returns an output-node failure rather than throwing for a zero output-node limit" in
+      assert(
         ScanBudget.limited(
           maxInputLength = InputSize.codeUnits(1L),
           maxWork = WorkUnits(1L),
           maxNestingDepth = NestingDepth(1),
           maxOutputNodes = NodeCount(0L)
-        )
-      }
-      assert(rejected)
+        ) == Result.fail(ScanBudgetError.NonPositiveOutputNodes(NodeCount(0L)))
+      )
+
+    "returns the first validation failure in constructor-parameter order" in
+      assert(
+        ScanBudget.limited(
+          maxInputLength = InputSize.codeUnits(0L),
+          maxWork = WorkUnits(0L),
+          maxNestingDepth = NestingDepth(0),
+          maxOutputNodes = NodeCount(0L)
+        ) == Result.fail(ScanBudgetError.NonPositiveInputLength(InputSize.codeUnits(0L)))
+      )
+
+    "uses MorphirException errors with stable messages" in {
+      val error: ScanBudgetError = ScanBudgetError.NonPositiveWork(WorkUnits(0L))
+      assert(error.isInstanceOf[MorphirException])
+      assert(error.getMessage == "maximum work must be positive: 0")
     }
 
     "preserves each distinct typed limit" in {
-      val budget = ScanBudget.limited(
+      val result = ScanBudget.limited(
         maxInputLength = InputSize.codeUnits(11L),
         maxWork = WorkUnits(22L),
         maxNestingDepth = NestingDepth(33),
         maxOutputNodes = NodeCount(44L)
       )
 
-      assert(budget.maxInputLength.toLong == 11L)
-      assert(budget.maxWork.toLong == 22L)
-      assert(budget.maxNestingDepth.toInt == 33)
-      assert(budget.maxOutputNodes.toLong == 44L)
+      result match
+        case Result.Success(budget) =>
+          assert(budget.maxInputLength.toLong == 11L)
+          assert(budget.maxWork.toLong == 22L)
+          assert(budget.maxNestingDepth.toInt == 33)
+          assert(budget.maxOutputNodes.toLong == 44L)
+        case Result.Failure(error) =>
+          assert(false, s"unexpected validation failure: ${error.getMessage}")
     }
 
     "names the unsafe policy explicitly" in

@@ -1,5 +1,7 @@
 package morphir.langkit.core.scanner
 
+import kyo.*
+
 sealed trait ScanBudget derives CanEqual
 
 object ScanBudget:
@@ -18,21 +20,24 @@ object ScanBudget:
     maxWork = WorkUnits(256L * 1024L * 1024L),
     maxNestingDepth = NestingDepth(1024),
     maxOutputNodes = NodeCount(4L * 1024L * 1024L)
-  )
+  ).getOrThrow
 
   def limited(
       maxInputLength: InputSize,
       maxWork: WorkUnits,
       maxNestingDepth: NestingDepth,
       maxOutputNodes: NodeCount
-  ): Limited =
-    require(maxInputLength.toLong > 0L, "maximum input length must be positive")
-    require(maxWork.toLong > 0L, "maximum work must be positive")
-    require(maxNestingDepth.toInt > 0, "maximum nesting depth must be positive")
-    require(maxOutputNodes.toLong > 0L, "maximum output nodes must be positive")
-    new Limited(
-      maxInputLength = maxInputLength,
-      maxWork = maxWork,
-      maxNestingDepth = maxNestingDepth,
-      maxOutputNodes = maxOutputNodes
-    ) {}
+  ): Result[ScanBudgetError, Limited] =
+    if maxInputLength.toLong <= 0L then Result.fail(ScanBudgetError.NonPositiveInputLength(maxInputLength))
+    else if maxWork.toLong <= 0L then Result.fail(ScanBudgetError.NonPositiveWork(maxWork))
+    else if maxNestingDepth.toInt <= 0 then Result.fail(ScanBudgetError.NonPositiveNestingDepth(maxNestingDepth))
+    else if maxOutputNodes.toLong <= 0L then Result.fail(ScanBudgetError.NonPositiveOutputNodes(maxOutputNodes))
+    else
+      Result.succeed(
+        new Limited(
+          maxInputLength = maxInputLength,
+          maxWork = maxWork,
+          maxNestingDepth = maxNestingDepth,
+          maxOutputNodes = maxOutputNodes
+        ) {}
+      )

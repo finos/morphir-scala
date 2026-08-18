@@ -1,5 +1,6 @@
 package morphir.langkit.core.scanner
 
+import kyo.*
 import kyo.test.*
 import morphir.langkit.core.Span
 import scala.compiletime.testing.typeCheckErrors
@@ -18,7 +19,7 @@ class SourceScannerTests extends Test[Any]:
       maxWork = WorkUnits(work),
       maxNestingDepth = NestingDepth(nesting),
       maxOutputNodes = NodeCount(output)
-    )
+    ).getOrThrow
 
   private def rejectsArgument(thunk: => Any): Boolean =
     try
