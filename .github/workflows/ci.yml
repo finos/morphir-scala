@@ -511,12 +511,14 @@ jobs:
             MATRIX='{"include":[{"token":"mac-aarch64","runner":"macos-14"},{"token":"mac-amd64","runner":"macos-15-intel"},{"token":"linux-amd64","runner":"ubuntu-24.04"},{"token":"linux-aarch64","runner":"ubuntu-24.04-arm"},{"token":"win-amd64","runner":"windows-latest"}]}'
             PLATFORMS="mac-aarch64,mac-amd64,linux-amd64,linux-aarch64,win-amd64"
           else
-            # A pull request packages linux-amd64 and win-amd64. Windows is the platform least like
-            # the others — Git Bash rather than a POSIX shell, mill.bat rather than ./mill, NSIS
-            # rather than fpm — so it is the one most worth catching before a merge. The remaining
-            # three legs still wait for a push to a release branch.
-            MATRIX='{"include":[{"token":"linux-amd64","runner":"ubuntu-24.04"},{"token":"win-amd64","runner":"windows-latest"}]}'
-            PLATFORMS="linux-amd64,win-amd64"
+            # A pull request packages one leg per operating system: linux-amd64, win-amd64 and
+            # mac-aarch64. Each covers machinery the others do not — fpm and AppImage on Linux, Git
+            # Bash and mill.bat and NSIS on Windows, code signing and dmg on macOS — and all three
+            # of those areas have produced a real packaging failure. What a pull request defers is
+            # only the second architecture of an already-covered operating system, mac-amd64 and
+            # linux-aarch64, which a push to a release branch still exercises.
+            MATRIX='{"include":[{"token":"linux-amd64","runner":"ubuntu-24.04"},{"token":"win-amd64","runner":"windows-latest"},{"token":"mac-aarch64","runner":"macos-14"}]}'
+            PLATFORMS="linux-amd64,win-amd64,mac-aarch64"
           fi
           echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
           echo "platforms=$PLATFORMS" >> "$GITHUB_OUTPUT"
