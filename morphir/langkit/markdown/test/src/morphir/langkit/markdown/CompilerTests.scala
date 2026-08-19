@@ -1,16 +1,15 @@
-package morphir.langkit.markdown.compile
+package morphir.langkit.markdown
 
 import kyo.*
 import kyo.test.*
 import morphir.langkit.core.Span
-import morphir.langkit.markdown.*
 
-class MarkdownCompilerTests extends Test[Any]:
+class CompilerTests extends Test[Any]:
 
   /**
    * A debug writer that renders an S-expression rather than markup.
    *
-   * Deliberately not HTML: it proves the driver visits every node and nests children correctly, without tying the
+   * Deliberately not HTML: it proves the fold visits every node and nests children correctly, without tying the
    * traversal test to any output target.
    */
   private given Compiler[String] with
@@ -26,9 +25,9 @@ class MarkdownCompilerTests extends Test[Any]:
   private val span = Span.zero
 
   private def compile(blocks: Block*): String =
-    MarkdownCompiler.compile[String](Document(Chunk.from(blocks), span))
+    Compiler.compile[String](Document(Chunk.from(blocks), span))
 
-  "MarkdownCompiler.compile" - {
+  "Compiler.compile" - {
     "folds an empty document" in
       assert(compile() == "(doc )")
     "folds each block kind in document order" in {
