@@ -179,15 +179,17 @@ object Parser:
     then Present(trimmed.drop(2).trim)
     else Absent
 
-  private def headingPrefix(scanner: SourceScanner, line: Line): Maybe[(Int, String)] =
+  private def headingPrefix(scanner: SourceScanner, line: Line): Maybe[(HeadingLevel, String)] =
     inspectLine(scanner, line) { text =>
       headingPrefix(text.trim).map { case (level, rest) => (level, rest.trim) }
     }
 
-  private def headingPrefix(text: String): Maybe[(Int, String)] =
+  // The one-to-six bound lives in HeadingLevel.fromInt rather than in a guard here, so a run of seven
+  // or more hashes falls through to the paragraph branch exactly as CommonMark requires.
+  private def headingPrefix(text: String): Maybe[(HeadingLevel, String)] =
     val hashes = text.takeWhile(_ == '#')
-    if hashes.nonEmpty && hashes.length <= 6 && text.length > hashes.length && text.charAt(hashes.length) == ' '
-    then Present((hashes.length, text.drop(hashes.length + 1)))
+    if hashes.nonEmpty && text.length > hashes.length && text.charAt(hashes.length) == ' ' then
+      HeadingLevel.fromInt(hashes.length).map(level => (level, text.drop(hashes.length + 1)))
     else Absent
 
   private def fenceOpen(scanner: SourceScanner, line: Line): Maybe[FenceOpen] =

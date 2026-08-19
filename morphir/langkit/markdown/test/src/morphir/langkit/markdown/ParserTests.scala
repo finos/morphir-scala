@@ -82,9 +82,9 @@ class ParserTests extends Test[Any]:
     }
     "preserves exact documents across the existing block subset" in {
       val cases = Chunk(
-        ""                          -> Document(Chunk.empty, Span.zero),
-        "# Title"                   -> Document(Chunk(Block.Heading(1, "Title", Span(0, 7))), Span(0, 7)),
-        "alpha\nbeta"               -> Document(Chunk(Block.Paragraph("alpha\nbeta", Span(0, 10))), Span(0, 10)),
+        ""            -> Document(Chunk.empty, Span.zero),
+        "# Title"     -> Document(Chunk(Block.Heading(HeadingLevel.One, "Title", Span(0, 7))), Span(0, 7)),
+        "alpha\nbeta" -> Document(Chunk(Block.Paragraph("alpha\nbeta", Span(0, 10))), Span(0, 10)),
         "```scala\none\n\ntwo\n```" -> Document(
           Chunk(Block.FencedCode(FenceInfo.parse("scala"), "one\n\ntwo\n", Span(0, 21))),
           Span(0, 21)
@@ -103,11 +103,11 @@ class ParserTests extends Test[Any]:
         ),
         "---"      -> Document(Chunk(Block.ThematicBreak(Span(0, 3))), Span(0, 3)),
         "# A\n\nB" -> Document(
-          Chunk(Block.Heading(1, "A", Span(0, 3)), Block.Paragraph("B", Span(5, 1))),
+          Chunk(Block.Heading(HeadingLevel.One, "A", Span(0, 3)), Block.Paragraph("B", Span(5, 1))),
           Span(0, 6)
         ),
         "# A\r\n\r\nB" -> Document(
-          Chunk(Block.Heading(1, "A", Span(0, 3)), Block.Paragraph("B", Span(7, 1))),
+          Chunk(Block.Heading(HeadingLevel.One, "A", Span(0, 3)), Block.Paragraph("B", Span(7, 1))),
           Span(0, 8)
         )
       )
@@ -220,7 +220,7 @@ class ParserTests extends Test[Any]:
     "accepts an explicitly unsafe unbounded budget" in {
       Parser.parse("# Title", ScanBudget.UnsafeUnbounded) match
         case Result.Success(Document(blocks, _)) =>
-          assert(blocks == Chunk(Block.Heading(1, "Title", Span(0, 7))))
+          assert(blocks == Chunk(Block.Heading(HeadingLevel.One, "Title", Span(0, 7))))
         case _ => assert(false)
     }
     "budgets fence metadata tokens before whitespace-heavy allocation amplification" in {
@@ -271,7 +271,7 @@ class ParserTests extends Test[Any]:
           assert(doc.blocks.size == 2)
           doc.blocks(0) match
             case Block.Heading(level, text, _) =>
-              assert(level == 1)
+              assert(level.toInt == 1)
               assert(text == "Title")
             case _ => assert(false)
           doc.blocks(1) match
@@ -285,7 +285,7 @@ class ParserTests extends Test[Any]:
           assert(doc.blocks.size == 2)
           doc.blocks(0) match
             case Block.Heading(level, text, _) =>
-              assert(level == 1)
+              assert(level.toInt == 1)
               assert(text == "Title")
             case _ => assert(false)
           doc.blocks(1) match
@@ -298,11 +298,11 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           assert(doc.blocks.size == 2)
           doc.blocks(0) match
-            case Block.Heading(1, "One", _) => ()
-            case _                          => assert(false)
+            case Block.Heading(HeadingLevel.One, "One", _) => ()
+            case _                                         => assert(false)
           doc.blocks(1) match
-            case Block.Heading(2, "Two", _) => ()
-            case _                          => assert(false)
+            case Block.Heading(HeadingLevel.Two, "Two", _) => ()
+            case _                                         => assert(false)
         case _ => assert(false)
     }
     "spans the whole source" in {
@@ -318,7 +318,7 @@ class ParserTests extends Test[Any]:
           assert(doc.span == Span(0, source.length))
           assert(doc.blocks.size == 2)
           doc.blocks(0) match
-            case Block.Heading(1, "Title", span) =>
+            case Block.Heading(HeadingLevel.One, "Title", span) =>
               assert(span == Span(0, "# Title".length))
             case _ => assert(false)
           doc.blocks(1) match
