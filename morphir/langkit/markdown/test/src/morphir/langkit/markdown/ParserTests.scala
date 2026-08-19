@@ -2,11 +2,269 @@ package morphir.langkit.markdown
 
 import kyo.*
 import kyo.test.*
+import morphir.MorphirException
 import morphir.langkit.core.Span
+import morphir.langkit.core.scanner.*
 
 class ParserTests extends Test[Any]:
 
+  private def parseMetrics(source: String): ScanMetrics =
+    Parser.parseWithMetrics(source, ScanBudget.UnsafeUnbounded) match
+      case Result.Success((_, metrics)) => metrics
+      case _                            => throw new AssertionError("unbounded parse unexpectedly failed")
+
+  private def assertLinearWork(name: String, input: Int => String)(using AssertScope): Unit =
+    val smallerSource = input(1024)
+    assert(smallerSource.length == 1024, s"$name fixture must be exactly 1,024 UTF-16 code units")
+    val smaller = parseMetrics(smallerSource).work.toLong
+
+    val largerSource = input(2048)
+    assert(largerSource.length == 2048, s"$name fixture must be exactly 2,048 UTF-16 code units")
+    val larger = parseMetrics(largerSource).work.toLong
+
+    val bound =
+      if smaller > (Long.MaxValue - 64L) / 3L then Long.MaxValue
+      else smaller * 3L + 64L
+    assert(larger <= bound, s"$name work grew from $smaller to $larger (bound $bound)")
+
+  private def limitedBudget(
+      maxInputLength: InputSize,
+      maxWork: WorkUnits,
+      maxNestingDepth: NestingDepth,
+      maxOutputNodes: NodeCount
+  ): ScanBudget.Limited =
+    ScanBudget.limited(
+      maxInputLength = maxInputLength,
+      maxWork = maxWork,
+      maxNestingDepth = maxNestingDepth,
+      maxOutputNodes = maxOutputNodes
+    ).getOrThrow
+
+  private def tightWorkBudget(inputLength: Int): ScanBudget.Limited =
+    limitedBudget(
+      maxInputLength = InputSize.fromCodeUnits(inputLength.toLong).getOrThrow,
+      maxWork = WorkUnits(32L),
+      maxNestingDepth = NestingDepth(16),
+      maxOutputNodes = NodeCount(16L)
+    )
+
+  private def assertWorkExhausted(source: String)(using AssertScope): Unit =
+    val result    = Parser.parse(source, tightWorkBudget(source.length))
+    val exhausted = result match
+      case Result.Failure(ParseError.Scan(ScanFailure(ScanLimitExceeded.Work(_, _), _, _))) => true
+      case _                                                                                => false
+    assert(exhausted, s"expected typed work exhaustion, got $result")
+
   "Parser.parse" - {
+    "has deterministic near-linear work growth for representative block inputs" in {
+      val inputs = Chunk[(String, Int => String)](
+        "paragraph"        -> (size => "a" * size),
+        "fence"            -> (size => "```\n" + ("a" * (size - 8)) + "\n```"),
+        "list"             -> (size => "- a\n" * (size / 4)),
+        "ambiguous prefix" -> (size => "#######\n" * (size / 8))
+      )
+
+      inputs.foreach { case (name, input) => assertLinearWork(name, input) }
+    }
+    "terminates hostile inputs through typed work exhaustion" in {
+      val hostile = Chunk(
+        "`" * 100000,
+        "~" * 100000,
+        "   - " * 20000,
+        "a\r\n" * 30000,
+        "\uD83D\uDE00" * 50000
+      )
+
+      hostile.foreach { source =>
+        assert(source.length.toLong < ScanBudget.default.maxInputLength.toLong)
+        assertWorkExhausted(source)
+      }
+    }
+    "preserves exact documents across the existing block subset" in {
+      val cases = Chunk(
+        ""                          -> Document(Chunk.empty, Span.zero),
+        "# Title"                   -> Document(Chunk(Block.Heading(1, "Title", Span(0, 7))), Span(0, 7)),
+        "alpha\nbeta"               -> Document(Chunk(Block.Paragraph("alpha\nbeta", Span(0, 10))), Span(0, 10)),
+        "```scala\none\n\ntwo\n```" -> Document(
+          Chunk(Block.FencedCode(FenceInfo.parse("scala"), "one\n\ntwo\n", Span(0, 21))),
+          Span(0, 21)
+        ),
+        "```\ncode" -> Document(
+          Chunk(Block.FencedCode(FenceInfo.empty, "code", Span(0, 8))),
+          Span(0, 8)
+        ),
+        "```\ncode\n" -> Document(
+          Chunk(Block.FencedCode(FenceInfo.empty, "code\n", Span(0, 9))),
+          Span(0, 9)
+        ),
+        "- alpha\n- beta" -> Document(
+          Chunk(Block.UnorderedList(Chunk("alpha", "beta"), Span(0, 14))),
+          Span(0, 14)
+        ),
+        "---"      -> Document(Chunk(Block.ThematicBreak(Span(0, 3))), Span(0, 3)),
+        "# A\n\nB" -> Document(
+          Chunk(Block.Heading(1, "A", Span(0, 3)), Block.Paragraph("B", Span(5, 1))),
+          Span(0, 6)
+        ),
+        "# A\r\n\r\nB" -> Document(
+          Chunk(Block.Heading(1, "A", Span(0, 3)), Block.Paragraph("B", Span(7, 1))),
+          Span(0, 8)
+        )
+      )
+
+      cases.foreach { case (source, expected) =>
+        assert(Parser.parse(source) == Result.succeed(expected))
+      }
+    }
+    "maps an input-size ceiling to an exact typed scanner failure" in {
+      val budget = limitedBudget(
+        maxInputLength = InputSize.codeUnits(4L),
+        maxWork = WorkUnits(100L),
+        maxNestingDepth = NestingDepth(10),
+        maxOutputNodes = NodeCount(10L)
+      )
+
+      Parser.parse("hello", budget) match
+        case Result.Failure(ParseError.Scan(error)) =>
+          assert(
+            error == ScanFailure(
+              exceeded = ScanLimitExceeded.InputLength(
+                limit = InputSize.codeUnits(4L),
+                actual = InputSize.codeUnits(5L)
+              ),
+              offset = SourceOffset.start,
+              phase = Present(ScanPhase("markdown.blocks"))
+            )
+          )
+        case _ => assert(false)
+    }
+    "reports incremental output exhaustion at the consumed heading end" in {
+      val budget = limitedBudget(
+        maxInputLength = InputSize.codeUnits(100L),
+        maxWork = WorkUnits(100L),
+        maxNestingDepth = NestingDepth(10),
+        maxOutputNodes = NodeCount.one
+      )
+
+      Parser.parse("# Title", budget) match
+        case Result.Failure(ParseError.Scan(error)) =>
+          assert(
+            error == ScanFailure(
+              exceeded = ScanLimitExceeded.OutputNodes(limit = NodeCount.one, attempted = NodeCount(2L)),
+              offset = SourceOffset(7),
+              phase = Present(ScanPhase("markdown.blocks"))
+            )
+          )
+        case _ => assert(false)
+    }
+    "charges deterministic work for scanner movement and line-local inspection" in {
+      val budget = limitedBudget(
+        maxInputLength = InputSize.codeUnits(100L),
+        maxWork = WorkUnits(8L),
+        maxNestingDepth = NestingDepth(10),
+        maxOutputNodes = NodeCount(10L)
+      )
+
+      Parser.parse("x", budget) match
+        case Result.Failure(ParseError.Scan(error)) =>
+          assert(
+            error == ScanFailure(
+              exceeded = ScanLimitExceeded.Work(limit = WorkUnits(8L), attempted = WorkUnits(9L)),
+              offset = SourceOffset(1),
+              phase = Present(ScanPhase("markdown.blocks"))
+            )
+          )
+        case _ => assert(false)
+    }
+    "does not refund speculative paragraph lookahead work" in {
+      val budget = limitedBudget(
+        maxInputLength = InputSize.codeUnits(100L),
+        maxWork = WorkUnits(30L),
+        maxNestingDepth = NestingDepth(10),
+        maxOutputNodes = NodeCount(10L)
+      )
+
+      assert(Parser.parse("# h", budget) == Parser.parse("# h"))
+      Parser.parse("x\n# h", budget) match
+        case Result.Failure(ParseError.Scan(error)) =>
+          assert(
+            error == ScanFailure(
+              exceeded =
+                ScanLimitExceeded.Work(limit = WorkUnits(30L), attempted = WorkUnits(31L)),
+              offset = SourceOffset(2),
+              phase = Present(ScanPhase("markdown.blocks"))
+            )
+          )
+        case _ => assert(false)
+    }
+    "accepts the exact incremental output ceiling and preserves the default result" in {
+      val budget = limitedBudget(
+        maxInputLength = InputSize.codeUnits(100L),
+        maxWork = WorkUnits(100L),
+        maxNestingDepth = NestingDepth(10),
+        maxOutputNodes = NodeCount(2L)
+      )
+
+      assert(Parser.parse("# Title", budget) == Parser.parse("# Title"))
+    }
+    "charges exactly one output node for an empty document" in {
+      val exact = limitedBudget(
+        maxInputLength = InputSize.codeUnits(1L),
+        maxWork = WorkUnits(1L),
+        maxNestingDepth = NestingDepth(1),
+        maxOutputNodes = NodeCount.one
+      )
+
+      assert(Parser.parse("", exact) == Result.succeed(Document(Chunk.empty, Span.zero)))
+    }
+    "accepts an explicitly unsafe unbounded budget" in {
+      Parser.parse("# Title", ScanBudget.UnsafeUnbounded) match
+        case Result.Success(Document(blocks, _)) =>
+          assert(blocks == Chunk(Block.Heading(1, "Title", Span(0, 7))))
+        case _ => assert(false)
+    }
+    "budgets fence metadata tokens before whitespace-heavy allocation amplification" in {
+      val infoStrings = Chunk(
+        "scala " + ("flag " * 20000),
+        "{" + (".class " * 20000) + "}",
+        "scala " + ("key=value " * 10000)
+      )
+
+      infoStrings.foreach { info =>
+        val source = s"~~~ $info\n~~~"
+        val budget = limitedBudget(
+          maxInputLength = InputSize.fromCodeUnits(source.length.toLong + 1L).getOrThrow,
+          maxWork = WorkUnits(100000000L),
+          maxNestingDepth = NestingDepth(16),
+          maxOutputNodes = NodeCount(10L)
+        )
+
+        Parser.parse(source, budget) match
+          case Result.Failure(ParseError.Scan(ScanFailure(ScanLimitExceeded.OutputNodes(limit, attempted), _, _))) =>
+            assert(limit == NodeCount(10L))
+            assert(attempted == NodeCount(17L))
+          case other => throw new AssertionError(s"expected typed metadata output exhaustion, got $other")
+      }
+    }
+    "accepts the exact fence metadata output boundary and preserves structured info" in {
+      val source        = "~~~ scala flag key=value {.class}\n~~~"
+      val metadataNodes = NodeCount.from(FenceInfo.TokenOutputReservation.toLong * 4L).getOrThrow
+      val budget        = limitedBudget(
+        maxInputLength = InputSize.fromCodeUnits(source.length.toLong).getOrThrow,
+        maxWork = WorkUnits(10000L),
+        maxNestingDepth = NestingDepth(16),
+        maxOutputNodes = NodeCount.from(metadataNodes.toLong + 2L).getOrThrow
+      )
+
+      Parser.parse(source, budget) match
+        case Result.Success(Document(Chunk(Block.FencedCode(info, "", _)), _)) =>
+          assert(info == FenceInfo.parse("scala flag key=value {.class}"))
+          assert(info.language == Present("scala"))
+          assert(info.flag("flag"))
+          assert(info.option("key") == Present("value"))
+          assert(info.classes == Chunk("class"))
+        case other => throw new AssertionError(s"expected exact-boundary fence success, got $other")
+    }
     "reads an ATX heading and a paragraph" in {
       Parser.parse("# Title\n\nHello") match
         case Result.Success(doc) =>
@@ -69,6 +327,15 @@ class ParserTests extends Test[Any]:
               assert(span.length == "Hello".length)
             case _ => assert(false)
         case _ => assert(false)
+    }
+    "keeps a lone carriage return as paragraph text in the original span" in {
+      val source = "alpha\rbeta"
+
+      assert(
+        Parser.parse(source) == Result.succeed(
+          Document(Chunk(Block.Paragraph(source, Span(0, source.length))), Span(0, source.length))
+        )
+      )
     }
     "accepts an empty document" in {
       Parser.parse("") match
@@ -213,5 +480,52 @@ class ParserTests extends Test[Any]:
             case Block.Paragraph(text, _) => assert(text == "World")
             case _                        => assert(false)
         case _ => assert(false)
+    }
+  }
+
+  "ParseError" - {
+    "exposes the root message and returns Syntax from its compatibility constructor" in {
+      val syntax: ParseError.Syntax = ParseError("expected closing fence")
+      val root: ParseError          = syntax
+
+      assert(root.message == "expected closing fence")
+      assert(root.getMessage == root.message)
+      assert(ParseError.unapply(root).contains(root.message))
+    }
+    "keeps Syntax apply and unapply compatibility" in {
+      val error = ParseError("expected closing fence")
+      error match
+        case ParseError(message) =>
+          assert(error == ParseError.Syntax("expected closing fence"))
+          assert(message == "expected closing fence")
+    }
+    "keeps typed scanner failures exception-compatible with a stable informative message" in {
+      val error = ParseError.Scan(
+        ScanFailure(
+          exceeded = ScanLimitExceeded.InputLength(
+            limit = InputSize.codeUnits(4L),
+            actual = InputSize.codeUnits(5L)
+          ),
+          offset = SourceOffset.start,
+          phase = Present(ScanPhase("markdown.blocks"))
+        )
+      )
+
+      assert(error.isInstanceOf[Exception])
+      assert(error.getMessage == "Markdown scan failed at offset 0 during markdown.blocks: InputLength(4,5)")
+      assert(ParseError.unapply(error).contains(error.getMessage))
+    }
+    "unifies syntax and scanner failures as MorphirException values while retaining their messages" in {
+      val syntax: MorphirException = ParseError.Syntax("expected closing fence")
+      val scan: MorphirException   = ParseError.Scan(
+        ScanFailure(
+          exceeded = ScanLimitExceeded.Work(limit = WorkUnits(0L), attempted = WorkUnits(1L)),
+          offset = SourceOffset.start,
+          phase = Absent
+        )
+      )
+
+      assert(syntax.getMessage == "expected closing fence")
+      assert(scan.getMessage.startsWith("Markdown scan failed at offset 0"))
     }
   }

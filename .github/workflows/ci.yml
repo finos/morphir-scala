@@ -468,12 +468,10 @@ jobs:
         uses: coursier/cache-action@v8
 
       - name: Install libuv
-        # Bounded for the reason the publish job's identical step records: a stalled Ubuntu mirror
-        # otherwise consumes the whole job budget and the job is reported as cancelled.
+        # Bounded: a stalled Ubuntu mirror otherwise consumes the job budget. The script skips the
+        # Azure archive (see actions/runner-images#12949) rather than waiting on it.
         timeout-minutes: 6
-        run: |
-          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update
-          sudo apt-get -o Acquire::Retries=3 install -y libuv1-dev
+        run: .github/scripts/install-libuv.sh
 
       # Reuse of this job's own native build output. Unlike test-js's cache, which is save-only and
       # restored by `publish` rather than by test-js itself, this both restores and saves, so a
@@ -900,19 +898,11 @@ jobs:
         uses: coursier/cache-action@v8
 
       - name: Install libuv
-        # Bounded, because an unreachable Ubuntu mirror stalls apt rather than failing. Run
-        # 32158142566, the develop run for the #991 merge, spent this job's entire 60-minute budget
-        # inside `apt-get update` and published nothing; the log's last line was an ordinary `Get`,
-        # so a stall reads exactly like slow progress. A job killed by its timeout is also reported
-        # as *cancelled*, which reads as though a person stopped it.
-        #
-        # Retries and per-connection timeouts make apt abandon a bad mirror quickly instead of
-        # blocking on it, and `timeout-minutes` bounds the step for the case where retrying does not
-        # help. Both are needed: the retry options cap each request, not the step.
+        # Bounded: run 32158142566 spent this job's entire 60-minute budget inside `apt-get update`
+        # against azure.archive.ubuntu.com. The shared script skips that mirror; timeout-minutes is
+        # the backstop if retrying still cannot finish.
         timeout-minutes: 6
-        run: |
-          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update
-          sudo apt-get -o Acquire::Retries=3 install -y libuv1-dev
+        run: .github/scripts/install-libuv.sh
 
       - name: Restore JVM Build Output From Cache
         uses: actions/cache/restore@v6

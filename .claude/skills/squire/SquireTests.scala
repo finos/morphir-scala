@@ -416,10 +416,10 @@ object SquireCiPolicy:
     )
     val expectedMembers = List(
       "morphir.jvm.__.compile",
-      "morphir.{buildkit.core,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile",
+      "morphir.{buildkit.core,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile",
       "morphir.jvm.publishArtifacts",
       "morphir.{buildkit.core,contrib.knowledge,extensibility,interop.borer,interop.zio.json,lib.interop,model,model.lowering,naming,prelude,tests,tools}.jvm.publishArtifacts",
-      "morphir.{buildkit.core,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,model,model.lowering,prelude,tests}.jvm.test",
+      "morphir.{buildkit.core,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.trees,model,model.lowering,prelude,tests}.jvm.test",
       "morphir.langkit.itest.testCached"
     )
     val definitions = "(?m)^\\s*def testJVMPlatform\\b".r.findAllMatchIn(buildMill).size
@@ -1710,8 +1710,8 @@ class SquireCiPolicySpec extends Test[Any]:
       val reorderedAliasMutation = replaceOnce(
         buildMill,
         "    \"morphir.jvm.__.compile\",\n" +
-          "    \"morphir.{buildkit.core,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile\",",
-        "    \"morphir.{buildkit.core,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile\",\n" +
+          "    \"morphir.{buildkit.core,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile\",",
+        "    \"morphir.{buildkit.core,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile\",\n" +
           "    \"morphir.jvm.__.compile\","
       )
       val runtimeAliasMutation = replaceOnce(

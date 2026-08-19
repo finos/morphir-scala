@@ -6,10 +6,10 @@ The namespace guide [`morphir/langkit/CONTRIBUTING.md`](../CONTRIBUTING.md) gove
 
 ## The bar for adding something here
 
-This module has **no main dependencies** — not kyo, not parsley, not neotype. Its `package.mill.yaml` declares
-`mvnDeps` only inside the `object test:` blocks, for kyo-test itself. Every other langkit module sits above this one,
-so a dependency added to the main blocks is a dependency added under all of them. That is a stack-wide decision, not a
-module-local one.
+This module depends on Morphir Prelude and Kyo Core. Its `package.mill.yaml` declares those through
+`build.MorphirKyoCoreMvnDeps` and a direct `morphir-prelude` module dependency. Test blocks add kyo-test. Every other
+langkit module sits above this one, so a dependency added to the main blocks is a dependency added under all of them.
+That is a stack-wide decision, not a module-local one.
 
 Two questions before adding a type:
 
