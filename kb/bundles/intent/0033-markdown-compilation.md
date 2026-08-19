@@ -1,13 +1,13 @@
 ---
 type: Intent
 title: Markdown compilation
-description: Compile the Markdown AST to `kyo.UI` values so HTML and SVG come from a single cross-platform output stage.
+description: "Compile the Markdown AST through one fold algebra to two cross-platform writers: kyo-ui for the browser and ScalaTags for CommonMark conformance."
 state: Refinement
 kind: feature
 breaking: false
 created: 2026-08-19
 state_since: 2026-08-19
-tags: [langkit, markdown, compiler, kyo-ui]
+tags: [langkit, markdown, compiler, kyo-ui, scalatags, commonmark]
 sources:
   - id: kyo-ui-jvm
     resource: https://repo1.maven.org/maven2/io/getkyo/kyo-ui_3/1.0.0-RC6/
@@ -18,11 +18,17 @@ sources:
   - id: unified
     resource: https://github.com/unifiedjs/unified/blob/ba1af683ba597228b736566752668e7132295d38/readme.md
     title: unified processor documentation
+  - id: commonmark-spec
+    resource: https://spec.commonmark.org/0.31.2/spec.json
+    title: CommonMark 0.31.2 specification fixtures, 652 examples
+  - id: scalatags
+    resource: https://repo1.maven.org/maven2/com/lihaoyi/scalatags_3/0.13.1/
+    title: ScalaTags 0.13.1, JVM artifact (also published for Scala.js and Scala Native)
 ---
 
 # 0033 — Markdown compilation
 
-Compile the Markdown AST to `kyo.UI` values so HTML and SVG come from a single cross-platform output stage.
+Compile the Markdown AST through one fold algebra to two cross-platform writers: kyo-ui for the browser and ScalaTags for CommonMark conformance.
 
 ## Problem
 
@@ -47,8 +53,10 @@ target.
 
 ## Approach
 
-Publish the output stage as `org.finos.morphir::morphir-langkit-markdown-compiler`, on JVM, JS, and Native. It
-depends on the Markdown core and on `kyo-ui`.
+Publish the output stage as two writer artifacts over one shared algebra, each on JVM, JS, and Native:
+`org.finos.morphir::morphir-langkit-markdown-compiler-kyo-ui` for the browser, and
+`…-markdown-compiler-scalatags` for the conformance oracle. Both sit beneath the existing
+`morphir-langkit-markdown`, which keeps its name and gains the shared algebra; neither depends on the other.
 
 ```mermaid
 flowchart LR
@@ -57,36 +65,78 @@ flowchart LR
   ast -->|"rewritten by"| tr["transformers"]
   tr -->|"produce"| ast2["AST"]
   ast2 -->|"folded by Compiler[UI]"| ui["kyo.UI value tree"]
+  ast2 -->|"folded by Compiler[Frag]"| st["ScalaTags value tree"]
   ui -->|"UI.runRender emits"| frag["HTML fragment"]
   ui -->|"UI.runRenderPage emits"| page["HTML page"]
   ui -->|"same engine emits"| svg["SVG markup"]
-  frag -->|"compared against"| suite["CommonMark fixtures"]
+  st -->|"render emits"| exact["byte-exact HTML"]
+  exact -->|"compared against"| suite["CommonMark fixtures"]
   page -->|"mounted by"| app["morphir-ui and the desktop app"]
 ```
 
-**Figure 1:** the proposed compile path. Morphir owns everything up to the `kyo.UI` value, and kyo-ui owns every
-emission, so the conformance suite and the browser measure one writer.
+**Figure 1:** the proposed compile path. Morphir owns everything up to the value tree and writes no HTML itself;
+kyo-ui emits what users see, ScalaTags emits what the conformance suite measures, and the shared
+`Compiler` algebra is what keeps the two node mappings aligned.
 
-### One HTML path, owned by kyo-ui
+### The browser path, owned by kyo-ui
 
 The compiler produces `kyo.UI` values, not strings. `kyo.UI` is a value tree of HTML elements: `div`, `p`, `ul`,
 `ol`, `li`, `pre`, `code`, `blockquote`, and the rest. kyo-ui turns a `kyo.UI` into markup through
-`UI.runRender(ui)`, which returns a `Stream[String, Abort[Nothing]]` of an HTML fragment.
+`UI.runRender(ui)`, which returns a `Stream[String, Async]` of an HTML fragment.
 `UI.runRenderPage(head)(ui)` returns the same stream wrapped as a complete document. A snapshot takes the first
 emission. kyo-ui emits again whenever a signal changes, which is how it drives a live page, and a static render
 never reaches the second emission.
 
-This means Morphir writes no HTML writer at all (Figure 1). The conformance suite and the browser share
-kyo-ui's, so the suite measures the writer that ships.
+This means Morphir writes no HTML writer at all (Figure 1). What it does not mean is that one writer can serve
+both consumers: a spike measured kyo-ui's HTML against the CommonMark fixtures and found it unusable as a
+conformance oracle. ScalaTags supplies the second writer, and both stay honest because they fold the same
+algebra. [Two writers, one algebra](#two-writers-one-algebra) sets out the measurement and the consequence.
 
 `kyo-ui` publishes for JVM, Scala.js, and Scala Native at the version the build pins in
 `ScalaVersions`/`Versions`, and its HTML renderer lives in shared sources, so the same call works on every
 platform the langkit targets. These two claims were checked by resolving the published `1.0.0-RC6` artifacts and
 reading their contents, not from documentation; the API signatures quoted above come from the same inspection.
+Those artifacts are compiled for Java 25, so every consumer of the kyo-ui writer needs that runtime. The
+ScalaTags writer does not depend on kyo-ui, so the conformance suite does not inherit that floor.
 
 SVG needs no second writer. Every `Svg.*` node is a `kyo.UI` element, and the same engine emits `<svg>`,
 `<circle>`, and `<path>`. `Svg.circle(...)` does not have kyo-ui's `HtmlContent` type, so it will not compile as
 a child of an HTML element. A caller wraps it: `div(Svg.svg(...))`.
+
+### Two writers, one algebra
+
+kyo-ui renders what users see. It cannot also be the conformance oracle. A spike built `kyo.UI` values by hand
+for CommonMark examples, rendered them through `UI.runRender`, and compared the first emission to each fixture's
+expected HTML. None of the samples matched.
+
+| Divergence | kyo-ui emits | CommonMark expects | Removable |
+| --- | --- | --- | --- |
+| Bookkeeping attribute on every element | `<p data-kyo-path="">` | `<p>` | by a canonicalization pass |
+| Reactive wrapper anchors | `<span data-kyo-path="0" data-kyo-reactive>` | nothing | by a canonicalization pass |
+| Apostrophe | `&#39;` | `'` | by a canonicalization pass |
+| Emphasis and strong emphasis | no such element | `<em>`, `<strong>` | **no** |
+
+The first three are cosmetic, and stripping them makes the samples match. `data-kyo-path` is unconditional —
+kyo-ui writes it into the open tag of every element and exposes no render mode that omits it — but a
+canonicalizing oracle could still remove it, at the cost of soundness: CommonMark passes HTML blocks through
+verbatim, so a document that itself contains that attribute would be corrupted by the strip.
+
+The fourth divergence ends the single-writer design. kyo-ui has no `em` and no `strong` element, and emphasis is
+core CommonMark. Rendering it as `span` produces the wrong tag, not a formatting difference. `del`, `thead`,
+`sup` and `sub` are missing too, which would block GFM later. `UI.rawHtml` renders a string verbatim and does
+match, but a compiler that reaches for it to spell `<em>` has made Morphir the author of that tag and its
+escaping — the very writer this intent set out not to write.
+
+So the conformance oracle is a second `Compiler` instance built on [ScalaTags](https://github.com/com-lihaoyi/scalatags),
+whose output was measured the same way and matched every sample byte for byte with no canonicalization at all,
+including attribute values carrying quotes and ampersands. ScalaTags publishes for JVM, Scala.js and Scala
+Native, so the oracle runs everywhere the langkit does.
+
+This keeps the property the Problem section actually needs. Morphir still writes no HTML: one writer belongs to
+kyo-ui, the other to ScalaTags. What changed is the claim that a single writer could serve both, and the guard
+that replaces it is structural — both instances fold the same `Compiler[Out]` algebra over the same AST, so a
+node the conformance suite exercises is a node the browser path must also implement. The suite no longer
+measures the browser's writer directly; it measures the compiler's node mapping, which both writers share.
 
 ### A fold, not a visitor
 
@@ -116,29 +166,42 @@ algebra itself stays pure, because an effectful signature would spread across ev
 
 ### Module shape
 
-The Markdown langkit splits into two artifacts. The foundation module is named `core`, matching `langkit/core`,
-`buildkit/core` and `langkit/elm/core`. It is not named `model`, because `morphir/model` already means the
-Morphir IR data model.
+The Markdown langkit gains two artifacts and keeps its own. `morphir-langkit-markdown` still holds everything
+that parses, so no coordinate is renamed and nothing that depends on it moves.
 
 | Module | Holds | Depends on |
 | --- | --- | --- |
-| `morphir-langkit-markdown-core` | CST, AST, transformers, the `Compiler` algebra, and the parser | `langkit-core`, `prelude` |
-| `morphir-langkit-markdown-compiler` | output targets, starting with `Compiler[UI]` | the core, `kyo-ui` |
+| `morphir-langkit-markdown` | CST, AST, transformers, the `Compiler` algebra, and the parser | `langkit-core`, `prelude` |
+| `morphir-langkit-markdown-compiler-kyo-ui` | `Compiler[UI]`, the writer users see | the base module, `kyo-ui` |
+| `morphir-langkit-markdown-compiler-scalatags` | `Compiler[Frag]`, the conformance oracle | the base module, `scalatags` |
+
+An earlier draft split the parser into a `-core` artifact beneath a container directory. That is not needed:
+`morphir/langkit/markdown` can be a published module *and* the parent of the writer modules at once, the way
+`morphir/model` is published as `morphir-model` while `morphir/model/lowering` publishes as
+`morphir-model-lowering`. Keeping the base name spends no rename on a distinction consumers do not make —
+what they want from this family is the Markdown langkit, and the writers are the qualified additions.
+
+One writer per artifact, named for the library it binds, follows the kit convention already used for
+`kit/kyo`. It also keeps each dependency where it is wanted: the conformance suite takes the ScalaTags
+artifact and never resolves `kyo-ui`, so it does not inherit that library's Java 25 floor, and the browser
+takes the kyo-ui artifact and never resolves ScalaTags.
 
 ```mermaid
 flowchart TD
   okf["morphir-knowledge-okf"] -->|"parses concept bodies with"| core
-  core["morphir-langkit-markdown-core"] -->|"takes Span and diagnostics from"| lk["morphir-langkit-core"]
-  comp["morphir-langkit-markdown-compiler"] -->|"folds the AST from"| core
+  core["morphir-langkit-markdown"] -->|"takes Span and diagnostics from"| lk["morphir-langkit-core"]
+  comp["…-markdown-compiler-kyo-ui"] -->|"folds the AST from"| core
   comp -->|"builds kyo.UI values with"| kyoui["kyo-ui"]
+  conf["…-markdown-compiler-scalatags"] -->|"folds the AST from"| core
+  conf -->|"builds Frag values with"| st["scalatags"]
+  suite["CommonMark conformance suite"] -->|"measures"| conf
 ```
 
-**Figure 2:** the proposed two-artifact split. No path runs from `morphir-knowledge-okf` to `kyo-ui`, which is
-what keeps a parse-only consumer free of the output stage.
+**Figure 2:** the proposed three-artifact split. No path runs from `morphir-knowledge-okf` to either writer,
+which is what keeps a parse-only consumer free of the output stage, and no path runs between the two writers.
 
-This renames the artifact 0021 declares. `morphir-langkit-markdown` has never been published to Maven Central,
-so no released coordinate breaks and `breaking: false` holds. Intent 0021 and the published library families
-Design Note carry the new names.
+No artifact is renamed, so `breaking: false` holds without argument: `morphir-langkit-markdown` keeps its
+coordinate, its package, and every consumer it already has. The two writers are new coordinates alongside it.
 
 The names follow unified's pipeline, which runs parser, then transformers, then compiler, and the sibling shape
 of `morphir/langkit/elm/core` and `elm/compiler`. This repository already implements unist, the tree shape
@@ -155,10 +218,18 @@ in `kyo-ui` (Figure 2). It is the only consumer of the Markdown langkit today.
 
 ## Alternatives
 
-**A `Compiler[String]` writing HTML directly.** Considered and rejected. It would cost the langkit no dependency
-on `kyo-ui` at all, which is a real saving. It is also exactly the writer the Problem section rules out: the
-conformance suite would measure output the browser never produces. The `kyo-ui` dependency is confined to the
-compiler module instead, so a parse-only consumer still avoids it (Figure 2).
+**A Morphir-owned `Compiler[String]` writing HTML directly.** Considered and rejected. It would cost the
+langkit no output-library dependency at all, which is a real saving, and it would be byte-exact. It also puts
+Morphir in the business of spelling tags and escaping text, which is the maintenance burden and the
+correctness hazard this intent exists to avoid. ScalaTags buys the same byte-exactness from a library that has
+solved escaping already, for the price of one well-established dependency, so the saving is not worth it.
+
+**Canonicalizing kyo-ui's output instead of adding a second writer.** Considered and rejected once the spike
+measured it. Stripping `data-kyo-path` and rewriting `&#39;` does make the cosmetic divergences disappear, and
+had emphasis been the only gap it would have been the cheaper answer. It fails on two counts: kyo-ui has no
+`em` or `strong` element to canonicalize into the right shape, and the strip is unsound against CommonMark's
+verbatim HTML blocks. Waiting for kyo-ui to grow the missing elements was also considered, and rejected as a
+schedule dependency on an upstream release that blocks 0021's conformance work meanwhile.
 
 **A `Monoid[Out]`, supplying an associative combine and an empty value.** Considered and rejected. A monoid
 concatenates siblings, and a heading wraps its children rather than sitting beside them, so the shape cannot
@@ -174,12 +245,6 @@ whereas publishing three artifacts now and collapsing to two later would break c
 is to start with two.
 
 ## Unresolved
-
-**Does kyo-ui's HTML match the CommonMark fixtures?** The fixtures are exact about whitespace, void-tag
-spelling, and entity escaping. Comparing structurally instead would need an HTML parser on three platforms,
-which the project does not have. A spike measures the real gap, and the fallback is a canonicalization pass on
-both sides. Until that spike runs, this is unverified, and a large structural divergence would force a
-spec-exact writer and defeat the single-path design.
 
 **Does the compiler need a Wasm link variant?** `morphir/ui` declares a `wasm` module that takes `kyo-ui`, so a
 Wasm consumer of the knowledge browser would need the compiler linked for Wasm too. Building the morphir-ui

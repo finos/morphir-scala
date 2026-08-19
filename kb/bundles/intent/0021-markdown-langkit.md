@@ -1,7 +1,7 @@
 ---
 type: Intent
 title: Markdown langkit
-description: "Publish morphir-langkit-markdown-core, a cross-platform parser producing a Markdown CST and AST on JVM, JS, and Native."
+description: "Publish morphir-langkit-markdown, a cross-platform parser producing a Markdown CST and AST on JVM, JS, and Native."
 state: InProgress
 kind: feature
 breaking: false
@@ -12,7 +12,7 @@ tags: [langkit, markdown]
 
 # 0021 — Markdown langkit
 
-Publish `morphir-langkit-markdown-core`, a cross-platform parser producing a Markdown CST and AST on JVM, JS,
+Publish `morphir-langkit-markdown`, a cross-platform parser producing a Markdown CST and AST on JVM, JS,
 and Native.
 
 ## Problem
@@ -23,10 +23,10 @@ so the work belongs in `langkit`, beside Elm, not in `kit` or `connector`.
 
 ## Approach
 
-Publish `morphir/langkit/markdown/core` as `org.finos.morphir::morphir-langkit-markdown-core`. It depends on
-`langkit.core` for `Span` and diagnostics. A `QueryableTree` instance is later work in the core module, against
-`langkit.trees`. [0033](/0033-markdown-compilation.md) splits the langkit into this core and a sibling compiler
-module; the coordinate this intent ships is the core.
+Publish `morphir/langkit/markdown` as `org.finos.morphir::morphir-langkit-markdown`. It depends on
+`langkit.core` for `Span` and diagnostics. A `QueryableTree` instance is later work in this module, against
+`langkit.trees`. [0033](/0033-markdown-compilation.md) adds writer modules beneath this one without renaming
+it; the coordinate this intent ships is unchanged.
 
 The module produces two trees. The parser emits a concrete syntax tree, which keeps every token and its source
 span, and an explicit lowering step produces an abstract syntax tree, which drops the punctuation and keeps the
