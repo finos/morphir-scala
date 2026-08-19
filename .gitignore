@@ -494,3 +494,8 @@ docs/superpowers/
 .beads/proxieddb/
 # Workspace-gate lock sits beside .beads/, so .beads/.gitignore cannot cover it.
 *.gate.lock*
+
+# morphir/desktop/dist is a Mill package directory (per-platform Maven publish modules), not a
+# JS/Java build output directory — unignore it from the generic `dist/` rules above.
+!morphir/desktop/dist/
+!morphir/desktop/dist/package.mill

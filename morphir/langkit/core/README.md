@@ -2,9 +2,9 @@
 
 Source positions and diagnostic rendering, shared by every langkit.
 
-This module is the bottom of the langkit stack. It has no dependencies beyond the standard library, knows nothing
-about any particular language, and holds what every parser needs regardless of what it parses: a way to name a region
-of source text, a way to show that region back to a human, and a way to say how much a finding matters.
+This module is the bottom of the langkit stack. It depends on Morphir Prelude and Kyo Core, knows nothing about any
+particular language, and holds what every parser needs regardless of what it parses: a way to name a region of source
+text, a way to show that region back to a human, and a way to say how much a finding matters.
 
 ## Positions
 
@@ -61,6 +61,71 @@ println(snippet.rendered)
 It returns both the rendered string and the structured `contextLines` behind it, so a caller that wants to render its
 own way — a language server, a JSON envelope — does not have to parse the text back apart. Two lines of context
 before and one after by default, both overridable.
+
+## Budgeted source scanning
+
+`SourceScanner` gives parsers a scan-local cursor with deterministic ceilings for input length, work, nesting, and
+emitted nodes. The default entry point uses conservative safe limits, and a caller can supply narrower typed limits:
+
+A scanner session is mutable, single-owner state. It is not thread-safe and must not be shared across threads; keep
+all scanner use inside its `scan` callback on one execution path.
+
+```scala
+import kyo.Result
+import morphir.langkit.core.scanner.*
+
+val defaultScan = SourceScanner.scan(source) { scanner =>
+  while !scanner.isAtEnd do scanner.advance()
+  scanner.metrics
+}
+
+val compiledBudget = ScanBudget.limited(
+  maxInputLength = InputSize.megabytes(1),
+  maxWork = WorkUnits(8L * 1024L * 1024L),
+  maxNestingDepth = NestingDepth(128),
+  maxOutputNodes = NodeCount(100000L)
+)
+
+compiledBudget match
+  case Result.Success(budget) =>
+    val limitedScan = SourceScanner.scan(source, budget) { scanner =>
+      // Parser work goes here.
+      scanner.metrics
+    }
+  case Result.Failure(error) =>
+    // Report invalid caller-supplied configuration; no scan occurs.
+  case Result.Panic(error) =>
+    // Handle an unexpected panic; no scan occurs.
+```
+
+Literal measures (`InputSize.codeUnits(16)`, `WorkUnits(8L * 1024L * 1024L)`, and the other compile-time constructors)
+are checked by an inline macro; an invalid constant fails compilation. Dynamic values go through `fromCodeUnits`,
+`fromMegabytes` (and the other `from*` size constructors), and `from`, and return `Result`. Invalid budget ceilings
+still return a typed `ScanBudgetError` in
+`Result.Failure`; they do not throw. Keep caller-supplied configuration in this result-handling path rather than
+unwrapping it. Zero is a valid measure and an invalid ceiling: `InputSize.codeUnits(0)` is a valid size, and
+`ScanBudget.limited` then fails with `NonPositiveInputLength`.
+
+Cursor movement and lookahead consume work. Use `chargeWork` for deterministic work performed outside cursor
+movement, `withNesting` around recursive descent, and `chargeOutputNodes` immediately before emitting syntax nodes.
+`metrics` returns an immutable snapshot of work, output nodes, and maximum nesting depth; like every scanner
+operation, it is available only during the `scan` callback.
+
+Checkpoints restore the cursor but never refund work already consumed by speculation. Source offsets, input lengths,
+and view boundaries count UTF-16 code units, matching Scala `String` indices on every supported platform.
+
+An explicit opt-out exists for callers that independently control both input size and execution isolation:
+
+```scala
+val unsafeScan = SourceScanner.scan(source, ScanBudget.UnsafeUnbounded) { scanner =>
+  // The caller, not SourceScanner, now owns resource containment.
+  scanner.metrics
+}
+```
+
+`UnsafeUnbounded` removes all resource ceilings. Use it only when trusted upstream constraints guarantee bounded
+input and bounded parser behavior, and the execution environment can contain a faulty or unexpectedly expensive
+consumer. Cursor bounds, checkpoint ownership, progress checks, and callback lifetime rules still apply.
 
 ## Severity
 

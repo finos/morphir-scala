@@ -1,0 +1,361 @@
+{
+  "semverParse": [
+    {
+      "text": "0.6.0",
+      "major": 0,
+      "minor": 6,
+      "patch": 0,
+      "prerelease": null
+    },
+    {
+      "text": "0.6.0-M01",
+      "major": 0,
+      "minor": 6,
+      "patch": 0,
+      "prerelease": "M01"
+    },
+    {
+      "text": "1.2.3-0",
+      "major": 1,
+      "minor": 2,
+      "patch": 3,
+      "prerelease": "0"
+    },
+    {
+      "text": "1.2.3-0a",
+      "major": 1,
+      "minor": 2,
+      "patch": 3,
+      "prerelease": "0a"
+    },
+    {
+      "text": "1.2.3-alpha.1",
+      "major": 1,
+      "minor": 2,
+      "patch": 3,
+      "prerelease": "alpha.1"
+    },
+    {
+      "text": "1.2.3-rc-1",
+      "major": 1,
+      "minor": 2,
+      "patch": 3,
+      "prerelease": "rc-1"
+    },
+    {
+      "text": "10.20.30",
+      "major": 10,
+      "minor": 20,
+      "patch": 30,
+      "prerelease": null
+    }
+  ],
+  "semverRejects": [
+    {
+      "text": "v0.6.0",
+      "why": "a leading v belongs to the tag, not the version"
+    },
+    {
+      "text": "Unreleased",
+      "why": "not a version at all"
+    },
+    {
+      "text": "0.6",
+      "why": "a semantic version has three components"
+    },
+    {
+      "text": "01.2.3",
+      "why": "leading zero in a numeric component"
+    },
+    {
+      "text": "1.2.3-alpha..1",
+      "why": "empty prerelease identifier"
+    },
+    {
+      "text": "1.2.3-.1",
+      "why": "empty leading prerelease identifier"
+    },
+    {
+      "text": "1.2.3-1.",
+      "why": "empty trailing prerelease identifier"
+    },
+    {
+      "text": "1.2.3-",
+      "why": "a prerelease marker with no identifiers"
+    },
+    {
+      "text": "1.2.3-01",
+      "why": "leading zero in a numeric prerelease identifier"
+    },
+    {
+      "text": "1.2.3-alpha.01",
+      "why": "leading zero in a later numeric prerelease identifier"
+    },
+    {
+      "text": "1.2.3+build",
+      "why": "build metadata is not carried by these streams"
+    },
+    {
+      "text": "",
+      "why": "empty"
+    }
+  ],
+  "semverCompare": [
+    {
+      "left": "0.6.0",
+      "right": "0.5.9",
+      "sign": 1
+    },
+    {
+      "left": "0.5.9",
+      "right": "0.6.0",
+      "sign": -1
+    },
+    {
+      "left": "0.6.0",
+      "right": "0.6.0",
+      "sign": 0
+    },
+    {
+      "left": "1.0.0",
+      "right": "0.9.9",
+      "sign": 1
+    },
+    {
+      "left": "0.6.1",
+      "right": "0.6.0",
+      "sign": 1
+    },
+    {
+      "left": "0.6.0-M01",
+      "right": "0.6.0",
+      "sign": -1
+    },
+    {
+      "left": "0.6.0",
+      "right": "0.6.0-M01",
+      "sign": 1
+    },
+    {
+      "left": "0.6.0-M02",
+      "right": "0.6.0-M01",
+      "sign": 1
+    },
+    {
+      "left": "0.6.0-M01",
+      "right": "0.6.0-M01",
+      "sign": 0
+    },
+    {
+      "left": "0.6.0-RC1",
+      "right": "0.6.0-M01",
+      "sign": 1
+    },
+    {
+      "left": "0.6.0-M01",
+      "right": "0.5.0-M04",
+      "sign": 1
+    }
+  ],
+  "semverCompareRejects": [
+    {
+      "left": "nonsense",
+      "right": "0.6.0",
+      "messageContains": "nonsense"
+    },
+    {
+      "left": "0.6.0",
+      "right": "nonsense",
+      "messageContains": "nonsense"
+    }
+  ],
+  "tagStreams": [
+    {
+      "namespace": null,
+      "pattern": "v*",
+      "tagFor": [
+        {
+          "version": "0.6.0-M01",
+          "tag": "v0.6.0-M01"
+        },
+        {
+          "version": "1.0.0",
+          "tag": "v1.0.0"
+        }
+      ],
+      "versionFromTag": [
+        {
+          "tag": "v0.6.0-M01",
+          "version": "0.6.0-M01"
+        },
+        {
+          "tag": "v1.0.0",
+          "version": "1.0.0"
+        },
+        {
+          "tag": "desktop/v0.3.0",
+          "version": null
+        },
+        {
+          "tag": "mill-plugins/v0.5.0-M04",
+          "version": null
+        },
+        {
+          "tag": "0.6.0-M01",
+          "version": null
+        }
+      ]
+    },
+    {
+      "namespace": "mill-plugins",
+      "pattern": "mill-plugins/v*",
+      "tagFor": [
+        {
+          "version": "0.5.0-M04",
+          "tag": "mill-plugins/v0.5.0-M04"
+        }
+      ],
+      "versionFromTag": [
+        {
+          "tag": "mill-plugins/v0.5.0-M04",
+          "version": "0.5.0-M04"
+        },
+        {
+          "tag": "v0.5.0-M04",
+          "version": null
+        },
+        {
+          "tag": "desktop/v0.3.0",
+          "version": null
+        }
+      ]
+    },
+    {
+      "namespace": "desktop",
+      "pattern": "desktop/v*",
+      "tagFor": [
+        {
+          "version": "0.1.0",
+          "tag": "desktop/v0.1.0"
+        }
+      ],
+      "versionFromTag": [
+        {
+          "tag": "desktop/v0.1.0",
+          "version": "0.1.0"
+        },
+        {
+          "tag": "v0.1.0",
+          "version": null
+        },
+        {
+          "tag": "desktop/nested/v0.1.0",
+          "version": null
+        }
+      ]
+    }
+  ],
+  "changelogReleaseLine": [
+    {
+      "file": "one-undated.md",
+      "source": "CHANGELOG.md",
+      "releaseLine": "0.6.0-M01"
+    },
+    {
+      "file": "bare-headings.md",
+      "source": "CHANGELOG.md",
+      "releaseLine": "0.6.0-M01"
+    }
+  ],
+  "changelogReleaseLineRejects": [
+    {
+      "file": "no-undated.md",
+      "source": "CHANGELOG.md",
+      "message": "CHANGELOG.md: no undated release heading. Add one naming the next release, for example '## [0.1.0]'"
+    },
+    {
+      "file": "unreleased-only.md",
+      "source": "morphir/desktop/CHANGELOG.md",
+      "message": "morphir/desktop/CHANGELOG.md: no undated release heading. Add one naming the next release, for example '## [0.1.0]'"
+    },
+    {
+      "file": "undated-not-a-version.md",
+      "source": "CHANGELOG.md",
+      "message": "CHANGELOG.md: the undated heading 'Next' is not a semantic version"
+    },
+    {
+      "file": "two-undated.md",
+      "source": "mill-plugins/morphir/CHANGELOG.md",
+      "message": "mill-plugins/morphir/CHANGELOG.md: expected one undated release heading, found 0.7.0, 0.6.0-M01"
+    }
+  ],
+  "changelogHeadings": [
+    {
+      "file": "one-undated.md",
+      "headings": [
+        {
+          "version": "0.6.0-M01",
+          "date": null
+        },
+        {
+          "version": "0.5.0-M04",
+          "date": "2026-07-14"
+        }
+      ]
+    },
+    {
+      "file": "bare-headings.md",
+      "headings": [
+        {
+          "version": "0.6.0-M01",
+          "date": null
+        },
+        {
+          "version": "0.5.0-M04",
+          "date": "2026-07-14"
+        }
+      ]
+    },
+    {
+      "file": "unreleased-only.md",
+      "headings": [
+        {
+          "version": "0.5.0-M04",
+          "date": "2026-07-14"
+        }
+      ]
+    },
+    {
+      "file": "undated-not-a-version.md",
+      "headings": [
+        {
+          "version": "0.5.0-M04",
+          "date": "2026-07-14"
+        }
+      ]
+    }
+  ],
+  "areas": [
+    {
+      "name": "libraries",
+      "namespace": null,
+      "changelogPath": "CHANGELOG.md",
+      "startingVersion": "0.5.0-M04",
+      "millSelector": "morphir.jvm"
+    },
+    {
+      "name": "mill-plugins",
+      "namespace": "mill-plugins",
+      "changelogPath": "mill-plugins/morphir/CHANGELOG.md",
+      "startingVersion": "0.5.0-M04",
+      "millSelector": "mill-plugins.morphir"
+    },
+    {
+      "name": "desktop",
+      "namespace": "desktop",
+      "changelogPath": "morphir/desktop/CHANGELOG.md",
+      "startingVersion": "0.1.0",
+      "millSelector": "morphir.desktop.dist"
+    }
+  ]
+}

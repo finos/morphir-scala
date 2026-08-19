@@ -1,7 +1,7 @@
 //| scalaVersion: 3.8.4
 //| mainClass: kyo.test.runner.Cli
 //| resources: [test-resources]
-//| moduleDeps: [squire.scala, SquireCellar.scala, SquireRepo.scala, SquireTracking.scala]
+//| moduleDeps: [squire.scala, SquireCellar.scala, SquireRepo.scala, SquireTracking.scala, SquireChangelog.scala, SquireVersionCorpus.scala]
 //| mvnDeps:
 //| - io.getkyo::kyo-test-api:1.0.0-RC6
 //| - io.getkyo::kyo-test-runner:1.0.0-RC6
@@ -47,7 +47,14 @@ object SquireCiPolicy:
       "(github.ref == 'refs/heads/main' || " +
       "github.ref == 'refs/heads/0.4.x' || " +
       "github.ref == 'refs/heads/develop' || " +
-      "startsWith(github.ref, 'refs/tags/'))"
+      "startsWith(github.ref, 'refs/tags/v'))"
+  val PublishPluginsPredicate =
+    "github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/mill-plugins/v')"
+  val DesktopPackagingPredicate =
+    "github.repository == 'finos/morphir-scala' && " +
+      "(startsWith(github.ref, 'refs/tags/desktop/v') || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false')"
+  val DesktopReleasePredicate =
+    "github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/desktop/v')"
   val CachePredicate =
     "github.ref == 'refs/heads/main' || " +
       "github.ref == 'refs/heads/0.4.x' || " +
@@ -148,6 +155,42 @@ object SquireCiPolicy:
     expect(
       !release.contains("BEGIN PGP PRIVATE KEY"),
       "Release step must not duplicate PgpSecret conversion in bash"
+    )
+
+  def assertPublishPluginsPolicy(workflow: String): Unit =
+    val job = indentedBlock(workflow, "publish-plugins:", 2)
+    expect(
+      scalar(job, "if") == PublishPluginsPredicate,
+      "publish-plugins predicate does not match the plugin-family release allowlist"
+    )
+    expect(scalar(job, "needs") == "[ci]", "publish-plugins must depend only on aggregate ci")
+    expect(
+      count(job, "./mill --ticker false -i ci.sonatype.plugins") == 1,
+      "publish-plugins job must invoke ci.sonatype.plugins exactly once"
+    )
+
+  /**
+   * The three packaging jobs (desktop-matrix, desktop-package, desktop-verify) share one guard: a
+   * desktop/v* tag or release always packages, and the MORPHIR_CI_PACKAGE_DESKTOP switch otherwise
+   * controls ordinary CI. desktop-release itself carries the narrower, switch-free guard: only a
+   * desktop/v* tag ships anything.
+   */
+  def assertDesktopReleaseGuards(workflow: String): Unit =
+    List("desktop-matrix:", "desktop-package:", "desktop-verify:").foreach { job =>
+      val block = indentedBlock(workflow, job, 2)
+      expect(
+        scalar(block, "if") == DesktopPackagingPredicate,
+        s"$job predicate does not match the desktop packaging allowlist"
+      )
+    }
+    val releaseJob = indentedBlock(workflow, "desktop-release:", 2)
+    expect(
+      scalar(releaseJob, "if") == DesktopReleasePredicate,
+      "desktop-release predicate does not match the desktop-only release allowlist"
+    )
+    expect(
+      scalar(releaseJob, "needs") == "[ci, packaging]",
+      "desktop-release must depend on aggregate ci and the packaging aggregate"
     )
 
   def assertCiMillTicker(workflow: String): Unit =
@@ -373,10 +416,10 @@ object SquireCiPolicy:
     )
     val expectedMembers = List(
       "morphir.jvm.__.compile",
-      "morphir.{buildkit.core,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile",
+      "morphir.{buildkit.core,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile",
       "morphir.jvm.publishArtifacts",
       "morphir.{buildkit.core,contrib.knowledge,extensibility,interop.borer,interop.zio.json,lib.interop,model,model.lowering,naming,prelude,tests,tools}.jvm.publishArtifacts",
-      "morphir.{buildkit.core,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,model,model.lowering,prelude,tests}.jvm.test",
+      "morphir.{buildkit.core,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.trees,model,model.lowering,prelude,tests}.jvm.test",
       "morphir.langkit.itest.testCached"
     )
     val definitions = "(?m)^\\s*def testJVMPlatform\\b".r.findAllMatchIn(buildMill).size
@@ -492,8 +535,9 @@ object SquireCiPolicy:
       case path => List(path)
 
   def assertSquireCiPolicy(workflow: String): Unit =
-    val jobName  = "squire-policy:"
-    val stepName = "Test Squire and release policy"
+    val jobName          = "squire-policy:"
+    val stepName         = "Test Squire and release policy"
+    val changelogStepName = "Check the independent-version-stream changelogs"
     expect(
       workflow.linesIterator.count(_ == s"  $jobName") == 1,
       "workflow must contain exactly one squire-policy job"
@@ -506,14 +550,15 @@ object SquireCiPolicy:
     val headers = policy.linesIterator.collect {
       case line if line.startsWith("      - name: ") => line.stripPrefix("      - name: ")
     }.toList
-    expect(stepStarts.size == 5, s"unexpected squire-policy step count: ${stepStarts.size}")
+    expect(stepStarts.size == 6, s"unexpected squire-policy step count: ${stepStarts.size}")
     expect(
       headers == List(
         "Checkout current branch",
         "Setup Scala and Java",
         "Cache scala dependencies",
         "Setup mise",
-        stepName
+        stepName,
+        changelogStepName
       ),
       s"unexpected squire-policy steps: $headers"
     )
@@ -523,6 +568,16 @@ object SquireCiPolicy:
     val step = indentedBlock(policy, s"- name: $stepName", 6)
     expect(scalar(step, "run") == "mise run test:squire", s"$stepName must run test:squire exactly")
     expect(count(workflow, "mise run test:squire") == 1, "workflow must invoke test:squire exactly once")
+
+    val changelogStep = indentedBlock(policy, s"- name: $changelogStepName", 6)
+    expect(
+      scalar(changelogStep, "run") == ".claude/skills/squire/squire changelog check",
+      s"$changelogStepName must run squire changelog check exactly"
+    )
+    expect(
+      count(workflow, ".claude/skills/squire/squire changelog check") == 1,
+      "workflow must invoke squire changelog check exactly once"
+    )
 
     val ci        = indentedBlock(workflow, "ci:", 2)
     val aggregate = inlineList(ci, "needs")
@@ -565,7 +620,11 @@ class SquireCliSpec extends Test[Any]:
         List("spec", "export"),
         List("schemas", "build"),
         List("schemas", "compare"),
-        List("schemas", "validate")
+        List("schemas", "validate"),
+        List("changelog", "check"),
+        List("changelog", "show"),
+        List("release", "prepare"),
+        List("release", "status")
       )
 
       assert(SquireApp.commands.flatMap(_.names).toSet == expected)
@@ -1258,14 +1317,59 @@ class SquireMetaSpec extends Test[Any]:
           "SquireBranchSpec",
           "SquireTrackingSpec",
           "SquireSchemasSpec",
-          "SquireSpecSpec"
+          "SquireSpecSpec",
+          "SquireChangelogSpec"
         )
       )
     }
   }
 
+// Warms the Mill launcher and the Coursier cache exactly once per JVM, before any of
+// SquireCiPolicySpec's leaves that shell out to a *real* `./mill resolve` (resolveJvmTarget,
+// resolvePublishTargets) get to run theirs. That closes the race in bead morphir-47j: on the first
+// push to develop after the desktop merge, with both caches cold, two concurrent `mill resolve`
+// invocations from those leaves failed in under a second (exit 1 "coursier cache not found", exit
+// 126 "found but could not execute" — consistent with one process exec'ing the native launcher while
+// another was still writing/chmod'ing it), when a genuine resolve takes about thirty seconds. Eleven
+// prior pull-request runs passed only because the cache happened to already be warm.
+//
+// This has to be a JVM-wide singleton, not a `val` on the spec class: kyo-test constructs one fresh
+// SquireCiPolicySpec instance per leaf and its LeafPool runs many of those instances concurrently
+// (verified by instrumenting a per-instance version of this warm-up — several instances' own
+// warm-ups still overlapped with siblings' real `mill resolve` calls, because "before this
+// instance's own leaf" is not "before every leaf"). A Scala `object`'s initializer, by contrast, is
+// guaranteed by the JVM class-initialization contract (JLS 12.4.2) to run at most once per
+// classloader: every thread that is first to touch it runs the initializer while every other
+// concurrent thread blocks until that finishes, and every later touch is a no-op. Routing the
+// warm-up through this object instead pins it to the process, not the instance, which is what
+// actually removes the race — and it removes it for a developer running this suite (or
+// `mise run test:squire`) on a machine with no ~/.cache/coursier or Mill launcher cache yet, not
+// only for a CI job with an equivalent workflow-level step.
+//
+// Best-effort and silent: a failure here is not reported directly. The leaves that actually need
+// Mill still perform their own real resolves and, since morphir-47j also makes SquireError surface
+// captured stderr, report a fully diagnosed failure if Mill genuinely cannot run — duplicating that
+// here would just be noise, and this warm-up existing purely to prevent a race is not itself a
+// condition worth failing the suite over.
+private object SquireMillLauncherWarmup:
+  private val skillDirectory = java.nio.file.Paths.get(java.lang.System.getProperty("user.dir"))
+  private val repositoryRoot = Path(skillDirectory.resolve("../../..").normalize.toString)
+
+  val exitCode: Int =
+    val builder =
+      new java.lang.ProcessBuilder((repositoryRoot / "mill").toString, "--ticker", "false", "resolve", "morphir")
+    builder.directory(repositoryRoot.toJava.toFile)
+    builder.redirectOutput(java.lang.ProcessBuilder.Redirect.DISCARD)
+    builder.redirectError(java.lang.ProcessBuilder.Redirect.DISCARD)
+    try builder.start().waitFor()
+    catch case _: java.io.IOException => -1
+
 class SquireCiPolicySpec extends Test[Any]:
   import SquireCiPolicy.*
+
+  // Touching `exitCode` forces (or, for every construction after the first, simply confirms) the
+  // one-time JVM-wide warm-up above to have finished before this instance's own leaf runs.
+  private val _millWarmedUp: Int = SquireMillLauncherWarmup.exitCode
 
   private val skillDirectory = java.nio.file.Paths.get(java.lang.System.getProperty("user.dir"))
   private val repositoryRoot = Path(skillDirectory.resolve("../../..").normalize.toString)
@@ -1304,6 +1408,20 @@ class SquireCiPolicySpec extends Test[Any]:
     "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.trees,model,model.lowering,prelude,tests}.jvm.test"
   )
 
+  /**
+   * Mill's stderr, appended to a failure message rather than left only in `detail`.
+   *
+   * `SquireError.Failure` passes only `message` to `RuntimeException`, so when one of these escapes
+   * a kyo-test leaf as a thrown exception the reporter prints the exit code and nothing else — which
+   * is exactly what happened when a cold-cache launcher race produced exit 126 and the cause had to
+   * be inferred (bead morphir-47j). Widening `SquireError`'s own rendering would change every
+   * consumer of that format, including the exported spec reports the CLI tests assert on, so the
+   * stderr is folded in here at the one call site that needs it.
+   */
+  private def withStderr(message: String, stderr: String): String =
+    val trimmed = stderr.trim
+    if trimmed.isEmpty then message else s"$message\n$trimmed"
+
   private def resolveJvmTarget(selector: String): Set[String] < (Async & Abort[SquireError]) =
     LiveProcessRunner.run(
       ProcessRequest(
@@ -1317,7 +1435,7 @@ class SquireCiPolicySpec extends Test[Any]:
         Abort.fail(
           SquireError.Failure(
             "ci-policy",
-            s"could not resolve JVM selector $selector (exit ${result.exitCode})",
+            withStderr(s"could not resolve JVM selector $selector (exit ${result.exitCode})", result.stderr),
             Present(result.stderr.trim)
           )
         )
@@ -1341,11 +1459,57 @@ class SquireCiPolicySpec extends Test[Any]:
         Abort.fail(
           SquireError.Failure(
             "ci-policy",
-            s"could not resolve __.publishSonatypeCentral (exit ${result.exitCode})",
+            withStderr(s"could not resolve __.publishSonatypeCentral (exit ${result.exitCode})", result.stderr),
             Present(result.stderr.trim)
           )
         )
     }
+
+  /**
+   * The build's own area table, read back through Mill rather than by parsing `package.mill`.
+   *
+   * `ci.releaseAreas` reports what each area module declares. Comparing it to the corpus closes the second drift
+   * surface: `SquireChangelog.Areas` restates the same three namespaces, changelog paths and floors, and a floor
+   * raised in the build alone would otherwise leave `squire changelog check` validating the old one.
+   */
+  private def resolveReleaseAreas: List[SquireVersionCorpus.AreaCase] < (Async & Abort[SquireError]) =
+    LiveProcessRunner.run(
+      ProcessRequest(
+        Chunk((repositoryRoot / "mill").toString, "--ticker", "false", "show", "ci.releaseAreas"),
+        Present(repositoryRoot)
+      )
+    ).flatMap {
+      case ProcessResult(_, 0, stdout, _) =>
+        // `show` prefixes its own log lines, so take the JSON document rather than the whole stream.
+        val json = stdout.dropWhile(_ != '[')
+        SquireJson.decode[List[SquireVersionCorpus.BuildReleaseArea]](json) match
+          case Result.Success(rows) =>
+            rows.map(row =>
+              SquireVersionCorpus.AreaCase(row.name, row.namespace, row.changelogPath, row.startingVersion, "")
+            )
+          case failure =>
+            Abort.fail(SquireError.Failure("ci-policy", s"ci.releaseAreas did not decode: $failure"))
+      case result =>
+        Abort.fail(
+          SquireError.Failure(
+            "ci-policy",
+            withStderr(s"could not read ci.releaseAreas (exit ${result.exitCode})", result.stderr),
+            Present(result.stderr.trim)
+          )
+        )
+    }
+
+  "release areas" - {
+    "the build declares the areas the corpus declares" in {
+      val corpusDirectory = repositoryRoot / ".config" / "version-rules"
+      for
+        corpus <- SquireVersionCorpus.load(corpusDirectory)
+        actual <- resolveReleaseAreas
+      yield
+        val expected = corpus.areas.map(_.copy(millSelector = ""))
+        assert(actual == expected)
+    }
+  }
 
   "hosted CI policy" - {
     "targets the exact supported pull-request and push branches" in {
@@ -1356,6 +1520,49 @@ class SquireCiPolicySpec extends Test[Any]:
     "waits for aggregate CI and owns one guarded release path" in {
       assertPublishPolicy(workflow)
       assert(true)
+    }
+
+    "routes the plugin release and the desktop release to their own namespaced guards" in {
+      assertPublishPluginsPolicy(workflow)
+      assertDesktopReleaseGuards(workflow)
+
+      val broadenedPluginGuard = replaceOnce(
+        workflow,
+        "    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/mill-plugins/v')\n    needs: [ci]\n\n    # See the `publish` job",
+        "    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/')\n    needs: [ci]\n\n    # See the `publish` job"
+      )
+      val pluginGuardDroppedRepositoryCheck = replaceOnce(
+        workflow,
+        "    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/mill-plugins/v')\n    needs: [ci]\n\n    # See the `publish` job",
+        "    if: startsWith(github.ref, 'refs/tags/mill-plugins/v')\n    needs: [ci]\n\n    # See the `publish` job"
+      )
+      val broadenedDesktopReleaseGuard = replaceOnce(
+        workflow,
+        "    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/desktop/v')\n    needs: [ci, packaging]",
+        "    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/')\n    needs: [ci, packaging]"
+      )
+      val desktopMatrixGuardDroppedRepositoryCheck = replaceOnce(
+        workflow,
+        "    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/desktop/v') || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false')\n    runs-on: ubuntu-latest\n    timeout-minutes: 20",
+        "    if: startsWith(github.ref, 'refs/tags/desktop/v') || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false'\n    runs-on: ubuntu-latest\n    timeout-minutes: 20"
+      )
+      val desktopMatrixGuardLostSwitch = replaceOnce(
+        workflow,
+        "    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/desktop/v') || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false')\n    runs-on: ubuntu-latest\n    timeout-minutes: 20",
+        "    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/desktop/v')\n    runs-on: ubuntu-latest\n    timeout-minutes: 20"
+      )
+      val mutations = List(
+        broadenedPluginGuard,
+        pluginGuardDroppedRepositoryCheck,
+        broadenedDesktopReleaseGuard,
+        desktopMatrixGuardDroppedRepositoryCheck,
+        desktopMatrixGuardLostSwitch
+      )
+      assert(
+        mutations.forall(mutation =>
+          rejects(assertPublishPluginsPolicy, mutation) || rejects(assertDesktopReleaseGuards, mutation)
+        )
+      )
     }
 
     "disables the mill ticker on hosted workflow and mise mill invocations" in {
@@ -1503,8 +1710,8 @@ class SquireCiPolicySpec extends Test[Any]:
       val reorderedAliasMutation = replaceOnce(
         buildMill,
         "    \"morphir.jvm.__.compile\",\n" +
-          "    \"morphir.{buildkit.core,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile\",",
-        "    \"morphir.{buildkit.core,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile\",\n" +
+          "    \"morphir.{buildkit.core,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile\",",
+        "    \"morphir.{buildkit.core,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile\",\n" +
           "    \"morphir.jvm.__.compile\","
       )
       val runtimeAliasMutation = replaceOnce(
@@ -1675,6 +1882,8 @@ class SquireCiPolicySpec extends Test[Any]:
       val policyJob  = s"  squire-policy:\n$policy"
       val policyStep = s"      - name: Test Squire and release policy\n" +
         indentedBlock(policy, "- name: Test Squire and release policy", 6)
+      val changelogStep = s"      - name: Check the independent-version-stream changelogs\n" +
+        indentedBlock(policy, "- name: Check the independent-version-stream changelogs", 6)
       val checkout = "      - name: Checkout current branch\n" +
         "        uses: actions/checkout@v7.0.1"
       val aggregate      = inlineList(indentedBlock(workflow, "ci:", 2), "needs")
@@ -1695,6 +1904,16 @@ class SquireCiPolicySpec extends Test[Any]:
           policyStep),
         "changed command" -> {
           val changedPolicy = replaceOnce(policyJob, "mise run test:squire", "mise run lint")
+          replaceOnce(workflow, policyJob, changedPolicy)
+        },
+        "changelog step moved into lint" -> replaceOnce(
+          replaceOnce(workflow, changelogStep, ""),
+          "      - name: Lint code\n        run: ./mill --ticker false -i ci.lint",
+          "      - name: Lint code\n        run: ./mill --ticker false -i ci.lint\n" + changelogStep
+        ),
+        "changelog check command changed" -> {
+          val changedPolicy =
+            replaceOnce(policyJob, ".claude/skills/squire/squire changelog check", ".claude/skills/squire/squire changelog show")
           replaceOnce(workflow, policyJob, changedPolicy)
         },
         "job dependency added" -> replaceOnce(
@@ -1944,6 +2163,26 @@ class SquireMisePolicySpec extends Test[Any]:
         )
       case None => Right(())
 
+  /**
+   * The harness replaces PATH with its own `bin` so a task script can only reach the programs the policy approves, and
+   * that shadows the real `bash` with the recording shim. The shim therefore has to name a real bash by absolute path,
+   * and a hardcoded one does not travel: bash is `/bin/bash` on macOS and `/usr/bin/bash` on most Linux distributions.
+   * Naming the wrong one fails every test in this suite with exit 126 before any policy verdict is reached, which is
+   * how the policy went unverified on macOS. Resolve it from the ambient PATH, which is what a shell outside the
+   * sandbox would do, and fall back to the two conventional locations.
+   */
+  private lazy val ambientBash: String =
+    val fromPath = Option(java.lang.System.getenv("PATH")).getOrElse("")
+      .split(java.io.File.pathSeparator)
+      .iterator
+      .filter(_.nonEmpty)
+      .map(entry => java.nio.file.Path.of(entry, "bash"))
+    val conventional = List("/bin/bash", "/usr/bin/bash").iterator.map(java.nio.file.Path.of(_))
+    (fromPath ++ conventional)
+      .find(candidate => Files.isRegularFile(candidate) && Files.isExecutable(candidate))
+      .map(_.toString)
+      .getOrElse(throw new IllegalStateException("no executable bash found on PATH or in /bin or /usr/bin"))
+
   private def runTaskScript(
       script: Path,
       scriptText: String,
@@ -1965,7 +2204,7 @@ class SquireMisePolicySpec extends Test[Any]:
               List("bun", "npm", "npx").foreach(program =>
                 SquireLauncherFixtures.executable((bin / program).toJava, fakeTaskTool(program))
               )
-              SquireLauncherFixtures.executable((bin / "bash").toJava, "#!/bin/sh\nexec /usr/bin/bash \"$@\"\n")
+              SquireLauncherFixtures.executable((bin / "bash").toJava, s"#!/bin/sh\nexec $ambientBash \"$$@\"\n")
               log
             }
             _ <- Sync.defer(executionStarted())
@@ -3706,8 +3945,16 @@ object SquireFixtures:
   val javaExecutable: String =
     java.nio.file.Path.of(java.lang.System.getProperty("java.home"), "bin", "java").toString
 
+  /**
+   * Canonicalized on creation. `SquireRepo` resolves real paths on purpose: proving a destination is exactly inside
+   * its configured base is what stops a symlinked path component escaping it, so the argv it builds and the metadata
+   * it records name resolved paths. A scratch root that still carries a symlink therefore does not compare equal to
+   * what the code under test produces. On macOS every temp directory is one, because `java.io.tmpdir` sits under
+   * `/var/folders`, and `/var` is a symlink to `private/var`; on Linux the two spellings coincide and the difference
+   * stays invisible.
+   */
   def scratch(name: String): Path < Sync =
-    Sync.defer(Path(java.nio.file.Files.createTempDirectory(s"squire-$name-").toString))
+    Sync.defer(Path(java.nio.file.Files.createTempDirectory(s"squire-$name-").toRealPath().toString))
 
   def deleteRecursively(root: Path): Unit =
     if Files.exists(root.toJava) then
@@ -5124,20 +5371,30 @@ class SquireEnvSpec extends Test[Any]:
           1.seconds,
           SquireFixtures.platform(root, SquireEnv.CheckResult(Present(true), "ok", 0.0), varFolders = Some(root))
         )
+        // The check must report the effective JVM temp directory, not the `varFolders` fallback that names
+        // `/var/folders` on the live platform. Giving the two different values is what makes that assertion mean
+        // anything: with both set to the scratch root, "the detail does not say /var/folders" held on Linux only
+        // because a Linux temp path never contains that string, and failed on macOS, where the scratch root is
+        // itself under /var/folders. Neither outcome told us whether the check read the right member.
+        effective = root / "effective"
+        fallback  = root / "fallback-var-folders"
+        _      <- Sync.defer(Files.createDirectories(effective.toJava))
         report <- SquireEnv.report(
           1.seconds,
           SquireFixtures.platform(
             root,
             SquireEnv.CheckResult(Present(true), "ok", 0.0),
-            jvmTempDirectory = Present(root)
+            varFolders = Some(fallback),
+            jvmTempDirectory = Present(effective)
           ),
           root
         )
-        leftovers <- Sync.defer(SquireFixtures.probeFiles(root))
+        leftovers         <- Sync.defer(SquireFixtures.probeFiles(root))
+        effectiveLeftovers <- Sync.defer(SquireFixtures.probeFiles(effective))
       yield assert(
-        !absent && writable && leftovers.isEmpty &&
-          report.checks("var_folders_writable").detail.contains(root.toString) &&
-          !report.checks("var_folders_writable").detail.contains("/var/folders")
+        !absent && writable && leftovers.isEmpty && effectiveLeftovers.isEmpty &&
+          report.checks("var_folders_writable").detail.contains(effective.toString) &&
+          !report.checks("var_folders_writable").detail.contains(fallback.toString)
       )
     }
 
@@ -6069,3 +6326,415 @@ final class TestEnvPlatform(
   override def deleteProbe(path: Path): Unit = deleteProbeFn match
     case Present(value) => value(path)
     case Absent         => super.deleteProbe(path)
+
+class SquireChangelogSpec extends Test[Any]:
+  import SquireChangelogFixtures.*
+
+  // Same derivation the mise-policy suite uses: the tests run with the skill directory as the working directory.
+  private val corpusDirectory =
+    Path(java.lang.System.getProperty("user.dir")) / ".." / ".." / ".." / ".config" / "version-rules"
+
+  /**
+   * The port asserted against the corpus the originals are asserted against, in
+   * `mill-plugins/morphir/core/test/.../VersionCorpusTests.scala`. A rule that changes on one side alone fails here or
+   * there. The cases live in the data, so adding one needs no change in either suite.
+   */
+  "version rules corpus" - {
+    "parses and rejects exactly the versions the corpus names" in {
+      for corpus <- SquireVersionCorpus.load(corpusDirectory)
+      yield
+        val misparsed = corpus.semverParse.filter { expected =>
+          SquireVersion.SemVer.parse(expected.text) !=
+            Some(SquireVersion.SemVer(expected.major, expected.minor, expected.patch, expected.prerelease.toOption))
+        }
+        val accepted = corpus.semverRejects.filter(rejected => SquireVersion.SemVer.parse(rejected.text).isDefined)
+        assert(misparsed.isEmpty && accepted.isEmpty)
+    }
+
+    "orders every pair the way the corpus orders it" in {
+      for corpus <- SquireVersionCorpus.load(corpusDirectory)
+      yield
+        val misordered = corpus.semverCompare.filter { expected =>
+          SquireVersion.SemVer.compare(expected.left, expected.right) != Right(expected.sign)
+        }
+        val accepted = corpus.semverCompareRejects.filter { expected =>
+          !SquireVersion.SemVer.compare(expected.left, expected.right).left.exists(_.contains(expected.messageContains))
+        }
+        assert(misordered.isEmpty && accepted.isEmpty)
+    }
+
+    "derives the pattern, tag and version of every stream" in {
+      for corpus <- SquireVersionCorpus.load(corpusDirectory)
+      yield
+        val wrong = corpus.tagStreams.filter { expected =>
+          val stream = SquireVersion.TagStream(expected.namespace.toOption)
+          stream.pattern != expected.pattern ||
+          expected.tagFor.exists(pair => stream.tagFor(pair.version) != pair.tag) ||
+          expected.versionFromTag.exists(pair => stream.versionFromTag(pair.tag) != pair.version.toOption)
+        }
+        assert(wrong.isEmpty)
+    }
+
+    "reads every release line and fails with the exact message the corpus records" in {
+      for
+        corpus   <- SquireVersionCorpus.load(corpusDirectory)
+        accepted <- Kyo.foreach(corpus.changelogReleaseLine) { expected =>
+          SquireVersionCorpus.changelog(corpusDirectory, expected.file).map { text =>
+            (expected, SquireVersion.Changelog.releaseLine(text, expected.source))
+          }
+        }
+        rejected <- Kyo.foreach(corpus.changelogReleaseLineRejects) { expected =>
+          SquireVersionCorpus.changelog(corpusDirectory, expected.file).map { text =>
+            (expected, SquireVersion.Changelog.releaseLine(text, expected.source))
+          }
+        }
+      yield
+        val wrongLine    = accepted.filter((expected, actual) => actual != Right(expected.releaseLine))
+        val wrongMessage = rejected.filter((expected, actual) => actual != Left(expected.message))
+        assert(wrongLine.isEmpty && wrongMessage.isEmpty)
+    }
+
+    "lists every version heading in document order" in {
+      for
+        corpus <- SquireVersionCorpus.load(corpusDirectory)
+        actual <- Kyo.foreach(corpus.changelogHeadings) { expected =>
+          SquireVersionCorpus.changelog(corpusDirectory, expected.file).map { text =>
+            (expected, SquireVersion.Changelog.headings(text).toList)
+          }
+        }
+      yield
+        val wrong = actual.filter { (expected, headings) =>
+          headings != expected.headings.map(row => SquireVersion.ChangelogHeading(row.version, row.date.toOption))
+        }
+        assert(wrong.isEmpty)
+    }
+
+    "declares the same areas the corpus does" in {
+      for corpus <- SquireVersionCorpus.load(corpusDirectory)
+      yield
+        val expected = corpus.areas.map(area =>
+          ReleaseArea(area.name, area.namespace.toOption, area.changelogPath, area.startingVersion.toOption)
+        )
+        assert(SquireChangelog.Areas == expected)
+    }
+  }
+
+  "changelog check" - {
+    "passes on a well-formed changelog with one undated heading" in {
+      for
+        root   <- SquireFixtures.scratch("changelog-check-ok")
+        _      <- writeAllAreas(root, validLibraries, validMillPlugins, validDesktop)
+        report <- SquireChangelog.check(root)
+      yield assert(
+        report.ok && report.outcomes.forall(_.status == "ok") &&
+          report.outcomes.find(_.area == "libraries").exists(_.releaseLine.exists(_ == "1.2.3")) &&
+          report.outcomes.find(_.area == "mill-plugins").exists(_.releaseLine.exists(_ == "0.5.0-M05")) &&
+          report.outcomes.find(_.area == "desktop").exists(_.releaseLine.exists(_ == "0.2.0"))
+      )
+    }
+
+    "fails naming the file when there is no undated heading" in {
+      for
+        root     <- SquireFixtures.scratch("changelog-check-none")
+        _        <- writeAllAreas(root, noUndated, validMillPlugins, validDesktop)
+        report   <- SquireChangelog.check(root)
+        libraries = report.outcomes.find(_.area == "libraries").get
+      yield assert(
+        !report.ok && libraries.status == "issue" &&
+          libraries.detail.exists(message => message.contains("CHANGELOG.md") && message.contains("no undated release heading"))
+      )
+    }
+
+    "fails naming both when there are two undated headings" in {
+      for
+        root        <- SquireFixtures.scratch("changelog-check-two")
+        _           <- writeAllAreas(root, validLibraries, twoUndated, validDesktop)
+        report      <- SquireChangelog.check(root)
+        millPlugins  = report.outcomes.find(_.area == "mill-plugins").get
+      yield assert(
+        !report.ok && millPlugins.status == "issue" &&
+          millPlugins.detail.exists(message =>
+            message.contains("0.5.0-M06") && message.contains("0.5.0-M05") &&
+              message.contains("expected one undated release heading")
+          )
+      )
+    }
+
+    "fails when the release line is below the area's starting version" in {
+      for
+        root   <- SquireFixtures.scratch("changelog-check-floor")
+        _      <- writeAllAreas(root, validLibraries, validMillPlugins, belowFloorDesktop)
+        report <- SquireChangelog.check(root)
+        desktop = report.outcomes.find(_.area == "desktop").get
+      yield assert(
+        !report.ok && desktop.status == "issue" && desktop.releaseLine.exists(_ == "0.0.5") &&
+          desktop.detail.exists(message => message.contains("0.0.5") && message.contains("0.1.0"))
+      )
+    }
+
+    "fails when the libraries release line is below the shared floor" in {
+      // The libraries are the one stream with real published history (~40 tags): unlike the two
+      // never-published areas, a bad merge in its undated heading must not be free to publish below
+      // everything already shipped. See SquireChangelog.Areas.
+      for
+        root      <- SquireFixtures.scratch("changelog-check-libraries-floor")
+        _         <- writeAllAreas(root, belowFloorLibraries, validMillPlugins, validDesktop)
+        report    <- SquireChangelog.check(root)
+        libraries  = report.outcomes.find(_.area == "libraries").get
+      yield assert(
+        !report.ok && libraries.status == "issue" && libraries.releaseLine.exists(_ == "0.4.9") &&
+          libraries.detail.exists(message => message.contains("0.4.9") && message.contains("0.5.0-M04"))
+      )
+    }
+  }
+
+  "changelog show" - {
+    "prints the release line for each area without enforcing the floor" in {
+      for
+        root     <- SquireFixtures.scratch("changelog-show")
+        _        <- writeAllAreas(root, validLibraries, validMillPlugins, belowFloorDesktop)
+        report   <- SquireChangelog.show(root)
+        rendered  = SquireChangelog.renderChangelogReport(report)
+        desktop   = report.outcomes.find(_.area == "desktop").get
+      yield assert(
+        report.ok && desktop.status == "ok" && desktop.releaseLine.exists(_ == "0.0.5") &&
+          rendered.contains("release line 1.2.3") && rendered.contains("release line 0.5.0-M05") &&
+          rendered.contains("release line 0.0.5")
+      )
+    }
+  }
+
+  "release prepare" - {
+    "dates the undated heading with the date it is given and inserts a real next undated heading above it" in {
+      for
+        root    <- SquireFixtures.scratch("release-prepare")
+        _       <- writeAllAreas(root, preparable, validMillPlugins, validDesktop)
+        result  <- SquireChangelog.prepare(root, "libraries", "2026-08-18")
+        updated <- Sync.defer(Files.readString((root / "CHANGELOG.md").toJava))
+        // The build must be able to read a release line straight out of the file `prepare` just
+        // wrote — that is the whole point of not leaving `## [Unreleased]` behind.
+        rereadLine = SquireVersion.Changelog.releaseLine(updated, "CHANGELOG.md")
+      yield
+        val nextIndex  = updated.indexOf("## [0.6.1]")
+        val datedIndex = updated.indexOf("## [0.6.0-M01] - 2026-08-18")
+        assert(
+          result.version == "0.6.0-M01" && result.date == "2026-08-18" && result.tag == "v0.6.0-M01" &&
+            result.gitTagCommand == "git tag v0.6.0-M01" && result.nextVersion == "0.6.1" &&
+            nextIndex >= 0 && datedIndex > nextIndex &&
+            !updated.contains("## [Unreleased]") &&
+            !updated.contains("## [0.6.0-M01]\n\n### Added") &&
+            updated.contains("## [0.5.0-M04] - 2026-04-22") &&
+            rereadLine == Right("0.6.1")
+        )
+    }
+
+    "refuses, without writing, when the changelog has no undated heading to date" in {
+      for
+        root   <- SquireFixtures.scratch("release-prepare-refuse")
+        _      <- writeAllAreas(root, noUndated, validMillPlugins, validDesktop)
+        before <- Sync.defer(Files.readString((root / "CHANGELOG.md").toJava))
+        result <- Abort.run[SquireError](SquireChangelog.prepare(root, "libraries", "2026-08-18"))
+        after  <- Sync.defer(Files.readString((root / "CHANGELOG.md").toJava))
+      yield assert(result.isFailure && before == after)
+    }
+
+    "refuses an unknown area and a malformed date without writing" in {
+      for
+        root         <- SquireFixtures.scratch("release-prepare-bad-input")
+        _            <- writeAllAreas(root, validLibraries, validMillPlugins, validDesktop)
+        before       <- Sync.defer(Files.readString((root / "CHANGELOG.md").toJava))
+        unknownArea  <- Abort.run[SquireError](SquireChangelog.prepare(root, "nope", "2026-08-18"))
+        badDate      <- Abort.run[SquireError](SquireChangelog.prepare(root, "libraries", "not-a-date"))
+        after        <- Sync.defer(Files.readString((root / "CHANGELOG.md").toJava))
+      yield assert(unknownArea.isFailure && badDate.isFailure && before == after)
+    }
+  }
+
+  "release status" - {
+    "reports which stream a tag would release and whether tag and changelog agree" in {
+      val statusRunner = RuleRunner { request =>
+        val pattern = request.argv.lastOption.getOrElse("")
+        val stdout = pattern match
+          case "v*"              => ""
+          case "mill-plugins/v*" => "mill-plugins/v0.5.0-M05\n"
+          case "desktop/v*"      => "desktop/v9.9.9\n"
+          case _                 => ""
+        ProcessResult(request, 0, stdout, "")
+      }
+      for
+        root        <- SquireFixtures.scratch("release-status")
+        _           <- writeAllAreas(root, validLibraries, millPluginsWithRelease, validDesktop)
+        report      <- SquireChangelog.status(root, statusRunner)
+        libraries    = report.areas.find(_.area == "libraries").get
+        millPlugins  = report.areas.find(_.area == "mill-plugins").get
+        desktop      = report.areas.find(_.area == "desktop").get
+      yield assert(
+        !report.ok &&
+          libraries.status == "pending" && libraries.tag.exists(_ == "v1.2.3") &&
+          millPlugins.status == "released" && millPlugins.tag.exists(_ == "mill-plugins/v0.5.0-M05") &&
+          desktop.status == "issue" &&
+          desktop.detail.exists(message => message.contains("desktop/v9.9.9") && message.contains("does not record"))
+      )
+    }
+
+    "fails rather than reporting every area pending when the git probe itself fails" in {
+      val brokenRunner = RuleRunner { request =>
+        ProcessResult(request, 128, "", "fatal: not a git repository\n")
+      }
+      for
+        root   <- SquireFixtures.scratch("release-status-git-failure")
+        _      <- writeAllAreas(root, validLibraries, validMillPlugins, validDesktop)
+        result <- Abort.run[SquireError](SquireChangelog.status(root, brokenRunner))
+      yield assert(result match
+        case Result.Failure(error) => error.getMessage.contains("not a git repository")
+        case _                     => false
+      )
+    }
+  }
+
+  "squire CLI wiring" - {
+    "routes changelog check, show, and release prepare through SquireCli with correct exit codes" in {
+      for
+        root          <- SquireFixtures.scratch("changelog-cli")
+        _             <- writeAllAreas(root, preparable, validMillPlugins, validDesktop)
+        checkOutput    = new StringBuilder
+        checkExit     <- SquireCli.runChangelogCheck(ChangelogCheckOpts(json = true), root, value => checkOutput.append(value))
+        showOutput     = new StringBuilder
+        showExit      <- SquireCli.runChangelogShow(ChangelogShowOpts(), root, value => showOutput.append(value))
+        prepareOutput  = new StringBuilder
+        prepareExit <-
+          SquireCli.runReleasePrepare(
+            ReleasePrepareOpts(area = Some("libraries"), date = Some("2026-08-18")),
+            root,
+            value => prepareOutput.append(value)
+          )
+        checkReport = SquireJson.decode[ChangelogReport](checkOutput.result().trim)
+      yield assert(
+        checkExit == 0 && checkReport.exists(_.ok) &&
+          showExit == 0 && showOutput.result().contains("release line 0.6.0-M01") &&
+          prepareExit == 0 && prepareOutput.result().contains("git tag v0.6.0-M01")
+      )
+    }
+
+    "release prepare requires --area" in {
+      for
+        root   <- SquireFixtures.scratch("changelog-cli-missing-area")
+        result <- Abort.run[SquireError](SquireCli.runReleasePrepare(ReleasePrepareOpts(), root, _ => ()))
+      yield assert(result.isFailure)
+    }
+  }
+
+object SquireChangelogFixtures:
+  val validLibraries: String =
+    """# Changelog
+      |
+      |## [1.2.3]
+      |
+      |### Added
+      |- widget
+      |""".stripMargin
+
+  val belowFloorLibraries: String =
+    """# Changelog
+      |
+      |## [0.4.9]
+      |
+      |### Added
+      |- widget
+      |""".stripMargin
+
+  val validMillPlugins: String =
+    """# Changelog
+      |
+      |## [0.5.0-M05]
+      |
+      |### Changed
+      |- widget
+      |""".stripMargin
+
+  val validDesktop: String =
+    """# Changelog
+      |
+      |## [0.2.0]
+      |
+      |### Added
+      |- widget
+      |""".stripMargin
+
+  val belowFloorDesktop: String =
+    """# Changelog
+      |
+      |## [0.0.5]
+      |
+      |### Added
+      |- widget
+      |""".stripMargin
+
+  val noUndated: String =
+    """# Changelog
+      |
+      |## [1.2.3] - 2026-01-01
+      |
+      |### Added
+      |- widget
+      |""".stripMargin
+
+  val twoUndated: String =
+    """# Changelog
+      |
+      |## [0.5.0-M06]
+      |
+      |## [0.5.0-M05]
+      |
+      |### Changed
+      |- widget
+      |
+      |## [0.5.0-M04] - 2026-04-22
+      |
+      |### Added
+      |- widget
+      |""".stripMargin
+
+  val preparable: String =
+    """# Changelog
+      |
+      |All notable changes are recorded here.
+      |
+      |## [0.6.0-M01]
+      |
+      |### Added
+      |- widget
+      |
+      |## [0.5.0-M04] - 2026-04-22
+      |
+      |### Added
+      |- gadget
+      |""".stripMargin
+
+  val millPluginsWithRelease: String =
+    """# Changelog
+      |
+      |## [0.5.0-M06]
+      |
+      |### Changed
+      |- widget
+      |
+      |## [0.5.0-M05] - 2026-06-01
+      |
+      |### Changed
+      |- widget
+      |""".stripMargin
+
+  def writeChangelog(root: Path, path: String, text: String): Unit < Sync =
+    Sync.defer {
+      val target = root / path
+      Files.createDirectories(target.parent.get.toJava)
+      Files.writeString(target.toJava, text)
+    }
+
+  def writeAllAreas(root: Path, libraries: String, millPlugins: String, desktop: String): Unit < Sync =
+    for
+      _ <- writeChangelog(root, "CHANGELOG.md", libraries)
+      _ <- writeChangelog(root, "mill-plugins/morphir/CHANGELOG.md", millPlugins)
+      _ <- writeChangelog(root, "morphir/desktop/CHANGELOG.md", desktop)
+    yield ()

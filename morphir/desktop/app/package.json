@@ -1,0 +1,17 @@
+{
+  "name": "morphir-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Morphir desktop shell (proof of stack)",
+  "homepage": "https://morphir.finos.org",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Morphir maintainers",
+    "email": "morphir-maintainers-private@lists.finos.org"
+  },
+  "main": "main.cjs",
+  "devDependencies": {
+    "electron": "^37.2.0",
+    "electron-builder": "^25.1.8"
+  }
+}

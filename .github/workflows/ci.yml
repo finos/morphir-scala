@@ -42,6 +42,36 @@ jobs:
       - name: Lint code
         run: ./mill --ticker false -i ci.lint
 
+  # FINOS requires every contributor to have a signed CLA, and an AI agent cannot sign one, so an agent must not
+  # appear as an author, a committer or a co-author. AGENTS.md has stated that since the repository adopted agents;
+  # until now nothing checked it, which left the rule resting on whoever wrote the commit having read the document.
+  #
+  # It also gives the claim an answer. Automated reviewers have reported this rule as violated on eleven pull
+  # requests that satisfied it, each naming an author no commit carried. A green check here is the evidence that
+  # settles it, and a red one names the commit and the field rather than asserting a violation in prose.
+  commit-authorship:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v7.0.1
+        with:
+          # Both sides of the range have to be present to list the commits the pull request adds.
+          fetch-depth: 0
+
+      - name: Check commit authorship
+        # A pull request supplies its own base and head. A push supplies the commit it moved from, which is the
+        # range that push added. Neither is available on a release or a manual run, and the script falls back to the
+        # head commit alone rather than refusing to run — see its own comment on why it never checks whole history.
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        # `main` is fetched explicitly because the script excludes commits already published there, and
+        # actions/checkout does not guarantee the remote-tracking ref for a branch it did not check out.
+        run: |
+          git fetch --no-tags --quiet origin +refs/heads/main:refs/remotes/origin/main || true
+          .github/scripts/check-commit-authorship.sh
+
   squire-policy:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -61,6 +91,8 @@ jobs:
           experimental: true
       - name: Test Squire and release policy
         run: mise run test:squire
+      - name: Check the independent-version-stream changelogs
+        run: .claude/skills/squire/squire changelog check
 
   knowledge-base:
     runs-on: ubuntu-latest
@@ -282,9 +314,20 @@ jobs:
           ./mill --ticker false -i morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery
           ./mill --ticker false -i morphir.runtime.classic.jvm.test
 
+  # Split from test-js-desktop (morphir-oyn): linking morphir.ui, morphir.desktop and
+  # morphir.appkit.electron alongside the rest of the JS/Wasm tree in one Mill daemon pushed the
+  # Scala.js linker past the 8 GB heap in .mill-jvm-opts, OOM-ing inside the source-map printer.
+  # ci.testJs / ci.testJsWasmLink (ci/MorphirCi.mill) resolve the shared wildcards once and split
+  # them by millbuild.JsTestSelectors so the two peaks land on two runners with two daemons; "platform"
+  # here is everything *except* the desktop/UI subset that test-js-desktop takes.
   test-js:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 45 rather than the 30 the other test jobs use. The "Run JS tests" step alone has finished in
+    # under 15 minutes and has also exceeded 30 on the same branch with no JS sources changed, and a
+    # timed-out job is reported as *cancelled*, which reads like an unrelated failure. Pull requests
+    # always pay a cold build here: the JS build cache is keyed by the exact commit SHA and is only
+    # saved on main, develop, 0.4.x and tags, so a PR can never restore it.
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -309,12 +352,22 @@ jobs:
         uses: coursier/cache-action@v8
 
       - name: Run JS tests
-        # Kept in step with .config/mise/tasks/test/js — the `wasm` link variants
-        # sit beside their `js` sibling, so `morphir.__.js.__` never matches them.
-        # `-j 4` matches that task; see the comment there for why the Scala.js
-        # link phase needs a parallelism cap against the daemon's `-Xmx4g`.
+        # Kept in step with .config/mise/tasks/test/js for the underlying selectors, but `-j 2`
+        # rather than that task's `-j 4` default: a GitHub-hosted runner is smaller than a developer
+        # machine and shares its 8 GB daemon heap (.mill-jvm-opts) with everything else on the box.
+        # ci.testJs partitions the shared wildcard by millbuild.JsTestSelectors; "platform" is every
+        # JS/Wasm test module except morphir.ui/morphir.desktop/morphir.appkit.electron, which
+        # test-js-desktop covers instead.
         run: |
-          ./mill --ticker false -i -k -j 4 "morphir.__.js.__.compile" + "morphir.__.js.publishArtifacts" + "morphir.__.js.__.test" + "morphir.__.wasm.__.test" + "morphir.__.wasm.fullLinkJS"
+          ./mill --ticker false -i -k -j 2 ci.testJs --group platform
+
+      - name: Link the WebAssembly variants
+        # Serial on purpose: a Wasm `fullLinkJS` holds the largest working set of any task in this
+        # job, and running several at once exhausted the daemon heap inside the linker's
+        # BinaryWriter. Splitting it out keeps the test phase parallel while the links go one at a
+        # time. See .config/mise/tasks/test/js.
+        run: |
+          ./mill --ticker false -i -k -j 1 ci.testJsWasmLink --group platform
 
       - name: Cache JS build output
         # when in master repo: all commits to main branch and all additional tags
@@ -328,7 +381,59 @@ jobs:
           # points at $HOME and `out/mill-daemon/mill-workspace` back at the repo root —
           # so it walks the whole runner home and a cyclical path, taking minutes when it
           # works and failing the job outright when it hits an unreadable file or the cycle.
-          key: ${{ runner.os }}-mill-js-${{matrix.java}}-${{ github.sha }}
+          # `-platform` distinguishes this from test-js-desktop's own save under the same commit.
+          key: ${{ runner.os }}-mill-js-platform-${{matrix.java}}-${{ github.sha }}
+
+  # See test-js above for why this job exists (morphir-oyn): morphir.ui, morphir.desktop and
+  # morphir.appkit.electron are the desktop/UI half of the same JS/Wasm wildcard, split out by
+  # ci.testJs --group desktop so their link load lands on its own runner and daemon.
+  test-js-desktop:
+    runs-on: ubuntu-latest
+    # Kept in step with test-js's own reasoning for 45 rather than 30.
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        java: ["25"] # Note there is no need to actually run this for multiple JVM versions for JS
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Setup Scala and Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: ${{ matrix.java }}
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v8
+
+      - name: Run JS tests (desktop/UI)
+        # See test-js's "Run JS tests" step for the `-j 2` reasoning. "desktop" is
+        # morphir.ui/morphir.desktop/morphir.appkit.electron, the subset test-js excludes.
+        run: |
+          ./mill --ticker false -i -k -j 2 ci.testJs --group desktop
+
+      - name: Link the WebAssembly variants (desktop/UI)
+        # Serial for the same reason as test-js's own Wasm link step.
+        run: |
+          ./mill --ticker false -i -k -j 1 ci.testJsWasmLink --group desktop
+
+      - name: Cache JS build output
+        # when in master repo: all commits to main branch and all additional tags
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/')
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            out/morphir/**/js/
+          # See test-js's own cache step; `-desktop` distinguishes this save under the same commit.
+          key: ${{ runner.os }}-mill-js-desktop-${{matrix.java}}-${{ github.sha }}
 
   # Scala Native is currently scoped to the langkit and kit modules ported from
   # krueger, plus buildkit/core and prelude. It gets its own job rather than riding along
@@ -337,7 +442,12 @@ jobs:
   # failure should be legible on its own.
   test-native:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 45 rather than 30, for the same reason test-js carries 45. This job finishes in about fifteen
+    # minutes on a warm cache and exceeded thirty on a coursier cache miss, with no OutOfMemoryError
+    # in the log — lowering the link concurrency to `-j 2` cured the heap exhaustion and left
+    # wall-clock as the binding constraint. A timed-out job is reported as *cancelled*, which reads
+    # like an unrelated infrastructure failure rather than a job that needed more minutes.
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -358,13 +468,43 @@ jobs:
         uses: coursier/cache-action@v8
 
       - name: Install libuv
-        run: sudo apt-get update && sudo apt-get install -y libuv1-dev
+        # Bounded: a stalled Ubuntu mirror otherwise consumes the job budget. The script skips the
+        # Azure archive (see actions/runner-images#12949) rather than waiting on it.
+        timeout-minutes: 6
+        run: .github/scripts/install-libuv.sh
+
+      # Reuse of this job's own native build output. Unlike test-js's cache, which is save-only and
+      # restored by `publish` rather than by test-js itself, this both restores and saves, so a
+      # re-run of the same commit does not relink from scratch — the case that follows a timeout or
+      # an infrastructure flake, which is how bead morphir-dru was opened.
+      #
+      # It is deliberately exact-commit only. See the key below for what happened when it was not.
+      - name: Cache Native build output
+        uses: actions/cache@v6
+        with:
+          path: |
+            out/morphir/**/native/
+          # Keyed by the exact commit, with no restore-keys fallback. A cross-commit restore was
+          # tried and reverted: it made this job reuse a `nativeLink` from a different commit, and
+          # 11 GithubClientTests snapshot assertions failed because a stale binary ran against
+          # current sources. The first run of that branch passed (empty cache) and the second failed
+          # (restored the first's output) — same configuration, so the restore was the only
+          # variable. Mill's own input hashing does not protect against this, because the restored
+          # task metadata is what tells Mill the work is already done.
+          #
+          # What remains is reuse across re-runs of the same commit, which is exactly the case that
+          # follows a timeout or an infrastructure flake. Cold runs stay cold; see bead morphir-dru.
+          key: ${{ runner.os }}-mill-native-${{ matrix.java }}-${{ github.sha }}
 
       - name: Run Native tests
-        # Kept in step with .config/mise/tasks/test/native — `-j 4` caps the
-        # concurrent `nativeLink` tasks against the daemon's `-Xmx4g`.
+        # Kept in step with .config/mise/tasks/test/native for the selectors, but `-j 2` rather than
+        # that task's `-j 4`: every `nativeLink` runs inside the one Mill daemon and holds a full
+        # linker working set, so the constraint is that daemon's `-Xmx8g` (.mill-jvm-opts), and 8 GB
+        # is already half of a 16 GB GitHub-hosted runner. At `-j 4` this job died with
+        # `java.lang.OutOfMemoryError: Java heap space` and then sat until the 30-minute job timeout,
+        # which GitHub reports as *cancelled* rather than failed. Same reasoning as the JS jobs.
         run: |
-          ./mill --ticker false -i -k -j 4 "morphir.__.native.__.compile" + "morphir.__.native.publishArtifacts" + "morphir.__.native.__.test"
+          ./mill --ticker false -i -k -j 2 "morphir.__.native.__.compile" + "morphir.__.native.publishArtifacts" + "morphir.__.native.__.test"
 
   test-jvm:
     runs-on: ubuntu-latest
@@ -406,10 +546,332 @@ jobs:
           # See the JS job: the key deliberately does not hash `out`.
           key: ${{ runner.os }}-mill-jvm-${{matrix.java}}-${{ github.sha }}
 
+  desktop-matrix:
+    # A desktop/v* tag or the desktop release it came from always packages all five platforms,
+    # ignoring the switch below — turning off ordinary-CI packaging must never weaken a real
+    # release. A push to main, develop or 0.4.x also packages all five; everything else (a pull
+    # request, or a v*/mill-plugins/v* release, which are not this job's business) packages the
+    # three-leg smoke matrix, one per operating system. This job just computes which;
+    # desktop-package and desktop-verify consume its outputs.
+    #
+    # startsWith(github.ref, 'refs/tags/desktop/v') is deliberately namespaced: a bare v* library
+    # tag or a mill-plugins/v* plugin tag must not force full-platform packaging here, and must
+    # never reach desktop-release below. github.event_name == 'release' is dropped for the same
+    # reason it was wrong on desktop-release — it is true for every published release regardless
+    # of tag shape, so it would undo the namespacing. The ref already carries the tag for a
+    # release event, so startsWith(github.ref, ...) alone covers both a bare tag push and the
+    # release it was cut from.
+    #
+    # Gated by the repository variable MORPHIR_CI_PACKAGE_DESKTOP, unset or anything other than
+    # "false" meaning enabled, so packaging runs today without anyone creating the variable and a
+    # maintainer can disable it from repository settings without a commit. It must be `vars`, not a
+    # workflow-level `env:` — GitHub Actions does not expose the `env` context inside a job-level
+    # `if:` condition, so an `env:`-based switch would silently evaluate empty there and this job
+    # (and everything gated on it) would never run. This half is unchanged: it is what still
+    # exercises desktop packaging on an ordinary pull request or a v*/mill-plugins/v* release, as a
+    # smoke test that never uploads or publishes anything.
+    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/desktop/v') || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      platforms: ${{ steps.matrix.outputs.platforms }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Compute the packaging matrix
+        id: matrix
+        shell: bash
+        run: |
+          # Namespaced for the same reason as the job's `if:` above: a bare v* library tag or a
+          # mill-plugins/v* plugin tag is not this job's business, and a generic refs/tags/* or
+          # "$GITHUB_EVENT_NAME" == "release" test would start all five packaging runners for one.
+          # The ref carries the tag on a release event too, so this covers a bare tag push and the
+          # release cut from it alike.
+          if [[ "$GITHUB_REF" == refs/tags/desktop/v* || "$GITHUB_REF" == "refs/heads/main" || "$GITHUB_REF" == "refs/heads/develop" || "$GITHUB_REF" == "refs/heads/0.4.x" ]]; then
+            MATRIX='{"include":[{"token":"mac-aarch64","runner":"macos-14"},{"token":"mac-amd64","runner":"macos-15-intel"},{"token":"linux-amd64","runner":"ubuntu-24.04"},{"token":"linux-aarch64","runner":"ubuntu-24.04-arm"},{"token":"win-amd64","runner":"windows-latest"}]}'
+            PLATFORMS="mac-aarch64,mac-amd64,linux-amd64,linux-aarch64,win-amd64"
+          else
+            # A pull request, or a v*/mill-plugins/v* release, packages one leg per operating
+            # system: linux-amd64, win-amd64 and mac-aarch64. Each covers machinery the others do not — fpm and AppImage on Linux, Git
+            # Bash and mill.bat and NSIS on Windows, code signing and dmg on macOS — and all three
+            # of those areas have produced a real packaging failure. What a pull request defers is
+            # only the second architecture of an already-covered operating system, mac-amd64 and
+            # linux-aarch64, which a push to a release branch still exercises.
+            MATRIX='{"include":[{"token":"linux-amd64","runner":"ubuntu-24.04"},{"token":"win-amd64","runner":"windows-latest"},{"token":"mac-aarch64","runner":"macos-14"}]}'
+            PLATFORMS="linux-amd64,win-amd64,mac-aarch64"
+          fi
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+          echo "platforms=$PLATFORMS" >> "$GITHUB_OUTPUT"
+
+      # Resolved once, here, rather than on each packaging runner. Two reasons: every leg then
+      # stamps the identical version, where five independent resolves could disagree across a
+      # commit boundary; and Windows never has to run Mill for this, since the ./mill launcher
+      # supports only Linux and macOS and exits 1 anywhere else.
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: "25"
+          distribution: temurin
+
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v8
+
+      - name: Resolve the publish version
+        id: version
+        shell: bash
+        # `mill show` is not guaranteed to put the value alone on stdout, so take the last line and
+        # strip the JSON quotes; an empty result is a failure rather than a blank version carried
+        # into electron-builder, where it would surface as a confusing packaging error.
+        run: |
+          version="$(./mill --ticker false -i show ci.desktop.version | tail -n 1 | tr -d '"')"
+          if [[ -z "$version" ]]; then
+            echo "ci.desktop.version resolved to an empty string" >&2
+            exit 1
+          fi
+          echo "resolved desktop version: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  desktop-package:
+    # Desktop binaries ship on a desktop/v* tag or the release it came from, regardless of the
+    # switch — see desktop-matrix above for why the ref check is namespaced to that prefix and
+    # drops the separate github.event_name == 'release' check. Ordinary pushes and pull requests
+    # package too, gated by MORPHIR_CI_PACKAGE_DESKTOP (see desktop-matrix above), so a change that
+    # breaks electron-builder, the Scala.js link or canonicalization is caught in ordinary CI
+    # rather than at release time; that also means this job still runs, as a build-only smoke
+    # test, on a v* or mill-plugins/v* release while the switch is enabled — it just never
+    # publishes anything, which only desktop-release below does.
+    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/desktop/v') || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false')
+    needs: [ci, desktop-matrix]
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.desktop-matrix.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: "25"
+          distribution: temurin
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v8
+
+      - name: Package
+        shell: bash
+        env:
+          # electron-builder signs when these are present and builds unsigned when they are absent.
+          CSC_LINK: ${{ secrets.ORG_MORPHIR_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.ORG_MORPHIR_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.ORG_MORPHIR_APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.ORG_MORPHIR_APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.ORG_MORPHIR_APPLE_TEAM_ID }}
+        run: ./morphir/desktop/scripts/package.sh "${{ matrix.token }}" "${{ needs.desktop-matrix.outputs.version }}"
+
+      - name: Upload raw packaging output
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.token }}
+          # electron-builder also leaves unpacked app trees (mac-arm64/, linux-unpacked/, …) next to the
+          # archives and installers; only the distributable extensions are wanted downstream, and the glob
+          # keeps the files directly under the artifact root to match the desktop-release staging contract.
+          path: |
+            morphir/desktop/app/release/*.zip
+            morphir/desktop/app/release/*.tar.gz
+            morphir/desktop/app/release/*.dmg
+            morphir/desktop/app/release/*.exe
+            morphir/desktop/app/release/*.AppImage
+            morphir/desktop/app/release/*.deb
+          if-no-files-found: error
+
+  desktop-verify:
+    # Runs whenever packaging ran (see desktop-matrix above): a desktop/v* tag or release always,
+    # ordinary pushes and pull requests when the switch is enabled — same namespacing as
+    # desktop-package. No signing and no uploads happen here — this job only proves the packaged
+    # subset canonicalizes and passes the pre-publish checks, with the signature check relaxed the
+    # same way a local `ci.desktop.all` run relaxes it, since there is no GPG signing step and no
+    # secrets outside a release.
+    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/desktop/v') || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false')
+    needs: [desktop-matrix, desktop-package]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      LANG: "en_US.UTF-8"
+      LC_MESSAGES: "en_US.UTF-8"
+      LC_ALL: "en_US.UTF-8"
+      MORPHIR_DESKTOP_STAGING_DIR: .dev/dist/desktop/staging
+      MORPHIR_DESKTOP_RELEASE_DIR: .dev/dist/desktop/release
+
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: "25"
+          distribution: temurin
+
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v8
+
+      - name: Download packaging output
+        uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-*
+          path: ${{ env.MORPHIR_DESKTOP_STAGING_DIR }}
+
+      # Same normalization desktop-release does: download-artifact names each directory after the
+      # artifact (desktop-<token>); the staging contract is <root>/<token>.
+      - name: Normalize staging layout
+        run: |
+          cd "$MORPHIR_DESKTOP_STAGING_DIR"
+          for directory in desktop-*; do
+            mv "$directory" "${directory#desktop-}"
+          done
+          ls -R .
+
+      - name: Canonicalize the packaged subset
+        run: ./mill --ticker false -i ci.desktop.canonicalize --platforms "${{ needs.desktop-matrix.outputs.platforms }}"
+
+      - name: Verify the packaged subset (no signature — nothing signs it outside a release)
+        run: ./mill --ticker false -i ci.desktop.verify --require-signature false --platforms "${{ needs.desktop-matrix.outputs.platforms }}"
+
+  desktop-release:
+    # Namespaced to a desktop/v* tag alone. startsWith(github.ref, 'refs/tags/') matched every tag
+    # namespace, and github.event_name == 'release' is true for every published release regardless
+    # of tag shape — together those two clauses meant cutting a v* library release or a
+    # mill-plugins/v* plugin release also uploaded desktop binaries to that release and pushed
+    # desktop archives to Sonatype, which contradicts a release publishing exactly one stream. The
+    # ref already carries the tag on a release event, so startsWith(github.ref, 'refs/tags/desktop/v')
+    # alone covers a bare desktop/v* tag push and the release cut from it; a v* or mill-plugins/v*
+    # ref cannot match because those refs continue 'refs/tags/v' and 'refs/tags/m', never
+    # 'refs/tags/desktop/v'. Unlike desktop-matrix/-package/-verify above, this job has no
+    # MORPHIR_CI_PACKAGE_DESKTOP switch clause: it uploads and publishes, so it must never run
+    # outside an actual desktop release.
+    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/desktop/v')
+    needs: [ci, packaging]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    # The workflow default is contents: read, which cannot upload release assets.
+    permissions:
+      contents: write
+
+    concurrency: publish-desktop-${{ github.sha }}
+
+    env:
+      LANG: "en_US.UTF-8"
+      LC_MESSAGES: "en_US.UTF-8"
+      LC_ALL: "en_US.UTF-8"
+      MORPHIR_DESKTOP_STAGING_DIR: .dev/dist/desktop/staging
+      MORPHIR_DESKTOP_RELEASE_DIR: .dev/dist/desktop/release
+
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: "25"
+          distribution: temurin
+
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v8
+
+      - name: Download packaging output
+        uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-*
+          path: ${{ env.MORPHIR_DESKTOP_STAGING_DIR }}
+
+      # download-artifact names each directory after the artifact (desktop-<token>); the staging
+      # contract is <root>/<token>, so strip the prefix.
+      - name: Normalize staging layout
+        run: |
+          cd "$MORPHIR_DESKTOP_STAGING_DIR"
+          for directory in desktop-*; do
+            mv "$directory" "${directory#desktop-}"
+          done
+          ls -R .
+
+      - name: Canonicalize assets and write checksums
+        run: ./mill --ticker false -i ci.desktop.canonicalize
+
+      - name: Sign checksums.txt
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.ORG_MORPHIR_CI_GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.ORG_MORPHIR_CI_GPG_PASSPHRASE }}
+        run: |
+          # The org secret's encoding is not documented, so accept the same three forms
+          # PgpSecret.toMillBase64 accepts (mill-plugins/morphir/core/src/org/finos/morphir/mill/publish/PgpSecret.scala):
+          # ASCII-armored plaintext, base64-of-armor, or base64-of-binary. A plain `base64 --decode`
+          # would fail fast under `-e -o pipefail` if the secret is armored plaintext.
+          if printf '%s' "$GPG_PRIVATE_KEY" | grep -q "BEGIN PGP PRIVATE KEY"; then
+            printf '%s' "$GPG_PRIVATE_KEY" | gpg --batch --import
+          else
+            printf '%s' "$GPG_PRIVATE_KEY" | base64 --decode | gpg --batch --import
+          fi
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" \
+            --detach-sign --armor "$MORPHIR_DESKTOP_RELEASE_DIR/checksums.txt"
+
+      # Runs after signing (so checksums.txt.asc exists) and before either upload, with the default
+      # requireSignature = true: this is the one place the signature check can run, since neither
+      # ci.desktop.canonicalize nor a local ci.desktop.all run produces checksums.txt.asc.
+      - name: Verify release assets
+        run: ./mill --ticker false -i ci.desktop.verify
+
+      - name: Upload to the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.event.release.tag_name || github.ref_name }}"
+          ./mill --ticker false -i ci.desktop.githubRelease --tag "$TAG"
+
+      - name: Publish archives to Maven Central
+        env:
+          SONATYPE_USERNAME: ${{ secrets.ORG_MORPHIR_MAVEN_DEPLOY_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.ORG_MORPHIR_MAVEN_DEPLOY_PASSWORD }}
+          GPG_PRIVATE_KEY: ${{ secrets.ORG_MORPHIR_CI_GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.ORG_MORPHIR_CI_GPG_PASSPHRASE }}
+        run: |
+          # Same two-process dance as the library publish: Task.env is snapshotted at mill start.
+          envfile="${RUNNER_TEMP:-/tmp}/mill-publish.env"
+          trap 'rm -f "$envfile"' EXIT
+          ./mill --ticker false -i ci.sonatype.writeMillEnv --path "$envfile"
+          set -a
+          # shellcheck disable=SC1090
+          source "$envfile"
+          set +a
+          ./mill --ticker false -i ci.desktop.sonatype
+
   publish:
-    # when in master repo: all commits to main branch and all additional tags
-    if: github.repository == 'finos/morphir-scala' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/'))
+    # when in master repo: all commits to main branch (snapshot, both areas) and library release tags.
+    # startsWith(github.ref, 'refs/tags/v') is false for refs/tags/desktop/v... and
+    # refs/tags/mill-plugins/v..., because those refs continue 'refs/tags/d' and 'refs/tags/m' —
+    # the 'v' immediately after 'refs/tags/' only ever comes from an unnamespaced v* tag. The
+    # plugin family releases through the sibling publish-plugins job below, gated on
+    # refs/tags/mill-plugins/v*; the desktop application ships through desktop-release, gated on
+    # refs/tags/desktop/v*.
+    if: github.repository == 'finos/morphir-scala' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/v'))
     needs: [ci]
+
+    # Without this the job inherits GitHub's six-hour default. An `apt-get update` wedged against
+    # unreachable Ubuntu mirrors held this job — and the whole run, including its logs — open for
+    # over half an hour with no upload attempted; six hours is not a useful thing to wait for.
+    timeout-minutes: 60
 
     runs-on: ubuntu-latest
 
@@ -436,7 +898,11 @@ jobs:
         uses: coursier/cache-action@v8
 
       - name: Install libuv
-        run: sudo apt-get update && sudo apt-get install -y libuv1-dev
+        # Bounded: run 32158142566 spent this job's entire 60-minute budget inside `apt-get update`
+        # against azure.archive.ubuntu.com. The shared script skips that mirror; timeout-minutes is
+        # the backstop if retrying still cannot finish.
+        timeout-minutes: 6
+        run: .github/scripts/install-libuv.sh
 
       - name: Restore JVM Build Output From Cache
         uses: actions/cache/restore@v6
@@ -445,12 +911,21 @@ jobs:
             out/morphir/**/jvm/
           key: ${{ runner.os }}-mill-jvm-25-${{ github.sha }}
 
-      - name: Restore JS Build Output From Cache
+      - name: Restore JS Build Output From Cache (platform)
+        # test-js and test-js-desktop (morphir-oyn) save under two distinct keys — see their own
+        # "Cache JS build output" steps — so both are restored here to get the full tree back.
         uses: actions/cache/restore@v6
         with:
           path: |
             out/morphir/**/js/
-          key: ${{ runner.os }}-mill-js-25-${{ github.sha }}
+          key: ${{ runner.os }}-mill-js-platform-25-${{ github.sha }}
+
+      - name: Restore JS Build Output From Cache (desktop)
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            out/morphir/**/js/
+          key: ${{ runner.os }}-mill-js-desktop-25-${{ github.sha }}
 
       - name: Configure snapshot version
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
@@ -468,7 +943,7 @@ jobs:
           GPG_PASSPHRASE: ${{ secrets.ORG_MORPHIR_CI_GPG_PASSPHRASE }}
         run: |
           # Task.env is snapshotted at mill start. Convert GPG_* / SONATYPE_* in a first mill,
-          # source the file, then start ci.publish so MILL_* is in that process env.
+          # source the file, then start the release command so MILL_* is in that process env.
           # Do not mill show the file: it contains secrets.
           envfile="${RUNNER_TEMP:-/tmp}/mill-publish.env"
           trap 'rm -f "$envfile"' EXIT
@@ -477,19 +952,101 @@ jobs:
           # shellcheck disable=SC1090
           source "$envfile"
           set +a
-          ./mill --ticker false -i ci.publish
+          # Branch pushes (main, develop, 0.4.x) are the snapshot case and keep publishing every
+          # area — libraries and plugins — each stamped from its own changelog, via ci.publish.
+          # A refs/tags/v* release is the routed case: this job's guard above already limits the
+          # tag path to that one namespace, so ci.sonatype.libraries is the only kind-specific
+          # command this branch of the script can ever reach.
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            ./mill --ticker false -i ci.sonatype.libraries
+          else
+            ./mill --ticker false -i ci.publish
+          fi
+
+  publish-plugins:
+    # Routes a mill-plugins/v* release tag to the plugin family alone, through
+    # ci.sonatype.plugins. startsWith(github.ref, 'refs/tags/mill-plugins/v') cannot match a
+    # bare v* library tag or a desktop/v* tag — both continue the ref differently ('refs/tags/v...'
+    # and 'refs/tags/d...' respectively) — so this job and `publish` above can never both claim
+    # the same tag. Unlike `publish`, this job has no branch case: the plugin family's snapshot
+    # publishing already happens from the `publish` job's ci.publish call on main/develop/0.4.x;
+    # only the release path is routed separately.
+    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/mill-plugins/v')
+    needs: [ci]
+
+    # See the `publish` job's own comment on its timeout: an early half-hour job timeout reads as
+    # an unrelated cancellation rather than the real failure.
+    timeout-minutes: 60
+
+    runs-on: ubuntu-latest
+
+    # Distinct from the `publish` job's concurrency group: a mill-plugins/v* tag never collides
+    # with a v* tag or a branch push on the same sha, so the two publish paths need not serialize
+    # against one another — this only guards against a duplicate run of this job itself.
+    concurrency: publish-sonatype-plugins-${{ github.sha }}
+
+    env:
+      LANG: "en_US.UTF-8"
+      LC_MESSAGES: "en_US.UTF-8"
+      LC_ALL: "en_US.UTF-8"
+
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: "25"
+          distribution: temurin
+
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v8
+
+      - name: Restore Mill plugin build output from cache
+        # Same cache the mill-morphir-unit job saves (see its "Cache Mill capability outputs"
+        # step); ci runs mill-morphir-unit before this job on every trigger, including release, so
+        # a hit here avoids recompiling the plugin family before publishing it. A miss just falls
+        # back to a cold compile inside ci.sonatype.plugins — not a failure.
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            out/mill-plugins/morphir/
+          key: ${{ runner.os }}-mill-morphir-unit-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}-${{ github.sha }}
+
+      - name: Release
+        env:
+          # Sonatype credentials
+          SONATYPE_USERNAME: ${{ secrets.ORG_MORPHIR_MAVEN_DEPLOY_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.ORG_MORPHIR_MAVEN_DEPLOY_PASSWORD }}
+          # GPG signing credentials (using ORG_MORPHIR_CI keys)
+          GPG_PRIVATE_KEY: ${{ secrets.ORG_MORPHIR_CI_GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.ORG_MORPHIR_CI_GPG_PASSPHRASE }}
+        run: |
+          # Same two-process dance as the `publish` job: Task.env is snapshotted at mill start.
+          envfile="${RUNNER_TEMP:-/tmp}/mill-publish.env"
+          trap 'rm -f "$envfile"' EXIT
+          ./mill --ticker false -i ci.sonatype.writeMillEnv --path "$envfile"
+          set -a
+          # shellcheck disable=SC1090
+          source "$envfile"
+          set +a
+          ./mill --ticker false -i ci.sonatype.plugins
 
   ci:
     if: ${{ always() }}
     runs-on: ubuntu-latest
-    needs: [lint, squire-policy, knowledge-base, test-js, test-jvm, test-native, mill-morphir-unit, mill-morphir-integration, morphir-elm-projects, runtime-generated-fixtures, runtime-tests]
+    timeout-minutes: 10
+    needs: [commit-authorship, lint, squire-policy, knowledge-base, test-js, test-js-desktop, test-jvm, test-native, mill-morphir-unit, mill-morphir-integration, morphir-elm-projects, runtime-generated-fixtures, runtime-tests]
     steps:
       - name: Verify required CI jobs succeeded
         run: |
+          test "${{ needs.commit-authorship.result }}" = "success"
           test "${{ needs.lint.result }}" = "success"
           test "${{ needs.squire-policy.result }}" = "success"
           test "${{ needs.knowledge-base.result }}" = "success"
           test "${{ needs.test-js.result }}" = "success"
+          test "${{ needs.test-js-desktop.result }}" = "success"
           test "${{ needs.test-jvm.result }}" = "success"
           test "${{ needs.test-native.result }}" = "success"
           test "${{ needs.mill-morphir-unit.result }}" = "success"
@@ -499,3 +1056,33 @@ jobs:
           test "${{ needs.runtime-tests.result }}" = "success"
       - name: Aggregate of lint, and all tests
         run: echo "ci passed"
+
+  packaging:
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [desktop-matrix, desktop-package, desktop-verify]
+    steps:
+      # Unlike `ci`, a skip can be legitimate here — MORPHIR_CI_PACKAGE_DESKTOP=false stands the whole
+      # phase down outside a tag or release. But a skip is ambiguous on its own: desktop-package also
+      # skips when `ci` fails upstream, and that must not read as green. desktop-matrix is what
+      # disambiguates. It is gated by the switch and depends on nothing else, so:
+      #
+      #   desktop-matrix skipped  -> the switch is off; every member must be skipped together.
+      #   desktop-matrix ran      -> packaging was expected to run; a skip below it is a cascade from
+      #                              an upstream failure, and only success is acceptable.
+      #
+      # Failure and cancellation are never acceptable in either branch.
+      - name: Verify packaging jobs succeeded, or stood down together
+        run: |
+          matrix='${{ needs.desktop-matrix.result }}'
+          package='${{ needs.desktop-package.result }}'
+          verify='${{ needs.desktop-verify.result }}'
+          echo "desktop-matrix=$matrix desktop-package=$package desktop-verify=$verify"
+          if [[ "$matrix" == "skipped" ]]; then
+            [[ "$package" == "skipped" && "$verify" == "skipped" ]]
+          else
+            [[ "$matrix" == "success" && "$package" == "success" && "$verify" == "success" ]]
+          fi
+      - name: Aggregate of desktop packaging
+        run: echo "packaging passed"

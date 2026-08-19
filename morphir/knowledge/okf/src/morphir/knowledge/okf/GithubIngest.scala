@@ -27,10 +27,9 @@ object GithubIngest:
       Concept(
         path = path,
         frontmatter = Frontmatter(
-          `type` = "Concept",
-          title = title,
-          description = title,
-          tags = Chunk.empty
+          `type` = Present("Concept"),
+          title = Present(title),
+          description = Present(title)
         ),
         body = document
       )

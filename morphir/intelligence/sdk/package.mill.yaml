@@ -8,4 +8,4 @@ object jvm:
 object js:
   extends: [build.MorphirJSModule, build.MorphirKyoSchemaMvnDeps]
   object test:
-    extends: [ScalaJSTests, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
+    extends: [ScalaJSTests, build.MorphirJSTestNoSourceMap, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]

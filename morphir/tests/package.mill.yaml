@@ -23,7 +23,7 @@ object js:
   - build.morphir.runtime.classic.js
   - build.morphir.tools.js
   object test:
-    extends: [ScalaJSTests, TestModule.ZioTest, build.MorphirTestsTestMvnDepsJS, build.MorphirTestsJSTestSources]
+    extends: [ScalaJSTests, build.MorphirJSTestNoSourceMap, TestModule.ZioTest, build.MorphirTestsTestMvnDepsJS, build.MorphirTestsJSTestSources]
     moduleDeps: !append
     - build.morphir.testing.generators.js
     - build.morphir.testing.zio.js

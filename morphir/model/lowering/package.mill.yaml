@@ -11,5 +11,5 @@ object js:
   extends: [build.MorphirJSModule, build.MorphirPublishModule, build.MorphirKyoMvnDeps]
   moduleDeps: [build.morphir.model.js, build.morphir.js]
   object test:
-    extends: [ScalaJSTests, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
+    extends: [ScalaJSTests, build.MorphirJSTestNoSourceMap, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
     moduleKind: CommonJSModule
