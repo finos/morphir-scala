@@ -135,10 +135,23 @@ denied_reason() {
   return 1
 }
 
-if [[ -n "$BASE_SHA" ]]; then
-  commits="$(git rev-list "$BASE_SHA..$HEAD_SHA")"
-else
+# Commits already published on the trunk are out of scope, even when they fall inside the range.
+#
+# A back-migration merges `main` into `develop`, which legitimately carries every published commit into the range.
+# Blocking that would stop integration entirely over commits no pull request can amend, and amending them would
+# rewrite a trunk other people have pulled. Violations that predate this check are recorded as issues and decided
+# deliberately, not forced on whoever happens to open the next integration pull request.
+#
+# On a promote (`develop` -> `main`) this exclusion changes nothing: the base is already `main`.
+PUBLISHED_REF="${PUBLISHED_REF:-origin/main}"
+
+if [[ -z "$BASE_SHA" ]]; then
   commits="$(git rev-parse "$HEAD_SHA")"
+elif git rev-parse --quiet --verify "$PUBLISHED_REF^{commit}" >/dev/null; then
+  commits="$(git rev-list "$BASE_SHA..$HEAD_SHA" --not "$PUBLISHED_REF")"
+else
+  echo "note: $PUBLISHED_REF is unavailable, so already-published commits are not excluded."
+  commits="$(git rev-list "$BASE_SHA..$HEAD_SHA")"
 fi
 
 if [[ -z "$commits" ]]; then
