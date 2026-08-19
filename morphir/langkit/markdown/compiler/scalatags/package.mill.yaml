@@ -7,6 +7,10 @@ object jvm:
   - com.lihaoyi::scalatags:0.13.1
   object test:
     extends: [ScalaTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps]
+    # Reads the vendored CommonMark fixtures in the JVM-only conformance harness. Versionless: the
+    # kyo suite pin comes from MorphirSuiteBom through depManagement.
+    mvnDeps: !append
+    - io.getkyo::kyo-schema-json
 
 object js:
   extends: [build.MorphirJSModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps]
