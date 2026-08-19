@@ -17,16 +17,18 @@ flowchart LR
     gh["github GraphQL client"]
   end
   subgraph langkitFam [langkit]
-    md["markdown"]
+    mdCore["markdown/core: parser and trees"]
+    mdCompiler["markdown/compiler: output targets"]
   end
   subgraph knowledgeFam [knowledge]
     okf["okf model and ingest"]
   end
-  md -->|"bodies"| okf
+  mdCore -->|"AST and Compiler algebra"| mdCompiler
+  mdCore -->|"bodies"| okf
   gh -->|"issues PRs discussions"| okf
 ```
 
-**Figure 1:** proposed first skeletons and the two dependency edges. Appkit publishes `SecretStore` at `morphir/appkit`.
+**Figure 1:** proposed first skeletons and the dependency edges they use. Markdown splits into a core and a compiler, and only the compiler takes `kyo-ui`. Appkit publishes `SecretStore` at `morphir/appkit`.
 
 ## Why this is in flight
 
@@ -96,6 +98,8 @@ documents from the generated `caliban-client` helpers.
 
 Artifact `org.finos.morphir::morphir-langkit-markdown`. Package `morphir.langkit.markdown`. JVM, JS, and Native. Depends on `langkit.core` for `Span`. A `QueryableTree` instance is later work and depends on `langkit.trees`.
 
+[Intent 0033](../../../intent/0033-markdown-compilation.md) proposes splitting this into two artifacts, and nothing below has been built yet. `morphir/langkit/markdown` becomes a container directory. `morphir-langkit-markdown-core` keeps the package name and holds the CST, the AST, the transformers and the parser, plus a `Compiler[Out]` fold algebra. `morphir-langkit-markdown-compiler` holds the output targets, starting with `Compiler[UI]`, and is the only one of the two that takes `kyo-ui`. The nesting gives `morphir/<family>/<leaf>` from [decision 0013](/decisions/0013-published-library-families.md) its first two-segment leaf; the coordinate stays `morphir-<family>-<leaf>` with the leaf spelled `markdown-core`. The name `core` matches `langkit/core`, `buildkit/core` and `langkit/elm/core`, and `model` was rejected because `morphir/model` already means the Morphir IR data model. The stage names follow unified's parser, transformers, compiler pipeline, whose unist tree shape this repository already implements in `morphir.langkit.trees.unist`.
+
 `langkit.core` mixes `MorphirPublishModule` so a published markdown module can depend on it. Mill's `PublishModule` will not take an unpublished `moduleDep`.
 
 **Parser (subset, Morphir-owned).** `commonmark-java` is JVM-only and must not enter this module. The module owns a CommonMark subset parser that compiles on JVM, JS, and Native: ATX headings, paragraphs, fenced code, unordered lists, and thematic breaks. Inlines stay raw text. Nested lists, Setext headings, and a full inline parser are later. A third-party engine remains allowed if one appears on all three platforms.
@@ -104,7 +108,7 @@ Artifact `org.finos.morphir::morphir-langkit-markdown`. Package `morphir.langkit
 
 Artifact `org.finos.morphir::morphir-knowledge-okf`. Package `morphir.knowledge.okf`. JVM, JS, and Native.
 
-The shared sources hold the OKF model (bundle, concept, frontmatter) and depend on `langkit.markdown` for bodies. `Concept.parse` splits a leading YAML fence and parses the body. Frontmatter accessors are permissive (`Maybe`). `Bundle.parse` loads from in-memory files; the root `index.md` must carry `okf_version`. GitHub ingest depends on `connector.github` and also lives in shared sources, so it follows the connector onto JS and Native. JVM-only pieces, if any appear, go in `jvm/src`.
+The shared sources hold the OKF model (bundle, concept, frontmatter) and depend on `langkit.markdown` for bodies, which [0033](../../../intent/0033-markdown-compilation.md) narrows to `langkit.markdown.core`; okf parses bodies and does not compile them, so it never pulls in `kyo-ui`. `Concept.parse` splits a leading YAML fence and parses the body. Frontmatter accessors are permissive (`Maybe`). `Bundle.parse` loads from in-memory files; the root `index.md` must carry `okf_version`. GitHub ingest depends on `connector.github` and also lives in shared sources, so it follows the connector onto JS and Native. JVM-only pieces, if any appear, go in `jvm/src`.
 
 The library takes `DocKind`, frontmatter split, and the bundle shape from the kb skill (`KbModel` / `KbStore`). Frontmatter decoding uses Kyo `kyo-schema-yaml`, not a handwritten parser or SnakeYAML. Optional fields use `Maybe`. Snake-case OKF keys such as `okf_version` map onto camelCase fields via `@rename`. `-Yretain-trees` is off by default (opt in with `MorphirRetainTrees`) so `Tag[Maybe[A]]` works; see https://github.com/getkyo/kyo/issues/1883. The library does not take commonmark-java or the check engine. The kb skill does not move in this pass. Switching the skill onto the published library is a later intent.
 
@@ -122,6 +126,7 @@ The intent bundle records the work. This note is the narrative they serve.
 | --- | --- |
 | [0020 GitHub GraphQL connector](../../../intent/0020-github-graphql-connector.md) | The published GitHub client |
 | [0021 Markdown langkit](../../../intent/0021-markdown-langkit.md) | Cross-platform markdown CST |
+| [0033 Markdown compilation](../../../intent/0033-markdown-compilation.md) | Markdown AST to `kyo.UI`, and the core/compiler split |
 | [0022 OKF knowledge library](../../../intent/0022-okf-knowledge-library.md) | OKF model on top of markdown |
 | [0023 Import GitHub sources into OKF](../../../intent/0023-import-github-sources-into-okf.md) | Ingest, after 0020 and 0022 exist |
 | [0024 GitHub CLI connector](../../../intent/0024-github-cli-connector.md) | `gh` wrapper, may be JVM-only |
@@ -136,7 +141,8 @@ Intent 0004 (project intent outward as GitHub issues) stays Cancelled. GitHub in
 
 1. **Live HTTP on Native.** `kyo-http` 1.0.0-RC6 live POST is wired on the JVM and on Node.js. Scala Native stays stubbed because the published kyo-net Native artifact at that version does not link kqueue on macOS. Linux Native is untested. A later kyo RC that ships Darwin codegen would reopen this.
 2. **Markdown parser.** Full CommonMark (inlines, nested lists, Setext headings) and whether a third-party engine replaces the Morphir-owned subset. The subset is the current production parser, not a compile stub.
-3. **Caliban subset workflow.** How the GitHub schema is cut down before codegen (hand-edited SDL, a documents file, or an external subset tool). The first subset is small enough to edit by hand. A tool is not required until the operation set grows.
-4. **OKF fidelity.** Filesystem loading, structural checks, and when the kb skill switches onto this library. Document and in-memory bundle parse now exist.
+3. **Markdown output fidelity.** Whether kyo-ui's HTML matches the CommonMark fixtures byte for byte, given how exact they are about whitespace, void-tag spelling and entity escaping. Unverified until the spike in [0033](../../../intent/0033-markdown-compilation.md) runs. A large structural divergence would force a spec-exact writer and defeat the single-output-path design.
+4. **Caliban subset workflow.** How the GitHub schema is cut down before codegen (hand-edited SDL, a documents file, or an external subset tool). The first subset is small enough to edit by hand. A tool is not required until the operation set grows.
+5. **OKF fidelity.** Filesystem loading, structural checks, and when the kb skill switches onto this library. Document and in-memory bundle parse now exist.
 
 A finding that Native HTTP is impossible would reopen the platform half of [decision 0013](/decisions/0013-published-library-families.md), as that record already says.
