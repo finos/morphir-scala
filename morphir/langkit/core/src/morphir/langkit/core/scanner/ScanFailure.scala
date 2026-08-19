@@ -1,5 +1,7 @@
 package morphir.langkit.core.scanner
 
+import kyo.*
+
 enum ScanLimitExceeded derives CanEqual:
   case InputLength(limit: InputSize, actual: InputSize)
   case Work(limit: WorkUnits, attempted: WorkUnits)
@@ -9,7 +11,7 @@ enum ScanLimitExceeded derives CanEqual:
 final case class ScanFailure(
     exceeded: ScanLimitExceeded,
     offset: SourceOffset,
-    phase: Option[ScanPhase]
+    phase: Maybe[ScanPhase]
 ) derives CanEqual
 
 enum ScanResult[+A] derives CanEqual:

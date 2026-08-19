@@ -10,8 +10,8 @@ later if one compiles on JVM, JS, and Native.
 
 `org.finos.morphir::morphir-langkit-markdown` — JVM, Scala.js, and Scala Native.
 
-Depends on `morphir-langkit-core` and Kyo Core; core brings Morphir Prelude for its typed exception hierarchy. A
-`QueryableTree` instance is later work against `morphir-langkit-trees`.
+Depends on `morphir-langkit-core`, Morphir Prelude, and Kyo Core. A `QueryableTree` instance is later work against
+`morphir-langkit-trees`.
 
 ```scala
 import morphir.langkit.markdown.*
@@ -19,6 +19,7 @@ import morphir.langkit.markdown.*
 Parser.parse("# Title\n\nHello") match
   case kyo.Result.Success(doc) => doc.blocks
   case kyo.Result.Failure(err) => throw err
+  case kyo.Result.Panic(err)   => throw err
 ```
 
 ## Parser budgets
@@ -34,12 +35,14 @@ import morphir.langkit.markdown.*
 
 val safe = Parser.parse(source)
 
-ScanBudget.limited(
-  maxInputLength = InputSize.mebibytes(1),
+val compiledBudget = ScanBudget.limited(
+  maxInputLength = InputSize.megabytes(1),
   maxWork = WorkUnits(8L * 1024L * 1024L),
   maxNestingDepth = NestingDepth(128),
   maxOutputNodes = NodeCount(100000L)
-) match
+)
+
+compiledBudget match
   case Result.Success(smallerBudget) =>
     val limited = Parser.parse(source, smallerBudget)
   case Result.Failure(error) =>
@@ -48,8 +51,12 @@ ScanBudget.limited(
     // Handle an unexpected panic; no parse occurs.
 ```
 
-Invalid limits return a typed `ScanBudgetError` in `Result.Failure`; they do not throw. Keep caller-supplied
-configuration in this result-handling path rather than unwrapping it.
+Literal measures are checked by an inline macro; an invalid constant fails compilation. Dynamic values go through
+`fromCodeUnits`, `fromMegabytes` (and the other `from*` size constructors), and `from`, and return `Result`. Invalid
+budget ceilings still return a typed
+`ScanBudgetError` in `Result.Failure`; they do not throw. Keep caller-supplied configuration in this result-handling
+path rather than unwrapping it. Zero is a valid measure and an invalid ceiling: `InputSize.codeUnits(0)` is a valid
+size, and `ScanBudget.limited` then fails with `NonPositiveInputLength`.
 
 Trusted callers can explicitly remove the ceilings:
 

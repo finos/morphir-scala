@@ -1,5 +1,6 @@
 package morphir.langkit.core.scanner
 
+import kyo.*
 import morphir.langkit.core.Span
 import scala.util.control.ControlThrowable
 
@@ -12,7 +13,7 @@ object SourceScanner:
   def scan[A](
       source: String,
       budget: ScanBudget = ScanBudget.default,
-      phase: Option[ScanPhase] = None
+      phase: Maybe[ScanPhase] = Absent
   )(use: SourceScanner => A): ScanResult[A] =
     budget match
       case limited: ScanBudget.Limited if source.length.toLong > limited.maxInputLength.toLong =>
@@ -72,7 +73,7 @@ type ScanCheckpoint = SourceScanner.Checkpoint
 final class SourceScanner private[scanner] (
     originalSource: String,
     ceilings: SourceScanner.BudgetCeilings | Null,
-    phase: Option[ScanPhase]
+    phase: Maybe[ScanPhase]
 ):
   import SourceScanner.BudgetExhausted
 
@@ -162,15 +163,15 @@ final class SourceScanner private[scanner] (
         )
       outputNodes = attempted
 
-  def peek(): Option[Char] = peek(CodeUnitCount(0))
+  def peek(): Maybe[Char] = peek(CodeUnitCount(0))
 
-  def peek(distance: CodeUnitCount): Option[Char] =
+  def peek(distance: CodeUnitCount): Maybe[Char] =
     requireActive()
     val target = currentOffset.toLong + distance.toInt.toLong
-    if target >= originalSource.length.toLong then None
+    if target >= originalSource.length.toLong then Absent
     else
       charge(1L)
-      Some(originalSource.charAt(target.toInt))
+      Present(originalSource.charAt(target.toInt))
 
   def advance(): Unit = advance(CodeUnitCount.one)
 

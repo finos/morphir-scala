@@ -42,7 +42,7 @@ class ParserTests extends Test[Any]:
 
   private def tightWorkBudget(inputLength: Int): ScanBudget.Limited =
     limitedBudget(
-      maxInputLength = InputSize.codeUnits(inputLength.toLong),
+      maxInputLength = InputSize.fromCodeUnits(inputLength.toLong).getOrThrow,
       maxWork = WorkUnits(32L),
       maxNestingDepth = NestingDepth(16),
       maxOutputNodes = NodeCount(16L)
@@ -133,7 +133,7 @@ class ParserTests extends Test[Any]:
                 actual = InputSize.codeUnits(5L)
               ),
               offset = SourceOffset.start,
-              phase = Some(ScanPhase("markdown.blocks"))
+              phase = Present(ScanPhase("markdown.blocks"))
             )
           )
         case _ => assert(false)
@@ -152,7 +152,7 @@ class ParserTests extends Test[Any]:
             error == ScanFailure(
               exceeded = ScanLimitExceeded.OutputNodes(limit = NodeCount.one, attempted = NodeCount(2L)),
               offset = SourceOffset(7),
-              phase = Some(ScanPhase("markdown.blocks"))
+              phase = Present(ScanPhase("markdown.blocks"))
             )
           )
         case _ => assert(false)
@@ -171,7 +171,7 @@ class ParserTests extends Test[Any]:
             error == ScanFailure(
               exceeded = ScanLimitExceeded.Work(limit = WorkUnits(8L), attempted = WorkUnits(9L)),
               offset = SourceOffset(1),
-              phase = Some(ScanPhase("markdown.blocks"))
+              phase = Present(ScanPhase("markdown.blocks"))
             )
           )
         case _ => assert(false)
@@ -189,9 +189,10 @@ class ParserTests extends Test[Any]:
         case Result.Failure(ParseError.Scan(error)) =>
           assert(
             error == ScanFailure(
-              exceeded = ScanLimitExceeded.Work(limit = WorkUnits(30L), attempted = WorkUnits(31L)),
+              exceeded =
+                ScanLimitExceeded.Work(limit = WorkUnits(30L), attempted = WorkUnits(31L)),
               offset = SourceOffset(2),
-              phase = Some(ScanPhase("markdown.blocks"))
+              phase = Present(ScanPhase("markdown.blocks"))
             )
           )
         case _ => assert(false)
@@ -232,7 +233,7 @@ class ParserTests extends Test[Any]:
       infoStrings.foreach { info =>
         val source = s"~~~ $info\n~~~"
         val budget = limitedBudget(
-          maxInputLength = InputSize.codeUnits(source.length.toLong + 1L),
+          maxInputLength = InputSize.fromCodeUnits(source.length.toLong + 1L).getOrThrow,
           maxWork = WorkUnits(100000000L),
           maxNestingDepth = NestingDepth(16),
           maxOutputNodes = NodeCount(10L)
@@ -247,12 +248,12 @@ class ParserTests extends Test[Any]:
     }
     "accepts the exact fence metadata output boundary and preserves structured info" in {
       val source        = "~~~ scala flag key=value {.class}\n~~~"
-      val metadataNodes = NodeCount(FenceInfo.TokenOutputReservation.toLong * 4L)
+      val metadataNodes = NodeCount.from(FenceInfo.TokenOutputReservation.toLong * 4L).getOrThrow
       val budget        = limitedBudget(
-        maxInputLength = InputSize.codeUnits(source.length.toLong),
+        maxInputLength = InputSize.fromCodeUnits(source.length.toLong).getOrThrow,
         maxWork = WorkUnits(10000L),
         maxNestingDepth = NestingDepth(16),
-        maxOutputNodes = NodeCount(metadataNodes.toLong + 2L)
+        maxOutputNodes = NodeCount.from(metadataNodes.toLong + 2L).getOrThrow
       )
 
       Parser.parse(source, budget) match
@@ -506,7 +507,7 @@ class ParserTests extends Test[Any]:
             actual = InputSize.codeUnits(5L)
           ),
           offset = SourceOffset.start,
-          phase = Some(ScanPhase("markdown.blocks"))
+          phase = Present(ScanPhase("markdown.blocks"))
         )
       )
 
@@ -520,7 +521,7 @@ class ParserTests extends Test[Any]:
         ScanFailure(
           exceeded = ScanLimitExceeded.Work(limit = WorkUnits(0L), attempted = WorkUnits(1L)),
           offset = SourceOffset.start,
-          phase = None
+          phase = Absent
         )
       )
 

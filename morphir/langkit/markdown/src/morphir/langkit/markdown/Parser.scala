@@ -19,15 +19,13 @@ object Parser:
     parse(source, ScanBudget.default)
 
   def parse(source: String, budget: ScanBudget): Result[ParseError, Document] =
-    parseWithMetrics(source, budget) match
-      case Result.Success((document, _)) => Result.succeed(document)
-      case Result.Failure(error)         => Result.fail(error)
+    parseWithMetrics(source, budget).map(_._1)
 
   private[markdown] def parseWithMetrics(
       source: String,
       budget: ScanBudget
   ): Result[ParseError, (Document, ScanMetrics)] =
-    SourceScanner.scan(source, budget, phase = Some(BlocksPhase)) { scanner =>
+    SourceScanner.scan(source, budget, phase = Present(BlocksPhase)) { scanner =>
       scanner.chargeOutputNodes(NodeCount.one)
       val blocks = parseBlocks(scanner)
       // Keep the caller's coordinate space: do not rewrite CRLF before measuring spans.
@@ -68,26 +66,26 @@ object Parser:
 
   private def readLine(scanner: SourceScanner): Line =
     scanner.requireProgress(LinesPhase) {
-      val start              = scanner.mark
-      var previous           = Option.empty[Char]
-      var terminatedByLf     = false
-      var acquisitionRunning = true
+      val start                 = scanner.mark
+      var previous: Maybe[Char] = Absent
+      var terminatedByLf        = false
+      var acquisitionRunning    = true
       while acquisitionRunning do
         scanner.peek() match
-          case Some(char) =>
+          case Present(char) =>
             scanner.advance()
             if char == '\n' then
               terminatedByLf = true
               acquisitionRunning = false
-            else previous = Some(char)
-          case None => acquisitionRunning = false
+            else previous = Present(char)
+          case Absent => acquisitionRunning = false
 
       val rawEnd  = scanner.offset.toInt - (if terminatedByLf then 1 else 0)
       val textEnd =
         if terminatedByLf && previous.contains('\r') then rawEnd - 1
         else rawEnd
       val view = scanner.view(Span.fromStartEnd(start.toInt, textEnd))
-      scanner.chargeWork(WorkUnits(view.length.toInt.toLong))
+      scanner.chargeWork(WorkUnits.from(view.length.toInt.toLong).getOrThrow)
       Line(view, view.text, terminatedByLf)
     }
 
@@ -134,7 +132,7 @@ object Parser:
         scanner.restore(checkpoint)
         interrupted = true
 
-    scanner.chargeWork(WorkUnits(text.length.toLong))
+    scanner.chargeWork(WorkUnits.from(text.length.toLong).getOrThrow)
     Block.Paragraph(text.toString.trim, Span.fromStartEnd(first.offset, last.end))
 
   private def continuesParagraph(scanner: SourceScanner, line: Line): Boolean =
@@ -248,5 +246,5 @@ object Parser:
       text.substring(start, end + 1)
 
   private def inspectLine[A](scanner: SourceScanner, line: Line)(operation: String => A): A =
-    scanner.chargeWork(WorkUnits(line.length.toLong))
+    scanner.chargeWork(WorkUnits.from(line.length.toLong).getOrThrow)
     operation(line.text)

@@ -43,7 +43,7 @@ object FenceInfo:
     parseWithReservation(raw)(() => ())
 
   private[markdown] def parseBudgeted(raw: String, scanner: SourceScanner): FenceInfo =
-    scanner.chargeWork(WorkUnits(raw.length.toLong * WorkUnitsPerCodeUnit))
+    scanner.chargeWork(WorkUnits.from(raw.length.toLong * WorkUnitsPerCodeUnit).getOrThrow)
     parseWithReservation(raw)(() => scanner.chargeOutputNodes(TokenOutputReservation))
 
   private def parseWithReservation(raw: String)(reserveToken: () => Unit): FenceInfo =

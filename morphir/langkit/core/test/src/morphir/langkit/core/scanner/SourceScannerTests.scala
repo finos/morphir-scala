@@ -15,10 +15,10 @@ class SourceScannerTests extends Test[Any]:
       output: Long = 1L
   ): ScanBudget.Limited =
     ScanBudget.limited(
-      maxInputLength = InputSize.codeUnits(input),
-      maxWork = WorkUnits(work),
-      maxNestingDepth = NestingDepth(nesting),
-      maxOutputNodes = NodeCount(output)
+      maxInputLength = InputSize.fromCodeUnits(input).getOrThrow,
+      maxWork = WorkUnits.from(work).getOrThrow,
+      maxNestingDepth = NestingDepth.from(nesting).getOrThrow,
+      maxOutputNodes = NodeCount.from(output).getOrThrow
     ).getOrThrow
 
   private def rejectsArgument(thunk: => Any): Boolean =
@@ -74,7 +74,7 @@ class SourceScannerTests extends Test[Any]:
               actual = InputSize.codeUnits(4L)
             ),
             offset = SourceOffset.start,
-            phase = None
+            phase = Absent
           )
         )
       )
@@ -83,7 +83,7 @@ class SourceScannerTests extends Test[Any]:
     "fails at the exact work boundary before the rejected operation" in {
       val phase                   = ScanPhase("test")
       var retained: SourceScanner = null
-      val result                  = SourceScanner.scan("abc", limited(input = 3L, work = 2L), Some(phase)) { scanner =>
+      val result = SourceScanner.scan("abc", limited(input = 3L, work = 2L), Present(phase)) { scanner =>
         retained = scanner
         scanner.peek()
         scanner.advance()
@@ -95,7 +95,7 @@ class SourceScannerTests extends Test[Any]:
           ScanFailure(
             exceeded = ScanLimitExceeded.Work(limit = WorkUnits(2L), attempted = WorkUnits(3L)),
             offset = SourceOffset(1),
-            phase = Some(phase)
+            phase = Present(phase)
           )
         )
       )
@@ -104,7 +104,7 @@ class SourceScannerTests extends Test[Any]:
 
     "charges explicit typed work at the exact boundary" in {
       val phase  = ScanPhase("line-local inspection")
-      val result = SourceScanner.scan("", limited(input = 1L, work = 2L), Some(phase)) { scanner =>
+      val result = SourceScanner.scan("", limited(input = 1L, work = 2L), Present(phase)) { scanner =>
         scanner.chargeWork(WorkUnits(2L))
         scanner.chargeWork(WorkUnits(1L))
       }
@@ -114,7 +114,7 @@ class SourceScannerTests extends Test[Any]:
           ScanFailure(
             exceeded = ScanLimitExceeded.Work(limit = WorkUnits(2L), attempted = WorkUnits(3L)),
             offset = SourceOffset.start,
-            phase = Some(phase)
+            phase = Present(phase)
           )
         )
       )
@@ -133,7 +133,7 @@ class SourceScannerTests extends Test[Any]:
           ScanFailure(
             exceeded = ScanLimitExceeded.Work(limit = WorkUnits(1L), attempted = WorkUnits(2L)),
             offset = SourceOffset.start,
-            phase = None
+            phase = Absent
           )
         )
       )
@@ -188,7 +188,7 @@ class SourceScannerTests extends Test[Any]:
           ScanFailure(
             exceeded = ScanLimitExceeded.Work(limit = WorkUnits(1L), attempted = WorkUnits(2L)),
             offset = SourceOffset.start,
-            phase = None
+            phase = Absent
           )
         )
       )
@@ -312,7 +312,7 @@ class SourceScannerTests extends Test[Any]:
           ScanFailure(
             exceeded = ScanLimitExceeded.Work(limit = WorkUnits(1L), attempted = WorkUnits(2L)),
             offset = SourceOffset.start,
-            phase = None
+            phase = Absent
           )
         )
       )
@@ -336,7 +336,7 @@ class SourceScannerTests extends Test[Any]:
           ScanFailure(
             exceeded = ScanLimitExceeded.Work(limit = WorkUnits(4L), attempted = WorkUnits(5L)),
             offset = SourceOffset(2),
-            phase = None
+            phase = Absent
           )
         )
       )
@@ -480,7 +480,7 @@ class SourceScannerTests extends Test[Any]:
     "enforces nesting at the exact boundary without entering rejected work" in {
       val phase        = ScanPhase("nested parser")
       var innerEntered = false
-      val result       = SourceScanner.scan("a", limited(input = 1L, work = 10L), Some(phase)) { scanner =>
+      val result       = SourceScanner.scan("a", limited(input = 1L, work = 10L), Present(phase)) { scanner =>
         scanner.withNesting {
           scanner.withNesting {
             innerEntered = true
@@ -492,9 +492,10 @@ class SourceScannerTests extends Test[Any]:
       assert(
         result == ScanResult.Failure(
           ScanFailure(
-            exceeded = ScanLimitExceeded.Nesting(limit = NestingDepth(1), attempted = NestingDepth(2)),
+            exceeded =
+              ScanLimitExceeded.Nesting(limit = NestingDepth(1), attempted = NestingDepth(2)),
             offset = SourceOffset.start,
-            phase = Some(phase)
+            phase = Present(phase)
           )
         )
       )
@@ -517,7 +518,7 @@ class SourceScannerTests extends Test[Any]:
       val phase             = ScanPhase("output builder")
       var first: Throwable  = null
       var second: Throwable = null
-      val result = SourceScanner.scan("a", limited(input = 1L, work = 10L, output = 2L), Some(phase)) { scanner =>
+      val result = SourceScanner.scan("a", limited(input = 1L, work = 10L, output = 2L), Present(phase)) { scanner =>
         scanner.chargeOutputNodes(NodeCount(2L))
         scanner.chargeOutputNodes(NodeCount(0L))
         try scanner.chargeOutputNodes(NodeCount.one)
@@ -531,9 +532,10 @@ class SourceScannerTests extends Test[Any]:
       assert(
         result == ScanResult.Failure(
           ScanFailure(
-            exceeded = ScanLimitExceeded.OutputNodes(limit = NodeCount(2L), attempted = NodeCount(3L)),
+            exceeded =
+              ScanLimitExceeded.OutputNodes(limit = NodeCount(2L), attempted = NodeCount(3L)),
             offset = SourceOffset.start,
-            phase = Some(phase)
+            phase = Present(phase)
           )
         )
       )
@@ -559,7 +561,7 @@ class SourceScannerTests extends Test[Any]:
               attempted = NodeCount(Long.MaxValue)
             ),
             offset = SourceOffset.start,
-            phase = None
+            phase = Absent
           )
         )
       )
@@ -587,9 +589,10 @@ class SourceScannerTests extends Test[Any]:
       assert(
         first == ScanResult.Failure(
           ScanFailure(
-            exceeded = ScanLimitExceeded.Nesting(limit = NestingDepth(1), attempted = NestingDepth(2)),
+            exceeded =
+              ScanLimitExceeded.Nesting(limit = NestingDepth(1), attempted = NestingDepth(2)),
             offset = SourceOffset.start,
-            phase = None
+            phase = Absent
           )
         )
       )
@@ -620,7 +623,7 @@ class SourceScannerTests extends Test[Any]:
           ScanFailure(
             exceeded = ScanLimitExceeded.OutputNodes(limit = NodeCount.one, attempted = NodeCount(2L)),
             offset = SourceOffset.start,
-            phase = None
+            phase = Absent
           )
         )
       )
@@ -693,11 +696,11 @@ class SourceScannerTests extends Test[Any]:
         workLimited == ScanResult.Failure(
           ScanFailure(
             exceeded = ScanLimitExceeded.Work(
-              limit = WorkUnits(repetitions.toLong - 1L),
-              attempted = WorkUnits(repetitions.toLong)
+              limit = WorkUnits.from(repetitions.toLong - 1L).getOrThrow,
+              attempted = WorkUnits.from(repetitions.toLong).getOrThrow
             ),
             offset = SourceOffset.start,
-            phase = None
+            phase = Absent
           )
         )
       )
@@ -705,11 +708,11 @@ class SourceScannerTests extends Test[Any]:
         outputLimited == ScanResult.Failure(
           ScanFailure(
             exceeded = ScanLimitExceeded.OutputNodes(
-              limit = NodeCount(repetitions.toLong - 1L),
-              attempted = NodeCount(repetitions.toLong)
+              limit = NodeCount.from(repetitions.toLong - 1L).getOrThrow,
+              attempted = NodeCount.from(repetitions.toLong).getOrThrow
             ),
             offset = SourceOffset.start,
-            phase = None
+            phase = Absent
           )
         )
       )

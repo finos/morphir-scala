@@ -79,12 +79,14 @@ val defaultScan = SourceScanner.scan(source) { scanner =>
   scanner.metrics
 }
 
-ScanBudget.limited(
-  maxInputLength = InputSize.mebibytes(1),
+val compiledBudget = ScanBudget.limited(
+  maxInputLength = InputSize.megabytes(1),
   maxWork = WorkUnits(8L * 1024L * 1024L),
   maxNestingDepth = NestingDepth(128),
   maxOutputNodes = NodeCount(100000L)
-) match
+)
+
+compiledBudget match
   case Result.Success(budget) =>
     val limitedScan = SourceScanner.scan(source, budget) { scanner =>
       // Parser work goes here.
@@ -96,8 +98,13 @@ ScanBudget.limited(
     // Handle an unexpected panic; no scan occurs.
 ```
 
-Invalid limits return a typed `ScanBudgetError` in `Result.Failure`; they do not throw. Keep caller-supplied
-configuration in this result-handling path rather than unwrapping it.
+Literal measures (`InputSize.codeUnits(16)`, `WorkUnits(8L * 1024L * 1024L)`, and the other compile-time constructors)
+are checked by an inline macro; an invalid constant fails compilation. Dynamic values go through `fromCodeUnits`,
+`fromMegabytes` (and the other `from*` size constructors), and `from`, and return `Result`. Invalid budget ceilings
+still return a typed `ScanBudgetError` in
+`Result.Failure`; they do not throw. Keep caller-supplied configuration in this result-handling path rather than
+unwrapping it. Zero is a valid measure and an invalid ceiling: `InputSize.codeUnits(0)` is a valid size, and
+`ScanBudget.limited` then fails with `NonPositiveInputLength`.
 
 Cursor movement and lookahead consume work. Use `chargeWork` for deterministic work performed outside cursor
 movement, `withNesting` around recursive descent, and `chargeOutputNodes` immediately before emitting syntax nodes.

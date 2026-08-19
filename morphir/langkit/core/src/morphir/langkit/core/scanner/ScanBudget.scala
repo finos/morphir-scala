@@ -15,13 +15,18 @@ object ScanBudget:
 
   case object UnsafeUnbounded extends ScanBudget
 
-  val default: Limited = limited(
-    maxInputLength = InputSize.mebibytes(16L),
-    maxWork = WorkUnits(256L * 1024L * 1024L),
-    maxNestingDepth = NestingDepth(1024),
-    maxOutputNodes = NodeCount(4L * 1024L * 1024L)
-  ).getOrThrow
+  val default: Limited =
+    limited(
+      maxInputLength = InputSize.mebibytes(16L),
+      maxWork = WorkUnits(256L * 1024L * 1024L),
+      maxNestingDepth = NestingDepth(1024),
+      maxOutputNodes = NodeCount(4L * 1024L * 1024L)
+    ).getOrThrow
 
+  /**
+   * Validate caller-supplied ceilings. Dynamic measure factories report invalid representations as the same `Result`
+   * error type; compile-time constructors reject invalid literals before this method runs.
+   */
   def limited(
       maxInputLength: InputSize,
       maxWork: WorkUnits,
