@@ -679,7 +679,7 @@ jobs:
         run: ./morphir/desktop/scripts/package.sh "${{ matrix.token }}" "${{ needs.desktop-matrix.outputs.version }}"
 
       - name: Upload raw packaging output
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: desktop-${{ matrix.token }}
           # electron-builder also leaves unpacked app trees (mac-arm64/, linux-unpacked/, …) next to the
