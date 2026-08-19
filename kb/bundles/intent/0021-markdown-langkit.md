@@ -53,6 +53,37 @@ The first tests parse those block forms to a CST on JVM, JS, and Native. The Com
 acceptance oracle beyond that, and it needs the HTML output that [0033](/0033-markdown-compilation.md)
 produces.
 
+## Alternatives
+
+**`commonmark-java`.** Considered and rejected. It is the parser the kb skill already uses, so adopting it would
+have cost nothing to write. It is JVM-only, and the whole point of this intent is that `morphir-knowledge-okf`
+and library users need the same parse on JS and Native. It must not enter the core module.
+
+**Another third-party CommonMark engine.** Considered and deferred, not rejected. No engine was found that
+compiles on JVM, JS and Native. One remains allowed later if it appears, which is why the owned parser is
+written behind an ordinary module boundary rather than spread through callers.
+
+**Placing markdown in `kit` or `connector`.** Considered and rejected. `kit` means a bridge to one upstream
+library carrying no Morphir types, and `connector` means a client for an external system. Markdown is a source
+language, so it belongs in `langkit` beside Elm, as [decision 0013](../morphir/morphir-scala/decisions/0013-published-library-families.md)
+sets out.
+
+## Unresolved
+
+**How much of CommonMark the owned parser covers.** Inlines, nested lists and Setext headings are not written.
+The subset is the current production parser rather than a stub, so the open question is where it stops, not
+whether it works.
+
+**Whether a third-party engine eventually replaces it.** Settled by one appearing that compiles on all three
+platforms and maps onto the CST without losing spans. Until then this stays open, and it would reopen the
+Approach rather than merely extend it.
+
+**Whether the AST shape survives the conformance suite.** The CST and AST are designed before the suite runs.
+A large body of unexpected failures would be evidence the tree shape is wrong, not just that the parser is
+incomplete.
+
+## Relationships
+
 Depends on [decision 0013](../morphir/morphir-scala/decisions/0013-published-library-families.md).
 [0022](/0022-okf-knowledge-library.md) depends on this intent for concept bodies.
 [0033](/0033-markdown-compilation.md) supplies the HTML this intent's CommonMark conformance suite compares

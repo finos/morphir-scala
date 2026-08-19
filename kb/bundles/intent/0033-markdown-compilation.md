@@ -88,11 +88,6 @@ SVG needs no second writer. Every `Svg.*` node is a `kyo.UI` element, and the sa
 `<circle>`, and `<path>`. `Svg.circle(...)` does not have kyo-ui's `HtmlContent` type, so it will not compile as
 a child of an HTML element. A caller wraps it: `div(Svg.svg(...))`.
 
-A `Compiler[String]` writing HTML directly was considered and rejected. It would cost the langkit no dependency
-on `kyo-ui` at all. It is also exactly the writer the Problem section rules out: the conformance suite would
-then measure output the browser never produces. The `kyo-ui` dependency is confined to the compiler module, so a
-parse-only consumer still avoids it (Figure 2).
-
 ### A fold, not a visitor
 
 The output stage is an algebra with one method per node kind, each taking children that are already compiled:
@@ -111,10 +106,9 @@ introducing it belongs to this intent.
 A fold walks the tree bottom-up. Children are compiled first, and each node combines the compiled children into
 one `Out`. One driver owns that traversal, and each output format supplies only the node mapping.
 
-A `Monoid[Out]`, which supplies only an associative combine and an empty value, does not work, because a heading
-wraps its children instead of concatenating with them. A visitor works, but then every format repeats the
-traversal. [Tree traversal, visitors, cursors and rewriting](../programming-language-tooling/tree-traversal-visitors-cursors-and-rewriting.md)
-compares these shapes in general.
+Two other shapes were considered for this stage and rejected; see Alternatives.
+[Tree traversal, visitors, cursors and rewriting](../programming-language-tooling/tree-traversal-visitors-cursors-and-rewriting.md)
+compares them in general.
 
 Kyo writes an effectful value as `A < S`: a value of type `A` with the effect `S` still pending. `Out` can
 therefore be instantiated at `UI < Async`, so effects reach the output without appearing in the algebra. The
@@ -159,13 +153,27 @@ The compiler module holds only the targets. A caller that rewrites an AST theref
 `morphir-knowledge-okf` parses concept bodies and does not compile them. It depends on the core and never pulls
 in `kyo-ui` (Figure 2). It is the only consumer of the Markdown langkit today.
 
-A third module holding the model apart from the parser was considered and deferred. It would only help a
-consumer that compiles a programmatically built AST without parsing, and no such consumer exists. Adding it
-later is not a breaking change, because the core would depend on it and Maven passes the model through
-transitively. Publishing three artifacts now and collapsing to two later would break consumers, so the
-reversible order is to start with two.
+## Alternatives
 
-## Open questions
+**A `Compiler[String]` writing HTML directly.** Considered and rejected. It would cost the langkit no dependency
+on `kyo-ui` at all, which is a real saving. It is also exactly the writer the Problem section rules out: the
+conformance suite would measure output the browser never produces. The `kyo-ui` dependency is confined to the
+compiler module instead, so a parse-only consumer still avoids it (Figure 2).
+
+**A `Monoid[Out]`, supplying an associative combine and an empty value.** Considered and rejected. A monoid
+concatenates siblings, and a heading wraps its children rather than sitting beside them, so the shape cannot
+express nesting.
+
+**A visitor over the AST.** Considered and rejected. It works, but traversal then lives in every output format
+instead of in one driver, and each new target repeats it.
+
+**A third module separating the model from the parser.** Considered and deferred, not rejected outright. It
+would help only a consumer that compiles a programmatically built AST without parsing, and none exists. Adding
+it later is not breaking, because the core would depend on it and Maven passes the model through transitively,
+whereas publishing three artifacts now and collapsing to two later would break consumers. The reversible order
+is to start with two.
+
+## Unresolved
 
 **Does kyo-ui's HTML match the CommonMark fixtures?** The fixtures are exact about whitespace, void-tag
 spelling, and entity escaping. Comparing structurally instead would need an HTML parser on three platforms,
