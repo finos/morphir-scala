@@ -339,7 +339,7 @@ private[markdown] object InlineParser:
       val body    = text.substring(start + 1, semicolon)
       val decoded =
         if body.startsWith("#") then numericEntity(body.drop(1))
-        else NamedEntities.get(body)
+        else NamedEntityTable.entities.get(body)
       decoded match
         case Some(value) => Present((semicolon + 1, value))
         case None        => Absent
@@ -368,70 +368,6 @@ private[markdown] object InlineParser:
 
   private def isHexDigit(char: Char): Boolean =
     char.isDigit || (char >= 'a' && char <= 'f') || (char >= 'A' && char <= 'F')
-
-  /**
-   * The named references this parser knows.
-   *
-   * HTML5 defines around 2,231 of them and CommonMark expects all of them. This is the working subset; the rest is a
-   * data-import job rather than a parsing one, and the examples that need `&Dcaron;` or `&ClockwiseContourIntegral;`
-   * stay failing until that lands. An unknown name is left as literal text, so being incomplete is safe rather than
-   * wrong.
-   */
-  private val NamedEntities: Map[String, String] = Map(
-    "amp"    -> "&",
-    "lt"     -> "<",
-    "gt"     -> ">",
-    "quot"   -> "\"",
-    "apos"   -> "'",
-    "nbsp"   -> "\u00a0",
-    "copy"   -> "\u00a9",
-    "reg"    -> "\u00ae",
-    "trade"  -> "\u2122",
-    "hellip" -> "\u2026",
-    "mdash"  -> "\u2014",
-    "ndash"  -> "\u2013",
-    "lsquo"  -> "\u2018",
-    "rsquo"  -> "\u2019",
-    "ldquo"  -> "\u201c",
-    "rdquo"  -> "\u201d",
-    "laquo"  -> "\u00ab",
-    "raquo"  -> "\u00bb",
-    "deg"    -> "\u00b0",
-    "plusmn" -> "\u00b1",
-    "times"  -> "\u00d7",
-    "divide" -> "\u00f7",
-    "frac12" -> "\u00bd",
-    "frac14" -> "\u00bc",
-    "frac34" -> "\u00be",
-    "sup2"   -> "\u00b2",
-    "sup3"   -> "\u00b3",
-    "micro"  -> "\u00b5",
-    "para"   -> "\u00b6",
-    "sect"   -> "\u00a7",
-    "dagger" -> "\u2020",
-    "bull"   -> "\u2022",
-    "euro"   -> "\u20ac",
-    "pound"  -> "\u00a3",
-    "yen"    -> "\u00a5",
-    "cent"   -> "\u00a2",
-    "AElig"  -> "\u00c6",
-    "aelig"  -> "\u00e6",
-    "auml"   -> "\u00e4",
-    "ouml"   -> "\u00f6",
-    "uuml"   -> "\u00fc",
-    "szlig"  -> "\u00df",
-    "eacute" -> "\u00e9",
-    "egrave" -> "\u00e8",
-    "larr"   -> "\u2190",
-    "rarr"   -> "\u2192",
-    "harr"   -> "\u2194",
-    "hArr"   -> "\u21d4",
-    "le"     -> "\u2264",
-    "ge"     -> "\u2265",
-    "ne"     -> "\u2260",
-    "asymp"  -> "\u2248",
-    "infin"  -> "\u221e"
-  )
 
   private def isLinkStart(text: String, index: Int): Boolean =
     text.charAt(index) == '[' ||

@@ -3,6 +3,7 @@ package morphir.langkit.markdown
 import kyo.*
 import kyo.test.*
 import morphir.langkit.core.Span
+import morphir.langkit.markdown.internal.NamedEntityTable
 
 /**
  * Inline content is the AST's second level: a block that can hold prose holds a sequence of [[Inline]] rather than a
@@ -578,6 +579,34 @@ class InlineTests extends Test[Any]:
       parse("\\*\n").blocks.head match
         case Block.Paragraph(content, _) => assert(textOf(content) == "*")
         case other                       => assert(false, s"expected a paragraph, got $other")
+    }
+  }
+
+  "the named character reference table" - {
+
+    // The whole HTML5 list, because CommonMark defers to it rather than defining its own and the fixtures reach well
+    // past anything a hand-picked set would hold.
+    "holds the names the spec's own examples reach for (spec example 25)" in {
+      def textIn(source: String): String =
+        parse(source).blocks.head match
+          case Block.Paragraph(content, _) => textOf(content)
+          case other                       => throw new AssertionError(s"expected a paragraph, got $other")
+
+      assert(textIn("&Dcaron;\n") == "Ď")
+      assert(textIn("&HilbertSpace;\n") == "ℋ")
+      assert(textIn("&ClockwiseContourIntegral;\n") == "∲")
+      assert(textIn("&ngE;\n") == "≧̸", "a reference may stand for more than one code unit")
+      assert(textIn("&fopf;\n") == "𝕗", "and for a character outside the basic plane")
+      // The two the encoding would confuse if records needed a separator between them.
+      assert(textIn("&equals;\n") == "=")
+      assert(textIn("&semi;\n") == ";")
+      // Still no reference without its semicolon, and still nothing for a name that is not in the list.
+      assert(textIn("&nbsp\n") == "&nbsp")
+      assert(textIn("&ThisIsNotDefined;\n") == "&ThisIsNotDefined;")
+    }
+    "decodes every name in the table to the characters the table gives" in {
+      assert(NamedEntityTable.entities.size == 2125)
+      assert(NamedEntityTable.entities.forall((name, value) => name.forall(_.isLetterOrDigit) && value.nonEmpty))
     }
   }
 
