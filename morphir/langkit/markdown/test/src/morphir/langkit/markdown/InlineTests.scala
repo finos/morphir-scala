@@ -268,6 +268,34 @@ class InlineTests extends Test[Any]:
       assert(!inlines("\\*foo\\*").exists { case _: Inline.Emphasis => true; case _ => false })
   }
 
+  "indented code" - {
+    "reads four spaces of indentation as a code block (spec example 107)" in {
+      parse("    a simple\n      indented code block").blocks.head match
+        case Block.IndentedCode(content, _) => assert(content == "a simple\n  indented code block\n")
+        case other                          => assert(false, s"expected indented code, got $other")
+    }
+    "keeps blank lines between chunks but not at the end (spec example 111)" in {
+      parse("    chunk1\n\n    chunk2\n").blocks.head match
+        case Block.IndentedCode(content, _) => assert(content == "chunk1\n\nchunk2\n")
+        case other                          => assert(false, s"expected indented code, got $other")
+    }
+    "beats every other block opener, so an indented hash is not a heading" in {
+      parse("    # not a heading").blocks.head match
+        case Block.IndentedCode(content, _) => assert(content == "# not a heading\n")
+        case other                          => assert(false, s"expected indented code, got $other")
+    }
+    "does not interrupt a paragraph (spec example 113)" in {
+      parse("Foo\n    bar").blocks.head match
+        case Block.Paragraph(content, _) => assert(textOf(content) == "Foo\n    bar")
+        case other                       => assert(false, s"expected a paragraph, got $other")
+    }
+    "strips only four spaces, leaving deeper indentation as content (spec example 116)" in {
+      parse("        foo\n    bar").blocks.head match
+        case Block.IndentedCode(content, _) => assert(content == "    foo\nbar\n")
+        case other                          => assert(false, s"expected indented code, got $other")
+    }
+  }
+
   "fenced code" - {
     "keeps its body as literal text, never inline content" in {
       parse("```\n*not emphasis*\n```").blocks.head match

@@ -17,6 +17,15 @@ enum Block derives CanEqual:
   case Heading(level: HeadingLevel, content: Chunk[Inline], span: Span)
   case Paragraph(content: Chunk[Inline], span: Span)
   case FencedCode(info: FenceInfo, content: String, span: Span)
+
+  /**
+   * A code block written by indenting four spaces rather than by fencing.
+   *
+   * A distinct case because the source forms differ and a CST should say which was written, even though CommonMark
+   * renders both as `pre > code`. The fold maps this to the same algebra method as a fence with no info string, so no
+   * output target has to know the difference.
+   */
+  case IndentedCode(content: String, span: Span)
   case UnorderedList(items: Chunk[ListItem], span: Span)
   case ThematicBreak(span: Span)
 

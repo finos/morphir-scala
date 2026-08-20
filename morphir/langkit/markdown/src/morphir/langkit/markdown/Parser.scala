@@ -48,26 +48,68 @@ object Parser:
         val line = readLine(scanner)
         if !isBlank(scanner, line) then
           val block =
-            headingPrefix(scanner, line) match
-              case Present((level, rest)) =>
-                Block.Heading(
-                  level,
-                  inlineOfLine(line, rest),
-                  Span(line.offset, line.length)
-                )
-              case Absent =>
-                fenceOpen(scanner, line) match
-                  case Present(open) => readFencedCode(scanner, line, open)
-                  case Absent        =>
-                    if isThematicBreak(scanner, line) then Block.ThematicBreak(Span(line.offset, line.length))
-                    else
-                      unorderedItem(scanner, line) match
-                        case Present(item) => readUnorderedList(scanner, line, item)
-                        case Absent        => readParagraph(scanner, line)
+            // Four spaces of indentation beats every other block opener: an indented `# foo` is code, not a heading.
+            if isIndentedCode(scanner, line) then readIndentedCode(scanner, line)
+            else
+              headingPrefix(scanner, line) match
+                case Present((level, rest)) =>
+                  Block.Heading(
+                    level,
+                    inlineOfLine(line, rest),
+                    Span(line.offset, line.length)
+                  )
+                case Absent =>
+                  fenceOpen(scanner, line) match
+                    case Present(open) => readFencedCode(scanner, line, open)
+                    case Absent        =>
+                      if isThematicBreak(scanner, line) then Block.ThematicBreak(Span(line.offset, line.length))
+                      else
+                        unorderedItem(scanner, line) match
+                          case Present(item) => readUnorderedList(scanner, line, item)
+                          case Absent        => readParagraph(scanner, line)
           scanner.chargeOutputNodes(NodeCount.one)
           blocks += block
       }
     Chunk.from(blocks.result())
+
+  /** A line of four or more leading spaces, which CommonMark reads as code rather than as whatever it looks like. */
+  private def isIndentedCode(scanner: SourceScanner, line: Line): Boolean =
+    inspectLine(scanner, line)(text => text.length >= 4 && text.take(4).forall(_ == ' '))
+
+  /**
+   * Read an indented code block.
+   *
+   * Blank lines belong to the block when more indented content follows, which is what keeps the gaps in a multi-chunk
+   * block; blank lines at the end do not, so the block stops at the last indented line.
+   */
+  private def readIndentedCode(scanner: SourceScanner, first: Line): Block =
+    val lines = List.newBuilder[String]
+    lines += stripIndent(first.text)
+    var last    = first
+    var pending = List.newBuilder[String]
+    var done    = false
+    while !scanner.isAtEnd && !done do
+      val checkpoint = scanner.checkpoint()
+      val line       = readLine(scanner)
+      if isIndentedCode(scanner, line) then
+        lines ++= pending.result()
+        pending = List.newBuilder[String]
+        lines += stripIndent(line.text)
+        last = line
+      else if isBlank(scanner, line) then pending += stripIndent(line.text)
+      else
+        scanner.restore(checkpoint)
+        done = true
+
+    val content = lines.result().mkString("", "\n", "\n")
+    scanner.chargeWork(WorkUnits.from(content.length.toLong).getOrThrow)
+    Block.IndentedCode(content, Span.fromStartEnd(first.offset, last.end))
+
+  /** Remove up to four leading spaces, which is the indentation the block form spends rather than content. */
+  private def stripIndent(text: String): String =
+    var removed = 0
+    while removed < 4 && removed < text.length && text.charAt(removed) == ' ' do removed += 1
+    text.substring(removed)
 
   private def readLine(scanner: SourceScanner): Line =
     scanner.requireProgress(LinesPhase) {

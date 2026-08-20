@@ -22,7 +22,9 @@ private[markdown] object MarkdownFold:
       case Block.Heading(level, content, _)   => compiler.heading(level, content.map(compileInline))
       case Block.Paragraph(content, _)        => compiler.paragraph(content.map(compileInline))
       case Block.FencedCode(info, content, _) => compiler.fencedCode(info, content)
-      case Block.UnorderedList(items, _)      =>
+      // Same output as an info-less fence: CommonMark renders both as pre > code.
+      case Block.IndentedCode(content, _) => compiler.fencedCode(FenceInfo.empty, content)
+      case Block.UnorderedList(items, _)  =>
         compiler.unorderedList(items.map(item => compiler.listItem(item.content.map(compileInline))))
       case Block.ThematicBreak(_) => compiler.thematicBreak
 
