@@ -286,9 +286,12 @@ class InlineTests extends Test[Any]:
         case Block.IndentedCode(content, _) => assert(content == "# not a heading\n")
         case other                          => assert(false, s"expected indented code, got $other")
     }
-    "does not interrupt a paragraph (spec example 113)" in {
+    // The indentation goes with it: a paragraph's content is its lines with their leading whitespace removed, so the
+    // second line reads `bar` and not `    bar`. This test asserted the indentation was kept, which was our behaviour
+    // rather than the spec's -- the fixture renders `<p>Foo\nbar</p>`.
+    "does not interrupt a paragraph, and loses its indentation to it (spec example 113)" in {
       parse("Foo\n    bar").blocks.head match
-        case Block.Paragraph(content, _) => assert(textOf(content) == "Foo\n    bar")
+        case Block.Paragraph(content, _) => assert(textOf(content) == "Foo\nbar")
         case other                       => assert(false, s"expected a paragraph, got $other")
     }
     "strips only four spaces, leaving deeper indentation as content (spec example 116)" in {

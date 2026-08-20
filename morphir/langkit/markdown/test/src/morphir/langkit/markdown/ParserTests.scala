@@ -623,6 +623,43 @@ class ParserTests extends Test[Any]:
             case _ => assert(false)
         case _ => assert(false)
     }
+    // Every line of a paragraph loses its leading whitespace, not only the first. An indented line under a paragraph is
+    // therefore neither indented code nor a setext underline, and its inline spans must still point at the source.
+    "strips the indentation from every line of a paragraph (spec examples 87 and 238)" in {
+      Parser.parse("Foo\n    ---\n") match
+        case Result.Success(doc) =>
+          assert(doc.blocks.size == 1)
+          doc.blocks(0) match
+            case Block.Paragraph(content, _) => assert(textOf(content) == "Foo\n---")
+            case other                       => assert(false, s"expected a paragraph, got $other")
+        case _ => assert(false)
+
+      Parser.parse("> foo\n    - bar\n") match
+        case Result.Success(doc) =>
+          doc.blocks(0) match
+            case Block.BlockQuote(content, _) =>
+              content(0) match
+                case Block.Paragraph(inner, _) => assert(textOf(inner) == "foo\n- bar")
+                case other                     => assert(false, s"expected a paragraph, got $other")
+            case other => assert(false, s"expected a block quote, got $other")
+        case _ => assert(false)
+    }
+    "keeps a stripped continuation line's spans pointing at the source" in {
+      val source = "alpha\n    `beta`\n"
+      Parser.parse(source) match
+        case Result.Success(doc) =>
+          doc.blocks(0) match
+            case Block.Paragraph(content, _) =>
+              content.collectFirst { case Inline.CodeSpan(value, span) => (value, span) } match
+                // The span covers the backticks, as an inline span does everywhere: what it must not do is point four
+                // characters early, which is what would happen if the text lost its indentation and the offset did not.
+                case Some((value, span)) =>
+                  assert(value == "beta")
+                  assert(source.substring(span.offset, span.end) == "`beta`")
+                case None => assert(false, "expected a code span in the continuation line")
+            case other => assert(false, s"expected a paragraph, got $other")
+        case _ => assert(false)
+    }
     "reads a thematic break between paragraphs" in {
       Parser.parse("Hello\n\n---\n\nWorld") match
         case Result.Success(doc) =>

@@ -558,7 +558,7 @@ object Parser:
   ): Maybe[Deferred] =
     val scanner  = cursor.scanner
     val segments = List.newBuilder[(Int, String)]
-    segments += ((first.offset, first.text))
+    segments += segment(first)
     // A paragraph ends three ways, and the recursion says which: a setext underline promotes it to a heading and is
     // consumed with it, a line that does not continue it is put back, and end of input just stops.
     //
@@ -577,7 +577,7 @@ object Parser:
               (line, Present(level))
             case _ =>
               if continues(classified) then
-                segments += ((line.offset, line.text))
+                segments += segment(line)
                 gather(line)
               else
                 cursor.restore(checkpoint)
@@ -606,6 +606,17 @@ object Parser:
           case Absent         => Block.Paragraph(content, span)
       })
   end readParagraph
+
+  /**
+   * A paragraph line with its indentation removed, and the offset moved to match.
+   *
+   * CommonMark strips the leading whitespace of every line of a paragraph, not only the first, which is why an indented
+   * continuation line is neither code nor a setext underline: `Foo` over `    ---` is one paragraph reading `Foo\n---`.
+   * Moving the offset with the text is what keeps an inline span in that line pointing at the source.
+   */
+  private def segment(line: Line): (Int, String) =
+    val stripped = line.text.stripLeading
+    (line.offset + (line.text.length - stripped.length), stripped)
 
   /**
    * Consume `[label]: destination "title"` definitions from the front of a paragraph's text.
