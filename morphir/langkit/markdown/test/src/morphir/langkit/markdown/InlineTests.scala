@@ -473,6 +473,79 @@ class InlineTests extends Test[Any]:
     }
   }
 
+  "a link" - {
+
+    def inlines(source: String): Chunk[Inline] =
+      parse(source).blocks.head match
+        case Block.Paragraph(content, _) => content
+        case other                       => throw new AssertionError(s"expected a paragraph, got $other")
+
+    def destinations(source: String): Chunk[String] =
+      def walk(node: Inline): Chunk[String] = node match
+        case Inline.Link(destination, _, inner, _) => Chunk(destination) ++ inner.flatMap(walk)
+        case Inline.Emphasis(inner, _)             => inner.flatMap(walk)
+        case Inline.StrongEmphasis(inner, _)       => inner.flatMap(walk)
+        case _                                     => Chunk.empty
+      inlines(source).flatMap(walk)
+
+    // The bracket that would have opened the outer link is ordinary text instead, and the link inside it stands.
+    "may not contain a link (spec examples 518 and 532)" in {
+      assert(destinations("[foo [bar](/uri)](/uri)\n") == Chunk("/uri"), "the outer bracket became a link")
+      assert(destinations("[foo [bar](/uri)][ref]\n\n[ref]: /uri\n").size == 2, "expected the inner link and [ref]")
+    }
+    "sees a link through emphasis when it applies that rule (spec example 519)" in
+      assert(destinations("[foo *[bar [baz](/uri)](/uri)*](/uri)\n") == Chunk("/uri"))
+
+    // An image is not bound by it: its content becomes alt text, where a nested link flattens to what it says.
+    "lets an image hold what a link may not (spec example 520)" in {
+      inlines("![[[foo](uri1)](uri2)](uri3)\n").head match
+        case Inline.Image(destination, _, alt, _) =>
+          assert(destination == "uri3")
+          assert(alt == "[foo](uri2)")
+        case other => assert(false, s"expected an image, got $other")
+    }
+
+    // A label is not link text. Text may hold balanced brackets; a label may hold none, and must hold something.
+    "will not take a label that holds a bracket or nothing (spec examples 547, 548, 551 and 552)" in {
+      val notLinks = Chunk(
+        "[foo][ref[bar]]\n\n[ref[bar]]: /uri\n",
+        "[[[foo]]]\n\n[[[foo]]]: /url\n",
+        "[]\n\n[]: /uri\n",
+        "[\n ]\n\n[\n ]: /uri\n"
+      )
+      notLinks.foreach { source =>
+        assert(destinations(source).isEmpty, s"a link was formed in $source")
+        // The definition is no more valid than the reference, so both lines stay prose.
+        assert(parse(source).blocks.size == 2, s"expected two paragraphs from $source")
+      }
+    }
+    "still takes balanced brackets in link text (spec example 512)" in
+      assert(destinations("[link [foo [bar]]](/uri)\n") == Chunk("/uri"))
+
+    // Case *folding*, not lowercasing: `ẞ` lowercases to `ß` and would never meet `SS`, but both fold to `ss`.
+    "folds case when it matches a label (spec example 540)" in
+      assert(destinations("[ẞ]\n\n[SS]: /url\n") == Chunk("/url"))
+
+    "resolves references in a destination before encoding it (spec example 503)" in
+      assert(destinations("[link](foo%20b&auml;)\n") == Chunk("foo%20b%C3%A4"))
+
+    "encodes a reference link's destination the same way (spec example 206)" in
+      assert(destinations("[ΑΓΩ]: /φου\n\n[αγω]\n") == Chunk("/%CF%86%CE%BF%CF%85"))
+
+    "resolves references in a title (spec example 506)" in {
+      inlines("[link](/url \"title \\\"&quot;\")\n").head match
+        case Inline.Link(_, Present(title), _, _) => assert(title == "title \"\"")
+        case other                                => assert(false, s"expected a titled link, got $other")
+    }
+
+    // An angle-bracketed destination that does not close disqualifies the link outright rather than falling back to
+    // the bare form.
+    "will not take an angle destination holding a line ending or an escaped close (examples 491 and 493)" in {
+      assert(destinations("[link](<foo\nbar>)\n").isEmpty)
+      assert(destinations("[link](<foo\\>)\n").isEmpty)
+    }
+  }
+
   "raw HTML" - {
 
     /** The inline nodes of a document that is one paragraph. */

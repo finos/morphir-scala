@@ -616,15 +616,19 @@ object Parser:
     val index = skipLeading(from)
     if index >= text.length || text.charAt(index) != '[' then Absent
     else
-      InlineParser.labelEndOf(text, index + 1) match
+      // A definition's label follows the label rule, not the link-text rule: it ends at the first unescaped `]` and
+      // holds no bare bracket, so `[[[foo]]]: /url` and `[]: /uri` define nothing and stay paragraphs.
+      InlineParser.referenceLabelEndOf(text, index + 1) match
         case Absent         => Absent
         case Present(close) =>
           if close + 1 >= text.length || text.charAt(close + 1) != ':' then Absent
           else
             val label = text.substring(index + 1, close)
-            InlineParser.definitionTarget(text, close + 2) match
-              case Absent                             => Absent
-              case Present((end, destination, title)) => Present((end, label, destination, title))
+            if !InlineParser.isLabelOf(label) then Absent
+            else
+              InlineParser.definitionTarget(text, close + 2) match
+                case Absent                             => Absent
+                case Present((end, destination, title)) => Present((end, label, destination, title))
 
   /**
    * Map an index in a paragraph's joined text back to its offset in the source.

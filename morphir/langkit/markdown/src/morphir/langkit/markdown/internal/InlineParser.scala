@@ -29,9 +29,21 @@ private[markdown] object InlineParser:
   def definitionTarget(text: String, from: Int): Maybe[(Int, String, Maybe[String])] =
     definitionTargetImpl(text, from)
 
-  /** Normalise a link label the way the spec matches them: trimmed, whitespace collapsed, case folded. */
+  /**
+   * Normalise a link label the way the spec matches them: trimmed, whitespace collapsed, case folded.
+   *
+   * Case *folding*, which is not lowercasing. `ẞ` lowercases to `ß` and would never meet `SS`, but both fold to `ss`,
+   * so `[ẞ]` finds a definition written `[SS]`. Going down, up, then down again is how that is reached with what the
+   * standard library offers on all three platforms.
+   */
   def normalizeLabel(label: String): String =
-    label.trim.replaceAll("\\s+", " ").toLowerCase
+    label.trim.replaceAll("\\s+", " ").toLowerCase.toUpperCase.toLowerCase
+
+  /** Where a link label opening at `open` closes, for a caller outside this object. */
+  def referenceLabelEndOf(text: String, open: Int): Maybe[Int] = referenceLabelEnd(text, open)
+
+  /** Whether a bracketed run may serve as a link label at all. */
+  def isLabelOf(text: String): Boolean = isLabel(text)
 
   /**
    * Parse `text` into inline nodes.
@@ -273,6 +285,12 @@ private[markdown] object InlineParser:
    * stays literal text, which is what makes `&MadeUpEntity;` and a bare `&copy` render as themselves.
    */
   private def entityAt(text: String, start: Int, sourceOffsetAt: Int => Int): Maybe[(Int, Inline)] =
+    entityValue(text, start).map { case (end, value) =>
+      (end, Inline.Text(value, spanOf(start, end, sourceOffsetAt)))
+    }
+
+  /** The character a reference beginning at `start` stands for, and where it ends. */
+  private def entityValue(text: String, start: Int): Maybe[(Int, String)] =
     val semicolon = text.indexOf(';', start + 1)
     if semicolon < 0 || semicolon == start + 1 then Absent
     else
@@ -280,11 +298,9 @@ private[markdown] object InlineParser:
       val decoded =
         if body.startsWith("#") then numericEntity(body.drop(1))
         else NamedEntities.get(body)
-      decoded.map { value =>
-        (semicolon + 1, Inline.Text(value, spanOf(start, semicolon + 1, sourceOffsetAt)))
-      } match
-        case Some(result) => Present(result)
-        case None         => Absent
+      decoded match
+        case Some(value) => Present((semicolon + 1, value))
+        case None        => Absent
 
   /**
    * A numeric reference, decimal or hexadecimal.
@@ -395,19 +411,24 @@ private[markdown] object InlineParser:
       case Present(close) =>
         val label = text.substring(open, close)
 
-        def build(end: Int, destination: String, title: Maybe[String], normalize: Boolean): (Int, Inline) =
+        def build(end: Int, destination: String, title: Maybe[String], normalize: Boolean): Maybe[(Int, Inline)] =
           val span = spanOf(start, end, sourceOffsetAt)
           val uri  = if normalize then normalizeUri(destination) else destination
-          val node =
-            if image then Inline.Image(uri, title, plainText(label, definitions), span)
-            else Inline.Link(uri, title, parse(label, index => sourceOffsetAt(open + index), definitions), span)
-          (end, node)
+          if image then Present((end, Inline.Image(uri, title, plainText(label, definitions), span)))
+          else
+            val content = parse(label, index => sourceOffsetAt(open + index), definitions)
+            // Links may not contain links. The bracket that would have opened this one is ordinary text instead, and
+            // the link inside it stands: `[foo [bar](/uri)](/uri)` is the word `[foo `, a link, then `](/uri)`.
+            // Images are not bound by this -- their content becomes `alt` text, where a nested link flattens to what
+            // it says.
+            if content.exists(holdsLink) then Absent
+            else Present((end, Inline.Link(uri, title, content, span)))
 
         val inlineForm =
           if close + 1 < text.length && text.charAt(close + 1) == '(' then
-            inlineTarget(text, close + 2).map { case (end, destination, title) =>
-              build(end, destination, title, true)
-            }
+            inlineTarget(text, close + 2) match
+              case Present((end, destination, title)) => build(end, destination, title, true)
+              case Absent                             => Absent
           else Absent
 
         if inlineForm.isDefined then inlineForm
@@ -426,21 +447,64 @@ private[markdown] object InlineParser:
       label: String,
       sourceOffsetAt: Int => Int,
       definitions: Map[String, LinkDefinition],
-      build: (Int, String, Maybe[String], Boolean) => (Int, Inline)
+      build: (Int, String, Maybe[String], Boolean) => Maybe[(Int, Inline)]
   ): Maybe[(Int, Inline)] =
     val explicit =
-      if close + 1 < text.length && text.charAt(close + 1) == '[' then labelEnd(text, close + 2)
+      if close + 1 < text.length && text.charAt(close + 1) == '[' then referenceLabelEnd(text, close + 2)
       else Absent
 
     val (referenceLabel, end) = explicit match
       case Present(secondClose) =>
         val named = text.substring(close + 2, secondClose)
+        // `[text][]` is the collapsed form: an empty second label means the first one is doing the naming.
         ((if named.isBlank then label else named), secondClose + 1)
       case Absent => (label, close + 1)
 
-    definitions.get(normalizeLabel(referenceLabel)) match
-      case Some(definition) => Present(build(end, definition.destination, definition.title, false))
-      case None             => Absent
+    // The shortcut and collapsed forms take the link text as their label, and the text may hold what a label may not.
+    if !isLabel(referenceLabel) then Absent
+    else
+      definitions.get(normalizeLabel(referenceLabel)) match
+        // Normalised here rather than when the definition was recorded, so a definition keeps the destination the author
+        // wrote and every use of it is encoded the same way an inline destination would be: `/φου` reaches the writer as
+        // `/%CF%86%CE%BF%CF%85`.
+        case Some(definition) => build(end, definition.destination, definition.title, true)
+        case None             => Absent
+
+  /**
+   * Where a link *label* closes: at the first `]` that no backslash escapes.
+   *
+   * Deliberately not [[labelEnd]], which is where link *text* closes. Text may hold balanced brackets, so
+   * `[link [foo [bar]]](/uri)` is one link; a label may hold none, so `[foo][ref[bar]]` is not a link and
+   * `[ref[bar]]: /uri` is not a definition. [[kyo.Absent]] when a bracket turns up that disqualifies it.
+   */
+  private def referenceLabelEnd(text: String, open: Int): Maybe[Int] =
+    @tailrec def scan(index: Int): Maybe[Int] =
+      if index >= text.length then Absent
+      else
+        text.charAt(index) match
+          case '\\' => scan(index + 2)
+          case ']'  => Present(index)
+          case '['  => Absent
+          case _    => scan(index + 1)
+    scan(open)
+
+  /**
+   * Whether a run of text may serve as a link label.
+   *
+   * It needs something in it that is not whitespace -- `[]` and a label of nothing but a line break are not labels --
+   * and no bracket that a backslash does not escape. The bracket rule matters for the shortcut form, whose label is the
+   * link text and so may arrive holding brackets that a label may not: `[[[foo]]]` is text, not a link.
+   */
+  private def isLabel(text: String): Boolean =
+    @tailrec def scan(index: Int, sawContent: Boolean): Boolean =
+      if index >= text.length then sawContent
+      else
+        text.charAt(index) match
+          case '\\'                => scan(index + 2, true)
+          case '[' | ']'           => false
+          case c if c.isWhitespace => scan(index + 1, sawContent)
+          case _                   => scan(index + 1, true)
+    scan(0, false)
 
   /**
    * Where the label that opened at `open` closes.
@@ -483,8 +547,9 @@ private[markdown] object InlineParser:
     else
       val destination: Maybe[(Int, String)] =
         if text.charAt(index) == '<' then
-          val close = text.indexOf('>', index + 1)
-          if close < 0 then Absent else Present((close + 1, unescape(text.substring(index + 1, close))))
+          angleDestinationEnd(text, index + 1) match
+            case Absent         => Absent
+            case Present(close) => Present((close + 1, unescape(text.substring(index + 1, close))))
         else
           var cursor = index
           var depth  = 0
@@ -513,6 +578,24 @@ private[markdown] object InlineParser:
                 if closing < text.length && text.charAt(closing) == ')' then
                   Present((closing + 1, dest, Present(title)))
                 else Absent
+
+  /**
+   * Where an angle-bracketed destination closes: the first `>` that no backslash escapes.
+   *
+   * A line ending or a bare `<` inside disqualifies it, and so does never closing -- and when it is disqualified the
+   * link fails rather than falling back to the bare form, which is why `[link](<foo\>)` stays text with its escape
+   * resolved.
+   */
+  private def angleDestinationEnd(text: String, open: Int): Maybe[Int] =
+    @tailrec def scan(index: Int): Maybe[Int] =
+      if index >= text.length then Absent
+      else
+        text.charAt(index) match
+          case '\\'       => scan(index + 2)
+          case '>'        => Present(index)
+          case '<' | '\n' => Absent
+          case _          => scan(index + 1)
+    scan(open)
 
   private def titleAt(text: String, from: Int): Maybe[(Int, String)] =
     if from >= text.length then Absent
@@ -584,6 +667,14 @@ private[markdown] object InlineParser:
     if from < text.length && text.charAt(from).isWhitespace then skipWhitespace(text, from + 1) else from
 
   /** Backslash escapes are live in destinations and titles, unlike inside a code span. */
+  /**
+   * What a destination or a title carries besides its own characters: backslash escapes and character references.
+   *
+   * Both are resolved here rather than left for the writer, because both end up in an attribute, where the writer
+   * escapes on its own terms. `&quot;` in a title has to become a `"` before ScalaTags can write it back as `&quot;` --
+   * passing it through would produce `&amp;quot;` instead -- and `&auml;` in a destination has to become `ä` before it
+   * can be percent-encoded as `%C3%A4`.
+   */
   private def unescape(value: String): String =
     val out   = StringBuilder()
     var index = 0
@@ -592,6 +683,14 @@ private[markdown] object InlineParser:
       if char == '\\' && index + 1 < value.length && isPunctuation(value.charAt(index + 1)) then
         out.append(value.charAt(index + 1))
         index += 2
+      else if char == '&' then
+        entityValue(value, index) match
+          case Present((end, decoded)) =>
+            out.append(decoded)
+            index = end
+          case Absent =>
+            out.append(char)
+            index += 1
       else
         out.append(char)
         index += 1
@@ -644,6 +743,19 @@ private[markdown] object InlineParser:
     autolink(text, index) match
       case Present((end, _)) => Present(end)
       case Absent            => HtmlTag.endOf(text, index)
+
+  /**
+   * Whether a node is a link or holds one at any depth.
+   *
+   * Emphasis is transparent to the rule, which is what example 519 turns on: a link inside emphasis inside a label
+   * still stops the label becoming a link. An image's alt text is a `String` by then, so a link inside one has already
+   * flattened and cannot be found -- which is right, because an image may hold a link.
+   */
+  private def holdsLink(node: Inline): Boolean = node match
+    case Inline.Link(_, _, _, _)         => true
+    case Inline.Emphasis(inner, _)       => inner.exists(holdsLink)
+    case Inline.StrongEmphasis(inner, _) => inner.exists(holdsLink)
+    case _                               => false
 
   /** The plain text of a label, which is what an `alt` attribute can hold. */
   private def plainText(label: String, definitions: Map[String, LinkDefinition]): String =
