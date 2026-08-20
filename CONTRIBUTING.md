@@ -125,7 +125,7 @@ depend on.
 **Benchmarks are an instrument, not a CI gate.** JMH timings are machine-specific, so no threshold is committed and
 none should be — a figure recorded on one machine is noise on another. Compare a before and an after on the *same*
 machine across a *single* change. This is the opposite of a conformance baseline such as the Markdown parser's
-`conformance-baseline.txt`, which *is* committed and *is* enforced, because it measures behaviour rather than time.
+`conformance-baselines.json`, which *is* committed and *is* enforced, because it measures behaviour rather than time.
 
 ### Use it when you are changing shape, not just behaviour
 

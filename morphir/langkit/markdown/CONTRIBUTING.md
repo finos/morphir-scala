@@ -103,7 +103,7 @@ the parser's shape:
 ./mill morphir.benchmarks.jvm.runJmh -f 1 -wi 3 -i 3 -w 1s -r 1s 'MarkdownParseBenchmark.*'
 ```
 
-**They are an instrument, not a gate.** Unlike `conformance-baseline.txt`, no number is committed as a threshold:
+**They are an instrument, not a gate.** Unlike `conformance-baselines.json`, no number is committed as a threshold:
 JMH timings are machine-specific and a committed figure would be noise on another machine. Compare a before and an
 after on the *same* machine across a *single* change.
 
