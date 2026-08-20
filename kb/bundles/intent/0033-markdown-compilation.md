@@ -53,7 +53,7 @@ target.
 
 ## Approach
 
-Publish the output stage as two writer artifacts over one shared algebra, each on JVM, JS, and Native:
+Publish the output stage as two writer artifacts over one shared algebra:
 `org.finos.morphir::morphir-langkit-markdown-compiler-kyo-ui` for the browser, and
 `…-markdown-compiler-scalatags` for the conformance oracle. Both sit beneath the existing
 `morphir-langkit-markdown`, which keeps its name and gains the shared algebra; neither depends on the other.
@@ -174,6 +174,12 @@ that parses, so no coordinate is renamed and nothing that depends on it moves.
 | `morphir-langkit-markdown` | CST, AST, transformers, the `Compiler` algebra, and the parser | `langkit-core`, `prelude` |
 | `morphir-langkit-markdown-compiler-kyo-ui` | `Compiler[UI]`, the writer users see | the base module, `kyo-ui` |
 | `morphir-langkit-markdown-compiler-scalatags` | `Compiler[Frag]`, the conformance oracle | the base module, `scalatags` |
+
+The oracle publishes for JVM, Scala.js and Scala Native, so conformance can be measured wherever the langkit runs.
+The kyo-ui writer publishes for **JVM and Scala.js only**: on Scala Native, `kyo-ui` transitively pulls `kyo-net` and
+`kyo-http`, whose C sources need BoringSSL or OpenSSL symbols at link time, and this repository configures no native
+linking options. Nothing depends on that variant today — `morphir-ui` targets Scala.js and Wasm, and the desktop app
+is Electron — and conformance is unaffected, since it runs through the oracle.
 
 An earlier draft split the parser into a `-core` artifact beneath a container directory. That is not needed:
 `morphir/langkit/markdown` can be a published module *and* the parent of the writer modules at once, the way
