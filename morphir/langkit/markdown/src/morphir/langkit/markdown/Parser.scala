@@ -712,11 +712,15 @@ object Parser:
     @tailrec def gather(marker: BulletMarker, at: Int, loose: Boolean): (Boolean, Int) =
       val (item, run) = readItem(cursor, definitions, at, marker.columns, marker.empty)
       items += item
-      val soFar = loose || run.interiorBlank
+      val soFar  = loose || run.interiorBlank
+      val resume = cursor.checkpoint()
       nextItem(cursor) match
-        case Present((line, LineKind.BulletItem(next))) if next.bullet == marker.bullet =>
-          gather(next, line.offset, soFar || run.trailingBlank)
-        case _ => (soFar, run.contentEnd)
+        case Present((line = line, kind = LineKind.BulletItem(next), blankBefore = blankBefore))
+            if next.bullet == marker.bullet =>
+          gather(next, line.offset, soFar || run.trailingBlank || blankBefore)
+        case _ =>
+          cursor.restore(resume)
+          (soFar, run.contentEnd)
 
     val (loose, end) = gather(first, markerAt, loose = false)
     val collected    = Chunk.from(items.result())
@@ -741,11 +745,15 @@ object Parser:
     @tailrec def gather(marker: OrderedMarker, at: Int, loose: Boolean): (Boolean, Int) =
       val (item, run) = readItem(cursor, definitions, at, marker.columns, marker.empty)
       items += item
-      val soFar = loose || run.interiorBlank
+      val soFar  = loose || run.interiorBlank
+      val resume = cursor.checkpoint()
       nextItem(cursor) match
-        case Present((line, LineKind.OrderedItem(next))) if next.delimiter == marker.delimiter =>
-          gather(next, line.offset, soFar || run.trailingBlank)
-        case _ => (soFar, run.contentEnd)
+        case Present((line = line, kind = LineKind.OrderedItem(next), blankBefore = blankBefore))
+            if next.delimiter == marker.delimiter =>
+          gather(next, line.offset, soFar || run.trailingBlank || blankBefore)
+        case _ =>
+          cursor.restore(resume)
+          (soFar, run.contentEnd)
 
     val (loose, end) = gather(first, markerAt, loose = false)
     val collected    = Chunk.from(items.result())
@@ -753,16 +761,27 @@ object Parser:
     Deferred.prose(defs => Block.OrderedList(first.number, collected.map(_.resolve(defs)), !loose, listSpan))
 
   /**
-   * The line after an item, classified, with the cursor put back where it was.
+   * The next line that could open another item, classified, with the cursor left just before it.
    *
-   * The caller decides whether it opens another item of the same list; whichever way that goes, the line is still there
-   * to be read again, by the next item or by whatever follows the list.
+   * Blank lines are stepped over rather than read as the end of the list, because they are not: they separate items and
+   * make the list loose, which is what `blankBefore` reports. An item that consumed its own trailing blanks reports the
+   * same thing through its run, so both routes to a loose list are covered.
+   *
+   * The caller decides whether the line opens an item of *this* list, and puts the cursor back to its own checkpoint if
+   * it does not -- the blanks belong to whatever follows the list in that case.
    */
-  private def nextItem(cursor: ContainerCursor): Maybe[(Line, LineKind)] =
-    val checkpoint = cursor.checkpoint()
-    val next       = cursor.readLine().map(line => (line, classify(cursor.scanner, line).kind))
-    cursor.restore(checkpoint)
-    next
+  private def nextItem(cursor: ContainerCursor): Maybe[(line: Line, kind: LineKind, blankBefore: Boolean)] =
+    @tailrec def skip(blank: Boolean): Maybe[(line: Line, kind: LineKind, blankBefore: Boolean)] =
+      val before = cursor.checkpoint()
+      cursor.readLine() match
+        case Absent        => Absent
+        case Present(line) =>
+          val kind = classify(cursor.scanner, line).kind
+          if kind == LineKind.Blank then skip(blank = true)
+          else
+            cursor.restore(before)
+            Present((line = line, kind = kind, blankBefore = blank))
+    skip(blank = false)
 
   /**
    * Read one list item, which holds blocks rather than prose.

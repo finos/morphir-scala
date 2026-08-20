@@ -705,6 +705,7 @@ class ParserTests extends Test[Any]:
       assert(tightnessOf("- one\n- two\n"))
       assert(tightnessOf("- a\n  - b\n"), "a nested list is a second block, but no blank line separates them")
       assert(!tightnessOf("- one\n\n- two\n"), "a blank line between items")
+      assert(!tightnessOf("* a\n*\n\n* c\n"), "a blank line after an empty item still separates it (spec example 315)")
       assert(!tightnessOf("- one\n\n  two\n"), "a blank line between an item's blocks")
     }
     "nests a list inside the item that indents it" in {
