@@ -72,8 +72,10 @@ object KyoUiCompiler:
     def image(destination: String, title: Maybe[String], alt: String): UI =
       UI.img(UI.ImgSrc.Path(destination), alt)
 
-    /** `UI.rawHtml` is correct here and nowhere else: the block's content is HTML the document wrote. */
+    /** `UI.rawHtml` is correct here and in `rawHtml`, and nowhere else: the content is HTML the document wrote. */
     def htmlBlock(content: String): UI = UI.rawHtml(content)
+
+    def rawHtml(value: String): UI = UI.rawHtml(value)
 
     def blockQuote(children: Chunk[UI]): UI = UI.blockquote(content(children))
 

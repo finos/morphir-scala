@@ -65,4 +65,5 @@ private[markdown] object MarkdownFold:
       case Inline.Image(destination, title, alt, _) => compiler.image(destination, title, alt)
       case Inline.Emphasis(content, _)              => compiler.emphasis(content.map(compileInline))
       case Inline.StrongEmphasis(content, _)        => compiler.strongEmphasis(content.map(compileInline))
+      case Inline.RawHtml(value, _)                 => compiler.rawHtml(value)
 end MarkdownFold

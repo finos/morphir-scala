@@ -4,7 +4,7 @@ import kyo.*
 import scala.annotation.tailrec
 import morphir.langkit.core.Span
 import morphir.langkit.core.scanner.*
-import morphir.langkit.markdown.internal.{ContainerCursor, ContainerPrefix, InlineParser, Line, LinkDefinition}
+import morphir.langkit.markdown.internal.{ContainerCursor, ContainerPrefix, HtmlTag, InlineParser, Line, LinkDefinition}
 
 /**
  * A CommonMark subset parser: ATX headings, paragraphs, fenced code, unordered lists, and thematic breaks.
@@ -391,74 +391,7 @@ object Parser:
    * attributes.
    */
   private def isCompleteTagLine(trimmed: String): Boolean =
-    completeTagEnd(trimmed).exists(end => trimmed.drop(end).isBlank)
-
-  /** Where a valid tag beginning at index 0 ends, or [[kyo.Absent]] if the text does not open one. */
-  private def completeTagEnd(text: String): Maybe[Int] =
-    if !text.startsWith("<") then Absent
-    else if text.startsWith("</") then closingTagEnd(text)
-    else openTagEnd(text)
-
-  private def closingTagEnd(text: String): Maybe[Int] =
-    val nameEnd = tagNameEnd(text, 2)
-    if nameEnd == 2 || !text.charAt(2).isLetter then Absent
-    else
-      val afterSpaces = skipSpaces(text, nameEnd)
-      // A closing tag takes no attributes: anything but whitespace before the `>` disqualifies it.
-      if afterSpaces < text.length && text.charAt(afterSpaces) == '>' then Present(afterSpaces + 1) else Absent
-
-  @tailrec private def tagNameEnd(text: String, from: Int): Int =
-    if from < text.length && (text.charAt(from).isLetterOrDigit || text.charAt(from) == '-') then
-      tagNameEnd(text, from + 1)
-    else from
-
-  private def openTagEnd(text: String): Maybe[Int] =
-    if text.length < 2 || !text.charAt(1).isLetter then Absent
-    else
-      @tailrec def attributes(index: Int): Maybe[Int] =
-        val afterSpaces = skipSpaces(text, index)
-        if afterSpaces >= text.length then Absent
-        else if text.charAt(afterSpaces) == '>' then Present(afterSpaces + 1)
-        else if text.charAt(afterSpaces) == '/' && afterSpaces + 1 < text.length &&
-          text.charAt(afterSpaces + 1) == '>'
-        then Present(afterSpaces + 2)
-        else if afterSpaces == index then Absent // attributes must be separated by whitespace
-        else
-          attributeEnd(text, afterSpaces) match
-            case Present(next) => attributes(next)
-            case Absent        => Absent
-      attributes(tagNameEnd(text, 1))
-
-  private def attributeEnd(text: String, from: Int): Maybe[Int] =
-    var index = from
-    if index >= text.length then Absent
-    else if !(text.charAt(index).isLetter || text.charAt(index) == '_' || text.charAt(index) == ':') then Absent
-    else
-      while index < text.length &&
-        (text.charAt(index).isLetterOrDigit ||
-          "_.:-".indexOf(text.charAt(index).toInt) >= 0)
-      do index += 1
-      val afterName = skipSpaces(text, index)
-      if afterName >= text.length || text.charAt(afterName) != '=' then Present(index)
-      else
-        val valueStart = skipSpaces(text, afterName + 1)
-        if valueStart >= text.length then Absent
-        else
-          val quote = text.charAt(valueStart)
-          if quote == '"' || quote == '\'' then
-            val close = text.indexOf(quote.toInt, valueStart + 1)
-            if close < 0 then Absent else Present(close + 1)
-          else
-            @tailrec def unquotedEnd(cursor: Int): Int =
-              if cursor < text.length && !text.charAt(cursor).isWhitespace &&
-                "\"'=<>`".indexOf(text.charAt(cursor).toInt) < 0
-              then unquotedEnd(cursor + 1)
-              else cursor
-            val cursor = unquotedEnd(valueStart)
-            if cursor == valueStart then Absent else Present(cursor)
-
-  @tailrec private def skipSpaces(text: String, from: Int): Int =
-    if from < text.length && text.charAt(from).isWhitespace then skipSpaces(text, from + 1) else from
+    HtmlTag.tagEndOf(trimmed, 0).exists(end => trimmed.drop(end).isBlank)
 
   /**
    * Read a raw HTML block.

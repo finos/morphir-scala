@@ -248,10 +248,17 @@ private[markdown] object InlineParser:
       }
     else if char == '&' then entityAt(text, index, sourceOffsetAt)
     else if char == '<' then
-      autolink(text, index).map { case (end, uri) =>
-        val span = spanOf(index, end, sourceOffsetAt)
-        (end, Inline.Link(normalizeUri(uri), Absent, Chunk(Inline.Text(uri, span)), span))
-      }
+      autolink(text, index) match
+        case Present((end, uri)) =>
+          val span = spanOf(index, end, sourceOffsetAt)
+          Present((end, Inline.Link(normalizeUri(uri), Absent, Chunk(Inline.Text(uri, span)), span)))
+        case Absent =>
+          // Raw HTML is taken whole, which is what gives it precedence over everything else: no `*`, `_`, `&` or `\`
+          // inside it is ever looked at again, so `<a href="&ouml;">` keeps its entity and `**<a href="**">` has no
+          // emphasis in it.
+          HtmlTag.endOf(text, index).map { end =>
+            (end, Inline.RawHtml(text.substring(index, end), spanOf(index, end, sourceOffsetAt)))
+          }
     else if isLinkStart(text, index) then
       val image = char == '!'
       val open  = if image then index + 2 else index + 1
@@ -438,8 +445,9 @@ private[markdown] object InlineParser:
   /**
    * Where the label that opened at `open` closes.
    *
-   * Brackets nest, so `[link [foo [bar]]]` closes at the last one. A code span binds tighter than a link, so a bracket
-   * inside one is skipped rather than counted — which is why `[not a `link](/foo`)` is a code span and not a link.
+   * Brackets nest, so `[link [foo [bar]]]` closes at the last one. Code spans, autolinks and raw HTML all bind tighter
+   * than a link, so a bracket inside one is skipped rather than counted — which is why `[not a `link](/foo`)` is a code
+   * span, and why `[foo <bar attr="](baz)">` is not a link at all: the `]` belongs to the attribute.
    */
   private def labelEnd(text: String, open: Int): Maybe[Int] =
     var index  = open
@@ -453,6 +461,8 @@ private[markdown] object InlineParser:
         closingRun(text, index + run, run) match
           case Present(closeStart) => index = closeStart + run
           case Absent              => index += run
+      else if char == '<' && !skipMarkup(text, index).isEmpty then
+        index = skipMarkup(text, index).getOrElse(index + 1)
       else
         if char == '[' then depth += 1
         else if char == ']' then
@@ -623,6 +633,18 @@ private[markdown] object InlineParser:
           body.take(schemeEnd).forall(c => c.isLetterOrDigit || c == '+' || c == '.' || c == '-')
       if validScheme && !body.exists(c => c.isWhitespace || c == '<') then Present((close + 1, body)) else Absent
 
+  /**
+   * Past an autolink or a piece of raw HTML beginning at `index`, if one does.
+   *
+   * Both bind tighter than a link label, so a `]` inside either is not the label's. Example 526 is the sharp case:
+   * `[foo<https://example.com/?search=](uri)>` is an autolink whose URI happens to contain `](uri)`, and the label
+   * never closes.
+   */
+  private def skipMarkup(text: String, index: Int): Maybe[Int] =
+    autolink(text, index) match
+      case Present((end, _)) => Present(end)
+      case Absent            => HtmlTag.endOf(text, index)
+
   /** The plain text of a label, which is what an `alt` attribute can hold. */
   private def plainText(label: String, definitions: Map[String, LinkDefinition]): String =
     parse(label, identity, definitions).map(plainOf).mkString
@@ -635,6 +657,8 @@ private[markdown] object InlineParser:
     case Inline.Image(_, _, alt, _)      => alt
     case Inline.Emphasis(inner, _)       => inner.map(plainOf).mkString
     case Inline.StrongEmphasis(inner, _) => inner.map(plainOf).mkString
+    // An `alt` attribute is text, and raw HTML in a label contributes none: it is markup, not content.
+    case Inline.RawHtml(_, _) => ""
 
   private def spanOf(start: Int, end: Int, sourceOffsetAt: Int => Int): Span =
     Span.fromStartEnd(sourceOffsetAt(start), sourceOffsetAt(end))

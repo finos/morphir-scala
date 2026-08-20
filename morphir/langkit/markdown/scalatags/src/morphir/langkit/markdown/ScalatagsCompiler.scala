@@ -81,8 +81,10 @@ object ScalatagsCompiler:
         case Present(value) => img(src := destination, attr("alt") := alt, scalatags.Text.all.title := value)
         case Absent         => img(src := destination, attr("alt") := alt)
 
-    /** `raw` is correct here and nowhere else: the block's content is HTML the document wrote. */
+    /** `raw` is correct here and in `rawHtml`, and nowhere else: the content is HTML the document wrote. */
     def htmlBlock(content: String): Frag = raw(content)
+
+    def rawHtml(value: String): Frag = raw(value)
 
     /**
      * Every child on its own line, and a newline after the opening tag even when there are none: the fixtures spell an

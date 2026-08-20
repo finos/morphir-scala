@@ -110,3 +110,12 @@ enum Inline derives CanEqual:
 
   /** Strong emphasis, from a double `**` or `__` delimiter run. */
   case StrongEmphasis(content: Chunk[Inline], span: Span)
+
+  /**
+   * A tag, comment, processing instruction, declaration or CDATA section the author wrote inside prose.
+   *
+   * The inline twin of [[Block.HtmlBlock]], and emitted just as verbatim. It is a node of its own rather than text
+   * because its content outranks every other inline construct: nothing inside `<a href="**">` is emphasis, and nothing
+   * inside `<bar attr="](baz)">` closes a link label.
+   */
+  case RawHtml(value: String, span: Span)

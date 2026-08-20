@@ -42,6 +42,8 @@ class InlineTests extends Test[Any]:
       case Inline.Image(_, _, alt, _)      => alt
       case Inline.Emphasis(inner, _)       => textOf(inner)
       case Inline.StrongEmphasis(inner, _) => textOf(inner)
+      // Raw HTML is markup rather than text, and contributes none: a test asserting on it matches the node itself.
+      case Inline.RawHtml(_, _) => ""
     }.mkString
 
   /** The values of every code span a source produces, ignoring the text around them. */
@@ -468,6 +470,78 @@ class InlineTests extends Test[Any]:
       parse("    <div>").blocks.head match
         case Block.IndentedCode(content, _) => assert(content == "<div>\n")
         case other                          => assert(false, s"expected indented code, got $other")
+    }
+  }
+
+  "raw HTML" - {
+
+    /** The inline nodes of a document that is one paragraph. */
+    def inlines(source: String): Chunk[Inline] =
+      parse(source).blocks.head match
+        case Block.Paragraph(content, _) => content
+        case other                       => throw new AssertionError(s"expected a paragraph, got $other")
+
+    def htmlIn(source: String): Chunk[String] =
+      inlines(source).collect { case Inline.RawHtml(value, _) => value }
+
+    "takes open and closing tags whole (spec examples 613 and 623)" in {
+      assert(htmlIn("<a><bab><c2c>\n") == Chunk("<a>", "<bab>", "<c2c>"))
+      assert(htmlIn("</a></foo >\n") == Chunk("</a>", "</foo >"))
+    }
+    "lets a tag run across a line break (spec example 615)" in
+      assert(htmlIn("<a  /><b2\ndata=\"foo\" >\n") == Chunk("<a  />", "<b2\ndata=\"foo\" >"))
+
+    // The whole reason this scans rather than looking for the next `>`. Each of these is a `<` the spec leaves as an
+    // ordinary character, and the writer escapes it.
+    "leaves a `<` that opens nothing as text (spec examples 618, 619, 622 and 624)" in {
+      val notHtml = Chunk(
+        "<33> <__>\n",                 // a name must start with a letter
+        "<a h*#ref=\"hi\">\n",         // no legal attribute name
+        "<a href='bar'title=title>\n", // attributes that do not separate
+        "</a href=\"foo\">\n"          // a closing tag takes no attributes
+      )
+      notHtml.foreach(source => assert(htmlIn(source).isEmpty, s"expected no raw HTML in $source"))
+    }
+    "takes the four forms that are not tags (spec examples 625 to 629)" in {
+      assert(htmlIn("foo <!-- this is a --\ncomment - with hyphens -->\n") ==
+        Chunk("<!-- this is a --\ncomment - with hyphens -->"))
+      // `<!-->` is a comment in its own right, so what follows it is ordinary text rather than more comment.
+      assert(htmlIn("foo <!--> foo -->\n") == Chunk("<!-->"))
+      assert(htmlIn("foo <!---> foo -->\n") == Chunk("<!--->"))
+      assert(htmlIn("foo <?php echo $a; ?>\n") == Chunk("<?php echo $a; ?>"))
+      assert(htmlIn("foo <!ELEMENT br EMPTY>\n") == Chunk("<!ELEMENT br EMPTY>"))
+      assert(htmlIn("foo <![CDATA[>&<]]>\n") == Chunk("<![CDATA[>&<]]>"))
+    }
+    // The point of the node: its interior is never looked at again. An entity inside it is not decoded and a backslash
+    // inside it does not escape, because neither is ever offered to the parser that would do so.
+    "looks at nothing inside what it took (spec examples 630 and 631)" in {
+      assert(htmlIn("foo <a href=\"&ouml;\">\n") == Chunk("<a href=\"&ouml;\">"))
+      assert(htmlIn("foo <a href=\"\\*\">\n") == Chunk("<a href=\"\\*\">"))
+    }
+    "outranks emphasis, so a delimiter inside a tag is not one (spec example 476)" in {
+      val content = inlines("**<a href=\"**\">\n")
+      assert(!content.exists(_.isInstanceOf[Inline.StrongEmphasis]), s"emphasis reached inside the tag: $content")
+      assert(htmlIn("**<a href=\"**\">\n") == Chunk("<a href=\"**\">"))
+    }
+    // A `]` inside an attribute is the attribute's. Before raw HTML was recognised, the label closed there and the
+    // whole thing became a link.
+    "outranks a link label, so a bracket inside a tag does not close one (spec example 524)" in {
+      val content = inlines("[foo <bar attr=\"](baz)\">\n")
+      assert(!content.exists(_.isInstanceOf[Inline.Link]), s"a link was formed through the tag: $content")
+    }
+    "gives an autolink the same standing inside a label (spec example 526)" in {
+      val content = inlines("[foo<https://example.com/?search=](uri)>\n")
+      val links   = content.collect { case Inline.Link(destination, _, _, _) => destination }
+      assert(links.size == 1, s"expected only the autolink, got $links")
+      assert(links.head.contains("search="), s"the autolink lost its URI: $links")
+    }
+    "reports the span the markup occupies in the source" in {
+      val source = "text <br /> more\n"
+      inlines(source).collectFirst { case Inline.RawHtml(value, span) => (value, span) } match
+        case Some((value, span)) =>
+          assert(value == "<br />")
+          assert(source.substring(span.offset, span.end) == "<br />")
+        case None => assert(false, "expected raw HTML")
     }
   }
 

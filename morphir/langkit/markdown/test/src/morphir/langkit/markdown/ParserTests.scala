@@ -28,6 +28,8 @@ class ParserTests extends Test[Any]:
       case Inline.Image(_, _, alt, _)      => alt
       case Inline.Emphasis(inner, _)       => textOf(inner)
       case Inline.StrongEmphasis(inner, _) => textOf(inner)
+      // Raw HTML is markup rather than text, and contributes none: a test asserting on it matches the node itself.
+      case Inline.RawHtml(_, _) => ""
     }.mkString
 
   private def parseMetrics(source: String): ScanMetrics =

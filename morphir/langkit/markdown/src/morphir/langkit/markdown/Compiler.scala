@@ -108,6 +108,15 @@ trait Compiler[Out]:
   def strongEmphasis(children: Chunk[Out]): Out
 
   /**
+   * Compile raw HTML written inside prose.
+   *
+   * The inline counterpart of [[htmlBlock]], and it carries the same warning: `value` is emitted verbatim, never
+   * escaped. A target that cannot emit HTML has to decide what to do with it -- dropping it is safer than escaping it,
+   * which would show the author their own markup.
+   */
+  def rawHtml(value: String): Out
+
+  /**
    * Combine compiled list items into a numbered list.
    *
    * @param start
