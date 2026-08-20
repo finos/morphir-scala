@@ -75,6 +75,8 @@ object KyoUiCompiler:
     /** `UI.rawHtml` is correct here and nowhere else: the block's content is HTML the document wrote. */
     def htmlBlock(content: String): UI = UI.rawHtml(content)
 
+    def blockQuote(children: Chunk[UI]): UI = UI.blockquote(content(children))
+
     def thematicBreak: UI = UI.hr
   end instance
 

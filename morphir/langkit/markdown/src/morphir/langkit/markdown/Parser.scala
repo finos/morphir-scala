@@ -4,7 +4,7 @@ import kyo.*
 import scala.annotation.tailrec
 import morphir.langkit.core.Span
 import morphir.langkit.core.scanner.*
-import morphir.langkit.markdown.internal.{InlineParser, LinkDefinition}
+import morphir.langkit.markdown.internal.{ContainerCursor, ContainerPrefix, InlineParser, Line, LinkDefinition}
 
 /**
  * A CommonMark subset parser: ATX headings, paragraphs, fenced code, unordered lists, and thematic breaks.
@@ -15,7 +15,6 @@ import morphir.langkit.markdown.internal.{InlineParser, LinkDefinition}
 object Parser:
 
   private val BlocksPhase = ScanPhase("markdown.blocks")
-  private val LinesPhase  = ScanPhase("markdown.lines")
 
   def parse(source: String): Result[ParseError, Document] =
     parse(source, ScanBudget.default)
@@ -30,7 +29,7 @@ object Parser:
     SourceScanner.scan(source, budget, phase = Present(BlocksPhase)) { scanner =>
       scanner.chargeOutputNodes(NodeCount.one)
       val definitions = scala.collection.mutable.Map.empty[String, LinkDefinition]
-      val blocks      = parseBlocks(scanner, definitions)
+      val blocks      = parseBlocks(ContainerCursor.top(scanner), definitions)
       // Keep the caller's coordinate space: do not rewrite CRLF before measuring spans.
       val document = Document(blocks, Span(0, source.length))
       (document, scanner.metrics)
@@ -50,11 +49,6 @@ object Parser:
     def ready(block: Block): Deferred                                = Deferred(_ => block)
     def prose(build: Map[String, LinkDefinition] => Block): Deferred = Deferred(build)
 
-  private final case class Line(view: SourceView, text: String, terminatedByLf: Boolean):
-    def offset: Int = view.start.toInt
-    def end: Int    = view.end.toInt
-    def length: Int = view.length.toInt
-
   /**
    * What a line starts, decided in one pass.
    *
@@ -65,6 +59,7 @@ object Parser:
   private enum LineKind derives CanEqual:
     case Blank
     case IndentedCode
+    case BlockQuote
     case Heading(level: HeadingLevel, text: String)
     case Fence(open: FenceOpen)
     case ThematicBreak
@@ -90,6 +85,7 @@ object Parser:
       val kind    =
         if trimmed.isEmpty then LineKind.Blank
         else if text.length >= 4 && text.take(4).forall(_ == ' ') then LineKind.IndentedCode
+        else if isBlockQuoteStart(text) then LineKind.BlockQuote
         else
           headingPrefix(text.trim) match
             case Present((level, rest)) => LineKind.Heading(level, rest.trim)
@@ -136,36 +132,79 @@ object Parser:
       case _                                     => false
 
   private def parseBlocks(
-      scanner: SourceScanner,
+      cursor: ContainerCursor,
       definitions: scala.collection.mutable.Map[String, LinkDefinition]
   ): Chunk[Block] =
-    val blocks = List.newBuilder[Deferred]
-    while !scanner.isAtEnd do
-      scanner.requireProgress(BlocksPhase) {
-        val line       = readLine(scanner)
-        val classified = classify(scanner, line)
-        if classified.kind != LineKind.Blank then
-          val block = classified.kind match
-            case LineKind.IndentedCode         => Present(Deferred.ready(readIndentedCode(scanner, line)))
-            case LineKind.Heading(level, rest) =>
-              val headingSpan = Span(line.offset, line.length)
-              val base        = contentSpan(line, rest).offset
-              Present(Deferred.prose { defs =>
-                Block.Heading(level, InlineParser.parse(rest, index => base + index, defs), headingSpan)
-              })
-            case LineKind.Fence(open)   => Present(Deferred.ready(readFencedCode(scanner, line, open)))
-            case LineKind.ThematicBreak =>
-              Present(Deferred.ready(Block.ThematicBreak(Span(line.offset, line.length))))
-            case LineKind.Html(_)               => Present(Deferred.ready(readHtmlBlock(scanner, line)))
-            case LineKind.BulletItem(item)      => Present(readUnorderedList(scanner, line, item))
-            case LineKind.OrderedItem(marker)   => Present(readOrderedList(scanner, line, marker))
-            case LineKind.Text | LineKind.Blank => readParagraph(scanner, line, definitions)
-          scanner.chargeOutputNodes(NodeCount.one)
-          block.foreach(blocks += _)
-      }
+    val deferred = parseDeferred(cursor, definitions)
     // Second phase: every definition in the document is known now, so prose can resolve references that point
     // forward as well as back.
-    Chunk.from(blocks.result().map(_.resolve(definitions.toMap)))
+    Chunk.from(deferred.map(_.resolve(definitions.toMap)))
+
+  /**
+   * Read every block the cursor's container holds, with prose left unresolved.
+   *
+   * The document is a container like any other, so this is the one block loop: the top level runs it over a cursor with
+   * nothing open, and a block quote runs it over a cursor that takes the `>` off each line. What differs between them
+   * is which lines the cursor offers, not what is done with them.
+   */
+  private def parseDeferred(
+      cursor: ContainerCursor,
+      definitions: scala.collection.mutable.Map[String, LinkDefinition]
+  ): List[Deferred] =
+    val scanner = cursor.scanner
+    val blocks  = List.newBuilder[Deferred]
+    while !cursor.isAtEnd do
+      scanner.requireProgress(BlocksPhase) {
+        val opening = cursor.checkpoint()
+        cursor.readLine().foreach { line =>
+          val classified = classify(scanner, line)
+          if classified.kind != LineKind.Blank then
+            val block = classified.kind match
+              case LineKind.IndentedCode => Present(Deferred.ready(readIndentedCode(cursor, line)))
+              case LineKind.BlockQuote   =>
+                // A quote's own cursor has to see the marker, so the line goes back before the recursion reads it.
+                cursor.restore(opening)
+                Present(readBlockQuote(cursor, definitions))
+              case LineKind.Heading(level, rest) =>
+                val headingSpan = Span(line.offset, line.length)
+                val base        = contentSpan(line, rest).offset
+                Present(Deferred.prose { defs =>
+                  Block.Heading(level, InlineParser.parse(rest, index => base + index, defs), headingSpan)
+                })
+              case LineKind.Fence(open)   => Present(Deferred.ready(readFencedCode(cursor, line, open)))
+              case LineKind.ThematicBreak =>
+                Present(Deferred.ready(Block.ThematicBreak(Span(line.offset, line.length))))
+              case LineKind.Html(_)               => Present(Deferred.ready(readHtmlBlock(cursor, line)))
+              case LineKind.BulletItem(item)      => Present(readUnorderedList(cursor, line, item))
+              case LineKind.OrderedItem(marker)   => Present(readOrderedList(cursor, line, marker))
+              case LineKind.Text | LineKind.Blank => readParagraph(cursor, line, definitions)
+            scanner.chargeOutputNodes(NodeCount.one)
+            block.foreach(blocks += _)
+        }
+      }
+    blocks.result()
+
+  /**
+   * Read a block quote and everything it holds.
+   *
+   * Nothing here knows what a quote may contain: the content goes through the same loop the document does, so a quote
+   * holds whatever a document can, another quote included. `withNesting` declares the depth to the scanner, which is
+   * what keeps a file of ten thousand `>` characters inside the budget rather than inside a stack overflow.
+   */
+  private def readBlockQuote(
+      cursor: ContainerCursor,
+      definitions: scala.collection.mutable.Map[String, LinkDefinition]
+  ): Deferred =
+    val scanner = cursor.scanner
+    val start   = scanner.offset.toInt
+    val inner   = cursor.nested(ContainerPrefix.BlockQuote)
+    val blocks  = scanner.withNesting(parseDeferred(inner, definitions))
+    val span    = Span.fromStartEnd(start, cursor.consumedEnd)
+    Deferred.prose(defs => Block.BlockQuote(Chunk.from(blocks.map(_.resolve(defs))), span))
+
+  /** Whether a line carries a block quote marker: up to three spaces, then `>`. */
+  private def isBlockQuoteStart(text: String): Boolean =
+    !ContainerPrefix.BlockQuote.consume(text, 0).isEmpty
 
   /** Tag names that open an HTML block on sight, from the spec's condition-6 list. */
   private val HtmlBlockTags = Set(
@@ -357,23 +396,26 @@ object Parser:
    * Conditions one to five run until their closing marker appears; six and seven run until a blank line. Either way the
    * lines are kept verbatim, because the content is HTML rather than Markdown.
    */
-  private def readHtmlBlock(scanner: SourceScanner, first: Line): Block =
-    val kind  = htmlBlockStart(scanner, first).getOrElse(HtmlBlockKind.AnyTag)
-    val lines = List.newBuilder[String]
+  private def readHtmlBlock(cursor: ContainerCursor, first: Line): Block =
+    val scanner = cursor.scanner
+    val kind    = htmlBlockStart(scanner, first).getOrElse(HtmlBlockKind.AnyTag)
+    val lines   = List.newBuilder[String]
     lines += first.text
     // Unlike the other readers this one can stop *after* accepting a line, because a closing marker belongs to the
     // block it closes. `done` is therefore carried forward rather than tested at the top.
     @tailrec def gather(last: Line, done: Boolean): Line =
-      if done || scanner.isAtEnd then last
+      if done then last
       else
-        val checkpoint = scanner.checkpoint()
-        val line       = readLine(scanner)
-        if endsOnBlankLine(kind) && isBlank(scanner, line) then
-          scanner.restore(checkpoint)
-          last
-        else
-          lines += line.text
-          gather(line, closesHtmlBlock(kind, line.text, opening = false))
+        val checkpoint = cursor.checkpoint()
+        cursor.readLine() match
+          case Absent        => last
+          case Present(line) =>
+            if endsOnBlankLine(kind) && isBlank(scanner, line) then
+              cursor.restore(checkpoint)
+              last
+            else
+              lines += line.text
+              gather(line, closesHtmlBlock(kind, line.text, opening = false))
 
     val last = gather(first, closesHtmlBlock(kind, first.text, opening = true))
 
@@ -397,22 +439,6 @@ object Parser:
       case HtmlBlockKind.CData                 => lower.contains("]]>")
       case _                                   => false
 
-  /**
-   * A setext underline: a run of `=` or `-` beneath a paragraph, which turns it into a heading.
-   *
-   * Only meaningful after paragraph text, which is why it is checked here rather than as a block opener. A run of `-`
-   * with nothing above it stays a thematic break.
-   */
-  private def setextUnderline(scanner: SourceScanner, line: Line): Maybe[HeadingLevel] =
-    inspectLine(scanner, line) { text =>
-      val trimmed = text.trim
-      val indent  = text.length - text.stripLeading.length
-      if indent >= 4 || trimmed.isEmpty then Absent
-      else if trimmed.forall(_ == '=') then Present(HeadingLevel.One)
-      else if trimmed.forall(_ == '-') then Present(HeadingLevel.Two)
-      else Absent
-    }
-
   /** A line of four or more leading spaces, which CommonMark reads as code rather than as whatever it looks like. */
   private def isIndentedCode(scanner: SourceScanner, line: Line): Boolean =
     inspectLine(scanner, line)(text => text.length >= 4 && text.take(4).forall(_ == ' '))
@@ -423,24 +449,25 @@ object Parser:
    * Blank lines belong to the block when more indented content follows, which is what keeps the gaps in a multi-chunk
    * block; blank lines at the end do not, so the block stops at the last indented line.
    */
-  private def readIndentedCode(scanner: SourceScanner, first: Line): Block =
-    val lines = List.newBuilder[String]
+  private def readIndentedCode(cursor: ContainerCursor, first: Line): Block =
+    val scanner = cursor.scanner
+    val lines   = List.newBuilder[String]
     lines += stripIndent(first.text)
     // Blank lines are held back rather than appended: they belong to the block only if indented content follows, so
     // a trailing run of them is dropped by simply never being flushed.
     @tailrec def gather(last: Line, pending: List[String]): Line =
-      if scanner.isAtEnd then last
-      else
-        val checkpoint = scanner.checkpoint()
-        val line       = readLine(scanner)
-        if isIndentedCode(scanner, line) then
-          lines ++= pending
-          lines += stripIndent(line.text)
-          gather(line, Nil)
-        else if isBlank(scanner, line) then gather(last, pending :+ stripIndent(line.text))
-        else
-          scanner.restore(checkpoint)
-          last
+      val checkpoint = cursor.checkpoint()
+      cursor.readLine() match
+        case Absent        => last
+        case Present(line) =>
+          if isIndentedCode(scanner, line) then
+            lines ++= pending
+            lines += stripIndent(line.text)
+            gather(line, Nil)
+          else if isBlank(scanner, line) then gather(last, pending :+ stripIndent(line.text))
+          else
+            cursor.restore(checkpoint)
+            last
 
     val last = gather(first, Nil)
 
@@ -480,58 +507,35 @@ object Parser:
    * cannot recurse. Two call sites, so the body is duplicated twice -- worth it here, and the reason this is private
    * rather than something callers can grow.
    */
-  private inline def consumeWhile(scanner: SourceScanner, last: Line)(inline take: Line => Boolean): Line =
+  private inline def consumeWhile(cursor: ContainerCursor, last: Line)(inline take: Line => Boolean): Line =
     @tailrec def loop(current: Line): Line =
-      if scanner.isAtEnd then current
-      else
-        val checkpoint = scanner.checkpoint()
-        val line       = readLine(scanner)
-        if take(line) then loop(line)
-        else
-          scanner.restore(checkpoint)
+      val checkpoint = cursor.checkpoint()
+      cursor.readLine() match
+        case Present(line) if take(line) => loop(line)
+        case Present(_)                  =>
+          cursor.restore(checkpoint)
           current
+        case Absent => current
     loop(last)
-
-  private def readLine(scanner: SourceScanner): Line =
-    scanner.requireProgress(LinesPhase) {
-      val start                 = scanner.mark
-      var previous: Maybe[Char] = Absent
-      var terminatedByLf        = false
-      var acquisitionRunning    = true
-      while acquisitionRunning do
-        scanner.peek() match
-          case Present(char) =>
-            scanner.advance()
-            if char == '\n' then
-              terminatedByLf = true
-              acquisitionRunning = false
-            else previous = Present(char)
-          case Absent => acquisitionRunning = false
-
-      val rawEnd  = scanner.offset.toInt - (if terminatedByLf then 1 else 0)
-      val textEnd =
-        if terminatedByLf && previous.contains('\r') then rawEnd - 1
-        else rawEnd
-      val view = scanner.view(Span.fromStartEnd(start.toInt, textEnd))
-      scanner.chargeWork(WorkUnits.from(view.length.toInt.toLong).getOrThrow)
-      Line(view, view.text, terminatedByLf)
-    }
 
   private type FenceOpen = (marker: Char, length: Int, indentation: Int, info: String)
 
-  private def readFencedCode(scanner: SourceScanner, opening: Line, open: FenceOpen): Block =
-    val body = StringBuilder()
-    // A fence is consumed whether or not it closes: an unterminated one runs to end of input, and whether its last
-    // line ended in a newline decides the content's trailing newline.
+  private def readFencedCode(cursor: ContainerCursor, opening: Line, open: FenceOpen): Block =
+    val scanner = cursor.scanner
+    val body    = StringBuilder()
+    // A fence is consumed whether or not it closes: an unterminated one runs to the end of its container, and whether
+    // its last line ended in a newline decides the content's trailing newline.
     @tailrec def gather(closingEnd: Int, closed: Boolean, endedWithLf: Boolean): (Int, Boolean, Boolean) =
-      if closed || scanner.isAtEnd then (closingEnd, closed, endedWithLf)
+      if closed then (closingEnd, closed, endedWithLf)
       else
-        val line = readLine(scanner)
-        if isClosingFence(scanner, line, open.marker, open.length) then (line.end, true, endedWithLf)
-        else
-          if body.nonEmpty then body.append('\n')
-          body.append(removeFenceIndentation(scanner, line, open.indentation))
-          gather(closingEnd, false, line.terminatedByLf)
+        cursor.readLine() match
+          case Absent        => (closingEnd, closed, endedWithLf)
+          case Present(line) =>
+            if isClosingFence(scanner, line, open.marker, open.length) then (line.end, true, endedWithLf)
+            else
+              if body.nonEmpty then body.append('\n')
+              body.append(removeFenceIndentation(scanner, line, open.indentation))
+              gather(closingEnd, false, line.terminatedByLf)
 
     val (closingEnd, closed, bodyEndedWithLf) = gather(opening.end, false, false)
 
@@ -548,29 +552,36 @@ object Parser:
     Block.FencedCode(FenceInfo.parseBudgeted(open.info, scanner), content, Span.fromStartEnd(opening.offset, end))
 
   private def readParagraph(
-      scanner: SourceScanner,
+      cursor: ContainerCursor,
       first: Line,
       definitions: scala.collection.mutable.Map[String, LinkDefinition]
   ): Maybe[Deferred] =
+    val scanner  = cursor.scanner
     val segments = List.newBuilder[(Int, String)]
     segments += ((first.offset, first.text))
     // A paragraph ends three ways, and the recursion says which: a setext underline promotes it to a heading and is
     // consumed with it, a line that does not continue it is put back, and end of input just stops.
+    //
+    // This is the one block that reads lazily -- `readContinued` rather than `readLine` -- because it is the one block
+    // a line may continue without repeating its containers' markers. A lazy line is prose and nothing else: it can
+    // neither open a block nor close a setext heading, which is what `matchedAll` guards below.
     @tailrec def gather(last: Line): (Line, Maybe[HeadingLevel]) =
-      if scanner.isAtEnd then (last, Absent)
-      else
-        val checkpoint = scanner.checkpoint()
-        val line       = readLine(scanner)
-        val classified = classify(scanner, line)
-        classified.setext match
-          case Present(level) if classified.kind != LineKind.IndentedCode => (line, Present(level))
-          case _                                                          =>
-            if continues(classified) then
-              segments += ((line.offset, line.text))
-              gather(line)
-            else
-              scanner.restore(checkpoint)
-              (last, Absent)
+      val checkpoint = cursor.checkpoint()
+      cursor.readContinued() match
+        case Absent             => (last, Absent)
+        case Present(continued) =>
+          val line       = continued.line
+          val classified = classify(scanner, line)
+          classified.setext match
+            case Present(level) if continued.matchedAll && classified.kind != LineKind.IndentedCode =>
+              (line, Present(level))
+            case _ =>
+              if continues(classified) then
+                segments += ((line.offset, line.text))
+                gather(line)
+              else
+                cursor.restore(checkpoint)
+                (last, Absent)
 
     val (last, setext) = gather(first)
 
@@ -655,29 +666,8 @@ object Parser:
         else walk(cursor + 1, remaining - (text.length + 1)) // the '\n' the join introduced
     walk(0, index)
 
-  private def continuesParagraph(scanner: SourceScanner, line: Line): Boolean =
-    !isBlank(scanner, line) &&
-      fenceOpen(scanner, line).isEmpty &&
-      headingPrefix(scanner, line).isEmpty &&
-      unorderedItem(scanner, line).isEmpty &&
-      !interruptsParagraph(scanner, line) &&
-      !htmlBlockStart(scanner, line).exists(_ != HtmlBlockKind.AnyTag) &&
-      !isThematicBreak(scanner, line)
-
-  /**
-   * Whether a numbered item may break the paragraph above it.
-   *
-   * Only a list starting at 1 can. Example 304 is the reason: "The number of windows in my house is / 14. The number of
-   * doors is 6." is one paragraph, not a paragraph and a list starting at 14.
-   */
-  private def interruptsParagraph(scanner: SourceScanner, line: Line): Boolean =
-    orderedItem(scanner, line).exists(_.number == 1)
-
   private def isBlank(scanner: SourceScanner, line: Line): Boolean =
     inspectLine(scanner, line)(_.trim.isEmpty)
-
-  private def isThematicBreak(scanner: SourceScanner, line: Line): Boolean =
-    inspectLine(scanner, line)(isThematicBreakText)
 
   private def isThematicBreakText(text: String): Boolean =
     val compact = text.filterNot(_.isWhitespace)
@@ -685,10 +675,11 @@ object Parser:
       compact.forall(_ == '-') || compact.forall(_ == '*') || compact.forall(_ == '_')
     )
 
-  private def readUnorderedList(scanner: SourceScanner, first: Line, firstItem: String): Deferred =
-    val items = List.newBuilder[DeferredItem]
+  private def readUnorderedList(cursor: ContainerCursor, first: Line, firstItem: String): Deferred =
+    val scanner = cursor.scanner
+    val items   = List.newBuilder[DeferredItem]
     items += listItem(first, firstItem)
-    val last = consumeWhile(scanner, first) { line =>
+    val last = consumeWhile(cursor, first) { line =>
       unorderedItem(scanner, line) match
         case Present(item) =>
           items += listItem(line, item)
@@ -740,10 +731,11 @@ object Parser:
    * A change of delimiter ends the list, because `1.` and `1)` are different lists rather than one; example 302 renders
    * two.
    */
-  private def readOrderedList(scanner: SourceScanner, first: Line, firstItem: OrderedMarker): Deferred =
-    val items = List.newBuilder[DeferredItem]
+  private def readOrderedList(cursor: ContainerCursor, first: Line, firstItem: OrderedMarker): Deferred =
+    val scanner = cursor.scanner
+    val items   = List.newBuilder[DeferredItem]
     items += listItem(first, firstItem.content)
-    val last = consumeWhile(scanner, first) { line =>
+    val last = consumeWhile(cursor, first) { line =>
       orderedItem(scanner, line) match
         case Present(marker) if marker.delimiter == firstItem.delimiter =>
           items += listItem(line, marker.content)
@@ -764,11 +756,6 @@ object Parser:
     then Present(trimmed.drop(2).trim)
     else Absent
 
-  private def headingPrefix(scanner: SourceScanner, line: Line): Maybe[(HeadingLevel, String)] =
-    inspectLine(scanner, line) { text =>
-      headingPrefix(text.trim).map { case (level, rest) => (level, rest.trim) }
-    }
-
   // The one-to-six bound lives in HeadingLevel.fromInt rather than in a guard here, so a run of seven
   // or more hashes falls through to the paragraph branch exactly as CommonMark requires.
   private def headingPrefix(text: String): Maybe[(HeadingLevel, String)] =
@@ -776,9 +763,6 @@ object Parser:
     if hashes.nonEmpty && text.length > hashes.length && text.charAt(hashes.length) == ' ' then
       HeadingLevel.fromInt(hashes.length).map(level => (level, text.drop(hashes.length + 1)))
     else Absent
-
-  private def fenceOpen(scanner: SourceScanner, line: Line): Maybe[FenceOpen] =
-    inspectLine(scanner, line)(fenceOpen)
 
   private def fenceOpen(text: String): Maybe[FenceOpen] =
     fenceIndent(text).flatMap { case (indentation = indentation, rest = trimmed) =>

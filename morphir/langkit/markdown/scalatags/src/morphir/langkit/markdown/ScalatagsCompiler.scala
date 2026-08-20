@@ -84,6 +84,13 @@ object ScalatagsCompiler:
     /** `raw` is correct here and nowhere else: the block's content is HTML the document wrote. */
     def htmlBlock(content: String): Frag = raw(content)
 
+    /**
+     * Every child on its own line, and a newline after the opening tag even when there are none: the fixtures spell an
+     * empty quote `<blockquote>\n</blockquote>`.
+     */
+    def blockQuote(children: Chunk[Frag]): Frag =
+      blockquote(newline, frag(children.toSeq.flatMap(child => Seq(child, newline))*))
+
     def thematicBreak: Frag = hr
   end instance
 

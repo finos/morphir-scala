@@ -123,6 +123,15 @@ trait Compiler[Out]:
    */
   def htmlBlock(content: String): Out
 
+  /**
+   * Compile a block quote from its already-compiled blocks.
+   *
+   * Takes blocks rather than prose, which is what makes this the first method of the algebra whose children are
+   * themselves block output. A target with no notion of quoting still has to produce something here; wrapping the
+   * children unchanged is the honest answer.
+   */
+  def blockQuote(children: Chunk[Out]): Out
+
   /** Compile a thematic break. It has no children and no text, so this is a constant for most formats. */
   def thematicBreak: Out
 end Compiler

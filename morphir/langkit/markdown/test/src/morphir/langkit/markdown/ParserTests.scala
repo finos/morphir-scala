@@ -509,6 +509,120 @@ class ParserTests extends Test[Any]:
             case _ => assert(false)
         case _ => assert(false)
     }
+    "reads a block quote as a container of blocks (spec example 228)" in {
+      Parser.parse("> # Foo\n> bar\n> baz\n") match
+        case Result.Success(doc) =>
+          assert(doc.blocks.size == 1)
+          doc.blocks(0) match
+            case Block.BlockQuote(content, _) =>
+              assert(content.size == 2)
+              content(0) match
+                case Block.Heading(level, inner, _) =>
+                  assert(level == HeadingLevel.One)
+                  assert(textOf(inner) == "Foo")
+                case _ => assert(false)
+              content(1) match
+                case Block.Paragraph(inner, _) => assert(textOf(inner) == "bar\nbaz")
+                case _                         => assert(false)
+            case _ => assert(false)
+        case _ => assert(false)
+    }
+    "keeps a quoted paragraph going when a line drops the marker (spec example 232)" in {
+      Parser.parse("> # Foo\n> bar\nbaz\n") match
+        case Result.Success(doc) =>
+          assert(doc.blocks.size == 1)
+          doc.blocks(0) match
+            case Block.BlockQuote(content, _) =>
+              assert(content.size == 2)
+              content(1) match
+                case Block.Paragraph(inner, _) => assert(textOf(inner) == "bar\nbaz")
+                case _                         => assert(false)
+            case _ => assert(false)
+        case _ => assert(false)
+    }
+    // A lazy line is prose and nothing else. `---` under a quoted paragraph is a thematic break outside the quote,
+    // not a setext underline inside it, and getting that wrong silently swallows the break.
+    "will not let a lazy line close a setext heading (spec example 234)" in {
+      Parser.parse("> foo\n---\n") match
+        case Result.Success(doc) =>
+          assert(doc.blocks.size == 2)
+          doc.blocks(0) match
+            case Block.BlockQuote(content, _) =>
+              content(0) match
+                case Block.Paragraph(inner, _) => assert(textOf(inner) == "foo")
+                case _                         => assert(false)
+            case _ => assert(false)
+          doc.blocks(1) match
+            case Block.ThematicBreak(_) => assert(true)
+            case _                      => assert(false)
+        case _ => assert(false)
+    }
+    "reads a quote with no content as an empty container (spec example 239)" in {
+      Parser.parse(">\n") match
+        case Result.Success(doc) =>
+          assert(doc.blocks.size == 1)
+          doc.blocks(0) match
+            case Block.BlockQuote(content, _) => assert(content.isEmpty)
+            case _                            => assert(false)
+        case _ => assert(false)
+    }
+    "splits a quote at a blank line and joins it at a bare marker (spec examples 242 and 244)" in {
+      Parser.parse("> foo\n\n> bar\n") match
+        case Result.Success(doc) => assert(doc.blocks.size == 2)
+        case _                   => assert(false)
+
+      Parser.parse("> foo\n>\n> bar\n") match
+        case Result.Success(doc) =>
+          assert(doc.blocks.size == 1)
+          doc.blocks(0) match
+            case Block.BlockQuote(content, _) => assert(content.size == 2)
+            case _                            => assert(false)
+        case _ => assert(false)
+    }
+    "lets a quote interrupt the paragraph above it (spec example 245)" in {
+      Parser.parse("foo\n> bar\n") match
+        case Result.Success(doc) =>
+          assert(doc.blocks.size == 2)
+          doc.blocks(0) match
+            case Block.Paragraph(inner, _) => assert(textOf(inner) == "foo")
+            case _                         => assert(false)
+          doc.blocks(1) match
+            case Block.BlockQuote(_, _) => assert(true)
+            case _                      => assert(false)
+        case _ => assert(false)
+    }
+    "nests quotes as deeply as the markers go, laziness included (spec example 250)" in {
+      Parser.parse("> > > foo\nbar\n") match
+        case Result.Success(doc) =>
+          def onlyQuote(block: Block): Block =
+            block match
+              case Block.BlockQuote(content, _) =>
+                assert(content.size == 1)
+                content(0)
+              case other => other
+
+          val innermost = onlyQuote(onlyQuote(onlyQuote(doc.blocks(0))))
+          innermost match
+            case Block.Paragraph(inner, _) => assert(textOf(inner) == "foo\nbar")
+            case _                         => assert(false)
+        case _ => assert(false)
+    }
+    // Stripping `> ` shortens the text, so a span taken from the remainder would point four characters early unless
+    // the offset moves with it.
+    "keeps inline spans pointing at the source through a quote marker" in {
+      val source = "> alpha\n"
+      Parser.parse(source) match
+        case Result.Success(doc) =>
+          doc.blocks(0) match
+            case Block.BlockQuote(content, _) =>
+              content(0) match
+                case Block.Paragraph(Chunk(Inline.Text(value, span)), _) =>
+                  assert(value == "alpha")
+                  assert(source.substring(span.offset, span.end) == "alpha")
+                case _ => assert(false)
+            case _ => assert(false)
+        case _ => assert(false)
+    }
     "reads a thematic break between paragraphs" in {
       Parser.parse("Hello\n\n---\n\nWorld") match
         case Result.Success(doc) =>

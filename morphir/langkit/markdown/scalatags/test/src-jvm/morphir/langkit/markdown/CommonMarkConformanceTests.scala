@@ -45,6 +45,38 @@ class CommonMarkConformanceTests extends Test[Any]:
       case Result.Success(document) => ScalatagsCompiler.render(document) == example.html
       case _                        => false
 
+  /**
+   * Sections whose failures should be printed in full, from `MORPHIR_CONFORMANCE_FAILURES`.
+   *
+   * A score says how far off we are; it does not say what to write next. This does: set the variable to `all`, or to a
+   * comma-separated list of section-name fragments, and every failure in those sections is printed with its source,
+   * what we produced and what the spec wants. That is how a slice gets picked, and it is off by default because the
+   * output is long and only a person driving the score wants it.
+   *
+   * MORPHIR_CONFORMANCE_FAILURES='block quotes,lists' ./mill morphir.langkit.markdown.scalatags.jvm.test
+   */
+  private val reportFailuresIn: Chunk[String] =
+    Chunk.from(
+      Option(java.lang.System.getenv("MORPHIR_CONFORMANCE_FAILURES")).toSeq
+        .flatMap(_.split(","))
+        .map(_.trim.toLowerCase)
+        .filter(_.nonEmpty)
+    )
+
+  private def selectedForReport(example: Example): Boolean =
+    reportFailuresIn.exists(selector => selector == "all" || example.section.toLowerCase.contains(selector))
+
+  /** Newlines shown as `\n`, so one example stays on one line and a missing trailing newline is visible. */
+  private def oneLine(text: String): String = text.replace("\n", "\\n")
+
+  private def reportFailure(example: Example): Unit =
+    println(s"  [${example.section}] example ${example.example}")
+    println(s"    source   ${oneLine(example.markdown)}")
+    Parser.parse(example.markdown) match
+      case Result.Success(document) => println(s"    produced ${oneLine(ScalatagsCompiler.render(document))}")
+      case other                    => println(s"    produced <parse failed: $other>")
+    println(s"    expected ${oneLine(example.html)}")
+
   "CommonMark 0.31.2 conformance" - {
 
     "vendors the whole example set, numbered 1 to 652 with no gaps" in {
@@ -71,6 +103,11 @@ class CommonMarkConformanceTests extends Test[Any]:
       }
       val untouched = bySection.count((_, passed, _) => passed == 0)
       println(s"    (and $untouched sections with nothing passing yet)")
+
+      val reported = examples.filter(example => selectedForReport(example) && !conforms(example))
+      if reported.nonEmpty then
+        println(s"failing examples in the selected sections (${reported.size}):")
+        reported.foreach(reportFailure)
 
       assert(
         passing >= baseline,

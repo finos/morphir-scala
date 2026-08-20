@@ -28,8 +28,9 @@ private[markdown] object MarkdownFold:
         compiler.unorderedList(items.map(item => compiler.listItem(item.content.map(compileInline))))
       case Block.OrderedList(start, items, _) =>
         compiler.orderedList(start, items.map(item => compiler.listItem(item.content.map(compileInline))))
-      case Block.HtmlBlock(content, _) => compiler.htmlBlock(content)
-      case Block.ThematicBreak(_)      => compiler.thematicBreak
+      case Block.HtmlBlock(content, _)  => compiler.htmlBlock(content)
+      case Block.BlockQuote(content, _) => compiler.blockQuote(content.map(compileBlock))
+      case Block.ThematicBreak(_)       => compiler.thematicBreak
 
   private def compileInline[Out](inline0: Inline)(using compiler: Compiler[Out]): Out =
     inline0 match

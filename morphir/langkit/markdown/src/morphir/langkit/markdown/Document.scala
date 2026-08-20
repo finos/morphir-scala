@@ -44,6 +44,14 @@ enum Block derives CanEqual:
    */
   case HtmlBlock(content: String, span: Span)
 
+  /**
+   * A quotation, holding blocks rather than prose.
+   *
+   * The first container: its content is whatever a document may hold, another quote included, so the type is recursive
+   * and the parser reads it with the same loop it reads a document with.
+   */
+  case BlockQuote(content: Chunk[Block], span: Span)
+
   case ThematicBreak(span: Span)
 
 /**
