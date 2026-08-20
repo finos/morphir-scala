@@ -56,6 +56,9 @@ private[markdown] object InlineParser:
   /** Whether a bracketed run may serve as a link label at all. */
   def isLabelOf(text: String): Boolean = isLabel(text)
 
+  /** Resolve backslash escapes and character references, for a caller outside this object. */
+  def resolveEscapes(value: String): String = unescape(value)
+
   /**
    * Parse `text` into inline nodes.
    *
@@ -120,7 +123,7 @@ private[markdown] object InlineParser:
 
     while index < text.length do
       val char = text.charAt(index)
-      if char == '\\' && index + 1 < text.length && isPunctuation(text.charAt(index + 1)) then
+      if char == '\\' && index + 1 < text.length && isAsciiPunctuation(text.charAt(index + 1)) then
         // A backslash escape makes the next character literal, so it can never open or close anything.
         if pending.isEmpty then pendingStart = index
         pending.append(text.charAt(index + 1))
@@ -164,10 +167,10 @@ private[markdown] object InlineParser:
     val before = if start == 0 then ' ' else text.charAt(start - 1)
     val after  = if end >= text.length then ' ' else text.charAt(end)
 
-    val beforeWhitespace = before.isWhitespace
-    val afterWhitespace  = after.isWhitespace
-    val beforePunct      = isPunctuation(before)
-    val afterPunct       = isPunctuation(after)
+    val beforeWhitespace = isUnicodeWhitespace(before)
+    val afterWhitespace  = isUnicodeWhitespace(after)
+    val beforePunct      = isUnicodePunctuation(before)
+    val afterPunct       = isUnicodePunctuation(after)
 
     val leftFlanking  = !afterWhitespace && (!afterPunct || beforeWhitespace || beforePunct)
     val rightFlanking = !beforeWhitespace && (!beforePunct || afterWhitespace || afterPunct)
@@ -348,10 +351,13 @@ private[markdown] object InlineParser:
    * bounded so a long run cannot be used to force a large allocation.
    */
   private def numericEntity(digits: String): Option[String] =
-    val (body, radix) =
-      if digits.startsWith("x") || digits.startsWith("X") then (digits.drop(1), 16) else (digits, 10)
+    val (body, radix, limit) =
+      if digits.startsWith("x") || digits.startsWith("X") then (digits.drop(1), 16, 6) else (digits, 10, 7)
+    // Seven digits decimal and six hexadecimal, which is the spec's bound and not merely a guard against a long run.
+    // A longer one is not an out-of-range reference to be replaced with U+FFFD; it is not a reference at all, and
+    // `&#87654321;` stays the text the author wrote.
     val valid =
-      body.nonEmpty && body.length <= 8 &&
+      body.nonEmpty && body.length <= limit &&
         body.forall(char => if radix == 16 then isHexDigit(char) else char.isDigit)
     if !valid then None
     else
@@ -682,6 +688,9 @@ private[markdown] object InlineParser:
           val afterSpace = skipWhitespace(text, afterDestination)
           if afterSpace >= text.length || endsLine(text, afterDestination, afterSpace) && afterSpace >= text.length then
             Present((end = afterDestination, destination = dest, title = Absent))
+          // Whitespace has to separate a title from the destination. Without that, `[foo]: <bar>(baz)` reads `(baz)`
+          // as a parenthesised title and defines a link, where the spec leaves the whole line as prose.
+          else if afterSpace == afterDestination then Absent
           else
             titleAt(text, afterSpace) match
               case Present((afterTitle, title)) if restIsBlank(text, afterTitle) =>
@@ -721,7 +730,7 @@ private[markdown] object InlineParser:
     var index = 0
     while index < value.length do
       val char = value.charAt(index)
-      if char == '\\' && index + 1 < value.length && isPunctuation(value.charAt(index + 1)) then
+      if char == '\\' && index + 1 < value.length && isAsciiPunctuation(value.charAt(index + 1)) then
         out.append(value.charAt(index + 1))
         index += 2
       else if char == '&' then
@@ -737,7 +746,42 @@ private[markdown] object InlineParser:
         index += 1
     out.toString
 
-  private def isPunctuation(char: Char): Boolean = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~".indexOf(char.toInt) >= 0
+  /**
+   * ASCII punctuation, which is what a backslash may escape.
+   *
+   * Only ASCII: `\€` is a backslash and a euro sign, not an escaped one, however much of a punctuation character the
+   * flanking rules below consider `€` to be.
+   */
+  private def isAsciiPunctuation(char: Char): Boolean =
+    "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~".indexOf(char.toInt) >= 0
+
+  /**
+   * Unicode whitespace, as the flanking rules mean it: a space separator, or one of the ASCII line and tab characters.
+   *
+   * Not `Char.isWhitespace`, which says no to a non-breaking space -- Java treats it as a space character but not as
+   * whitespace. The spec disagrees, and example 353 is the difference: `*\u00a0a\u00a0*` is not emphasis, because the
+   * runs are surrounded by whitespace and so flank neither way.
+   */
+  private def isUnicodeWhitespace(char: Char): Boolean =
+    char == ' ' || char == '\t' || char == '\n' || char == '\r' || char == '\f' ||
+      Character.getType(char) == Character.SPACE_SEPARATOR.toInt
+
+  /**
+   * Unicode punctuation, as the flanking rules mean it: any punctuation or symbol category.
+   *
+   * Symbols included, which is what example 354 turns on -- `*$*alpha` is not emphasis, and neither are the pound and
+   * euro versions of it, because a currency symbol counts as punctuation here even though nothing would escape it.
+   */
+  private def isUnicodePunctuation(char: Char): Boolean =
+    if char.toInt < 128 then isAsciiPunctuation(char)
+    else
+      Character.getType(char) match
+        case Character.CONNECTOR_PUNCTUATION | Character.DASH_PUNCTUATION | Character.END_PUNCTUATION |
+            Character.FINAL_QUOTE_PUNCTUATION | Character.INITIAL_QUOTE_PUNCTUATION | Character.OTHER_PUNCTUATION |
+            Character.START_PUNCTUATION | Character.CURRENCY_SYMBOL | Character.MODIFIER_SYMBOL |
+            Character.MATH_SYMBOL | Character.OTHER_SYMBOL =>
+          true
+        case _ => false
 
   /**
    * Percent-encode what a URI cannot carry literally.

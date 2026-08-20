@@ -549,6 +549,54 @@ class InlineTests extends Test[Any]:
     }
   }
 
+  "the flanking rules" - {
+
+    def emphasised(source: String): Boolean =
+      parse(source).blocks.head match
+        case Block.Paragraph(content, _) => content.exists(_.isInstanceOf[Inline.Emphasis])
+        case _                           => false
+
+    // Java says a non-breaking space is not whitespace; the spec says it is. Runs surrounded by it flank neither way,
+    // so this is not emphasis. Asserted here rather than only in the JVM-only conformance suite because it rests on
+    // `Character.getType`, which is exactly the kind of thing that can differ on Scala.js and Native.
+    "count a non-breaking space as whitespace (spec example 353)" in {
+      assert(!emphasised("*\u00a0a\u00a0*\n"))
+      assert(emphasised("*a*\n"), "an ordinary run either side is still emphasis")
+    }
+    // Symbols count as punctuation for flanking, though nothing would escape them.
+    "count a currency symbol as punctuation (spec example 354)" in {
+      assert(!emphasised("*$*alpha.\n"))
+      assert(!emphasised("*\u00a3*bravo.\n"))
+      assert(!emphasised("*\u20ac*charlie.\n"))
+    }
+    // The two classifications are not the same one. A backslash escapes ASCII punctuation and nothing else, so a
+    // backslash before a euro sign is two characters of text.
+    "do not widen what a backslash may escape" in {
+      parse("\\\u20ac\n").blocks.head match
+        case Block.Paragraph(content, _) => assert(textOf(content) == "\\\u20ac")
+        case other                       => assert(false, s"expected a paragraph, got $other")
+      parse("\\*\n").blocks.head match
+        case Block.Paragraph(content, _) => assert(textOf(content) == "*")
+        case other                       => assert(false, s"expected a paragraph, got $other")
+    }
+  }
+
+  "a numeric character reference" - {
+
+    def textIn(source: String): String =
+      parse(source).blocks.head match
+        case Block.Paragraph(content, _) => textOf(content)
+        case other                       => throw new AssertionError(s"expected a paragraph, got $other")
+
+    // Seven digits decimal and six hexadecimal. A longer run is not an out-of-range reference to be replaced with
+    // U+FFFD; it is not a reference at all (spec example 28).
+    "will not read more digits than a reference may carry" in {
+      assert(textIn("&#87654321;\n") == "&#87654321;")
+      assert(textIn("&#1234567;\n") != "&#1234567;", "seven digits is still a reference")
+      assert(textIn("&#abcdef0;\n") == "&#abcdef0;", "a decimal reference takes digits only")
+    }
+  }
+
   "an ATX heading" - {
 
     def headingOf(source: String): (HeadingLevel, String) =

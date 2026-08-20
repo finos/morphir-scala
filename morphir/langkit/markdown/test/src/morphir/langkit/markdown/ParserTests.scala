@@ -900,6 +900,49 @@ class ParserTests extends Test[Any]:
       assert(codeOf("`````\n\n```\naaa\n") == "\n```\naaa\n")
       assert(codeOf("```\n\n  \n```\n") == "\n  \n")
     }
+    // The info string is prose the author wrote rather than a token, so it resolves escapes and references the way a
+    // destination or a title does (spec examples 24 and 34).
+    "resolves escapes and references in a fence's info string" in {
+      def languageOf(source: String): String =
+        Parser.parse(source) match
+          case Result.Success(doc) =>
+            doc.blocks(0) match
+              case Block.FencedCode(info, _, _) => info.language.getOrElse("")
+              case other                        => throw new AssertionError(s"expected a fence, got $other")
+          case other => throw new AssertionError(s"parse failed: $other")
+
+      assert(languageOf("``` foo\\+bar\nfoo\n```\n") == "foo+bar")
+      assert(languageOf("``` f&ouml;&ouml;\nfoo\n```\n") == "föö")
+    }
+    // A title has to be separated from the destination by whitespace. Without that rule `(baz)` reads as a
+    // parenthesised title and the line defines a link, where the spec leaves the whole of it as prose (example 201).
+    "will not take a title that runs into the destination" in {
+      Parser.parse("[foo]: <bar>(baz)\n\n[foo]\n") match
+        case Result.Success(doc) =>
+          assert(doc.blocks.size == 2, "nothing was defined, so both lines stay paragraphs")
+        case other => assert(false, s"parse failed: $other")
+    }
+    // A paragraph of nothing but definitions has no content for a setext underline to promote, so the underline goes
+    // back and begins a paragraph of its own (example 216).
+    "gives a definition-only paragraph its setext line back" in {
+      Parser.parse("[foo]: /url\n===\n[foo]\n") match
+        case Result.Success(doc) =>
+          assert(doc.blocks.size == 1)
+          doc.blocks(0) match
+            case Block.Paragraph(content, _) => assert(textOf(content).startsWith("==="))
+            case other                       => assert(false, s"expected a paragraph, got $other")
+        case other => assert(false, s"parse failed: $other")
+    }
+    // A line of exactly four spaces is both blank and indented, and it is the blankness that decides: it belongs to
+    // the block only if indented content follows it (example 117).
+    "holds back a blank line at either end of indented code" in {
+      Parser.parse("\n    \n    foo\n    \n\n") match
+        case Result.Success(doc) =>
+          doc.blocks(0) match
+            case Block.IndentedCode(content, _) => assert(content == "foo\n")
+            case other                          => assert(false, s"expected indented code, got $other")
+        case other => assert(false, s"parse failed: $other")
+    }
     "reads a thematic break between paragraphs" in {
       Parser.parse("Hello\n\n---\n\nWorld") match
         case Result.Success(doc) =>

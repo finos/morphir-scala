@@ -455,19 +455,21 @@ object Parser:
   private def readIndentedCode(cursor: ContainerCursor, first: Line): Block =
     val scanner = cursor.scanner
     val lines   = List.newBuilder[String]
-    lines += stripIndent(first.text)
-    // Blank lines are held back rather than appended: they belong to the block only if indented content follows, so
-    // a trailing run of them is dropped by simply never being flushed.
+    // Blank lines are held back rather than appended: they belong to the block only if indented content follows, so a
+    // run of them at either end is dropped by simply never being flushed. Blankness is asked first, because a line of
+    // exactly four spaces is both blank and indented and it is the blank that decides.
+    if !isBlank(scanner, first) then lines += stripIndent(first.text)
+
     @tailrec def gather(last: Line, pending: List[String]): Line =
       val checkpoint = cursor.checkpoint()
       cursor.readLine() match
         case Absent        => last
         case Present(line) =>
-          if isIndentedCode(scanner, line) then
+          if isBlank(scanner, line) then gather(last, pending :+ stripIndent(line.text))
+          else if isIndentedCode(scanner, line) then
             lines ++= pending
             lines += stripIndent(line.text)
             gather(line, Nil)
-          else if isBlank(scanner, line) then gather(last, pending :+ stripIndent(line.text))
           else
             cursor.restore(checkpoint)
             last
@@ -536,25 +538,27 @@ object Parser:
     // This is the one block that reads lazily -- `readContinued` rather than `readLine` -- because it is the one block
     // a line may continue without repeating its containers' markers. A lazy line is prose and nothing else: it can
     // neither open a block nor close a setext heading, which is what `matchedAll` guards below.
-    @tailrec def gather(last: Line): (Line, Maybe[HeadingLevel]) =
+    @tailrec def gather(last: Line): (last: Line, setext: Maybe[HeadingLevel], beforeUnderline: Maybe[ScanCheckpoint]) =
       val checkpoint = cursor.checkpoint()
       cursor.readContinued() match
-        case Absent             => (last, Absent)
+        case Absent             => (last = last, setext = Absent, beforeUnderline = Absent)
         case Present(continued) =>
           val line       = continued.line
           val classified = classify(scanner, line)
           classified.setext match
             case Present(level) if continued.matchedAll && classified.kind != LineKind.IndentedCode =>
-              (line, Present(level))
+              (last = line, setext = Present(level), beforeUnderline = Present(checkpoint))
             case _ =>
               if (if continued.matchedAll then continues(classified) else continuesLazily(classified)) then
                 segments += segment(line)
                 gather(line)
               else
                 cursor.restore(checkpoint)
-                (last, Absent)
+                (last = last, setext = Absent, beforeUnderline = Absent)
 
-    val (last, setext) = gather(first)
+    val gathered = gather(first)
+    val last     = gathered.last
+    val setext   = gathered.setext
 
     val lines   = Chunk.from(segments.result())
     val raw     = lines.map(_._2).mkString("\n")
@@ -566,7 +570,11 @@ object Parser:
     // what follows them, if anything, becomes a paragraph.
     val consumed = takeDefinitions(trimmed, definitions)
     val body     = trimmed.substring(consumed)
-    if body.isBlank then Absent
+    if body.isBlank then
+      // Definitions and nothing else. A setext underline has no paragraph to close here, so it goes back to be read
+      // on its own: `[foo]: /url` over `===` is a definition and then a paragraph beginning `===`, not a heading.
+      gathered.beforeUnderline.foreach(cursor.restore)
+      Absent
     else
       val bodyStart = leading + consumed
       val span      = Span.fromStartEnd(first.offset, last.end)
