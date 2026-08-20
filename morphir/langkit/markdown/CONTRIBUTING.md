@@ -78,8 +78,8 @@ instead of in one driver.
 Output targets are **not** in this module. Each writer is its own published artifact, so a parse-only consumer such as
 `morphir-knowledge-okf` pulls in neither:
 
-- `morphir-langkit-markdown-compiler-scalatags` — the CommonMark conformance oracle
-- `morphir-langkit-markdown-compiler-kyo-ui` — the browser path
+- `morphir-langkit-markdown-scalatags` — the CommonMark conformance oracle
+- `morphir-langkit-markdown-kyo-ui` — the browser path
 
 Why there are two, and why kyo-ui cannot serve as the oracle, is recorded in
 [intent 0033](../../../kb/bundles/intent/0033-markdown-compilation.md).

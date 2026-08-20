@@ -3,7 +3,7 @@ package morphir.ui
 import kyo.*
 import kyo.UI.*
 import morphir.langkit.markdown.Parser
-import morphir.langkit.markdown.compiler.kyoui.KyoUiCompiler
+import morphir.langkit.markdown.kyoui.KyoUiCompiler
 import morphir.ui.services.*
 
 object KnowledgeBrowserView:

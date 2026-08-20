@@ -2,7 +2,7 @@ extends: Module
 
 object js:
   extends: [build.MorphirJSModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps]
-  moduleDeps: [build.morphir.prelude.js, build.morphir.langkit.markdown.compiler.kyo.ui.js]
+  moduleDeps: [build.morphir.prelude.js, build.morphir.langkit.markdown.kyo.ui.js]
   mvnDeps: !append
   - io.getkyo::kyo-ui
   - io.getkyo::kyo-jsonrpc
@@ -15,7 +15,7 @@ object js:
 # which applies unchanged here.
 object wasm:
   extends: [build.MorphirWasmModule, build.MorphirKyoCoreMvnDeps]
-  moduleDeps: [build.morphir.prelude.wasm, build.morphir.langkit.markdown.compiler.kyo.ui.wasm]
+  moduleDeps: [build.morphir.prelude.wasm, build.morphir.langkit.markdown.kyo.ui.wasm]
   mvnDeps: !append
   - io.getkyo::kyo-ui
   - io.getkyo::kyo-jsonrpc

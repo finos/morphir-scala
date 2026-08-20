@@ -54,8 +54,8 @@ target.
 ## Approach
 
 Publish the output stage as two writer artifacts over one shared algebra:
-`org.finos.morphir::morphir-langkit-markdown-compiler-kyo-ui` for the browser, and
-`…-markdown-compiler-scalatags` for the conformance oracle. Both sit beneath the existing
+`org.finos.morphir::morphir-langkit-markdown-kyo-ui` for the browser, and
+`…-markdown-scalatags` for the conformance oracle. Both sit beneath the existing
 `morphir-langkit-markdown`, which keeps its name and gains the shared algebra; neither depends on the other.
 
 ```mermaid
@@ -172,8 +172,8 @@ that parses, so no coordinate is renamed and nothing that depends on it moves.
 | Module | Holds | Depends on |
 | --- | --- | --- |
 | `morphir-langkit-markdown` | CST, AST, transformers, the `Compiler` algebra, and the parser | `langkit-core`, `prelude` |
-| `morphir-langkit-markdown-compiler-kyo-ui` | `Compiler[UI]`, the writer users see | the base module, `kyo-ui` |
-| `morphir-langkit-markdown-compiler-scalatags` | `Compiler[Frag]`, the conformance oracle | the base module, `scalatags` |
+| `morphir-langkit-markdown-kyo-ui` | `Compiler[UI]`, the writer users see | the base module, `kyo-ui` |
+| `morphir-langkit-markdown-scalatags` | `Compiler[Frag]`, the conformance oracle | the base module, `scalatags` |
 
 The oracle publishes for JVM, Scala.js and Scala Native, so conformance can be measured wherever the langkit runs. A
 Wasm link variant of the kyo-ui writer proved necessary and exists: `morphir/ui` compiles concept bodies in sources
@@ -199,9 +199,9 @@ takes the kyo-ui artifact and never resolves ScalaTags.
 flowchart TD
   okf["morphir-knowledge-okf"] -->|"parses concept bodies with"| core
   core["morphir-langkit-markdown"] -->|"takes Span and diagnostics from"| lk["morphir-langkit-core"]
-  comp["…-markdown-compiler-kyo-ui"] -->|"folds the AST from"| core
+  comp["…-markdown-kyo-ui"] -->|"folds the AST from"| core
   comp -->|"builds kyo.UI values with"| kyoui["kyo-ui"]
-  conf["…-markdown-compiler-scalatags"] -->|"folds the AST from"| core
+  conf["…-markdown-scalatags"] -->|"folds the AST from"| core
   conf -->|"builds Frag values with"| st["scalatags"]
   suite["CommonMark conformance suite"] -->|"measures"| conf
 ```

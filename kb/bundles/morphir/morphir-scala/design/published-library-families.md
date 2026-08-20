@@ -18,7 +18,7 @@ flowchart LR
   end
   subgraph langkitFam [langkit]
     mdCore["markdown/core: parser and trees"]
-    mdCompiler["markdown/compiler: output targets"]
+    mdCompiler["markdown writers: kyo-ui and scalatags"]
   end
   subgraph knowledgeFam [knowledge]
     okf["okf model and ingest"]
@@ -98,7 +98,7 @@ documents from the generated `caliban-client` helpers.
 
 Artifact `org.finos.morphir::morphir-langkit-markdown`. Package `morphir.langkit.markdown`. JVM, JS, and Native. Depends on `langkit.core` for `Span`. A `QueryableTree` instance is later work and depends on `langkit.trees`.
 
-[Intent 0033](../../../intent/0033-markdown-compilation.md) proposes adding two writer artifacts beneath this one, and nothing below has been built yet. `morphir-langkit-markdown` is not renamed: it keeps its coordinate and its package, and gains a `Compiler[Out]` fold algebra beside the CST, the AST, the transformers and the parser. `morphir/langkit/markdown` becomes a published module that is also a parent directory — the shape `morphir/model` already has, publishing as `morphir-model` while `morphir/model/lowering` publishes as `morphir-model-lowering`. Two writers sit under it: `morphir-langkit-markdown-compiler-scalatags`, the CommonMark conformance oracle, and `morphir-langkit-markdown-compiler-kyo-ui`, the browser path and the only one that takes `kyo-ui`. Their nesting gives `morphir/<family>/<leaf>` from [decision 0013](/decisions/0013-published-library-families.md) its first multi-segment leaves, spelled `markdown-compiler-scalatags` and `markdown-compiler-kyo-ui`; the coordinate rule `morphir-<family>-<leaf>` is unchanged, and the `kyo/ui` directory split is what produces the hyphen. The stage names follow unified's parser, transformers, compiler pipeline, whose unist tree shape this repository already implements in `morphir.langkit.trees.unist`.
+[Intent 0033](../../../intent/0033-markdown-compilation.md) proposes adding two writer artifacts beneath this one, and nothing below has been built yet. `morphir-langkit-markdown` is not renamed: it keeps its coordinate and its package, and gains a `Compiler[Out]` fold algebra beside the CST, the AST, the transformers and the parser. `morphir/langkit/markdown` becomes a published module that is also a parent directory — the shape `morphir/model` already has, publishing as `morphir-model` while `morphir/model/lowering` publishes as `morphir-model-lowering`. Two writers sit under it: `morphir-langkit-markdown-scalatags`, the CommonMark conformance oracle, and `morphir-langkit-markdown-kyo-ui`, the browser path and the only one that takes `kyo-ui`. Their nesting gives `morphir/<family>/<leaf>` from [decision 0013](/decisions/0013-published-library-families.md) its first multi-segment leaves, spelled `markdown-scalatags` and `markdown-kyo-ui`; the coordinate rule `morphir-<family>-<leaf>` is unchanged, and the `kyo/ui` directory split is what produces the hyphen. The stage names follow unified's parser, transformers, compiler pipeline, whose unist tree shape this repository already implements in `morphir.langkit.trees.unist`.
 
 `langkit.core` mixes `MorphirPublishModule` so a published markdown module can depend on it. Mill's `PublishModule` will not take an unpublished `moduleDep`.
 
