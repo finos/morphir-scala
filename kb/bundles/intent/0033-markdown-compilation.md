@@ -196,7 +196,10 @@ An earlier draft split the parser into a `-core` artifact beneath a container di
 what they want from this family is the Markdown langkit, and the writers are the qualified additions.
 
 One writer per artifact, named for the library it binds, follows the kit convention already used for
-`kit/kyo`. It also keeps each dependency where it is wanted: the conformance suite takes the ScalaTags
+`kit/kyo`. All three declare `package morphir.langkit.markdown`, so a caller writes one import and has whatever
+the classpath offers; the module directories shape the coordinate, not the package. That makes the package a
+split one, which a classpath accepts and a Java module path would not — noted so the trade is deliberate rather
+than discovered later. It also keeps each dependency where it is wanted: the conformance suite takes the ScalaTags
 artifact and never resolves `kyo-ui`, so it does not inherit that library's Java 25 floor, and the browser
 takes the kyo-ui artifact and never resolves ScalaTags.
 

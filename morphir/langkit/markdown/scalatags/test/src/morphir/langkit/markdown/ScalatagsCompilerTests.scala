@@ -1,9 +1,8 @@
-package morphir.langkit.markdown.scalatags
+package morphir.langkit.markdown
 
 import kyo.*
 import kyo.test.*
 import morphir.langkit.core.Span
-import morphir.langkit.markdown.*
 
 /**
  * Every expectation here is the `html` field of a real CommonMark 0.31.2 example, named by its number, copied

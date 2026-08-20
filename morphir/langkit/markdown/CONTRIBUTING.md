@@ -6,8 +6,9 @@ The namespace guide [`morphir/langkit/CONTRIBUTING.md`](../CONTRIBUTING.md) gove
 
 ## One public package, and `internal` for everything else
 
-**Every public type lives in `morphir.langkit.markdown`.** Do not add a public sub-package to group them — no
-`.compile`, no `.ast`, no `.parser`. A consumer of this artifact writes one import and has the whole surface:
+**Every public type lives in `morphir.langkit.markdown`, in all three artifacts.** Do not add a public sub-package
+to group them — no `.compile`, no `.ast`, no `.parser`, and not `.scalatags` or `.kyoui` for the writers either. A
+consumer writes one import and has the whole surface, whichever artifacts are on the classpath:
 
 ```scala
 import morphir.langkit.markdown.*
@@ -21,8 +22,13 @@ Depth is still available — it just goes downward, not sideways:
 
 | Where | What | Visibility |
 | --- | --- | --- |
-| `morphir.langkit.markdown` | the public surface: `Document`, `Block`, `HeadingLevel`, `FenceInfo`, `Parser`, `ParseError`, `Compiler` | public |
+| `morphir.langkit.markdown` | the public surface: `Document`, `Block`, `HeadingLevel`, `FenceInfo`, `Parser`, `ParseError`, `Compiler`, and each writer's entry point | public |
 | `morphir.langkit.markdown.internal` | machinery no caller should name | `private[markdown]` |
+
+**This makes `morphir.langkit.markdown` a split package** — three published artifacts contribute types to it. On a
+classpath that is fine, and it is what makes the single import work. It would not be fine on a Java module path:
+JPMS forbids two modules exporting the same package, and OSGi takes the same view. Nothing here targets either
+today. Reopen the decision if that changes, rather than discovering it at a consumer's integration.
 
 This follows `morphir.buildkit.internal`, which the root [AGENTS.md](../../../AGENTS.md) names as the pattern for
 Kyo-based modules.
@@ -75,11 +81,15 @@ instead of in one driver.
 
 ## Writers live in their own artifacts
 
-Output targets are **not** in this module. Each writer is its own published artifact, so a parse-only consumer such as
-`morphir-knowledge-okf` pulls in neither:
+Output targets are **not** in this module, though they share its package. Each writer is its own published
+artifact, so a parse-only consumer such as `morphir-knowledge-okf` pulls in neither:
 
 - `morphir-langkit-markdown-scalatags` — the CommonMark conformance oracle
 - `morphir-langkit-markdown-kyo-ui` — the browser path
+
+Their module directories (`scalatags/`, `kyo/ui/`) exist to shape the artifact coordinate, not the package: source
+under them still declares `package morphir.langkit.markdown`. The ScalaTags writer imports its library as
+`_root_.scalatags` so the artifact directory name cannot be mistaken for a package.
 
 Why there are two, and why kyo-ui cannot serve as the oracle, is recorded in
 [intent 0033](../../../kb/bundles/intent/0033-markdown-compilation.md).
@@ -92,4 +102,10 @@ before pushing:
 
 ```bash
 ./mill morphir.langkit.markdown.{jvm,js,native}.test
+./mill morphir.langkit.markdown.scalatags.{jvm,js,native}.test
+./mill morphir.langkit.markdown.kyo.ui.{jvm,js,native}.test
 ```
+
+Moving a source file between these modules confuses incremental compilation, because the package does not change
+with it. Scala Native shows it worst: the symptom is a compiler crash (`Duplicate primitive method ==`, or a cyclic
+reference) rather than a sensible error. Run `./mill clean <module>` and compile again before believing it.

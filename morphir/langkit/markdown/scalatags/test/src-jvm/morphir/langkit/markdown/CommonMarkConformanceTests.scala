@@ -1,8 +1,7 @@
-package morphir.langkit.markdown.scalatags
+package morphir.langkit.markdown
 
 import kyo.*
 import kyo.test.*
-import morphir.langkit.markdown.*
 
 /**
  * Measures the parse-and-compile path against the vendored CommonMark 0.31.2 fixtures.

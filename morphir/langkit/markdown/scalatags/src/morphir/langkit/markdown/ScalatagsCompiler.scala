@@ -1,8 +1,7 @@
-package morphir.langkit.markdown.scalatags
+package morphir.langkit.markdown
 
 import _root_.scalatags.Text.all.*
 import kyo.*
-import morphir.langkit.markdown.*
 
 /**
  * Compiles the Markdown AST to HTML that matches the CommonMark fixtures byte for byte.
@@ -17,8 +16,9 @@ import morphir.langkit.markdown.*
  * node mappings from drifting apart. See
  * [[https://github.com/finos/morphir-scala/blob/main/kb/bundles/intent/0033-markdown-compilation.md intent 0033]].
  *
- * The package is `…markdown.scalatags`, which shadows the library's own root package, so this file imports it as
- * `_root_.scalatags`.
+ * This ships in its own artifact, `morphir-langkit-markdown-scalatags`, but lands its public type in
+ * `morphir.langkit.markdown` alongside the algebra it implements, so a caller imports one package to parse and render.
+ * ScalaTags is imported as `_root_.scalatags` to keep that unambiguous.
  */
 object ScalatagsCompiler:
 

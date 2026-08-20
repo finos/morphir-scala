@@ -1,9 +1,8 @@
-package morphir.langkit.markdown.kyoui
+package morphir.langkit.markdown
 
 import kyo.*
 import kyo.test.*
 import morphir.langkit.core.Span
-import morphir.langkit.markdown.*
 
 /**
  * These assert on the shape of the `kyo.UI` tree and on the tags that reach the page — never on whole rendered

@@ -1,7 +1,6 @@
-package morphir.langkit.markdown.kyoui
+package morphir.langkit.markdown
 
 import kyo.*
-import morphir.langkit.markdown.*
 
 /**
  * Compiles the Markdown AST to `kyo.UI` values, the markup the morphir-ui client and the desktop app mount.
@@ -12,9 +11,10 @@ import morphir.langkit.markdown.*
  * [[morphir.langkit.markdown.Compiler]], which is what keeps their node mappings from drifting apart. See
  * [[https://github.com/finos/morphir-scala/blob/main/kb/bundles/intent/0033-markdown-compilation.md intent 0033]].
  *
- * The Scala package is `…markdown.kyoui` rather than `…markdown.kyo.ui`, even though the module directory is `kyo/ui`:
- * a package segment named `kyo` would shadow Kyo's root package and break the `import kyo.*` this file needs. The
- * nested directory is what gives the artifact its `kyo-ui` suffix.
+ * This ships in its own artifact, `morphir-langkit-markdown-kyo-ui`, but lands its public type in
+ * `morphir.langkit.markdown` alongside the algebra it implements, so a caller imports one package to parse and compile.
+ * The nested `kyo/ui` module directory is what gives the artifact its `kyo-ui` suffix; it says nothing about the
+ * package, which deliberately has no `kyo` segment to shadow Kyo's own root package.
  *
  * kyo-ui is compiled for Java 25, so consumers of this artifact need that runtime.
  */
