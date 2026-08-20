@@ -187,7 +187,7 @@ class ParserTests extends Test[Any]:
     "charges deterministic work for scanner movement and line-local inspection" in {
       val budget = limitedBudget(
         maxInputLength = InputSize.codeUnits(100L),
-        maxWork = WorkUnits(8L),
+        maxWork = WorkUnits(1L),
         maxNestingDepth = NestingDepth(10),
         maxOutputNodes = NodeCount(10L)
       )
@@ -196,8 +196,10 @@ class ParserTests extends Test[Any]:
         case Result.Failure(ParseError.Scan(error)) =>
           assert(
             error == ScanFailure(
-              exceeded = ScanLimitExceeded.Work(limit = WorkUnits(8L), attempted = WorkUnits(9L)),
-              offset = SourceOffset(1),
+              // Classifying a line once rather than asking it six to ten separate questions cut this from 9 work
+              // units to 2. The charge is still made and still not refunded; there is simply far less of it.
+              exceeded = ScanLimitExceeded.Work(limit = WorkUnits(1L), attempted = WorkUnits(2L)),
+              offset = SourceOffset(0),
               phase = Present(ScanPhase("markdown.blocks"))
             )
           )

@@ -54,6 +54,86 @@ object Parser:
     def end: Int    = view.end.toInt
     def length: Int = view.length.toInt
 
+  /**
+   * What a line starts, decided in one pass.
+   *
+   * The parser used to ask each line six to ten separate questions, every one of them re-reading and re-charging the
+   * whole line. Classifying once is the same decision made from one read, and it is the step the open-blocks loop
+   * needs: a container has to know what a line is before it can decide whether the line belongs to it.
+   */
+  private enum LineKind derives CanEqual:
+    case Blank
+    case IndentedCode
+    case Heading(level: HeadingLevel, text: String)
+    case Fence(open: FenceOpen)
+    case ThematicBreak
+    case Html(kind: HtmlBlockKind)
+    case BulletItem(content: String)
+    case OrderedItem(marker: OrderedMarker)
+    case Text
+
+  /**
+   * A classified line.
+   *
+   * `setext` is carried alongside `kind` rather than folded into it because the same characters mean different things
+   * by position: `---` starts a thematic break at the top of a block and closes a setext heading under a paragraph.
+   * Deciding both here keeps it to one read.
+   */
+  private final case class Classified(kind: LineKind, setext: Maybe[HeadingLevel])
+
+  /** Precedence follows the spec: indentation first, then the leaf openers, then list markers, then prose. */
+  private def classify(scanner: SourceScanner, line: Line): Classified =
+    inspectLine(scanner, line) { text =>
+      val setext  = setextUnderlineOf(text)
+      val trimmed = text.trim
+      val kind    =
+        if trimmed.isEmpty then LineKind.Blank
+        else if text.length >= 4 && text.take(4).forall(_ == ' ') then LineKind.IndentedCode
+        else
+          headingPrefix(text.trim) match
+            case Present((level, rest)) => LineKind.Heading(level, rest.trim)
+            case Absent                 =>
+              fenceOpen(text) match
+                case Present(open) => LineKind.Fence(open)
+                case Absent        =>
+                  if isThematicBreakText(text) then LineKind.ThematicBreak
+                  else
+                    htmlBlockStart(text) match
+                      case Present(html) => LineKind.Html(html)
+                      case Absent        =>
+                        unorderedItem(text) match
+                          case Present(item) => LineKind.BulletItem(item)
+                          case Absent        =>
+                            orderedItem(text) match
+                              case Present(marker) => LineKind.OrderedItem(marker)
+                              case Absent          => LineKind.Text
+      Classified(kind, setext)
+    }
+
+  /** The setext level a line would close a paragraph with, judged on its characters alone. */
+  private def setextUnderlineOf(text: String): Maybe[HeadingLevel] =
+    val trimmed = text.trim
+    val indent  = text.length - text.stripLeading.length
+    if indent >= 4 || trimmed.isEmpty then Absent
+    else if trimmed.forall(_ == '=') then Present(HeadingLevel.One)
+    else if trimmed.forall(_ == '-') then Present(HeadingLevel.Two)
+    else Absent
+
+  /**
+   * Whether a classified line continues the paragraph above it.
+   *
+   * The same list as before, read off one classification instead of re-asking the line. An indented line continues a
+   * paragraph rather than starting code, a numbered item interrupts only when it starts at 1, and the any-tag HTML
+   * condition never interrupts.
+   */
+  private def continues(classified: Classified): Boolean =
+    classified.kind match
+      case LineKind.Blank                        => false
+      case LineKind.Text | LineKind.IndentedCode => true
+      case LineKind.OrderedItem(marker)          => marker.number != 1
+      case LineKind.Html(HtmlBlockKind.AnyTag)   => true
+      case _                                     => false
+
   private def parseBlocks(
       scanner: SourceScanner,
       definitions: scala.collection.mutable.Map[String, LinkDefinition]
@@ -61,34 +141,24 @@ object Parser:
     val blocks = List.newBuilder[Deferred]
     while !scanner.isAtEnd do
       scanner.requireProgress(BlocksPhase) {
-        val line = readLine(scanner)
-        if !isBlank(scanner, line) then
-          val block =
-            // Four spaces of indentation beats every other block opener: an indented `# foo` is code, not a heading.
-            if isIndentedCode(scanner, line) then Present(Deferred.ready(readIndentedCode(scanner, line)))
-            else
-              headingPrefix(scanner, line) match
-                case Present((level, rest)) =>
-                  val headingSpan = Span(line.offset, line.length)
-                  val base        = contentSpan(line, rest).offset
-                  Present(Deferred.prose { defs =>
-                    Block.Heading(level, InlineParser.parse(rest, index => base + index, defs), headingSpan)
-                  })
-                case Absent =>
-                  fenceOpen(scanner, line) match
-                    case Present(open) => Present(Deferred.ready(readFencedCode(scanner, line, open)))
-                    case Absent        =>
-                      if isThematicBreak(scanner, line) then
-                        Present(Deferred.ready(Block.ThematicBreak(Span(line.offset, line.length))))
-                      else if htmlBlockStart(scanner, line).isDefined then
-                        Present(Deferred.ready(readHtmlBlock(scanner, line)))
-                      else
-                        unorderedItem(scanner, line) match
-                          case Present(item) => Present(readUnorderedList(scanner, line, item))
-                          case Absent        =>
-                            orderedItem(scanner, line) match
-                              case Present(marker) => Present(readOrderedList(scanner, line, marker))
-                              case Absent          => readParagraph(scanner, line, definitions)
+        val line       = readLine(scanner)
+        val classified = classify(scanner, line)
+        if classified.kind != LineKind.Blank then
+          val block = classified.kind match
+            case LineKind.IndentedCode         => Present(Deferred.ready(readIndentedCode(scanner, line)))
+            case LineKind.Heading(level, rest) =>
+              val headingSpan = Span(line.offset, line.length)
+              val base        = contentSpan(line, rest).offset
+              Present(Deferred.prose { defs =>
+                Block.Heading(level, InlineParser.parse(rest, index => base + index, defs), headingSpan)
+              })
+            case LineKind.Fence(open)   => Present(Deferred.ready(readFencedCode(scanner, line, open)))
+            case LineKind.ThematicBreak =>
+              Present(Deferred.ready(Block.ThematicBreak(Span(line.offset, line.length))))
+            case LineKind.Html(_)               => Present(Deferred.ready(readHtmlBlock(scanner, line)))
+            case LineKind.BulletItem(item)      => Present(readUnorderedList(scanner, line, item))
+            case LineKind.OrderedItem(marker)   => Present(readOrderedList(scanner, line, marker))
+            case LineKind.Text | LineKind.Blank => readParagraph(scanner, line, definitions)
           scanner.chargeOutputNodes(NodeCount.one)
           block.foreach(blocks += _)
       }
@@ -451,14 +521,15 @@ object Parser:
     while !scanner.isAtEnd && !interrupted do
       val checkpoint = scanner.checkpoint()
       val line       = readLine(scanner)
-      setextUnderline(scanner, line) match
-        case Present(level) =>
+      val classified = classify(scanner, line)
+      classified.setext match
+        case Present(level) if classified.kind != LineKind.IndentedCode =>
           // An underline turns everything gathered so far into a heading, and is consumed with it.
           setext = Present(level)
           last = line
           interrupted = true
-        case Absent =>
-          if continuesParagraph(scanner, line) then
+        case _ =>
+          if continues(classified) then
             segments += ((line.offset, line.text))
             last = line
           else
@@ -568,12 +639,13 @@ object Parser:
     inspectLine(scanner, line)(_.trim.isEmpty)
 
   private def isThematicBreak(scanner: SourceScanner, line: Line): Boolean =
-    inspectLine(scanner, line) { text =>
-      val compact = text.filterNot(_.isWhitespace)
-      compact.length >= 3 && (
-        compact.forall(_ == '-') || compact.forall(_ == '*') || compact.forall(_ == '_')
-      )
-    }
+    inspectLine(scanner, line)(isThematicBreakText)
+
+  private def isThematicBreakText(text: String): Boolean =
+    val compact = text.filterNot(_.isWhitespace)
+    compact.length >= 3 && (
+      compact.forall(_ == '-') || compact.forall(_ == '*') || compact.forall(_ == '_')
+    )
 
   private def readUnorderedList(scanner: SourceScanner, first: Line, firstItem: String): Deferred =
     val items = List.newBuilder[DeferredItem]
