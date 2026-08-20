@@ -364,7 +364,12 @@ object Parser:
     if indent >= 4 || !trimmed.startsWith("<") then Absent
     else
       val lower = trimmed.toLowerCase
-      if Seq("<script", "<pre", "<style", "<textarea").exists(lower.startsWith) then Present(HtmlBlockKind.ScriptLike)
+      // Condition one names whole tags, so the name has to end where the name ends: `<scriptorium>` is not `<script>`
+      // and must not open a block that runs to `</script>` -- which, absent one, is the rest of the document.
+      if Seq("<script", "<pre", "<style", "<textarea").exists(prefix =>
+          lower.startsWith(prefix) && endsTagName(lower, prefix.length)
+        )
+      then Present(HtmlBlockKind.ScriptLike)
       else if lower.startsWith("<!--") then Present(HtmlBlockKind.Comment)
       else if lower.startsWith("<?") then Present(HtmlBlockKind.ProcessingInstruction)
       else if lower.startsWith("<![cdata[") then Present(HtmlBlockKind.CData)
@@ -375,6 +380,10 @@ object Parser:
         if name.nonEmpty && HtmlBlockTags.contains(name) then Present(HtmlBlockKind.KnownTag)
         else if isCompleteTagLine(trimmed) then Present(HtmlBlockKind.AnyTag)
         else Absent
+
+  /** Whether a tag name ends at `at`: the spec allows whitespace, `>`, or the end of the line, and nothing else. */
+  private def endsTagName(text: String, at: Int): Boolean =
+    at >= text.length || text.charAt(at) == '>' || text.charAt(at).isWhitespace
 
   private def tagNameOf(trimmed: String): String =
     val body = if trimmed.startsWith("</") then trimmed.drop(2) else trimmed.drop(1)

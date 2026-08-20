@@ -45,6 +45,11 @@ object KyoUiCompiler:
 
     def unorderedList(items: Chunk[UI]): UI = UI.ul(content(items))
 
+    /**
+     * `start` is dropped, because kyo-ui cannot carry it: `Ast.Ol` is an attribute set and children, the attribute set
+     * is a closed one, and neither holds `start`. A list beginning at three therefore renders beginning at one. The AST
+     * keeps the number, so nothing is lost that a writer able to express it could not recover.
+     */
     def orderedList(start: Int, items: Chunk[UI]): UI = UI.ol(content(items))
 
     def listItem(children: Chunk[UI]): UI = UI.li(content(children))
@@ -65,6 +70,11 @@ object KyoUiCompiler:
     /**
      * `Href.Path` and `ImgSrc.Path` render their value verbatim, which is what a Markdown destination needs: it is an
      * arbitrary URI the parser has already normalised, not something to re-classify as absolute, path or fragment.
+     *
+     * `title` is dropped for the same reason `start` is above: `Ast.Anchor` carries an attribute set, children, an href
+     * and a target, and `Ast.Img` a source and an alt. There is no `title` among them and no way to add one -- the
+     * attribute set is closed, and `aria`, `data`, `role` and `cssClass` are the only names it opens up. So
+     * `[docs](/docs "Guide")` renders without its tooltip. The AST keeps the title either way.
      */
     def link(destination: String, title: Maybe[String], children: Chunk[UI]): UI =
       UI.a.href(UI.Href.Path(destination))(content(children))

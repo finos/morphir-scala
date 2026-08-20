@@ -442,6 +442,19 @@ class InlineTests extends Test[Any]:
         case Block.HtmlBlock(content, _) => assert(content.contains("h1 {}"))
         case other                       => assert(false, s"expected an HTML block, got $other")
     }
+    // Condition one names whole tags. A block opened on `<scriptorium>` would end only at a `</script>` that is never
+    // coming, and would swallow the rest of the document as raw HTML. No CommonMark fixture covers this, which is why
+    // it is asserted here.
+    "needs the tag name to end for the script-like condition (not <scriptorium>)" in {
+      val document = parse("<scriptorium>\n\nA paragraph after it.\n")
+      assert(document.blocks.size == 2, s"the block swallowed what followed it: $document")
+      assert(document.blocks(1).isInstanceOf[Block.Paragraph])
+
+      // The real thing still runs to its terminator rather than stopping at the blank line.
+      parse("<script>\nvar x = 1;\n\nvar y = 2;\n</script>\n").blocks.head match
+        case Block.HtmlBlock(content, _) => assert(content.contains("var y = 2;"))
+        case other                       => assert(false, s"expected one HTML block, got $other")
+    }
     "takes a comment to its terminator" in {
       parse("<!-- a\n\nb -->").blocks.head match
         case Block.HtmlBlock(content, _) => assert(content == "<!-- a\n\nb -->")
