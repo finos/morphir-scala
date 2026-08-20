@@ -27,6 +27,14 @@ enum Block derives CanEqual:
    */
   case IndentedCode(content: String, span: Span)
   case UnorderedList(items: Chunk[ListItem], span: Span)
+
+  /**
+   * A numbered list.
+   *
+   * `start` is the first marker's number, which HTML needs as a `start` attribute whenever it is not 1. A change of
+   * delimiter — `.` to `)` — begins a new list, which is why example 302 renders two.
+   */
+  case OrderedList(start: Int, items: Chunk[ListItem], span: Span)
   case ThematicBreak(span: Span)
 
 /**

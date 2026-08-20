@@ -55,6 +55,10 @@ object ScalatagsCompiler:
     def unorderedList(items: Chunk[Frag]): Frag =
       ul(newline, frag(items.toSeq.flatMap(item => Seq(item, newline))*))
 
+    def orderedList(start: Int, items: Chunk[Frag]): Frag =
+      val body = frag(items.toSeq.flatMap(item => Seq(item, newline))*)
+      if start == 1 then ol(newline, body) else ol(attr("start") := start.toString)(newline, body)
+
     def listItem(children: Chunk[Frag]): Frag = li(frag(children.toSeq*))
 
     /** ScalaTags escapes a `String` frag on render, which is exactly the spec's rule, so nothing is done here. */

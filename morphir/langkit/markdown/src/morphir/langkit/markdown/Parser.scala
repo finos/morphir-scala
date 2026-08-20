@@ -83,7 +83,10 @@ object Parser:
                       else
                         unorderedItem(scanner, line) match
                           case Present(item) => Present(readUnorderedList(scanner, line, item))
-                          case Absent        => readParagraph(scanner, line, definitions)
+                          case Absent        =>
+                            orderedItem(scanner, line) match
+                              case Present(marker) => Present(readOrderedList(scanner, line, marker))
+                              case Absent          => readParagraph(scanner, line, definitions)
           scanner.chargeOutputNodes(NodeCount.one)
           block.foreach(blocks += _)
       }
@@ -313,7 +316,17 @@ object Parser:
       fenceOpen(scanner, line).isEmpty &&
       headingPrefix(scanner, line).isEmpty &&
       unorderedItem(scanner, line).isEmpty &&
+      !interruptsParagraph(scanner, line) &&
       !isThematicBreak(scanner, line)
+
+  /**
+   * Whether a numbered item may break the paragraph above it.
+   *
+   * Only a list starting at 1 can. Example 304 is the reason: "The number of windows in my house is / 14. The number of
+   * doors is 6." is one paragraph, not a paragraph and a list starting at 14.
+   */
+  private def interruptsParagraph(scanner: SourceScanner, line: Line): Boolean =
+    orderedItem(scanner, line).exists(_.number == 1)
 
   private def isBlank(scanner: SourceScanner, line: Line): Boolean =
     inspectLine(scanner, line)(_.trim.isEmpty)
@@ -362,6 +375,49 @@ object Parser:
     val start = line.text.indexOf(content)
     if start >= 0 then Span(line.offset + start, content.length)
     else Span(line.offset, line.length)
+
+  private type OrderedMarker = (number: Int, delimiter: Char, content: String)
+
+  /** A numbered list marker: up to nine digits, then `.` or `)`, then a space. */
+  private def orderedItem(scanner: SourceScanner, line: Line): Maybe[OrderedMarker] =
+    inspectLine(scanner, line)(orderedItem)
+
+  private def orderedItem(text: String): Maybe[OrderedMarker] =
+    val trimmed = text.stripLeading
+    val digits  = trimmed.takeWhile(_.isDigit)
+    if digits.isEmpty || digits.length > 9 then Absent
+    else if trimmed.length <= digits.length + 1 then Absent
+    else
+      val delimiter = trimmed.charAt(digits.length)
+      if (delimiter == '.' || delimiter == ')') && trimmed.charAt(digits.length + 1) == ' ' then
+        Present((number = digits.toInt, delimiter = delimiter, content = trimmed.drop(digits.length + 2).trim))
+      else Absent
+
+  /**
+   * Read consecutive numbered items as one list.
+   *
+   * A change of delimiter ends the list, because `1.` and `1)` are different lists rather than one; example 302 renders
+   * two.
+   */
+  private def readOrderedList(scanner: SourceScanner, first: Line, firstItem: OrderedMarker): Deferred =
+    val items = List.newBuilder[DeferredItem]
+    items += listItem(first, firstItem.content)
+    var last = first
+    var done = false
+    while !scanner.isAtEnd && !done do
+      val checkpoint = scanner.checkpoint()
+      val line       = readLine(scanner)
+      orderedItem(scanner, line) match
+        case Present(marker) if marker.delimiter == firstItem.delimiter =>
+          items += listItem(line, marker.content)
+          last = line
+        case _ =>
+          scanner.restore(checkpoint)
+          done = true
+
+    val collected = Chunk.from(items.result())
+    val listSpan  = Span.fromStartEnd(first.offset, last.end)
+    Deferred.prose(defs => Block.OrderedList(firstItem.number, collected.map(_.resolve(defs)), listSpan))
 
   private def unorderedItem(scanner: SourceScanner, line: Line): Maybe[String] =
     inspectLine(scanner, line)(unorderedItem)

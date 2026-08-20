@@ -107,6 +107,14 @@ trait Compiler[Out]:
   /** Compile strong emphasis from its compiled content. */
   def strongEmphasis(children: Chunk[Out]): Out
 
+  /**
+   * Combine compiled list items into a numbered list.
+   *
+   * @param start
+   *   the first marker's number. HTML omits the `start` attribute when this is 1.
+   */
+  def orderedList(start: Int, items: Chunk[Out]): Out
+
   /** Compile a thematic break. It has no children and no text, so this is a constant for most formats. */
   def thematicBreak: Out
 end Compiler

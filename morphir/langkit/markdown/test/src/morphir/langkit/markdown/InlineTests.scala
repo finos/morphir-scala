@@ -367,6 +367,39 @@ class InlineTests extends Test[Any]:
     }
   }
 
+  "an ordered list" - {
+    "reads consecutive numbered items as one list" in {
+      parse("1. one\n2. two").blocks.head match
+        case Block.OrderedList(start, items, _) =>
+          assert(start == 1)
+          assert(items.map(item => textOf(item.content)) == Chunk("one", "two"))
+        case other => assert(false, s"expected an ordered list, got $other")
+    }
+    "keeps the first marker's number as the start" in {
+      parse("3. three\n4. four").blocks.head match
+        case Block.OrderedList(start, items, _) =>
+          assert(start == 3)
+          assert(items.size == 2)
+        case other => assert(false, s"expected an ordered list, got $other")
+    }
+    "a change of delimiter begins a new list (spec example 302)" in {
+      val blocks = parse("1. foo\n2. bar\n3) baz").blocks
+      assert(blocks.size == 2)
+      assert(blocks(0).isInstanceOf[Block.OrderedList])
+      assert(blocks(1).isInstanceOf[Block.OrderedList])
+    }
+    "only a list starting at one may interrupt a paragraph (spec example 304)" in {
+      val blocks = parse("The number of windows in my house is\n14.  The number of doors is 6.").blocks
+      assert(blocks.size == 1)
+      assert(blocks.head.isInstanceOf[Block.Paragraph])
+    }
+    "a list starting at one does interrupt a paragraph" in {
+      val blocks = parse("text\n1. item").blocks
+      assert(blocks.size == 2)
+      assert(blocks(1).isInstanceOf[Block.OrderedList])
+    }
+  }
+
   "fenced code" - {
     "keeps its body as literal text, never inline content" in {
       parse("```\n*not emphasis*\n```").blocks.head match

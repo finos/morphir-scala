@@ -26,6 +26,8 @@ private[markdown] object MarkdownFold:
       case Block.IndentedCode(content, _) => compiler.fencedCode(FenceInfo.empty, content)
       case Block.UnorderedList(items, _)  =>
         compiler.unorderedList(items.map(item => compiler.listItem(item.content.map(compileInline))))
+      case Block.OrderedList(start, items, _) =>
+        compiler.orderedList(start, items.map(item => compiler.listItem(item.content.map(compileInline))))
       case Block.ThematicBreak(_) => compiler.thematicBreak
 
   private def compileInline[Out](inline0: Inline)(using compiler: Compiler[Out]): Out =

@@ -18,6 +18,7 @@ class CompilerTests extends Test[Any]:
     def paragraph(children: Chunk[String]): String            = s"(p ${children.mkString(" ")})"
     def fencedCode(info: FenceInfo, content: String)          = s"(code:${info.language.getOrElse("-")} $content)"
     def unorderedList(items: Chunk[String]): String           = items.mkString("(ul ", " ", ")")
+    def orderedList(start: Int, items: Chunk[String]): String = items.mkString(s"(ol:$start ", " ", ")")
     def listItem(children: Chunk[String]): String             = s"(li ${children.mkString(" ")})"
     def text(value: String): String                           = value
     def codeSpan(value: String): String                       = s"(code-span $value)"

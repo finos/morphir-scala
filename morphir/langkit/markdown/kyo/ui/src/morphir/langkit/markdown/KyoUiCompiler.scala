@@ -45,6 +45,8 @@ object KyoUiCompiler:
 
     def unorderedList(items: Chunk[UI]): UI = UI.ul(content(items))
 
+    def orderedList(start: Int, items: Chunk[UI]): UI = UI.ol(content(items))
+
     def listItem(children: Chunk[UI]): UI = UI.li(content(children))
 
     /** kyo-ui escapes a `Text` node when it renders, so the value is handed over raw. */

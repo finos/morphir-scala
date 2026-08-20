@@ -215,12 +215,13 @@ class ParserTests extends Test[Any]:
       Parser.parse("x\n# h", budget) match
         case Result.Failure(ParseError.Scan(error)) =>
           assert(
-            // Paragraph lookahead now also asks whether the line is a setext underline, so one more line
-            // inspection is charged per continuation line and the budget is exceeded a little later. The property
-            // under test is unchanged: the speculative work is not refunded when the lookahead is rolled back.
+            // Paragraph lookahead asks more of each line than it once did -- whether it is a setext underline, and
+            // whether it is a numbered item that may interrupt -- so a line inspection is charged for each and the
+            // budget is exceeded a little later. The property under test is unchanged: the speculative work is not
+            // refunded when the lookahead is rolled back.
             error == ScanFailure(
               exceeded =
-                ScanLimitExceeded.Work(limit = WorkUnits(30L), attempted = WorkUnits(32L)),
+                ScanLimitExceeded.Work(limit = WorkUnits(30L), attempted = WorkUnits(33L)),
               offset = SourceOffset(5),
               phase = Present(ScanPhase("markdown.blocks"))
             )
