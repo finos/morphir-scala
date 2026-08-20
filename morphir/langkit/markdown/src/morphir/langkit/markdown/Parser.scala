@@ -361,20 +361,21 @@ object Parser:
     val kind  = htmlBlockStart(scanner, first).getOrElse(HtmlBlockKind.AnyTag)
     val lines = List.newBuilder[String]
     lines += first.text
-    var last = first
-    var done = closesHtmlBlock(kind, first.text, opening = true)
-
-    while !scanner.isAtEnd && !done do
-      val checkpoint = scanner.checkpoint()
-      val line       = readLine(scanner)
-      val blank      = isBlank(scanner, line)
-      if endsOnBlankLine(kind) && blank then
-        scanner.restore(checkpoint)
-        done = true
+    // Unlike the other readers this one can stop *after* accepting a line, because a closing marker belongs to the
+    // block it closes. `done` is therefore carried forward rather than tested at the top.
+    @tailrec def gather(last: Line, done: Boolean): Line =
+      if done || scanner.isAtEnd then last
       else
-        lines += line.text
-        last = line
-        if closesHtmlBlock(kind, line.text, opening = false) then done = true
+        val checkpoint = scanner.checkpoint()
+        val line       = readLine(scanner)
+        if endsOnBlankLine(kind) && isBlank(scanner, line) then
+          scanner.restore(checkpoint)
+          last
+        else
+          lines += line.text
+          gather(line, closesHtmlBlock(kind, line.text, opening = false))
+
+    val last = gather(first, closesHtmlBlock(kind, first.text, opening = true))
 
     // No trailing newline: the document separator supplies the one between blocks, and adding another here would
     // double it. A code block differs because its closing tag ends the content.
@@ -425,21 +426,23 @@ object Parser:
   private def readIndentedCode(scanner: SourceScanner, first: Line): Block =
     val lines = List.newBuilder[String]
     lines += stripIndent(first.text)
-    var last    = first
-    var pending = List.newBuilder[String]
-    var done    = false
-    while !scanner.isAtEnd && !done do
-      val checkpoint = scanner.checkpoint()
-      val line       = readLine(scanner)
-      if isIndentedCode(scanner, line) then
-        lines ++= pending.result()
-        pending = List.newBuilder[String]
-        lines += stripIndent(line.text)
-        last = line
-      else if isBlank(scanner, line) then pending += stripIndent(line.text)
+    // Blank lines are held back rather than appended: they belong to the block only if indented content follows, so
+    // a trailing run of them is dropped by simply never being flushed.
+    @tailrec def gather(last: Line, pending: List[String]): Line =
+      if scanner.isAtEnd then last
       else
-        scanner.restore(checkpoint)
-        done = true
+        val checkpoint = scanner.checkpoint()
+        val line       = readLine(scanner)
+        if isIndentedCode(scanner, line) then
+          lines ++= pending
+          lines += stripIndent(line.text)
+          gather(line, Nil)
+        else if isBlank(scanner, line) then gather(last, pending :+ stripIndent(line.text))
+        else
+          scanner.restore(checkpoint)
+          last
+
+    val last = gather(first, Nil)
 
     val content = lines.result().mkString("", "\n", "\n")
     scanner.chargeWork(WorkUnits.from(content.length.toLong).getOrThrow)
@@ -450,6 +453,26 @@ object Parser:
     @tailrec def removed(count: Int): Int =
       if count < 4 && count < text.length && text.charAt(count) == ' ' then removed(count + 1) else count
     text.substring(removed(0))
+
+  /**
+   * Consume lines for as long as `take` accepts them, and return the last one accepted.
+   *
+   * The scanner is restored to just before the first rejected line, so the caller's block ends where it should and the
+   * next block starts by reading that line again. Four readers hand-rolled this with a `done` flag; naming it once
+   * makes each of them say what it collects rather than how it stops.
+   *
+   * `take` is expected to have an effect -- appending to the caller's builder -- which is why it returns a plain
+   * Boolean rather than an option: acceptance and accumulation are the same decision.
+   */
+  @tailrec private def consumeWhile(scanner: SourceScanner, last: Line)(take: Line => Boolean): Line =
+    if scanner.isAtEnd then last
+    else
+      val checkpoint = scanner.checkpoint()
+      val line       = readLine(scanner)
+      if take(line) then consumeWhile(scanner, line)(take)
+      else
+        scanner.restore(checkpoint)
+        last
 
   private def readLine(scanner: SourceScanner): Line =
     scanner.requireProgress(LinesPhase) {
@@ -479,19 +502,20 @@ object Parser:
   private type FenceOpen = (marker: Char, length: Int, indentation: Int, info: String)
 
   private def readFencedCode(scanner: SourceScanner, opening: Line, open: FenceOpen): Block =
-    val body            = StringBuilder()
-    var closed          = false
-    var closingEnd      = opening.end
-    var bodyEndedWithLf = false
-    while !scanner.isAtEnd && !closed do
-      val line = readLine(scanner)
-      if isClosingFence(scanner, line, open.marker, open.length) then
-        closed = true
-        closingEnd = line.end
+    val body = StringBuilder()
+    // A fence is consumed whether or not it closes: an unterminated one runs to end of input, and whether its last
+    // line ended in a newline decides the content's trailing newline.
+    @tailrec def gather(closingEnd: Int, closed: Boolean, endedWithLf: Boolean): (Int, Boolean, Boolean) =
+      if closed || scanner.isAtEnd then (closingEnd, closed, endedWithLf)
       else
-        if body.nonEmpty then body.append('\n')
-        body.append(removeFenceIndentation(scanner, line, open.indentation))
-        bodyEndedWithLf = line.terminatedByLf
+        val line = readLine(scanner)
+        if isClosingFence(scanner, line, open.marker, open.length) then (line.end, true, endedWithLf)
+        else
+          if body.nonEmpty then body.append('\n')
+          body.append(removeFenceIndentation(scanner, line, open.indentation))
+          gather(closingEnd, false, line.terminatedByLf)
+
+    val (closingEnd, closed, bodyEndedWithLf) = gather(opening.end, false, false)
 
     val end     = if closed then closingEnd else scanner.offset.toInt
     val content =
@@ -512,26 +536,25 @@ object Parser:
   ): Maybe[Deferred] =
     val segments = List.newBuilder[(Int, String)]
     segments += ((first.offset, first.text))
-    var last        = first
-    var interrupted = false
-    var setext      = Absent: Maybe[HeadingLevel]
-    while !scanner.isAtEnd && !interrupted do
-      val checkpoint = scanner.checkpoint()
-      val line       = readLine(scanner)
-      val classified = classify(scanner, line)
-      classified.setext match
-        case Present(level) if classified.kind != LineKind.IndentedCode =>
-          // An underline turns everything gathered so far into a heading, and is consumed with it.
-          setext = Present(level)
-          last = line
-          interrupted = true
-        case _ =>
-          if continues(classified) then
-            segments += ((line.offset, line.text))
-            last = line
-          else
-            scanner.restore(checkpoint)
-            interrupted = true
+    // A paragraph ends three ways, and the recursion says which: a setext underline promotes it to a heading and is
+    // consumed with it, a line that does not continue it is put back, and end of input just stops.
+    @tailrec def gather(last: Line): (Line, Maybe[HeadingLevel]) =
+      if scanner.isAtEnd then (last, Absent)
+      else
+        val checkpoint = scanner.checkpoint()
+        val line       = readLine(scanner)
+        val classified = classify(scanner, line)
+        classified.setext match
+          case Present(level) if classified.kind != LineKind.IndentedCode => (line, Present(level))
+          case _                                                          =>
+            if continues(classified) then
+              segments += ((line.offset, line.text))
+              gather(line)
+            else
+              scanner.restore(checkpoint)
+              (last, Absent)
+
+    val (last, setext) = gather(first)
 
     val lines   = Chunk.from(segments.result())
     val raw     = lines.map(_._2).mkString("\n")
@@ -565,25 +588,26 @@ object Parser:
       text: String,
       definitions: scala.collection.mutable.Map[String, LinkDefinition]
   ): Int =
-    var consumed = 0
-    var scanning = true
-    while scanning do
+    @tailrec def take(consumed: Int): Int =
       linkDefinitionAt(text, consumed) match
         case Present((end, label, destination, title)) =>
           val key = InlineParser.normalizeLabel(label)
           // First definition wins, which is what the spec says about duplicates.
           if !definitions.contains(key) then definitions(key) = LinkDefinition(destination, title)
-          consumed = end
-        case Absent => scanning = false
-    consumed
+          take(end)
+        case Absent => consumed
+    take(0)
 
   /** One definition beginning at `from`, or [[kyo.Absent]] if the text does not start with one. */
   private def linkDefinitionAt(
       text: String,
       from: Int
   ): Maybe[(Int, String, String, Maybe[String])] =
-    var index = from
-    while index < text.length && (text.charAt(index) == ' ' || text.charAt(index) == '\n') do index += 1
+    @tailrec def skipLeading(cursor: Int): Int =
+      if cursor < text.length && (text.charAt(cursor) == ' ' || text.charAt(cursor) == '\n') then
+        skipLeading(cursor + 1)
+      else cursor
+    val index = skipLeading(from)
     if index >= text.length || text.charAt(index) != '[' then Absent
     else
       InlineParser.labelEndOf(text, index + 1) match
@@ -646,18 +670,13 @@ object Parser:
   private def readUnorderedList(scanner: SourceScanner, first: Line, firstItem: String): Deferred =
     val items = List.newBuilder[DeferredItem]
     items += listItem(first, firstItem)
-    var last = first
-    var done = false
-    while !scanner.isAtEnd && !done do
-      val checkpoint = scanner.checkpoint()
-      val line       = readLine(scanner)
+    val last = consumeWhile(scanner, first) { line =>
       unorderedItem(scanner, line) match
         case Present(item) =>
           items += listItem(line, item)
-          last = line
-        case Absent =>
-          scanner.restore(checkpoint)
-          done = true
+          true
+        case Absent => false
+    }
     val collected = Chunk.from(items.result())
     val listSpan  = Span.fromStartEnd(first.offset, last.end)
     Deferred.prose(defs => Block.UnorderedList(collected.map(_.resolve(defs)), listSpan))
@@ -706,18 +725,13 @@ object Parser:
   private def readOrderedList(scanner: SourceScanner, first: Line, firstItem: OrderedMarker): Deferred =
     val items = List.newBuilder[DeferredItem]
     items += listItem(first, firstItem.content)
-    var last = first
-    var done = false
-    while !scanner.isAtEnd && !done do
-      val checkpoint = scanner.checkpoint()
-      val line       = readLine(scanner)
+    val last = consumeWhile(scanner, first) { line =>
       orderedItem(scanner, line) match
         case Present(marker) if marker.delimiter == firstItem.delimiter =>
           items += listItem(line, marker.content)
-          last = line
-        case _ =>
-          scanner.restore(checkpoint)
-          done = true
+          true
+        case _ => false
+    }
 
     val collected = Chunk.from(items.result())
     val listSpan  = Span.fromStartEnd(first.offset, last.end)
