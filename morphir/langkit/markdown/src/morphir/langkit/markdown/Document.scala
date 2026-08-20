@@ -61,3 +61,9 @@ enum Inline derives CanEqual:
    * further image inside the label contributes only its text.
    */
   case Image(destination: String, title: Maybe[String], alt: String, span: Span)
+
+  /** Emphasis, from a single `*` or `_` delimiter run. */
+  case Emphasis(content: Chunk[Inline], span: Span)
+
+  /** Strong emphasis, from a double `**` or `__` delimiter run. */
+  case StrongEmphasis(content: Chunk[Inline], span: Span)

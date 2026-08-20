@@ -62,6 +62,10 @@ object ScalatagsCompiler:
 
     def codeSpan(value: String): Frag = code(value)
 
+    def emphasis(children: Chunk[Frag]): Frag = em(frag(children.toSeq*))
+
+    def strongEmphasis(children: Chunk[Frag]): Frag = strong(frag(children.toSeq*))
+
     /** Attribute order follows the fixtures: `href` then `title`, and no `title` attribute at all when absent. */
     def link(destination: String, title: Maybe[String], children: Chunk[Frag]): Frag =
       title match

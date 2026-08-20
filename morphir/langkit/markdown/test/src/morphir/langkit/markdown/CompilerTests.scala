@@ -21,6 +21,8 @@ class CompilerTests extends Test[Any]:
     def listItem(children: Chunk[String]): String             = s"(li ${children.mkString(" ")})"
     def text(value: String): String                           = value
     def codeSpan(value: String): String                       = s"(code-span $value)"
+    def emphasis(children: Chunk[String]): String             = s"(em ${children.mkString(" ")})"
+    def strongEmphasis(children: Chunk[String]): String       = s"(strong ${children.mkString(" ")})"
     def link(destination: String, title: Maybe[String], children: Chunk[String]) =
       s"(link $destination ${title.getOrElse("-")} ${children.mkString(" ")})"
     def image(destination: String, title: Maybe[String], alt: String) =

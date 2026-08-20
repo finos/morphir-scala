@@ -25,10 +25,12 @@ class InlineTests extends Test[Any]:
   /** The literal text of inline content, ignoring how it is split into nodes. */
   private def textOf(content: Chunk[Inline]): String =
     content.map {
-      case Inline.Text(value, _)       => value
-      case Inline.CodeSpan(value, _)   => value
-      case Inline.Link(_, _, inner, _) => textOf(inner)
-      case Inline.Image(_, _, alt, _)  => alt
+      case Inline.Text(value, _)           => value
+      case Inline.CodeSpan(value, _)       => value
+      case Inline.Link(_, _, inner, _)     => textOf(inner)
+      case Inline.Image(_, _, alt, _)      => alt
+      case Inline.Emphasis(inner, _)       => textOf(inner)
+      case Inline.StrongEmphasis(inner, _) => textOf(inner)
     }.mkString
 
   /** The values of every code span a source produces, ignoring the text around them. */
@@ -224,6 +226,46 @@ class InlineTests extends Test[Any]:
     }
     "is not made from something that is not an absolute URI" in
       assert(inlines("<not a link>").forall { case _: Inline.Link => false; case _ => true })
+  }
+
+  "emphasis" - {
+    "wraps a single delimiter run (spec example 350)" in {
+      inlines("*foo bar*") match
+        case Chunk(Inline.Emphasis(content, _)) => assert(textOf(content) == "foo bar")
+        case other                              => assert(false, s"expected emphasis, got $other")
+    }
+    "wraps a double run as strong (spec example 378)" in {
+      inlines("**foo bar**") match
+        case Chunk(Inline.StrongEmphasis(content, _)) => assert(textOf(content) == "foo bar")
+        case other                                    => assert(false, s"expected strong emphasis, got $other")
+    }
+    "underscores work the same at a word boundary (spec example 382)" in {
+      inlines("__foo bar__") match
+        case Chunk(Inline.StrongEmphasis(_, _)) => assert(true)
+        case other                              => assert(false, s"expected strong emphasis, got $other")
+    }
+    "stays literal when the opener is followed by whitespace (spec example 351)" in {
+      assert(textOf(inlines("a * foo bar*")) == "a * foo bar*")
+      assert(!inlines("a * foo bar*").exists { case _: Inline.Emphasis => true; case _ => false })
+    }
+    "keeps an intraword underscore literal (spec example 360)" in
+      assert(!inlines("foo_bar_").exists { case _: Inline.Emphasis => true; case _ => false })
+    "nests strong inside emphasis (spec example 410)" in {
+      inlines("*foo **bar** baz*") match
+        case Chunk(Inline.Emphasis(content, _)) =>
+          assert(content.exists { case _: Inline.StrongEmphasis => true; case _ => false })
+        case other => assert(false, s"expected emphasis, got $other")
+    }
+    "leaves an unmatched delimiter behind as text (spec example 443)" in {
+      val content = inlines("*foo**")
+      assert(content.size == 2)
+      assert(content(0).isInstanceOf[Inline.Emphasis])
+      assert(content(1) == Inline.Text("*", Span(5, 1)))
+    }
+    "does not treat a lone run as a delimiter pair (spec example 436)" in
+      assert(textOf(inlines("foo ***")) == "foo ***")
+    "a backslash-escaped asterisk never opens emphasis" in
+      assert(!inlines("\\*foo\\*").exists { case _: Inline.Emphasis => true; case _ => false })
   }
 
   "fenced code" - {

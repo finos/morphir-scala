@@ -53,6 +53,14 @@ object KyoUiCompiler:
     def codeSpan(value: String): UI = UI.code(value)
 
     /**
+     * kyo-ui has no `em` or `strong` element, so emphasis is carried by a `span` with a class. The ScalaTags oracle
+     * emits the real elements; this path is what users see, and it is the gap intent 0033 recorded.
+     */
+    def emphasis(children: Chunk[UI]): UI = UI.span(content(children)).cssClass("md-em")
+
+    def strongEmphasis(children: Chunk[UI]): UI = UI.span(content(children)).cssClass("md-strong")
+
+    /**
      * `Href.Path` and `ImgSrc.Path` render their value verbatim, which is what a Markdown destination needs: it is an
      * arbitrary URI the parser has already normalised, not something to re-classify as absolute, path or fragment.
      */

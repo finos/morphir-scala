@@ -101,6 +101,12 @@ trait Compiler[Out]:
   /** Compile an image. `alt` is plain text, as the attribute requires. */
   def image(destination: String, title: Maybe[String], alt: String): Out
 
+  /** Compile emphasis from its compiled content. */
+  def emphasis(children: Chunk[Out]): Out
+
+  /** Compile strong emphasis from its compiled content. */
+  def strongEmphasis(children: Chunk[Out]): Out
+
   /** Compile a thematic break. It has no children and no text, so this is a constant for most formats. */
   def thematicBreak: Out
 end Compiler

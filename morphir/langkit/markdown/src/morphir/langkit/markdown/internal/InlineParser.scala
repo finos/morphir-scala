@@ -24,36 +24,185 @@ private[markdown] object InlineParser:
    *   shorter than the source it came from.
    */
   def parse(text: String, sourceOffsetAt: Int => Int): Chunk[Inline] =
-    val nodes        = List.newBuilder[Inline]
+    val items = scanItems(text, sourceOffsetAt)
+    processEmphasis(items, sourceOffsetAt)
+    Chunk.from(items.filterNot(_.dropped).map(item => item.inline.getOrElse(literal(item, sourceOffsetAt))))
+
+  /**
+   * One position in the inline stream: either a finished node, or a delimiter run still deciding what it is.
+   *
+   * Mutable because the emphasis algorithm consumes delimiters a pair at a time and may leave part of a run behind:
+   * `*foo**` matches one `*` and leaves the other as text.
+   */
+  private final class Item(
+      val inline: Maybe[Inline],
+      val delimiter: Char,
+      var count: Int,
+      val originalCount: Int,
+      val canOpen: Boolean,
+      val canClose: Boolean,
+      val start: Int,
+      val end: Int,
+      var dropped: Boolean = false
+  ):
+    def isDelimiter: Boolean = inline.isEmpty
+
+  /** What an unmatched delimiter run turns into: the characters it was made of. */
+  private def literal(item: Item, sourceOffsetAt: Int => Int): Inline =
+    // A run consumed a pair at a time leaves its tail behind, so the span narrows to what is left.
+    val start = item.end - item.count
+    Inline.Text(item.delimiter.toString * item.count, spanOf(start, item.end, sourceOffsetAt))
+
+  /** Pass one: constructs become nodes, `*`/`_` runs become delimiters, everything else accumulates as text. */
+  private def scanItems(text: String, sourceOffsetAt: Int => Int): scala.collection.mutable.ArrayBuffer[Item] =
+    val items        = scala.collection.mutable.ArrayBuffer.empty[Item]
     val pending      = StringBuilder()
     var pendingStart = 0
     var index        = 0
 
+    def node(inline: Inline): Item = Item(Present(inline), ' ', 0, 0, false, false, 0, 0)
+
     def flushPending(): Unit =
       if pending.nonEmpty then
-        val value = pending.toString
-        nodes += Inline.Text(value, spanOf(pendingStart, index, sourceOffsetAt))
+        items += node(Inline.Text(pending.toString, spanOf(pendingStart, index, sourceOffsetAt)))
         pending.clear()
 
     while index < text.length do
-      // Code spans, autolinks and links each claim a run; anything unclaimed accumulates as text.
-      constructAt(text, index, sourceOffsetAt) match
-        case Present((end, node)) =>
-          flushPending()
-          nodes += node
-          index = end
-          pendingStart = index
-        case Absent =>
-          val run =
-            if text.charAt(index) == '`' then backtickRun(text, index)
-            else 1
-          if pending.isEmpty then pendingStart = index
-          pending.append(text.substring(index, index + run))
-          index += run
+      val char = text.charAt(index)
+      if char == '\\' && index + 1 < text.length && isPunctuation(text.charAt(index + 1)) then
+        // A backslash escape makes the next character literal, so it can never open or close anything.
+        if pending.isEmpty then pendingStart = index
+        pending.append(text.charAt(index + 1))
+        index += 2
+      else
+        constructAt(text, index, sourceOffsetAt) match
+          case Present((constructEnd, inline)) =>
+            flushPending()
+            items += node(inline)
+            index = constructEnd
+            pendingStart = index
+          case Absent =>
+            if char == '*' || char == '_' then
+              val run = delimiterRun(text, index, char)
+              flushPending()
+              items += run
+              index = run.end
+              pendingStart = index
+            else
+              val run = if char == '`' then backtickRun(text, index) else 1
+              if pending.isEmpty then pendingStart = index
+              pending.append(text.substring(index, index + run))
+              index += run
     end while
     flushPending()
-    Chunk.from(nodes.result())
-  end parse
+    items
+  end scanItems
+
+  /**
+   * A run of `*` or `_`, classified by the spec's flanking rules.
+   *
+   * Left-flanking means the run is not followed by whitespace, and either is not followed by punctuation or is preceded
+   * by whitespace or punctuation; right-flanking is the mirror. `_` is stricter than `*` so that intraword underscores
+   * stay literal, which is why `foo_bar_` is not emphasis.
+   */
+  private def delimiterRun(text: String, start: Int, char: Char): Item =
+    var end = start
+    while end < text.length && text.charAt(end) == char do end += 1
+    val length = end - start
+
+    val before = if start == 0 then ' ' else text.charAt(start - 1)
+    val after  = if end >= text.length then ' ' else text.charAt(end)
+
+    val beforeWhitespace = before.isWhitespace
+    val afterWhitespace  = after.isWhitespace
+    val beforePunct      = isPunctuation(before)
+    val afterPunct       = isPunctuation(after)
+
+    val leftFlanking  = !afterWhitespace && (!afterPunct || beforeWhitespace || beforePunct)
+    val rightFlanking = !beforeWhitespace && (!beforePunct || afterWhitespace || afterPunct)
+
+    val canOpen  = if char == '*' then leftFlanking else leftFlanking && (!rightFlanking || beforePunct)
+    val canClose = if char == '*' then rightFlanking else rightFlanking && (!leftFlanking || afterPunct)
+
+    Item(Absent, char, length, length, canOpen, canClose, start, end)
+  end delimiterRun
+
+  /**
+   * Pass two: the spec's process-emphasis procedure.
+   *
+   * Walks forward to each potential closer, looks back for the nearest matching opener, and wraps everything between
+   * them. Two or more delimiters on both sides make strong emphasis and consume two; otherwise one each. A run may be
+   * consumed a pair at a time, which is what lets `*foo**bar***` nest.
+   */
+  private def processEmphasis(
+      items: scala.collection.mutable.ArrayBuffer[Item],
+      sourceOffsetAt: Int => Int
+  ): Unit =
+    // The spec's "openers bottom": below this index, a closer of this shape has already failed to find an opener.
+    val openersBottom = scala.collection.mutable.Map.empty[(Char, Int, Boolean), Int]
+    var closerIndex   = 0
+
+    while closerIndex < items.length do
+      val closer = items(closerIndex)
+      if !closer.dropped && closer.isDelimiter && closer.canClose then
+        val key    = (closer.delimiter, closer.originalCount % 3, closer.canOpen)
+        val bottom = openersBottom.getOrElse(key, -1)
+
+        var openerIndex = closerIndex - 1
+        var found       = -1
+        while found < 0 && openerIndex > bottom do
+          val candidate = items(openerIndex)
+          if !candidate.dropped && candidate.isDelimiter && candidate.canOpen &&
+            candidate.delimiter == closer.delimiter && ruleOfThree(candidate, closer)
+          then found = openerIndex
+          openerIndex -= 1
+
+        if found >= 0 then
+          val opener = items(found)
+          val strong = opener.count >= 2 && closer.count >= 2
+          val used   = if strong then 2 else 1
+
+          val inner = Chunk.from(
+            items.slice(found + 1, closerIndex).filterNot(_.dropped).map(item =>
+              item.inline.getOrElse(literal(item, sourceOffsetAt))
+            )
+          )
+          items.slice(found + 1, closerIndex).foreach(_.dropped = true)
+
+          val span = spanOf(opener.start, closer.end, sourceOffsetAt)
+          val node = if strong then Inline.StrongEmphasis(inner, span) else Inline.Emphasis(inner, span)
+          items.insert(closerIndex, Item(Present(node), ' ', 0, 0, false, false, 0, 0))
+          closerIndex += 1
+
+          opener.count -= used
+          closer.count -= used
+          if opener.count == 0 then opener.dropped = true
+          if closer.count == 0 then
+            closer.dropped = true
+            closerIndex += 1
+        else
+          // No opener for this closer: remember how far back is pointless to search next time.
+          openersBottom(key) = closerIndex - 1
+          // The spec removes it from the delimiter stack, not from the text. Turning it into a node does both: it
+          // stops being a closer, and its characters still render.
+          if !closer.canOpen then
+            items(closerIndex) = Item(Present(literal(closer, sourceOffsetAt)), ' ', 0, 0, false, false, 0, 0)
+          closerIndex += 1
+      else closerIndex += 1
+    end while
+  end processEmphasis
+
+  /**
+   * The spec's rule of three.
+   *
+   * When a delimiter can both open and close, the two run lengths may not sum to a multiple of three unless both are
+   * themselves multiples of three. It is what stops `*foo**bar*` from pairing the wrong delimiters.
+   */
+  private def ruleOfThree(opener: Item, closer: Item): Boolean =
+    val ambiguous = opener.canClose || closer.canOpen
+    if !ambiguous then true
+    else if (opener.originalCount + closer.originalCount) % 3 != 0 then true
+    else opener.originalCount                             % 3 == 0 && closer.originalCount % 3 == 0
 
   /** The inline construct beginning at `index`, if any, and the index just past it. */
   private def constructAt(text: String, index: Int, sourceOffsetAt: Int => Int): Maybe[(Int, Inline)] =
@@ -255,18 +404,16 @@ private[markdown] object InlineParser:
 
   /** The plain text of a label, which is what an `alt` attribute can hold. */
   private def plainText(label: String): String =
-    parse(label, identity).map {
-      case Inline.Text(value, _)       => value
-      case Inline.CodeSpan(value, _)   => value
-      case Inline.Link(_, _, inner, _) => inner.map(plainOf).mkString
-      case Inline.Image(_, _, alt, _)  => alt
-    }.mkString
+    parse(label, identity).map(plainOf).mkString
 
+  /** Flatten a node to the text an attribute can carry: markup contributes its content, not its markers. */
   private def plainOf(node: Inline): String = node match
-    case Inline.Text(value, _)       => value
-    case Inline.CodeSpan(value, _)   => value
-    case Inline.Link(_, _, inner, _) => inner.map(plainOf).mkString
-    case Inline.Image(_, _, alt, _)  => alt
+    case Inline.Text(value, _)           => value
+    case Inline.CodeSpan(value, _)       => value
+    case Inline.Link(_, _, inner, _)     => inner.map(plainOf).mkString
+    case Inline.Image(_, _, alt, _)      => alt
+    case Inline.Emphasis(inner, _)       => inner.map(plainOf).mkString
+    case Inline.StrongEmphasis(inner, _) => inner.map(plainOf).mkString
 
   private def spanOf(start: Int, end: Int, sourceOffsetAt: Int => Int): Span =
     Span.fromStartEnd(sourceOffsetAt(start), sourceOffsetAt(end))
