@@ -119,3 +119,12 @@ enum Inline derives CanEqual:
    * inside `<bar attr="](baz)">` closes a link label.
    */
   case RawHtml(value: String, span: Span)
+
+  /**
+   * A line ending the author asked to be kept.
+   *
+   * Written either as two or more spaces before the line ending or as a backslash before it. A node of its own because
+   * it is the one line ending that survives: every other one is a soft break, which a writer is free to render as a
+   * space or a newline as it likes.
+   */
+  case LineBreak(span: Span)

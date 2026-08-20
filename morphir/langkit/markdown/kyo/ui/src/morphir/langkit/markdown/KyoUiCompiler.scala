@@ -77,6 +77,8 @@ object KyoUiCompiler:
 
     def rawHtml(value: String): UI = UI.rawHtml(value)
 
+    def lineBreak: UI = UI.fragment(UI.br, UI.Ast.Text("\n"))
+
     def blockQuote(children: Chunk[UI]): UI = UI.blockquote(content(children))
 
     def blockSeparator: UI = UI.Ast.Text("\n")

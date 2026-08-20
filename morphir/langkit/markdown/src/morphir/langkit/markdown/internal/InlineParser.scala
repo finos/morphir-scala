@@ -252,7 +252,8 @@ private[markdown] object InlineParser:
       definitions: Map[String, LinkDefinition]
   ): Maybe[(Int, Inline)] =
     val char = text.charAt(index)
-    if char == '`' then
+    if char == ' ' || char == '\\' then lineEndingAt(text, index, sourceOffsetAt)
+    else if char == '`' then
       val run = backtickRun(text, index)
       closingRun(text, index + run, run).map { closeStart =>
         val end = closeStart + run
@@ -276,6 +277,30 @@ private[markdown] object InlineParser:
       val open  = if image then index + 2 else index + 1
       linkAt(text, index, open, image, sourceOffsetAt, definitions)
     else Absent
+
+  /**
+   * A line ending, and what the author asked of it.
+   *
+   * Two or more spaces before it, or a backslash before it, is a hard break and becomes a node. One space is not: it is
+   * dropped, because trailing whitespace on a line is not content. Either way the whitespace is consumed here rather
+   * than stripped beforehand -- stripping first would throw away the very thing that decides which of the two this is.
+   *
+   * A run of spaces that does not reach a line ending is ordinary text, and a backslash before anything but a line
+   * ending is left for the escape rules.
+   */
+  private def lineEndingAt(text: String, start: Int, sourceOffsetAt: Int => Int): Maybe[(Int, Inline)] =
+    if text.charAt(start) == '\\' then
+      if start + 1 < text.length && text.charAt(start + 1) == '\n' then
+        Present((start + 2, Inline.LineBreak(spanOf(start, start + 2, sourceOffsetAt))))
+      else Absent
+    else
+      @tailrec def spacesEnd(index: Int): Int =
+        if index < text.length && text.charAt(index) == ' ' then spacesEnd(index + 1) else index
+      val end = spacesEnd(start)
+      if end >= text.length || text.charAt(end) != '\n' then Absent
+      else if end - start >= 2 then Present((end + 1, Inline.LineBreak(spanOf(start, end + 1, sourceOffsetAt))))
+      // One space before a line ending is neither a break nor content: the line ending stands on its own.
+      else Present((end + 1, Inline.Text("\n", spanOf(start, end + 1, sourceOffsetAt))))
 
   /**
    * A character reference: `&name;`, `&#dddd;` or `&#xhhhh;`.
@@ -771,6 +796,8 @@ private[markdown] object InlineParser:
     case Inline.StrongEmphasis(inner, _) => inner.map(plainOf).mkString
     // An `alt` attribute is text, and raw HTML in a label contributes none: it is markup, not content.
     case Inline.RawHtml(_, _) => ""
+    // A break in alt text is the line ending it stands for; the `alt` attribute has no markup to carry it.
+    case Inline.LineBreak(_) => "\n"
 
   private def spanOf(start: Int, end: Int, sourceOffsetAt: Int => Int): Span =
     Span.fromStartEnd(sourceOffsetAt(start), sourceOffsetAt(end))

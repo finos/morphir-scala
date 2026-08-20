@@ -30,6 +30,9 @@ class ParserTests extends Test[Any]:
       case Inline.StrongEmphasis(inner, _) => textOf(inner)
       // Raw HTML is markup rather than text, and contributes none: a test asserting on it matches the node itself.
       case Inline.RawHtml(_, _) => ""
+      // A hard break reads as the line ending it stands for, so a test that only cares what the prose says need not
+      // know which kind of break produced it.
+      case Inline.LineBreak(_) => "\n"
     }.mkString
 
   private def parseMetrics(source: String): ScanMetrics =

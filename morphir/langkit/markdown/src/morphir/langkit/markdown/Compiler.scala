@@ -117,6 +117,14 @@ trait Compiler[Out]:
   def rawHtml(value: String): Out
 
   /**
+   * Compile a hard line break.
+   *
+   * The break the author asked for, as against the soft one that any line ending gives. A target that reflows its own
+   * text still has to honour this one, because it is a request rather than an artefact of how the source was wrapped.
+   */
+  def lineBreak: Out
+
+  /**
    * Combine compiled list items into a numbered list.
    *
    * @param start

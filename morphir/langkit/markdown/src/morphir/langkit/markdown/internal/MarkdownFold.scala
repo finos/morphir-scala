@@ -66,4 +66,5 @@ private[markdown] object MarkdownFold:
       case Inline.Emphasis(content, _)              => compiler.emphasis(content.map(compileInline))
       case Inline.StrongEmphasis(content, _)        => compiler.strongEmphasis(content.map(compileInline))
       case Inline.RawHtml(value, _)                 => compiler.rawHtml(value)
+      case Inline.LineBreak(_)                      => compiler.lineBreak
 end MarkdownFold

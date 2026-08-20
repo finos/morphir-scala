@@ -44,6 +44,9 @@ class InlineTests extends Test[Any]:
       case Inline.StrongEmphasis(inner, _) => textOf(inner)
       // Raw HTML is markup rather than text, and contributes none: a test asserting on it matches the node itself.
       case Inline.RawHtml(_, _) => ""
+      // A hard break reads as the line ending it stands for, so a test that only cares what the prose says need not
+      // know which kind of break produced it.
+      case Inline.LineBreak(_) => "\n"
     }.mkString
 
   /** The values of every code span a source produces, ignoring the text around them. */
@@ -543,6 +546,53 @@ class InlineTests extends Test[Any]:
     "will not take an angle destination holding a line ending or an escaped close (examples 491 and 493)" in {
       assert(destinations("[link](<foo\nbar>)\n").isEmpty)
       assert(destinations("[link](<foo\\>)\n").isEmpty)
+    }
+  }
+
+  "a line ending" - {
+
+    def inlines(source: String): Chunk[Inline] =
+      parse(source).blocks.head match
+        case Block.Paragraph(content, _) => content
+        case other                       => throw new AssertionError(s"expected a paragraph, got $other")
+
+    def breaks(source: String): Int = inlines(source).count(_.isInstanceOf[Inline.LineBreak])
+
+    "is hard when two or more spaces or a backslash precede it (spec examples 633 to 635)" in {
+      assert(breaks("foo  \nbaz\n") == 1)
+      assert(breaks("foo\\\nbaz\n") == 1, "a backslash before the line ending asks for a break too")
+      assert(breaks("foo       \nbaz\n") == 1, "more than two spaces is still one break")
+    }
+    // One trailing space is neither a break nor content. Deciding that means looking at the whitespace, which is why
+    // it is consumed here rather than stripped from the line beforehand -- stripping first would throw away the very
+    // thing that says which of the two this is.
+    "is soft when one space precedes it, and the space is not content (spec example 649)" in {
+      assert(breaks("foo \n baz\n") == 0)
+      assert(textOf(inlines("foo \n baz\n")) == "foo\nbaz")
+    }
+    "survives inside emphasis (spec examples 638 and 639)" in {
+      inlines("*foo  \nbar*\n").head match
+        case Inline.Emphasis(inner, _) => assert(inner.exists(_.isInstanceOf[Inline.LineBreak]))
+        case other                     => assert(false, s"expected emphasis, got $other")
+      inlines("*foo\\\nbar*\n").head match
+        case Inline.Emphasis(inner, _) => assert(inner.exists(_.isInstanceOf[Inline.LineBreak]))
+        case other                     => assert(false, s"expected emphasis, got $other")
+    }
+    "takes the indentation off the line that follows it (spec examples 636 and 637)" in {
+      assert(textOf(inlines("foo  \n     bar\n")) == "foo\nbar")
+      assert(textOf(inlines("foo\\\n     bar\n")) == "foo\nbar")
+    }
+    // A run of spaces that reaches no line ending is ordinary text, and so is a backslash before anything else.
+    "leaves spaces and backslashes that reach no line ending alone" in {
+      assert(textOf(inlines("foo  bar\n")) == "foo  bar")
+      assert(breaks("foo  bar\n") == 0)
+      assert(textOf(inlines("foo\\bar\n")) == "foo\\bar")
+    }
+    "reports the span the break occupies in the source" in {
+      val source = "foo  \nbaz\n"
+      inlines(source).collectFirst { case Inline.LineBreak(span) => span } match
+        case Some(span) => assert(source.substring(span.offset, span.end) == "  \n")
+        case None       => assert(false, "expected a hard break")
     }
   }
 

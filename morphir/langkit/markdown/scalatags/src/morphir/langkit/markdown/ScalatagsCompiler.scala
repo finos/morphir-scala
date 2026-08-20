@@ -87,6 +87,13 @@ object ScalatagsCompiler:
     def rawHtml(value: String): Frag = raw(value)
 
     /**
+     * ScalaTags spells the element `<br />`, which is what the fixtures expect, and the line ending after it is the
+     * writer's to add for the same reason the separators between blocks are: the author's line ending was spent saying
+     * that the break was wanted.
+     */
+    def lineBreak: Frag = frag(br, newline)
+
+    /**
      * Every child on its own line, and a newline after the opening tag even when there are none: the fixtures spell an
      * empty quote `<blockquote>\n</blockquote>`.
      */

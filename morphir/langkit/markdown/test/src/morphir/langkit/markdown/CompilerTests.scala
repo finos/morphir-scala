@@ -29,6 +29,7 @@ class CompilerTests extends Test[Any]:
     def image(destination: String, title: Maybe[String], alt: String) =
       s"(img $destination ${title.getOrElse("-")} $alt)"
     def rawHtml(value: String): String              = s"(rawhtml $value)"
+    def lineBreak: String                           = "(br)"
     def htmlBlock(content: String): String          = s"(html $content)"
     def blockQuote(children: Chunk[String]): String = children.mkString("(quote ", " ", ")")
     def blockSeparator: String                      = "\\n"
