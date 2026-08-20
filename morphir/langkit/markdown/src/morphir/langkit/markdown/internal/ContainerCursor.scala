@@ -17,6 +17,19 @@ private[markdown] final case class Line(view: SourceView, text: String, terminat
   def end: Int    = view.end.toInt
   def length: Int = view.length.toInt
 
+  /**
+   * The source offset of the first character that is neither a space nor a tab.
+   *
+   * Taken from the view rather than from `text`, because the two can differ: [[Tabs.expand]] writes a structural tab as
+   * the spaces it occupies, so counting the whitespace in `text` would report columns where the source has characters.
+   * Anything locating content in the source asks this instead of measuring the text.
+   */
+  def contentOffset: Int =
+    val source = view.text
+    var index  = 0
+    while index < source.length && (source.charAt(index) == ' ' || source.charAt(index) == '\t') do index += 1
+    offset + index
+
 /**
  * A line read through the open containers, and whether every one of them claimed it.
  *
@@ -50,9 +63,12 @@ private[markdown] enum ContainerPrefix derives CanEqual:
   /**
    * Where this prefix ends in `text`, starting at `from`, or [[kyo.Absent]] when the line does not carry it.
    *
-   * `absoluteStart` is the source offset of `text.charAt(0)`, so a prefix can tell which line it is looking at.
+   * `absoluteFrom` is the source offset that `from` stands at, mapped by the caller. It has to be: `from` counts
+   * columns of a tab-expanded line while an offset counts characters of the source, and the two part company the moment
+   * a tab is involved. Adding `from` to the line's offset here was right until a tab made it silently wrong, and a list
+   * item that could not recognise its own marker line gathered that line for ever.
    */
-  def consume(text: String, from: Int, absoluteStart: Int): Maybe[Int] =
+  def consume(text: String, from: Int, absoluteFrom: Int): Maybe[Int] =
     this match
       case BlockQuote =>
         val marker = ContainerPrefix.skipSpaces(text, from, 3)
@@ -65,7 +81,7 @@ private[markdown] enum ContainerPrefix derives CanEqual:
         else Absent
 
       case ListItem(markerAt, columns) =>
-        if absoluteStart + from == markerAt then
+        if absoluteFrom == markerAt then
           // The item's own line: the marker stands where the indentation will. An empty item has less line than that.
           Present(math.min(from + columns, text.length))
         else
@@ -158,7 +174,7 @@ private[markdown] final class ContainerCursor private (
         remaining match
           case Nil          => (cursor, true)
           case head :: tail =>
-            head.consume(raw.text, cursor, raw.offset) match
+            head.consume(raw.text, cursor, raw.offset + Tabs.sourceCut(raw.view.text, cursor)) match
               case Present(next) => consume(tail, next)
               case Absent        => (cursor, false)
       val (consumed, matchedAll) = consume(prefixes, 0)
@@ -172,13 +188,23 @@ private[markdown] final class ContainerCursor private (
       if offset > 1 && source.charAt(offset - 2) == '\r' then offset - 2 else offset - 1
     else offset
 
+  /**
+   * The line with its first `consumed` columns taken off.
+   *
+   * Columns, not characters, which is why the view is cut with [[Tabs.sourceCut]] rather than by adding `consumed` to
+   * the offset: a container that spends two columns of a tab leaves the other two behind as spaces, and those spaces
+   * belong to the text without belonging to the source.
+   */
   private def strip(line: Line, consumed: Int): Line =
     if consumed == 0 then line
     else
-      val view = scanner.view(Span.fromStartEnd(line.offset + consumed, line.end))
-      Line(view, view.text, line.terminatedByLf)
+      val view = scanner.view(Span.fromStartEnd(line.offset + Tabs.sourceCut(line.view.text, consumed), line.end))
+      Line(view, line.text.substring(consumed), line.terminatedByLf)
 
-  /** One raw line, terminator consumed but not counted as text, and CRLF reported as its content alone. */
+  /**
+   * One line, terminator consumed but not counted as text, CRLF reported as its content alone, and structural tabs
+   * written as the columns they occupy.
+   */
   private[internal] def readRaw(): Line =
     scanner.requireProgress(phase) {
       val start                 = scanner.mark
@@ -201,13 +227,95 @@ private[markdown] final class ContainerCursor private (
         else rawEnd
       val view = scanner.view(Span.fromStartEnd(start.toInt, textEnd))
       scanner.chargeWork(WorkUnits.from(view.length.toInt.toLong).getOrThrow)
-      Line(view, view.text, terminatedByLf)
+      Line(view, Tabs.expand(view.text), terminatedByLf)
     }
 end ContainerCursor
 
 private[markdown] object ContainerCursor:
   /** A cursor at the top level of a document, where no container is open. */
   def top(scanner: SourceScanner): ContainerCursor = new ContainerCursor(scanner, Nil, LineCache())
+
+/**
+ * Tabs, which CommonMark measures in columns rather than in characters.
+ *
+ * A tab advances to the next four-column stop, so a leading tab is four columns of indentation and a tab after `>` is
+ * however many columns are left of the stop it reaches. Written out as spaces once, when the line is read, every place
+ * downstream that counts indentation keeps counting characters and gets the right answer.
+ *
+ * Only *structural* tabs, and the distinction is the whole design. A tab is structural while nothing but indentation
+ * and block markers has been seen; the moment content starts, tabs are content and are left exactly as written --
+ * example 1 is a code block whose body is `foo\tbaz\t\tbim`, tabs and all.
+ */
+private[internal] object Tabs:
+
+  private val Stop = 4
+
+  /** The line with its structural tabs written as the columns they occupy. */
+  def expand(text: String): String =
+    if text.indexOf('\t') < 0 then text
+    else
+      val out        = StringBuilder()
+      var index      = 0
+      var column     = 0
+      var structural = true
+      while index < text.length do
+        val char = text.charAt(index)
+        if !structural then
+          out.append(char)
+          index += 1
+        else if char == '\t' then
+          val stop = ((column / Stop) + 1) * Stop
+          while column < stop do
+            out.append(' ')
+            column += 1
+          index += 1
+        else if char == ' ' then
+          out.append(' ')
+          column += 1
+          index += 1
+        else
+          markerEnd(text, index) match
+            case Present(end) =>
+              // `substring`, not `append(text, index, end)`: there is no three-argument `append` on this builder, so
+              // that call auto-tuples and appends the tuple's `toString`.
+              out.append(text.substring(index, end))
+              column += end - index
+              index = end
+            case Absent => structural = false
+      out.toString
+
+  /**
+   * A block marker at `from`, and where it ends.
+   *
+   * Deliberately narrow. `-`, `*` and `+` are markers only when whitespace follows, and a run of digits only when a `.`
+   * or `)` and then whitespace follow, so `1.5\tfoo` is a paragraph whose tab is content and stays a tab.
+   */
+  private def markerEnd(text: String, from: Int): Maybe[Int] =
+    val char = text.charAt(from)
+    if char == '>' then Present(from + 1)
+    else if char == '-' || char == '*' || char == '+' then
+      if from + 1 >= text.length || isSpaceOrTab(text.charAt(from + 1)) then Present(from + 1) else Absent
+    else if char.isDigit then
+      var end = from
+      while end < text.length && text.charAt(end).isDigit do end += 1
+      if end < text.length && (text.charAt(end) == '.' || text.charAt(end) == ')') &&
+        (end + 1 >= text.length || isSpaceOrTab(text.charAt(end + 1)))
+      then Present(end + 1)
+      else Absent
+    else Absent
+
+  /** How many characters of `source` the first `columns` columns occupy. */
+  def sourceCut(source: String, columns: Int): Int =
+    var index  = 0
+    var column = 0
+    while column < columns && index < source.length do
+      if source.charAt(index) == '\t' then column = ((column / Stop) + 1) * Stop
+      else column += 1
+      index += 1
+    index
+
+  private def isSpaceOrTab(char: Char): Boolean = char == ' ' || char == '\t'
+end Tabs
 
 /**
  * The last raw line read, so that no line of the source is scanned twice.

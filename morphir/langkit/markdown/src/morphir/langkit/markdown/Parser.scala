@@ -274,7 +274,7 @@ object Parser:
 
   /** Whether a line carries a block quote marker: up to three spaces, then `>`. */
   private def isBlockQuoteStart(text: String): Boolean =
-    !ContainerPrefix.BlockQuote.consume(text, 0, absoluteStart = 0).isEmpty
+    !ContainerPrefix.BlockQuote.consume(text, 0, absoluteFrom = 0).isEmpty
 
   /** Tag names that open an HTML block on sight, from the spec's condition-6 list. */
   private val HtmlBlockTags = Set(
@@ -581,8 +581,9 @@ object Parser:
    * Moving the offset with the text is what keeps an inline span in that line pointing at the source.
    */
   private def segment(line: Line): (Int, String) =
-    val stripped = line.text.stripLeading
-    (line.offset + (line.text.length - stripped.length), stripped)
+    // The offset comes from the line rather than from the text's length, because a tab-expanded line counts columns
+    // where the source counts characters: `\tfoo` has four columns of indentation and one character of it.
+    (line.contentOffset, line.text.stripLeading)
 
   /**
    * Consume `[label]: destination "title"` definitions from the front of a paragraph's text.
@@ -786,7 +787,12 @@ object Parser:
       val span = Span.fromStartEnd(start, run.contentEnd)
       (DeferredItem(defs => ListItem(Chunk.from(run.blocks.map(_.resolve(defs))), span)), run)
 
-    if !startsEmpty then item(scanner.withNesting(parseDeferred(inner, definitions)))
+    // An item must consume at least the line that opened it. Guarding that here rather than trusting it: an item that
+    // consumed nothing would leave the list gathering the same line for ever, and because nothing was read there is no
+    // work charged for the scan budget to notice.
+    def read(): BlockRun = scanner.requireProgress(BlocksPhase)(scanner.withNesting(parseDeferred(inner, definitions)))
+
+    if !startsEmpty then item(read())
     else
       // "A list item can begin with at most one blank line." An item whose marker line holds nothing and whose next
       // line is blank as well holds nothing at all, and that second blank belongs to whatever follows the list.
@@ -795,7 +801,7 @@ object Parser:
       val checkpoint = cursor.checkpoint()
       val followed   = inner.readLine().exists(line => !isBlank(scanner, line))
       cursor.restore(checkpoint)
-      if followed then item(scanner.withNesting(parseDeferred(inner, definitions)))
+      if followed then item(read())
       else item(BlockRun(Nil, markerEnd, interiorBlank = false, trailingBlank = false))
 
   private final case class DeferredItem(resolve: Map[String, LinkDefinition] => ListItem)
@@ -861,8 +867,11 @@ object Parser:
   // or more hashes falls through to the paragraph branch exactly as CommonMark requires.
   private def headingPrefix(text: String): Maybe[(HeadingLevel, String)] =
     val hashes = text.takeWhile(_ == '#')
-    if hashes.nonEmpty && text.length > hashes.length && text.charAt(hashes.length) == ' ' then
-      HeadingLevel.fromInt(hashes.length).map(level => (level, text.drop(hashes.length + 1)))
+    // A tab separates the hashes from the text as well as a space does. It is not indentation here -- the heading's
+    // content is trimmed either way -- so it is taken as a separator rather than measured in columns.
+    if hashes.nonEmpty && text.length > hashes.length &&
+      (text.charAt(hashes.length) == ' ' || text.charAt(hashes.length) == '\t')
+    then HeadingLevel.fromInt(hashes.length).map(level => (level, text.drop(hashes.length + 1)))
     else Absent
 
   private def fenceOpen(text: String): Maybe[FenceOpen] =

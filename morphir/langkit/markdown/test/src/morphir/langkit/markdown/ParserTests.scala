@@ -806,6 +806,82 @@ class ParserTests extends Test[Any]:
         s"a list costs $itemWork against $plainWork for the same prose: the line scan is not being shared"
       )
     }
+    // A tab advances to the next four-column stop, so what it counts for depends on where it sits. These are the four
+    // places that ask, and each one used to count the tab as a single character.
+    "measures a tab in columns wherever indentation is counted" in {
+      def blockOf(source: String): Block =
+        Parser.parse(source) match
+          case Result.Success(document) => document.blocks(0)
+          case other                    => throw new AssertionError(s"parse failed: $other")
+
+      def codeIn(block: Block): String =
+        block match
+          case Block.IndentedCode(content, _) => content
+          case other                          => throw new AssertionError(s"expected indented code, got $other")
+
+      // One leading tab is four columns, so it opens a code block -- and the tabs inside the body are content, left
+      // exactly as written (spec example 1).
+      assert(codeIn(blockOf("\tfoo\tbaz\t\tbim\n")) == "foo\tbaz\t\tbim\n")
+      // Two spaces then a tab is four as well: the tab finishes the stop rather than adding four of its own (2).
+      assert(codeIn(blockOf("  \tfoo\n")) == "foo\n")
+      // The quote marker takes one column of the tab that follows it, leaving six -- four for the code block, two
+      // over (6).
+      blockOf(">\t\tfoo\n") match
+        case Block.BlockQuote(content, _) => assert(codeIn(content(0)) == "  foo\n")
+        case other                        => assert(false, s"expected a block quote, got $other")
+      // The same for a bullet: more than four columns after the marker means the item spends one and holds code (7).
+      blockOf("-\t\tfoo\n") match
+        case Block.UnorderedList(items, _, _) => assert(codeIn(items(0).content(0)) == "  foo\n")
+        case other                            => assert(false, s"expected a list, got $other")
+      // A tab separates the hashes of a heading from its text as well as a space does (10).
+      blockOf("#\tFoo\n") match
+        case Block.Heading(level, content, _) =>
+          assert(level == HeadingLevel.One)
+          assert(textOf(content) == "Foo")
+        case other => assert(false, s"expected a heading, got $other")
+    }
+    // A tab-expanded line counts columns while the source counts characters. When a list item compared the two it
+    // never recognised its own marker line, gathered nothing, and read that same line for ever -- and because nothing
+    // was read there was no work for the scan budget to notice.
+    "keeps a tab-indented marker in the same coordinates as the source (spec example 9)" in {
+      Parser.parse(" - foo\n   - bar\n\t - baz\n") match
+        case Result.Success(doc) =>
+          def onlyItem(block: Block): ListItem =
+            block match
+              case Block.UnorderedList(items, _, _) =>
+                assert(items.size == 1)
+                items(0)
+              case other => throw new AssertionError(s"expected a list, got $other")
+
+          val second = onlyItem(doc.blocks(0)).content(1)
+          val third  = onlyItem(second).content(1)
+          third match
+            case Block.UnorderedList(items, _, _) =>
+              assert(items.size == 1, "the tab-indented marker belongs to the item above it")
+            case other => assert(false, s"expected a third-level list, got $other")
+        case other => assert(false, s"parse failed: $other")
+    }
+    "keeps a span true through a tab-indented continuation line" in {
+      val source = "alpha\n\t`beta`\n"
+      Parser.parse(source) match
+        case Result.Success(doc) =>
+          doc.blocks(0) match
+            case Block.Paragraph(content, _) =>
+              content.collectFirst { case Inline.CodeSpan(_, span) => span } match
+                case Some(span) => assert(source.substring(span.offset, span.end) == "`beta`")
+                case None       => assert(false, "expected a code span on the continuation line")
+            case other => assert(false, s"expected a paragraph, got $other")
+        case _ => assert(false)
+    }
+    "leaves a tab that is content alone" in {
+      // `1.5` is not a list marker, so nothing on this line is structural and the tab stays a tab.
+      Parser.parse("1.5\tfoo\n") match
+        case Result.Success(doc) =>
+          doc.blocks(0) match
+            case Block.Paragraph(content, _) => assert(textOf(content) == "1.5\tfoo")
+            case other                       => assert(false, s"expected a paragraph, got $other")
+        case _ => assert(false)
+    }
     "reads a thematic break between paragraphs" in {
       Parser.parse("Hello\n\n---\n\nWorld") match
         case Result.Success(doc) =>
