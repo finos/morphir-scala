@@ -296,6 +296,51 @@ class InlineTests extends Test[Any]:
     }
   }
 
+  "a link reference definition" - {
+    "resolves a shortcut reference (spec example 192)" in {
+      inlines("[foo]: /url \"title\"\n\n[foo]") match
+        case Chunk(Inline.Link(destination, title, content, _)) =>
+          assert(destination == "/url")
+          assert(title == Present("title"))
+          assert(textOf(content) == "foo")
+        case other => assert(false, s"expected one link, got $other")
+    }
+    "resolves a reference declared after its use (spec example 561)" in
+      assert(destinations("[Foo]\n\n[foo]: /url \"title\"") == Chunk("/url"))
+    "matches labels case-insensitively and on collapsed whitespace" in
+      assert(destinations("[Foo   Bar]\n\n[foo bar]: /url") == Chunk("/url"))
+    "resolves a full reference (spec example 570 shape)" in
+      assert(destinations("[foo][bar]\n\n[bar]: /url2") == Chunk("/url2"))
+    "resolves a collapsed reference" in
+      assert(destinations("[foo][]\n\n[foo]: /url") == Chunk("/url"))
+    "resolves an image reference (spec example 588)" in {
+      inlines("![foo]\n\n[foo]: /url \"title\"") match
+        case Chunk(Inline.Image(destination, title, alt, _)) =>
+          assert(destination == "/url")
+          assert(title == Present("title"))
+          assert(alt == "foo")
+        case other => assert(false, s"expected one image, got $other")
+    }
+    "contributes no block of its own" in {
+      val document = parse("[foo]: /url\n\nbody")
+      assert(document.blocks.size == 1)
+      document.blocks.head match
+        case Block.Paragraph(content, _) => assert(textOf(content) == "body")
+        case other                       => assert(false, s"expected one paragraph, got $other")
+    }
+    "keeps the first of two definitions for the same label" in
+      assert(destinations("[foo]: /first\n[foo]: /second\n\n[foo]") == Chunk("/first"))
+    "is not a definition when the line carries trailing content (spec example 209)" in {
+      val document = parse("[foo]: /url \"title\" ok")
+      assert(document.blocks.size == 1)
+      assert(document.blocks.head.isInstanceOf[Block.Paragraph])
+    }
+    "leaves an unresolved reference as literal text" in {
+      assert(destinations("[nope]") == Chunk.empty)
+      assert(textOf(inlines("[nope]")) == "[nope]")
+    }
+  }
+
   "fenced code" - {
     "keeps its body as literal text, never inline content" in {
       parse("```\n*not emphasis*\n```").blocks.head match

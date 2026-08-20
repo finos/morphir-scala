@@ -3,7 +3,7 @@ package morphir.langkit.markdown
 import kyo.*
 import morphir.langkit.core.Span
 import morphir.langkit.core.scanner.*
-import morphir.langkit.markdown.internal.InlineParser
+import morphir.langkit.markdown.internal.{InlineParser, LinkDefinition}
 
 /**
  * A CommonMark subset parser: ATX headings, paragraphs, fenced code, unordered lists, and thematic breaks.
@@ -28,7 +28,8 @@ object Parser:
   ): Result[ParseError, (Document, ScanMetrics)] =
     SourceScanner.scan(source, budget, phase = Present(BlocksPhase)) { scanner =>
       scanner.chargeOutputNodes(NodeCount.one)
-      val blocks = parseBlocks(scanner)
+      val definitions = scala.collection.mutable.Map.empty[String, LinkDefinition]
+      val blocks      = parseBlocks(scanner, definitions)
       // Keep the caller's coordinate space: do not rewrite CRLF before measuring spans.
       val document = Document(blocks, Span(0, source.length))
       (document, scanner.metrics)
@@ -36,41 +37,59 @@ object Parser:
       case ScanResult.Success(value) => Result.succeed(value)
       case ScanResult.Failure(error) => Result.fail(ParseError.Scan(error))
 
+  /**
+   * A block whose inline content has not been parsed yet.
+   *
+   * Link reference definitions may appear after the text that uses them, so no prose can be parsed until the whole
+   * document has been read. A block with no prose resolves to itself.
+   */
+  private final case class Deferred(resolve: Map[String, LinkDefinition] => Block)
+
+  private object Deferred:
+    def ready(block: Block): Deferred                                = Deferred(_ => block)
+    def prose(build: Map[String, LinkDefinition] => Block): Deferred = Deferred(build)
+
   private final case class Line(view: SourceView, text: String, terminatedByLf: Boolean):
     def offset: Int = view.start.toInt
     def end: Int    = view.end.toInt
     def length: Int = view.length.toInt
 
-  private def parseBlocks(scanner: SourceScanner): Chunk[Block] =
-    val blocks = List.newBuilder[Block]
+  private def parseBlocks(
+      scanner: SourceScanner,
+      definitions: scala.collection.mutable.Map[String, LinkDefinition]
+  ): Chunk[Block] =
+    val blocks = List.newBuilder[Deferred]
     while !scanner.isAtEnd do
       scanner.requireProgress(BlocksPhase) {
         val line = readLine(scanner)
         if !isBlank(scanner, line) then
           val block =
             // Four spaces of indentation beats every other block opener: an indented `# foo` is code, not a heading.
-            if isIndentedCode(scanner, line) then readIndentedCode(scanner, line)
+            if isIndentedCode(scanner, line) then Present(Deferred.ready(readIndentedCode(scanner, line)))
             else
               headingPrefix(scanner, line) match
                 case Present((level, rest)) =>
-                  Block.Heading(
-                    level,
-                    inlineOfLine(line, rest),
-                    Span(line.offset, line.length)
-                  )
+                  val headingSpan = Span(line.offset, line.length)
+                  val base        = contentSpan(line, rest).offset
+                  Present(Deferred.prose { defs =>
+                    Block.Heading(level, InlineParser.parse(rest, index => base + index, defs), headingSpan)
+                  })
                 case Absent =>
                   fenceOpen(scanner, line) match
-                    case Present(open) => readFencedCode(scanner, line, open)
+                    case Present(open) => Present(Deferred.ready(readFencedCode(scanner, line, open)))
                     case Absent        =>
-                      if isThematicBreak(scanner, line) then Block.ThematicBreak(Span(line.offset, line.length))
+                      if isThematicBreak(scanner, line) then
+                        Present(Deferred.ready(Block.ThematicBreak(Span(line.offset, line.length))))
                       else
                         unorderedItem(scanner, line) match
-                          case Present(item) => readUnorderedList(scanner, line, item)
-                          case Absent        => readParagraph(scanner, line)
+                          case Present(item) => Present(readUnorderedList(scanner, line, item))
+                          case Absent        => readParagraph(scanner, line, definitions)
           scanner.chargeOutputNodes(NodeCount.one)
-          blocks += block
+          block.foreach(blocks += _)
       }
-    Chunk.from(blocks.result())
+    // Second phase: every definition in the document is known now, so prose can resolve references that point
+    // forward as well as back.
+    Chunk.from(blocks.result().map(_.resolve(definitions.toMap)))
 
   /** A line of four or more leading spaces, which CommonMark reads as code rather than as whatever it looks like. */
   private def isIndentedCode(scanner: SourceScanner, line: Line): Boolean =
@@ -165,7 +184,11 @@ object Parser:
     // The budgeted FenceInfo path reserves deterministic work and output before token materialization.
     Block.FencedCode(FenceInfo.parseBudgeted(open.info, scanner), content, Span.fromStartEnd(opening.offset, end))
 
-  private def readParagraph(scanner: SourceScanner, first: Line): Block =
+  private def readParagraph(
+      scanner: SourceScanner,
+      first: Line,
+      definitions: scala.collection.mutable.Map[String, LinkDefinition]
+  ): Maybe[Deferred] =
     val segments = List.newBuilder[(Int, String)]
     segments += ((first.offset, first.text))
     var last        = first
@@ -185,10 +208,60 @@ object Parser:
     val trimmed = raw.trim
     val leading = raw.length - raw.stripLeading.length
     scanner.chargeWork(WorkUnits.from(raw.length.toLong).getOrThrow)
-    Block.Paragraph(
-      InlineParser.parse(trimmed, index => sourceOffsetOf(lines, index + leading)),
-      Span.fromStartEnd(first.offset, last.end)
-    )
+
+    // A paragraph may open with link reference definitions. They are not content: they are consumed here and only
+    // what follows them, if anything, becomes a paragraph.
+    val consumed = takeDefinitions(trimmed, definitions)
+    val body     = trimmed.substring(consumed)
+    if body.isBlank then Absent
+    else
+      val bodyStart = leading + consumed
+      val span      = Span.fromStartEnd(first.offset, last.end)
+      Present(Deferred.prose { defs =>
+        Block.Paragraph(InlineParser.parse(body.trim, index => sourceOffsetOf(lines, index + bodyStart), defs), span)
+      })
+  end readParagraph
+
+  /**
+   * Consume `[label]: destination "title"` definitions from the front of a paragraph's text.
+   *
+   * Returns how many characters were taken. A definition contributes no block; it is recorded and the text that follows
+   * becomes the paragraph, which is what lets a document open with its link definitions.
+   */
+  private def takeDefinitions(
+      text: String,
+      definitions: scala.collection.mutable.Map[String, LinkDefinition]
+  ): Int =
+    var consumed = 0
+    var scanning = true
+    while scanning do
+      linkDefinitionAt(text, consumed) match
+        case Present((end, label, destination, title)) =>
+          val key = InlineParser.normalizeLabel(label)
+          // First definition wins, which is what the spec says about duplicates.
+          if !definitions.contains(key) then definitions(key) = LinkDefinition(destination, title)
+          consumed = end
+        case Absent => scanning = false
+    consumed
+
+  /** One definition beginning at `from`, or [[kyo.Absent]] if the text does not start with one. */
+  private def linkDefinitionAt(
+      text: String,
+      from: Int
+  ): Maybe[(Int, String, String, Maybe[String])] =
+    var index = from
+    while index < text.length && (text.charAt(index) == ' ' || text.charAt(index) == '\n') do index += 1
+    if index >= text.length || text.charAt(index) != '[' then Absent
+    else
+      InlineParser.labelEndOf(text, index + 1) match
+        case Absent         => Absent
+        case Present(close) =>
+          if close + 1 >= text.length || text.charAt(close + 1) != ':' then Absent
+          else
+            val label = text.substring(index + 1, close)
+            InlineParser.definitionTarget(text, close + 2) match
+              case Absent                             => Absent
+              case Present((end, destination, title)) => Present((end, label, destination, title))
 
   /**
    * Map an index in a paragraph's joined text back to its offset in the source.
@@ -226,8 +299,8 @@ object Parser:
       )
     }
 
-  private def readUnorderedList(scanner: SourceScanner, first: Line, firstItem: String): Block =
-    val items = List.newBuilder[ListItem]
+  private def readUnorderedList(scanner: SourceScanner, first: Line, firstItem: String): Deferred =
+    val items = List.newBuilder[DeferredItem]
     items += listItem(first, firstItem)
     var last = first
     var done = false
@@ -241,15 +314,15 @@ object Parser:
         case Absent =>
           scanner.restore(checkpoint)
           done = true
-    Block.UnorderedList(Chunk.from(items.result()), Span.fromStartEnd(first.offset, last.end))
+    val collected = Chunk.from(items.result())
+    val listSpan  = Span.fromStartEnd(first.offset, last.end)
+    Deferred.prose(defs => Block.UnorderedList(collected.map(_.resolve(defs)), listSpan))
 
-  private def listItem(line: Line, content: String): ListItem =
-    ListItem(inlineOfLine(line, content), contentSpan(line, content))
+  private final case class DeferredItem(resolve: Map[String, LinkDefinition] => ListItem)
 
-  /** Inline content for a block whose prose came from one line, so offsets are the line's plus an index. */
-  private def inlineOfLine(line: Line, content: String): Chunk[Inline] =
-    val base = contentSpan(line, content).offset
-    InlineParser.parse(content, index => base + index)
+  private def listItem(line: Line, content: String): DeferredItem =
+    val span = contentSpan(line, content)
+    DeferredItem(defs => ListItem(InlineParser.parse(content, index => span.offset + index, defs), span))
 
   /**
    * Where a block's extracted content sits in the source.
