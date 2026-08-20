@@ -706,6 +706,28 @@ class ParserTests extends Test[Any]:
       assert(tightnessOf("- a\n  - b\n"), "a nested list is a second block, but no blank line separates them")
       assert(!tightnessOf("- one\n\n- two\n"), "a blank line between items")
       assert(!tightnessOf("* a\n*\n\n* c\n"), "a blank line after an empty item still separates it (spec example 315)")
+
+      // A nested container eats the blank line at its end, because a blank matches its continuation prefix. The blank
+      // still separated the outer item's blocks, so it has to come back out.
+      assert(
+        !tightnessOf("- a\n  - b\n  - c\n\n- d\n"),
+        "the blank ended a nested list, and the item holding it has a next item (spec example 326)"
+      )
+      assert(
+        !tightnessOf("* foo\n  * bar\n\n  baz\n"),
+        "the blank ended a nested list, and another block follows it in the same item (spec example 325)"
+      )
+      assert(
+        !tightnessOf("- a\n- b\n\n  [ref]: /url\n- d\n"),
+        "a link reference definition is recorded, not rendered, so it does not clear the blank before it (example 317)"
+      )
+
+      // A quote is the container that cannot do this: its prefix needs a `>`, so what it swallows is `>` with nothing
+      // after it -- blank content rather than a blank line.
+      assert(
+        tightnessOf("* a\n  > b\n  >\n* c\n"),
+        "a bare `>` inside a quoted item does not loosen the list around it (spec example 320)"
+      )
       assert(!tightnessOf("- one\n\n  two\n"), "a blank line between an item's blocks")
     }
     "nests a list inside the item that indents it" in {

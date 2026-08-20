@@ -11,6 +11,7 @@ object jvm:
     # kyo suite pin comes from MorphirSuiteBom through depManagement.
     mvnDeps: !append
     - io.getkyo::kyo-schema-json
+    - io.getkyo::kyo-config
 
 object js:
   extends: [build.MorphirJSModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps]

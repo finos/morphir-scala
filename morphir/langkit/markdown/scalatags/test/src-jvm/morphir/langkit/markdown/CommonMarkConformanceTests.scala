@@ -46,19 +46,29 @@ class CommonMarkConformanceTests extends Test[Any]:
       case _                        => false
 
   /**
-   * Sections whose failures should be printed in full, from `MORPHIR_CONFORMANCE_FAILURES`.
+   * Sections whose failures should be printed in full.
    *
-   * A score says how far off we are; it does not say what to write next. This does: set the variable to `all`, or to a
-   * comma-separated list of section-name fragments, and every failure in those sections is printed with its source,
-   * what we produced and what the spec wants. That is how a slice gets picked, and it is off by default because the
-   * output is long and only a person driving the score wants it.
+   * A score says how far off we are; it does not say what to write next. This does: name `all`, or a comma-separated
+   * list of section-name fragments, and every failure in those sections is printed with its source, what we produced
+   * and what the spec wants. That is how a slice gets picked, and it is off by default because the output is long and
+   * only someone driving the score wants it.
    *
-   * MORPHIR_CONFORMANCE_FAILURES='block quotes,lists' ./mill morphir.langkit.markdown.scalatags.jvm.test
+   * Read through [[kyo.Flag]] rather than off the environment directly, which is what the rest of a Kyo codebase does.
+   * The flag resolves `morphir.conformance.failures` as a system property first and then as the environment variable of
+   * the same name, dots turned into underscores and the letters uppercased.
+   *
+   * {{{
+   * MORPHIR_CONFORMANCE_FAILURES='block quotes,lists' ./mill -i morphir.langkit.markdown.scalatags.jvm.test
+   * }}}
+   *
+   * The environment variable is the route that works through Mill, and `-i` is required: the daemon carries no variable
+   * it was not started with, and a `-D` on the Mill command line sets a property on the launcher rather than on the
+   * forked test JVM. The property route is there for anyone running this suite outside Mill.
    */
   private val reportFailuresIn: Chunk[String] =
     Chunk.from(
-      Option(java.lang.System.getenv("MORPHIR_CONFORMANCE_FAILURES")).toSeq
-        .flatMap(_.split(","))
+      Flag[String]("morphir.conformance.failures", "")
+        .split(",")
         .map(_.trim.toLowerCase)
         .filter(_.nonEmpty)
     )

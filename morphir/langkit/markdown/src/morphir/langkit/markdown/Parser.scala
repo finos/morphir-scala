@@ -178,6 +178,19 @@ object Parser:
       trailingBlank: Boolean
   )
 
+  /**
+   * A block that has just been read, and whether reading it consumed a blank line at its end.
+   *
+   * Only a container can consume one: a blank line matches a continuation prefix, so it is eaten inside the container
+   * rather than left for the loop that opened it. A list has to know, because a blank that ended a nested container
+   * still separated the blocks of the item holding it.
+   */
+  private final case class Opened(block: Maybe[Deferred], endedOnBlank: Boolean)
+
+  private object Opened:
+    def leaf(block: Block): Opened        = Opened(Present(Deferred.ready(block)), endedOnBlank = false)
+    def deferred(block: Deferred): Opened = Opened(Present(block), endedOnBlank = false)
+
   private def parseDeferred(
       cursor: ContainerCursor,
       definitions: scala.collection.mutable.Map[String, LinkDefinition]
@@ -195,37 +208,44 @@ object Parser:
           val classified = classify(scanner, line)
           if classified.kind == LineKind.Blank then blankSince = true
           else
-            val block = classified.kind match
-              case LineKind.IndentedCode => Present(Deferred.ready(readIndentedCode(cursor, line)))
+            val opened = classified.kind match
+              case LineKind.IndentedCode => Opened.leaf(readIndentedCode(cursor, line))
               case LineKind.BlockQuote   =>
                 // A quote's own cursor has to see the marker, so the line goes back before the recursion reads it.
                 cursor.restore(opening)
-                Present(readBlockQuote(cursor, definitions))
+                readBlockQuote(cursor, definitions)
               case LineKind.Heading(level, rest) =>
                 val headingSpan = Span(line.offset, line.length)
                 val base        = contentSpan(line, rest).offset
-                Present(Deferred.prose { defs =>
+                Opened.deferred(Deferred.prose { defs =>
                   Block.Heading(level, InlineParser.parse(rest, index => base + index, defs), headingSpan)
                 })
-              case LineKind.Fence(open)   => Present(Deferred.ready(readFencedCode(cursor, line, open)))
-              case LineKind.ThematicBreak =>
-                Present(Deferred.ready(Block.ThematicBreak(Span(line.offset, line.length))))
-              case LineKind.Html(_)          => Present(Deferred.ready(readHtmlBlock(cursor, line)))
+              case LineKind.Fence(open)      => Opened.leaf(readFencedCode(cursor, line, open))
+              case LineKind.ThematicBreak    => Opened.leaf(Block.ThematicBreak(Span(line.offset, line.length)))
+              case LineKind.Html(_)          => Opened.leaf(readHtmlBlock(cursor, line))
               case LineKind.BulletItem(item) =>
                 cursor.restore(opening)
-                Present(readUnorderedList(cursor, definitions, item, line.offset))
+                readUnorderedList(cursor, definitions, item, line.offset)
               case LineKind.OrderedItem(marker) =>
                 cursor.restore(opening)
-                Present(readOrderedList(cursor, definitions, marker, line.offset))
-              case LineKind.Text | LineKind.Blank => readParagraph(cursor, line, definitions)
+                readOrderedList(cursor, definitions, marker, line.offset)
+              case LineKind.Text | LineKind.Blank =>
+                Opened(readParagraph(cursor, line, definitions), endedOnBlank = false)
             scanner.chargeOutputNodes(NodeCount.one)
             contentEnd = cursor.consumedEnd
-            block.foreach { deferred =>
+            opened.block.foreach { deferred =>
               if written > 0 && blankSince then interiorBlank = true
               blocks += deferred
               written += 1
+              // Only content clears the blank. A line that produced nothing -- a link reference definition, which is
+              // recorded rather than rendered -- leaves the run still standing on the blank before it, which is what
+              // makes example 317 a loose list.
+              blankSince = false
             }
-            blankSince = false
+            // A container swallows the blank line at its end, because a blank matches its continuation prefix. The
+            // blank still separated this run's blocks, so it is put back here: without it, examples 325 and 326 read
+            // as tight lists.
+            if opened.endedOnBlank then blankSince = true
         }
       }
     BlockRun(blocks.result(), contentEnd, interiorBlank, blankSince)
@@ -240,13 +260,17 @@ object Parser:
   private def readBlockQuote(
       cursor: ContainerCursor,
       definitions: scala.collection.mutable.Map[String, LinkDefinition]
-  ): Deferred =
+  ): Opened =
     val scanner = cursor.scanner
     val start   = scanner.offset.toInt
     val inner   = cursor.nested(ContainerPrefix.BlockQuote)
     val run     = scanner.withNesting(parseDeferred(inner, definitions))
     val span    = Span.fromStartEnd(start, cursor.consumedEnd)
-    Deferred.prose(defs => Block.BlockQuote(Chunk.from(run.blocks.map(_.resolve(defs))), span))
+    // Not a container that can end on a blank line, unlike a list item: the quote's prefix needs a `>`, so the blank
+    // lines it swallows are `>` with nothing after it. Those are blank *content*, not blank lines, and they do not
+    // loosen the list holding the quote -- example 320 is `* a`, an indented quote ending in a bare `>`, then `* c`,
+    // and it renders tight.
+    Opened.deferred(Deferred.prose(defs => Block.BlockQuote(Chunk.from(run.blocks.map(_.resolve(defs))), span)))
 
   /** Whether a line carries a block quote marker: up to three spaces, then `>`. */
   private def isBlockQuoteStart(text: String): Boolean =
@@ -705,11 +729,15 @@ object Parser:
       definitions: scala.collection.mutable.Map[String, LinkDefinition],
       first: BulletMarker,
       markerAt: Int
-  ): Deferred =
+  ): Opened =
     val start = cursor.scanner.offset.toInt
     val items = List.newBuilder[DeferredItem]
 
-    @tailrec def gather(marker: BulletMarker, at: Int, loose: Boolean): (Boolean, Int) =
+    @tailrec def gather(
+        marker: BulletMarker,
+        at: Int,
+        loose: Boolean
+    ): (loose: Boolean, end: Int, endedOnBlank: Boolean) =
       val (item, run) = readItem(cursor, definitions, at, marker.columns, marker.empty)
       items += item
       val soFar  = loose || run.interiorBlank
@@ -720,12 +748,17 @@ object Parser:
           gather(next, line.offset, soFar || run.trailingBlank || blankBefore)
         case _ =>
           cursor.restore(resume)
-          (soFar, run.contentEnd)
+          // The list ends where its last item does, so it ended on a blank line exactly when that item did.
+          (loose = soFar, end = run.contentEnd, endedOnBlank = run.trailingBlank)
 
-    val (loose, end) = gather(first, markerAt, loose = false)
-    val collected    = Chunk.from(items.result())
-    val listSpan     = Span.fromStartEnd(start, end)
-    Deferred.prose(defs => Block.UnorderedList(collected.map(_.resolve(defs)), !loose, listSpan))
+    val gathered  = gather(first, markerAt, loose = false)
+    val loose     = gathered.loose
+    val collected = Chunk.from(items.result())
+    val listSpan  = Span.fromStartEnd(start, gathered.end)
+    Opened(
+      Present(Deferred.prose(defs => Block.UnorderedList(collected.map(_.resolve(defs)), !loose, listSpan))),
+      gathered.endedOnBlank
+    )
 
   /**
    * Read a run of numbered items sharing one delimiter into one list.
@@ -738,11 +771,15 @@ object Parser:
       definitions: scala.collection.mutable.Map[String, LinkDefinition],
       first: OrderedMarker,
       markerAt: Int
-  ): Deferred =
+  ): Opened =
     val start = cursor.scanner.offset.toInt
     val items = List.newBuilder[DeferredItem]
 
-    @tailrec def gather(marker: OrderedMarker, at: Int, loose: Boolean): (Boolean, Int) =
+    @tailrec def gather(
+        marker: OrderedMarker,
+        at: Int,
+        loose: Boolean
+    ): (loose: Boolean, end: Int, endedOnBlank: Boolean) =
       val (item, run) = readItem(cursor, definitions, at, marker.columns, marker.empty)
       items += item
       val soFar  = loose || run.interiorBlank
@@ -753,12 +790,19 @@ object Parser:
           gather(next, line.offset, soFar || run.trailingBlank || blankBefore)
         case _ =>
           cursor.restore(resume)
-          (soFar, run.contentEnd)
+          // The list ends where its last item does, so it ended on a blank line exactly when that item did.
+          (loose = soFar, end = run.contentEnd, endedOnBlank = run.trailingBlank)
 
-    val (loose, end) = gather(first, markerAt, loose = false)
-    val collected    = Chunk.from(items.result())
-    val listSpan     = Span.fromStartEnd(start, end)
-    Deferred.prose(defs => Block.OrderedList(first.number, collected.map(_.resolve(defs)), !loose, listSpan))
+    val gathered  = gather(first, markerAt, loose = false)
+    val loose     = gathered.loose
+    val collected = Chunk.from(items.result())
+    val listSpan  = Span.fromStartEnd(start, gathered.end)
+    Opened(
+      Present(Deferred.prose(defs =>
+        Block.OrderedList(first.number, collected.map(_.resolve(defs)), !loose, listSpan)
+      )),
+      gathered.endedOnBlank
+    )
 
   /**
    * The next line that could open another item, classified, with the cursor left just before it.
