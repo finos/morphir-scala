@@ -2,11 +2,11 @@
 type: Intent
 title: Markdown compilation
 description: "Compile the Markdown AST through one fold algebra to two cross-platform writers: kyo-ui for the browser and ScalaTags for CommonMark conformance."
-state: Refinement
+state: InProgress
 kind: feature
 breaking: false
 created: 2026-08-19
-state_since: 2026-08-19
+state_since: 2026-08-20
 tags: [langkit, markdown, compiler, kyo-ui, scalatags, commonmark]
 sources:
   - id: kyo-ui-jvm
@@ -77,6 +77,12 @@ flowchart LR
 **Figure 1:** the proposed compile path. Morphir owns everything up to the value tree and writes no HTML itself;
 kyo-ui emits what users see, ScalaTags emits what the conformance suite measures, and the shared
 `Compiler` algebra is what keeps the two node mappings aligned.
+
+Both writers are built and the path is complete: the ScalaTags writer reproduces all 652 CommonMark 0.31.2
+fixtures byte for byte. The algebra grew as the parser did — it gained `blockQuote`, `rawHtml`, `lineBreak` and
+`blockSeparator`, and `listItem` came to take compiled blocks rather than compiled prose — and every addition
+reached both writers at once, because a new method does not compile until both implement it. That is the property
+the shared algebra was chosen for, and it held.
 
 ### The browser path, owned by kyo-ui
 
@@ -262,6 +268,12 @@ whereas publishing three artifacts now and collapsing to two later would break c
 is to start with two.
 
 ## Unresolved
+
+**Does the kyo-ui writer need its own conformance measure?** The ScalaTags writer is measured against all 652
+CommonMark fixtures and matches every one. The kyo-ui writer folds the same algebra, so its node mapping cannot
+drift silently, but nothing checks its *output* — and it has one known structural divergence, carrying emphasis on
+a `span` with a class because kyo-ui has no `em` or `strong`. Settled either by kyo-ui gaining those elements or by
+a canonicalizing measure that scores it on the divergences that are not cosmetic.
 
 **Do the kyo-ui platform claims hold at the pinned version?** The JVM, Scala.js, and Scala Native artifacts were
 read at `1.0.0-RC6`. A version bump could move the HTML renderer out of shared sources or change the

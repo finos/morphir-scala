@@ -7,10 +7,14 @@ import morphir.langkit.core.scanner.*
 import morphir.langkit.markdown.internal.{ContainerCursor, ContainerPrefix, HtmlTag, InlineParser, Line, LinkDefinition}
 
 /**
- * A CommonMark subset parser: ATX headings, paragraphs, fenced code, unordered lists, and thematic breaks.
+ * A CommonMark parser, complete against the 0.31.2 specification.
  *
- * This is not a full CommonMark implementation. `commonmark-java` must not enter this module. Inlines stay raw text
- * until an inline parser is added.
+ * Every one of the 652 examples in that specification parses and renders byte for byte, which the conformance suite in
+ * `morphir-langkit-markdown-scalatags` measures and defends. `commonmark-java` must not enter this module: the point of
+ * writing the parser was to have one that runs on JVM, Scala.js and Scala Native alike.
+ *
+ * GitHub Flavored Markdown is a separate profile and is not implemented here. Tables, strikethrough, task lists and
+ * autolink literals are all extensions to CommonMark rather than parts of it.
  */
 object Parser:
 

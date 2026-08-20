@@ -33,9 +33,10 @@ span, and an explicit lowering step produces an abstract syntax tree, which drop
 meaning. Both belong to this intent. The output stage that folds the AST belongs to
 [0033](/0033-markdown-compilation.md).
 
-`commonmark-java` must not enter the core module. That module owns a CommonMark subset parser that runs on JVM,
-JS, and Native: ATX headings, paragraphs, fenced code, unordered lists, and thematic breaks. Inlines stay raw
-text. A third-party engine remains allowed later if one compiles on all three platforms.
+`commonmark-java` must not enter the core module. That module owns a CommonMark parser that runs on JVM, JS, and
+Native. It began as a subset — ATX headings, paragraphs, fenced code, unordered lists and thematic breaks, with
+inlines left as raw text — and is now complete against CommonMark 0.31.2: all 652 examples parse and render byte
+for byte. A third-party engine remains allowed later if one compiles on all three platforms.
 
 ```mermaid
 flowchart LR
@@ -70,17 +71,22 @@ sets out.
 
 ## Unresolved
 
-**How much of CommonMark the owned parser covers.** Inlines, nested lists and Setext headings are not written.
-The subset is the current production parser rather than a stub, so the open question is where it stops, not
-whether it works.
-
 **Whether a third-party engine eventually replaces it.** Settled by one appearing that compiles on all three
 platforms and maps onto the CST without losing spans. Until then this stays open, and it would reopen the
-Approach rather than merely extend it.
+Approach rather than merely extend it. The case for replacing it is weaker than it was: the owned parser now
+covers the whole of CommonMark 0.31.2.
 
-**Whether the AST shape survives the conformance suite.** The CST and AST are designed before the suite runs.
-A large body of unexpected failures would be evidence the tree shape is wrong, not just that the parser is
-incomplete.
+**Whether the CST and the AST stay one tree.** The parser emits a single tree with source spans on every node,
+not the CST and the separate lowered AST this intent describes. That has been enough to reach full conformance,
+and the spans have carried source positions faithfully throughout — including where a container strips a marker
+and where a tab is expanded to the columns it occupies. What is not yet answered is whether reconstructing the
+source needs a genuine second tree, which is the question the `QueryableTree` and Unist work will force.
+
+*Settled: how much of CommonMark the owned parser covers.* All of it — 652 of 652 examples, every section of the
+specification. *Settled: whether the AST shape survives the conformance suite.* It did, though it grew: list
+items became containers of blocks, block quotes and raw HTML and hard line breaks arrived as node kinds, and
+lists gained the tight-or-loose flag the spec's rendering turns on. None of that reopened the shape; each was an
+addition to it.
 
 ## Relationships
 
