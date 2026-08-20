@@ -2,6 +2,8 @@ package morphir.ui
 
 import kyo.*
 import kyo.UI.*
+import morphir.langkit.markdown.Parser
+import morphir.langkit.markdown.compiler.kyoui.KyoUiCompiler
 import morphir.ui.services.*
 
 object KnowledgeBrowserView:
@@ -13,8 +15,19 @@ object KnowledgeBrowserView:
     div(
       h2(concept.title),
       p(concept.conceptType),
-      p(concept.body)
+      conceptBody(concept.body)
     ).id("kb-concept")
+
+  /**
+   * Concept bodies are Markdown, so they are parsed and compiled rather than shown as source.
+   *
+   * A body that will not parse renders as a diagnostic instead of raising: one malformed concept should not blank the
+   * browser, and the reader is better served seeing that something is wrong than seeing nothing.
+   */
+  private def conceptBody(body: String): UI =
+    Parser.parse(body) match
+      case Result.Success(document) => KyoUiCompiler.compile(document)
+      case failure                  => p(s"This concept body could not be parsed: $failure")
 
   def intentTable(intents: Chunk[IntentSummary]): UI =
     val header = tr(th("No"), th("Title"), th("State"), th("Kind"))

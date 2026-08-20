@@ -175,7 +175,10 @@ that parses, so no coordinate is renamed and nothing that depends on it moves.
 | `morphir-langkit-markdown-compiler-kyo-ui` | `Compiler[UI]`, the writer users see | the base module, `kyo-ui` |
 | `morphir-langkit-markdown-compiler-scalatags` | `Compiler[Frag]`, the conformance oracle | the base module, `scalatags` |
 
-The oracle publishes for JVM, Scala.js and Scala Native, so conformance can be measured wherever the langkit runs.
+The oracle publishes for JVM, Scala.js and Scala Native, so conformance can be measured wherever the langkit runs. A
+Wasm link variant of the kyo-ui writer proved necessary and exists: `morphir/ui` compiles concept bodies in sources
+shared by its Scala.js and Wasm modules, so the writer had to link for both, which in turn gave
+`morphir-langkit-markdown` and `langkit-core` Wasm variants. None of the three is a publish module.
 The kyo-ui writer publishes for **JVM and Scala.js only**: on Scala Native, `kyo-ui` transitively pulls `kyo-net` and
 `kyo-http`, whose C sources need BoringSSL or OpenSSL symbols at link time, and this repository configures no native
 linking options. Nothing depends on that variant today — `morphir-ui` targets Scala.js and Wasm, and the desktop app
@@ -251,10 +254,6 @@ whereas publishing three artifacts now and collapsing to two later would break c
 is to start with two.
 
 ## Unresolved
-
-**Does the compiler need a Wasm link variant?** `morphir/ui` declares a `wasm` module that takes `kyo-ui`, so a
-Wasm consumer of the knowledge browser would need the compiler linked for Wasm too. Building the morphir-ui
-Wasm variant against a compiled concept body settles it.
 
 **Do the kyo-ui platform claims hold at the pinned version?** The JVM, Scala.js, and Scala Native artifacts were
 read at `1.0.0-RC6`. A version bump could move the HTML renderer out of shared sources or change the
