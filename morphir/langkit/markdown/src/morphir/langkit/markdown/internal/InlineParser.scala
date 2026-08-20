@@ -246,6 +246,7 @@ private[markdown] object InlineParser:
         val end = closeStart + run
         (end, Inline.CodeSpan(normalize(text.substring(index + run, closeStart)), spanOf(index, end, sourceOffsetAt)))
       }
+    else if char == '&' then entityAt(text, index, sourceOffsetAt)
     else if char == '<' then
       autolink(text, index).map { case (end, uri) =>
         val span = spanOf(index, end, sourceOffsetAt)
@@ -256,6 +257,113 @@ private[markdown] object InlineParser:
       val open  = if image then index + 2 else index + 1
       linkAt(text, index, open, image, sourceOffsetAt, definitions)
     else Absent
+
+  /**
+   * A character reference: `&name;`, `&#dddd;` or `&#xhhhh;`.
+   *
+   * Decoded here rather than passed through, so the writer escapes the decoded character on its own terms: `&amp;`
+   * becomes a text node holding `&`, which ScalaTags then writes back as `&amp;`. Anything that does not parse cleanly
+   * stays literal text, which is what makes `&MadeUpEntity;` and a bare `&copy` render as themselves.
+   */
+  private def entityAt(text: String, start: Int, sourceOffsetAt: Int => Int): Maybe[(Int, Inline)] =
+    val semicolon = text.indexOf(';', start + 1)
+    if semicolon < 0 || semicolon == start + 1 then Absent
+    else
+      val body    = text.substring(start + 1, semicolon)
+      val decoded =
+        if body.startsWith("#") then numericEntity(body.drop(1))
+        else NamedEntities.get(body)
+      decoded.map { value =>
+        (semicolon + 1, Inline.Text(value, spanOf(start, semicolon + 1, sourceOffsetAt)))
+      } match
+        case Some(result) => Present(result)
+        case None         => Absent
+
+  /**
+   * A numeric reference, decimal or hexadecimal.
+   *
+   * U+0000 is not representable and the spec replaces it with U+FFFD, as it does anything out of range. Digits are
+   * bounded so a long run cannot be used to force a large allocation.
+   */
+  private def numericEntity(digits: String): Option[String] =
+    val (body, radix) =
+      if digits.startsWith("x") || digits.startsWith("X") then (digits.drop(1), 16) else (digits, 10)
+    val valid =
+      body.nonEmpty && body.length <= 8 &&
+        body.forall(char => if radix == 16 then isHexDigit(char) else char.isDigit)
+    if !valid then None
+    else
+      val code = java.lang.Long.parseLong(body, radix)
+      if code == 0L || code > Character.MAX_CODE_POINT.toLong || Character.isSurrogate(code.toChar) then
+        Some("\uFFFD")
+      else Some(new String(Character.toChars(code.toInt)))
+
+  private def isHexDigit(char: Char): Boolean =
+    char.isDigit || (char >= 'a' && char <= 'f') || (char >= 'A' && char <= 'F')
+
+  /**
+   * The named references this parser knows.
+   *
+   * HTML5 defines around 2,231 of them and CommonMark expects all of them. This is the working subset; the rest is a
+   * data-import job rather than a parsing one, and the examples that need `&Dcaron;` or `&ClockwiseContourIntegral;`
+   * stay failing until that lands. An unknown name is left as literal text, so being incomplete is safe rather than
+   * wrong.
+   */
+  private val NamedEntities: Map[String, String] = Map(
+    "amp"    -> "&",
+    "lt"     -> "<",
+    "gt"     -> ">",
+    "quot"   -> "\"",
+    "apos"   -> "'",
+    "nbsp"   -> "\u00a0",
+    "copy"   -> "\u00a9",
+    "reg"    -> "\u00ae",
+    "trade"  -> "\u2122",
+    "hellip" -> "\u2026",
+    "mdash"  -> "\u2014",
+    "ndash"  -> "\u2013",
+    "lsquo"  -> "\u2018",
+    "rsquo"  -> "\u2019",
+    "ldquo"  -> "\u201c",
+    "rdquo"  -> "\u201d",
+    "laquo"  -> "\u00ab",
+    "raquo"  -> "\u00bb",
+    "deg"    -> "\u00b0",
+    "plusmn" -> "\u00b1",
+    "times"  -> "\u00d7",
+    "divide" -> "\u00f7",
+    "frac12" -> "\u00bd",
+    "frac14" -> "\u00bc",
+    "frac34" -> "\u00be",
+    "sup2"   -> "\u00b2",
+    "sup3"   -> "\u00b3",
+    "micro"  -> "\u00b5",
+    "para"   -> "\u00b6",
+    "sect"   -> "\u00a7",
+    "dagger" -> "\u2020",
+    "bull"   -> "\u2022",
+    "euro"   -> "\u20ac",
+    "pound"  -> "\u00a3",
+    "yen"    -> "\u00a5",
+    "cent"   -> "\u00a2",
+    "AElig"  -> "\u00c6",
+    "aelig"  -> "\u00e6",
+    "auml"   -> "\u00e4",
+    "ouml"   -> "\u00f6",
+    "uuml"   -> "\u00fc",
+    "szlig"  -> "\u00df",
+    "eacute" -> "\u00e9",
+    "egrave" -> "\u00e8",
+    "larr"   -> "\u2190",
+    "rarr"   -> "\u2192",
+    "harr"   -> "\u2194",
+    "hArr"   -> "\u21d4",
+    "le"     -> "\u2264",
+    "ge"     -> "\u2265",
+    "ne"     -> "\u2260",
+    "asymp"  -> "\u2248",
+    "infin"  -> "\u221e"
+  )
 
   private def isLinkStart(text: String, index: Int): Boolean =
     text.charAt(index) == '[' ||

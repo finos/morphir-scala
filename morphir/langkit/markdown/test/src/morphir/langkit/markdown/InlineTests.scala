@@ -453,6 +453,31 @@ class InlineTests extends Test[Any]:
     }
   }
 
+  "a character reference" - {
+    "decodes a decimal reference (spec example 26)" in
+      assert(textOf(inlines("&#35;")) == "#")
+    "decodes a hexadecimal reference in either case (spec example 27)" in {
+      assert(textOf(inlines("&#X22;")) == "\"")
+      assert(textOf(inlines("&#x22;")) == "\"")
+    }
+    "replaces an unrepresentable code point (spec example 26)" in
+      assert(textOf(inlines("&#0;")) == "\uFFFD")
+    "decodes a known name" in {
+      assert(textOf(inlines("&amp;")) == "&")
+      assert(textOf(inlines("&nbsp;")) == "\u00a0")
+    }
+    "leaves an unknown name literal (spec example 30)" in
+      assert(textOf(inlines("&MadeUpEntity;")) == "&MadeUpEntity;")
+    "leaves a name with no semicolon literal (spec example 29)" in
+      assert(textOf(inlines("&copy")) == "&copy")
+    "leaves a malformed numeric reference literal (spec example 28)" in {
+      assert(textOf(inlines("&#;")) == "&#;")
+      assert(textOf(inlines("&#x;")) == "&#x;")
+    }
+    "is not decoded inside a code span" in
+      assert(codeSpans("`&amp;`") == Chunk("&amp;"))
+  }
+
   "fenced code" - {
     "keeps its body as literal text, never inline content" in {
       parse("```\n*not emphasis*\n```").blocks.head match
