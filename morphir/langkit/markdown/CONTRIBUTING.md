@@ -94,6 +94,53 @@ under them still declares `package morphir.langkit.markdown`. The ScalaTags writ
 Why there are two, and why kyo-ui cannot serve as the oracle, is recorded in
 [intent 0033](../../../kb/bundles/intent/0033-markdown-compilation.md).
 
+## Benchmarks
+
+This module has JMH benchmarks in [`morphir/benchmarks`](../../benchmarks). Run them before and after any change to
+the parser's shape:
+
+```bash
+./mill morphir.benchmarks.jvm.runJmh -f 1 -wi 3 -i 3 -w 1s -r 1s 'MarkdownParseBenchmark.*'
+```
+
+**They are an instrument, not a gate.** Unlike `conformance-baseline.txt`, no number is committed as a threshold:
+JMH timings are machine-specific and a committed figure would be noise on another machine. Compare a before and an
+after on the *same* machine across a *single* change.
+
+Three things about how the set is built, because they change how you read it:
+
+- **Per construct.** A change to one loop should move the benchmark for that construct and leave the rest alone. If
+  `parseFencedCode` moves when you touched link parsing, something is wrong with your change or your measurement.
+- **At three sizes.** `parseScaling{Small,Medium,Large}` are 1×, 10× and 100× of one document. Read the *ratios*,
+  never the individual numbers: linear growth is the property being defended. The real risk in this parser is not a
+  constant factor but an accidental quadratic, because `closingRun`, `labelEnd` and the emphasis opener search all
+  scan inside an outer scan.
+- **Adversarial inputs.** Unmatched backtick runs, long delimiter runs, deep bracket nesting, abandoned link
+  openers. [`ScanBudget`](../core) exists to bound hostile input, so the shapes it defends against are the ones
+  worth timing.
+
+**Mind the error bars.** A quick three-iteration run is for a smoke check. Before believing a result, re-run the
+benchmarks that moved at `-f 2 -wi 5 -i 5` and compare error bands, not means. A tail-recursion pass on the scanning
+helpers once appeared to make one benchmark 33% faster and another 16% slower; both baselines carried error bars
+wide enough to contain the difference, and at higher iteration counts both were unchanged.
+
+## Loops, recursion and mutability
+
+Prefer `@tailrec` for index scans. Scala compiles them to the same loop, so there is no cost, and the exit
+conditions read as cases rather than as flag variables. Rewriting one of these is also how a long-standing bug in
+`closingTagEnd` was found — the expression `start - 1 + 1 - 1` was an obfuscated `1`, which the rewrite had to name.
+
+Internal mutability stays available where the algorithm is genuinely imperative, and two places use it deliberately:
+
+- **`InlineParser.processEmphasis`** mutates a delimiter stack in place, consuming runs a pair at a time. The
+  reference implementation uses a doubly-linked list for the same reason. Rebuilding the buffer per match would turn
+  a linear pass quadratic.
+- **`InlineParser.scanItems`** accumulates into a `StringBuilder` and an `ArrayBuffer`; recursion would thread both
+  as parameters and buy nothing.
+
+The test is whether mutability is *contained*. Both are private, neither escapes into a public signature, and the
+module's surface stays pure. Reach for it as an optimisation you can point a benchmark at, not as a default.
+
 ## Tests
 
 kyo-test, `class FooTests extends Test[Any]`, files under `test/src/`, `*Tests` suffix. JVM-only tests go in

@@ -111,6 +111,50 @@ the merged pull request's exact head and requires that pull request's merge comm
 `origin/main`. It therefore refuses to refresh if `develop` advanced after the matching pull request. The only remote
 update it can make is protected by `--force-with-lease`; it never uses or recommends unconditional force.
 
+## Benchmarking
+
+The repository carries a JMH benchmark module, [`morphir/benchmarks`](./morphir/benchmarks), on Mill's JMH contrib.
+It is JVM-only and not published: benchmarks are a measuring instrument for this repository, not something consumers
+depend on.
+
+```bash
+./mill morphir.benchmarks.jvm.listJmhBenchmarks
+./mill morphir.benchmarks.jvm.runJmh -f 1 -wi 3 -i 3 -w 1s -r 1s 'MarkdownParseBenchmark.*'
+```
+
+**Benchmarks are an instrument, not a CI gate.** JMH timings are machine-specific, so no threshold is committed and
+none should be — a figure recorded on one machine is noise on another. Compare a before and an after on the *same*
+machine across a *single* change. This is the opposite of a conformance baseline such as the Markdown parser's
+`conformance-baseline.txt`, which *is* committed and *is* enforced, because it measures behaviour rather than time.
+
+### Use it when you are changing shape, not just behaviour
+
+Reach for a benchmark when a change is meant to be behaviour-neutral and the question is what it costs: converting
+loops to recursion, changing a data structure, introducing or removing an abstraction layer, or adding a pass over
+the input. A benchmark turns "this should be about the same" into something you can show.
+
+This applies directly to the work most likely to come next — **further langkits and their compilers**. A new parser
+will have the same shape of risk as the Markdown one, and the same benchmark strategy transfers:
+
+- **Benchmark per construct**, not only over a whole corpus. A conformance suite is usually many small inputs, so an
+  aggregate over it is dominated by per-call overhead and hides a bad regression in any one construct.
+- **Benchmark the same input at three sizes** and read the *ratios*. Parsers fail by turning linear into quadratic,
+  and that is invisible in any single measurement. Anywhere a scan happens inside another scan is a candidate.
+- **Benchmark adversarial inputs.** Where a langkit uses a scan budget to bound hostile input, the shapes the budget
+  defends against are the ones with the worst asymptotics and the ones worth timing.
+- **Benchmark the whole path a user sees** — parse *and* compile — so a win in one stage cannot be quietly paid for
+  in the next.
+
+### Read the error bars before believing a result
+
+A short run (`-wi 3 -i 3`) is a smoke check. Before acting on a number, re-run whatever moved at `-f 2 -wi 5 -i 5`
+and compare error bands rather than means. In practice this matters: a tail-recursion pass over the Markdown
+scanning helpers first appeared to make one benchmark 33% faster and another 16% slower, and at higher iteration
+counts both turned out unchanged — the wide error bars on the first run were the only clue.
+
+See [`morphir/langkit/markdown/CONTRIBUTING.md`](./morphir/langkit/markdown/CONTRIBUTING.md) for the worked example,
+including where that module keeps internal mutability on purpose and why.
+
 ## Governance
 
 ### Roles
