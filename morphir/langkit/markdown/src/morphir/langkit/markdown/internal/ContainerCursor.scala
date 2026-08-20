@@ -94,7 +94,8 @@ private[markdown] object ContainerPrefix:
  */
 private[markdown] final class ContainerCursor private (
     val scanner: SourceScanner,
-    private val prefixes: List[ContainerPrefix]
+    private val prefixes: List[ContainerPrefix],
+    private val lines: LineCache
 ):
 
   private val phase = ScanPhase("markdown.lines")
@@ -103,7 +104,7 @@ private[markdown] final class ContainerCursor private (
    * A cursor for the content of a container opening here, reading through `prefix` as well as the ones already open.
    */
   def nested(prefix: ContainerPrefix): ContainerCursor =
-    new ContainerCursor(scanner, prefixes :+ prefix)
+    new ContainerCursor(scanner, prefixes :+ prefix, lines)
 
   def checkpoint(): ScanCheckpoint = scanner.checkpoint()
 
@@ -112,13 +113,9 @@ private[markdown] final class ContainerCursor private (
   /**
    * Whether this container has any line left.
    *
-   * At the top level, where no prefix is open, this is the scanner's own question and costs nothing -- which is the
-   * case that matters, since most documents open no container at all.
-   *
-   * Inside a container there is no answering it without looking, so this reads the next line and rewinds. The work that
-   * read charges stays charged, because it was genuinely done, and the line is then read a second time by whoever
-   * asked: a quoted line costs about twice what an unquoted one does. Caching the lookahead would remove most of that,
-   * and is recorded as a candidate for the performance pass rather than guessed at here.
+   * At the top level, where no prefix is open, this is the scanner's own question and costs nothing. Inside a container
+   * there is no answering it without looking, so this reads the next line and rewinds -- which is cheap, because the
+   * scan is shared: see [[LineCache]].
    */
   def isAtEnd: Boolean =
     if scanner.isAtEnd then true
@@ -151,19 +148,21 @@ private[markdown] final class ContainerCursor private (
    */
   def readContinued(): Maybe[ContinuedLine] =
     if scanner.isAtEnd then Absent
+    else Present(readFresh())
+
+  private def readFresh(): ContinuedLine =
+    val raw = lines.lineAt(this)
+    if prefixes.isEmpty then ContinuedLine(raw, matchedAll = true)
     else
-      val raw = readRaw()
-      if prefixes.isEmpty then Present(ContinuedLine(raw, matchedAll = true))
-      else
-        @tailrec def consume(remaining: List[ContainerPrefix], cursor: Int): (Int, Boolean) =
-          remaining match
-            case Nil          => (cursor, true)
-            case head :: tail =>
-              head.consume(raw.text, cursor, raw.offset) match
-                case Present(next) => consume(tail, next)
-                case Absent        => (cursor, false)
-        val (consumed, matchedAll) = consume(prefixes, 0)
-        Present(ContinuedLine(strip(raw, consumed), matchedAll))
+      @tailrec def consume(remaining: List[ContainerPrefix], cursor: Int): (Int, Boolean) =
+        remaining match
+          case Nil          => (cursor, true)
+          case head :: tail =>
+            head.consume(raw.text, cursor, raw.offset) match
+              case Present(next) => consume(tail, next)
+              case Absent        => (cursor, false)
+      val (consumed, matchedAll) = consume(prefixes, 0)
+      ContinuedLine(strip(raw, consumed), matchedAll)
 
   /** Where the scanner has read to, with the line terminator that got it there discounted. */
   def consumedEnd: Int =
@@ -180,7 +179,7 @@ private[markdown] final class ContainerCursor private (
       Line(view, view.text, line.terminatedByLf)
 
   /** One raw line, terminator consumed but not counted as text, and CRLF reported as its content alone. */
-  private def readRaw(): Line =
+  private[internal] def readRaw(): Line =
     scanner.requireProgress(phase) {
       val start                 = scanner.mark
       var previous: Maybe[Char] = Absent
@@ -208,4 +207,36 @@ end ContainerCursor
 
 private[markdown] object ContainerCursor:
   /** A cursor at the top level of a document, where no container is open. */
-  def top(scanner: SourceScanner): ContainerCursor = new ContainerCursor(scanner, Nil)
+  def top(scanner: SourceScanner): ContainerCursor = new ContainerCursor(scanner, Nil, LineCache())
+
+/**
+ * The last raw line read, so that no line of the source is scanned twice.
+ *
+ * A line is looked at by more cursors than one. The document's cursor reads it to see what it starts; the item's cursor
+ * reads it again to take the marker off; the list reads it a third time to ask whether another item begins there. What
+ * differs between them is which prefixes they strip, which is a handful of characters -- the scan that produced the
+ * line is identical, so it is shared rather than repeated. A run of list items cost about four scans a line before
+ * this, which was most of what parsing them cost at all.
+ *
+ * One entry is enough because the repeats are of the *same* line: the cursors take turns at one offset, then all move
+ * on together. Keyed on the offset rather than on a flag, because the scanner is rewound constantly and only the offset
+ * survives that; and replaying is a rewind to `resume` rather than a re-read, so a line is charged for once, when it
+ * was genuinely read.
+ */
+private[internal] final class LineCache:
+  private var at: Int                       = -1
+  private var line: Maybe[Line]             = Absent
+  private var resume: Maybe[ScanCheckpoint] = Absent
+
+  def lineAt(cursor: ContainerCursor): Line =
+    val offset = cursor.scanner.offset.toInt
+    line match
+      case Present(cached) if at == offset =>
+        resume.foreach(cursor.scanner.restore)
+        cached
+      case _ =>
+        val read = cursor.readRaw()
+        at = offset
+        resume = Present(cursor.scanner.checkpoint())
+        line = Present(read)
+        read

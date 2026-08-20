@@ -222,27 +222,34 @@ class ParserTests extends Test[Any]:
     "does not refund speculative paragraph lookahead work" in {
       val budget = limitedBudget(
         maxInputLength = InputSize.codeUnits(100L),
-        maxWork = WorkUnits(30L),
+        maxWork = WorkUnits(20L),
         maxNestingDepth = NestingDepth(10),
         maxOutputNodes = NodeCount(10L)
       )
 
       assert(Parser.parse("# h", budget) == Parser.parse("# h"))
+
+      // Said plainly: reading `x` then `# h` costs more than reading each on its own, and the difference is the
+      // lookahead the paragraph did at `# h` before rejecting it. Rolling that lookahead back rewinds the cursor and
+      // nothing else -- there is no refund.
+      val paragraphAlone = parseMetrics("x").work.toLong
+      val headingAlone   = parseMetrics("# h").work.toLong
+      val together       = parseMetrics("x\n# h").work.toLong
+      assert(
+        together > paragraphAlone + headingAlone,
+        s"speculative lookahead was refunded: $together <= $paragraphAlone + $headingAlone"
+      )
+
       Parser.parse("x\n# h", budget) match
         case Result.Failure(ParseError.Scan(error)) =>
           assert(
-            // Paragraph lookahead asks more of each line than it once did -- whether it is a setext underline, and
-            // whether it is a numbered item that may interrupt -- so a line inspection is charged for each and the
-            // budget is exceeded a little later. The property under test is unchanged: the speculative work is not
-            // refunded when the lookahead is rolled back.
             error == ScanFailure(
-              exceeded =
-                ScanLimitExceeded.Work(limit = WorkUnits(30L), attempted = WorkUnits(31L)),
+              exceeded = ScanLimitExceeded.Work(limit = WorkUnits(20L), attempted = WorkUnits(22L)),
               offset = SourceOffset(5),
               phase = Present(ScanPhase("markdown.blocks"))
             )
           )
-        case _ => assert(false)
+        case other => assert(false, s"expected the work budget to be exceeded, got $other")
     }
     "accepts the exact incremental output ceiling and preserves the default result" in {
       val budget = limitedBudget(
@@ -780,6 +787,22 @@ class ParserTests extends Test[Any]:
                 case other                          => assert(false, s"expected indented code, got $other")
             case other => assert(false, s"expected a list, got $other")
         case _ => assert(false)
+    }
+    // Every cursor that could claim a line looks at it: the document's, the item's once the marker is recognised, and
+    // the list's when it asks whether another item begins there. They differ only in which prefixes they strip, so the
+    // scan behind them is shared. Before it was, a run of list items cost about four scans a line, which was most of
+    // what parsing them cost at all -- and work units measure that without a clock, so this is worth asserting.
+    "scans each line once however many containers look at it" in {
+      val plain = "alpha beta gamma\n" * 200
+      val items = "- alpha beta gamma\n" * 200
+      assert(plain.length + 400 == items.length, "the two fixtures must differ only by their markers")
+
+      val plainWork = parseMetrics(plain).work.toLong
+      val itemWork  = parseMetrics(items).work.toLong
+      assert(
+        itemWork < plainWork * 2,
+        s"a list costs $itemWork against $plainWork for the same prose: the line scan is not being shared"
+      )
     }
     "reads a thematic break between paragraphs" in {
       Parser.parse("Hello\n\n---\n\nWorld") match
