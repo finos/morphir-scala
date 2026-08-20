@@ -19,9 +19,14 @@ private[markdown] object MarkdownFold:
 
   private def compileBlock[Out](block: Block)(using compiler: Compiler[Out]): Out =
     block match
-      case Block.Heading(level, text, _)      => compiler.heading(level, text)
-      case Block.Paragraph(text, _)           => compiler.paragraph(text)
+      case Block.Heading(level, content, _)   => compiler.heading(level, content.map(compileInline))
+      case Block.Paragraph(content, _)        => compiler.paragraph(content.map(compileInline))
       case Block.FencedCode(info, content, _) => compiler.fencedCode(info, content)
-      case Block.UnorderedList(items, _)      => compiler.unorderedList(items.map(compiler.listItem))
-      case Block.ThematicBreak(_)             => compiler.thematicBreak
+      case Block.UnorderedList(items, _)      =>
+        compiler.unorderedList(items.map(item => compiler.listItem(item.content.map(compileInline))))
+      case Block.ThematicBreak(_) => compiler.thematicBreak
+
+  private def compileInline[Out](inline0: Inline)(using compiler: Compiler[Out]): Out =
+    inline0 match
+      case Inline.Text(value, _) => compiler.text(value)
 end MarkdownFold

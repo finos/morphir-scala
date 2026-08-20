@@ -49,7 +49,11 @@ object Parser:
           val block =
             headingPrefix(scanner, line) match
               case Present((level, rest)) =>
-                Block.Heading(level, rest, Span(line.offset, line.length))
+                Block.Heading(
+                  level,
+                  Chunk(Inline.Text(rest, contentSpan(line, rest))),
+                  Span(line.offset, line.length)
+                )
               case Absent =>
                 fenceOpen(scanner, line) match
                   case Present(open) => readFencedCode(scanner, line, open)
@@ -133,7 +137,13 @@ object Parser:
         interrupted = true
 
     scanner.chargeWork(WorkUnits.from(text.length.toLong).getOrThrow)
-    Block.Paragraph(text.toString.trim, Span.fromStartEnd(first.offset, last.end))
+    val raw     = text.toString
+    val trimmed = raw.trim
+    val leading = raw.length - raw.stripLeading.length
+    Block.Paragraph(
+      Chunk(Inline.Text(trimmed, Span(first.offset + leading, trimmed.length))),
+      Span.fromStartEnd(first.offset, last.end)
+    )
 
   private def continuesParagraph(scanner: SourceScanner, line: Line): Boolean =
     !isBlank(scanner, line) &&
@@ -154,8 +164,8 @@ object Parser:
     }
 
   private def readUnorderedList(scanner: SourceScanner, first: Line, firstItem: String): Block =
-    val items = List.newBuilder[String]
-    items += firstItem
+    val items = List.newBuilder[ListItem]
+    items += listItem(first, firstItem)
     var last = first
     var done = false
     while !scanner.isAtEnd && !done do
@@ -163,12 +173,28 @@ object Parser:
       val line       = readLine(scanner)
       unorderedItem(scanner, line) match
         case Present(item) =>
-          items += item
+          items += listItem(line, item)
           last = line
         case Absent =>
           scanner.restore(checkpoint)
           done = true
     Block.UnorderedList(Chunk.from(items.result()), Span.fromStartEnd(first.offset, last.end))
+
+  private def listItem(line: Line, content: String): ListItem =
+    val span = contentSpan(line, content)
+    ListItem(Chunk(Inline.Text(content, span)), span)
+
+  /**
+   * Where a block's extracted content sits in the source.
+   *
+   * The content is the line with its marker and surrounding whitespace removed, so locating it in the raw line recovers
+   * the offset. A content string the line does not contain verbatim cannot happen for the forms parsed here, and falls
+   * back to the whole line rather than to a negative offset.
+   */
+  private def contentSpan(line: Line, content: String): Span =
+    val start = line.text.indexOf(content)
+    if start >= 0 then Span(line.offset + start, content.length)
+    else Span(line.offset, line.length)
 
   private def unorderedItem(scanner: SourceScanner, line: Line): Maybe[String] =
     inspectLine(scanner, line)(unorderedItem)

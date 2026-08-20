@@ -12,10 +12,9 @@ import kyo.*
  * The algebra stays pure. An effectful target instantiates `Out` at `A < S` — Kyo's pending-effect type — rather than
  * making every method effectful.
  *
- * Every `String` this algebra hands you is raw source text, never escaped and never further parsed. **Escaping is the
- * writer's job.** The AST carries no inline nodes yet, so emphasis, links and code spans still sit unparsed inside that
- * text; intent 0021 replaces those `String` parameters with compiled children, which will be a breaking change to this
- * trait.
+ * Prose reaches a writer as compiled children, not as a `String`: a block that holds prose folds its inline content
+ * first, and [[text]] is the leaf that carries the literal runs. Every `String` this algebra hands you is raw source
+ * text, never escaped. **Escaping is the writer's job.**
  *
  * The rules for adding a node kind, and the shapes considered and rejected for this stage, are in this module's
  * `CONTRIBUTING.md`.
@@ -37,23 +36,17 @@ trait Compiler[Out]:
   def document(children: Chunk[Out]): Out
 
   /**
-   * Compile a heading.
+   * Compile a heading from its compiled inline content.
    *
    * @param level
    *   one to six; [[HeadingLevel]] makes a level CommonMark cannot express unrepresentable, so no range check is needed
-   * @param text
-   *   the heading text: the leading `#` run and its separating space removed, then trimmed at both ends
+   * @param children
+   *   the compiled inline content, in source order
    */
-  def heading(level: HeadingLevel, text: String): Out
+  def heading(level: HeadingLevel, children: Chunk[Out]): Out
 
-  /**
-   * Compile a paragraph.
-   *
-   * @param text
-   *   the paragraph text, trimmed at both ends. It may still contain `\n`, because a soft line break inside a paragraph
-   *   is kept verbatim rather than collapsed to a space
-   */
-  def paragraph(text: String): Out
+  /** Compile a paragraph from its compiled inline content, in source order. */
+  def paragraph(children: Chunk[Out]): Out
 
   /**
    * Compile a fenced code block.
@@ -79,8 +72,16 @@ trait Compiler[Out]:
    */
   def unorderedList(items: Chunk[Out]): Out
 
-  /** Compile one bullet-list item from its raw text. Called before [[unorderedList]], which receives the results. */
-  def listItem(text: String): Out
+  /** Compile one bullet-list item from its compiled inline content. Called before [[unorderedList]]. */
+  def listItem(children: Chunk[Out]): Out
+
+  /**
+   * Compile a run of literal text.
+   *
+   * The value is raw source text: never escaped, and never further parsed. **Escaping is the writer's job.** Inline
+   * markers that no other case claims yet — emphasis, links, code spans — still sit unparsed inside it.
+   */
+  def text(value: String): Out
 
   /** Compile a thematic break. It has no children and no text, so this is a constant for most formats. */
   def thematicBreak: Out

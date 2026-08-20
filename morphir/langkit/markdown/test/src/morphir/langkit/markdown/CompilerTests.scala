@@ -13,16 +13,20 @@ class CompilerTests extends Test[Any]:
    * traversal test to any output target.
    */
   private given Compiler[String] with
-    def document(children: Chunk[String]): String    = children.mkString("(doc ", " ", ")")
-    def heading(level: HeadingLevel, text: String)   = s"(h${level.toInt} $text)"
-    def paragraph(text: String): String              = s"(p $text)"
-    def fencedCode(info: FenceInfo, content: String) = s"(code:${info.language.getOrElse("-")} $content)"
-    def unorderedList(items: Chunk[String]): String  = items.mkString("(ul ", " ", ")")
-    def listItem(text: String): String               = s"(li $text)"
-    def thematicBreak: String                        = "(hr)"
+    def document(children: Chunk[String]): String             = children.mkString("(doc ", " ", ")")
+    def heading(level: HeadingLevel, children: Chunk[String]) = s"(h${level.toInt} ${children.mkString(" ")})"
+    def paragraph(children: Chunk[String]): String            = s"(p ${children.mkString(" ")})"
+    def fencedCode(info: FenceInfo, content: String)          = s"(code:${info.language.getOrElse("-")} $content)"
+    def unorderedList(items: Chunk[String]): String           = items.mkString("(ul ", " ", ")")
+    def listItem(children: Chunk[String]): String             = s"(li ${children.mkString(" ")})"
+    def text(value: String): String                           = value
+    def thematicBreak: String                                 = "(hr)"
   end given
 
   private val span = Span.zero
+
+  private def prose(value: String): Chunk[Inline] = Chunk(Inline.Text(value, span))
+  private def item(value: String): ListItem       = ListItem(prose(value), span)
 
   private def compile(blocks: Block*): String =
     Compiler.compile[String](Document(Chunk.from(blocks), span))
@@ -32,16 +36,16 @@ class CompilerTests extends Test[Any]:
       assert(compile() == "(doc )")
     "folds each block kind in document order" in {
       val actual = compile(
-        Block.Heading(HeadingLevel.One, "Title", span),
-        Block.Paragraph("Body", span),
+        Block.Heading(HeadingLevel.One, prose("Title"), span),
+        Block.Paragraph(prose("Body"), span),
         Block.ThematicBreak(span)
       )
       assert(actual == "(doc (h1 Title) (p Body) (hr))")
     }
     "compiles list items before the list that holds them" in
-      assert(compile(Block.UnorderedList(Chunk("one", "two"), span)) == "(doc (ul (li one) (li two)))")
+      assert(compile(Block.UnorderedList(Chunk(item("one"), item("two")), span)) == "(doc (ul (li one) (li two)))")
     "passes the fence info through to the code node" in
       assert(compile(Block.FencedCode(FenceInfo.parse("scala"), "x", span)) == "(doc (code:scala x))")
     "carries the heading level rather than flattening it" in
-      assert(compile(Block.Heading(HeadingLevel.Six, "Deep", span)) == "(doc (h6 Deep))")
+      assert(compile(Block.Heading(HeadingLevel.Six, prose("Deep"), span)) == "(doc (h6 Deep))")
   }

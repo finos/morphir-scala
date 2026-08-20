@@ -34,10 +34,10 @@ object ScalatagsCompiler:
     def document(children: Chunk[Frag]): Frag =
       frag(children.toSeq.flatMap(child => Seq(child, newline))*)
 
-    def heading(level: HeadingLevel, text: String): Frag =
-      tag(s"h${level.toInt}")(text)
+    def heading(level: HeadingLevel, children: Chunk[Frag]): Frag =
+      tag(s"h${level.toInt}")(frag(children.toSeq*))
 
-    def paragraph(text: String): Frag = p(text)
+    def paragraph(children: Chunk[Frag]): Frag = p(frag(children.toSeq*))
 
     /**
      * The info string's first bare token becomes `class="language-…"`, and a fence naming no language gets no class at
@@ -55,7 +55,10 @@ object ScalatagsCompiler:
     def unorderedList(items: Chunk[Frag]): Frag =
       ul(newline, frag(items.toSeq.flatMap(item => Seq(item, newline))*))
 
-    def listItem(text: String): Frag = li(text)
+    def listItem(children: Chunk[Frag]): Frag = li(frag(children.toSeq*))
+
+    /** ScalaTags escapes a `String` frag on render, which is exactly the spec's rule, so nothing is done here. */
+    def text(value: String): Frag = value
 
     def thematicBreak: Frag = hr
   end instance

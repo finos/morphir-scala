@@ -8,6 +8,10 @@ import morphir.langkit.core.scanner.*
 
 class ParserTests extends Test[Any]:
 
+  /** The literal text of inline content, for assertions that do not care how it is split into nodes. */
+  private def textOf(content: Chunk[Inline]): String =
+    content.map { case Inline.Text(value, _) => value }.mkString
+
   private def parseMetrics(source: String): ScanMetrics =
     Parser.parseWithMetrics(source, ScanBudget.UnsafeUnbounded) match
       case Result.Success((_, metrics)) => metrics
@@ -82,9 +86,13 @@ class ParserTests extends Test[Any]:
     }
     "preserves exact documents across the existing block subset" in {
       val cases = Chunk(
-        ""            -> Document(Chunk.empty, Span.zero),
-        "# Title"     -> Document(Chunk(Block.Heading(HeadingLevel.One, "Title", Span(0, 7))), Span(0, 7)),
-        "alpha\nbeta" -> Document(Chunk(Block.Paragraph("alpha\nbeta", Span(0, 10))), Span(0, 10)),
+        ""        -> Document(Chunk.empty, Span.zero),
+        "# Title" -> Document(
+          Chunk(Block.Heading(HeadingLevel.One, Chunk(Inline.Text("Title", Span(2, 5))), Span(0, 7))),
+          Span(0, 7)
+        ),
+        "alpha\nbeta" ->
+          Document(Chunk(Block.Paragraph(Chunk(Inline.Text("alpha\nbeta", Span(0, 10))), Span(0, 10))), Span(0, 10)),
         "```scala\none\n\ntwo\n```" -> Document(
           Chunk(Block.FencedCode(FenceInfo.parse("scala"), "one\n\ntwo\n", Span(0, 21))),
           Span(0, 21)
@@ -98,16 +106,28 @@ class ParserTests extends Test[Any]:
           Span(0, 9)
         ),
         "- alpha\n- beta" -> Document(
-          Chunk(Block.UnorderedList(Chunk("alpha", "beta"), Span(0, 14))),
+          Chunk(Block.UnorderedList(
+            Chunk(
+              ListItem(Chunk(Inline.Text("alpha", Span(2, 5))), Span(2, 5)),
+              ListItem(Chunk(Inline.Text("beta", Span(10, 4))), Span(10, 4))
+            ),
+            Span(0, 14)
+          )),
           Span(0, 14)
         ),
         "---"      -> Document(Chunk(Block.ThematicBreak(Span(0, 3))), Span(0, 3)),
         "# A\n\nB" -> Document(
-          Chunk(Block.Heading(HeadingLevel.One, "A", Span(0, 3)), Block.Paragraph("B", Span(5, 1))),
+          Chunk(
+            Block.Heading(HeadingLevel.One, Chunk(Inline.Text("A", Span(2, 1))), Span(0, 3)),
+            Block.Paragraph(Chunk(Inline.Text("B", Span(5, 1))), Span(5, 1))
+          ),
           Span(0, 6)
         ),
         "# A\r\n\r\nB" -> Document(
-          Chunk(Block.Heading(HeadingLevel.One, "A", Span(0, 3)), Block.Paragraph("B", Span(7, 1))),
+          Chunk(
+            Block.Heading(HeadingLevel.One, Chunk(Inline.Text("A", Span(2, 1))), Span(0, 3)),
+            Block.Paragraph(Chunk(Inline.Text("B", Span(7, 1))), Span(7, 1))
+          ),
           Span(0, 8)
         )
       )
@@ -220,7 +240,7 @@ class ParserTests extends Test[Any]:
     "accepts an explicitly unsafe unbounded budget" in {
       Parser.parse("# Title", ScanBudget.UnsafeUnbounded) match
         case Result.Success(Document(blocks, _)) =>
-          assert(blocks == Chunk(Block.Heading(HeadingLevel.One, "Title", Span(0, 7))))
+          assert(blocks == Chunk(Block.Heading(HeadingLevel.One, Chunk(Inline.Text("Title", Span(2, 5))), Span(0, 7))))
         case _ => assert(false)
     }
     "budgets fence metadata tokens before whitespace-heavy allocation amplification" in {
@@ -270,13 +290,13 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           assert(doc.blocks.size == 2)
           doc.blocks(0) match
-            case Block.Heading(level, text, _) =>
+            case Block.Heading(level, content, _) =>
               assert(level.toInt == 1)
-              assert(text == "Title")
+              assert(textOf(content) == "Title")
             case _ => assert(false)
           doc.blocks(1) match
-            case Block.Paragraph(text, _) => assert(text == "Hello")
-            case _                        => assert(false)
+            case Block.Paragraph(content, _) => assert(textOf(content) == "Hello")
+            case _                           => assert(false)
         case _ => assert(false)
     }
     "splits a heading from the next block at a single newline" in {
@@ -284,13 +304,13 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           assert(doc.blocks.size == 2)
           doc.blocks(0) match
-            case Block.Heading(level, text, _) =>
+            case Block.Heading(level, content, _) =>
               assert(level.toInt == 1)
-              assert(text == "Title")
+              assert(textOf(content) == "Title")
             case _ => assert(false)
           doc.blocks(1) match
-            case Block.Paragraph(text, _) => assert(text == "Body")
-            case _                        => assert(false)
+            case Block.Paragraph(content, _) => assert(textOf(content) == "Body")
+            case _                           => assert(false)
         case _ => assert(false)
     }
     "splits consecutive headings without a blank line" in {
@@ -298,11 +318,11 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           assert(doc.blocks.size == 2)
           doc.blocks(0) match
-            case Block.Heading(HeadingLevel.One, "One", _) => ()
-            case _                                         => assert(false)
+            case Block.Heading(HeadingLevel.One, content, _) => assert(textOf(content) == "One")
+            case _                                           => assert(false)
           doc.blocks(1) match
-            case Block.Heading(HeadingLevel.Two, "Two", _) => ()
-            case _                                         => assert(false)
+            case Block.Heading(HeadingLevel.Two, content, _) => assert(textOf(content) == "Two")
+            case _                                           => assert(false)
         case _ => assert(false)
     }
     "spans the whole source" in {
@@ -318,11 +338,12 @@ class ParserTests extends Test[Any]:
           assert(doc.span == Span(0, source.length))
           assert(doc.blocks.size == 2)
           doc.blocks(0) match
-            case Block.Heading(HeadingLevel.One, "Title", span) =>
+            case Block.Heading(HeadingLevel.One, content, span) =>
+              assert(textOf(content) == "Title")
               assert(span == Span(0, "# Title".length))
             case _ => assert(false)
           doc.blocks(1) match
-            case Block.Paragraph("Hello", span) =>
+            case Block.Paragraph(content, span) if textOf(content) == "Hello" =>
               assert(span.offset == source.indexOf("Hello"))
               assert(span.length == "Hello".length)
             case _ => assert(false)
@@ -333,7 +354,10 @@ class ParserTests extends Test[Any]:
 
       assert(
         Parser.parse(source) == Result.succeed(
-          Document(Chunk(Block.Paragraph(source, Span(0, source.length))), Span(0, source.length))
+          Document(
+            Chunk(Block.Paragraph(Chunk(Inline.Text(source, Span(0, source.length))), Span(0, source.length))),
+            Span(0, source.length)
+          )
         )
       )
     }
@@ -416,11 +440,11 @@ class ParserTests extends Test[Any]:
       Parser.parse("before\n   ```\ncode\n  ```\nafter") match
         case Result.Success(Document(blocks, _)) =>
           assert(blocks.size == 3)
-          assert(blocks(0) == Block.Paragraph("before", Span(0, 6)))
+          assert(blocks(0) == Block.Paragraph(Chunk(Inline.Text("before", Span(0, 6))), Span(0, 6)))
           blocks(1) match
             case Block.FencedCode(_, content, _) => assert(content == "code\n")
             case _                               => assert(false)
-          assert(blocks(2) == Block.Paragraph("after", Span(25, 5)))
+          assert(blocks(2) == Block.Paragraph(Chunk(Inline.Text("after", Span(25, 5))), Span(25, 5)))
         case _ => assert(false)
     }
     "uses end of document as the close of an unclosed fence" in {
@@ -452,8 +476,8 @@ class ParserTests extends Test[Any]:
               assert(content == "body\n")
             case _ => assert(false)
           blocks(1) match
-            case Block.Paragraph(text, _) => assert(text == "``` `example`\nbody")
-            case _                        => assert(false)
+            case Block.Paragraph(content, _) => assert(textOf(content) == "``` `example`\nbody")
+            case _                           => assert(false)
         case _ => assert(false)
     }
     "reads consecutive unordered list items as one list" in {
@@ -462,7 +486,7 @@ class ParserTests extends Test[Any]:
           assert(doc.blocks.size == 1)
           doc.blocks(0) match
             case Block.UnorderedList(items, _) =>
-              assert(items == Chunk("alpha", "beta"))
+              assert(items.map(item => textOf(item.content)) == Chunk("alpha", "beta"))
             case _ => assert(false)
         case _ => assert(false)
     }
@@ -474,11 +498,11 @@ class ParserTests extends Test[Any]:
             case Block.ThematicBreak(_) => assert(true)
             case _                      => assert(false)
           doc.blocks(0) match
-            case Block.Paragraph(text, _) => assert(text == "Hello")
-            case _                        => assert(false)
+            case Block.Paragraph(content, _) => assert(textOf(content) == "Hello")
+            case _                           => assert(false)
           doc.blocks(2) match
-            case Block.Paragraph(text, _) => assert(text == "World")
-            case _                        => assert(false)
+            case Block.Paragraph(content, _) => assert(textOf(content) == "World")
+            case _                           => assert(false)
         case _ => assert(false)
     }
   }

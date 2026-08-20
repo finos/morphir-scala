@@ -16,6 +16,9 @@ class KyoUiCompilerTests extends Test[Any]:
 
   private val span = Span.zero
 
+  private def prose(value: String): Chunk[Inline] = Chunk(Inline.Text(value, span))
+  private def item(value: String): ListItem       = ListItem(prose(value), span)
+
   private def compile(blocks: Block*): UI =
     KyoUiCompiler.compile(Document(Chunk.from(blocks), span))
 
@@ -30,13 +33,13 @@ class KyoUiCompilerTests extends Test[Any]:
   "KyoUiCompiler node mapping" - {
 
     "compiles a heading to the kyo-ui element for its level" in {
-      assert(children(compile(Block.Heading(HeadingLevel.One, "Title", span))).head.isInstanceOf[UI.Ast.H1])
-      assert(children(compile(Block.Heading(HeadingLevel.Two, "Title", span))).head.isInstanceOf[UI.Ast.H2])
-      assert(children(compile(Block.Heading(HeadingLevel.Six, "Title", span))).head.isInstanceOf[UI.Ast.H6])
+      assert(children(compile(Block.Heading(HeadingLevel.One, prose("Title"), span))).head.isInstanceOf[UI.Ast.H1])
+      assert(children(compile(Block.Heading(HeadingLevel.Two, prose("Title"), span))).head.isInstanceOf[UI.Ast.H2])
+      assert(children(compile(Block.Heading(HeadingLevel.Six, prose("Title"), span))).head.isInstanceOf[UI.Ast.H6])
     }
 
     "compiles a paragraph to a P" in
-      assert(children(compile(Block.Paragraph("Body", span))).head.isInstanceOf[UI.Ast.P])
+      assert(children(compile(Block.Paragraph(prose("Body"), span))).head.isInstanceOf[UI.Ast.P])
 
     "compiles a thematic break to an Hr" in
       assert(children(compile(Block.ThematicBreak(span))).head.isInstanceOf[UI.Ast.Hr])
@@ -44,20 +47,25 @@ class KyoUiCompilerTests extends Test[Any]:
     "compiles a fenced code block to a Pre wrapping a Code" in {
       val pre = children(compile(Block.FencedCode(FenceInfo.empty, "x", span))).head
       assert(pre.isInstanceOf[UI.Ast.Pre])
-      assert(pre.asInstanceOf[UI.Ast.Pre].children.head.isInstanceOf[UI.Ast.Code])
+      assert(pre.asInstanceOf[UI.Ast.Pre].children.flatMap(children).head.isInstanceOf[UI.Ast.Code])
     }
 
     "compiles a bullet list to a Ul holding one Li per item" in {
-      val list = children(compile(Block.UnorderedList(Chunk("one", "two"), span))).head
+      val list = children(compile(Block.UnorderedList(Chunk(item("one"), item("two")), span))).head
       assert(list.isInstanceOf[UI.Ast.Ul])
-      val items = list.asInstanceOf[UI.Ast.Ul].children
+      // Children arrive wrapped in a Fragment, which renders with no element of its own; flatten it away.
+      val items = list.asInstanceOf[UI.Ast.Ul].children.flatMap(children)
       assert(items.size == 2)
       assert(items.forall(_.isInstanceOf[UI.Ast.Li]))
     }
 
     "keeps every top-level block, in order" in {
       val compiled = children(
-        compile(Block.Heading(HeadingLevel.One, "T", span), Block.Paragraph("B", span), Block.ThematicBreak(span))
+        compile(
+          Block.Heading(HeadingLevel.One, prose("T"), span),
+          Block.Paragraph(prose("B"), span),
+          Block.ThematicBreak(span)
+        )
       )
       assert(compiled.size == 3)
       assert(compiled(0).isInstanceOf[UI.Ast.H1])
@@ -69,14 +77,14 @@ class KyoUiCompilerTests extends Test[Any]:
   "KyoUiCompiler rendering" - {
 
     "emits the heading tag and its text" in
-      render(Block.Heading(HeadingLevel.Two, "Title", span)).map { html =>
+      render(Block.Heading(HeadingLevel.Two, prose("Title"), span)).map { html =>
         assert(html.startsWith("<h2"))
         assert(html.contains("Title"))
         assert(html.endsWith("</h2>"))
       }
 
     "escapes text rather than emitting it raw" in
-      render(Block.Paragraph("a < b & c", span)).map { html =>
+      render(Block.Paragraph(prose("a < b & c"), span)).map { html =>
         assert(html.contains("&lt;"))
         assert(html.contains("&amp;"))
         assert(!html.contains("a < b"))

@@ -24,16 +24,17 @@ object KyoUiCompiler:
 
     def document(children: Chunk[UI]): UI = UI.fragment(children.toSeq*)
 
-    def heading(level: HeadingLevel, text: String): UI =
+    def heading(level: HeadingLevel, children: Chunk[UI]): UI =
+      val body = content(children)
       level.toInt match
-        case 1 => UI.h1(text)
-        case 2 => UI.h2(text)
-        case 3 => UI.h3(text)
-        case 4 => UI.h4(text)
-        case 5 => UI.h5(text)
-        case _ => UI.h6(text)
+        case 1 => UI.h1(body)
+        case 2 => UI.h2(body)
+        case 3 => UI.h3(body)
+        case 4 => UI.h4(body)
+        case 5 => UI.h5(body)
+        case _ => UI.h6(body)
 
-    def paragraph(text: String): UI = UI.p(text)
+    def paragraph(children: Chunk[UI]): UI = UI.p(content(children))
 
     /** The fence's language becomes `class="language-…"` on the inner `code`, which is what CommonMark's HTML does. */
     def fencedCode(info: FenceInfo, content: String): UI =
@@ -42,13 +43,24 @@ object KyoUiCompiler:
         case Absent            => UI.code(content)
       UI.pre(codeElement)
 
-    def unorderedList(items: Chunk[UI]): UI =
-      items.foldLeft(UI.ul)((list, item) => list(item))
+    def unorderedList(items: Chunk[UI]): UI = UI.ul(content(items))
 
-    def listItem(text: String): UI = UI.li(text)
+    def listItem(children: Chunk[UI]): UI = UI.li(content(children))
+
+    /** kyo-ui escapes a `Text` node when it renders, so the value is handed over raw. */
+    def text(value: String): UI = UI.Ast.Text(value)
 
     def thematicBreak: UI = UI.hr
   end instance
+
+  /**
+   * Gather compiled children into one value an element accepts.
+   *
+   * A `Fragment` renders its children with no wrapper element of its own, so this adds nothing to the output. It exists
+   * because kyo-ui's element builders take a varargs of checked children, and a `Chunk[UI]` cannot be splatted into
+   * that position — each argument is witnessed individually at the call site.
+   */
+  private def content(children: Chunk[UI])(using Frame): UI = UI.fragment(children.toSeq*)
 
   /**
    * Compile a document to a `kyo.UI` value tree.
