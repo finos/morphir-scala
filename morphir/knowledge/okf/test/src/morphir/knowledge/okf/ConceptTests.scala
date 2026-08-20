@@ -34,7 +34,7 @@ class ConceptTests extends Test[Any]:
           assert(concept.body.blocks.size == 2)
           concept.body.blocks(0) match
             case Block.Heading(level, text, _) =>
-              assert(level == 1)
+              assert(level.toInt == 1)
               assert(text == "Title")
             case _ => assert(false)
         case _ => assert(false)
