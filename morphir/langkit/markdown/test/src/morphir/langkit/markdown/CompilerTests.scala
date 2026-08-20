@@ -21,7 +21,11 @@ class CompilerTests extends Test[Any]:
     def listItem(children: Chunk[String]): String             = s"(li ${children.mkString(" ")})"
     def text(value: String): String                           = value
     def codeSpan(value: String): String                       = s"(code-span $value)"
-    def thematicBreak: String                                 = "(hr)"
+    def link(destination: String, title: Maybe[String], children: Chunk[String]) =
+      s"(link $destination ${title.getOrElse("-")} ${children.mkString(" ")})"
+    def image(destination: String, title: Maybe[String], alt: String) =
+      s"(img $destination ${title.getOrElse("-")} $alt)"
+    def thematicBreak: String = "(hr)"
   end given
 
   private val span = Span.zero

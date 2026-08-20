@@ -38,6 +38,7 @@ class ConceptTests extends Test[Any]:
               assert(content.map {
                 case Inline.Text(value, _)     => value
                 case Inline.CodeSpan(value, _) => value
+                case other                     => other.toString
               }.mkString == "Title")
             case _ => assert(false)
         case _ => assert(false)

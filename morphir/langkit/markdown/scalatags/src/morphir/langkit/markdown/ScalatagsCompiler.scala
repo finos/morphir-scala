@@ -62,6 +62,17 @@ object ScalatagsCompiler:
 
     def codeSpan(value: String): Frag = code(value)
 
+    /** Attribute order follows the fixtures: `href` then `title`, and no `title` attribute at all when absent. */
+    def link(destination: String, title: Maybe[String], children: Chunk[Frag]): Frag =
+      title match
+        case Present(value) => a(href := destination, scalatags.Text.all.title := value)(frag(children.toSeq*))
+        case Absent         => a(href := destination)(frag(children.toSeq*))
+
+    def image(destination: String, title: Maybe[String], alt: String): Frag =
+      title match
+        case Present(value) => img(src := destination, attr("alt") := alt, scalatags.Text.all.title := value)
+        case Absent         => img(src := destination, attr("alt") := alt)
+
     def thematicBreak: Frag = hr
   end instance
 

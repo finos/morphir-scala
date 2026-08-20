@@ -91,6 +91,16 @@ trait Compiler[Out]:
    */
   def codeSpan(value: String): Out
 
+  /**
+   * Compile a link from its compiled label content.
+   *
+   * `destination` is already URI-normalised; emit it as an attribute value and let escaping do the rest.
+   */
+  def link(destination: String, title: Maybe[String], children: Chunk[Out]): Out
+
+  /** Compile an image. `alt` is plain text, as the attribute requires. */
+  def image(destination: String, title: Maybe[String], alt: String): Out
+
   /** Compile a thematic break. It has no children and no text, so this is a constant for most formats. */
   def thematicBreak: Out
 end Compiler

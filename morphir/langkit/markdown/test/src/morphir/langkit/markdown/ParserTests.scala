@@ -11,8 +11,10 @@ class ParserTests extends Test[Any]:
   /** The literal text of inline content, for assertions that do not care how it is split into nodes. */
   private def textOf(content: Chunk[Inline]): String =
     content.map {
-      case Inline.Text(value, _)     => value
-      case Inline.CodeSpan(value, _) => value
+      case Inline.Text(value, _)       => value
+      case Inline.CodeSpan(value, _)   => value
+      case Inline.Link(_, _, inner, _) => textOf(inner)
+      case Inline.Image(_, _, alt, _)  => alt
     }.mkString
 
   private def parseMetrics(source: String): ScanMetrics =

@@ -52,6 +52,16 @@ object KyoUiCompiler:
 
     def codeSpan(value: String): UI = UI.code(value)
 
+    /**
+     * `Href.Path` and `ImgSrc.Path` render their value verbatim, which is what a Markdown destination needs: it is an
+     * arbitrary URI the parser has already normalised, not something to re-classify as absolute, path or fragment.
+     */
+    def link(destination: String, title: Maybe[String], children: Chunk[UI]): UI =
+      UI.a.href(UI.Href.Path(destination))(content(children))
+
+    def image(destination: String, title: Maybe[String], alt: String): UI =
+      UI.img(UI.ImgSrc.Path(destination), alt)
+
     def thematicBreak: UI = UI.hr
   end instance
 

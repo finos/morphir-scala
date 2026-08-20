@@ -28,6 +28,9 @@ private[markdown] object MarkdownFold:
 
   private def compileInline[Out](inline0: Inline)(using compiler: Compiler[Out]): Out =
     inline0 match
-      case Inline.Text(value, _)     => compiler.text(value)
-      case Inline.CodeSpan(value, _) => compiler.codeSpan(value)
+      case Inline.Text(value, _)                       => compiler.text(value)
+      case Inline.CodeSpan(value, _)                   => compiler.codeSpan(value)
+      case Inline.Link(destination, title, content, _) =>
+        compiler.link(destination, title, content.map(compileInline))
+      case Inline.Image(destination, title, alt, _) => compiler.image(destination, title, alt)
 end MarkdownFold

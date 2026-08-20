@@ -44,3 +44,20 @@ enum Inline derives CanEqual:
    * from each end when both ends had one. `span` covers the whole construct including its backticks.
    */
   case CodeSpan(value: String, span: Span)
+
+  /**
+   * A link, from either the `[text](destination)` form or an autolink.
+   *
+   * `destination` is already normalised as a URI: percent-encoded where a URI cannot carry a character literally, but
+   * with `&` left alone for the writer to HTML-escape. `content` is the label's own inline content, which is why a code
+   * span inside a label survives. An autolink arrives here too, with its raw URI as the content.
+   */
+  case Link(destination: String, title: Maybe[String], content: Chunk[Inline], span: Span)
+
+  /**
+   * An image.
+   *
+   * `alt` is flattened plain text, not inline content, because that is what an `alt` attribute can hold: a link or a
+   * further image inside the label contributes only its text.
+   */
+  case Image(destination: String, title: Maybe[String], alt: String, span: Span)
