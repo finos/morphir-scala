@@ -72,6 +72,9 @@ object KyoUiCompiler:
     def image(destination: String, title: Maybe[String], alt: String): UI =
       UI.img(UI.ImgSrc.Path(destination), alt)
 
+    /** `UI.rawHtml` is correct here and nowhere else: the block's content is HTML the document wrote. */
+    def htmlBlock(content: String): UI = UI.rawHtml(content)
+
     def thematicBreak: UI = UI.hr
   end instance
 

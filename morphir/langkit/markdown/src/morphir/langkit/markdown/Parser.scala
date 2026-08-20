@@ -80,6 +80,8 @@ object Parser:
                     case Absent        =>
                       if isThematicBreak(scanner, line) then
                         Present(Deferred.ready(Block.ThematicBreak(Span(line.offset, line.length))))
+                      else if htmlBlockStart(scanner, line).isDefined then
+                        Present(Deferred.ready(readHtmlBlock(scanner, line)))
                       else
                         unorderedItem(scanner, line) match
                           case Present(item) => Present(readUnorderedList(scanner, line, item))
@@ -93,6 +95,239 @@ object Parser:
     // Second phase: every definition in the document is known now, so prose can resolve references that point
     // forward as well as back.
     Chunk.from(blocks.result().map(_.resolve(definitions.toMap)))
+
+  /** Tag names that open an HTML block on sight, from the spec's condition-6 list. */
+  private val HtmlBlockTags = Set(
+    "address",
+    "article",
+    "aside",
+    "base",
+    "basefont",
+    "blockquote",
+    "body",
+    "caption",
+    "center",
+    "col",
+    "colgroup",
+    "dd",
+    "details",
+    "dialog",
+    "dir",
+    "div",
+    "dl",
+    "dt",
+    "fieldset",
+    "figcaption",
+    "figure",
+    "footer",
+    "form",
+    "frame",
+    "frameset",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "head",
+    "header",
+    "hr",
+    "html",
+    "iframe",
+    "legend",
+    "li",
+    "link",
+    "main",
+    "menu",
+    "menuitem",
+    "nav",
+    "noframes",
+    "ol",
+    "optgroup",
+    "option",
+    "p",
+    "param",
+    "search",
+    "section",
+    "summary",
+    "table",
+    "tbody",
+    "td",
+    "tfoot",
+    "th",
+    "thead",
+    "title",
+    "tr",
+    "track",
+    "ul"
+  )
+
+  /**
+   * Which of the spec's HTML block start conditions a line meets, if any.
+   *
+   * Each condition carries its own end condition, which is why the kind is kept rather than a boolean: conditions one
+   * to five end on a closing marker, and six and seven end on a blank line.
+   */
+  private enum HtmlBlockKind derives CanEqual:
+    case ScriptLike, Comment, ProcessingInstruction, Declaration, CData, KnownTag, AnyTag
+
+  private def htmlBlockStart(scanner: SourceScanner, line: Line): Maybe[HtmlBlockKind] =
+    inspectLine(scanner, line)(htmlBlockStart)
+
+  private def htmlBlockStart(text: String): Maybe[HtmlBlockKind] =
+    val trimmed = text.stripLeading
+    val indent  = text.length - trimmed.length
+    if indent >= 4 || !trimmed.startsWith("<") then Absent
+    else
+      val lower = trimmed.toLowerCase
+      if Seq("<script", "<pre", "<style", "<textarea").exists(lower.startsWith) then Present(HtmlBlockKind.ScriptLike)
+      else if lower.startsWith("<!--") then Present(HtmlBlockKind.Comment)
+      else if lower.startsWith("<?") then Present(HtmlBlockKind.ProcessingInstruction)
+      else if lower.startsWith("<![cdata[") then Present(HtmlBlockKind.CData)
+      else if trimmed.length > 2 && trimmed.charAt(1) == '!' && trimmed.charAt(2).isLetter then
+        Present(HtmlBlockKind.Declaration)
+      else
+        val name = tagNameOf(trimmed)
+        if name.nonEmpty && HtmlBlockTags.contains(name) then Present(HtmlBlockKind.KnownTag)
+        else if isCompleteTagLine(trimmed) then Present(HtmlBlockKind.AnyTag)
+        else Absent
+
+  private def tagNameOf(trimmed: String): String =
+    val body = if trimmed.startsWith("</") then trimmed.drop(2) else trimmed.drop(1)
+    val name = body.takeWhile(char => char.isLetterOrDigit || char == '-')
+    if name.isEmpty then ""
+    else
+      val rest = body.drop(name.length)
+      if rest.isEmpty || rest.startsWith(">") || rest.startsWith("/>") || rest.charAt(0).isWhitespace then
+        name.toLowerCase
+      else ""
+
+  /**
+   * Condition seven: a complete, syntactically valid open or closing tag, alone on its line.
+   *
+   * "Valid" is load-bearing and was the source of a regression when this merely looked for a `>`. `<a h*#ref="hi">` has
+   * no valid attribute name, so it is not a tag at all and stays escaped text in a paragraph; so does
+   * `<a href='bar'title=title>`, whose attributes do not separate, and `</a href="foo">`, since a closing tag takes no
+   * attributes.
+   */
+  private def isCompleteTagLine(trimmed: String): Boolean =
+    completeTagEnd(trimmed).exists(end => trimmed.drop(end).isBlank)
+
+  /** Where a valid tag beginning at index 0 ends, or [[kyo.Absent]] if the text does not open one. */
+  private def completeTagEnd(text: String): Maybe[Int] =
+    if !text.startsWith("<") then Absent
+    else if text.startsWith("</") then closingTagEnd(text)
+    else openTagEnd(text)
+
+  private def closingTagEnd(text: String): Maybe[Int] =
+    var index = 2
+    val start = index
+    while index < text.length && (text.charAt(index).isLetterOrDigit || text.charAt(index) == '-') do index += 1
+    if index == start || !text.charAt(start - 1 + 1 - 1).isLetter then Absent
+    else
+      index = skipSpaces(text, index)
+      if index < text.length && text.charAt(index) == '>' then Present(index + 1) else Absent
+
+  private def openTagEnd(text: String): Maybe[Int] =
+    var index = 1
+    if index >= text.length || !text.charAt(index).isLetter then Absent
+    else
+      while index < text.length && (text.charAt(index).isLetterOrDigit || text.charAt(index) == '-') do index += 1
+      var valid = true
+      var done  = false
+      while valid && !done do
+        val afterSpaces = skipSpaces(text, index)
+        if afterSpaces >= text.length then valid = false
+        else if text.charAt(afterSpaces) == '>' then
+          index = afterSpaces + 1
+          done = true
+        else if text.charAt(afterSpaces) == '/' &&
+          afterSpaces + 1 < text.length && text.charAt(afterSpaces + 1) == '>'
+        then
+          index = afterSpaces + 2
+          done = true
+        else if afterSpaces == index then valid = false // attributes must be separated by whitespace
+        else
+          attributeEnd(text, afterSpaces) match
+            case Present(next) => index = next
+            case Absent        => valid = false
+      if valid && done then Present(index) else Absent
+
+  private def attributeEnd(text: String, from: Int): Maybe[Int] =
+    var index = from
+    if index >= text.length then Absent
+    else if !(text.charAt(index).isLetter || text.charAt(index) == '_' || text.charAt(index) == ':') then Absent
+    else
+      while index < text.length &&
+        (text.charAt(index).isLetterOrDigit ||
+          "_.:-".indexOf(text.charAt(index).toInt) >= 0)
+      do index += 1
+      val afterName = skipSpaces(text, index)
+      if afterName >= text.length || text.charAt(afterName) != '=' then Present(index)
+      else
+        val valueStart = skipSpaces(text, afterName + 1)
+        if valueStart >= text.length then Absent
+        else
+          val quote = text.charAt(valueStart)
+          if quote == '"' || quote == '\'' then
+            val close = text.indexOf(quote.toInt, valueStart + 1)
+            if close < 0 then Absent else Present(close + 1)
+          else
+            var cursor = valueStart
+            while cursor < text.length && !text.charAt(cursor).isWhitespace &&
+              "\"'=<>`".indexOf(text.charAt(cursor).toInt) < 0
+            do cursor += 1
+            if cursor == valueStart then Absent else Present(cursor)
+
+  private def skipSpaces(text: String, from: Int): Int =
+    var index = from
+    while index < text.length && text.charAt(index).isWhitespace do index += 1
+    index
+
+  /**
+   * Read a raw HTML block.
+   *
+   * Conditions one to five run until their closing marker appears; six and seven run until a blank line. Either way the
+   * lines are kept verbatim, because the content is HTML rather than Markdown.
+   */
+  private def readHtmlBlock(scanner: SourceScanner, first: Line): Block =
+    val kind  = htmlBlockStart(scanner, first).getOrElse(HtmlBlockKind.AnyTag)
+    val lines = List.newBuilder[String]
+    lines += first.text
+    var last = first
+    var done = closesHtmlBlock(kind, first.text, opening = true)
+
+    while !scanner.isAtEnd && !done do
+      val checkpoint = scanner.checkpoint()
+      val line       = readLine(scanner)
+      val blank      = isBlank(scanner, line)
+      if endsOnBlankLine(kind) && blank then
+        scanner.restore(checkpoint)
+        done = true
+      else
+        lines += line.text
+        last = line
+        if closesHtmlBlock(kind, line.text, opening = false) then done = true
+
+    // No trailing newline: the document separator supplies the one between blocks, and adding another here would
+    // double it. A code block differs because its closing tag ends the content.
+    val content = lines.result().mkString("\n")
+    scanner.chargeWork(WorkUnits.from(content.length.toLong).getOrThrow)
+    Block.HtmlBlock(content, Span.fromStartEnd(first.offset, last.end))
+
+  private def endsOnBlankLine(kind: HtmlBlockKind): Boolean =
+    kind == HtmlBlockKind.KnownTag || kind == HtmlBlockKind.AnyTag
+
+  private def closesHtmlBlock(kind: HtmlBlockKind, text: String, opening: Boolean): Boolean =
+    val lower = text.toLowerCase
+    kind match
+      case HtmlBlockKind.ScriptLike =>
+        Seq("</script>", "</pre>", "</style>", "</textarea>").exists(lower.contains)
+      case HtmlBlockKind.Comment               => lower.contains("-->") && (!opening || lower.indexOf("-->") >= 4)
+      case HtmlBlockKind.ProcessingInstruction => lower.contains("?>")
+      case HtmlBlockKind.Declaration           => lower.contains(">")
+      case HtmlBlockKind.CData                 => lower.contains("]]>")
+      case _                                   => false
 
   /**
    * A setext underline: a run of `=` or `-` beneath a paragraph, which turns it into a heading.
@@ -317,6 +552,7 @@ object Parser:
       headingPrefix(scanner, line).isEmpty &&
       unorderedItem(scanner, line).isEmpty &&
       !interruptsParagraph(scanner, line) &&
+      !htmlBlockStart(scanner, line).exists(_ != HtmlBlockKind.AnyTag) &&
       !isThematicBreak(scanner, line)
 
   /**

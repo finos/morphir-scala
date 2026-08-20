@@ -115,6 +115,14 @@ trait Compiler[Out]:
    */
   def orderedList(start: Int, items: Chunk[Out]): Out
 
+  /**
+   * Emit a raw HTML block verbatim.
+   *
+   * The only method on this algebra that must not escape its argument. A target that cannot express raw markup — a
+   * plain-text writer, say — should render it as literal text rather than pretend.
+   */
+  def htmlBlock(content: String): Out
+
   /** Compile a thematic break. It has no children and no text, so this is a constant for most formats. */
   def thematicBreak: Out
 end Compiler

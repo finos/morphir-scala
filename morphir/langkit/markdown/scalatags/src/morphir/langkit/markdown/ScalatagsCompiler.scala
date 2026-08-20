@@ -81,6 +81,9 @@ object ScalatagsCompiler:
         case Present(value) => img(src := destination, attr("alt") := alt, scalatags.Text.all.title := value)
         case Absent         => img(src := destination, attr("alt") := alt)
 
+    /** `raw` is correct here and nowhere else: the block's content is HTML the document wrote. */
+    def htmlBlock(content: String): Frag = raw(content)
+
     def thematicBreak: Frag = hr
   end instance
 

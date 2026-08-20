@@ -35,6 +35,15 @@ enum Block derives CanEqual:
    * delimiter — `.` to `)` — begins a new list, which is why example 302 renders two.
    */
   case OrderedList(start: Int, items: Chunk[ListItem], span: Span)
+
+  /**
+   * A run of raw HTML the document wrote itself.
+   *
+   * `content` is emitted verbatim, never escaped and never scanned for Markdown: that is the whole point of the form.
+   * It is the one place a writer legitimately passes source text straight through.
+   */
+  case HtmlBlock(content: String, span: Span)
+
   case ThematicBreak(span: Span)
 
 /**

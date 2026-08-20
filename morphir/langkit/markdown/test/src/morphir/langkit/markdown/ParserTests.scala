@@ -221,7 +221,7 @@ class ParserTests extends Test[Any]:
             // refunded when the lookahead is rolled back.
             error == ScanFailure(
               exceeded =
-                ScanLimitExceeded.Work(limit = WorkUnits(30L), attempted = WorkUnits(33L)),
+                ScanLimitExceeded.Work(limit = WorkUnits(30L), attempted = WorkUnits(31L)),
               offset = SourceOffset(5),
               phase = Present(ScanPhase("markdown.blocks"))
             )

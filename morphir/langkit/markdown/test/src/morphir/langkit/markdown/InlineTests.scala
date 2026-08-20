@@ -225,7 +225,9 @@ class InlineTests extends Test[Any]:
         case other => assert(false, s"expected one link, got $other")
     }
     "is not made from something that is not an absolute URI" in
-      assert(inlines("<not a link>").forall { case _: Inline.Link => false; case _ => true })
+      // `<33>` is neither an autolink nor a valid tag, so it stays escaped text. `<not a link>` would not do
+      // here: it IS a valid open tag -- name `not`, attributes `a` and `link` -- so CommonMark reads it as raw HTML.
+      assert(inlines("<33>").forall { case _: Inline.Link => false; case _ => true })
   }
 
   "emphasis" - {
@@ -397,6 +399,50 @@ class InlineTests extends Test[Any]:
       val blocks = parse("text\n1. item").blocks
       assert(blocks.size == 2)
       assert(blocks(1).isInstanceOf[Block.OrderedList])
+    }
+  }
+
+  "an HTML block" - {
+    "passes a known block tag through verbatim, Markdown and all (spec example 189)" in {
+      parse("<div>\n*Emphasized* text.\n</div>").blocks.head match
+        case Block.HtmlBlock(content, _) => assert(content == "<div>\n*Emphasized* text.\n</div>")
+        case other                       => assert(false, s"expected an HTML block, got $other")
+    }
+    "ends at a blank line for a known tag (spec example 190)" in {
+      val blocks = parse("<table>\n\n<tr>\n").blocks
+      assert(blocks.size == 2)
+      assert(blocks.forall(_.isInstanceOf[Block.HtmlBlock]))
+    }
+    "runs to the closing tag for a script-like element" in {
+      parse("<style>\n\nh1 {}\n</style>").blocks.head match
+        case Block.HtmlBlock(content, _) => assert(content.contains("h1 {}"))
+        case other                       => assert(false, s"expected an HTML block, got $other")
+    }
+    "takes a comment to its terminator" in {
+      parse("<!-- a\n\nb -->").blocks.head match
+        case Block.HtmlBlock(content, _) => assert(content == "<!-- a\n\nb -->")
+        case other                       => assert(false, s"expected an HTML block, got $other")
+    }
+    "needs a valid tag for the any-tag condition (spec example 619)" in {
+      // `h*#ref` is not a valid attribute name, so this is not a tag and stays prose.
+      parse("<a h*#ref=\"hi\">").blocks.head match
+        case Block.Paragraph(_, _) => assert(true)
+        case other                 => assert(false, s"expected a paragraph, got $other")
+    }
+    "rejects a closing tag carrying attributes (spec example 624)" in {
+      parse("</a href=\"foo\">").blocks.head match
+        case Block.Paragraph(_, _) => assert(true)
+        case other                 => assert(false, s"expected a paragraph, got $other")
+    }
+    "the any-tag condition does not interrupt a paragraph (spec example 187)" in {
+      val blocks = parse("Foo\n<a href=\"bar\">\nbaz").blocks
+      assert(blocks.size == 1)
+      assert(blocks.head.isInstanceOf[Block.Paragraph])
+    }
+    "an indented opener is code, not an HTML block (spec example 231)" in {
+      parse("    <div>").blocks.head match
+        case Block.IndentedCode(content, _) => assert(content == "<div>\n")
+        case other                          => assert(false, s"expected indented code, got $other")
     }
   }
 
