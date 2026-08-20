@@ -288,6 +288,28 @@ trait MorphirNativeModule extends MorphirCommonCrossModule with ScalaNativeModul
 }
 
 /**
+ * Links the system OpenSSL into a Scala Native binary.
+ *
+ * kyo-net compiles its TLS shim (`kyo_tls.c`, `kyo_net_openssl.c`, `kyo_net_boringssl.c`) into the binary and
+ * deliberately does not emit Scala Native's `@link`, because no `kyonet_openssl` shared library exists to find a
+ * `-l` for. Its own source says so: "the system OpenSSL is linked via the openssl-native-settings link options
+ * (-lssl -lcrypto)". Supplying those is therefore the consuming build's job, and any module that reaches kyo-net
+ * transitively needs this — `kyo-ui` does, through `kyo-http`.
+ *
+ * Only the two `-l` flags are needed. No `-L` is: Scala Native already puts `/opt/homebrew/lib` on the search path
+ * for macOS, and `/usr/lib` is searched by default on Linux.
+ *
+ * **Mix this into the test module as well as the module itself.** A nested `object test` does not inherit the
+ * enclosing module's `nativeLinkingOptions`, so a module that links but whose tests do not is the failure mode to
+ * expect if it is applied in only one place.
+ */
+trait MorphirNativeOpenSsl extends ScalaNativeModule {
+  override def nativeLinkingOptions = Task {
+    super.nativeLinkingOptions() ++ Seq("-lssl", "-lcrypto")
+  }
+}
+
+/**
  * Linker configuration that switches a Scala.js module onto the experimental WebAssembly backend, so it emits a Wasm
  * GC binary plus an ES-module JS loader instead of plain JS.
  *

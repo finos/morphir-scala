@@ -175,14 +175,19 @@ that parses, so no coordinate is renamed and nothing that depends on it moves.
 | `morphir-langkit-markdown-kyo-ui` | `Compiler[UI]`, the writer users see | the base module, `kyo-ui` |
 | `morphir-langkit-markdown-scalatags` | `Compiler[Frag]`, the conformance oracle | the base module, `scalatags` |
 
-The oracle publishes for JVM, Scala.js and Scala Native, so conformance can be measured wherever the langkit runs. A
-Wasm link variant of the kyo-ui writer proved necessary and exists: `morphir/ui` compiles concept bodies in sources
-shared by its Scala.js and Wasm modules, so the writer had to link for both, which in turn gave
-`morphir-langkit-markdown` and `langkit-core` Wasm variants. None of the three is a publish module.
-The kyo-ui writer publishes for **JVM and Scala.js only**: on Scala Native, `kyo-ui` transitively pulls `kyo-net` and
-`kyo-http`, whose C sources need BoringSSL or OpenSSL symbols at link time, and this repository configures no native
-linking options. Nothing depends on that variant today — `morphir-ui` targets Scala.js and Wasm, and the desktop app
-is Electron — and conformance is unaffected, since it runs through the oracle.
+Both writers publish for JVM, Scala.js and Scala Native, so conformance can be measured and markup produced
+wherever the langkit runs. A Wasm link variant of the kyo-ui writer proved necessary and exists too: `morphir/ui`
+compiles concept bodies in sources shared by its Scala.js and Wasm modules, so the writer had to link for both,
+which in turn gave `morphir-langkit-markdown` and `langkit-core` Wasm variants. None of the three is a publish
+module.
+
+Scala Native needs one thing from the consuming build. `kyo-ui` reaches `kyo-net` through `kyo-http`, and kyo-net
+compiles its TLS shim into the binary while deliberately emitting no `@link` — there is no `kyonet_openssl` shared
+library to name. kyo's own source says the system OpenSSL is linked through `-lssl -lcrypto`, so supplying those is
+the consumer's job; `MorphirNativeOpenSsl` in `build.mill` does it. No `-L` is required, because Scala Native
+already searches `/opt/homebrew/lib` on macOS and `/usr/lib` on Linux. The flags must be mixed into the test module
+as well as the module itself: a nested `object test` does not inherit `nativeLinkingOptions`, and a module that
+links while its tests do not is the failure this causes.
 
 An earlier draft split the parser into a `-core` artifact beneath a container directory. That is not needed:
 `morphir/langkit/markdown` can be a published module *and* the parent of the writer modules at once, the way

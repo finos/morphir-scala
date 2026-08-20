@@ -26,7 +26,13 @@ object wasm:
   object test:
     extends: [ScalaJSTests, build.MorphirJSTestNoSourceMap, build.MorphirWasmTests, millbuild.KyoTestWasm, build.MorphirKyoTestMvnDeps]
 
-# No `native` variant. kyo-ui pulls kyo-net and kyo-http transitively on Scala Native, and their C sources need
-# BoringSSL/OpenSSL symbols at link time (`_kyo_bssl_peer_cert_sha256_impl`, `_kyo_ossl_peer_cert_sha256_impl`),
-# which this repository configures no linking options for. Tracked as its own issue; the browser writer has no
-# Native consumer today, and the ScalaTags conformance oracle does publish for all three platforms.
+object native:
+  extends: [build.MorphirNativeModule, build.MorphirPublishModule, build.MorphirNativeOpenSsl, build.MorphirKyoCoreMvnDeps]
+  moduleDeps: [build.morphir.langkit.markdown.native]
+  mvnDeps: !append
+  - io.getkyo::kyo-ui
+  object test:
+    extends: [ScalaNativeTests, build.MorphirNativeOpenSsl, millbuild.KyoTestNative, build.MorphirKyoTestMvnDeps]
+    mvnDeps: !append
+    - org.scala-native::test-interface::0.5.12
+

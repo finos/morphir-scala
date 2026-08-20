@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 #
-# Install libuv headers for Scala Native on GitHub-hosted Ubuntu runners.
+# Install the system libraries Scala Native links against, on GitHub-hosted Ubuntu runners.
+#
+#   libuv1-dev  - Scala Native's own runtime dependency.
+#   libssl-dev  - kyo-net compiles its TLS shim into the binary and emits no `@link`, so the consuming
+#                 build supplies -lssl -lcrypto (see MorphirNativeOpenSsl in build.mill). Anything
+#                 reaching kyo-net transitively needs the headers and the shared objects; kyo-ui does,
+#                 through kyo-http.
 #
 # The runner image prefers azure.archive.ubuntu.com via /etc/apt/apt-mirrors.txt. That mirror
 # stalls: apt prints Ign for each suite, eventually falls back, and can sit in `apt-get update`
@@ -11,8 +17,19 @@
 
 set -euo pipefail
 
-if dpkg-query -W -f='${Status}\n' libuv1-dev 2>/dev/null | grep -q 'install ok installed'; then
-  echo "libuv1-dev is already installed"
+packages=(libuv1-dev libssl-dev)
+
+missing=()
+for pkg in "${packages[@]}"; do
+  if dpkg-query -W -f='${Status}\n' "$pkg" 2>/dev/null | grep -q 'install ok installed'; then
+    echo "$pkg is already installed"
+  else
+    missing+=("$pkg")
+  fi
+done
+
+if [[ ${#missing[@]} -eq 0 ]]; then
+  echo "all native dependencies are already installed"
   exit 0
 fi
 
@@ -52,4 +69,4 @@ run_apt() {
 }
 
 run_apt update
-run_apt install -y libuv1-dev
+run_apt install -y "${missing[@]}"
