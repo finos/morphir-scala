@@ -17,6 +17,17 @@ private[markdown] final case class LinkDefinition(destination: String, title: Ma
 
 private[markdown] object InlineParser:
 
+  /**
+   * Where a link points, and where the construct that named it ends.
+   *
+   * Named because three of these in a row said nothing about which was which: `(Int, String, Maybe[String])` reads the
+   * same whichever way round the caller has it.
+   */
+  private[markdown] type Target = (end: Int, destination: String, title: Maybe[String])
+
+  /** An autolink: where it ends, what it says, and where it points -- which differ for the email form. */
+  private type Autolink = (end: Int, text: String, destination: String)
+
   /** Where a label opened at `open` closes; used by block parsing to find a definition's label. */
   def labelEndOf(text: String, open: Int): Maybe[Int] = labelEnd(text, open)
 
@@ -26,7 +37,7 @@ private[markdown] object InlineParser:
    * Stricter than an inline link's target: example 209 shows `[foo]: /url "title" ok` is not a definition at all,
    * because trailing content disqualifies it.
    */
-  def definitionTarget(text: String, from: Int): Maybe[(Int, String, Maybe[String])] =
+  def definitionTarget(text: String, from: Int): Maybe[Target] =
     definitionTargetImpl(text, from)
 
   /**
@@ -262,9 +273,12 @@ private[markdown] object InlineParser:
     else if char == '&' then entityAt(text, index, sourceOffsetAt)
     else if char == '<' then
       autolink(text, index) match
-        case Present((end, uri, destination)) =>
-          val span = spanOf(index, end, sourceOffsetAt)
-          Present((end, Inline.Link(normalizeUri(destination), Absent, Chunk(Inline.Text(uri, span)), span)))
+        case Present(link) =>
+          val span = spanOf(index, link.end, sourceOffsetAt)
+          Present((
+            link.end,
+            Inline.Link(normalizeUri(link.destination), Absent, Chunk(Inline.Text(link.text, span)), span)
+          ))
         case Absent =>
           // Raw HTML is taken whole, which is what gives it precedence over everything else: no `*`, `_`, `&` or `\`
           // inside it is ever looked at again, so `<a href="&ouml;">` keeps its entity and `**<a href="**">` has no
@@ -452,8 +466,8 @@ private[markdown] object InlineParser:
         val inlineForm =
           if close + 1 < text.length && text.charAt(close + 1) == '(' then
             inlineTarget(text, close + 2) match
-              case Present((end, destination, title)) => build(end, destination, title, true)
-              case Absent                             => Absent
+              case Present(target) => build(target.end, target.destination, target.title, true)
+              case Absent          => Absent
           else Absent
 
         if inlineForm.isDefined then inlineForm
@@ -566,7 +580,7 @@ private[markdown] object InlineParser:
    * The destination is either angle-bracketed, which may hold spaces, or a bare run with balanced parentheses. The
    * title may be quoted with `"`, `'` or parentheses.
    */
-  private def inlineTarget(text: String, from: Int): Maybe[(Int, String, Maybe[String])] =
+  private def inlineTarget(text: String, from: Int): Maybe[Target] =
     var index = skipWhitespace(text, from)
     if index >= text.length then Absent
     else
@@ -594,14 +608,15 @@ private[markdown] object InlineParser:
         case Absent                            => Absent
         case Present((afterDestination, dest)) =>
           index = skipWhitespace(text, afterDestination)
-          if index < text.length && text.charAt(index) == ')' then Present((index + 1, dest, Absent))
+          if index < text.length && text.charAt(index) == ')' then
+            Present((end = index + 1, destination = dest, title = Absent))
           else
             titleAt(text, index) match
               case Absent                       => Absent
               case Present((afterTitle, title)) =>
                 val closing = skipWhitespace(text, afterTitle)
                 if closing < text.length && text.charAt(closing) == ')' then
-                  Present((closing + 1, dest, Present(title)))
+                  Present((end = closing + 1, destination = dest, title = Present(title)))
                 else Absent
 
   /**
@@ -648,7 +663,7 @@ private[markdown] object InlineParser:
    * Unlike an inline target there is no closing `)`; the definition ends at the end of the text, and anything after the
    * title other than whitespace disqualifies it.
    */
-  private def definitionTargetImpl(text: String, from: Int): Maybe[(Int, String, Maybe[String])] =
+  private def definitionTargetImpl(text: String, from: Int): Maybe[Target] =
     val start = skipWhitespace(text, from)
     if start >= text.length then Absent
     else
@@ -666,14 +681,15 @@ private[markdown] object InlineParser:
         case Present((afterDestination, dest)) =>
           val afterSpace = skipWhitespace(text, afterDestination)
           if afterSpace >= text.length || endsLine(text, afterDestination, afterSpace) && afterSpace >= text.length then
-            Present((afterDestination, dest, Absent))
+            Present((end = afterDestination, destination = dest, title = Absent))
           else
             titleAt(text, afterSpace) match
               case Present((afterTitle, title)) if restIsBlank(text, afterTitle) =>
-                Present((afterTitle, dest, Present(title)))
+                Present((end = afterTitle, destination = dest, title = Present(title)))
               case _ =>
                 // No title, so the definition ends at the destination -- but only if nothing else shares its line.
-                if endsLine(text, afterDestination, afterSpace) then Present((afterDestination, dest, Absent))
+                if endsLine(text, afterDestination, afterSpace) then
+                  Present((end = afterDestination, destination = dest, title = Absent))
                 else Absent
 
   /** True when only whitespace separates `from` from the end of the text or the next line. */
@@ -746,13 +762,14 @@ private[markdown] object InlineParser:
    * Returns where it ends, what it says, and where it points -- which differ for the email form, whose text is the
    * address and whose destination is that address behind `mailto:`.
    */
-  private def autolink(text: String, start: Int): Maybe[(Int, String, String)] =
+  private def autolink(text: String, start: Int): Maybe[Autolink] =
     val close = text.indexOf('>', start + 1)
     if close < 0 then Absent
     else
       val body = text.substring(start + 1, close)
-      if isAbsoluteUri(body) then Present((close + 1, body, body))
-      else if isEmailAddress(body) then Present((close + 1, body, s"mailto:$body"))
+      if isAbsoluteUri(body) then Present((end = close + 1, text = body, destination = body))
+      else if isEmailAddress(body) then
+        Present((end = close + 1, text = body, destination = s"mailto:$body"))
       else Absent
 
   /**
@@ -798,8 +815,8 @@ private[markdown] object InlineParser:
    */
   private def skipMarkup(text: String, index: Int): Maybe[Int] =
     autolink(text, index) match
-      case Present((end, _, _)) => Present(end)
-      case Absent               => HtmlTag.endOf(text, index)
+      case Present(link) => Present(link.end)
+      case Absent        => HtmlTag.endOf(text, index)
 
   /**
    * Whether a node is a link or holds one at any depth.

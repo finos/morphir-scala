@@ -602,19 +602,20 @@ object Parser:
   ): Int =
     @tailrec def take(consumed: Int): Int =
       linkDefinitionAt(text, consumed) match
-        case Present((end, label, destination, title)) =>
-          val key = InlineParser.normalizeLabel(label)
+        case Present(definition) =>
+          val key = InlineParser.normalizeLabel(definition.label)
           // First definition wins, which is what the spec says about duplicates.
-          if !definitions.contains(key) then definitions(key) = LinkDefinition(destination, title)
-          take(end)
+          if !definitions.contains(key) then
+            definitions(key) = LinkDefinition(definition.destination, definition.title)
+          take(definition.end)
         case Absent => consumed
     take(0)
 
+  /** A link reference definition: its label, where it points, and where it ends. */
+  private type Definition = (end: Int, label: String, destination: String, title: Maybe[String])
+
   /** One definition beginning at `from`, or [[kyo.Absent]] if the text does not start with one. */
-  private def linkDefinitionAt(
-      text: String,
-      from: Int
-  ): Maybe[(Int, String, String, Maybe[String])] =
+  private def linkDefinitionAt(text: String, from: Int): Maybe[Definition] =
     @tailrec def skipLeading(cursor: Int): Int =
       if cursor < text.length && (text.charAt(cursor) == ' ' || text.charAt(cursor) == '\n') then
         skipLeading(cursor + 1)
@@ -633,8 +634,14 @@ object Parser:
             if !InlineParser.isLabelOf(label) then Absent
             else
               InlineParser.definitionTarget(text, close + 2) match
-                case Absent                             => Absent
-                case Present((end, destination, title)) => Present((end, label, destination, title))
+                case Absent          => Absent
+                case Present(target) =>
+                  Present((
+                    end = target.end,
+                    label = label,
+                    destination = target.destination,
+                    title = target.title
+                  ))
 
   /**
    * Map an index in a paragraph's joined text back to its offset in the source.
