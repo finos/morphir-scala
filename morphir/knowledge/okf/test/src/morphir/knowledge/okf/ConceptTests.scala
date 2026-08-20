@@ -35,7 +35,10 @@ class ConceptTests extends Test[Any]:
           concept.body.blocks(0) match
             case Block.Heading(level, content, _) =>
               assert(level.toInt == 1)
-              assert(content.map { case Inline.Text(value, _) => value }.mkString == "Title")
+              assert(content.map {
+                case Inline.Text(value, _)     => value
+                case Inline.CodeSpan(value, _) => value
+              }.mkString == "Title")
             case _ => assert(false)
         case _ => assert(false)
     }

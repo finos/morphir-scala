@@ -50,6 +50,8 @@ object KyoUiCompiler:
     /** kyo-ui escapes a `Text` node when it renders, so the value is handed over raw. */
     def text(value: String): UI = UI.Ast.Text(value)
 
+    def codeSpan(value: String): UI = UI.code(value)
+
     def thematicBreak: UI = UI.hr
   end instance
 

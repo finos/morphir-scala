@@ -3,6 +3,7 @@ package morphir.langkit.markdown
 import kyo.*
 import morphir.langkit.core.Span
 import morphir.langkit.core.scanner.*
+import morphir.langkit.markdown.internal.InlineParser
 
 /**
  * A CommonMark subset parser: ATX headings, paragraphs, fenced code, unordered lists, and thematic breaks.
@@ -51,7 +52,7 @@ object Parser:
               case Present((level, rest)) =>
                 Block.Heading(
                   level,
-                  Chunk(Inline.Text(rest, contentSpan(line, rest))),
+                  inlineOfLine(line, rest),
                   Span(line.offset, line.length)
                 )
               case Absent =>
@@ -123,27 +124,47 @@ object Parser:
     Block.FencedCode(FenceInfo.parseBudgeted(open.info, scanner), content, Span.fromStartEnd(opening.offset, end))
 
   private def readParagraph(scanner: SourceScanner, first: Line): Block =
-    val text        = StringBuilder(first.text)
+    val segments = List.newBuilder[(Int, String)]
+    segments += ((first.offset, first.text))
     var last        = first
     var interrupted = false
     while !scanner.isAtEnd && !interrupted do
       val checkpoint = scanner.checkpoint()
       val line       = readLine(scanner)
       if continuesParagraph(scanner, line) then
-        text.append('\n').append(line.text)
+        segments += ((line.offset, line.text))
         last = line
       else
         scanner.restore(checkpoint)
         interrupted = true
 
-    scanner.chargeWork(WorkUnits.from(text.length.toLong).getOrThrow)
-    val raw     = text.toString
+    val lines   = Chunk.from(segments.result())
+    val raw     = lines.map(_._2).mkString("\n")
     val trimmed = raw.trim
     val leading = raw.length - raw.stripLeading.length
+    scanner.chargeWork(WorkUnits.from(raw.length.toLong).getOrThrow)
     Block.Paragraph(
-      Chunk(Inline.Text(trimmed, Span(first.offset + leading, trimmed.length))),
+      InlineParser.parse(trimmed, index => sourceOffsetOf(lines, index + leading)),
       Span.fromStartEnd(first.offset, last.end)
     )
+
+  /**
+   * Map an index in a paragraph's joined text back to its offset in the source.
+   *
+   * The join uses a single `\n` between lines, but the source may have used `\r\n`, and each line carries its own
+   * offset. Walking the lines rather than adding a constant keeps inline spans true on both.
+   */
+  private def sourceOffsetOf(lines: Chunk[(Int, String)], index: Int): Int =
+    var remaining = index
+    var cursor    = 0
+    var result    = Absent: Maybe[Int]
+    while result.isEmpty && cursor < lines.size do
+      val (offset, text) = lines(cursor)
+      if remaining <= text.length then result = Present(offset + remaining)
+      else remaining -= text.length + 1 // the '\n' the join introduced
+      cursor += 1
+    val (lastOffset, lastText) = lines(lines.size - 1)
+    result.getOrElse(lastOffset + lastText.length)
 
   private def continuesParagraph(scanner: SourceScanner, line: Line): Boolean =
     !isBlank(scanner, line) &&
@@ -181,8 +202,12 @@ object Parser:
     Block.UnorderedList(Chunk.from(items.result()), Span.fromStartEnd(first.offset, last.end))
 
   private def listItem(line: Line, content: String): ListItem =
-    val span = contentSpan(line, content)
-    ListItem(Chunk(Inline.Text(content, span)), span)
+    ListItem(inlineOfLine(line, content), contentSpan(line, content))
+
+  /** Inline content for a block whose prose came from one line, so offsets are the line's plus an index. */
+  private def inlineOfLine(line: Line, content: String): Chunk[Inline] =
+    val base = contentSpan(line, content).offset
+    InlineParser.parse(content, index => base + index)
 
   /**
    * Where a block's extracted content sits in the source.

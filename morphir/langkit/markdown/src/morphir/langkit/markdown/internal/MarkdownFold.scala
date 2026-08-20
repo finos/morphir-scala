@@ -28,5 +28,6 @@ private[markdown] object MarkdownFold:
 
   private def compileInline[Out](inline0: Inline)(using compiler: Compiler[Out]): Out =
     inline0 match
-      case Inline.Text(value, _) => compiler.text(value)
+      case Inline.Text(value, _)     => compiler.text(value)
+      case Inline.CodeSpan(value, _) => compiler.codeSpan(value)
 end MarkdownFold

@@ -60,6 +60,8 @@ object ScalatagsCompiler:
     /** ScalaTags escapes a `String` frag on render, which is exactly the spec's rule, so nothing is done here. */
     def text(value: String): Frag = value
 
+    def codeSpan(value: String): Frag = code(value)
+
     def thematicBreak: Frag = hr
   end instance
 

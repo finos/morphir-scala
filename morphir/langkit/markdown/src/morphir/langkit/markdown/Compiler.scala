@@ -83,6 +83,14 @@ trait Compiler[Out]:
    */
   def text(value: String): Out
 
+  /**
+   * Compile a code span.
+   *
+   * The value is literal text the spec has already normalised, so emit it unchanged apart from escaping. No inline
+   * construct inside it is live: a backslash does not escape, and a backtick is just a backtick.
+   */
+  def codeSpan(value: String): Out
+
   /** Compile a thematic break. It has no children and no text, so this is a constant for most formats. */
   def thematicBreak: Out
 end Compiler

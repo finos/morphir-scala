@@ -20,6 +20,7 @@ class CompilerTests extends Test[Any]:
     def unorderedList(items: Chunk[String]): String           = items.mkString("(ul ", " ", ")")
     def listItem(children: Chunk[String]): String             = s"(li ${children.mkString(" ")})"
     def text(value: String): String                           = value
+    def codeSpan(value: String): String                       = s"(code-span $value)"
     def thematicBreak: String                                 = "(hr)"
   end given
 

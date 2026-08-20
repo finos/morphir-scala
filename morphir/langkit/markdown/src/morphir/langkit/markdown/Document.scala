@@ -36,3 +36,11 @@ final case class ListItem(content: Chunk[Inline], span: Span) derives CanEqual
  */
 enum Inline derives CanEqual:
   case Text(value: String, span: Span)
+
+  /**
+   * Backtick-delimited literal text.
+   *
+   * `value` is the content CommonMark says to render: line endings already turned into spaces, and one space removed
+   * from each end when both ends had one. `span` covers the whole construct including its backticks.
+   */
+  case CodeSpan(value: String, span: Span)

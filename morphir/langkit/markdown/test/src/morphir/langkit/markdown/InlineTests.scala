@@ -13,6 +13,12 @@ import morphir.langkit.core.Span
  */
 class InlineTests extends Test[Any]:
 
+  /** The values of every code span a source produces, ignoring the text around them. */
+  private def codeSpans(source: String): Chunk[String] =
+    parse(source).blocks.head match
+      case Block.Paragraph(content, _) => content.collect { case Inline.CodeSpan(value, _) => value }
+      case other                       => throw new AssertionError(s"expected a paragraph, got $other")
+
   private def parse(source: String): Document =
     Parser.parse(source) match
       case Result.Success(document) => document
@@ -54,6 +60,54 @@ class InlineTests extends Test[Any]:
           assert(items(0).content == Chunk(Inline.Text("one", Span(2, 3))))
           assert(items(1).content == Chunk(Inline.Text("two", Span(8, 3))))
         case other => assert(false, s"expected a list, got $other")
+    }
+  }
+
+  "a code span" - {
+    "is parsed out of surrounding text (spec example 328)" in {
+      parse("`foo`").blocks.head match
+        case Block.Paragraph(content, _) => assert(content == Chunk(Inline.CodeSpan("foo", Span(0, 5))))
+        case other                       => assert(false, s"expected a paragraph, got $other")
+    }
+    "splits a run of text into the pieces around it" in {
+      parse("a `b` c").blocks.head match
+        case Block.Paragraph(content, _) =>
+          assert(content.size == 3)
+          assert(content(0) == Inline.Text("a ", Span(0, 2)))
+          assert(content(1) == Inline.CodeSpan("b", Span(2, 3)))
+          assert(content(2) == Inline.Text(" c", Span(5, 2)))
+        case other => assert(false, s"expected a paragraph, got $other")
+    }
+    "closes on a backtick run of the same length, not a shorter one (spec example 339)" in
+      assert(codeSpans("``foo`bar``") == Chunk("foo`bar"))
+    "strips one space from each end when both ends have one (spec example 329)" in
+      assert(codeSpans("`` foo ` bar ``") == Chunk("foo ` bar"))
+    "strips only one space, leaving the rest (spec example 331)" in
+      assert(codeSpans("`  ``  `") == Chunk(" `` "))
+    "does not strip when only one end has a space (spec example 332)" in
+      assert(codeSpans("` a`") == Chunk(" a"))
+    "does not strip when the content is all spaces (spec example 334)" in
+      assert(codeSpans("`  `") == Chunk("  "))
+    "treats a non-breaking space as content, not as strippable space (spec example 333)" in
+      assert(codeSpans("`\u00a0b\u00a0`") == Chunk("\u00a0b\u00a0"))
+    "turns line endings into spaces (spec example 335)" in
+      assert(codeSpans("``\nfoo\nbar  \nbaz\n``") == Chunk("foo bar   baz"))
+    "does not honour a backslash escape (spec example 338)" in
+      assert(codeSpans("`foo\\`bar`") == Chunk("foo\\"))
+    "leaves an unmatched backtick run as literal text (spec example 348)" in {
+      parse("`foo").blocks.head match
+        case Block.Paragraph(content, _) => assert(content == Chunk(Inline.Text("`foo", Span(0, 4))))
+        case other                       => assert(false, s"expected a paragraph, got $other")
+    }
+    "leaves a run with no equal-length closer as literal text (spec example 347)" in {
+      parse("```foo``").blocks.head match
+        case Block.Paragraph(content, _) => assert(content == Chunk(Inline.Text("```foo``", Span(0, 8))))
+        case other                       => assert(false, s"expected a paragraph, got $other")
+    }
+    "is not scanned inside fenced code" in {
+      parse("```\n`foo`\n```").blocks.head match
+        case Block.FencedCode(_, content, _) => assert(content == "`foo`\n")
+        case other                           => assert(false, s"expected fenced code, got $other")
     }
   }
 

@@ -10,7 +10,10 @@ class ParserTests extends Test[Any]:
 
   /** The literal text of inline content, for assertions that do not care how it is split into nodes. */
   private def textOf(content: Chunk[Inline]): String =
-    content.map { case Inline.Text(value, _) => value }.mkString
+    content.map {
+      case Inline.Text(value, _)     => value
+      case Inline.CodeSpan(value, _) => value
+    }.mkString
 
   private def parseMetrics(source: String): ScanMetrics =
     Parser.parseWithMetrics(source, ScanBudget.UnsafeUnbounded) match
@@ -476,8 +479,14 @@ class ParserTests extends Test[Any]:
               assert(content == "body\n")
             case _ => assert(false)
           blocks(1) match
-            case Block.Paragraph(content, _) => assert(textOf(content) == "``` `example`\nbody")
-            case _                           => assert(false)
+            // Not a fence: a backtick fence's info string may not contain a backtick, so the line is prose --
+            // and its `example` is now an ordinary code span.
+            case Block.Paragraph(content, _) =>
+              assert(content.size == 3)
+              assert(content(0) == Inline.Text("``` ", Span(31, 4)))
+              assert(content(1) == Inline.CodeSpan("example", Span(35, 9)))
+              assert(content(2) == Inline.Text("\nbody", Span(44, 5)))
+            case _ => assert(false)
         case _ => assert(false)
     }
     "reads consecutive unordered list items as one list" in {
