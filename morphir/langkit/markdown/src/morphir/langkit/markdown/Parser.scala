@@ -64,7 +64,7 @@ object Parser:
     case Fence(open: FenceOpen)
     case ThematicBreak
     case Html(kind: HtmlBlockKind)
-    case BulletItem(content: String)
+    case BulletItem(marker: BulletMarker)
     case OrderedItem(marker: OrderedMarker)
     case Text
 
@@ -99,8 +99,8 @@ object Parser:
                       case Present(html) => LineKind.Html(html)
                       case Absent        =>
                         unorderedItem(text) match
-                          case Present(item) => LineKind.BulletItem(item)
-                          case Absent        =>
+                          case Present(marker) => LineKind.BulletItem(marker)
+                          case Absent          =>
                             orderedItem(text) match
                               case Present(marker) => LineKind.OrderedItem(marker)
                               case Absent          => LineKind.Text
@@ -127,18 +127,34 @@ object Parser:
     classified.kind match
       case LineKind.Blank                        => false
       case LineKind.Text | LineKind.IndentedCode => true
-      case LineKind.OrderedItem(marker)          => marker.number != 1
-      case LineKind.Html(HtmlBlockKind.AnyTag)   => true
+      // A list interrupts a paragraph only when it starts at 1 and its first item holds something: `1.` alone under a
+      // paragraph is that paragraph's text, and so is `14.` whatever follows it (example 304).
+      case LineKind.OrderedItem(marker)        => marker.number != 1 || marker.empty
+      case LineKind.BulletItem(marker)         => marker.empty
+      case LineKind.Html(HtmlBlockKind.AnyTag) => true
+      case _                                   => false
+
+  /**
+   * Whether a line that dropped a container's marker continues the paragraph above it.
+   *
+   * Stricter than [[continues]], and it has to be. A lazy line is only ever paragraph continuation text: it fell out of
+   * a container, so anything that could open a block where it landed opens one there instead. `1. one` over `2. two` is
+   * two items even though `2.` may not interrupt a paragraph -- the paragraph is not what the line fell out of, the
+   * list is, and a list is happy to take another item.
+   */
+  private def continuesLazily(classified: Classified): Boolean =
+    classified.kind match
+      case LineKind.Text | LineKind.IndentedCode => true
       case _                                     => false
 
   private def parseBlocks(
       cursor: ContainerCursor,
       definitions: scala.collection.mutable.Map[String, LinkDefinition]
   ): Chunk[Block] =
-    val deferred = parseDeferred(cursor, definitions)
+    val run = parseDeferred(cursor, definitions)
     // Second phase: every definition in the document is known now, so prose can resolve references that point
     // forward as well as back.
-    Chunk.from(deferred.map(_.resolve(definitions.toMap)))
+    Chunk.from(run.blocks.map(_.resolve(definitions.toMap)))
 
   /**
    * Read every block the cursor's container holds, with prose left unresolved.
@@ -147,18 +163,38 @@ object Parser:
    * nothing open, and a block quote runs it over a cursor that takes the `>` off each line. What differs between them
    * is which lines the cursor offers, not what is done with them.
    */
+  /**
+   * A run of blocks, and what the blank lines between them say about it.
+   *
+   * Only a list asks the last two questions, and only a list can answer them: CommonMark calls a list loose when its
+   * items are separated by blank lines or when an item holds two blocks with a blank line between them, so the
+   * information has to come out of the run that read the item rather than be recovered from the blocks afterwards.
+   * `- a` over `  - b` is two blocks in one item and is tight; `- a`, blank, `  b` is two blocks and is not.
+   */
+  private final case class BlockRun(
+      blocks: List[Deferred],
+      contentEnd: Int,
+      interiorBlank: Boolean,
+      trailingBlank: Boolean
+  )
+
   private def parseDeferred(
       cursor: ContainerCursor,
       definitions: scala.collection.mutable.Map[String, LinkDefinition]
-  ): List[Deferred] =
-    val scanner = cursor.scanner
-    val blocks  = List.newBuilder[Deferred]
+  ): BlockRun =
+    val scanner       = cursor.scanner
+    val blocks        = List.newBuilder[Deferred]
+    var written       = 0
+    var contentEnd    = cursor.consumedEnd
+    var blankSince    = false
+    var interiorBlank = false
     while !cursor.isAtEnd do
       scanner.requireProgress(BlocksPhase) {
         val opening = cursor.checkpoint()
         cursor.readLine().foreach { line =>
           val classified = classify(scanner, line)
-          if classified.kind != LineKind.Blank then
+          if classified.kind == LineKind.Blank then blankSince = true
+          else
             val block = classified.kind match
               case LineKind.IndentedCode => Present(Deferred.ready(readIndentedCode(cursor, line)))
               case LineKind.BlockQuote   =>
@@ -174,15 +210,25 @@ object Parser:
               case LineKind.Fence(open)   => Present(Deferred.ready(readFencedCode(cursor, line, open)))
               case LineKind.ThematicBreak =>
                 Present(Deferred.ready(Block.ThematicBreak(Span(line.offset, line.length))))
-              case LineKind.Html(_)               => Present(Deferred.ready(readHtmlBlock(cursor, line)))
-              case LineKind.BulletItem(item)      => Present(readUnorderedList(cursor, line, item))
-              case LineKind.OrderedItem(marker)   => Present(readOrderedList(cursor, line, marker))
+              case LineKind.Html(_)          => Present(Deferred.ready(readHtmlBlock(cursor, line)))
+              case LineKind.BulletItem(item) =>
+                cursor.restore(opening)
+                Present(readUnorderedList(cursor, definitions, item, line.offset))
+              case LineKind.OrderedItem(marker) =>
+                cursor.restore(opening)
+                Present(readOrderedList(cursor, definitions, marker, line.offset))
               case LineKind.Text | LineKind.Blank => readParagraph(cursor, line, definitions)
             scanner.chargeOutputNodes(NodeCount.one)
-            block.foreach(blocks += _)
+            contentEnd = cursor.consumedEnd
+            block.foreach { deferred =>
+              if written > 0 && blankSince then interiorBlank = true
+              blocks += deferred
+              written += 1
+            }
+            blankSince = false
         }
       }
-    blocks.result()
+    BlockRun(blocks.result(), contentEnd, interiorBlank, blankSince)
 
   /**
    * Read a block quote and everything it holds.
@@ -198,13 +244,13 @@ object Parser:
     val scanner = cursor.scanner
     val start   = scanner.offset.toInt
     val inner   = cursor.nested(ContainerPrefix.BlockQuote)
-    val blocks  = scanner.withNesting(parseDeferred(inner, definitions))
+    val run     = scanner.withNesting(parseDeferred(inner, definitions))
     val span    = Span.fromStartEnd(start, cursor.consumedEnd)
-    Deferred.prose(defs => Block.BlockQuote(Chunk.from(blocks.map(_.resolve(defs))), span))
+    Deferred.prose(defs => Block.BlockQuote(Chunk.from(run.blocks.map(_.resolve(defs))), span))
 
   /** Whether a line carries a block quote marker: up to three spaces, then `>`. */
   private def isBlockQuoteStart(text: String): Boolean =
-    !ContainerPrefix.BlockQuote.consume(text, 0).isEmpty
+    !ContainerPrefix.BlockQuote.consume(text, 0, absoluteStart = 0).isEmpty
 
   /** Tag names that open an HTML block on sight, from the spec's condition-6 list. */
   private val HtmlBlockTags = Set(
@@ -481,43 +527,6 @@ object Parser:
       if count < 4 && count < text.length && text.charAt(count) == ' ' then removed(count + 1) else count
     text.substring(removed(0))
 
-  /**
-   * Consume lines for as long as `take` accepts them, and return the last one accepted.
-   *
-   * The scanner is restored to just before the first rejected line, so the caller's block ends where it should and the
-   * next block starts by reading that line again. Four readers hand-rolled this with a `done` flag; naming it once
-   * makes each of them say what it collects rather than how it stops.
-   *
-   * `take` is expected to have an effect -- appending to the caller's builder -- which is why it returns a plain
-   * Boolean rather than an option: acceptance and accumulation are the same decision.
-   */
-  /**
-   * Consume lines for as long as `take` accepts them, and return the last one accepted.
-   *
-   * The scanner is restored to just before the first rejected line, so the caller's block ends where it should and the
-   * next block starts by reading that line again. Four readers hand-rolled this with a `done` flag; naming it once
-   * makes each of them say what it collects rather than how it stops.
-   *
-   * `take` is expected to have an effect -- appending to the caller's builder -- which is why it returns a plain
-   * Boolean rather than an option: acceptance and accumulation are the same decision.
-   *
-   * `inline`, with an `inline` predicate, so the caller's lambda is beta-reduced into the loop instead of becoming a
-   * `Function1`. `Line => Boolean` is not one of the shapes `Function1` specialises, so every line would otherwise pay
-   * a generic `apply` and a boxed `Boolean`. The recursion stays in a local `@tailrec` loop, because an `inline def`
-   * cannot recurse. Two call sites, so the body is duplicated twice -- worth it here, and the reason this is private
-   * rather than something callers can grow.
-   */
-  private inline def consumeWhile(cursor: ContainerCursor, last: Line)(inline take: Line => Boolean): Line =
-    @tailrec def loop(current: Line): Line =
-      val checkpoint = cursor.checkpoint()
-      cursor.readLine() match
-        case Present(line) if take(line) => loop(line)
-        case Present(_)                  =>
-          cursor.restore(checkpoint)
-          current
-        case Absent => current
-    loop(last)
-
   private type FenceOpen = (marker: Char, length: Int, indentation: Int, info: String)
 
   private def readFencedCode(cursor: ContainerCursor, opening: Line, open: FenceOpen): Block =
@@ -576,7 +585,7 @@ object Parser:
             case Present(level) if continued.matchedAll && classified.kind != LineKind.IndentedCode =>
               (line, Present(level))
             case _ =>
-              if continues(classified) then
+              if (if continued.matchedAll then continues(classified) else continuesLazily(classified)) then
                 segments += segment(line)
                 gather(line)
               else
@@ -686,26 +695,110 @@ object Parser:
       compact.forall(_ == '-') || compact.forall(_ == '*') || compact.forall(_ == '_')
     )
 
-  private def readUnorderedList(cursor: ContainerCursor, first: Line, firstItem: String): Deferred =
+  /**
+   * Read a run of bullet items sharing one bullet character into one list.
+   *
+   * A change of bullet begins a new list rather than continuing this one, which is why example 281 renders two.
+   */
+  private def readUnorderedList(
+      cursor: ContainerCursor,
+      definitions: scala.collection.mutable.Map[String, LinkDefinition],
+      first: BulletMarker,
+      markerAt: Int
+  ): Deferred =
+    val start = cursor.scanner.offset.toInt
+    val items = List.newBuilder[DeferredItem]
+
+    @tailrec def gather(marker: BulletMarker, at: Int, loose: Boolean): (Boolean, Int) =
+      val (item, run) = readItem(cursor, definitions, at, marker.columns, marker.empty)
+      items += item
+      val soFar = loose || run.interiorBlank
+      nextItem(cursor) match
+        case Present((line, LineKind.BulletItem(next))) if next.bullet == marker.bullet =>
+          gather(next, line.offset, soFar || run.trailingBlank)
+        case _ => (soFar, run.contentEnd)
+
+    val (loose, end) = gather(first, markerAt, loose = false)
+    val collected    = Chunk.from(items.result())
+    val listSpan     = Span.fromStartEnd(start, end)
+    Deferred.prose(defs => Block.UnorderedList(collected.map(_.resolve(defs)), !loose, listSpan))
+
+  /**
+   * Read a run of numbered items sharing one delimiter into one list.
+   *
+   * A change of delimiter ends the list, because `1.` and `1)` are different lists rather than one; example 302 renders
+   * two.
+   */
+  private def readOrderedList(
+      cursor: ContainerCursor,
+      definitions: scala.collection.mutable.Map[String, LinkDefinition],
+      first: OrderedMarker,
+      markerAt: Int
+  ): Deferred =
+    val start = cursor.scanner.offset.toInt
+    val items = List.newBuilder[DeferredItem]
+
+    @tailrec def gather(marker: OrderedMarker, at: Int, loose: Boolean): (Boolean, Int) =
+      val (item, run) = readItem(cursor, definitions, at, marker.columns, marker.empty)
+      items += item
+      val soFar = loose || run.interiorBlank
+      nextItem(cursor) match
+        case Present((line, LineKind.OrderedItem(next))) if next.delimiter == marker.delimiter =>
+          gather(next, line.offset, soFar || run.trailingBlank)
+        case _ => (soFar, run.contentEnd)
+
+    val (loose, end) = gather(first, markerAt, loose = false)
+    val collected    = Chunk.from(items.result())
+    val listSpan     = Span.fromStartEnd(start, end)
+    Deferred.prose(defs => Block.OrderedList(first.number, collected.map(_.resolve(defs)), !loose, listSpan))
+
+  /**
+   * The line after an item, classified, with the cursor put back where it was.
+   *
+   * The caller decides whether it opens another item of the same list; whichever way that goes, the line is still there
+   * to be read again, by the next item or by whatever follows the list.
+   */
+  private def nextItem(cursor: ContainerCursor): Maybe[(Line, LineKind)] =
+    val checkpoint = cursor.checkpoint()
+    val next       = cursor.readLine().map(line => (line, classify(cursor.scanner, line).kind))
+    cursor.restore(checkpoint)
+    next
+
+  /**
+   * Read one list item, which holds blocks rather than prose.
+   *
+   * The item's content is read by the same loop the document is, through a cursor that spends `columns` characters of
+   * every line: the marker on the item's own line, and the indentation that stands in for it on the rest. That is what
+   * lets an item hold a code block, a quote, or another list without anything here enumerating the possibilities.
+   */
+  private def readItem(
+      cursor: ContainerCursor,
+      definitions: scala.collection.mutable.Map[String, LinkDefinition],
+      markerAt: Int,
+      columns: Int,
+      startsEmpty: Boolean
+  ): (DeferredItem, BlockRun) =
     val scanner = cursor.scanner
-    val items   = List.newBuilder[DeferredItem]
-    items += listItem(first, firstItem)
-    val last = consumeWhile(cursor, first) { line =>
-      unorderedItem(scanner, line) match
-        case Present(item) =>
-          items += listItem(line, item)
-          true
-        case Absent => false
-    }
-    val collected = Chunk.from(items.result())
-    val listSpan  = Span.fromStartEnd(first.offset, last.end)
-    Deferred.prose(defs => Block.UnorderedList(collected.map(_.resolve(defs)), listSpan))
+    val start   = scanner.offset.toInt
+    val inner   = cursor.nested(ContainerPrefix.ListItem(markerAt, columns))
+
+    def item(run: BlockRun): (DeferredItem, BlockRun) =
+      val span = Span.fromStartEnd(start, run.contentEnd)
+      (DeferredItem(defs => ListItem(Chunk.from(run.blocks.map(_.resolve(defs))), span)), run)
+
+    if !startsEmpty then item(scanner.withNesting(parseDeferred(inner, definitions)))
+    else
+      // "A list item can begin with at most one blank line." An item whose marker line holds nothing and whose next
+      // line is blank as well holds nothing at all, and that second blank belongs to whatever follows the list.
+      inner.readLine()
+      val markerEnd  = cursor.consumedEnd
+      val checkpoint = cursor.checkpoint()
+      val followed   = inner.readLine().exists(line => !isBlank(scanner, line))
+      cursor.restore(checkpoint)
+      if followed then item(scanner.withNesting(parseDeferred(inner, definitions)))
+      else item(BlockRun(Nil, markerEnd, interiorBlank = false, trailingBlank = false))
 
   private final case class DeferredItem(resolve: Map[String, LinkDefinition] => ListItem)
-
-  private def listItem(line: Line, content: String): DeferredItem =
-    val span = contentSpan(line, content)
-    DeferredItem(defs => ListItem(InlineParser.parse(content, index => span.offset + index, defs), span))
 
   /**
    * Where a block's extracted content sits in the source.
@@ -719,53 +812,50 @@ object Parser:
     if start >= 0 then Span(line.offset + start, content.length)
     else Span(line.offset, line.length)
 
-  private type OrderedMarker = (number: Int, delimiter: Char, content: String)
-
-  /** A numbered list marker: up to nine digits, then `.` or `)`, then a space. */
-  private def orderedItem(scanner: SourceScanner, line: Line): Maybe[OrderedMarker] =
-    inspectLine(scanner, line)(orderedItem)
-
-  private def orderedItem(text: String): Maybe[OrderedMarker] =
-    val trimmed = text.stripLeading
-    val digits  = trimmed.takeWhile(_.isDigit)
-    if digits.isEmpty || digits.length > 9 then Absent
-    else if trimmed.length <= digits.length + 1 then Absent
-    else
-      val delimiter = trimmed.charAt(digits.length)
-      if (delimiter == '.' || delimiter == ')') && trimmed.charAt(digits.length + 1) == ' ' then
-        Present((number = digits.toInt, delimiter = delimiter, content = trimmed.drop(digits.length + 2).trim))
-      else Absent
+  private type BulletMarker  = (bullet: Char, columns: Int, empty: Boolean)
+  private type OrderedMarker = (number: Int, delimiter: Char, columns: Int, empty: Boolean)
 
   /**
-   * Read consecutive numbered items as one list.
+   * How many characters a marker of `width` at `indent` spends before its content begins.
    *
-   * A change of delimiter ends the list, because `1.` and `1)` are different lists rather than one; example 302 renders
-   * two.
+   * The spaces after the marker are part of it, up to four. Beyond that the item holds indented code and only one space
+   * is spent, which is what makes `1.      indented code` a code block rather than a very indented paragraph (example
+   * 274). An item with nothing after its marker spends one space it does not have, and starts empty.
    */
-  private def readOrderedList(cursor: ContainerCursor, first: Line, firstItem: OrderedMarker): Deferred =
-    val scanner = cursor.scanner
-    val items   = List.newBuilder[DeferredItem]
-    items += listItem(first, firstItem.content)
-    val last = consumeWhile(cursor, first) { line =>
-      orderedItem(scanner, line) match
-        case Present(marker) if marker.delimiter == firstItem.delimiter =>
-          items += listItem(line, marker.content)
-          true
-        case _ => false
-    }
+  private def markerColumns(text: String, indent: Int, width: Int): (columns: Int, empty: Boolean) =
+    val afterMarker = indent + width
+    val spaces      = text.drop(afterMarker).takeWhile(_ == ' ').length
+    val empty       = text.drop(afterMarker).isBlank
+    if empty || spaces > 4 then (columns = afterMarker + 1, empty = empty)
+    else (columns = afterMarker + spaces, empty = false)
 
-    val collected = Chunk.from(items.result())
-    val listSpan  = Span.fromStartEnd(first.offset, last.end)
-    Deferred.prose(defs => Block.OrderedList(firstItem.number, collected.map(_.resolve(defs)), listSpan))
+  /** A numbered list marker: up to nine digits, then `.` or `)`, then a space or the end of the line. */
+  private def orderedItem(text: String): Maybe[OrderedMarker] =
+    val indent  = text.takeWhile(_ == ' ').length
+    val trimmed = text.drop(indent)
+    val digits  = trimmed.takeWhile(_.isDigit)
+    if indent > 3 || digits.isEmpty || digits.length > 9 || trimmed.length <= digits.length then Absent
+    else
+      val delimiter = trimmed.charAt(digits.length)
+      val width     = digits.length + 1
+      if (delimiter != '.' && delimiter != ')') then Absent
+      else if trimmed.length > width && trimmed.charAt(width) != ' ' then Absent
+      else
+        val (columns = columns, empty = empty) = markerColumns(text, indent, width)
+        Present((number = digits.toInt, delimiter = delimiter, columns = columns, empty = empty))
 
-  private def unorderedItem(scanner: SourceScanner, line: Line): Maybe[String] =
-    inspectLine(scanner, line)(unorderedItem)
-
-  private def unorderedItem(text: String): Maybe[String] =
-    val trimmed = text.stripLeading
-    if trimmed.length >= 2 && (trimmed.startsWith("- ") || trimmed.startsWith("* ") || trimmed.startsWith("+ "))
-    then Present(trimmed.drop(2).trim)
-    else Absent
+  /** A bullet marker: `-`, `*` or `+`, then a space or the end of the line. */
+  private def unorderedItem(text: String): Maybe[BulletMarker] =
+    val indent  = text.takeWhile(_ == ' ').length
+    val trimmed = text.drop(indent)
+    if indent > 3 || trimmed.isEmpty then Absent
+    else
+      val bullet = trimmed.charAt(0)
+      if bullet != '-' && bullet != '*' && bullet != '+' then Absent
+      else if trimmed.length > 1 && trimmed.charAt(1) != ' ' then Absent
+      else
+        val (columns = columns, empty = empty) = markerColumns(text, indent, 1)
+        Present((bullet = bullet, columns = columns, empty = empty))
 
   // The one-to-six bound lives in HeadingLevel.fromInt rather than in a guard here, so a run of seven
   // or more hashes falls through to the paragraph branch exactly as CommonMark requires.

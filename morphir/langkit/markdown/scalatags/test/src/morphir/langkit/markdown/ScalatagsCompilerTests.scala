@@ -16,7 +16,9 @@ class ScalatagsCompilerTests extends Test[Any]:
   private val span = Span.zero
 
   private def prose(value: String): Chunk[Inline] = Chunk(Inline.Text(value, span))
-  private def item(value: String): ListItem       = ListItem(prose(value), span)
+
+  /** A one-paragraph item, which is what a tight list's items are. */
+  private def item(value: String): ListItem = ListItem(Chunk(Block.Paragraph(prose(value), span)), span)
 
   private def render(blocks: Block*): String =
     ScalatagsCompiler.render(Document(Chunk.from(blocks), span))
@@ -69,16 +71,16 @@ class ScalatagsCompilerTests extends Test[Any]:
 
     "renders a bullet list with one item per line (spec example 281)" in
       assert(
-        render(Block.UnorderedList(Chunk(item("foo"), item(""), item("bar")), span)) ==
+        render(Block.UnorderedList(Chunk(item("foo"), item(""), item("bar")), tight = true, span)) ==
           "<ul>\n<li>foo</li>\n<li></li>\n<li>bar</li>\n</ul>\n"
       )
 
     "separates sibling blocks with a newline apiece (spec example 57)" in
       assert(
         render(
-          Block.UnorderedList(Chunk(item("foo")), span),
+          Block.UnorderedList(Chunk(item("foo")), tight = true, span),
           Block.ThematicBreak(span),
-          Block.UnorderedList(Chunk(item("bar")), span)
+          Block.UnorderedList(Chunk(item("bar")), tight = true, span)
         ) == "<ul>\n<li>foo</li>\n</ul>\n<hr />\n<ul>\n<li>bar</li>\n</ul>\n"
       )
 

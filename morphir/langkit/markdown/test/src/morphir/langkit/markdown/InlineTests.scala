@@ -23,6 +23,17 @@ class InlineTests extends Test[Any]:
     inlines(source).collect { case Inline.Link(destination, _, _, _) => destination }
 
   /** The literal text of inline content, ignoring how it is split into nodes. */
+  /**
+   * The prose of a one-paragraph list item.
+   *
+   * A list item holds blocks, so even the shortest one is a paragraph. Tests that only care what an item says go
+   * through this rather than repeating the unwrap.
+   */
+  private def paragraphOf(item: ListItem): Chunk[Inline] =
+    item.content.headOption match
+      case Some(Block.Paragraph(content, _)) => content
+      case _                                 => Chunk.empty
+
   private def textOf(content: Chunk[Inline]): String =
     content.map {
       case Inline.Text(value, _)           => value
@@ -73,12 +84,16 @@ class InlineTests extends Test[Any]:
   }
 
   "a bullet list" - {
-    "gives every item its own inline content and span" in {
+    // An item spans its whole line, marker and all, because that is what it occupies. Its paragraph spans only the
+    // content, so an inline node inside it still points at the source.
+    "gives every item its own content and span" in {
       parse("- one\n- two").blocks.head match
-        case Block.UnorderedList(items, _) =>
+        case Block.UnorderedList(items, _, _) =>
           assert(items.size == 2)
-          assert(items(0).content == Chunk(Inline.Text("one", Span(2, 3))))
-          assert(items(1).content == Chunk(Inline.Text("two", Span(8, 3))))
+          assert(items(0) ==
+            ListItem(Chunk(Block.Paragraph(Chunk(Inline.Text("one", Span(2, 3))), Span(2, 3))), Span(0, 5)))
+          assert(items(1) ==
+            ListItem(Chunk(Block.Paragraph(Chunk(Inline.Text("two", Span(8, 3))), Span(8, 3))), Span(6, 5)))
         case other => assert(false, s"expected a list, got $other")
     }
   }
@@ -375,14 +390,14 @@ class InlineTests extends Test[Any]:
   "an ordered list" - {
     "reads consecutive numbered items as one list" in {
       parse("1. one\n2. two").blocks.head match
-        case Block.OrderedList(start, items, _) =>
+        case Block.OrderedList(start, items, _, _) =>
           assert(start == 1)
-          assert(items.map(item => textOf(item.content)) == Chunk("one", "two"))
+          assert(items.map(item => textOf(paragraphOf(item))) == Chunk("one", "two"))
         case other => assert(false, s"expected an ordered list, got $other")
     }
     "keeps the first marker's number as the start" in {
       parse("3. three\n4. four").blocks.head match
-        case Block.OrderedList(start, items, _) =>
+        case Block.OrderedList(start, items, _, _) =>
           assert(start == 3)
           assert(items.size == 2)
         case other => assert(false, s"expected an ordered list, got $other")

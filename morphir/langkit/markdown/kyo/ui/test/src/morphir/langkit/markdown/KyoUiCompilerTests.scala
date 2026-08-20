@@ -17,7 +17,9 @@ class KyoUiCompilerTests extends Test[Any]:
   private val span = Span.zero
 
   private def prose(value: String): Chunk[Inline] = Chunk(Inline.Text(value, span))
-  private def item(value: String): ListItem       = ListItem(prose(value), span)
+
+  /** A one-paragraph item, which is what a tight list's items are. */
+  private def item(value: String): ListItem = ListItem(Chunk(Block.Paragraph(prose(value), span)), span)
 
   private def compile(blocks: Block*): UI =
     KyoUiCompiler.compile(Document(Chunk.from(blocks), span))
@@ -51,7 +53,7 @@ class KyoUiCompilerTests extends Test[Any]:
     }
 
     "compiles a bullet list to a Ul holding one Li per item" in {
-      val list = children(compile(Block.UnorderedList(Chunk(item("one"), item("two")), span))).head
+      val list = children(compile(Block.UnorderedList(Chunk(item("one"), item("two")), tight = true, span))).head
       assert(list.isInstanceOf[UI.Ast.Ul])
       // Children arrive wrapped in a Fragment, which renders with no element of its own; flatten it away.
       val items = list.asInstanceOf[UI.Ast.Ul].children.flatMap(children)

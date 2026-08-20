@@ -30,13 +30,14 @@ class CompilerTests extends Test[Any]:
       s"(img $destination ${title.getOrElse("-")} $alt)"
     def htmlBlock(content: String): String          = s"(html $content)"
     def blockQuote(children: Chunk[String]): String = children.mkString("(quote ", " ", ")")
+    def blockSeparator: String                      = "\\n"
     def thematicBreak: String                       = "(hr)"
   end given
 
   private val span = Span.zero
 
   private def prose(value: String): Chunk[Inline] = Chunk(Inline.Text(value, span))
-  private def item(value: String): ListItem       = ListItem(prose(value), span)
+  private def item(value: String): ListItem       = ListItem(Chunk(Block.Paragraph(prose(value), span)), span)
 
   private def compile(blocks: Block*): String =
     Compiler.compile[String](Document(Chunk.from(blocks), span))
@@ -53,7 +54,8 @@ class CompilerTests extends Test[Any]:
       assert(actual == "(doc (h1 Title) (p Body) (hr))")
     }
     "compiles list items before the list that holds them" in
-      assert(compile(Block.UnorderedList(Chunk(item("one"), item("two")), span)) == "(doc (ul (li one) (li two)))")
+      assert(compile(Block.UnorderedList(Chunk(item("one"), item("two")), tight = true, span)) ==
+        "(doc (ul (li one) (li two)))")
     "passes the fence info through to the code node" in
       assert(compile(Block.FencedCode(FenceInfo.parse("scala"), "x", span)) == "(doc (code:scala x))")
     "carries the heading level rather than flattening it" in

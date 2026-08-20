@@ -9,6 +9,17 @@ import morphir.langkit.core.scanner.*
 class ParserTests extends Test[Any]:
 
   /** The literal text of inline content, for assertions that do not care how it is split into nodes. */
+  /**
+   * The prose of a one-paragraph list item.
+   *
+   * A list item holds blocks, so even the shortest one is a paragraph. Tests that only care what an item says go
+   * through this rather than repeating the unwrap.
+   */
+  private def paragraphOf(item: ListItem): Chunk[Inline] =
+    item.content.headOption match
+      case Some(Block.Paragraph(content, _)) => content
+      case _                                 => Chunk.empty
+
   private def textOf(content: Chunk[Inline]): String =
     content.map {
       case Inline.Text(value, _)           => value
@@ -112,12 +123,15 @@ class ParserTests extends Test[Any]:
           Chunk(Block.FencedCode(FenceInfo.empty, "code\n", Span(0, 9))),
           Span(0, 9)
         ),
+        // An item spans its whole line, marker included, because that is what the item occupies in the source. Its
+        // paragraph spans only the content, which is what an inline node needs to point through.
         "- alpha\n- beta" -> Document(
           Chunk(Block.UnorderedList(
             Chunk(
-              ListItem(Chunk(Inline.Text("alpha", Span(2, 5))), Span(2, 5)),
-              ListItem(Chunk(Inline.Text("beta", Span(10, 4))), Span(10, 4))
+              ListItem(Chunk(Block.Paragraph(Chunk(Inline.Text("alpha", Span(2, 5))), Span(2, 5))), Span(0, 7)),
+              ListItem(Chunk(Block.Paragraph(Chunk(Inline.Text("beta", Span(10, 4))), Span(10, 4))), Span(8, 6))
             ),
+            tight = true,
             Span(0, 14)
           )),
           Span(0, 14)
@@ -504,8 +518,8 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           assert(doc.blocks.size == 1)
           doc.blocks(0) match
-            case Block.UnorderedList(items, _) =>
-              assert(items.map(item => textOf(item.content)) == Chunk("alpha", "beta"))
+            case Block.UnorderedList(items, _, _) =>
+              assert(items.map(item => textOf(paragraphOf(item))) == Chunk("alpha", "beta"))
             case _ => assert(false)
         case _ => assert(false)
     }
@@ -658,6 +672,90 @@ class ParserTests extends Test[Any]:
                   assert(source.substring(span.offset, span.end) == "`beta`")
                 case None => assert(false, "expected a code span in the continuation line")
             case other => assert(false, s"expected a paragraph, got $other")
+        case _ => assert(false)
+    }
+    // The whole point of the container work: an item holds blocks, so it holds whatever a document holds.
+    "reads a list item as a container of blocks (spec example 263)" in {
+      Parser.parse("1.  foo\n\n    ```\n    bar\n    ```\n\n    baz\n\n    > bam\n") match
+        case Result.Success(doc) =>
+          doc.blocks(0) match
+            case Block.OrderedList(_, items, tight, _) =>
+              assert(items.size == 1)
+              assert(!tight, "blank lines between an item's blocks make the list loose")
+              val content = items(0).content
+              assert(content.size == 4)
+              assert(content(0).isInstanceOf[Block.Paragraph])
+              assert(content(1).isInstanceOf[Block.FencedCode])
+              assert(content(2).isInstanceOf[Block.Paragraph])
+              assert(content(3).isInstanceOf[Block.BlockQuote])
+            case other => assert(false, s"expected an ordered list, got $other")
+        case _ => assert(false)
+    }
+    // Two blocks in one item are not enough to make a list loose; a blank line between them is. Getting this wrong is
+    // invisible in the AST and shows up only as `p` elements appearing or vanishing in the output.
+    "calls a list tight unless a blank line separates blocks or items" in {
+      def tightnessOf(source: String): Boolean =
+        Parser.parse(source) match
+          case Result.Success(doc) =>
+            doc.blocks(0) match
+              case Block.UnorderedList(_, tight, _) => tight
+              case other                            => throw new AssertionError(s"expected a list, got $other")
+          case other => throw new AssertionError(s"parse failed: $other")
+
+      assert(tightnessOf("- one\n- two\n"))
+      assert(tightnessOf("- a\n  - b\n"), "a nested list is a second block, but no blank line separates them")
+      assert(!tightnessOf("- one\n\n- two\n"), "a blank line between items")
+      assert(!tightnessOf("- one\n\n  two\n"), "a blank line between an item's blocks")
+    }
+    "nests a list inside the item that indents it" in {
+      Parser.parse("- a\n  - b\n") match
+        case Result.Success(doc) =>
+          doc.blocks(0) match
+            case Block.UnorderedList(items, _, _) =>
+              assert(items.size == 1, "the indented marker belongs to the item above it, not beside it")
+              assert(items(0).content.size == 2)
+              items(0).content(1) match
+                case Block.UnorderedList(inner, _, _) => assert(inner.size == 1)
+                case other                            => assert(false, s"expected a nested list, got $other")
+            case other => assert(false, s"expected a list, got $other")
+        case _ => assert(false)
+    }
+    // The lazy rule is stricter than the one for a line that kept its markers: `2.` may not interrupt a paragraph, but
+    // the paragraph is not what this line fell out of. Before this was separated out, the second item was swallowed
+    // into the first item's paragraph.
+    "starts a new item on a marker that drops out of the item above (spec example 302)" in {
+      Parser.parse("1. one\n2. two\n") match
+        case Result.Success(doc) =>
+          doc.blocks(0) match
+            case Block.OrderedList(start, items, _, _) =>
+              assert(start == 1)
+              assert(items.size == 2)
+            case other => assert(false, s"expected an ordered list, got $other")
+        case _ => assert(false)
+    }
+    "reads an item with nothing after its marker, and stops at the second blank (spec example 280)" in {
+      Parser.parse("-\n\n  foo\n") match
+        case Result.Success(doc) =>
+          assert(doc.blocks.size == 2, "a list item may begin with at most one blank line")
+          doc.blocks(0) match
+            case Block.UnorderedList(items, _, _) =>
+              assert(items.size == 1)
+              assert(items(0).content.isEmpty)
+            case other => assert(false, s"expected a list, got $other")
+          assert(doc.blocks(1).isInstanceOf[Block.Paragraph])
+        case _ => assert(false)
+    }
+    // Four spaces past the marker is code inside the item, not a very indented paragraph: the item spends one space
+    // and the rest is content.
+    "gives an item's over-indented content to a code block (spec example 270)" in {
+      Parser.parse("- foo\n\n      bar\n") match
+        case Result.Success(doc) =>
+          doc.blocks(0) match
+            case Block.UnorderedList(items, _, _) =>
+              items(0).content(1) match
+                case Block.IndentedCode(content, _) => assert(content == "bar\n")
+                case other                          => assert(false, s"expected indented code, got $other")
+            case other => assert(false, s"expected a list, got $other")
         case _ => assert(false)
     }
     "reads a thematic break between paragraphs" in {

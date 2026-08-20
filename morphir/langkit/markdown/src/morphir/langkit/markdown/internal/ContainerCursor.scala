@@ -29,14 +29,30 @@ private[markdown] final case class ContinuedLine(line: Line, matchedAll: Boolean
 /**
  * The marker a container puts at the front of each of its lines.
  *
- * One case so far. List items add an indentation prefix, which is the same idea measured in columns rather than in
- * characters, and is why this is a stack of prefixes rather than a block-quote depth.
+ * A block quote writes the same `>` on every line. A list item writes its marker once and then indents, which is why
+ * [[ContainerPrefix.ListItem]] carries where that marker is: reading at that offset consumes the marker, and reading
+ * anywhere else consumes the indentation it established. Keying on the offset rather than on "have I read a line yet"
+ * is what makes the decision survive a rewind -- the cursor is read and rewound constantly, and a flag would go stale
+ * the first time that happened.
  */
 private[markdown] enum ContainerPrefix derives CanEqual:
   case BlockQuote
 
-  /** Where this prefix ends in `text`, starting at `from`, or [[kyo.Absent]] when the line does not carry it. */
-  def consume(text: String, from: Int): Maybe[Int] =
+  /**
+   * A list item's content, which begins `columns` characters into the line that carries `markerAt`.
+   *
+   * `columns` counts the indentation, the marker and the spaces after it, all of which the item spends rather than
+   * holds. It is the same number on the marker line and on every continuation line, which is why one field does for
+   * both.
+   */
+  case ListItem(markerAt: Int, columns: Int)
+
+  /**
+   * Where this prefix ends in `text`, starting at `from`, or [[kyo.Absent]] when the line does not carry it.
+   *
+   * `absoluteStart` is the source offset of `text.charAt(0)`, so a prefix can tell which line it is looking at.
+   */
+  def consume(text: String, from: Int, absoluteStart: Int): Maybe[Int] =
     this match
       case BlockQuote =>
         val marker = ContainerPrefix.skipSpaces(text, from, 3)
@@ -47,6 +63,17 @@ private[markdown] enum ContainerPrefix derives CanEqual:
           if afterMarker < text.length && text.charAt(afterMarker) == ' ' then Present(afterMarker + 1)
           else Present(afterMarker)
         else Absent
+
+      case ListItem(markerAt, columns) =>
+        if absoluteStart + from == markerAt then
+          // The item's own line: the marker stands where the indentation will. An empty item has less line than that.
+          Present(math.min(from + columns, text.length))
+        else
+          val indented = ContainerPrefix.skipSpaces(text, from, columns)
+          // A blank line carries no indentation and still belongs to the item, which is what lets an item hold two
+          // paragraphs. Whether that makes the list loose is decided by what follows, not here.
+          if indented - from == columns || text.substring(indented).isBlank then Present(indented)
+          else Absent
 
 private[markdown] object ContainerPrefix:
   @tailrec private[internal] def skipSpaces(text: String, from: Int, remaining: Int): Int =
@@ -132,7 +159,7 @@ private[markdown] final class ContainerCursor private (
           remaining match
             case Nil          => (cursor, true)
             case head :: tail =>
-              head.consume(raw.text, cursor) match
+              head.consume(raw.text, cursor, raw.offset) match
                 case Present(next) => consume(tail, next)
                 case Absent        => (cursor, false)
         val (consumed, matchedAll) = consume(prefixes, 0)

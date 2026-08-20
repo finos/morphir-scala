@@ -91,6 +91,8 @@ object ScalatagsCompiler:
     def blockQuote(children: Chunk[Frag]): Frag =
       blockquote(newline, frag(children.toSeq.flatMap(child => Seq(child, newline))*))
 
+    def blockSeparator: Frag = newline
+
     def thematicBreak: Frag = hr
   end instance
 

@@ -132,6 +132,16 @@ trait Compiler[Out]:
    */
   def blockQuote(children: Chunk[Out]): Out
 
+  /**
+   * The newline CommonMark writes between block-level siblings inside a list item.
+   *
+   * A list item's children may be blocks, prose, or both: a tight item's paragraph is written bare, and a code block
+   * beside it is not. Only the traversal knows which children are which, and only the writer knows what a newline is in
+   * its own output type, so the two meet here. A target for which the distinction is meaningless can return whatever
+   * its empty value is.
+   */
+  def blockSeparator: Out
+
   /** Compile a thematic break. It has no children and no text, so this is a constant for most formats. */
   def thematicBreak: Out
 end Compiler

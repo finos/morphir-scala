@@ -77,6 +77,8 @@ object KyoUiCompiler:
 
     def blockQuote(children: Chunk[UI]): UI = UI.blockquote(content(children))
 
+    def blockSeparator: UI = UI.Ast.Text("\n")
+
     def thematicBreak: UI = UI.hr
   end instance
 

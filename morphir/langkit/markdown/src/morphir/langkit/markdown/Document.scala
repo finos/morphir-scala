@@ -26,7 +26,15 @@ enum Block derives CanEqual:
    * output target has to know the difference.
    */
   case IndentedCode(content: String, span: Span)
-  case UnorderedList(items: Chunk[ListItem], span: Span)
+
+  /**
+   * A bullet list.
+   *
+   * `tight` is what CommonMark calls a list whose items are not separated by blank lines, and it belongs here rather
+   * than in the writer because it is a fact about how the list was written. It changes the output: a tight item's
+   * paragraph is rendered as bare prose, without the `p` element around it.
+   */
+  case UnorderedList(items: Chunk[ListItem], tight: Boolean, span: Span)
 
   /**
    * A numbered list.
@@ -34,7 +42,7 @@ enum Block derives CanEqual:
    * `start` is the first marker's number, which HTML needs as a `start` attribute whenever it is not 1. A change of
    * delimiter — `.` to `)` — begins a new list, which is why example 302 renders two.
    */
-  case OrderedList(start: Int, items: Chunk[ListItem], span: Span)
+  case OrderedList(start: Int, items: Chunk[ListItem], tight: Boolean, span: Span)
 
   /**
    * A run of raw HTML the document wrote itself.
@@ -55,12 +63,13 @@ enum Block derives CanEqual:
   case ThematicBreak(span: Span)
 
 /**
- * One entry of a bullet list.
+ * One entry of a list.
  *
- * Its own type rather than a bare `Chunk[Inline]`, because CommonMark list items hold blocks once loose lists and
- * nesting arrive. Widening `content` then leaves [[Block.UnorderedList]] untouched.
+ * Holds blocks, not prose: a list item is a container, so it may hold a paragraph, a code block, a quote or another
+ * list. A one-line item is a single paragraph here, and whether that paragraph is written with a `p` element around it
+ * is decided by the list's `tight` flag rather than by the item.
  */
-final case class ListItem(content: Chunk[Inline], span: Span) derives CanEqual
+final case class ListItem(content: Chunk[Block], span: Span) derives CanEqual
 
 /**
  * An inline construct: the content of a block that holds prose.
