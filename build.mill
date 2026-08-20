@@ -1,6 +1,7 @@
 //| mvnDeps:
 //| - com.lihaoyi::mill-contrib-buildinfo:$MILL_VERSION
 //| - com.lihaoyi::mill-contrib-scoverage:$MILL_VERSION
+//| - com.lihaoyi::mill-contrib-jmh:$MILL_VERSION
 //| - com.lihaoyi::mill-libs-scalajslib-config-1:$MILL_VERSION
 //| - org.scala-js:scalajs-linker_2.13:1.22.0
 //| - org.scala-js:scalajs-js-envs_2.13:1.4.0
@@ -14,6 +15,7 @@ package build
 import millbuild.{Deps, MillVersions, Versions => Vers, ScalaVersions => ScalaVers}
 import millbuild.docs.{Docusaurus2Module, MDocModule}
 import millbuild.runtime.RuntimeTestDiscovery
+import mill.contrib.jmh.JmhModule
 import mill.scalalib.publish.PublishInfo
 import mill.local.plugins.ci.release.ReleaseSetupModule
 import com.carlosedp.aliases.*
@@ -180,6 +182,16 @@ trait MorphirVersionedModule extends Module {
  * Version and POM policy shared by every Morphir publishable, including the desktop distributions,
  * which are not JVM libraries and must not carry Mima.
  */
+/**
+ * A JVM module that carries JMH benchmarks.
+ *
+ * Not a publish module: benchmarks are a measuring instrument for this repository, not something consumers depend
+ * on. `jmhCoreVersion` is a Task, which is why this trait exists rather than the YAML naming JmhModule directly.
+ */
+trait MorphirBenchmarksModule extends MorphirJVMModule with JmhModule {
+  def jmhCoreVersion = Vers.jmh
+}
+
 trait MorphirPublishBase extends PublishModule with SonatypeCentralPublishModule with MorphirVersionedModule {
   import mill.scalalib.publish.*
 
