@@ -491,6 +491,10 @@ object Parser:
     val body    = StringBuilder()
     // A fence is consumed whether or not it closes: an unterminated one runs to the end of its container, and whether
     // its last line ended in a newline decides the content's trailing newline.
+    // `written`, not `body.nonEmpty`: a fence whose first line is blank writes nothing and would otherwise look like
+    // it had written nothing at all, so the next line would join it and the blank line would vanish.
+    var written = 0
+
     @tailrec def gather(closingEnd: Int, closed: Boolean, endedWithLf: Boolean): (Int, Boolean, Boolean) =
       if closed then (closingEnd, closed, endedWithLf)
       else
@@ -499,8 +503,9 @@ object Parser:
           case Present(line) =>
             if isClosingFence(scanner, line, open.marker, open.length) then (line.end, true, endedWithLf)
             else
-              if body.nonEmpty then body.append('\n')
+              if written > 0 then body.append('\n')
               body.append(removeFenceIndentation(scanner, line, open.indentation))
+              written += 1
               gather(closingEnd, false, line.terminatedByLf)
 
     val (closingEnd, closed, bodyEndedWithLf) = gather(opening.end, false, false)
@@ -508,10 +513,10 @@ object Parser:
     val end     = if closed then closingEnd else scanner.offset.toInt
     val content =
       if closed then
-        if body.nonEmpty then body.append('\n')
+        if written > 0 then body.append('\n')
         body.toString
       else
-        if body.nonEmpty && bodyEndedWithLf then body.append('\n')
+        if written > 0 && bodyEndedWithLf then body.append('\n')
         body.toString
 
     // The budgeted FenceInfo path reserves deterministic work and output before token materialization.
@@ -867,12 +872,30 @@ object Parser:
   // or more hashes falls through to the paragraph branch exactly as CommonMark requires.
   private def headingPrefix(text: String): Maybe[(HeadingLevel, String)] =
     val hashes = text.takeWhile(_ == '#')
+    if hashes.isEmpty then Absent
+    // A heading may say nothing: `#` on its own is an empty `h1`, and so is `## ` with only whitespace after it.
+    else if text.length == hashes.length then HeadingLevel.fromInt(hashes.length).map(level => (level, ""))
     // A tab separates the hashes from the text as well as a space does. It is not indentation here -- the heading's
     // content is trimmed either way -- so it is taken as a separator rather than measured in columns.
-    if hashes.nonEmpty && text.length > hashes.length &&
-      (text.charAt(hashes.length) == ' ' || text.charAt(hashes.length) == '\t')
-    then HeadingLevel.fromInt(hashes.length).map(level => (level, text.drop(hashes.length + 1)))
+    else if text.charAt(hashes.length) == ' ' || text.charAt(hashes.length) == '\t' then
+      HeadingLevel.fromInt(hashes.length).map(level => (level, headingContent(text.drop(hashes.length + 1))))
     else Absent
+
+  /**
+   * A heading's text, with the closing run of hashes taken off.
+   *
+   * The closing run is optional and says nothing: `### foo ###` is the same heading as `### foo`. It counts as closing
+   * only when whitespace precedes it or it is the whole of the content, so `# foo#` keeps its hash -- and whitespace
+   * may follow it, which is what `### foo ###   ` relies on.
+   */
+  private def headingContent(text: String): String =
+    val trimmed = text.trim
+    val hashes  = trimmed.reverse.takeWhile(_ == '#').length
+    if hashes == 0 then trimmed
+    else if hashes == trimmed.length then ""
+    else
+      val before = trimmed.charAt(trimmed.length - hashes - 1)
+      if before == ' ' || before == '\t' then trimmed.dropRight(hashes).trim else trimmed
 
   private def fenceOpen(text: String): Maybe[FenceOpen] =
     fenceIndent(text).flatMap { case (indentation = indentation, rest = trimmed) =>

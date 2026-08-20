@@ -885,6 +885,21 @@ class ParserTests extends Test[Any]:
             case other                       => assert(false, s"expected a paragraph, got $other")
         case _ => assert(false)
     }
+    // A fence whose first line is blank writes nothing, which used to look the same as having written no line at all,
+    // so the next line joined it and the blank vanished.
+    "keeps a blank first line inside a fence (spec examples 127 and 129)" in {
+      def codeOf(source: String): String =
+        Parser.parse(source) match
+          case Result.Success(doc) =>
+            doc.blocks(0) match
+              case Block.FencedCode(_, content, _) => content
+              case other                           => throw new AssertionError(s"expected a fence, got $other")
+          case other => throw new AssertionError(s"parse failed: $other")
+
+      // Five backticks are not closed by three, so the rest of the input is content -- blank first line included.
+      assert(codeOf("`````\n\n```\naaa\n") == "\n```\naaa\n")
+      assert(codeOf("```\n\n  \n```\n") == "\n  \n")
+    }
     "reads a thematic break between paragraphs" in {
       Parser.parse("Hello\n\n---\n\nWorld") match
         case Result.Success(doc) =>

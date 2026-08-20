@@ -262,9 +262,9 @@ private[markdown] object InlineParser:
     else if char == '&' then entityAt(text, index, sourceOffsetAt)
     else if char == '<' then
       autolink(text, index) match
-        case Present((end, uri)) =>
+        case Present((end, uri, destination)) =>
           val span = spanOf(index, end, sourceOffsetAt)
-          Present((end, Inline.Link(normalizeUri(uri), Absent, Chunk(Inline.Text(uri, span)), span)))
+          Present((end, Inline.Link(normalizeUri(destination), Absent, Chunk(Inline.Text(uri, span)), span)))
         case Absent =>
           // Raw HTML is taken whole, which is what gives it precedence over everything else: no `*`, `_`, `&` or `\`
           // inside it is ever looked at again, so `<a href="&ouml;">` keeps its entity and `**<a href="**">` has no
@@ -743,19 +743,51 @@ private[markdown] object InlineParser:
   /**
    * An autolink: `<` an absolute URI or an email address `>`.
    *
-   * Requires a scheme followed by `:` and no spaces or `<`, which is what keeps `<not a link>` ordinary text.
+   * Returns where it ends, what it says, and where it points -- which differ for the email form, whose text is the
+   * address and whose destination is that address behind `mailto:`.
    */
-  private def autolink(text: String, start: Int): Maybe[(Int, String)] =
+  private def autolink(text: String, start: Int): Maybe[(Int, String, String)] =
     val close = text.indexOf('>', start + 1)
     if close < 0 then Absent
     else
-      val body        = text.substring(start + 1, close)
-      val schemeEnd   = body.indexOf(':')
-      val validScheme =
-        schemeEnd > 0 &&
-          body.charAt(0).isLetter &&
-          body.take(schemeEnd).forall(c => c.isLetterOrDigit || c == '+' || c == '.' || c == '-')
-      if validScheme && !body.exists(c => c.isWhitespace || c == '<') then Present((close + 1, body)) else Absent
+      val body = text.substring(start + 1, close)
+      if isAbsoluteUri(body) then Present((close + 1, body, body))
+      else if isEmailAddress(body) then Present((close + 1, body, s"mailto:$body"))
+      else Absent
+
+  /**
+   * An absolute URI: a scheme, a `:`, then anything but whitespace and `<`.
+   *
+   * The scheme is two to thirty-two characters, and the lower bound is load-bearing: without it `<m:abc>` is a link,
+   * where the spec leaves it as text.
+   */
+  private def isAbsoluteUri(body: String): Boolean =
+    val schemeEnd = body.indexOf(':')
+    schemeEnd >= 2 && schemeEnd <= 32 &&
+    body.charAt(0).isLetter &&
+    body.take(schemeEnd).forall(char => char.isLetterOrDigit || char == '+' || char == '.' || char == '-') &&
+    !body.exists(char => char.isWhitespace || char == '<')
+
+  /**
+   * An email address, by the spec's own grammar rather than by anything stricter.
+   *
+   * Written out instead of expressed as the spec's regular expression, because the domain rule -- labels of letters,
+   * digits and hyphens that neither begin nor end with a hyphen -- reads as three plain conditions and compiles the
+   * same on every platform.
+   */
+  private def isEmailAddress(body: String): Boolean =
+    val at = body.indexOf('@')
+    at > 0 && at < body.length - 1 &&
+    body.take(at).forall(isEmailLocalCharacter) &&
+    body.drop(at + 1).split("\\.", -1).forall(isDomainLabel)
+
+  private def isEmailLocalCharacter(char: Char): Boolean =
+    char.isLetterOrDigit || ".!#$%&'*+/=?^_`{|}~-".indexOf(char.toInt) >= 0
+
+  private def isDomainLabel(label: String): Boolean =
+    label.nonEmpty && label.length <= 63 &&
+      label.charAt(0).isLetterOrDigit && label.charAt(label.length - 1).isLetterOrDigit &&
+      label.forall(char => char.isLetterOrDigit || char == '-')
 
   /**
    * Past an autolink or a piece of raw HTML beginning at `index`, if one does.
@@ -766,8 +798,8 @@ private[markdown] object InlineParser:
    */
   private def skipMarkup(text: String, index: Int): Maybe[Int] =
     autolink(text, index) match
-      case Present((end, _)) => Present(end)
-      case Absent            => HtmlTag.endOf(text, index)
+      case Present((end, _, _)) => Present(end)
+      case Absent               => HtmlTag.endOf(text, index)
 
   /**
    * Whether a node is a link or holds one at any depth.

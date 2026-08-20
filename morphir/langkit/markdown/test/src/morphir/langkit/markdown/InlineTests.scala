@@ -549,6 +549,59 @@ class InlineTests extends Test[Any]:
     }
   }
 
+  "an ATX heading" - {
+
+    def headingOf(source: String): (HeadingLevel, String) =
+      parse(source).blocks.head match
+        case Block.Heading(level, content, _) => (level, textOf(content))
+        case other                            => throw new AssertionError(s"expected a heading, got $other")
+
+    // The closing run says nothing: `### foo ###` is the same heading as `### foo`.
+    "drops a closing run of hashes (spec examples 71 to 73)" in {
+      assert(headingOf("## foo ##\n") == (HeadingLevel.Two, "foo"))
+      assert(headingOf("  ###   bar    ###\n") == (HeadingLevel.Three, "bar"))
+      assert(headingOf("# foo ##################################\n") == (HeadingLevel.One, "foo"))
+      assert(headingOf("### foo ###     \n") == (HeadingLevel.Three, "foo"), "whitespace may follow the closing run")
+    }
+    // It closes only when whitespace precedes it, so a hash hard against the text is part of the text.
+    "keeps a hash the text runs into (spec example 74)" in
+      assert(headingOf("# foo#\n") == (HeadingLevel.One, "foo#"))
+
+    "reads a heading that says nothing (spec example 79)" in {
+      assert(headingOf("## \n") == (HeadingLevel.Two, ""))
+      assert(headingOf("#\n") == (HeadingLevel.One, ""))
+      assert(headingOf("### ###\n") == (HeadingLevel.Three, ""))
+    }
+  }
+
+  "an autolink" - {
+
+    def linkOf(source: String): (String, String) =
+      parse(source).blocks.head match
+        case Block.Paragraph(content, _) =>
+          content.head match
+            case Inline.Link(destination, _, inner, _) => (destination, textOf(inner))
+            case other                                 => throw new AssertionError(s"expected a link, got $other")
+        case other => throw new AssertionError(s"expected a paragraph, got $other")
+
+    def isLink(source: String): Boolean =
+      parse(source).blocks.head match
+        case Block.Paragraph(content, _) => content.exists(_.isInstanceOf[Inline.Link])
+        case _                           => false
+
+    // The address is what it says; `mailto:` is where it points.
+    "takes an email address to a mailto destination (spec examples 604 and 605)" in {
+      assert(linkOf("<foo@bar.example.com>\n") == ("mailto:foo@bar.example.com", "foo@bar.example.com"))
+      assert(linkOf("<foo+special@Bar.baz-bar0.com>\n")._1 == "mailto:foo+special@Bar.baz-bar0.com")
+    }
+    // A scheme is two to thirty-two characters. The lower bound is load-bearing: without it `<m:abc>` is a link.
+    "will not take a scheme of one character (spec example 609)" in
+      assert(!isLink("<m:abc>\n"))
+
+    "still takes an ordinary absolute URI (spec example 594)" in
+      assert(linkOf("<http://foo.bar.baz>\n") == ("http://foo.bar.baz", "http://foo.bar.baz"))
+  }
+
   "a line ending" - {
 
     def inlines(source: String): Chunk[Inline] =
