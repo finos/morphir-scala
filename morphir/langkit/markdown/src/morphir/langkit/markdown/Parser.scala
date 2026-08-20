@@ -91,6 +91,22 @@ object Parser:
     // forward as well as back.
     Chunk.from(blocks.result().map(_.resolve(definitions.toMap)))
 
+  /**
+   * A setext underline: a run of `=` or `-` beneath a paragraph, which turns it into a heading.
+   *
+   * Only meaningful after paragraph text, which is why it is checked here rather than as a block opener. A run of `-`
+   * with nothing above it stays a thematic break.
+   */
+  private def setextUnderline(scanner: SourceScanner, line: Line): Maybe[HeadingLevel] =
+    inspectLine(scanner, line) { text =>
+      val trimmed = text.trim
+      val indent  = text.length - text.stripLeading.length
+      if indent >= 4 || trimmed.isEmpty then Absent
+      else if trimmed.forall(_ == '=') then Present(HeadingLevel.One)
+      else if trimmed.forall(_ == '-') then Present(HeadingLevel.Two)
+      else Absent
+    }
+
   /** A line of four or more leading spaces, which CommonMark reads as code rather than as whatever it looks like. */
   private def isIndentedCode(scanner: SourceScanner, line: Line): Boolean =
     inspectLine(scanner, line)(text => text.length >= 4 && text.take(4).forall(_ == ' '))
@@ -193,15 +209,23 @@ object Parser:
     segments += ((first.offset, first.text))
     var last        = first
     var interrupted = false
+    var setext      = Absent: Maybe[HeadingLevel]
     while !scanner.isAtEnd && !interrupted do
       val checkpoint = scanner.checkpoint()
       val line       = readLine(scanner)
-      if continuesParagraph(scanner, line) then
-        segments += ((line.offset, line.text))
-        last = line
-      else
-        scanner.restore(checkpoint)
-        interrupted = true
+      setextUnderline(scanner, line) match
+        case Present(level) =>
+          // An underline turns everything gathered so far into a heading, and is consumed with it.
+          setext = Present(level)
+          last = line
+          interrupted = true
+        case Absent =>
+          if continuesParagraph(scanner, line) then
+            segments += ((line.offset, line.text))
+            last = line
+          else
+            scanner.restore(checkpoint)
+            interrupted = true
 
     val lines   = Chunk.from(segments.result())
     val raw     = lines.map(_._2).mkString("\n")
@@ -218,7 +242,10 @@ object Parser:
       val bodyStart = leading + consumed
       val span      = Span.fromStartEnd(first.offset, last.end)
       Present(Deferred.prose { defs =>
-        Block.Paragraph(InlineParser.parse(body.trim, index => sourceOffsetOf(lines, index + bodyStart), defs), span)
+        val content = InlineParser.parse(body.trim, index => sourceOffsetOf(lines, index + bodyStart), defs)
+        setext match
+          case Present(level) => Block.Heading(level, content, span)
+          case Absent         => Block.Paragraph(content, span)
       })
   end readParagraph
 

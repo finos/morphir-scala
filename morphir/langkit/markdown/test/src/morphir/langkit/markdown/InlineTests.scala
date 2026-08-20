@@ -341,6 +341,32 @@ class InlineTests extends Test[Any]:
     }
   }
 
+  "a setext heading" - {
+    "an equals underline makes a level-one heading" in {
+      parse("Title\n=====").blocks.head match
+        case Block.Heading(level, content, _) =>
+          assert(level == HeadingLevel.One)
+          assert(textOf(content) == "Title")
+        case other => assert(false, s"expected a heading, got $other")
+    }
+    "a dash underline makes a level-two heading" in {
+      parse("Title\n-----").blocks.head match
+        case Block.Heading(level, _, _) => assert(level == HeadingLevel.Two)
+        case other                      => assert(false, s"expected a heading, got $other")
+    }
+    "a dash run with nothing above it stays a thematic break" in {
+      parse("-----").blocks.head match
+        case Block.ThematicBreak(_) => assert(true)
+        case other                  => assert(false, s"expected a thematic break, got $other")
+    }
+    "its content is inline, so a code span inside survives" in {
+      parse("a `b`\n===").blocks.head match
+        case Block.Heading(_, content, _) =>
+          assert(content.exists { case _: Inline.CodeSpan => true; case _ => false })
+        case other => assert(false, s"expected a heading, got $other")
+    }
+  }
+
   "fenced code" - {
     "keeps its body as literal text, never inline content" in {
       parse("```\n*not emphasis*\n```").blocks.head match
