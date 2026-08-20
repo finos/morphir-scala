@@ -464,15 +464,33 @@ object Parser:
    * `take` is expected to have an effect -- appending to the caller's builder -- which is why it returns a plain
    * Boolean rather than an option: acceptance and accumulation are the same decision.
    */
-  @tailrec private def consumeWhile(scanner: SourceScanner, last: Line)(take: Line => Boolean): Line =
-    if scanner.isAtEnd then last
-    else
-      val checkpoint = scanner.checkpoint()
-      val line       = readLine(scanner)
-      if take(line) then consumeWhile(scanner, line)(take)
+  /**
+   * Consume lines for as long as `take` accepts them, and return the last one accepted.
+   *
+   * The scanner is restored to just before the first rejected line, so the caller's block ends where it should and the
+   * next block starts by reading that line again. Four readers hand-rolled this with a `done` flag; naming it once
+   * makes each of them say what it collects rather than how it stops.
+   *
+   * `take` is expected to have an effect -- appending to the caller's builder -- which is why it returns a plain
+   * Boolean rather than an option: acceptance and accumulation are the same decision.
+   *
+   * `inline`, with an `inline` predicate, so the caller's lambda is beta-reduced into the loop instead of becoming a
+   * `Function1`. `Line => Boolean` is not one of the shapes `Function1` specialises, so every line would otherwise pay
+   * a generic `apply` and a boxed `Boolean`. The recursion stays in a local `@tailrec` loop, because an `inline def`
+   * cannot recurse. Two call sites, so the body is duplicated twice -- worth it here, and the reason this is private
+   * rather than something callers can grow.
+   */
+  private inline def consumeWhile(scanner: SourceScanner, last: Line)(inline take: Line => Boolean): Line =
+    @tailrec def loop(current: Line): Line =
+      if scanner.isAtEnd then current
       else
-        scanner.restore(checkpoint)
-        last
+        val checkpoint = scanner.checkpoint()
+        val line       = readLine(scanner)
+        if take(line) then loop(line)
+        else
+          scanner.restore(checkpoint)
+          current
+    loop(last)
 
   private def readLine(scanner: SourceScanner): Line =
     scanner.requireProgress(LinesPhase) {
