@@ -1,6 +1,7 @@
 package morphir.langkit.markdown.internal
 
 import kyo.*
+import scala.annotation.tailrec
 import morphir.langkit.core.Span
 import morphir.langkit.markdown.*
 
@@ -453,15 +454,16 @@ private[markdown] object InlineParser:
   private def endsLine(text: String, from: Int, next: Int): Boolean =
     next >= text.length || text.substring(from, next).contains('\n')
 
-  private def restIsBlank(text: String, from: Int): Boolean =
-    var index = from
-    while index < text.length && (text.charAt(index) == ' ' || text.charAt(index) == '\t') do index += 1
-    index >= text.length || text.charAt(index) == '\n'
+  @tailrec private def restIsBlank(text: String, from: Int): Boolean =
+    if from >= text.length then true
+    else
+      text.charAt(from) match
+        case ' ' | '\t' => restIsBlank(text, from + 1)
+        case '\n'       => true
+        case _          => false
 
-  private def skipWhitespace(text: String, from: Int): Int =
-    var index = from
-    while index < text.length && text.charAt(index).isWhitespace do index += 1
-    index
+  @tailrec private def skipWhitespace(text: String, from: Int): Int =
+    if from < text.length && text.charAt(from).isWhitespace then skipWhitespace(text, from + 1) else from
 
   /** Backslash escapes are live in destinations and titles, unlike inside a code span. */
   private def unescape(value: String): String =
@@ -531,9 +533,9 @@ private[markdown] object InlineParser:
 
   /** The length of the backtick run beginning at `start`. */
   private def backtickRun(text: String, start: Int): Int =
-    var end = start
-    while end < text.length && text.charAt(end) == '`' do end += 1
-    end - start
+    @tailrec def run(end: Int): Int =
+      if end < text.length && text.charAt(end) == '`' then run(end + 1) else end - start
+    run(start)
 
   /**
    * Where the closing backtick run of exactly `length` begins, searching from `from`.
@@ -542,15 +544,14 @@ private[markdown] object InlineParser:
    * span rather than two.
    */
   private def closingRun(text: String, from: Int, length: Int): Maybe[Int] =
-    var index  = from
-    var result = Maybe.empty[Int]
-    while result.isEmpty && index < text.length do
-      if text.charAt(index) == '`' then
+    @tailrec def search(index: Int): Maybe[Int] =
+      if index >= text.length then Absent
+      else if text.charAt(index) == '`' then
         val run = backtickRun(text, index)
-        if run == length then result = Present(index)
-        else index += run
-      else index += 1
-    result
+        // A run of a different length cannot close the span, so it is skipped whole rather than re-entered.
+        if run == length then Present(index) else search(index + run)
+      else search(index + 1)
+    search(from)
 
   /**
    * CommonMark's code-span content rules.

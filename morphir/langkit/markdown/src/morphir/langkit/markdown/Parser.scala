@@ -1,6 +1,7 @@
 package morphir.langkit.markdown
 
 import kyo.*
+import scala.annotation.tailrec
 import morphir.langkit.core.Span
 import morphir.langkit.core.scanner.*
 import morphir.langkit.markdown.internal.{InlineParser, LinkDefinition}
@@ -290,38 +291,34 @@ object Parser:
     else openTagEnd(text)
 
   private def closingTagEnd(text: String): Maybe[Int] =
-    var index = 2
-    val start = index
-    while index < text.length && (text.charAt(index).isLetterOrDigit || text.charAt(index) == '-') do index += 1
-    if index == start || !text.charAt(start - 1 + 1 - 1).isLetter then Absent
+    val nameEnd = tagNameEnd(text, 2)
+    if nameEnd == 2 || !text.charAt(2).isLetter then Absent
     else
-      index = skipSpaces(text, index)
-      if index < text.length && text.charAt(index) == '>' then Present(index + 1) else Absent
+      val afterSpaces = skipSpaces(text, nameEnd)
+      // A closing tag takes no attributes: anything but whitespace before the `>` disqualifies it.
+      if afterSpaces < text.length && text.charAt(afterSpaces) == '>' then Present(afterSpaces + 1) else Absent
+
+  @tailrec private def tagNameEnd(text: String, from: Int): Int =
+    if from < text.length && (text.charAt(from).isLetterOrDigit || text.charAt(from) == '-') then
+      tagNameEnd(text, from + 1)
+    else from
 
   private def openTagEnd(text: String): Maybe[Int] =
-    var index = 1
-    if index >= text.length || !text.charAt(index).isLetter then Absent
+    if text.length < 2 || !text.charAt(1).isLetter then Absent
     else
-      while index < text.length && (text.charAt(index).isLetterOrDigit || text.charAt(index) == '-') do index += 1
-      var valid = true
-      var done  = false
-      while valid && !done do
+      @tailrec def attributes(index: Int): Maybe[Int] =
         val afterSpaces = skipSpaces(text, index)
-        if afterSpaces >= text.length then valid = false
-        else if text.charAt(afterSpaces) == '>' then
-          index = afterSpaces + 1
-          done = true
-        else if text.charAt(afterSpaces) == '/' &&
-          afterSpaces + 1 < text.length && text.charAt(afterSpaces + 1) == '>'
-        then
-          index = afterSpaces + 2
-          done = true
-        else if afterSpaces == index then valid = false // attributes must be separated by whitespace
+        if afterSpaces >= text.length then Absent
+        else if text.charAt(afterSpaces) == '>' then Present(afterSpaces + 1)
+        else if text.charAt(afterSpaces) == '/' && afterSpaces + 1 < text.length &&
+          text.charAt(afterSpaces + 1) == '>'
+        then Present(afterSpaces + 2)
+        else if afterSpaces == index then Absent // attributes must be separated by whitespace
         else
           attributeEnd(text, afterSpaces) match
-            case Present(next) => index = next
-            case Absent        => valid = false
-      if valid && done then Present(index) else Absent
+            case Present(next) => attributes(next)
+            case Absent        => Absent
+      attributes(tagNameEnd(text, 1))
 
   private def attributeEnd(text: String, from: Int): Maybe[Int] =
     var index = from
@@ -343,16 +340,16 @@ object Parser:
             val close = text.indexOf(quote.toInt, valueStart + 1)
             if close < 0 then Absent else Present(close + 1)
           else
-            var cursor = valueStart
-            while cursor < text.length && !text.charAt(cursor).isWhitespace &&
-              "\"'=<>`".indexOf(text.charAt(cursor).toInt) < 0
-            do cursor += 1
+            @tailrec def unquotedEnd(cursor: Int): Int =
+              if cursor < text.length && !text.charAt(cursor).isWhitespace &&
+                "\"'=<>`".indexOf(text.charAt(cursor).toInt) < 0
+              then unquotedEnd(cursor + 1)
+              else cursor
+            val cursor = unquotedEnd(valueStart)
             if cursor == valueStart then Absent else Present(cursor)
 
-  private def skipSpaces(text: String, from: Int): Int =
-    var index = from
-    while index < text.length && text.charAt(index).isWhitespace do index += 1
-    index
+  @tailrec private def skipSpaces(text: String, from: Int): Int =
+    if from < text.length && text.charAt(from).isWhitespace then skipSpaces(text, from + 1) else from
 
   /**
    * Read a raw HTML block.
@@ -450,9 +447,9 @@ object Parser:
 
   /** Remove up to four leading spaces, which is the indentation the block form spends rather than content. */
   private def stripIndent(text: String): String =
-    var removed = 0
-    while removed < 4 && removed < text.length && text.charAt(removed) == ' ' do removed += 1
-    text.substring(removed)
+    @tailrec def removed(count: Int): Int =
+      if count < 4 && count < text.length && text.charAt(count) == ' ' then removed(count + 1) else count
+    text.substring(removed(0))
 
   private def readLine(scanner: SourceScanner): Line =
     scanner.requireProgress(LinesPhase) {
@@ -606,16 +603,15 @@ object Parser:
    * offset. Walking the lines rather than adding a constant keeps inline spans true on both.
    */
   private def sourceOffsetOf(lines: Chunk[(Int, String)], index: Int): Int =
-    var remaining = index
-    var cursor    = 0
-    var result    = Absent: Maybe[Int]
-    while result.isEmpty && cursor < lines.size do
-      val (offset, text) = lines(cursor)
-      if remaining <= text.length then result = Present(offset + remaining)
-      else remaining -= text.length + 1 // the '\n' the join introduced
-      cursor += 1
-    val (lastOffset, lastText) = lines(lines.size - 1)
-    result.getOrElse(lastOffset + lastText.length)
+    @tailrec def walk(cursor: Int, remaining: Int): Int =
+      if cursor >= lines.size then
+        val (lastOffset, lastText) = lines(lines.size - 1)
+        lastOffset + lastText.length
+      else
+        val (offset, text) = lines(cursor)
+        if remaining <= text.length then offset + remaining
+        else walk(cursor + 1, remaining - (text.length + 1)) // the '\n' the join introduced
+    walk(0, index)
 
   private def continuesParagraph(scanner: SourceScanner, line: Line): Boolean =
     !isBlank(scanner, line) &&

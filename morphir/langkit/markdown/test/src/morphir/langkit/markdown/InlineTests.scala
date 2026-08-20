@@ -429,6 +429,13 @@ class InlineTests extends Test[Any]:
         case Block.Paragraph(_, _) => assert(true)
         case other                 => assert(false, s"expected a paragraph, got $other")
     }
+    "opens on a bare closing tag, which the any-tag condition allows" in {
+      // Regression guard: this was unreachable while closingTagEnd checked charAt(1) -- the `/` -- rather than the
+      // first character of the name.
+      parse("</div>\ncontent").blocks.head match
+        case Block.HtmlBlock(content, _) => assert(content == "</div>\ncontent")
+        case other                       => assert(false, s"expected an HTML block, got $other")
+    }
     "rejects a closing tag carrying attributes (spec example 624)" in {
       parse("</a href=\"foo\">").blocks.head match
         case Block.Paragraph(_, _) => assert(true)
