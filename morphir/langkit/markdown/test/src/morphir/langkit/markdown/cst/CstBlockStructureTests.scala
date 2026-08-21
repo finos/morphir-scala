@@ -8,8 +8,8 @@ import morphir.langkit.markdown.HeadingLevel
  * That graduated blocks come back typed, and ungraduated regions stay verbatim.
  *
  * The round-trip suite proves nothing is lost; this suite proves something is gained — a parse where every node were
- * verbatim would round-trip perfectly and mean nothing. One test per graduated form, plus the negative cases that pin
- * what lc8.23 still owns: HTML blocks and link reference definitions stay verbatim.
+ * verbatim would round-trip perfectly and mean nothing. One test per graduated form. Block structure is fully typed
+ * now; what stays verbatim is interior prose, which is the inline slices' problem (lc8.24 through lc8.26).
  */
 class CstBlockStructureTests extends Test[Any]:
 
@@ -198,17 +198,49 @@ class CstBlockStructureTests extends Test[Any]:
     }
   }
 
-  "not yet graduated" - {
+  "html and definitions" - {
 
-    "an HTML block stays verbatim" in
-      assert(blocks("<div>\nhi\n</div>\n").forall {
-        case _: CstNode.Verbatim => true
-        case _                   => false
-      })
+    "an HTML block is typed with a text interior" in {
+      blocks("<div>\nhi\n</div>\n").head match
+        case CstNode.HtmlBlock(children, _) =>
+          assert(children.forall {
+            case _: CstNode.Text => true
+            case _               => false
+          })
+        case other => assert(false, s"expected HtmlBlock, got $other")
+    }
 
-    "a link reference definition stays verbatim" in
-      assert(blocks("[a]: /url\n").forall {
-        case _: CstNode.Verbatim => true
-        case _                   => false
+    "a link reference definition is its own node" in {
+      blocks("[a]: /url\n").head match
+        case CstNode.LinkReferenceDefinition(_, _) => assert(true)
+        case other                                 => assert(false, s"expected LinkReferenceDefinition, got $other")
+    }
+
+    "a definition before a paragraph leaves the paragraph typed" in {
+      val nodes = blocks("[a]: /url\nrest\n")
+      assert(nodes.headOption.exists {
+        case _: CstNode.LinkReferenceDefinition => true
+        case _                                  => false
       })
+      assert(nodes.exists {
+        case _: CstNode.Paragraph => true
+        case _                    => false
+      })
+    }
+
+    "a definition inside a quote nests" in {
+      blocks("> [a]: /url\n").head match
+        case CstNode.BlockQuote(children, _) =>
+          assert(children.exists {
+            case _: CstNode.LinkReferenceDefinition => true
+            case _                                  => false
+          })
+        case other => assert(false, s"expected BlockQuote, got $other")
+    }
+
+    "a reference paragraph stays a paragraph, resolution being lowering's job" in {
+      blocks("[a]\n\n[a]: /u\n").toSeq match
+        case Seq(CstNode.Paragraph(_, _), _, CstNode.LinkReferenceDefinition(_, _), _*) => assert(true)
+        case other => assert(false, s"expected paragraph then definition, got $other")
+    }
   }

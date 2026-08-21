@@ -31,6 +31,15 @@ private[markdown] enum CstFragment:
   case IndentedCode(span: Span)
   case Paragraph(span: Span)
 
+  /** A raw HTML block, whatever start condition opened it. Its interior is HTML, not Markdown. */
+  case HtmlBlock(span: Span)
+
+  /**
+   * One `[label]: destination "title"` definition. Recorded where it was consumed — off the front of a paragraph run —
+   * so the paragraph that follows starts after it. The reference stays unresolved here; resolution is lowering's.
+   */
+  case LinkReferenceDefinition(span: Span)
+
   /** A quote's run: `markers` are the per-line `>` prefixes its cursor spent, `children` what those lines held. */
   case BlockQuote(span: Span, markers: Chunk[Span], children: Chunk[CstFragment])
 

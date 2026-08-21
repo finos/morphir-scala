@@ -48,6 +48,12 @@ enum CstNode derives CanEqual:
   /** One item. Its first child is the marker [[Token]]; continuation-line indentation appears as tokens too. */
   case ListItem(children: Chunk[CstNode], span: Span)
 
+  /** A raw HTML block. Its interior is [[Text]]: the content is HTML, not Markdown, and is already in final form. */
+  case HtmlBlock(children: Chunk[CstNode], span: Span)
+
+  /** A `[label]: destination "title"` definition, unresolved. Its interior stays verbatim until inlines graduate. */
+  case LinkReferenceDefinition(children: Chunk[CstNode], span: Span)
+
   /** Syntax the author spent: marker runs, fences, setext underlines. */
   case Token(text: String, span: Span)
 
@@ -68,18 +74,20 @@ enum CstNode derives CanEqual:
 
   /** Children of an interior node, in source order; empty for leaves. */
   def childNodes: Chunk[CstNode] = this match
-    case Document(children, _)             => children
-    case ThematicBreak(children, _)        => children
-    case AtxHeading(_, children, _)        => children
-    case SetextHeading(_, children, _)     => children
-    case FencedCode(children, _)           => children
-    case IndentedCode(children, _)         => children
-    case Paragraph(children, _)            => children
-    case BlockQuote(children, _)           => children
-    case BulletList(_, _, children, _)     => children
-    case OrderedList(_, _, _, children, _) => children
-    case ListItem(children, _)             => children
-    case _: (Token | Text | Verbatim)      => Chunk.empty
+    case Document(children, _)                => children
+    case ThematicBreak(children, _)           => children
+    case AtxHeading(_, children, _)           => children
+    case SetextHeading(_, children, _)        => children
+    case FencedCode(children, _)              => children
+    case IndentedCode(children, _)            => children
+    case Paragraph(children, _)               => children
+    case BlockQuote(children, _)              => children
+    case BulletList(_, _, children, _)        => children
+    case OrderedList(_, _, _, children, _)    => children
+    case ListItem(children, _)                => children
+    case HtmlBlock(children, _)               => children
+    case LinkReferenceDefinition(children, _) => children
+    case _: (Token | Text | Verbatim)         => Chunk.empty
 
 object Cst:
 
@@ -116,9 +124,9 @@ object Cst:
  * Parses a source into its CST.
  *
  * The block phase records a [[CstFragment]] at each graduated construction site; this object turns those fragments into
- * typed nodes by slicing the source, and holds every unclaimed region — HTML blocks, blank runs, link reference
- * definitions — as [[CstNode.Verbatim]] until its slice graduates it. A source the parser rejects (budget exhaustion)
- * degrades to one verbatim leaf, so parsing stays total and round-trip exact.
+ * typed nodes by slicing the source, and holds every unclaimed region — blank runs, mostly — as [[CstNode.Verbatim]]
+ * until its slice graduates it. A source the parser rejects (budget exhaustion) degrades to one verbatim leaf, so
+ * parsing stays total and round-trip exact.
  *
  * Containers bring marker spans with them: the bytes their cursor spent on `>` prefixes and item indentation. Those
  * spans are punched out of gaps and leaf interiors as [[CstNode.Token]] leaves wherever they fall inside the region
@@ -224,6 +232,12 @@ object CstParser:
 
     case CstFragment.Paragraph(span) =>
       CstNode.Paragraph(tile(source, span.offset, span.end, markers)(CstNode.Verbatim(_, _)), span)
+
+    case CstFragment.HtmlBlock(span) =>
+      CstNode.HtmlBlock(tile(source, span.offset, span.end, markers)(CstNode.Text(_, _)), span)
+
+    case CstFragment.LinkReferenceDefinition(span) =>
+      CstNode.LinkReferenceDefinition(tile(source, span.offset, span.end, markers)(CstNode.Verbatim(_, _)), span)
 
     case CstFragment.BlockQuote(span, own, children) =>
       val all = merged(markers, own)

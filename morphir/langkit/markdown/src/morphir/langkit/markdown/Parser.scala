@@ -255,7 +255,7 @@ object Parser:
                 val breakSpan = Span(line.offset, line.length)
                 cst.foreach(_.record(CstFragment.ThematicBreak(breakSpan)))
                 Opened.leaf(Block.ThematicBreak(breakSpan))
-              case LineKind.Html(_)          => Opened.leaf(readHtmlBlock(cursor, line))
+              case LineKind.Html(_)          => Opened.leaf(readHtmlBlock(cursor, line, cst))
               case LineKind.BulletItem(item) =>
                 cursor.restore(opening)
                 readUnorderedList(cursor, definitions, item, line.offset, cst)
@@ -449,7 +449,7 @@ object Parser:
    * Conditions one to five run until their closing marker appears; six and seven run until a blank line. Either way the
    * lines are kept verbatim, because the content is HTML rather than Markdown.
    */
-  private def readHtmlBlock(cursor: ContainerCursor, first: Line): Block =
+  private def readHtmlBlock(cursor: ContainerCursor, first: Line, cst: Maybe[CstCollector]): Block =
     val scanner = cursor.scanner
     val kind    = htmlBlockStart(scanner, first).getOrElse(HtmlBlockKind.AnyTag)
     val lines   = List.newBuilder[String]
@@ -476,7 +476,9 @@ object Parser:
     // double it. A code block differs because its closing tag ends the content.
     val content = lines.result().mkString("\n")
     scanner.chargeWork(WorkUnits.from(content.length.toLong).getOrThrow)
-    Block.HtmlBlock(content, Span.fromStartEnd(first.offset, last.end))
+    val span = Span.fromStartEnd(first.offset, last.end)
+    cst.foreach(_.record(CstFragment.HtmlBlock(span)))
+    Block.HtmlBlock(content, span)
 
   private def endsOnBlankLine(kind: HtmlBlockKind): Boolean =
     kind == HtmlBlockKind.KnownTag || kind == HtmlBlockKind.AnyTag
@@ -627,8 +629,18 @@ object Parser:
 
     // A paragraph may open with link reference definitions. They are not content: they are consumed here and only
     // what follows them, if anything, becomes a paragraph.
-    val consumed = takeDefinitions(trimmed, definitions)
-    val body     = trimmed.substring(consumed)
+    val (consumed = consumed, taken = taken) = takeDefinitions(trimmed, definitions)
+    // Each definition is its own CST node, recorded where it was consumed. Indices in the trimmed text map back to
+    // the source through the lines that built it, the same way inline spans do.
+    cst.foreach { collector =>
+      taken.foreach { case (start = defStart, end = defEnd) =>
+        collector.record(CstFragment.LinkReferenceDefinition(Span.fromStartEnd(
+          sourceOffsetOf(lines, defStart + leading),
+          sourceOffsetOf(lines, defEnd + leading)
+        )))
+      }
+    }
+    val body = trimmed.substring(consumed)
     if body.isBlank then
       // Definitions and nothing else. A setext underline has no paragraph to close here, so it goes back to be read
       // on its own: `[foo]: /url` over `===` is a definition and then a paragraph beginning `===`, not a heading.
@@ -637,9 +649,14 @@ object Parser:
     else
       val bodyStart = leading + consumed
       val span      = Span.fromStartEnd(first.offset, last.end)
+      // The CST fragment starts at the body, not at the run: definitions consumed off the front are their own nodes,
+      // and a fragment overlapping them would lose the paragraph to a verbatim gap at materialization.
+      val cstStart = if consumed == 0 then span.offset
+      else sourceOffsetOf(lines, bodyStart + (body.length - body.stripLeading.length))
+      val cstSpan = Span.fromStartEnd(cstStart, span.end)
       cst.foreach(_.record(setext match
-        case Present(level) => CstFragment.SetextHeading(level, span, last.offset)
-        case Absent         => CstFragment.Paragraph(span)))
+        case Present(level) => CstFragment.SetextHeading(level, cstSpan, last.offset)
+        case Absent         => CstFragment.Paragraph(cstSpan)))
       Present(Deferred.prose { defs =>
         val content = InlineParser.parse(body.trim, index => sourceOffsetOf(lines, index + bodyStart), defs)
         setext match
@@ -669,7 +686,8 @@ object Parser:
   private def takeDefinitions(
       text: String,
       definitions: scala.collection.mutable.Map[String, LinkDefinition]
-  ): Int =
+  ): (consumed: Int, taken: List[(start: Int, end: Int)]) =
+    val taken                             = List.newBuilder[(start: Int, end: Int)]
     @tailrec def take(consumed: Int): Int =
       linkDefinitionAt(text, consumed) match
         case Present(definition) =>
@@ -677,12 +695,14 @@ object Parser:
           // First definition wins, which is what the spec says about duplicates.
           if !definitions.contains(key) then
             definitions(key) = LinkDefinition(definition.destination, definition.title)
+          taken += ((start = definition.start, end = definition.end))
           take(definition.end)
         case Absent => consumed
-    take(0)
+    val consumed = take(0)
+    (consumed = consumed, taken = taken.result())
 
-  /** A link reference definition: its label, where it points, and where it ends. */
-  private type Definition = (end: Int, label: String, destination: String, title: Maybe[String])
+  /** A link reference definition: where it starts and ends, its label, and where it points. */
+  private type Definition = (start: Int, end: Int, label: String, destination: String, title: Maybe[String])
 
   /** One definition beginning at `from`, or [[kyo.Absent]] if the text does not start with one. */
   private def linkDefinitionAt(text: String, from: Int): Maybe[Definition] =
@@ -707,6 +727,7 @@ object Parser:
                 case Absent          => Absent
                 case Present(target) =>
                   Present((
+                    start = index,
                     end = target.end,
                     label = label,
                     destination = target.destination,
