@@ -86,7 +86,10 @@ lowered pipeline renders all 652 examples byte for byte. The AST now speaks mdas
 place of separate block/inline hierarchies, and an optional `Span` carried only where a node was produced by
 lowering rather than generated. The deferred-prose machinery inside the parser survives as the engine that
 fills the CST's inline slots once every definition is known; the definitions map is that machinery's internal
-bookkeeping, no longer the AST's source of truth — lowering re-collects definitions from the CST's own nodes.
+bookkeeping, no longer the AST's source of truth — lowering re-collects definitions from the CST's own nodes. The
+module now also writes: authored `MdcNode` trees, built with the `dsl` package and carrying `MdcMeta`
+position-and-data, serialize to Markdown through `MdWriter.write` under a given `MdStyle`, and `MdWriter.raise`
+produces tiled CSTs by write-then-parse — both held to the rendering oracle corpus-wide.
 
 *Settled: how much of CommonMark the owned parser covers.* All of it — 652 of 652 examples, every section of the
 specification. *Settled: whether the AST shape survives the conformance suite.* It did, though it grew: list
