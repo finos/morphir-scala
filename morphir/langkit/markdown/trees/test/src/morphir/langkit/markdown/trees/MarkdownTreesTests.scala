@@ -2,7 +2,7 @@ package morphir.langkit.markdown.trees
 
 import kyo.*
 import kyo.test.*
-import morphir.langkit.markdown.{MdcNode, Parser}
+import morphir.langkit.markdown.{MdcNode, MdProfile, Parser}
 import morphir.langkit.markdown.cst.{Cst, MdcCstNode, CstParser}
 import morphir.langkit.trees.{NodeTypeName, QueryableTree}
 import morphir.langkit.trees.unist.UnistProjection
@@ -21,6 +21,10 @@ class MarkdownTreesTests extends Test[Any]:
   import MdcNodeQueryableTree.given
 
   private val source = "# Title\n\n- item `code`\n"
+
+  private val yamlProfile: MdProfile = MdProfile.commonmark.withYamlFrontmatter
+
+  private val withFrontmatter = "---\ntitle: x\n---\n\n# H\n"
 
   private def ast: MdcNode.Root =
     Parser.parse(source) match
@@ -92,5 +96,21 @@ class MarkdownTreesTests extends Test[Any]:
       val projected = UnistProjection.project[MdcCstNode](CstParser.parse(source), Some(source))
       assert(projected.`type` == "document")
       assert(projected.position.exists(p => p.start.offset.contains(0) && p.end.offset.contains(source.length)))
+    }
+  }
+
+  "frontmatter" - {
+
+    "names the yaml block in each view's own vocabulary" in {
+      val root = Parser.parse(withFrontmatter)(using yamlProfile) match
+        case Result.Success(document) => document
+        case other                    => throw new IllegalStateException(s"parse failed: $other")
+      val first = QueryableTree[MdcNode].children(root).head
+      assert(NodeTypeName.unwrap(QueryableTree[MdcNode].nodeType(first)) == "yaml")
+
+      def walk(node: MdcCstNode): Seq[String] =
+        NodeTypeName.unwrap(QueryableTree[MdcCstNode].nodeType(node))
+          +: QueryableTree[MdcCstNode].children(node).flatMap(walk)
+      assert(walk(CstParser.parse(withFrontmatter)(using yamlProfile)).contains("frontmatter"))
     }
   }
