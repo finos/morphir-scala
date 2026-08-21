@@ -19,7 +19,7 @@ class ScalatagsCompilerTests extends Test[Any]:
     MdcNode.ListItem(Chunk(MdcNode.Paragraph(prose(value), meta)), meta)
 
   private def render(blocks: MdcNode.FlowContent*): String =
-    ScalatagsCompiler.render(MdcNode.Root(Chunk.from(blocks), meta))
+    ScalatagsCompiler.render(MdcNode.Root(Chunk.from(blocks), meta = meta))
 
   "ScalatagsCompiler" - {
 

@@ -13,7 +13,7 @@ class MdcNodeTests extends Test[Any]:
 
     "children is total: parents expose them, leaves are empty" in {
       val para = MdcNode.Paragraph(Chunk(text("a")), meta)
-      val root = MdcNode.Root(Chunk(para), meta)
+      val root = MdcNode.Root(Chunk(para), meta = meta)
       assert(root.childNodes == Chunk(para))
       assert(para.childNodes == Chunk(text("a")))
       assert(text("a").childNodes.isEmpty)
@@ -53,7 +53,7 @@ class MdcNodeTests extends Test[Any]:
     }
 
     "unpositioned strips every span recursively" in {
-      val parsedish = MdcNode.Root(Chunk(MdcNode.Paragraph(Chunk(text("a")), meta)), meta)
+      val parsedish = MdcNode.Root(Chunk(MdcNode.Paragraph(Chunk(text("a")), meta)), meta = meta)
       def spans(node: MdcNode): Chunk[Maybe[Span]] =
         node.span +: node.childNodes.flatMap(spans)
       assert(spans(parsedish).forall(_.isDefined))
@@ -90,5 +90,16 @@ class MdcNodeTests extends Test[Any]:
         case other                    => throw new IllegalStateException(s"parse failed: $other")
       def spans(node: MdcNode): Chunk[Maybe[Span]] = node.span +: node.childNodes.flatMap(spans)
       assert(spans(root).forall(_.isDefined))
+    }
+
+    "frontmatter is a Root field, traversed first, literal-bearing" in {
+      val yaml = MdcNode.FrontMatter.Yaml(YamlDocText("title: x\n"))
+      val root = MdcNode.Root(Chunk(MdcNode.Paragraph(Chunk(MdcNode.Text("hi")))), Present(yaml))
+      assert(root.frontmatter == Present(yaml))
+      assert(root.childNodes.head == yaml)
+      assert(yaml.literal == Present("title: x\n"))
+      assert(yaml.span == Absent)
+      val stripped = root.unpositioned
+      assert(stripped.asInstanceOf[MdcNode.Root].frontmatter.isDefined)
     }
   }

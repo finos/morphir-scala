@@ -109,14 +109,14 @@ class ParserTests extends Test[Any]:
     }
     "preserves exact documents across the existing block subset" in {
       val cases = Chunk(
-        ""        -> MdcNode.Root(Chunk.empty, MdcMeta.at(Span.zero)),
+        ""        -> MdcNode.Root(Chunk.empty, meta = MdcMeta.at(Span.zero)),
         "# Title" -> MdcNode.Root(
           Chunk(MdcNode.Heading(
             HeadingLevel.One,
             Chunk(MdcNode.Text("Title", MdcMeta.at(Span(2, 5)))),
             MdcMeta.at(Span(0, 7))
           )),
-          MdcMeta.at(Span(0, 7))
+          meta = MdcMeta.at(Span(0, 7))
         ),
         "alpha\nbeta" ->
           MdcNode.Root(
@@ -124,19 +124,19 @@ class ParserTests extends Test[Any]:
               Chunk(MdcNode.Text("alpha\nbeta", MdcMeta.at(Span(0, 10)))),
               MdcMeta.at(Span(0, 10))
             )),
-            MdcMeta.at(Span(0, 10))
+            meta = MdcMeta.at(Span(0, 10))
           ),
         "```scala\none\n\ntwo\n```" -> MdcNode.Root(
           Chunk(MdcNode.Code(FenceInfo.parse("scala"), "one\n\ntwo\n", MdcMeta.at(Span(0, 21)))),
-          MdcMeta.at(Span(0, 21))
+          meta = MdcMeta.at(Span(0, 21))
         ),
         "```\ncode" -> MdcNode.Root(
           Chunk(MdcNode.Code(FenceInfo.empty, "code", MdcMeta.at(Span(0, 8)))),
-          MdcMeta.at(Span(0, 8))
+          meta = MdcMeta.at(Span(0, 8))
         ),
         "```\ncode\n" -> MdcNode.Root(
           Chunk(MdcNode.Code(FenceInfo.empty, "code\n", MdcMeta.at(Span(0, 9)))),
-          MdcMeta.at(Span(0, 9))
+          meta = MdcMeta.at(Span(0, 9))
         ),
         // An item spans its whole line, marker included, because that is what the item occupies in the source. Its
         // paragraph spans only the content, which is what an inline node needs to point through.
@@ -157,22 +157,22 @@ class ParserTests extends Test[Any]:
             ),
             MdcMeta.at(Span(0, 14))
           )),
-          MdcMeta.at(Span(0, 14))
+          meta = MdcMeta.at(Span(0, 14))
         ),
-        "---"      -> MdcNode.Root(Chunk(MdcNode.ThematicBreak(MdcMeta.at(Span(0, 3)))), MdcMeta.at(Span(0, 3))),
+        "---"      -> MdcNode.Root(Chunk(MdcNode.ThematicBreak(MdcMeta.at(Span(0, 3)))), meta = MdcMeta.at(Span(0, 3))),
         "# A\n\nB" -> MdcNode.Root(
           Chunk(
             MdcNode.Heading(HeadingLevel.One, Chunk(MdcNode.Text("A", MdcMeta.at(Span(2, 1)))), MdcMeta.at(Span(0, 3))),
             MdcNode.Paragraph(Chunk(MdcNode.Text("B", MdcMeta.at(Span(5, 1)))), MdcMeta.at(Span(5, 1)))
           ),
-          MdcMeta.at(Span(0, 6))
+          meta = MdcMeta.at(Span(0, 6))
         ),
         "# A\r\n\r\nB" -> MdcNode.Root(
           Chunk(
             MdcNode.Heading(HeadingLevel.One, Chunk(MdcNode.Text("A", MdcMeta.at(Span(2, 1)))), MdcMeta.at(Span(0, 3))),
             MdcNode.Paragraph(Chunk(MdcNode.Text("B", MdcMeta.at(Span(7, 1)))), MdcMeta.at(Span(7, 1)))
           ),
-          MdcMeta.at(Span(0, 8))
+          meta = MdcMeta.at(Span(0, 8))
         )
       )
 
@@ -292,11 +292,11 @@ class ParserTests extends Test[Any]:
         maxOutputNodes = NodeCount.one
       )
 
-      assert(Parser.parse("", exact) == Result.succeed(MdcNode.Root(Chunk.empty, MdcMeta.at(Span.zero))))
+      assert(Parser.parse("", exact) == Result.succeed(MdcNode.Root(Chunk.empty, meta = MdcMeta.at(Span.zero))))
     }
     "accepts an explicitly unsafe unbounded budget" in {
       Parser.parse("# Title", ScanBudget.UnsafeUnbounded) match
-        case Result.Success(MdcNode.Root(blocks, _)) =>
+        case Result.Success(MdcNode.Root(blocks, _, _)) =>
           assert(
             blocks == Chunk(
               MdcNode.Heading(
@@ -342,7 +342,7 @@ class ParserTests extends Test[Any]:
       )
 
       Parser.parse(source, budget) match
-        case Result.Success(MdcNode.Root(Chunk(MdcNode.Code(info, "", _)), _)) =>
+        case Result.Success(MdcNode.Root(Chunk(MdcNode.Code(info, "", _)), _, _)) =>
           assert(info == FenceInfo.parse("scala flag key=value {.class}"))
           assert(info.language == Present("scala"))
           assert(info.flag("flag"))
@@ -426,7 +426,7 @@ class ParserTests extends Test[Any]:
                 MdcMeta.at(Span(0, source.length))
               )
             ),
-            MdcMeta.at(Span(0, source.length))
+            meta = MdcMeta.at(Span(0, source.length))
           )
         )
       )
@@ -481,7 +481,7 @@ class ParserTests extends Test[Any]:
     "removes opening-fence indentation from fenced code content" in {
       val source = "   ```\n   value\n value\n```"
       Parser.parse(source) match
-        case Result.Success(MdcNode.Root(blocks, _)) =>
+        case Result.Success(MdcNode.Root(blocks, _, _)) =>
           blocks(0) match
             case MdcNode.Code(_, content, _) => assert(content == "value\nvalue\n")
             case _                           => assert(false)
@@ -490,7 +490,7 @@ class ParserTests extends Test[Any]:
     "requires a closing fence with matching marker, valid indentation, and no trailing text" in {
       val source = "~~~\nfirst\n```\n    ~~~\n~~~ language\nlast\n~~~~\t"
       Parser.parse(source) match
-        case Result.Success(MdcNode.Root(blocks, _)) =>
+        case Result.Success(MdcNode.Root(blocks, _, _)) =>
           assert(blocks.size == 1)
           blocks(0) match
             case MdcNode.Code(_, content, _) =>
@@ -501,7 +501,7 @@ class ParserTests extends Test[Any]:
     "does not accept non-space trailing characters on a closing fence" in {
       val source = "~~~\nfirst\n~~~\u000c\nlast\n~~~"
       Parser.parse(source) match
-        case Result.Success(MdcNode.Root(blocks, _)) =>
+        case Result.Success(MdcNode.Root(blocks, _, _)) =>
           blocks(0) match
             case MdcNode.Code(_, content, _) => assert(content == "first\n~~~\u000c\nlast\n")
             case _                           => assert(false)
@@ -509,7 +509,7 @@ class ParserTests extends Test[Any]:
     }
     "trims only spaces and tabs around an info string" in {
       Parser.parse("~~~ \u000c example \u000c \nbody\n~~~") match
-        case Result.Success(MdcNode.Root(blocks, _)) =>
+        case Result.Success(MdcNode.Root(blocks, _, _)) =>
           blocks(0) match
             case MdcNode.Code(info, _, _) => assert(info.raw == "\u000c example \u000c")
             case _                        => assert(false)
@@ -517,7 +517,7 @@ class ParserTests extends Test[Any]:
     }
     "allows a three-space opening and closing fence to interrupt a paragraph" in {
       Parser.parse("before\n   ```\ncode\n  ```\nafter") match
-        case Result.Success(MdcNode.Root(blocks, _)) =>
+        case Result.Success(MdcNode.Root(blocks, _, _)) =>
           assert(blocks.size == 3)
           assert(blocks(0) ==
             MdcNode.Paragraph(Chunk(MdcNode.Text("before", MdcMeta.at(Span(0, 6)))), MdcMeta.at(Span(0, 6))))
@@ -530,7 +530,7 @@ class ParserTests extends Test[Any]:
     }
     "uses end of document as the close of an unclosed fence" in {
       Parser.parse("```\ncode") match
-        case Result.Success(MdcNode.Root(blocks, _)) =>
+        case Result.Success(MdcNode.Root(blocks, _, _)) =>
           assert(blocks.size == 1)
           blocks(0) match
             case MdcNode.Code(_, content, _) => assert(content == "code")
@@ -539,7 +539,7 @@ class ParserTests extends Test[Any]:
     }
     "allows an empty fenced code block" in {
       Parser.parse("```\n```") match
-        case Result.Success(MdcNode.Root(blocks, _)) =>
+        case Result.Success(MdcNode.Root(blocks, _, _)) =>
           assert(blocks.size == 1)
           blocks(0) match
             case MdcNode.Code(_, content, _) => assert(content.isEmpty)
@@ -548,7 +548,7 @@ class ParserTests extends Test[Any]:
     }
     "accepts tildes in a tilde-fence info string but not backticks in a backtick-fence info string" in {
       Parser.parse("~~~ aa ~~~ `example`\nbody\n~~~\n\n``` `example`\nbody") match
-        case Result.Success(MdcNode.Root(blocks, _)) =>
+        case Result.Success(MdcNode.Root(blocks, _, _)) =>
           assert(blocks.size == 2)
           blocks(0) match
             case MdcNode.Code(info, content, _) =>

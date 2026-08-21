@@ -39,7 +39,7 @@ class MdWriterTests extends Test[Any]:
     mergedTexts(nodes).map(_.asInstanceOf[MdcNode.PhrasingContent])
 
   private def normalize(node: MdcNode): MdcNode = node match
-    case MdcNode.Root(children, meta)                         => MdcNode.Root(flowOf(children), meta)
+    case MdcNode.Root(children, frontmatter, meta)            => MdcNode.Root(flowOf(children), frontmatter, meta)
     case MdcNode.Paragraph(children, meta)                    => MdcNode.Paragraph(phrasingOf(children), meta)
     case MdcNode.Heading(depth, children, meta)               => MdcNode.Heading(depth, phrasingOf(children), meta)
     case MdcNode.Blockquote(children, meta)                   => MdcNode.Blockquote(flowOf(children), meta)

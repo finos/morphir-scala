@@ -23,7 +23,7 @@ class KyoUiCompilerTests extends Test[Any]:
     MdcNode.ListItem(Chunk(MdcNode.Paragraph(prose(value), meta)), meta)
 
   private def compile(blocks: MdcNode.FlowContent*): UI =
-    KyoUiCompiler.compile(MdcNode.Root(Chunk.from(blocks), meta))
+    KyoUiCompiler.compile(MdcNode.Root(Chunk.from(blocks), meta = meta))
 
   /** The first emission of a static render: kyo-ui only emits again when a signal changes. */
   private def render(blocks: MdcNode.FlowContent*): String < Async =

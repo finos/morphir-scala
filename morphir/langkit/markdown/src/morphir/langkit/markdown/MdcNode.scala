@@ -14,8 +14,9 @@ import morphir.langkit.core.Span
  * which is what lets `Paragraph(Chunk(Text("hi")))` compile. Source-form distinctions (fenced vs indented code, bullet
  * char, list delimiter) live in the CST alone.
  *
- * `Mdc` anticipates Markdown with frontmatter and components: the `Yaml` case joins [[MdcNode.FlowContent]] when intent
- * morphir-lc8.3 lands, and that alias is its one registration point.
+ * `Mdc` anticipates Markdown with frontmatter and components: [[MdcNode.FrontMatter]] is that seat, a field on
+ * [[MdcNode.Root]] rather than a [[MdcNode.FlowContent]] member — frontmatter is only legal at document start, so
+ * mid-document frontmatter is unrepresentable rather than a documented writer limit.
  */
 sealed trait MdcNode derives CanEqual:
 
@@ -37,27 +38,28 @@ sealed trait MdcNode derives CanEqual:
    * narrower category types, and a field may implement a trait member only at the exact same type.
    */
   def childNodes: Chunk[MdcNode] = this match
-    case MdcNode.Root(children, _)          => children
-    case MdcNode.Paragraph(children, _)     => children
-    case MdcNode.Heading(_, children, _)    => children
-    case MdcNode.Blockquote(children, _)    => children
-    case MdcNode.List(_, _, _, children, _) => children
-    case MdcNode.ListItem(children, _)      => children
-    case MdcNode.Link(_, _, children, _)    => children
-    case MdcNode.Emphasis(children, _)      => children
-    case MdcNode.Strong(children, _)        => children
+    case MdcNode.Root(children, frontmatter, _) => frontmatter.toChunk ++ children
+    case MdcNode.Paragraph(children, _)         => children
+    case MdcNode.Heading(_, children, _)        => children
+    case MdcNode.Blockquote(children, _)        => children
+    case MdcNode.List(_, _, _, children, _)     => children
+    case MdcNode.ListItem(children, _)          => children
+    case MdcNode.Link(_, _, children, _)        => children
+    case MdcNode.Emphasis(children, _)          => children
+    case MdcNode.Strong(children, _)            => children
     case _: (MdcNode.Code | MdcNode.Html | MdcNode.ThematicBreak | MdcNode.Text | MdcNode.InlineCode |
-          MdcNode.Image | MdcNode.InlineHtml | MdcNode.Break) =>
+          MdcNode.Image | MdcNode.InlineHtml | MdcNode.Break | MdcNode.FrontMatter.Yaml) =>
       Chunk.empty
 
   /** The literal's text — code content, raw HTML, plain text; Absent for parents and markers. */
   def literal: Maybe[String] = this match
-    case MdcNode.Text(value, _)       => Present(value)
-    case MdcNode.InlineCode(value, _) => Present(value)
-    case MdcNode.Code(_, value, _)    => Present(value)
-    case MdcNode.Html(value, _)       => Present(value)
-    case MdcNode.InlineHtml(value, _) => Present(value)
-    case _                            => Absent
+    case MdcNode.Text(value, _)             => Present(value)
+    case MdcNode.InlineCode(value, _)       => Present(value)
+    case MdcNode.Code(_, value, _)          => Present(value)
+    case MdcNode.Html(value, _)             => Present(value)
+    case MdcNode.InlineHtml(value, _)       => Present(value)
+    case MdcNode.FrontMatter.Yaml(value, _) => Present(value.unwrap)
+    case _                                  => Absent
 
   /**
    * This tree with every span stripped and every node's data kept, for structural comparison of generated against
@@ -67,8 +69,12 @@ sealed trait MdcNode derives CanEqual:
    * the text sat drops it. Data is content the author attached, so it survives.
    */
   def unpositioned: MdcNode = this match
-    case MdcNode.Root(children, meta) =>
-      MdcNode.Root(children.map(_.unpositioned.asInstanceOf[MdcNode.FlowContent]), meta.copy(span = Absent))
+    case MdcNode.Root(children, frontmatter, meta) =>
+      MdcNode.Root(
+        children.map(_.unpositioned.asInstanceOf[MdcNode.FlowContent]),
+        frontmatter.map(_.unpositioned.asInstanceOf[MdcNode.FrontMatter]),
+        meta.copy(span = Absent)
+      )
     case MdcNode.Paragraph(children, meta) =>
       MdcNode.Paragraph(children.map(_.unpositioned.asInstanceOf[MdcNode.PhrasingContent]), meta.copy(span = Absent))
     case MdcNode.Heading(depth, children, meta) =>
@@ -106,19 +112,33 @@ sealed trait MdcNode derives CanEqual:
       MdcNode.Emphasis(children.map(_.unpositioned.asInstanceOf[MdcNode.PhrasingContent]), meta.copy(span = Absent))
     case MdcNode.Strong(children, meta) =>
       MdcNode.Strong(children.map(_.unpositioned.asInstanceOf[MdcNode.PhrasingContent]), meta.copy(span = Absent))
-    case MdcNode.InlineHtml(value, meta) => MdcNode.InlineHtml(value, meta.copy(span = Absent))
-    case MdcNode.Break(meta)             => MdcNode.Break(meta.copy(span = Absent))
+    case MdcNode.InlineHtml(value, meta)       => MdcNode.InlineHtml(value, meta.copy(span = Absent))
+    case MdcNode.Break(meta)                   => MdcNode.Break(meta.copy(span = Absent))
+    case MdcNode.FrontMatter.Yaml(value, meta) => MdcNode.FrontMatter.Yaml(value, meta.copy(span = Absent))
 
 object MdcNode:
 
-  /** What a block position may hold — mdast's flow content. `Yaml` joins here with morphir-lc8.3. */
+  /** What a block position may hold — mdast's flow content. */
   type FlowContent = Paragraph | Heading | Code | Html | Blockquote | List | ThematicBreak
 
   /** What a prose position may hold — mdast's phrasing content. */
   type PhrasingContent = Text | InlineCode | Link | Image | Emphasis | Strong | InlineHtml | Break
 
+  /**
+   * Front matter: metadata block a profile recognizes at document start. Cases nest here; Toml/Json are later members.
+   */
+  sealed trait FrontMatter extends MdcNode
+
+  object FrontMatter:
+    /** A `---`-delimited YAML block. `value` is the raw document text; decoding belongs to the consumer. */
+    final case class Yaml(value: YamlDocText, meta: MdcMeta = MdcMeta.empty) extends FrontMatter
+
   // flow
-  final case class Root(children: Chunk[FlowContent], meta: MdcMeta = MdcMeta.empty)          extends MdcNode
+  final case class Root(
+      children: Chunk[FlowContent],
+      frontmatter: Maybe[FrontMatter] = Absent,
+      meta: MdcMeta = MdcMeta.empty
+  ) extends MdcNode
   final case class Paragraph(children: Chunk[PhrasingContent], meta: MdcMeta = MdcMeta.empty) extends MdcNode
   final case class Heading(depth: HeadingLevel, children: Chunk[PhrasingContent], meta: MdcMeta = MdcMeta.empty)
       extends MdcNode
@@ -175,21 +195,22 @@ object MdcNode:
     def withMeta[A](key: MetaKey[A], value: A): N =
       val updated         = node.meta.updated(key, value)
       val result: MdcNode = node match
-        case n: Root          => n.copy(meta = updated)
-        case n: Paragraph     => n.copy(meta = updated)
-        case n: Heading       => n.copy(meta = updated)
-        case n: Code          => n.copy(meta = updated)
-        case n: Html          => n.copy(meta = updated)
-        case n: Blockquote    => n.copy(meta = updated)
-        case n: List          => n.copy(meta = updated)
-        case n: ListItem      => n.copy(meta = updated)
-        case n: ThematicBreak => n.copy(meta = updated)
-        case n: Text          => n.copy(meta = updated)
-        case n: InlineCode    => n.copy(meta = updated)
-        case n: Link          => n.copy(meta = updated)
-        case n: Image         => n.copy(meta = updated)
-        case n: Emphasis      => n.copy(meta = updated)
-        case n: Strong        => n.copy(meta = updated)
-        case n: InlineHtml    => n.copy(meta = updated)
-        case n: Break         => n.copy(meta = updated)
+        case n: Root             => n.copy(meta = updated)
+        case n: Paragraph        => n.copy(meta = updated)
+        case n: Heading          => n.copy(meta = updated)
+        case n: Code             => n.copy(meta = updated)
+        case n: Html             => n.copy(meta = updated)
+        case n: Blockquote       => n.copy(meta = updated)
+        case n: List             => n.copy(meta = updated)
+        case n: ListItem         => n.copy(meta = updated)
+        case n: ThematicBreak    => n.copy(meta = updated)
+        case n: Text             => n.copy(meta = updated)
+        case n: InlineCode       => n.copy(meta = updated)
+        case n: Link             => n.copy(meta = updated)
+        case n: Image            => n.copy(meta = updated)
+        case n: Emphasis         => n.copy(meta = updated)
+        case n: Strong           => n.copy(meta = updated)
+        case n: InlineHtml       => n.copy(meta = updated)
+        case n: Break            => n.copy(meta = updated)
+        case n: FrontMatter.Yaml => n.copy(meta = updated)
       result.asInstanceOf[N]

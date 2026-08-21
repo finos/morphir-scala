@@ -44,7 +44,7 @@ object Parser:
       val definitions = scala.collection.mutable.Map.empty[String, LinkDefinition]
       val blocks      = parseBlocks(ContainerCursor.top(scanner), definitions, Absent)
       // Keep the caller's coordinate space: do not rewrite CRLF before measuring spans.
-      val document = MdcNode.Root(blocks, MdcMeta.at(Span(0, source.length)))
+      val document = MdcNode.Root(blocks, meta = MdcMeta.at(Span(0, source.length)))
       (document, scanner.metrics)
     } match
       case ScanResult.Success(value) => Result.succeed(value)

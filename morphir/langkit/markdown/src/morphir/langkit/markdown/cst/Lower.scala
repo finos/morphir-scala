@@ -24,7 +24,7 @@ object Lower:
 
   def lower(document: MdcCstNode.Document): MdcNode.Root =
     val definitions = collectDefinitions(document)
-    MdcNode.Root(blocks(document.children, definitions, document.span.end), MdcMeta.at(document.span))
+    MdcNode.Root(blocks(document.children, definitions, document.span.end), meta = MdcMeta.at(document.span))
 
   /** Every definition in the tree, first spelling of a label winning, in document order. */
   private def collectDefinitions(root: MdcCstNode): Map[String, LinkDefinition] =
