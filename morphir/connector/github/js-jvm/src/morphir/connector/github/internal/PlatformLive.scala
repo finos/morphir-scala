@@ -36,6 +36,39 @@ private[github] object PlatformLive:
         env =>
           GithubClient.lift(GraphQl.discussionsFrom(env))
       )
+    def listGists(
+        user: GithubLogin,
+        after: Maybe[Cursor],
+        first: PageSize
+    ): ConnectionPage[GistSummary] < (Abort[GitHubException] & Async) =
+      post[GraphQl.GistsEnvelope](GraphQl.listGistsDocument(user, after, first)).map(env =>
+        GithubClient.lift(GraphQl.gistsFrom(env))
+      )
+    def listMyGists(
+        privacy: GistPrivacy,
+        after: Maybe[Cursor],
+        first: PageSize
+    ): ConnectionPage[GistSummary] < (Abort[GitHubException] & Async) =
+      post[GraphQl.ViewerGistsEnvelope](GraphQl.listMyGistsDocument(privacy, after, first)).map(env =>
+        GithubClient.lift(GraphQl.myGistsFrom(env))
+      )
+    def getGist(user: GithubLogin, name: GistName): Maybe[Gist] < (Abort[GitHubException] & Async) =
+      post[GraphQl.SingleGistEnvelope](GraphQl.getGistDocument(user, name)).map(env =>
+        GithubClient.lift(GraphQl.gistFrom(env))
+      )
+    def getMyGist(name: GistName): Maybe[Gist] < (Abort[GitHubException] & Async) =
+      post[GraphQl.ViewerSingleGistEnvelope](GraphQl.getMyGistDocument(name)).map(env =>
+        GithubClient.lift(GraphQl.myGistFrom(env))
+      )
+    def listGistComments(
+        user: GithubLogin,
+        name: GistName,
+        after: Maybe[Cursor],
+        first: PageSize
+    ): ConnectionPage[GistComment] < (Abort[GitHubException] & Async) =
+      post[GraphQl.GistCommentsEnvelope](GraphQl.listGistCommentsDocument(user, name, after, first)).map(env =>
+        GithubClient.lift(GraphQl.gistCommentsFrom(env))
+      )
     def listDiscussionReplies(
         commentId: DiscussionCommentId,
         after: Maybe[Cursor],
@@ -97,6 +130,15 @@ private[github] object PlatformLive:
       postBody(request)
 
     private def post[A: Schema](request: GraphQl.NodeReplyRequest): A < (Abort[GitHubException] & Async) =
+      postBody(request)
+
+    private def post[A: Schema](request: GraphQl.UserRequest): A < (Abort[GitHubException] & Async) =
+      postBody(request)
+
+    private def post[A: Schema](request: GraphQl.ViewerGistsRequest): A < (Abort[GitHubException] & Async) =
+      postBody(request)
+
+    private def post[A: Schema](request: GraphQl.ViewerGistRequest): A < (Abort[GitHubException] & Async) =
       postBody(request)
 
     private def postBody[A: Schema, B: Schema](body: B): A < (Abort[GitHubException] & Async) =

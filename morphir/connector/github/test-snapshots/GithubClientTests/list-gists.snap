@@ -1,0 +1,1 @@
+query{user(login:"octocat"){gists(first:100,privacy:PUBLIC){pageInfo{hasNextPage endCursor} nodes{name description url owner{login url} isPublic isFork stargazerCount createdAt updatedAt pushedAt}}}}

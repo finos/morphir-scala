@@ -15,6 +15,11 @@ private[github] object GraphQl:
 
   final case class Nodes[A](nodes: Chunk[A], pageInfo: Maybe[PageInfo] = Absent) derives Schema
 
+  final case class GistNodes[A](
+      nodes: Maybe[Chunk[Maybe[A]]] = Absent,
+      pageInfo: Maybe[PageInfo] = Absent
+  ) derives Schema
+
   final case class WireIssueComment(
       author: Maybe[Actor] = Absent,
       body: Maybe[String] = Absent,
@@ -55,8 +60,80 @@ private[github] object GraphQl:
   final case class PullRequestsEnvelope(data: Maybe[PullRequestsData], errors: Maybe[Chunk[Error]] = Absent)
       derives Schema
 
+  final case class WireGistSummary(
+      name: String,
+      description: Maybe[String],
+      url: String,
+      owner: Maybe[Actor] = Absent,
+      isPublic: Boolean = false,
+      isFork: Boolean = false,
+      stargazerCount: Int = 0,
+      createdAt: Maybe[Instant] = Absent,
+      updatedAt: Maybe[Instant] = Absent,
+      pushedAt: Maybe[Instant] = Absent
+  ) derives Schema
+
+  final case class GistsUser(gists: GistNodes[WireGistSummary]) derives Schema
+  final case class GistsData(user: Maybe[GistsUser]) derives Schema
+  final case class GistsEnvelope(data: Maybe[GistsData], errors: Maybe[Chunk[Error]] = Absent) derives Schema
+  final case class ViewerGistsData(viewer: Maybe[GistsUser]) derives Schema
+  final case class ViewerGistsEnvelope(data: Maybe[ViewerGistsData], errors: Maybe[Chunk[Error]] = Absent)
+      derives Schema
+
+  final case class WireLanguage(name: String) derives Schema
+  final case class WireGistFile(
+      name: Maybe[String] = Absent,
+      encoding: Maybe[String] = Absent,
+      extension: Maybe[String] = Absent,
+      language: Maybe[WireLanguage] = Absent,
+      size: Maybe[Int] = Absent,
+      isImage: Boolean = false,
+      isTruncated: Boolean = false,
+      text: Maybe[String] = Absent
+  ) derives Schema
+  final case class WireGistComment(
+      author: Maybe[Actor] = Absent,
+      body: String,
+      createdAt: Maybe[Instant] = Absent,
+      updatedAt: Maybe[Instant] = Absent
+  ) derives Schema
+  final case class WireGist(
+      name: String,
+      description: Maybe[String],
+      url: String,
+      owner: Maybe[Actor] = Absent,
+      isPublic: Boolean = false,
+      isFork: Boolean = false,
+      stargazerCount: Int = 0,
+      createdAt: Maybe[Instant] = Absent,
+      updatedAt: Maybe[Instant] = Absent,
+      pushedAt: Maybe[Instant] = Absent,
+      files: Maybe[Chunk[Maybe[WireGistFile]]] = Absent,
+      comments: Maybe[GistNodes[WireGistComment]] = Absent
+  ) derives Schema
+  final case class SingleGistUser(gist: Maybe[WireGist] = Absent) derives Schema
+  final case class SingleGistData(user: Maybe[SingleGistUser]) derives Schema
+  final case class SingleGistEnvelope(data: Maybe[SingleGistData], errors: Maybe[Chunk[Error]] = Absent) derives Schema
+  final case class ViewerSingleGistData(viewer: Maybe[SingleGistUser]) derives Schema
+  final case class ViewerSingleGistEnvelope(
+      data: Maybe[ViewerSingleGistData],
+      errors: Maybe[Chunk[Error]] = Absent
+  ) derives Schema
+  final case class GistCommentsNode(comments: Maybe[GistNodes[WireGistComment]] = Absent) derives Schema
+  final case class GistCommentsUser(gist: Maybe[GistCommentsNode] = Absent) derives Schema
+  final case class GistCommentsData(user: Maybe[GistCommentsUser]) derives Schema
+  final case class GistCommentsEnvelope(data: Maybe[GistCommentsData], errors: Maybe[Chunk[Error]] = Absent)
+      derives Schema
+
   final case class RepositoryVars(owner: String, name: String) derives Schema
   final case class Request(query: String, variables: RepositoryVars) derives Schema
+
+  final case class UserVars(login: String) derives Schema
+  final case class UserRequest(query: String, variables: UserVars) derives Schema
+  final case class ViewerGistsVars(privacy: String) derives Schema
+  final case class ViewerGistsRequest(query: String, variables: ViewerGistsVars) derives Schema
+  final case class GistNameVars(name: String) derives Schema
+  final case class ViewerGistRequest(query: String, variables: GistNameVars) derives Schema
 
   final case class NodeReplyVars(id: String, first: Int, after: Maybe[String] = Absent) derives Schema
   final case class NodeReplyRequest(query: String, variables: NodeReplyVars) derives Schema
@@ -135,6 +212,11 @@ private[github] object GraphQl:
   val emptyIssues: String            = """{"data":{"repository":{"issues":{"nodes":[]}}}}"""
   val emptyPullRequests: String      = """{"data":{"repository":{"pullRequests":{"nodes":[]}}}}"""
   val emptyDiscussions: String       = """{"data":{"repository":{"discussions":{"nodes":[]}}}}"""
+  val emptyGists: String             = """{"data":{"user":{"gists":{"nodes":[]}}}}"""
+  val emptyMyGists: String           = """{"data":{"viewer":{"gists":{"nodes":[]}}}}"""
+  val emptyGist: String              = """{"data":{"user":{"gist":null}}}"""
+  val emptyMyGist: String            = """{"data":{"viewer":{"gist":null}}}"""
+  val emptyGistComments: String      = """{"data":{"user":{"gist":{"comments":{"nodes":[]}}}}}"""
   val emptyDiscussionReplies: String =
     """{"data":{"node":{"replies":{"nodes":[],"pageInfo":{"hasNextPage":false,"endCursor":null}}}}}"""
   val emptyIssueComments: String =
@@ -186,6 +268,61 @@ private[github] object GraphQl:
           Client.DiscussionConnection.nodes(discussionSelection(replyDepth.normalized))
       )
     )
+
+  def listGistsDocument(
+      user: GithubLogin,
+      after: Maybe[Cursor] = Absent,
+      first: PageSize = PageSize.default
+  ): UserRequest =
+    val document = Client.Query.user(user.asString)(
+      Client.User.gists(Some(first.toInt), cursorArg(after), Some(Client.GistPrivacy.PUBLIC))(
+        Client.GistConnection.pageInfo(pageInfoSelection) ~
+          Client.GistConnection.nodes(gistSummarySelection)
+      )
+    ).toGraphQL()
+    UserRequest(document.query, UserVars(user.asString))
+
+  def listMyGistsDocument(
+      privacy: GistPrivacy = GistPrivacy.All,
+      after: Maybe[Cursor] = Absent,
+      first: PageSize = PageSize.default
+  ): ViewerGistsRequest =
+    val wirePrivacy = privacy match
+      case GistPrivacy.All    => Client.GistPrivacy.ALL
+      case GistPrivacy.Public => Client.GistPrivacy.PUBLIC
+      case GistPrivacy.Secret => Client.GistPrivacy.SECRET
+    val document = Client.Query.viewer(
+      Client.User.gists(Some(first.toInt), cursorArg(after), Some(wirePrivacy))(
+        Client.GistConnection.pageInfo(pageInfoSelection) ~
+          Client.GistConnection.nodes(gistSummarySelection)
+      )
+    ).toGraphQL()
+    ViewerGistsRequest(document.query, ViewerGistsVars(wirePrivacy.value))
+
+  def getGistDocument(user: GithubLogin, name: GistName): UserRequest =
+    val document = Client.Query.user(user.asString)(
+      Client.User.gist(name.asString)(gistSelection)
+    ).toGraphQL()
+    UserRequest(document.query, UserVars(user.asString))
+
+  def getMyGistDocument(name: GistName): ViewerGistRequest =
+    val document = Client.Query.viewer(
+      Client.User.gist(name.asString)(gistSelection)
+    ).toGraphQL()
+    ViewerGistRequest(document.query, GistNameVars(name.asString))
+
+  def listGistCommentsDocument(
+      user: GithubLogin,
+      name: GistName,
+      after: Maybe[Cursor] = Absent,
+      first: PageSize = PageSize.default
+  ): UserRequest =
+    val document = Client.Query.user(user.asString)(
+      Client.User.gist(name.asString)(
+        Client.Gist.comments(Some(first.toInt), cursorArg(after))(gistCommentsSelection)
+      )
+    ).toGraphQL()
+    UserRequest(document.query, UserVars(user.asString))
 
   def listDiscussionRepliesDocument(
       commentId: DiscussionCommentId,
@@ -276,6 +413,33 @@ private[github] object GraphQl:
       envelope.data.flatMap(_.repository).map(repo => page(repo.discussions, toDiscussion)).getOrElse(ConnectionPage())
     }
 
+  def decodeGists(json: String): Result[GitHubException, ConnectionPage[GistSummary]] =
+    decodeEnvelopeValue(json, summon[Schema[GistsEnvelope]], _.errors) { envelope =>
+      envelope.data.flatMap(_.user).map(user => page(user.gists, toGistSummary)).getOrElse(ConnectionPage())
+    }
+
+  def decodeMyGists(json: String): Result[GitHubException, ConnectionPage[GistSummary]] =
+    decodeEnvelopeValue(json, summon[Schema[ViewerGistsEnvelope]], _.errors) { envelope =>
+      envelope.data.flatMap(_.viewer).map(user => page(user.gists, toGistSummary)).getOrElse(ConnectionPage())
+    }
+
+  def decodeGist(json: String): Result[GitHubException, Maybe[Gist]] =
+    decodeEnvelopeValue(json, summon[Schema[SingleGistEnvelope]], _.errors) { envelope =>
+      envelope.data.flatMap(_.user).flatMap(_.gist).map(toGist)
+    }
+
+  def decodeMyGist(json: String): Result[GitHubException, Maybe[Gist]] =
+    decodeEnvelopeValue(json, summon[Schema[ViewerSingleGistEnvelope]], _.errors) { envelope =>
+      envelope.data.flatMap(_.viewer).flatMap(_.gist).map(toGist)
+    }
+
+  def decodeGistComments(json: String): Result[GitHubException, ConnectionPage[GistComment]] =
+    decodeEnvelopeValue(json, summon[Schema[GistCommentsEnvelope]], _.errors) { envelope =>
+      envelope.data.flatMap(_.user).flatMap(_.gist).flatMap(_.comments).map(page(_, toGistComment)).getOrElse(
+        ConnectionPage()
+      )
+    }
+
   def decodeDiscussionReplies(json: String): Result[GitHubException, ConnectionPage[DiscussionComment]] =
     decodeEnvelopeValue(json, summon[Schema[NodeRepliesEnvelope]], _.errors) { envelope =>
       envelope.data.flatMap(_.node).flatMap(_.replies).map(toConnectionPage).getOrElse(ConnectionPage())
@@ -337,6 +501,32 @@ private[github] object GraphQl:
       envelope.data.flatMap(_.repository).map(repo => page(repo.discussions, toDiscussion)).getOrElse(ConnectionPage())
     )
 
+  def gistsFrom(envelope: GistsEnvelope): Result[GitHubException, ConnectionPage[GistSummary]] =
+    fromErrors(
+      envelope.errors,
+      envelope.data.flatMap(_.user).map(user => page(user.gists, toGistSummary)).getOrElse(ConnectionPage())
+    )
+
+  def myGistsFrom(envelope: ViewerGistsEnvelope): Result[GitHubException, ConnectionPage[GistSummary]] =
+    fromErrors(
+      envelope.errors,
+      envelope.data.flatMap(_.viewer).map(user => page(user.gists, toGistSummary)).getOrElse(ConnectionPage())
+    )
+
+  def gistFrom(envelope: SingleGistEnvelope): Result[GitHubException, Maybe[Gist]] =
+    fromErrors(envelope.errors, envelope.data.flatMap(_.user).flatMap(_.gist).map(toGist))
+
+  def myGistFrom(envelope: ViewerSingleGistEnvelope): Result[GitHubException, Maybe[Gist]] =
+    fromErrors(envelope.errors, envelope.data.flatMap(_.viewer).flatMap(_.gist).map(toGist))
+
+  def gistCommentsFrom(envelope: GistCommentsEnvelope): Result[GitHubException, ConnectionPage[GistComment]] =
+    fromErrors(
+      envelope.errors,
+      envelope.data.flatMap(_.user).flatMap(_.gist).flatMap(_.comments).map(page(_, toGistComment)).getOrElse(
+        ConnectionPage()
+      )
+    )
+
   def discussionRepliesFrom(envelope: NodeRepliesEnvelope): Result[GitHubException, ConnectionPage[DiscussionComment]] =
     fromErrors(
       envelope.errors,
@@ -380,14 +570,53 @@ private[github] object GraphQl:
 
   private val actorSelection = Client.Actor.login ~ Client.Actor.url
 
+  private val repositoryOwnerSelection = Client.RepositoryOwner.login ~ Client.RepositoryOwner.url
+
+  private val pageInfoSelection =
+    Client.PageInfo.hasNextPage ~ Client.PageInfo.endCursor
+
+  private val gistSummarySelection =
+    Client.Gist.name ~
+      Client.Gist.description ~
+      Client.Gist.url ~
+      Client.Gist.ownerInterface(repositoryOwnerSelection) ~
+      Client.Gist.isPublic ~
+      Client.Gist.isFork ~
+      Client.Gist.stargazerCount ~
+      Client.Gist.createdAt ~
+      Client.Gist.updatedAt ~
+      Client.Gist.pushedAt
+
+  private val gistFileSelection =
+    Client.GistFile.name ~
+      Client.GistFile.encoding ~
+      Client.GistFile.`extension` ~
+      Client.GistFile.language(Client.Language.name) ~
+      Client.GistFile.size ~
+      Client.GistFile.isImage ~
+      Client.GistFile.isTruncated ~
+      Client.GistFile.text()
+
+  private val gistCommentSelection =
+    Client.GistComment.author(actorSelection) ~
+      Client.GistComment.body ~
+      Client.GistComment.createdAt ~
+      Client.GistComment.updatedAt
+
+  private val gistCommentsSelection =
+    Client.GistCommentConnection.pageInfo(pageInfoSelection) ~
+      Client.GistCommentConnection.nodes(gistCommentSelection)
+
+  private val gistSelection =
+    gistSummarySelection ~
+      Client.Gist.files(Some(300))(gistFileSelection) ~
+      Client.Gist.comments(Some(100))(gistCommentsSelection)
+
   private val issueCommentSelection =
     Client.IssueComment.author(actorSelection) ~
       Client.IssueComment.body ~
       Client.IssueComment.createdAt ~
       Client.IssueComment.updatedAt
-
-  private val pageInfoSelection =
-    Client.PageInfo.hasNextPage ~ Client.PageInfo.endCursor
 
   private val issueCommentsSelection =
     Client.IssueCommentConnection.pageInfo(pageInfoSelection) ~
@@ -510,12 +739,71 @@ private[github] object GraphQl:
       replies = wire.replies.map(toConnectionPage).getOrElse(ConnectionPage())
     )
 
+  private def toGistSummary(wire: WireGistSummary): GistSummary =
+    GistSummary(
+      name = GistName.fromWire(wire.name),
+      description = wire.description,
+      url = wire.url,
+      owner = wire.owner,
+      isPublic = wire.isPublic,
+      isFork = wire.isFork,
+      stargazerCount = wire.stargazerCount,
+      createdAt = wire.createdAt,
+      updatedAt = wire.updatedAt,
+      pushedAt = wire.pushedAt
+    )
+
+  private def toGist(wire: WireGist): Gist =
+    Gist(
+      summary = GistSummary(
+        name = GistName.fromWire(wire.name),
+        description = wire.description,
+        url = wire.url,
+        owner = wire.owner,
+        isPublic = wire.isPublic,
+        isFork = wire.isFork,
+        stargazerCount = wire.stargazerCount,
+        createdAt = wire.createdAt,
+        updatedAt = wire.updatedAt,
+        pushedAt = wire.pushedAt
+      ),
+      files = wire.files.map(_.flatMap(_.map(toGistFile).toList)).getOrElse(Chunk.empty),
+      comments = wire.comments.map(page(_, toGistComment)).getOrElse(ConnectionPage())
+    )
+
+  private def toGistFile(wire: WireGistFile): GistFile =
+    GistFile(
+      name = wire.name,
+      encoding = wire.encoding,
+      extension = wire.extension,
+      language = wire.language.map(_.name),
+      size = wire.size,
+      isImage = wire.isImage,
+      isTruncated = wire.isTruncated,
+      text = wire.text
+    )
+
+  private def toGistComment(wire: WireGistComment): GistComment =
+    GistComment(
+      author = wire.author,
+      body = wire.body,
+      createdAt = wire.createdAt,
+      updatedAt = wire.updatedAt
+    )
+
   private def toConnectionPage(conn: Nodes[WireDiscussionComment]): ConnectionPage[DiscussionComment] =
     page(conn, toDiscussionComment)
 
   private def page[A, B](conn: Nodes[A], toValue: A => B): ConnectionPage[B] =
     ConnectionPage(
       nodes = conn.nodes.map(toValue),
+      hasNextPage = conn.pageInfo.map(_.hasNextPage).getOrElse(false),
+      endCursor = conn.pageInfo.flatMap(_.endCursor).flatMap(Cursor.parse)
+    )
+
+  private def page[A, B](conn: GistNodes[A], toValue: A => B): ConnectionPage[B] =
+    ConnectionPage(
+      nodes = conn.nodes.map(_.flatMap(_.map(toValue).toList)).getOrElse(Chunk.empty),
       hasNextPage = conn.pageInfo.map(_.hasNextPage).getOrElse(false),
       endCursor = conn.pageInfo.flatMap(_.endCursor).flatMap(Cursor.parse)
     )

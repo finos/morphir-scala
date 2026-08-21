@@ -1,0 +1,1 @@
+query{viewer{gists(first:100,privacy:SECRET){pageInfo{hasNextPage endCursor} nodes{name description url owner{login url} isPublic isFork stargazerCount createdAt updatedAt pushedAt}}}}

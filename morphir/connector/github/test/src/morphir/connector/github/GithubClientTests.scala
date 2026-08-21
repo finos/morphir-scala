@@ -27,6 +27,8 @@ class GithubClientTests extends SnapshotTest[Any]:
   private def discNo(n: Int): DiscussionNumber                 = DiscussionNumber.fromWire(n)
   private def cursor(s: String): Cursor                        = Cursor.fromWire(s)
   private def commentId(s: String): DiscussionCommentId        = DiscussionCommentId.fromWire(s)
+  private def login(s: String): GithubLogin                    = GithubLogin.fromWire(s)
+  private def gistName(s: String): GistName                    = GistName.fromWire(s)
   private def pageSize(n: Int): PageSize                       = PageSize.fromWire(n)
   private def repo(owner: String, name: String): RepositoryRef =
     RepositoryRef.parse(owner, name) match
@@ -68,6 +70,31 @@ class GithubClientTests extends SnapshotTest[Any]:
     }
     "trims owner and name" in
       assert(RepositoryRef.parse("  owner  ", "  repo  ") == Present(repo("owner", "repo")))
+  }
+
+  "GithubLogin" - {
+    "rejects a blank string" in
+      assert(GithubLogin.parse("  ").isEmpty)
+    "rejects malformed GitHub logins" in {
+      assert(GithubLogin.parse("octo cat").isEmpty)
+      assert(GithubLogin.parse("-octocat").isEmpty)
+      assert(GithubLogin.parse("octocat-").isEmpty)
+      assert(GithubLogin.parse("octo--cat").isEmpty)
+      assert(GithubLogin.parse("octo_cat").isEmpty)
+      assert(GithubLogin.parse("øctocat").isEmpty)
+      assert(GithubLogin.parse("a" * 40).isEmpty)
+    }
+    "stores trimmed valid logins" in {
+      assert(GithubLogin.parse("  Octo-Cat42  ") == Present(login("Octo-Cat42")))
+      assert(GithubLogin.parse("a" * 39) == Present(login("a" * 39)))
+    }
+  }
+
+  "GistName" - {
+    "rejects a blank string" in
+      assert(GistName.parse("  ").isEmpty)
+    "stores a trimmed name" in
+      assert(GistName.parse("  aa5a315d61ae9438b18d  ") == Present(gistName("aa5a315d61ae9438b18d")))
   }
 
   "Token" - {
@@ -236,6 +263,143 @@ class GithubClientTests extends SnapshotTest[Any]:
   }
 
   "GithubClient.recorded" - {
+    "decodes a lightweight page of public gists" in {
+      val json =
+        """{"data":{"user":{"gists":{"pageInfo":{"hasNextPage":true,"endCursor":"g2"},"nodes":[{
+          |"name":"aa5a315d61ae9438b18d","description":"examples","url":"https://gist.github.com/aa5a315d61ae9438b18d",
+          |"owner":{"login":"octocat","url":"https://github.com/octocat"},
+          |"isPublic":true,"isFork":false,"stargazerCount":3,
+          |"createdAt":"2026-01-02T03:04:05Z","updatedAt":"2026-01-03T04:05:06Z","pushedAt":null
+        }]}}}}""".stripMargin.replaceAll("\n", "")
+      run(GithubClient.recorded(gists = json).listGists(login("octocat"))).map {
+        case Result.Success(page) =>
+          assert(page.hasNextPage)
+          assert(page.endCursor == Present(cursor("g2")))
+          assert(
+            page.nodes == Chunk(
+              GistSummary(
+                name = gistName("aa5a315d61ae9438b18d"),
+                description = Present("examples"),
+                url = "https://gist.github.com/aa5a315d61ae9438b18d",
+                owner = Present(Actor("octocat", "https://github.com/octocat")),
+                isPublic = true,
+                isFork = false,
+                stargazerCount = 3,
+                createdAt = Present(java.time.Instant.parse("2026-01-02T03:04:05Z")),
+                updatedAt = Present(java.time.Instant.parse("2026-01-03T04:05:06Z")),
+                pushedAt = Absent
+              )
+            )
+          )
+        case _ => assert(false)
+      }
+    }
+    "decodes the authenticated viewer's gists" in {
+      val json =
+        """{"data":{"viewer":{"gists":{"nodes":[{
+          |"name":"secret1","description":null,"url":"https://gist.github.com/secret1",
+          |"owner":{"login":"octocat","url":"https://github.com/octocat"},
+          |"isPublic":false,"isFork":false,"stargazerCount":0,
+          |"createdAt":"2026-01-02T03:04:05Z","updatedAt":"2026-01-03T04:05:06Z","pushedAt":null
+        }]}}}}""".stripMargin.replaceAll("\n", "")
+      run(GithubClient.recorded(myGists = json).listMyGists(GistPrivacy.Secret)).map {
+        case Result.Success(page) =>
+          assert(page.nodes.map(_.name) == Chunk(gistName("secret1")))
+          assert(!page.nodes.head.isPublic)
+        case _ => assert(false)
+      }
+    }
+    "treats nullable gist connection nodes as an empty page" in {
+      val json = """{"data":{"user":{"gists":{"nodes":null}}}}"""
+      run(GithubClient.recorded(gists = json).listGists(login("octocat"))).map {
+        case Result.Success(page) => assert(page.nodes.isEmpty)
+        case _                    => assert(false)
+      }
+    }
+    "discards null gist, file, and comment nodes" in {
+      val json =
+        """{"data":{"user":{"gist":{
+          |"name":"gist1","description":null,"url":"https://gist.github.com/gist1",
+          |"files":[null,{"name":"hello.txt","isImage":false,"isTruncated":false}],
+          |"comments":{"nodes":[null,{"author":null,"body":"hello"}]}
+          |}}}}""".stripMargin.replaceAll("\n", "")
+      run(GithubClient.recorded(gist = json).getGist(login("octocat"), gistName("gist1"))).map {
+        case Result.Success(Present(gist)) =>
+          assert(gist.files.map(_.name) == Chunk(Present("hello.txt")))
+          assert(gist.comments.nodes.map(_.body) == Chunk("hello"))
+        case _ => assert(false)
+      }
+    }
+    "decodes a gist with files and its first comment page" in {
+      val json =
+        """{"data":{"user":{"gist":{
+          |"name":"aa5a315d61ae9438b18d","description":"examples","url":"https://gist.github.com/aa5a315d61ae9438b18d",
+          |"owner":{"login":"octocat","url":"https://github.com/octocat"},
+          |"isPublic":true,"isFork":false,"stargazerCount":3,
+          |"createdAt":"2026-01-02T03:04:05Z","updatedAt":"2026-01-03T04:05:06Z","pushedAt":"2026-01-03T05:00:00Z",
+          |"files":[
+          |{"name":"hello.scala","encoding":"utf-8","extension":".scala","language":{"name":"Scala"},"size":12,"isImage":false,"isTruncated":true,"text":"object Main"},
+          |{"name":"logo.png","encoding":null,"extension":".png","language":null,"size":42,"isImage":true,"isTruncated":false,"text":null}
+          |],
+          |"comments":{"pageInfo":{"hasNextPage":true,"endCursor":"gc2"},"nodes":[{
+          |"author":{"login":"hubot","url":"https://github.com/hubot"},"body":"nice gist",
+          |"createdAt":"2026-01-04T03:04:05Z","updatedAt":"2026-01-04T03:04:05Z"
+          |}]}
+        }}}}""".stripMargin.replaceAll("\n", "")
+      run(GithubClient.recorded(gist = json).getGist(login("octocat"), gistName("aa5a315d61ae9438b18d"))).map {
+        case Result.Success(Present(gist)) =>
+          assert(
+            gist.files == Chunk(
+              GistFile(
+                name = Present("hello.scala"),
+                encoding = Present("utf-8"),
+                extension = Present(".scala"),
+                language = Present("Scala"),
+                size = Present(12),
+                isTruncated = true,
+                text = Present("object Main")
+              ),
+              GistFile(
+                name = Present("logo.png"),
+                extension = Present(".png"),
+                size = Present(42),
+                isImage = true
+              )
+            )
+          )
+          assert(gist.comments.hasNextPage)
+          assert(gist.comments.endCursor == Present(cursor("gc2")))
+          assert(gist.comments.nodes.map(_.body) == Chunk("nice gist"))
+        case _ => assert(false)
+      }
+    }
+    "looks up the authenticated viewer's gist without a login" in {
+      val json =
+        """{"data":{"viewer":{"gist":{
+          |"name":"secret1","description":null,"url":"https://gist.github.com/secret1","owner":null,
+          |"isPublic":false,"isFork":false,"stargazerCount":0,
+          |"createdAt":"2026-01-02T03:04:05Z","updatedAt":"2026-01-03T04:05:06Z","pushedAt":null,
+          |"files":[],"comments":{"nodes":[]}
+        }}}}""".stripMargin.replaceAll("\n", "")
+      run(GithubClient.recorded(myGist = json).getMyGist(gistName("secret1"))).map {
+        case Result.Success(Present(gist)) => assert(gist.summary.name == gistName("secret1"))
+        case _                             => assert(false)
+      }
+    }
+    "decodes another page of gist comments" in {
+      val json =
+        """{"data":{"user":{"gist":{"comments":{"pageInfo":{"hasNextPage":false,"endCursor":null},"nodes":[{
+          |"author":null,"body":"next page","createdAt":"2026-01-05T03:04:05Z","updatedAt":"2026-01-05T03:04:05Z"
+          |}]}}}}}""".stripMargin.replaceAll("\n", "")
+      run(
+        GithubClient
+          .recorded(gistComments = json)
+          .listGistComments(login("octocat"), gistName("aa5a315d61ae9438b18d"), Present(cursor("gc2")))
+      ).map {
+        case Result.Success(page) => assert(page.nodes.map(_.body) == Chunk("next page"))
+        case _                    => assert(false)
+      }
+    }
     "decodes issues from a GraphQL envelope" in {
       val json =
         """{"data":{"repository":{"issues":{"nodes":[{"number":1,"title":"title","body":"body","url":"https://example.test/1"}]}}}}"""
@@ -682,6 +846,60 @@ class GithubClientTests extends SnapshotTest[Any]:
     "matches the blessed get-discussion snapshot" in {
       val request = GraphQl.getDiscussionDocument(repo("acme", "widgets"), discNo(4))
       assertSnapshot(request.query, "get-discussion")
+    }
+  }
+
+  "GraphQl.listGistsDocument" - {
+    "matches the public gist-list snapshot" in {
+      val request = GraphQl.listGistsDocument(login("octocat"))
+      assert(request.variables.login == "octocat")
+      assertSnapshot(request.query, "list-gists")
+    }
+    "passes paging and forces public privacy" in {
+      val request = GraphQl.listGistsDocument(login("octocat"), Present(cursor("g1")), pageSize(25))
+      assert(request.query.contains("first:25"))
+      assert(request.query.contains("after:\"g1\""))
+      assert(request.query.contains("privacy:PUBLIC"))
+    }
+  }
+
+  "GraphQl.listMyGistsDocument" - {
+    "matches the secret viewer gist-list snapshot" in {
+      val request = GraphQl.listMyGistsDocument(GistPrivacy.Secret)
+      assert(request.variables.privacy == "SECRET")
+      assertSnapshot(request.query, "list-my-gists")
+    }
+  }
+
+  "GraphQl.getGistDocument" - {
+    "matches the full gist snapshot" in {
+      val request = GraphQl.getGistDocument(login("octocat"), gistName("gist1"))
+      assert(request.variables.login == "octocat")
+      assertSnapshot(request.query, "get-gist")
+    }
+    "requests GitHub's complete returned file set" in {
+      val request = GraphQl.getGistDocument(login("octocat"), gistName("gist1"))
+      assert(request.query.contains("files(limit:300)"))
+    }
+  }
+
+  "GraphQl.getMyGistDocument" - {
+    "matches the viewer gist snapshot" in {
+      val request = GraphQl.getMyGistDocument(gistName("gist1"))
+      assert(request.variables.name == "gist1")
+      assertSnapshot(request.query, "get-my-gist")
+    }
+  }
+
+  "GraphQl.listGistCommentsDocument" - {
+    "matches the paged gist-comment snapshot" in {
+      val request = GraphQl.listGistCommentsDocument(
+        login("octocat"),
+        gistName("gist1"),
+        Present(cursor("gc1")),
+        pageSize(20)
+      )
+      assertSnapshot(request.query, "list-gist-comments")
     }
   }
 

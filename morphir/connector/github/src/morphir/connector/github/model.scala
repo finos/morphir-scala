@@ -156,6 +156,55 @@ object GithubNumber:
   ): A =
     discussion(number)
 
+/** A GitHub user login used to list and look up gists. */
+opaque type GithubLogin = String
+
+object GithubLogin:
+  given CanEqual[GithubLogin, GithubLogin] = CanEqual.derived
+  given Schema[GithubLogin]                = GithubOpaqueSchemas.string
+  given Render[GithubLogin]                = Render.from(show)
+
+  def parse(raw: String): Maybe[GithubLogin] =
+    val trimmed = raw.trim
+    if isValid(trimmed) then Present(trimmed) else Absent
+
+  def show(login: GithubLogin): String = s"login:${login.asString}"
+
+  private[github] def fromWire(raw: String): GithubLogin = raw
+
+  extension (login: GithubLogin) def asString: String = login
+
+  private def isValid(login: String): Boolean =
+    login.nonEmpty &&
+      login.length <= 39 &&
+      isAsciiAlphaNumeric(login.head) &&
+      isAsciiAlphaNumeric(login.last) &&
+      !login.contains("--") &&
+      login.forall(char => isAsciiAlphaNumeric(char) || char == '-')
+
+  private def isAsciiAlphaNumeric(char: Char): Boolean =
+    (char >= 'a' && char <= 'z') ||
+      (char >= 'A' && char <= 'Z') ||
+      (char >= '0' && char <= '9')
+
+/** The opaque name GitHub uses to address a gist within its owner's account. */
+opaque type GistName = String
+
+object GistName:
+  given CanEqual[GistName, GistName] = CanEqual.derived
+  given Schema[GistName]             = GithubOpaqueSchemas.string
+  given Render[GistName]             = Render.from(show)
+
+  def parse(raw: String): Maybe[GistName] =
+    val trimmed = raw.trim
+    if trimmed.isEmpty then Absent else Present(trimmed)
+
+  def show(name: GistName): String = s"gist:${name.asString}"
+
+  private[github] def fromWire(raw: String): GistName = raw
+
+  extension (name: GistName) def asString: String = name
+
 /** GraphQL global node id of a `DiscussionComment`. Used to page replies; not a connection cursor. */
 opaque type DiscussionCommentId = String
 
@@ -215,6 +264,51 @@ final case class DiscussionComment(
     updatedAt: Maybe[Instant] = Absent,
     upvoteCount: Int = 0,
     replies: ConnectionPage[DiscussionComment] = ConnectionPage()
+) derives CanEqual, Schema
+
+/** Privacy filter for the authenticated viewer's gists. */
+enum GistPrivacy derives CanEqual, Schema:
+  case All, Public, Secret
+
+/** Gist metadata returned by list operations. Files and comments are loaded by [[GithubClient.getGist]]. */
+final case class GistSummary(
+    name: GistName,
+    description: Maybe[String],
+    url: String,
+    owner: Maybe[Actor] = Absent,
+    isPublic: Boolean = false,
+    isFork: Boolean = false,
+    stargazerCount: Int = 0,
+    createdAt: Maybe[Instant] = Absent,
+    updatedAt: Maybe[Instant] = Absent,
+    pushedAt: Maybe[Instant] = Absent
+) derives CanEqual, Schema
+
+/** One file in a gist. `text` is absent for binary files and may be partial when `isTruncated` is true. */
+final case class GistFile(
+    name: Maybe[String] = Absent,
+    encoding: Maybe[String] = Absent,
+    extension: Maybe[String] = Absent,
+    language: Maybe[String] = Absent,
+    size: Maybe[Int] = Absent,
+    isImage: Boolean = false,
+    isTruncated: Boolean = false,
+    text: Maybe[String] = Absent
+) derives CanEqual, Schema
+
+/** A comment on a gist. */
+final case class GistComment(
+    author: Maybe[Actor] = Absent,
+    body: String,
+    createdAt: Maybe[Instant] = Absent,
+    updatedAt: Maybe[Instant] = Absent
+) derives CanEqual, Schema
+
+/** A gist with files and its first page of comments. */
+final case class Gist(
+    summary: GistSummary,
+    files: Chunk[GistFile] = Chunk.empty,
+    comments: ConnectionPage[GistComment] = ConnectionPage()
 ) derives CanEqual, Schema
 
 /** A GitHub issue. Field names follow GitHub's GraphQL `Issue` type, not OKF. */
