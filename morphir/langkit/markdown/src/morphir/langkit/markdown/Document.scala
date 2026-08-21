@@ -62,6 +62,9 @@ enum Block derives CanEqual:
 
   case ThematicBreak(span: Span)
 
+  /** Where this block sits in the source. */
+  def span: Span
+
 /**
  * One entry of a list.
  *
