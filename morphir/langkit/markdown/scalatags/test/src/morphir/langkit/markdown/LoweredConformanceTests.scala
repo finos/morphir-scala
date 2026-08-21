@@ -43,13 +43,18 @@ class LoweredConformanceTests extends Test[Any]:
     s"CommonMark 0.31.2 renders 652/652 through parse-to-CST then lower" in {
       assert(examples.size == 652)
       val failures = examples.filterNot(example => rendered(example.markdown) == example.html)
-      failures.take(10).foreach { example =>
-        println(s"  [${example.section}] example ${example.example}")
-        println(s"    source   ${oneLine(example.markdown)}")
-        println(s"    lowered  ${oneLine(rendered(example.markdown))}")
-        println(s"    expected ${oneLine(example.html)}")
-      }
-      if failures.size > 10 then println(s"  ... and ${failures.size - 10} more failures")
-      assert(failures.isEmpty, s"${failures.size} of ${examples.size} examples fail through the lowered pipeline")
+      for
+        _ <- Kyo.foreachDiscard(failures.take(10)) { example =>
+          Console.printLine(
+            s"  [${example.section}] example ${example.example}\n" +
+              s"    source   ${oneLine(example.markdown)}\n" +
+              s"    lowered  ${oneLine(rendered(example.markdown))}\n" +
+              s"    expected ${oneLine(example.html)}"
+          )
+        }
+        _ <-
+          if failures.size > 10 then Console.printLine(s"  ... and ${failures.size - 10} more failures")
+          else Kyo.unit
+      yield assert(failures.isEmpty, s"${failures.size} of ${examples.size} examples fail through the lowered pipeline")
     }
   }
