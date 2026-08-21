@@ -2,7 +2,7 @@ package morphir.langkit.markdown.trees
 
 import kyo.*
 import kyo.test.*
-import morphir.langkit.markdown.{Document, Parser}
+import morphir.langkit.markdown.{MdcNode, Parser}
 import morphir.langkit.markdown.cst.{Cst, CstNode, CstParser}
 import morphir.langkit.trees.{NodeTypeName, QueryableTree}
 import morphir.langkit.trees.unist.UnistProjection
@@ -18,19 +18,18 @@ import morphir.langkit.trees.unist.UnistProjection
 class MarkdownTreesTests extends Test[Any]:
 
   import CstQueryableTree.given
-  import MdastQueryableTree.given
-  import MdastQueryableTree.MdastNode
+  import MdcNodeQueryableTree.given
 
   private val source = "# Title\n\n- item `code`\n"
 
-  private def ast: Document =
+  private def ast: MdcNode.Root =
     Parser.parse(source) match
       case Result.Success(document) => document
       case other                    => throw new IllegalStateException(s"parse failed: $other")
 
-  private def typeNames(node: MdastNode): Seq[String] =
-    NodeTypeName.unwrap(QueryableTree[MdastNode].nodeType(node))
-      +: QueryableTree[MdastNode].children(node).flatMap(typeNames)
+  private def typeNames(node: MdcNode): Seq[String] =
+    NodeTypeName.unwrap(QueryableTree[MdcNode].nodeType(node))
+      +: QueryableTree[MdcNode].children(node).flatMap(typeNames)
 
   "mdast view" - {
 
@@ -44,7 +43,7 @@ class MarkdownTreesTests extends Test[Any]:
     }
 
     "projects to Unist with positions from the source" in {
-      val projected = UnistProjection.project[MdastNode](ast, Some(source))
+      val projected = UnistProjection.project[MdcNode](ast, Some(source))
       assert(projected.`type` == "root")
       assert(projected.position.exists(_.start.line == 1))
       val heading = projected.children.head
@@ -53,14 +52,14 @@ class MarkdownTreesTests extends Test[Any]:
     }
 
     "projects without positions when no source is supplied" in {
-      val projected = UnistProjection.project[MdastNode](ast)
+      val projected = UnistProjection.project[MdcNode](ast)
       assert(projected.position.isEmpty)
       assert(projected.children.forall(_.position.isEmpty))
     }
 
     "exposes named fields as index sets over the children" in {
-      val projected = UnistProjection.project[MdastNode](ast)
-      assert(projected.data.fields.get("blocks").exists(_.size == projected.children.size))
+      val projected = UnistProjection.project[MdcNode](ast)
+      assert(projected.data.fields.get("children").exists(_.size == projected.children.size))
     }
   }
 
