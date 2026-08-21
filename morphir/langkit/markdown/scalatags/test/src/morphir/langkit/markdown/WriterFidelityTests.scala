@@ -191,12 +191,35 @@ class WriterFidelityTests extends Test[Any]:
         rendersSame(doc(h2(text("# not deeper")), p(em(text("[x]")))), "adversarial inline")
     }
 
+    "marker clashes" - {
+
+      /**
+       * The inner [[MdcNode.Emphasis]]'s marker is pinned by an explicit [[MdStyleKeys.emphasisMarker]] override — `*`,
+       * matching what the outer level would also pick from the default style — so the writer cannot shadow the inner
+       * level to the alternate marker the way it does when neither level is pinned (see the "emphasis" case in
+       * `writeInline`). The outer level takes the alternate marker instead, since an explicit inner choice wins.
+       */
+      "a sole nested emphasis whose explicit marker matches the outer's alternates the outer instead" in
+        rendersSame(
+          doc(p(em(em("x").withMeta(MdStyleKeys.emphasisMarker, '*')))),
+          "explicit inner marker clash"
+        )
+    }
+
     /**
-     * Two shapes the writer's scaladoc documents as unspellable, and neither is skipped outright: each is checked
-     * against the nearest-meaning behaviour the writer commits to, using the writer's own fixed point rather than a
-     * hardcoded HTML string. A tree the writer already wrote once should write the same way again — if `rendersSame`
-     * held here, the documented limit would already be gone, so the assertions below are that it does not, and that
-     * what the writer settles on is stable.
+     * Five shapes the writer's scaladoc documents as unspellable, and none is skipped outright.
+     *
+     * The first two are checked against the nearest-meaning behaviour the writer commits to, using the writer's own
+     * fixed point rather than a hardcoded HTML string. A tree the writer already wrote once should write the same way
+     * again — if `rendersSame` held here, the documented limit would already be gone, so the assertions are that it
+     * does not, and that what the writer settles on is stable.
+     *
+     * The remaining three all share one context — content that must fit inside a single-physical-line ATX heading — so
+     * they are pinned directly: both the exact text `MdWriter.write` produces (the `&#10;` or space substitution is
+     * itself part of what the class scaladoc promises) and the exact HTML that text renders as once reparsed, set
+     * against the HTML the original tree renders as directly. The two differ in every case, which is the limit; a
+     * `rendersSame` assertion on any of them would fail today and should keep failing unless the writer somehow found a
+     * way to spell a real line break inside one physical line.
      */
     "documented writer limits" - {
 
@@ -234,6 +257,45 @@ class WriterFidelityTests extends Test[Any]:
             onceRendered == twice,
             "the writer's spelling of a raw-space destination should be a fixed point: writing what it already " +
               "wrote should render the same again"
+          )
+        }
+
+      "a hard break cannot be spelled inside an ATX heading; the writer's nearest meaning is a soft line " +
+        "difference" in {
+          val tree = doc(h1("a", br, "b"))
+          assert(MdWriter.write(tree) == "# a&#10;b\n", oneLine(MdWriter.write(tree)))
+          val direct   = ScalatagsCompiler.render(tree)
+          val reparsed = ScalatagsCompiler.render(Lower.lower(MdWriter.raise(tree)))
+          assert(direct == "<h1>a<br />\nb</h1>\n", oneLine(direct))
+          assert(reparsed == "<h1>a\nb</h1>\n", oneLine(reparsed))
+          assert(direct != reparsed, "expected the hard break to be lost, which is the limit under test")
+        }
+
+      "an inline code span's own line ending cannot be spelled inside an ATX heading; the writer's nearest " +
+        "meaning is a space" in {
+          val tree = doc(h1(code("a\nb")))
+          assert(MdWriter.write(tree) == "# `a b`\n", oneLine(MdWriter.write(tree)))
+          val direct   = ScalatagsCompiler.render(tree)
+          val reparsed = ScalatagsCompiler.render(Lower.lower(MdWriter.raise(tree)))
+          assert(direct == "<h1><code>a\nb</code></h1>\n", oneLine(direct))
+          assert(reparsed == "<h1><code>a b</code></h1>\n", oneLine(reparsed))
+          assert(
+            direct != reparsed,
+            "expected the code span's own line ending to be lost, which is the limit under test"
+          )
+        }
+
+      "raw inline HTML's own line ending cannot be spelled inside an ATX heading; the writer's nearest meaning " +
+        "is a space" in {
+          val tree = doc(h1(inlineHtml("<b\nx>")))
+          assert(MdWriter.write(tree) == "# <b x>\n", oneLine(MdWriter.write(tree)))
+          val direct   = ScalatagsCompiler.render(tree)
+          val reparsed = ScalatagsCompiler.render(Lower.lower(MdWriter.raise(tree)))
+          assert(direct == "<h1><b\nx></h1>\n", oneLine(direct))
+          assert(reparsed == "<h1><b x></h1>\n", oneLine(reparsed))
+          assert(
+            direct != reparsed,
+            "expected the raw HTML's own line ending to be lost, which is the limit under test"
           )
         }
     }
