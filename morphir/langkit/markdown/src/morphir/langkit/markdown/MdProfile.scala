@@ -23,7 +23,7 @@ final case class MdProfile(frontmatter: Set[FrontMatterKind] = Set.empty) derive
   def withYamlFrontmatter: MdProfile = copy(frontmatter = frontmatter + FrontMatterKind.Yaml)
 
   /** Whether any frontmatter kind is recognized at all — the empty set is off. */
-  def supportsFrontMatter: Boolean = frontmatter.nonEmpty
+  inline def supportsFrontMatter: Boolean = frontmatter.nonEmpty
 
 object MdProfile:
   /** Plain CommonMark: no frontmatter kind recognized. Conformance suites stay on this by construction. */
