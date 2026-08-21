@@ -19,3 +19,11 @@ object native:
     extends: [ScalaNativeTests, millbuild.KyoTestNative, build.MorphirKyoTestMvnDeps]
     mvnDeps: !append
     - org.scala-native::test-interface::0.5.12
+
+# WebAssembly linker variant; not a publish module — see morphir/buildkit/core/package.mill.yaml for the reasoning.
+# Exists so morphir/ui's wasm variant can reach the Markdown langkit through morphir-langkit-markdown.
+object wasm:
+  extends: [build.MorphirWasmModule, build.MorphirKyoCoreMvnDeps]
+  moduleDeps: [build.morphir.prelude.wasm]
+  object test:
+    extends: [ScalaJSTests, build.MorphirJSTestNoSourceMap, build.MorphirWasmTests, millbuild.KyoTestWasm, build.MorphirKyoTestMvnDeps]

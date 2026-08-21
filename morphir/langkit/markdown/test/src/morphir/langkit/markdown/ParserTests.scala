@@ -8,6 +8,33 @@ import morphir.langkit.core.scanner.*
 
 class ParserTests extends Test[Any]:
 
+  /** The literal text of inline content, for assertions that do not care how it is split into nodes. */
+  /**
+   * The prose of a one-paragraph list item.
+   *
+   * A list item holds blocks, so even the shortest one is a paragraph. Tests that only care what an item says go
+   * through this rather than repeating the unwrap.
+   */
+  private def paragraphOf(item: ListItem): Chunk[Inline] =
+    item.content.headOption match
+      case Some(Block.Paragraph(content, _)) => content
+      case _                                 => Chunk.empty
+
+  private def textOf(content: Chunk[Inline]): String =
+    content.map {
+      case Inline.Text(value, _)           => value
+      case Inline.CodeSpan(value, _)       => value
+      case Inline.Link(_, _, inner, _)     => textOf(inner)
+      case Inline.Image(_, _, alt, _)      => alt
+      case Inline.Emphasis(inner, _)       => textOf(inner)
+      case Inline.StrongEmphasis(inner, _) => textOf(inner)
+      // Raw HTML is markup rather than text, and contributes none: a test asserting on it matches the node itself.
+      case Inline.RawHtml(_, _) => ""
+      // A hard break reads as the line ending it stands for, so a test that only cares what the prose says need not
+      // know which kind of break produced it.
+      case Inline.LineBreak(_) => "\n"
+    }.mkString
+
   private def parseMetrics(source: String): ScanMetrics =
     Parser.parseWithMetrics(source, ScanBudget.UnsafeUnbounded) match
       case Result.Success((_, metrics)) => metrics
@@ -82,9 +109,13 @@ class ParserTests extends Test[Any]:
     }
     "preserves exact documents across the existing block subset" in {
       val cases = Chunk(
-        ""                          -> Document(Chunk.empty, Span.zero),
-        "# Title"                   -> Document(Chunk(Block.Heading(1, "Title", Span(0, 7))), Span(0, 7)),
-        "alpha\nbeta"               -> Document(Chunk(Block.Paragraph("alpha\nbeta", Span(0, 10))), Span(0, 10)),
+        ""        -> Document(Chunk.empty, Span.zero),
+        "# Title" -> Document(
+          Chunk(Block.Heading(HeadingLevel.One, Chunk(Inline.Text("Title", Span(2, 5))), Span(0, 7))),
+          Span(0, 7)
+        ),
+        "alpha\nbeta" ->
+          Document(Chunk(Block.Paragraph(Chunk(Inline.Text("alpha\nbeta", Span(0, 10))), Span(0, 10))), Span(0, 10)),
         "```scala\none\n\ntwo\n```" -> Document(
           Chunk(Block.FencedCode(FenceInfo.parse("scala"), "one\n\ntwo\n", Span(0, 21))),
           Span(0, 21)
@@ -97,17 +128,32 @@ class ParserTests extends Test[Any]:
           Chunk(Block.FencedCode(FenceInfo.empty, "code\n", Span(0, 9))),
           Span(0, 9)
         ),
+        // An item spans its whole line, marker included, because that is what the item occupies in the source. Its
+        // paragraph spans only the content, which is what an inline node needs to point through.
         "- alpha\n- beta" -> Document(
-          Chunk(Block.UnorderedList(Chunk("alpha", "beta"), Span(0, 14))),
+          Chunk(Block.UnorderedList(
+            Chunk(
+              ListItem(Chunk(Block.Paragraph(Chunk(Inline.Text("alpha", Span(2, 5))), Span(2, 5))), Span(0, 7)),
+              ListItem(Chunk(Block.Paragraph(Chunk(Inline.Text("beta", Span(10, 4))), Span(10, 4))), Span(8, 6))
+            ),
+            tight = true,
+            Span(0, 14)
+          )),
           Span(0, 14)
         ),
         "---"      -> Document(Chunk(Block.ThematicBreak(Span(0, 3))), Span(0, 3)),
         "# A\n\nB" -> Document(
-          Chunk(Block.Heading(1, "A", Span(0, 3)), Block.Paragraph("B", Span(5, 1))),
+          Chunk(
+            Block.Heading(HeadingLevel.One, Chunk(Inline.Text("A", Span(2, 1))), Span(0, 3)),
+            Block.Paragraph(Chunk(Inline.Text("B", Span(5, 1))), Span(5, 1))
+          ),
           Span(0, 6)
         ),
         "# A\r\n\r\nB" -> Document(
-          Chunk(Block.Heading(1, "A", Span(0, 3)), Block.Paragraph("B", Span(7, 1))),
+          Chunk(
+            Block.Heading(HeadingLevel.One, Chunk(Inline.Text("A", Span(2, 1))), Span(0, 3)),
+            Block.Paragraph(Chunk(Inline.Text("B", Span(7, 1))), Span(7, 1))
+          ),
           Span(0, 8)
         )
       )
@@ -160,7 +206,7 @@ class ParserTests extends Test[Any]:
     "charges deterministic work for scanner movement and line-local inspection" in {
       val budget = limitedBudget(
         maxInputLength = InputSize.codeUnits(100L),
-        maxWork = WorkUnits(8L),
+        maxWork = WorkUnits(1L),
         maxNestingDepth = NestingDepth(10),
         maxOutputNodes = NodeCount(10L)
       )
@@ -169,8 +215,10 @@ class ParserTests extends Test[Any]:
         case Result.Failure(ParseError.Scan(error)) =>
           assert(
             error == ScanFailure(
-              exceeded = ScanLimitExceeded.Work(limit = WorkUnits(8L), attempted = WorkUnits(9L)),
-              offset = SourceOffset(1),
+              // Classifying a line once rather than asking it six to ten separate questions cut this from 9 work
+              // units to 2. The charge is still made and still not refunded; there is simply far less of it.
+              exceeded = ScanLimitExceeded.Work(limit = WorkUnits(1L), attempted = WorkUnits(2L)),
+              offset = SourceOffset(0),
               phase = Present(ScanPhase("markdown.blocks"))
             )
           )
@@ -179,23 +227,34 @@ class ParserTests extends Test[Any]:
     "does not refund speculative paragraph lookahead work" in {
       val budget = limitedBudget(
         maxInputLength = InputSize.codeUnits(100L),
-        maxWork = WorkUnits(30L),
+        maxWork = WorkUnits(20L),
         maxNestingDepth = NestingDepth(10),
         maxOutputNodes = NodeCount(10L)
       )
 
       assert(Parser.parse("# h", budget) == Parser.parse("# h"))
+
+      // Said plainly: reading `x` then `# h` costs more than reading each on its own, and the difference is the
+      // lookahead the paragraph did at `# h` before rejecting it. Rolling that lookahead back rewinds the cursor and
+      // nothing else -- there is no refund.
+      val paragraphAlone = parseMetrics("x").work.toLong
+      val headingAlone   = parseMetrics("# h").work.toLong
+      val together       = parseMetrics("x\n# h").work.toLong
+      assert(
+        together > paragraphAlone + headingAlone,
+        s"speculative lookahead was refunded: $together <= $paragraphAlone + $headingAlone"
+      )
+
       Parser.parse("x\n# h", budget) match
         case Result.Failure(ParseError.Scan(error)) =>
           assert(
             error == ScanFailure(
-              exceeded =
-                ScanLimitExceeded.Work(limit = WorkUnits(30L), attempted = WorkUnits(31L)),
-              offset = SourceOffset(2),
+              exceeded = ScanLimitExceeded.Work(limit = WorkUnits(20L), attempted = WorkUnits(22L)),
+              offset = SourceOffset(5),
               phase = Present(ScanPhase("markdown.blocks"))
             )
           )
-        case _ => assert(false)
+        case other => assert(false, s"expected the work budget to be exceeded, got $other")
     }
     "accepts the exact incremental output ceiling and preserves the default result" in {
       val budget = limitedBudget(
@@ -220,7 +279,7 @@ class ParserTests extends Test[Any]:
     "accepts an explicitly unsafe unbounded budget" in {
       Parser.parse("# Title", ScanBudget.UnsafeUnbounded) match
         case Result.Success(Document(blocks, _)) =>
-          assert(blocks == Chunk(Block.Heading(1, "Title", Span(0, 7))))
+          assert(blocks == Chunk(Block.Heading(HeadingLevel.One, Chunk(Inline.Text("Title", Span(2, 5))), Span(0, 7))))
         case _ => assert(false)
     }
     "budgets fence metadata tokens before whitespace-heavy allocation amplification" in {
@@ -270,13 +329,13 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           assert(doc.blocks.size == 2)
           doc.blocks(0) match
-            case Block.Heading(level, text, _) =>
-              assert(level == 1)
-              assert(text == "Title")
+            case Block.Heading(level, content, _) =>
+              assert(level.toInt == 1)
+              assert(textOf(content) == "Title")
             case _ => assert(false)
           doc.blocks(1) match
-            case Block.Paragraph(text, _) => assert(text == "Hello")
-            case _                        => assert(false)
+            case Block.Paragraph(content, _) => assert(textOf(content) == "Hello")
+            case _                           => assert(false)
         case _ => assert(false)
     }
     "splits a heading from the next block at a single newline" in {
@@ -284,13 +343,13 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           assert(doc.blocks.size == 2)
           doc.blocks(0) match
-            case Block.Heading(level, text, _) =>
-              assert(level == 1)
-              assert(text == "Title")
+            case Block.Heading(level, content, _) =>
+              assert(level.toInt == 1)
+              assert(textOf(content) == "Title")
             case _ => assert(false)
           doc.blocks(1) match
-            case Block.Paragraph(text, _) => assert(text == "Body")
-            case _                        => assert(false)
+            case Block.Paragraph(content, _) => assert(textOf(content) == "Body")
+            case _                           => assert(false)
         case _ => assert(false)
     }
     "splits consecutive headings without a blank line" in {
@@ -298,11 +357,11 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           assert(doc.blocks.size == 2)
           doc.blocks(0) match
-            case Block.Heading(1, "One", _) => ()
-            case _                          => assert(false)
+            case Block.Heading(HeadingLevel.One, content, _) => assert(textOf(content) == "One")
+            case _                                           => assert(false)
           doc.blocks(1) match
-            case Block.Heading(2, "Two", _) => ()
-            case _                          => assert(false)
+            case Block.Heading(HeadingLevel.Two, content, _) => assert(textOf(content) == "Two")
+            case _                                           => assert(false)
         case _ => assert(false)
     }
     "spans the whole source" in {
@@ -318,11 +377,12 @@ class ParserTests extends Test[Any]:
           assert(doc.span == Span(0, source.length))
           assert(doc.blocks.size == 2)
           doc.blocks(0) match
-            case Block.Heading(1, "Title", span) =>
+            case Block.Heading(HeadingLevel.One, content, span) =>
+              assert(textOf(content) == "Title")
               assert(span == Span(0, "# Title".length))
             case _ => assert(false)
           doc.blocks(1) match
-            case Block.Paragraph("Hello", span) =>
+            case Block.Paragraph(content, span) if textOf(content) == "Hello" =>
               assert(span.offset == source.indexOf("Hello"))
               assert(span.length == "Hello".length)
             case _ => assert(false)
@@ -333,7 +393,10 @@ class ParserTests extends Test[Any]:
 
       assert(
         Parser.parse(source) == Result.succeed(
-          Document(Chunk(Block.Paragraph(source, Span(0, source.length))), Span(0, source.length))
+          Document(
+            Chunk(Block.Paragraph(Chunk(Inline.Text(source, Span(0, source.length))), Span(0, source.length))),
+            Span(0, source.length)
+          )
         )
       )
     }
@@ -416,11 +479,11 @@ class ParserTests extends Test[Any]:
       Parser.parse("before\n   ```\ncode\n  ```\nafter") match
         case Result.Success(Document(blocks, _)) =>
           assert(blocks.size == 3)
-          assert(blocks(0) == Block.Paragraph("before", Span(0, 6)))
+          assert(blocks(0) == Block.Paragraph(Chunk(Inline.Text("before", Span(0, 6))), Span(0, 6)))
           blocks(1) match
             case Block.FencedCode(_, content, _) => assert(content == "code\n")
             case _                               => assert(false)
-          assert(blocks(2) == Block.Paragraph("after", Span(25, 5)))
+          assert(blocks(2) == Block.Paragraph(Chunk(Inline.Text("after", Span(25, 5))), Span(25, 5)))
         case _ => assert(false)
     }
     "uses end of document as the close of an unclosed fence" in {
@@ -452,8 +515,14 @@ class ParserTests extends Test[Any]:
               assert(content == "body\n")
             case _ => assert(false)
           blocks(1) match
-            case Block.Paragraph(text, _) => assert(text == "``` `example`\nbody")
-            case _                        => assert(false)
+            // Not a fence: a backtick fence's info string may not contain a backtick, so the line is prose --
+            // and its `example` is now an ordinary code span.
+            case Block.Paragraph(content, _) =>
+              assert(content.size == 3)
+              assert(content(0) == Inline.Text("``` ", Span(31, 4)))
+              assert(content(1) == Inline.CodeSpan("example", Span(35, 9)))
+              assert(content(2) == Inline.Text("\nbody", Span(44, 5)))
+            case _ => assert(false)
         case _ => assert(false)
     }
     "reads consecutive unordered list items as one list" in {
@@ -461,10 +530,418 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           assert(doc.blocks.size == 1)
           doc.blocks(0) match
-            case Block.UnorderedList(items, _) =>
-              assert(items == Chunk("alpha", "beta"))
+            case Block.UnorderedList(items, _, _) =>
+              assert(items.map(item => textOf(paragraphOf(item))) == Chunk("alpha", "beta"))
             case _ => assert(false)
         case _ => assert(false)
+    }
+    "reads a block quote as a container of blocks (spec example 228)" in {
+      Parser.parse("> # Foo\n> bar\n> baz\n") match
+        case Result.Success(doc) =>
+          assert(doc.blocks.size == 1)
+          doc.blocks(0) match
+            case Block.BlockQuote(content, _) =>
+              assert(content.size == 2)
+              content(0) match
+                case Block.Heading(level, inner, _) =>
+                  assert(level == HeadingLevel.One)
+                  assert(textOf(inner) == "Foo")
+                case _ => assert(false)
+              content(1) match
+                case Block.Paragraph(inner, _) => assert(textOf(inner) == "bar\nbaz")
+                case _                         => assert(false)
+            case _ => assert(false)
+        case _ => assert(false)
+    }
+    "keeps a quoted paragraph going when a line drops the marker (spec example 232)" in {
+      Parser.parse("> # Foo\n> bar\nbaz\n") match
+        case Result.Success(doc) =>
+          assert(doc.blocks.size == 1)
+          doc.blocks(0) match
+            case Block.BlockQuote(content, _) =>
+              assert(content.size == 2)
+              content(1) match
+                case Block.Paragraph(inner, _) => assert(textOf(inner) == "bar\nbaz")
+                case _                         => assert(false)
+            case _ => assert(false)
+        case _ => assert(false)
+    }
+    // A lazy line is prose and nothing else. `---` under a quoted paragraph is a thematic break outside the quote,
+    // not a setext underline inside it, and getting that wrong silently swallows the break.
+    "will not let a lazy line close a setext heading (spec example 234)" in {
+      Parser.parse("> foo\n---\n") match
+        case Result.Success(doc) =>
+          assert(doc.blocks.size == 2)
+          doc.blocks(0) match
+            case Block.BlockQuote(content, _) =>
+              content(0) match
+                case Block.Paragraph(inner, _) => assert(textOf(inner) == "foo")
+                case _                         => assert(false)
+            case _ => assert(false)
+          doc.blocks(1) match
+            case Block.ThematicBreak(_) => assert(true)
+            case _                      => assert(false)
+        case _ => assert(false)
+    }
+    "reads a quote with no content as an empty container (spec example 239)" in {
+      Parser.parse(">\n") match
+        case Result.Success(doc) =>
+          assert(doc.blocks.size == 1)
+          doc.blocks(0) match
+            case Block.BlockQuote(content, _) => assert(content.isEmpty)
+            case _                            => assert(false)
+        case _ => assert(false)
+    }
+    "splits a quote at a blank line and joins it at a bare marker (spec examples 242 and 244)" in {
+      Parser.parse("> foo\n\n> bar\n") match
+        case Result.Success(doc) => assert(doc.blocks.size == 2)
+        case _                   => assert(false)
+
+      Parser.parse("> foo\n>\n> bar\n") match
+        case Result.Success(doc) =>
+          assert(doc.blocks.size == 1)
+          doc.blocks(0) match
+            case Block.BlockQuote(content, _) => assert(content.size == 2)
+            case _                            => assert(false)
+        case _ => assert(false)
+    }
+    "lets a quote interrupt the paragraph above it (spec example 245)" in {
+      Parser.parse("foo\n> bar\n") match
+        case Result.Success(doc) =>
+          assert(doc.blocks.size == 2)
+          doc.blocks(0) match
+            case Block.Paragraph(inner, _) => assert(textOf(inner) == "foo")
+            case _                         => assert(false)
+          doc.blocks(1) match
+            case Block.BlockQuote(_, _) => assert(true)
+            case _                      => assert(false)
+        case _ => assert(false)
+    }
+    "nests quotes as deeply as the markers go, laziness included (spec example 250)" in {
+      Parser.parse("> > > foo\nbar\n") match
+        case Result.Success(doc) =>
+          def onlyQuote(block: Block): Block =
+            block match
+              case Block.BlockQuote(content, _) =>
+                assert(content.size == 1)
+                content(0)
+              case other => other
+
+          val innermost = onlyQuote(onlyQuote(onlyQuote(doc.blocks(0))))
+          innermost match
+            case Block.Paragraph(inner, _) => assert(textOf(inner) == "foo\nbar")
+            case _                         => assert(false)
+        case _ => assert(false)
+    }
+    // Stripping `> ` shortens the text, so a span taken from the remainder would point four characters early unless
+    // the offset moves with it.
+    "keeps inline spans pointing at the source through a quote marker" in {
+      val source = "> alpha\n"
+      Parser.parse(source) match
+        case Result.Success(doc) =>
+          doc.blocks(0) match
+            case Block.BlockQuote(content, _) =>
+              content(0) match
+                case Block.Paragraph(Chunk(Inline.Text(value, span)), _) =>
+                  assert(value == "alpha")
+                  assert(source.substring(span.offset, span.end) == "alpha")
+                case _ => assert(false)
+            case _ => assert(false)
+        case _ => assert(false)
+    }
+    // Every line of a paragraph loses its leading whitespace, not only the first. An indented line under a paragraph is
+    // therefore neither indented code nor a setext underline, and its inline spans must still point at the source.
+    "strips the indentation from every line of a paragraph (spec examples 87 and 238)" in {
+      Parser.parse("Foo\n    ---\n") match
+        case Result.Success(doc) =>
+          assert(doc.blocks.size == 1)
+          doc.blocks(0) match
+            case Block.Paragraph(content, _) => assert(textOf(content) == "Foo\n---")
+            case other                       => assert(false, s"expected a paragraph, got $other")
+        case _ => assert(false)
+
+      Parser.parse("> foo\n    - bar\n") match
+        case Result.Success(doc) =>
+          doc.blocks(0) match
+            case Block.BlockQuote(content, _) =>
+              content(0) match
+                case Block.Paragraph(inner, _) => assert(textOf(inner) == "foo\n- bar")
+                case other                     => assert(false, s"expected a paragraph, got $other")
+            case other => assert(false, s"expected a block quote, got $other")
+        case _ => assert(false)
+    }
+    "keeps a stripped continuation line's spans pointing at the source" in {
+      val source = "alpha\n    `beta`\n"
+      Parser.parse(source) match
+        case Result.Success(doc) =>
+          doc.blocks(0) match
+            case Block.Paragraph(content, _) =>
+              content.collectFirst { case Inline.CodeSpan(value, span) => (value, span) } match
+                // The span covers the backticks, as an inline span does everywhere: what it must not do is point four
+                // characters early, which is what would happen if the text lost its indentation and the offset did not.
+                case Some((value, span)) =>
+                  assert(value == "beta")
+                  assert(source.substring(span.offset, span.end) == "`beta`")
+                case None => assert(false, "expected a code span in the continuation line")
+            case other => assert(false, s"expected a paragraph, got $other")
+        case _ => assert(false)
+    }
+    // The whole point of the container work: an item holds blocks, so it holds whatever a document holds.
+    "reads a list item as a container of blocks (spec example 263)" in {
+      Parser.parse("1.  foo\n\n    ```\n    bar\n    ```\n\n    baz\n\n    > bam\n") match
+        case Result.Success(doc) =>
+          doc.blocks(0) match
+            case Block.OrderedList(_, items, tight, _) =>
+              assert(items.size == 1)
+              assert(!tight, "blank lines between an item's blocks make the list loose")
+              val content = items(0).content
+              assert(content.size == 4)
+              assert(content(0).isInstanceOf[Block.Paragraph])
+              assert(content(1).isInstanceOf[Block.FencedCode])
+              assert(content(2).isInstanceOf[Block.Paragraph])
+              assert(content(3).isInstanceOf[Block.BlockQuote])
+            case other => assert(false, s"expected an ordered list, got $other")
+        case _ => assert(false)
+    }
+    // Two blocks in one item are not enough to make a list loose; a blank line between them is. Getting this wrong is
+    // invisible in the AST and shows up only as `p` elements appearing or vanishing in the output.
+    "calls a list tight unless a blank line separates blocks or items" in {
+      def tightnessOf(source: String): Boolean =
+        Parser.parse(source) match
+          case Result.Success(doc) =>
+            doc.blocks(0) match
+              case Block.UnorderedList(_, tight, _) => tight
+              case other                            => throw new AssertionError(s"expected a list, got $other")
+          case other => throw new AssertionError(s"parse failed: $other")
+
+      assert(tightnessOf("- one\n- two\n"))
+      assert(tightnessOf("- a\n  - b\n"), "a nested list is a second block, but no blank line separates them")
+      assert(!tightnessOf("- one\n\n- two\n"), "a blank line between items")
+      assert(!tightnessOf("* a\n*\n\n* c\n"), "a blank line after an empty item still separates it (spec example 315)")
+
+      // A nested container eats the blank line at its end, because a blank matches its continuation prefix. The blank
+      // still separated the outer item's blocks, so it has to come back out.
+      assert(
+        !tightnessOf("- a\n  - b\n  - c\n\n- d\n"),
+        "the blank ended a nested list, and the item holding it has a next item (spec example 326)"
+      )
+      assert(
+        !tightnessOf("* foo\n  * bar\n\n  baz\n"),
+        "the blank ended a nested list, and another block follows it in the same item (spec example 325)"
+      )
+      assert(
+        !tightnessOf("- a\n- b\n\n  [ref]: /url\n- d\n"),
+        "a link reference definition is recorded, not rendered, so it does not clear the blank before it (example 317)"
+      )
+
+      // A quote is the container that cannot do this: its prefix needs a `>`, so what it swallows is `>` with nothing
+      // after it -- blank content rather than a blank line.
+      assert(
+        tightnessOf("* a\n  > b\n  >\n* c\n"),
+        "a bare `>` inside a quoted item does not loosen the list around it (spec example 320)"
+      )
+      assert(!tightnessOf("- one\n\n  two\n"), "a blank line between an item's blocks")
+    }
+    "nests a list inside the item that indents it" in {
+      Parser.parse("- a\n  - b\n") match
+        case Result.Success(doc) =>
+          doc.blocks(0) match
+            case Block.UnorderedList(items, _, _) =>
+              assert(items.size == 1, "the indented marker belongs to the item above it, not beside it")
+              assert(items(0).content.size == 2)
+              items(0).content(1) match
+                case Block.UnorderedList(inner, _, _) => assert(inner.size == 1)
+                case other                            => assert(false, s"expected a nested list, got $other")
+            case other => assert(false, s"expected a list, got $other")
+        case _ => assert(false)
+    }
+    // The lazy rule is stricter than the one for a line that kept its markers: `2.` may not interrupt a paragraph, but
+    // the paragraph is not what this line fell out of. Before this was separated out, the second item was swallowed
+    // into the first item's paragraph.
+    "starts a new item on a marker that drops out of the item above (spec example 302)" in {
+      Parser.parse("1. one\n2. two\n") match
+        case Result.Success(doc) =>
+          doc.blocks(0) match
+            case Block.OrderedList(start, items, _, _) =>
+              assert(start == 1)
+              assert(items.size == 2)
+            case other => assert(false, s"expected an ordered list, got $other")
+        case _ => assert(false)
+    }
+    "reads an item with nothing after its marker, and stops at the second blank (spec example 280)" in {
+      Parser.parse("-\n\n  foo\n") match
+        case Result.Success(doc) =>
+          assert(doc.blocks.size == 2, "a list item may begin with at most one blank line")
+          doc.blocks(0) match
+            case Block.UnorderedList(items, _, _) =>
+              assert(items.size == 1)
+              assert(items(0).content.isEmpty)
+            case other => assert(false, s"expected a list, got $other")
+          assert(doc.blocks(1).isInstanceOf[Block.Paragraph])
+        case _ => assert(false)
+    }
+    // Four spaces past the marker is code inside the item, not a very indented paragraph: the item spends one space
+    // and the rest is content.
+    "gives an item's over-indented content to a code block (spec example 270)" in {
+      Parser.parse("- foo\n\n      bar\n") match
+        case Result.Success(doc) =>
+          doc.blocks(0) match
+            case Block.UnorderedList(items, _, _) =>
+              items(0).content(1) match
+                case Block.IndentedCode(content, _) => assert(content == "bar\n")
+                case other                          => assert(false, s"expected indented code, got $other")
+            case other => assert(false, s"expected a list, got $other")
+        case _ => assert(false)
+    }
+    // Every cursor that could claim a line looks at it: the document's, the item's once the marker is recognised, and
+    // the list's when it asks whether another item begins there. They differ only in which prefixes they strip, so the
+    // scan behind them is shared. Before it was, a run of list items cost about four scans a line, which was most of
+    // what parsing them cost at all -- and work units measure that without a clock, so this is worth asserting.
+    "scans each line once however many containers look at it" in {
+      val plain = "alpha beta gamma\n" * 200
+      val items = "- alpha beta gamma\n" * 200
+      assert(plain.length + 400 == items.length, "the two fixtures must differ only by their markers")
+
+      val plainWork = parseMetrics(plain).work.toLong
+      val itemWork  = parseMetrics(items).work.toLong
+      assert(
+        itemWork < plainWork * 2,
+        s"a list costs $itemWork against $plainWork for the same prose: the line scan is not being shared"
+      )
+    }
+    // A tab advances to the next four-column stop, so what it counts for depends on where it sits. These are the four
+    // places that ask, and each one used to count the tab as a single character.
+    "measures a tab in columns wherever indentation is counted" in {
+      def blockOf(source: String): Block =
+        Parser.parse(source) match
+          case Result.Success(document) => document.blocks(0)
+          case other                    => throw new AssertionError(s"parse failed: $other")
+
+      def codeIn(block: Block): String =
+        block match
+          case Block.IndentedCode(content, _) => content
+          case other                          => throw new AssertionError(s"expected indented code, got $other")
+
+      // One leading tab is four columns, so it opens a code block -- and the tabs inside the body are content, left
+      // exactly as written (spec example 1).
+      assert(codeIn(blockOf("\tfoo\tbaz\t\tbim\n")) == "foo\tbaz\t\tbim\n")
+      // Two spaces then a tab is four as well: the tab finishes the stop rather than adding four of its own (2).
+      assert(codeIn(blockOf("  \tfoo\n")) == "foo\n")
+      // The quote marker takes one column of the tab that follows it, leaving six -- four for the code block, two
+      // over (6).
+      blockOf(">\t\tfoo\n") match
+        case Block.BlockQuote(content, _) => assert(codeIn(content(0)) == "  foo\n")
+        case other                        => assert(false, s"expected a block quote, got $other")
+      // The same for a bullet: more than four columns after the marker means the item spends one and holds code (7).
+      blockOf("-\t\tfoo\n") match
+        case Block.UnorderedList(items, _, _) => assert(codeIn(items(0).content(0)) == "  foo\n")
+        case other                            => assert(false, s"expected a list, got $other")
+      // A tab separates the hashes of a heading from its text as well as a space does (10).
+      blockOf("#\tFoo\n") match
+        case Block.Heading(level, content, _) =>
+          assert(level == HeadingLevel.One)
+          assert(textOf(content) == "Foo")
+        case other => assert(false, s"expected a heading, got $other")
+    }
+    // A tab-expanded line counts columns while the source counts characters. When a list item compared the two it
+    // never recognised its own marker line, gathered nothing, and read that same line for ever -- and because nothing
+    // was read there was no work for the scan budget to notice.
+    "keeps a tab-indented marker in the same coordinates as the source (spec example 9)" in {
+      Parser.parse(" - foo\n   - bar\n\t - baz\n") match
+        case Result.Success(doc) =>
+          def onlyItem(block: Block): ListItem =
+            block match
+              case Block.UnorderedList(items, _, _) =>
+                assert(items.size == 1)
+                items(0)
+              case other => throw new AssertionError(s"expected a list, got $other")
+
+          val second = onlyItem(doc.blocks(0)).content(1)
+          val third  = onlyItem(second).content(1)
+          third match
+            case Block.UnorderedList(items, _, _) =>
+              assert(items.size == 1, "the tab-indented marker belongs to the item above it")
+            case other => assert(false, s"expected a third-level list, got $other")
+        case other => assert(false, s"parse failed: $other")
+    }
+    "keeps a span true through a tab-indented continuation line" in {
+      val source = "alpha\n\t`beta`\n"
+      Parser.parse(source) match
+        case Result.Success(doc) =>
+          doc.blocks(0) match
+            case Block.Paragraph(content, _) =>
+              content.collectFirst { case Inline.CodeSpan(_, span) => span } match
+                case Some(span) => assert(source.substring(span.offset, span.end) == "`beta`")
+                case None       => assert(false, "expected a code span on the continuation line")
+            case other => assert(false, s"expected a paragraph, got $other")
+        case _ => assert(false)
+    }
+    "leaves a tab that is content alone" in {
+      // `1.5` is not a list marker, so nothing on this line is structural and the tab stays a tab.
+      Parser.parse("1.5\tfoo\n") match
+        case Result.Success(doc) =>
+          doc.blocks(0) match
+            case Block.Paragraph(content, _) => assert(textOf(content) == "1.5\tfoo")
+            case other                       => assert(false, s"expected a paragraph, got $other")
+        case _ => assert(false)
+    }
+    // A fence whose first line is blank writes nothing, which used to look the same as having written no line at all,
+    // so the next line joined it and the blank vanished.
+    "keeps a blank first line inside a fence (spec examples 127 and 129)" in {
+      def codeOf(source: String): String =
+        Parser.parse(source) match
+          case Result.Success(doc) =>
+            doc.blocks(0) match
+              case Block.FencedCode(_, content, _) => content
+              case other                           => throw new AssertionError(s"expected a fence, got $other")
+          case other => throw new AssertionError(s"parse failed: $other")
+
+      // Five backticks are not closed by three, so the rest of the input is content -- blank first line included.
+      assert(codeOf("`````\n\n```\naaa\n") == "\n```\naaa\n")
+      assert(codeOf("```\n\n  \n```\n") == "\n  \n")
+    }
+    // The info string is prose the author wrote rather than a token, so it resolves escapes and references the way a
+    // destination or a title does (spec examples 24 and 34).
+    "resolves escapes and references in a fence's info string" in {
+      def languageOf(source: String): String =
+        Parser.parse(source) match
+          case Result.Success(doc) =>
+            doc.blocks(0) match
+              case Block.FencedCode(info, _, _) => info.language.getOrElse("")
+              case other                        => throw new AssertionError(s"expected a fence, got $other")
+          case other => throw new AssertionError(s"parse failed: $other")
+
+      assert(languageOf("``` foo\\+bar\nfoo\n```\n") == "foo+bar")
+      assert(languageOf("``` f&ouml;&ouml;\nfoo\n```\n") == "föö")
+    }
+    // A title has to be separated from the destination by whitespace. Without that rule `(baz)` reads as a
+    // parenthesised title and the line defines a link, where the spec leaves the whole of it as prose (example 201).
+    "will not take a title that runs into the destination" in {
+      Parser.parse("[foo]: <bar>(baz)\n\n[foo]\n") match
+        case Result.Success(doc) =>
+          assert(doc.blocks.size == 2, "nothing was defined, so both lines stay paragraphs")
+        case other => assert(false, s"parse failed: $other")
+    }
+    // A paragraph of nothing but definitions has no content for a setext underline to promote, so the underline goes
+    // back and begins a paragraph of its own (example 216).
+    "gives a definition-only paragraph its setext line back" in {
+      Parser.parse("[foo]: /url\n===\n[foo]\n") match
+        case Result.Success(doc) =>
+          assert(doc.blocks.size == 1)
+          doc.blocks(0) match
+            case Block.Paragraph(content, _) => assert(textOf(content).startsWith("==="))
+            case other                       => assert(false, s"expected a paragraph, got $other")
+        case other => assert(false, s"parse failed: $other")
+    }
+    // A line of exactly four spaces is both blank and indented, and it is the blankness that decides: it belongs to
+    // the block only if indented content follows it (example 117).
+    "holds back a blank line at either end of indented code" in {
+      Parser.parse("\n    \n    foo\n    \n\n") match
+        case Result.Success(doc) =>
+          doc.blocks(0) match
+            case Block.IndentedCode(content, _) => assert(content == "foo\n")
+            case other                          => assert(false, s"expected indented code, got $other")
+        case other => assert(false, s"parse failed: $other")
     }
     "reads a thematic break between paragraphs" in {
       Parser.parse("Hello\n\n---\n\nWorld") match
@@ -474,11 +951,11 @@ class ParserTests extends Test[Any]:
             case Block.ThematicBreak(_) => assert(true)
             case _                      => assert(false)
           doc.blocks(0) match
-            case Block.Paragraph(text, _) => assert(text == "Hello")
-            case _                        => assert(false)
+            case Block.Paragraph(content, _) => assert(textOf(content) == "Hello")
+            case _                           => assert(false)
           doc.blocks(2) match
-            case Block.Paragraph(text, _) => assert(text == "World")
-            case _                        => assert(false)
+            case Block.Paragraph(content, _) => assert(textOf(content) == "World")
+            case _                           => assert(false)
         case _ => assert(false)
     }
   }

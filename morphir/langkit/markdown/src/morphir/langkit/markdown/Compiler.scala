@@ -1,0 +1,174 @@
+package morphir.langkit.markdown
+
+import kyo.*
+
+/**
+ * A fold over the Markdown AST with one method per node kind, whose children arrive already compiled.
+ *
+ * Each output format supplies only this mapping; the traversal is owned once and shared, so a new target never repeats
+ * it. That shared mapping is also the structural guard two writers rely on: a node the CommonMark conformance oracle
+ * exercises is a node every other target must implement too.
+ *
+ * The algebra stays pure. An effectful target instantiates `Out` at `A < S` — Kyo's pending-effect type — rather than
+ * making every method effectful.
+ *
+ * Prose reaches a writer as compiled children, not as a `String`: a block that holds prose folds its inline content
+ * first, and [[text]] is the leaf that carries the literal runs. Every `String` this algebra hands you is raw source
+ * text, never escaped. **Escaping is the writer's job.**
+ *
+ * The rules for adding a node kind, and the shapes considered and rejected for this stage, are in this module's
+ * `CONTRIBUTING.md`.
+ *
+ * @tparam Out
+ *   what this format compiles a node to: a `kyo.UI` value, a ScalaTags `Frag`, plain text, or anything else
+ */
+trait Compiler[Out]:
+
+  /**
+   * Combine the document's compiled blocks into the whole output.
+   *
+   * This is the last call of any compile and the only one guaranteed to happen, including for an empty document, where
+   * `children` is empty.
+   *
+   * @param children
+   *   the compiled top-level blocks, in source order
+   */
+  def document(children: Chunk[Out]): Out
+
+  /**
+   * Compile a heading from its compiled inline content.
+   *
+   * @param level
+   *   one to six; [[HeadingLevel]] makes a level CommonMark cannot express unrepresentable, so no range check is needed
+   * @param children
+   *   the compiled inline content, in source order
+   */
+  def heading(level: HeadingLevel, children: Chunk[Out]): Out
+
+  /** Compile a paragraph from its compiled inline content, in source order. */
+  def paragraph(children: Chunk[Out]): Out
+
+  /**
+   * Compile a fenced code block.
+   *
+   * @param info
+   *   the parsed fence info string. CommonMark treats it as opaque, so read `info.language` for the first bare token
+   *   rather than the whole of `info.raw`; it is [[kyo.Absent]] for a fence that names no language
+   * @param content
+   *   the code between the fences, verbatim and un-indented. Emit it unchanged apart from escaping.
+   *
+   * Mind the trailing newline, which is a property of the source rather than a guarantee: a closed, non-empty fence
+   * ends with `\n`, an empty one yields `""`, and a fence left unterminated at end of input keeps only the newline its
+   * last line actually had. CommonMark's expected HTML always closes the block with one, so a writer aiming at
+   * byte-exact conformance has to reckon with the unterminated case rather than assume it
+   */
+  def fencedCode(info: FenceInfo, content: String): Out
+
+  /**
+   * Combine compiled list items into a bullet list.
+   *
+   * @param items
+   *   the results of [[listItem]], in source order
+   */
+  def unorderedList(items: Chunk[Out]): Out
+
+  /** Compile one bullet-list item from its compiled inline content. Called before [[unorderedList]]. */
+  def listItem(children: Chunk[Out]): Out
+
+  /**
+   * Compile a run of literal text.
+   *
+   * The value is raw source text: never escaped, and never further parsed. **Escaping is the writer's job.** Inline
+   * markers that no other case claims yet — emphasis, links, code spans — still sit unparsed inside it.
+   */
+  def text(value: String): Out
+
+  /**
+   * Compile a code span.
+   *
+   * The value is literal text the spec has already normalised, so emit it unchanged apart from escaping. No inline
+   * construct inside it is live: a backslash does not escape, and a backtick is just a backtick.
+   */
+  def codeSpan(value: String): Out
+
+  /**
+   * Compile a link from its compiled label content.
+   *
+   * `destination` is already URI-normalised; emit it as an attribute value and let escaping do the rest.
+   */
+  def link(destination: String, title: Maybe[String], children: Chunk[Out]): Out
+
+  /** Compile an image. `alt` is plain text, as the attribute requires. */
+  def image(destination: String, title: Maybe[String], alt: String): Out
+
+  /** Compile emphasis from its compiled content. */
+  def emphasis(children: Chunk[Out]): Out
+
+  /** Compile strong emphasis from its compiled content. */
+  def strongEmphasis(children: Chunk[Out]): Out
+
+  /**
+   * Compile raw HTML written inside prose.
+   *
+   * The inline counterpart of [[htmlBlock]], and it carries the same warning: `value` is emitted verbatim, never
+   * escaped. A target that cannot emit HTML has to decide what to do with it -- dropping it is safer than escaping it,
+   * which would show the author their own markup.
+   */
+  def rawHtml(value: String): Out
+
+  /**
+   * Compile a hard line break.
+   *
+   * The break the author asked for, as against the soft one that any line ending gives. A target that reflows its own
+   * text still has to honour this one, because it is a request rather than an artefact of how the source was wrapped.
+   */
+  def lineBreak: Out
+
+  /**
+   * Combine compiled list items into a numbered list.
+   *
+   * @param start
+   *   the first marker's number. HTML omits the `start` attribute when this is 1.
+   */
+  def orderedList(start: Int, items: Chunk[Out]): Out
+
+  /**
+   * Emit a raw HTML block verbatim.
+   *
+   * The only method on this algebra that must not escape its argument. A target that cannot express raw markup — a
+   * plain-text writer, say — should render it as literal text rather than pretend.
+   */
+  def htmlBlock(content: String): Out
+
+  /**
+   * Compile a block quote from its already-compiled blocks.
+   *
+   * Takes blocks rather than prose, which is what makes this the first method of the algebra whose children are
+   * themselves block output. A target with no notion of quoting still has to produce something here; wrapping the
+   * children unchanged is the honest answer.
+   */
+  def blockQuote(children: Chunk[Out]): Out
+
+  /**
+   * The newline CommonMark writes between block-level siblings inside a list item.
+   *
+   * A list item's children may be blocks, prose, or both: a tight item's paragraph is written bare, and a code block
+   * beside it is not. Only the traversal knows which children are which, and only the writer knows what a newline is in
+   * its own output type, so the two meet here. A target for which the distinction is meaningless can return whatever
+   * its empty value is.
+   */
+  def blockSeparator: Out
+
+  /** Compile a thematic break. It has no children and no text, so this is a constant for most formats. */
+  def thematicBreak: Out
+end Compiler
+
+object Compiler:
+  /**
+   * Compile a whole document with the given output format.
+   *
+   * Walks bottom-up: children compile first, then each node combines them into one `Out`. The walk itself is an
+   * implementation detail, so every format reuses it by supplying a [[Compiler]] rather than writing its own.
+   */
+  export morphir.langkit.markdown.internal.MarkdownFold.compile
+end Compiler

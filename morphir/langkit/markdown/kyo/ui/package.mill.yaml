@@ -1,0 +1,38 @@
+extends: Module
+
+object jvm:
+  extends: [build.MorphirJVMModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps]
+  moduleDeps: [build.morphir.langkit.markdown.jvm]
+  mvnDeps: !append
+  - io.getkyo::kyo-ui
+  object test:
+    extends: [ScalaTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps]
+
+object js:
+  extends: [build.MorphirJSModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps]
+  moduleDeps: [build.morphir.langkit.markdown.js]
+  mvnDeps: !append
+  - io.getkyo::kyo-ui
+  object test:
+    extends: [ScalaJSTests, build.MorphirJSTestNoSourceMap, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
+
+# WebAssembly linker variant; not a publish module. morphir/ui declares a wasm module and its shared sources compile
+# concept bodies, so the browser writer must link for wasm too.
+object wasm:
+  extends: [build.MorphirWasmModule, build.MorphirKyoCoreMvnDeps]
+  moduleDeps: [build.morphir.langkit.markdown.wasm]
+  mvnDeps: !append
+  - io.getkyo::kyo-ui
+  object test:
+    extends: [ScalaJSTests, build.MorphirJSTestNoSourceMap, build.MorphirWasmTests, millbuild.KyoTestWasm, build.MorphirKyoTestMvnDeps]
+
+object native:
+  extends: [build.MorphirNativeModule, build.MorphirPublishModule, build.MorphirNativeOpenSsl, build.MorphirKyoCoreMvnDeps]
+  moduleDeps: [build.morphir.langkit.markdown.native]
+  mvnDeps: !append
+  - io.getkyo::kyo-ui
+  object test:
+    extends: [ScalaNativeTests, build.MorphirNativeOpenSsl, millbuild.KyoTestNative, build.MorphirKyoTestMvnDeps]
+    mvnDeps: !append
+    - org.scala-native::test-interface::0.5.12
+

@@ -467,11 +467,11 @@ jobs:
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
 
-      - name: Install libuv
+      - name: Install native dependencies
         # Bounded: a stalled Ubuntu mirror otherwise consumes the job budget. The script skips the
         # Azure archive (see actions/runner-images#12949) rather than waiting on it.
         timeout-minutes: 6
-        run: .github/scripts/install-libuv.sh
+        run: .github/scripts/install-native-deps.sh
 
       # Reuse of this job's own native build output. Unlike test-js's cache, which is save-only and
       # restored by `publish` rather than by test-js itself, this both restores and saves, so a
@@ -910,12 +910,12 @@ jobs:
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
 
-      - name: Install libuv
+      - name: Install native dependencies
         # Bounded: run 32158142566 spent this job's entire 60-minute budget inside `apt-get update`
         # against azure.archive.ubuntu.com. The shared script skips that mirror; timeout-minutes is
         # the backstop if retrying still cannot finish.
         timeout-minutes: 6
-        run: .github/scripts/install-libuv.sh
+        run: .github/scripts/install-native-deps.sh
 
       - name: Restore JVM Build Output From Cache
         uses: actions/cache/restore@v6

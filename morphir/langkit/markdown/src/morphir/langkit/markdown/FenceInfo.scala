@@ -2,6 +2,7 @@ package morphir.langkit.markdown
 
 import kyo.*
 import morphir.langkit.core.scanner.*
+import morphir.langkit.markdown.internal.InlineParser
 
 /**
  * Structured view of a CommonMark fenced-code info string.
@@ -47,7 +48,10 @@ object FenceInfo:
     parseWithReservation(raw)(() => scanner.chargeOutputNodes(TokenOutputReservation))
 
   private def parseWithReservation(raw: String)(reserveToken: () => Unit): FenceInfo =
-    val trimmed = trimSpacesOrTabs(raw)
+    // Backslash escapes and character references are resolved before the string is read for structure, because the
+    // info string is prose the author wrote rather than a token: ``` ``` f&ouml;&ouml; ``` names the language `föö`,
+    // and ``` ``` foo\+bar ``` names `foo+bar`.
+    val trimmed = trimSpacesOrTabs(InlineParser.resolveEscapes(raw))
     if trimmed.isEmpty then empty
     else if trimmed.charAt(0) == '{' then parseBraceLed(trimmed, reserveToken)
     else parseBareLed(trimmed, reserveToken)

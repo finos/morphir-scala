@@ -26,7 +26,9 @@ published Scala library for that model. The kb skill carries its own parser and 
 
 Publish `morphir/knowledge/okf` as `org.finos.morphir::morphir-knowledge-okf`, compiling for JVM, JS, and Native.
 Shared sources hold bundle, concept, and frontmatter types. `Concept.parse` splits a leading YAML fence and parses the
-body through [0021 Markdown langkit](/0021-markdown-langkit.md). Frontmatter accessors are permissive (`Maybe`): a
+body through [0021 Markdown langkit](/0021-markdown-langkit.md), against `morphir-langkit-markdown` once
+[0033](/0033-markdown-compilation.md) splits that module; okf parses bodies and does not compile them, so it
+never pulls in `kyo-ui`. Frontmatter accessors are permissive (`Maybe`): a
 missing field is absent so a later check can report every problem. `Bundle.parse` loads from in-memory files keyed by
 bundle-relative path. The root `index.md` must carry `okf_version`. Filesystem loading is later work.
 
