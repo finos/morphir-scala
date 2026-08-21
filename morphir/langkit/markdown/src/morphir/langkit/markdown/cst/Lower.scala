@@ -7,7 +7,7 @@ import morphir.langkit.markdown.*
 import morphir.langkit.markdown.internal.{InlineParser, LinkDefinition}
 
 /**
- * Lowers a CST into the AST: `lower: CstNode.Document => Document`, total.
+ * Lowers a CST into the AST: `lower: CstNode.Document => MdcNode.Root`, total.
  *
  * The CST records what was written; the AST is what it means. Lowering is where the distance between them is walked:
  * container marker bytes disappear (they are [[CstNode.Token]] leaves, and tokens carry no content), escapes and
@@ -17,14 +17,14 @@ import morphir.langkit.markdown.internal.{InlineParser, LinkDefinition}
  * definitions cannot answer lowers to an empty destination rather than to a failure.
  *
  * Inline text segmentation is not preserved node for node — adjacent literal runs may lower to differently split
- * [[Inline.Text]] chunks than the direct parse produces — but the rendered document is the same, which the conformance
+ * [[MdcNode.Text]] chunks than the direct parse produces — but the rendered document is the same, which the conformance
  * suite measures over the whole CommonMark corpus.
  */
 object Lower:
 
-  def lower(document: CstNode.Document): Document =
+  def lower(document: CstNode.Document): MdcNode.Root =
     val definitions = collectDefinitions(document)
-    Document(blocks(document.children, definitions, document.span.end), document.span)
+    MdcNode.Root(blocks(document.children, definitions, document.span.end), Present(document.span))
 
   /** Every definition in the tree, first spelling of a label winning, in document order. */
   private def collectDefinitions(root: CstNode): Map[String, LinkDefinition] =
@@ -107,7 +107,11 @@ object Lower:
     children.foreach(walk)
     out.toString
 
-  private def blocks(children: Chunk[CstNode], definitions: Map[String, LinkDefinition], docEnd: Int): Chunk[Block] =
+  private def blocks(
+      children: Chunk[CstNode],
+      definitions: Map[String, LinkDefinition],
+      docEnd: Int
+  ): Chunk[MdcNode.FlowContent] =
     // A block's first line began after whatever markers its container spent on it, and those leaves sit in the gap
     // before the block, not inside it. The running line state — column reached, phantom columns owed — is what an
     // indented code block needs to reconstruct its first line's indentation.
@@ -121,31 +125,43 @@ object Lower:
         else if char == '\t' then column = ((column / 4) + 1) * 4
         else column += 1
       }
-    val out = Chunk.newBuilder[Block]
+    val out = Chunk.newBuilder[MdcNode.FlowContent]
     children.foreach { node =>
       node match
         case CstNode.Token(text, _)                    => advanceGap(text)
         case CstNode.Verbatim(text, _)                 => advanceGap(text)
         case CstNode.PhantomIndent(columns, _)         => phantom += columns
-        case CstNode.ThematicBreak(_, span)            => out.addOne(Block.ThematicBreak(span))
+        case CstNode.ThematicBreak(_, span)            => out.addOne(MdcNode.ThematicBreak(Present(span)))
         case CstNode.AtxHeading(level, children, span) =>
-          out.addOne(Block.Heading(level, inlines(children, definitions), span))
+          out.addOne(MdcNode.Heading(level, inlines(children, definitions), Present(span)))
         case CstNode.SetextHeading(level, children, span) =>
-          out.addOne(Block.Heading(level, inlines(children, definitions), span))
+          out.addOne(MdcNode.Heading(level, inlines(children, definitions), Present(span)))
         case CstNode.Paragraph(children, span) =>
-          out.addOne(Block.Paragraph(inlines(children, definitions), span))
+          out.addOne(MdcNode.Paragraph(inlines(children, definitions), Present(span)))
         case CstNode.FencedCode(children, span) =>
           out.addOne(loweredFence(children, span, docEnd))
         case CstNode.IndentedCode(children, span) =>
-          out.addOne(Block.IndentedCode(indentedContent(codeText(children, column, phantom)), span))
+          out.addOne(MdcNode.Code(FenceInfo.empty, indentedContent(codeText(children, column, phantom)), Present(span)))
         case CstNode.HtmlBlock(children, span) =>
-          out.addOne(Block.HtmlBlock(contentText(children), span))
+          out.addOne(MdcNode.Html(contentText(children), Present(span)))
         case CstNode.BlockQuote(children, span) =>
-          out.addOne(Block.BlockQuote(blocks(children, definitions, docEnd), span))
+          out.addOne(MdcNode.Blockquote(blocks(children, definitions, docEnd), Present(span)))
         case CstNode.BulletList(_, tight, children, span) =>
-          out.addOne(Block.UnorderedList(items(children, definitions, docEnd), tight, span))
+          out.addOne(MdcNode.List(
+            ordered = false,
+            start = Absent,
+            spread = !tight,
+            items(children, definitions, docEnd),
+            Present(span)
+          ))
         case CstNode.OrderedList(start, _, tight, children, span) =>
-          out.addOne(Block.OrderedList(start, items(children, definitions, docEnd), tight, span))
+          out.addOne(MdcNode.List(
+            ordered = true,
+            start = Present(start),
+            spread = !tight,
+            items(children, definitions, docEnd),
+            Present(span)
+          ))
         case _ =>
           // Link reference definitions contribute no block.
           ()
@@ -158,13 +174,17 @@ object Lower:
     }
     out.result()
 
-  private def items(children: Chunk[CstNode], definitions: Map[String, LinkDefinition], docEnd: Int): Chunk[ListItem] =
+  private def items(
+      children: Chunk[CstNode],
+      definitions: Map[String, LinkDefinition],
+      docEnd: Int
+  ): Chunk[MdcNode.ListItem] =
     children.collect { case CstNode.ListItem(itemChildren, span) =>
-      ListItem(blocks(itemChildren, definitions, docEnd), span)
+      MdcNode.ListItem(blocks(itemChildren, definitions, docEnd), Present(span))
     }
 
   /** Fence metadata from the opening token's info string; content from the text leaves, indentation removed. */
-  private def loweredFence(children: Chunk[CstNode], span: Span, docEnd: Int): Block =
+  private def loweredFence(children: Chunk[CstNode], span: Span, docEnd: Int): MdcNode.Code =
     val opening     = children.collectFirst { case CstNode.Token(text, _) => text }.getOrElse("")
     val indentation = opening.takeWhile(_ == ' ').length
     val afterIndent = opening.drop(indentation)
@@ -195,7 +215,7 @@ object Lower:
         val trailing = restored.endsWith("\n")
         val lines    = (if trailing then restored.dropRight(1) else restored).split("\n", -1)
         lines.map(removeIndentation(_, indentation)).mkString("", "\n", if trailing then "\n" else "")
-    Block.FencedCode(info, content, span)
+    MdcNode.Code(info, content, Present(span))
 
   /** Remove up to `indentation` leading spaces, which the opening fence spent rather than the content. */
   private def removeIndentation(line: String, indentation: Int): String =
@@ -233,7 +253,10 @@ object Lower:
    * grammar sees it: an entity or escape at the edge resolved to whitespace is content and survives, where raw edge
    * whitespace is layout and does not.
    */
-  private def inlines(children: Chunk[CstNode], definitions: Map[String, LinkDefinition]): Chunk[Inline] =
+  private def inlines(
+      children: Chunk[CstNode],
+      definitions: Map[String, LinkDefinition]
+  ): Chunk[MdcNode.PhrasingContent] =
     Chunk.from(trimVerbatimEnds(children).flatMap(loweredInline(_, definitions)))
 
   private def trimVerbatimEnds(children: Chunk[CstNode]): Chunk[CstNode] =
@@ -268,62 +291,64 @@ object Lower:
           case _ => ()
     Chunk.from(items)
 
-  private def loweredInline(node: CstNode, definitions: Map[String, LinkDefinition]): Chunk[Inline] = node match
-    case CstNode.Token(_, _) =>
-      Chunk.empty
+  private def loweredInline(node: CstNode, definitions: Map[String, LinkDefinition]): Chunk[MdcNode.PhrasingContent] =
+    node match
+      case CstNode.Token(_, _) =>
+        Chunk.empty
 
-    case CstNode.Verbatim(text, span) =>
-      val value = proseValue(text)
-      if value.isEmpty then Chunk.empty else Chunk(Inline.Text(value, span))
+      case CstNode.Verbatim(text, span) =>
+        val value = proseValue(text)
+        if value.isEmpty then Chunk.empty else Chunk(MdcNode.Text(value, Present(span)))
 
-    case CstNode.Escape(children, span) =>
-      Chunk(Inline.Text(children.collect { case CstNode.Text(text, _) => text }.mkString, span))
+      case CstNode.Escape(children, span) =>
+        Chunk(MdcNode.Text(children.collect { case CstNode.Text(text, _) => text }.mkString, Present(span)))
 
-    case CstNode.Entity(children, span) =>
-      val raw = children.collect { case CstNode.Token(text, _) => text }.mkString
-      Chunk(Inline.Text(InlineParser.resolveEscapes(raw), span))
+      case CstNode.Entity(children, span) =>
+        val raw = children.collect { case CstNode.Token(text, _) => text }.mkString
+        Chunk(MdcNode.Text(InlineParser.resolveEscapes(raw), Present(span)))
 
-    case CstNode.HardBreak(_, span) =>
-      Chunk(Inline.LineBreak(span))
+      case CstNode.HardBreak(_, span) =>
+        Chunk(MdcNode.Break(Present(span)))
 
-    case CstNode.CodeSpan(children, span) =>
-      Chunk(Inline.CodeSpan(InlineParser.codeSpanValueOf(contentText(children)), span))
+      case CstNode.CodeSpan(children, span) =>
+        Chunk(MdcNode.InlineCode(InlineParser.codeSpanValueOf(contentText(children)), Present(span)))
 
-    case CstNode.Autolink(children, span) =>
-      val inner       = contentText(children)
-      val destination = InlineParser.autolinkDestinationOf(inner).getOrElse(InlineParser.normalizeUriOf(inner))
-      Chunk(Inline.Link(destination, Absent, Chunk(Inline.Text(inner, span)), span))
+      case CstNode.Autolink(children, span) =>
+        val inner       = contentText(children)
+        val destination = InlineParser.autolinkDestinationOf(inner).getOrElse(InlineParser.normalizeUriOf(inner))
+        Chunk(MdcNode.Link(destination, Absent, Chunk(MdcNode.Text(inner, Present(span))), Present(span)))
 
-    case CstNode.RawHtml(children, span) =>
-      Chunk(Inline.RawHtml(contentText(children), span))
+      case CstNode.RawHtml(children, span) =>
+        Chunk(MdcNode.InlineHtml(contentText(children), Present(span)))
 
-    case CstNode.Emphasis(_, strong, children, span) =>
-      // Leftover delimiters of a partially consumed run sit verbatim outside the tokens; they are prose siblings,
-      // not emphasis content, so they lower before and after the emphasis node itself.
-      val firstToken = children.indexWhere(_.isInstanceOf[CstNode.Token])
-      val lastToken  = children.lastIndexWhere(_.isInstanceOf[CstNode.Token])
-      if firstToken < 0 || lastToken <= firstToken then Chunk.empty
-      else
-        val before   = children.take(firstToken).flatMap(loweredInline(_, definitions))
-        val interior = inlines(children.slice(firstToken + 1, lastToken), definitions)
-        val after    = children.drop(lastToken + 1).flatMap(loweredInline(_, definitions))
-        val node     = if strong then Inline.StrongEmphasis(interior, span) else Inline.Emphasis(interior, span)
-        Chunk.from(before) ++ Chunk(node) ++ Chunk.from(after)
+      case CstNode.Emphasis(_, strong, children, span) =>
+        // Leftover delimiters of a partially consumed run sit verbatim outside the tokens; they are prose siblings,
+        // not emphasis content, so they lower before and after the emphasis node itself.
+        val firstToken = children.indexWhere(_.isInstanceOf[CstNode.Token])
+        val lastToken  = children.lastIndexWhere(_.isInstanceOf[CstNode.Token])
+        if firstToken < 0 || lastToken <= firstToken then Chunk.empty
+        else
+          val before                        = children.take(firstToken).flatMap(loweredInline(_, definitions))
+          val interior                      = inlines(children.slice(firstToken + 1, lastToken), definitions)
+          val after                         = children.drop(lastToken + 1).flatMap(loweredInline(_, definitions))
+          val node: MdcNode.PhrasingContent =
+            if strong then MdcNode.Strong(interior, Present(span)) else MdcNode.Emphasis(interior, Present(span))
+          Chunk.from(before) ++ Chunk(node) ++ Chunk.from(after)
 
-    case CstNode.Link(form, destination, title, reference, children, span) =>
-      val content             = inlines(linkContent(children), definitions)
-      val (uri, loweredTitle) = resolveTarget(form, destination, title, reference, definitions)
-      Chunk(Inline.Link(uri, loweredTitle, content, span))
+      case CstNode.Link(form, destination, title, reference, children, span) =>
+        val content             = inlines(linkContent(children), definitions)
+        val (uri, loweredTitle) = resolveTarget(form, destination, title, reference, definitions)
+        Chunk(MdcNode.Link(uri, loweredTitle, content, Present(span)))
 
-    case CstNode.Image(form, destination, title, reference, children, span) =>
-      val content             = inlines(linkContent(children), definitions)
-      val (uri, loweredTitle) = resolveTarget(form, destination, title, reference, definitions)
-      Chunk(Inline.Image(uri, loweredTitle, InlineParser.altTextOf(content), span))
+      case CstNode.Image(form, destination, title, reference, children, span) =>
+        val content             = inlines(linkContent(children), definitions)
+        val (uri, loweredTitle) = resolveTarget(form, destination, title, reference, definitions)
+        Chunk(MdcNode.Image(uri, loweredTitle, InlineParser.altTextOf(content), Present(span)))
 
-    case other =>
-      // A block node cannot appear in an inline region; hold its text rather than lose it.
-      val text = contentText(Chunk(other))
-      if text.isEmpty then Chunk.empty else Chunk(Inline.Text(text, other.span))
+      case other =>
+        // A block node cannot appear in an inline region; hold its text rather than lose it.
+        val text = contentText(Chunk(other))
+        if text.isEmpty then Chunk.empty else Chunk(MdcNode.Text(text, Present(other.span)))
 
   /** The children between the opening bracket token and the token that closes the link text. */
   private def linkContent(children: Chunk[CstNode]): Chunk[CstNode] =

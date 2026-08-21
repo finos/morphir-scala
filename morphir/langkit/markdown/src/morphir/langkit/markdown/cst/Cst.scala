@@ -3,7 +3,7 @@ package morphir.langkit.markdown.cst
 import kyo.*
 import morphir.langkit.core.Span
 import morphir.langkit.markdown.HeadingLevel
-import morphir.langkit.markdown.Inline
+import morphir.langkit.markdown.MdcNode
 import morphir.langkit.markdown.Parser
 
 /**
@@ -365,12 +365,12 @@ object CstParser:
       from: Int,
       until: Int,
       markers: Chunk[Marker],
-      items: Chunk[Inline],
+      items: Chunk[MdcNode.PhrasingContent],
       notes: Maybe[InlineNotes]
   ): Chunk[CstNode] =
-    val out                        = Chunk.newBuilder[CstNode]
-    var cursor                     = from
-    def emit(inline: Inline): Unit =
+    val out                                         = Chunk.newBuilder[CstNode]
+    var cursor                                      = from
+    def emit(inline: MdcNode.PhrasingContent): Unit =
       graduate(source, inline, markers, notes) match
         case Present(node) if node.span.offset >= cursor && node.span.end <= until =>
           out.addAll(inlineGap(source, cursor, node.span.offset, markers, notes))
@@ -378,10 +378,10 @@ object CstParser:
           cursor = node.span.end
         case _ =>
           inline match
-            case Inline.Emphasis(content, _)       => content.foreach(emit)
-            case Inline.StrongEmphasis(content, _) => content.foreach(emit)
-            case Inline.Link(_, _, content, _)     => content.foreach(emit)
-            case _                                 => ()
+            case MdcNode.Emphasis(content, _)   => content.foreach(emit)
+            case MdcNode.Strong(content, _)     => content.foreach(emit)
+            case MdcNode.Link(_, _, content, _) => content.foreach(emit)
+            case _                              => ()
     items.foreach(emit)
     out.addAll(inlineGap(source, cursor, until, markers, notes))
     out.result()
@@ -430,15 +430,16 @@ object CstParser:
    *
    * Each case checks the source at its span before claiming it — a code span must start with a backtick, an autolink or
    * raw HTML with `<`, a bracketed link with `[`. A span that fails the check is a mapping the parse and the source
-   * disagree on, and the safe answer is to leave the region verbatim rather than mislabel it.
+   * disagree on, and the safe answer is to leave the region verbatim rather than mislabel it. A node carrying no span
+   * at all is the same case: nothing to check against, so nothing to claim, and it falls through to verbatim.
    */
   private def graduate(
       source: String,
-      inline: Inline,
+      inline: MdcNode.PhrasingContent,
       markers: Chunk[Marker],
       notes: Maybe[InlineNotes]
   ): Maybe[CstNode] = inline match
-    case Inline.CodeSpan(_, span) if span.offset < source.length && source.charAt(span.offset) == '`' =>
+    case MdcNode.InlineCode(_, Present(span)) if span.offset < source.length && source.charAt(span.offset) == '`' =>
       var run = span.offset
       while run < span.end && source.charAt(run) == '`' do run += 1
       val ticks    = run - span.offset
@@ -448,11 +449,11 @@ object CstParser:
           ++ leaf(source, span.end - ticks, span.end)(CstNode.Token(_, _))
       Present(CstNode.CodeSpan(children, span))
 
-    case Inline.RawHtml(_, span) if span.offset < source.length && source.charAt(span.offset) == '<' =>
+    case MdcNode.InlineHtml(_, Present(span)) if span.offset < source.length && source.charAt(span.offset) == '<' =>
       Present(CstNode.RawHtml(tile(source, span.offset, span.end, markers)(CstNode.Text(_, _)), span))
 
     // An autolink is a Link whose source form starts with `<`; a bracketed link or image starts with `[` or `!`.
-    case Inline.Link(_, _, _, span)
+    case MdcNode.Link(_, _, _, Present(span))
         if span.offset < source.length && source.charAt(span.offset) == '<'
           && span.end <= source.length && span.length >= 2 && source.charAt(span.end - 1) == '>' =>
       val children =
@@ -461,29 +462,30 @@ object CstParser:
           ++ leaf(source, span.end - 1, span.end)(CstNode.Token(_, _))
       Present(CstNode.Autolink(children, span))
 
-    case Inline.Link(_, _, content, span) if span.offset < source.length && source.charAt(span.offset) == '[' =>
+    case MdcNode.Link(_, _, content, Present(span))
+        if span.offset < source.length && source.charAt(span.offset) == '[' =>
       for
         collected <- notes
         note      <- collected.linkAt(span.offset)
         node      <- linkNode(source, span, note, content, markers, notes, image = false)
       yield node
 
-    case Inline.Image(_, _, _, span) if span.offset < source.length && source.charAt(span.offset) == '!' =>
+    case MdcNode.Image(_, _, _, Present(span)) if span.offset < source.length && source.charAt(span.offset) == '!' =>
       for
         collected <- notes
         note      <- collected.linkAt(span.offset)
         node      <- linkNode(source, span, note, note.alt.getOrElse(Chunk.empty), markers, notes, image = true)
       yield node
 
-    case Inline.Emphasis(content, span) =>
+    case MdcNode.Emphasis(content, Present(span)) =>
       emphasisNode(source, span, content, markers, notes, used = 1, strong = false)
 
-    case Inline.StrongEmphasis(content, span) =>
+    case MdcNode.Strong(content, Present(span)) =>
       emphasisNode(source, span, content, markers, notes, used = 2, strong = true)
 
     // A hard break's span runs to the next line's content, so it may cover a container marker; tiling with the
     // markers keeps the break's own characters and the marker as separate tokens.
-    case Inline.LineBreak(span)
+    case MdcNode.Break(Present(span))
         if span.offset < source.length
           && (source.charAt(span.offset) == ' ' || source.charAt(span.offset) == '\\') =>
       Present(CstNode.HardBreak(tile(source, span.offset, span.end, markers)(CstNode.Token(_, _)), span))
@@ -503,17 +505,23 @@ object CstParser:
   private def emphasisNode(
       source: String,
       span: Span,
-      content: Chunk[Inline],
+      content: Chunk[MdcNode.PhrasingContent],
       markers: Chunk[Marker],
       notes: Maybe[InlineNotes],
       used: Int,
       strong: Boolean
   ): Maybe[CstNode] =
-    def claimOf(item: Inline): (start: Int, end: Int) = item match
-      case Inline.Emphasis(inner, s)       => narrowed(inner, 1, s)
-      case Inline.StrongEmphasis(inner, s) => narrowed(inner, 2, s)
-      case other                           => (start = other.span.offset, end = other.span.end)
-    def narrowed(inner: Chunk[Inline], innerUsed: Int, s: Span): (start: Int, end: Int) =
+    def claimOf(item: MdcNode.PhrasingContent): (start: Int, end: Int) = item match
+      case MdcNode.Emphasis(inner, Present(s)) => narrowed(inner, 1, s)
+      case MdcNode.Strong(inner, Present(s))   => narrowed(inner, 2, s)
+      case other                               =>
+        other.span match
+          case Present(s) => (start = s.offset, end = s.end)
+          // A node the parse did not position claims nothing this can measure. A negative start propagates through
+          // every enclosing `narrowed` and trips the `openStart < 0` check below, so the emphasis degrades to
+          // verbatim rather than tile against a span it does not have.
+          case Absent => (start = -1, end = -1)
+    def narrowed(inner: Chunk[MdcNode.PhrasingContent], innerUsed: Int, s: Span): (start: Int, end: Int) =
       if inner.isEmpty then (start = s.offset, end = s.end)
       else
         val claims = inner.map(claimOf)
@@ -553,7 +561,7 @@ object CstParser:
       source: String,
       span: Span,
       note: LinkNote,
-      content: Chunk[Inline],
+      content: Chunk[MdcNode.PhrasingContent],
       markers: Chunk[Marker],
       notes: Maybe[InlineNotes],
       image: Boolean

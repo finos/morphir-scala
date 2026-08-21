@@ -3,7 +3,7 @@ package morphir.langkit.markdown.cst
 import kyo.*
 import morphir.langkit.core.Span
 import morphir.langkit.markdown.HeadingLevel
-import morphir.langkit.markdown.Inline
+import morphir.langkit.markdown.MdcNode
 
 /**
  * What a Parser construction site knows about a graduated block, as spans into the source.
@@ -72,15 +72,15 @@ private[markdown] enum CstFragment:
  * materialization needs to tile a prose interior.
  */
 private[markdown] final class InlineSlot:
-  private var slot: Maybe[Chunk[Inline]] = Absent
-  private var noted: Maybe[InlineNotes]  = Absent
+  private var slot: Maybe[Chunk[MdcNode.PhrasingContent]] = Absent
+  private var noted: Maybe[InlineNotes]                   = Absent
 
-  def fill(content: Chunk[Inline], notes: Maybe[InlineNotes]): Unit =
+  def fill(content: Chunk[MdcNode.PhrasingContent], notes: Maybe[InlineNotes]): Unit =
     slot = Present(content)
     noted = notes
 
-  def content: Maybe[Chunk[Inline]] = slot
-  def notes: Maybe[InlineNotes]     = noted
+  def content: Maybe[Chunk[MdcNode.PhrasingContent]] = slot
+  def notes: Maybe[InlineNotes]                      = noted
 
 /**
  * Collects fragments in source order while the parser runs. Threaded like the `definitions` map.

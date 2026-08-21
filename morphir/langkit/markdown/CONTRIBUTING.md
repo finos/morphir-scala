@@ -22,7 +22,7 @@ Depth is still available — it just goes downward, not sideways:
 
 | Where | What | Visibility |
 | --- | --- | --- |
-| `morphir.langkit.markdown` | the public surface: `Document`, `Block`, `HeadingLevel`, `FenceInfo`, `Parser`, `ParseError`, `Compiler`, and each writer's entry point | public |
+| `morphir.langkit.markdown` | the public surface: `MdcNode`, `HeadingLevel`, `FenceInfo`, `Parser`, `ParseError`, `Compiler`, and each writer's entry point | public |
 | `morphir.langkit.markdown.internal` | machinery no caller should name | `private[markdown]` |
 
 **This makes `morphir.langkit.markdown` a split package** — three published artifacts contribute types to it. On a

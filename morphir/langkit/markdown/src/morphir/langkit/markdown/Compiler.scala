@@ -16,6 +16,10 @@ import kyo.*
  * first, and [[text]] is the leaf that carries the literal runs. Every `String` this algebra hands you is raw source
  * text, never escaped. **Escaping is the writer's job.**
  *
+ * The method names are mdast's, because [[MdcNode]] is: one [[code]] for both source forms of a code block, one
+ * [[list]] reading `ordered` rather than a method per bullet style. A source-form distinction a target wants back is
+ * the CST's to answer, not this algebra's.
+ *
  * The rules for adding a node kind, and the shapes considered and rejected for this stage, are in this module's
  * `CONTRIBUTING.md`.
  *
@@ -33,28 +37,32 @@ trait Compiler[Out]:
    * @param children
    *   the compiled top-level blocks, in source order
    */
-  def document(children: Chunk[Out]): Out
+  def root(children: Chunk[Out]): Out
 
   /**
    * Compile a heading from its compiled inline content.
    *
-   * @param level
+   * @param depth
    *   one to six; [[HeadingLevel]] makes a level CommonMark cannot express unrepresentable, so no range check is needed
    * @param children
    *   the compiled inline content, in source order
    */
-  def heading(level: HeadingLevel, children: Chunk[Out]): Out
+  def heading(depth: HeadingLevel, children: Chunk[Out]): Out
 
   /** Compile a paragraph from its compiled inline content, in source order. */
   def paragraph(children: Chunk[Out]): Out
 
   /**
-   * Compile a fenced code block.
+   * Compile a code block, fenced or indented alike.
+   *
+   * One method for both source forms, because CommonMark renders both as `pre > code` and the AST keeps only what they
+   * mean. An indented block arrives with [[FenceInfo.empty]], which is the same thing a fence naming no language
+   * arrives with; a target that has to tell the two apart is asking the CST a question, not this algebra.
    *
    * @param info
    *   the parsed fence info string. CommonMark treats it as opaque, so read `info.language` for the first bare token
    *   rather than the whole of `info.raw`; it is [[kyo.Absent]] for a fence that names no language
-   * @param content
+   * @param value
    *   the code between the fences, verbatim and un-indented. Emit it unchanged apart from escaping.
    *
    * Mind the trailing newline, which is a property of the source rather than a guarantee: a closed, non-empty fence
@@ -62,24 +70,47 @@ trait Compiler[Out]:
    * last line actually had. CommonMark's expected HTML always closes the block with one, so a writer aiming at
    * byte-exact conformance has to reckon with the unterminated case rather than assume it
    */
-  def fencedCode(info: FenceInfo, content: String): Out
+  def code(info: FenceInfo, value: String): Out
 
   /**
-   * Combine compiled list items into a bullet list.
+   * Emit a raw HTML block verbatim.
    *
-   * @param items
+   * The only method on this algebra that must not escape its argument. A target that cannot express raw markup — a
+   * plain-text writer, say — should render it as literal text rather than pretend.
+   */
+  def html(value: String): Out
+
+  /**
+   * Compile a block quote from its already-compiled blocks.
+   *
+   * Takes blocks rather than prose, which is what makes this the first method of the algebra whose children are
+   * themselves block output. A target with no notion of quoting still has to produce something here; wrapping the
+   * children unchanged is the honest answer.
+   */
+  def blockquote(children: Chunk[Out]): Out
+
+  /**
+   * Combine compiled list items into a list, bullet or numbered.
+   *
+   * @param ordered
+   *   whether the items were written with number markers rather than bullets
+   * @param start
+   *   the first marker's number, present only for an ordered list. HTML omits the `start` attribute when it is 1.
+   * @param children
    *   the results of [[listItem]], in source order
    */
-  def unorderedList(items: Chunk[Out]): Out
+  def list(ordered: Boolean, start: Maybe[Int], children: Chunk[Out]): Out
 
-  /** Compile one bullet-list item from its compiled inline content. Called before [[unorderedList]]. */
+  /** Compile one list item from its compiled children. Called before [[list]]. */
   def listItem(children: Chunk[Out]): Out
+
+  /** Compile a thematic break. It has no children and no text, so this is a constant for most formats. */
+  def thematicBreak: Out
 
   /**
    * Compile a run of literal text.
    *
-   * The value is raw source text: never escaped, and never further parsed. **Escaping is the writer's job.** Inline
-   * markers that no other case claims yet — emphasis, links, code spans — still sit unparsed inside it.
+   * The value is raw source text: never escaped, and never further parsed. **Escaping is the writer's job.**
    */
   def text(value: String): Out
 
@@ -89,32 +120,32 @@ trait Compiler[Out]:
    * The value is literal text the spec has already normalised, so emit it unchanged apart from escaping. No inline
    * construct inside it is live: a backslash does not escape, and a backtick is just a backtick.
    */
-  def codeSpan(value: String): Out
+  def inlineCode(value: String): Out
 
   /**
    * Compile a link from its compiled label content.
    *
-   * `destination` is already URI-normalised; emit it as an attribute value and let escaping do the rest.
+   * `url` is already URI-normalised; emit it as an attribute value and let escaping do the rest.
    */
-  def link(destination: String, title: Maybe[String], children: Chunk[Out]): Out
+  def link(url: String, title: Maybe[String], children: Chunk[Out]): Out
 
   /** Compile an image. `alt` is plain text, as the attribute requires. */
-  def image(destination: String, title: Maybe[String], alt: String): Out
+  def image(url: String, title: Maybe[String], alt: String): Out
 
   /** Compile emphasis from its compiled content. */
   def emphasis(children: Chunk[Out]): Out
 
   /** Compile strong emphasis from its compiled content. */
-  def strongEmphasis(children: Chunk[Out]): Out
+  def strong(children: Chunk[Out]): Out
 
   /**
    * Compile raw HTML written inside prose.
    *
-   * The inline counterpart of [[htmlBlock]], and it carries the same warning: `value` is emitted verbatim, never
-   * escaped. A target that cannot emit HTML has to decide what to do with it -- dropping it is safer than escaping it,
-   * which would show the author their own markup.
+   * The inline counterpart of [[html]], and it carries the same warning: `value` is emitted verbatim, never escaped. A
+   * target that cannot emit HTML has to decide what to do with it -- dropping it is safer than escaping it, which would
+   * show the author their own markup.
    */
-  def rawHtml(value: String): Out
+  def inlineHtml(value: String): Out
 
   /**
    * Compile a hard line break.
@@ -122,32 +153,7 @@ trait Compiler[Out]:
    * The break the author asked for, as against the soft one that any line ending gives. A target that reflows its own
    * text still has to honour this one, because it is a request rather than an artefact of how the source was wrapped.
    */
-  def lineBreak: Out
-
-  /**
-   * Combine compiled list items into a numbered list.
-   *
-   * @param start
-   *   the first marker's number. HTML omits the `start` attribute when this is 1.
-   */
-  def orderedList(start: Int, items: Chunk[Out]): Out
-
-  /**
-   * Emit a raw HTML block verbatim.
-   *
-   * The only method on this algebra that must not escape its argument. A target that cannot express raw markup — a
-   * plain-text writer, say — should render it as literal text rather than pretend.
-   */
-  def htmlBlock(content: String): Out
-
-  /**
-   * Compile a block quote from its already-compiled blocks.
-   *
-   * Takes blocks rather than prose, which is what makes this the first method of the algebra whose children are
-   * themselves block output. A target with no notion of quoting still has to produce something here; wrapping the
-   * children unchanged is the honest answer.
-   */
-  def blockQuote(children: Chunk[Out]): Out
+  def break: Out
 
   /**
    * The newline CommonMark writes between block-level siblings inside a list item.
@@ -158,9 +164,6 @@ trait Compiler[Out]:
    * its empty value is.
    */
   def blockSeparator: Out
-
-  /** Compile a thematic break. It has no children and no text, so this is a constant for most formats. */
-  def thematicBreak: Out
 end Compiler
 
 object Compiler:
