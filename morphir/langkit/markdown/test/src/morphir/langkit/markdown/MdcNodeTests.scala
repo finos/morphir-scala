@@ -61,4 +61,12 @@ class MdcNodeTests extends Test[Any]:
       val phrasing: Chunk[MdcNode.PhrasingContent] = Chunk(text("x"), MdcNode.Break(span))
       assert(flow.size == 1 && phrasing.size == 2)
     }
+
+    "a lowered tree is fully positioned" in {
+      val root = Parser.parse("# T\n\n- a `c`\n\n> q\n") match
+        case Result.Success(document) => document
+        case other                    => throw new IllegalStateException(s"parse failed: $other")
+      def spans(node: MdcNode): Chunk[Maybe[Span]] = node.span +: node.childNodes.flatMap(spans)
+      assert(spans(root).forall(_.isDefined))
+    }
   }
