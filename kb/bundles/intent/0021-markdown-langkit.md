@@ -79,10 +79,13 @@ covers the whole of CommonMark 0.31.2.
 *Settled: whether the CST and the AST stay one tree.* Two trees, related by a total lowering, and the lowering
 is the parse. The CST (`CstNode`) holds every byte under the leaf-tiling invariant — its leaves partition the
 source, so printing it reproduces the document exactly, checked over the whole conformance corpus. The AST
-(`Document`) holds the meaning. `Lower.lower: CstNode.Document => Document` is total, `Parser.parse` produces
-its AST only by lowering the CST, and a second conformance suite proves the lowered pipeline renders all 652
-examples byte for byte. The deferred-prose machinery inside the parser survives as the engine that fills the
-CST's inline slots once every definition is known; the definitions map is that machinery's internal
+(`MdcNode`, rooted at `MdcNode.Root`) holds the meaning. `Lower.lower: CstNode.Document => MdcNode.Root` is
+total, `Parser.parse` produces its AST only by lowering the CST, and a second conformance suite proves the
+lowered pipeline renders all 652 examples byte for byte. The AST now speaks mdast vocabulary: one node type
+(`MdcNode`) instead of a case class per kind, content-category unions (`FlowContent`, `PhrasingContent`) in
+place of separate block/inline hierarchies, and an optional `Span` carried only where a node was produced by
+lowering rather than generated. The deferred-prose machinery inside the parser survives as the engine that
+fills the CST's inline slots once every definition is known; the definitions map is that machinery's internal
 bookkeeping, no longer the AST's source of truth — lowering re-collects definitions from the CST's own nodes.
 
 *Settled: how much of CommonMark the owned parser covers.* All of it — 652 of 652 examples, every section of the
