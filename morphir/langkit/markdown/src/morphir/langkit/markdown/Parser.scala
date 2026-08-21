@@ -27,8 +27,13 @@ object Parser:
   def parse(source: String): Result[ParseError, Document] =
     parse(source, ScanBudget.default)
 
+  /**
+   * The AST is produced only by lowering: one block-phase pass records the CST's fragments and fills its inline slots,
+   * the CST assembles from them, and [[morphir.langkit.markdown.cst.Lower]] walks it down to the [[Document]]. The CST
+   * is the parse; the AST is its meaning.
+   */
   def parse(source: String, budget: ScanBudget): Result[ParseError, Document] =
-    parseWithMetrics(source, budget).map(_._1)
+    parseFragments(source, budget).map(fragments => cst.Lower.lower(cst.CstParser.assembleDocument(source, fragments)))
 
   private[markdown] def parseWithMetrics(
       source: String,

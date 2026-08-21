@@ -76,14 +76,14 @@ platforms and maps onto the CST without losing spans. Until then this stays open
 Approach rather than merely extend it. The case for replacing it is weaker than it was: the owned parser now
 covers the whole of CommonMark 0.31.2.
 
-*Settled: whether the CST and the AST stay one tree.* Two trees, related by a total lowering. The CST
-(`CstNode`) holds every byte under the leaf-tiling invariant — its leaves partition the source, so printing it
-reproduces the document exactly, checked over the whole conformance corpus. The AST (`Document`) holds the
-meaning. `Lower.lower: CstNode.Document => Document` is total, and a second conformance suite proves the lowered
-pipeline renders all 652 examples byte for byte, same as the direct parse. What remains inside the module is
-mechanical: the parser still builds the AST directly as well, and retiring that path — deleting the deferred
-prose machinery and the threaded definitions map so the AST is produced only by lowering — is the tail of the
-same slice.
+*Settled: whether the CST and the AST stay one tree.* Two trees, related by a total lowering, and the lowering
+is the parse. The CST (`CstNode`) holds every byte under the leaf-tiling invariant — its leaves partition the
+source, so printing it reproduces the document exactly, checked over the whole conformance corpus. The AST
+(`Document`) holds the meaning. `Lower.lower: CstNode.Document => Document` is total, `Parser.parse` produces
+its AST only by lowering the CST, and a second conformance suite proves the lowered pipeline renders all 652
+examples byte for byte. The deferred-prose machinery inside the parser survives as the engine that fills the
+CST's inline slots once every definition is known; the definitions map is that machinery's internal
+bookkeeping, no longer the AST's source of truth — lowering re-collects definitions from the CST's own nodes.
 
 *Settled: how much of CommonMark the owned parser covers.* All of it — 652 of 652 examples, every section of the
 specification. *Settled: whether the AST shape survives the conformance suite.* It did, though it grew: list

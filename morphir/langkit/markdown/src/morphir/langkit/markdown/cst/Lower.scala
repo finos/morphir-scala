@@ -24,7 +24,7 @@ object Lower:
 
   def lower(document: CstNode.Document): Document =
     val definitions = collectDefinitions(document)
-    Document(blocks(document.children, definitions), document.span)
+    Document(blocks(document.children, definitions, document.span.end), document.span)
 
   /** Every definition in the tree, first spelling of a label winning, in document order. */
   private def collectDefinitions(root: CstNode): Map[String, LinkDefinition] =
@@ -64,7 +64,7 @@ object Lower:
       case CstNode.PhantomIndent(columns, _) => out.append(" " * columns)
       case _                                 => node.childNodes.foreach(walk)
     children.foreach(walk)
-    out.toString.replace("\r", "")
+    out.toString.replace("\r\n", "\n")
 
   /**
    * Code content from a code block's leaves, reconstructed in columns.
@@ -81,13 +81,12 @@ object Lower:
     out.append(" " * startPhantom)
     def advance(char: Char): Unit =
       if char == '\t' then column = ((column / 4) + 1) * 4 else column += 1
-    def walkText(text: String): Unit =
-      text.foreach { char =>
+    def walkText(raw: String): Unit =
+      raw.replace("\r\n", "\n").foreach { char =>
         if char == '\n' then
           out.append('\n')
           column = 0
           leading = true
-        else if char == '\r' then ()
         else if leading && char == '\t' then
           val stop = ((column / 4) + 1) * 4
           while column < stop do
@@ -108,7 +107,7 @@ object Lower:
     children.foreach(walk)
     out.toString
 
-  private def blocks(children: Chunk[CstNode], definitions: Map[String, LinkDefinition]): Chunk[Block] =
+  private def blocks(children: Chunk[CstNode], definitions: Map[String, LinkDefinition], docEnd: Int): Chunk[Block] =
     // A block's first line began after whatever markers its container spent on it, and those leaves sit in the gap
     // before the block, not inside it. The running line state — column reached, phantom columns owed — is what an
     // indented code block needs to reconstruct its first line's indentation.
@@ -136,17 +135,17 @@ object Lower:
         case CstNode.Paragraph(children, span) =>
           out.addOne(Block.Paragraph(inlines(children, definitions), span))
         case CstNode.FencedCode(children, span) =>
-          out.addOne(loweredFence(children, span))
+          out.addOne(loweredFence(children, span, docEnd))
         case CstNode.IndentedCode(children, span) =>
           out.addOne(Block.IndentedCode(indentedContent(codeText(children, column, phantom)), span))
         case CstNode.HtmlBlock(children, span) =>
           out.addOne(Block.HtmlBlock(contentText(children), span))
         case CstNode.BlockQuote(children, span) =>
-          out.addOne(Block.BlockQuote(blocks(children, definitions), span))
+          out.addOne(Block.BlockQuote(blocks(children, definitions, docEnd), span))
         case CstNode.BulletList(_, tight, children, span) =>
-          out.addOne(Block.UnorderedList(items(children, definitions), tight, span))
+          out.addOne(Block.UnorderedList(items(children, definitions, docEnd), tight, span))
         case CstNode.OrderedList(start, _, tight, children, span) =>
-          out.addOne(Block.OrderedList(start, items(children, definitions), tight, span))
+          out.addOne(Block.OrderedList(start, items(children, definitions, docEnd), tight, span))
         case _ =>
           // Link reference definitions contribute no block.
           ()
@@ -159,13 +158,13 @@ object Lower:
     }
     out.result()
 
-  private def items(children: Chunk[CstNode], definitions: Map[String, LinkDefinition]): Chunk[ListItem] =
+  private def items(children: Chunk[CstNode], definitions: Map[String, LinkDefinition], docEnd: Int): Chunk[ListItem] =
     children.collect { case CstNode.ListItem(itemChildren, span) =>
-      ListItem(blocks(itemChildren, definitions), span)
+      ListItem(blocks(itemChildren, definitions, docEnd), span)
     }
 
   /** Fence metadata from the opening token's info string; content from the text leaves, indentation removed. */
-  private def loweredFence(children: Chunk[CstNode], span: Span): Block =
+  private def loweredFence(children: Chunk[CstNode], span: Span, docEnd: Int): Block =
     val opening     = children.collectFirst { case CstNode.Token(text, _) => text }.getOrElse("")
     val indentation = opening.takeWhile(_ == ' ').length
     val afterIndent = opening.drop(indentation)
@@ -186,9 +185,11 @@ object Lower:
     }
     val body = if raw.startsWith("\n") then raw.substring(1) else raw
     // A fence cut short by its container ending lost the line ending that closed its last line — the container's
-    // span could not carry it — so an unterminated fence whose body does not end in one gets it back.
-    val restored = if !closed && body.nonEmpty && !body.endsWith("\n") then body + "\n" else body
-    val content  =
+    // span could not carry it — so an unterminated fence whose body does not end in one gets it back. A fence that
+    // ran to the end of the input lost nothing: the document simply has no final line ending.
+    val restored =
+      if !closed && body.nonEmpty && !body.endsWith("\n") && span.end < docEnd then body + "\n" else body
+    val content =
       if restored.isEmpty then restored
       else
         val trailing = restored.endsWith("\n")
@@ -356,7 +357,7 @@ object Lower:
    * being a continuation.
    */
   private def proseValue(raw: String): String =
-    val text = raw.replace("\r", "")
+    val text = raw.replace("\r\n", "\n")
     if !text.contains('\n') then text
     else
       val out   = new StringBuilder

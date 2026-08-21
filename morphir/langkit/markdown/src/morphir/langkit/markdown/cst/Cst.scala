@@ -207,9 +207,12 @@ object CstParser:
 
   def parse(source: String): CstNode.Document =
     Parser.parseFragments(source) match
-      case Result.Success(fragments) =>
-        CstNode.Document(assembleRegion(source, Span(0, source.length), Chunk.empty, fragments), Span(0, source.length))
-      case _ => fallback(source)
+      case Result.Success(fragments) => assembleDocument(source, fragments)
+      case _                         => fallback(source)
+
+  /** The document from an already-run block phase; [[Parser.parse]] uses this to lower in a single pass. */
+  private[markdown] def assembleDocument(source: String, fragments: Chunk[CstFragment]): CstNode.Document =
+    CstNode.Document(assembleRegion(source, Span(0, source.length), Chunk.empty, fragments), Span(0, source.length))
 
   private def fallback(source: String): CstNode.Document =
     val span = Span(0, source.length)
