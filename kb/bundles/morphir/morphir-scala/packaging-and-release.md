@@ -33,7 +33,7 @@ shows every path, end to end.
 ```mermaid
 flowchart TD
     PR[Pull request] --> Gate[ci gate: lint, tests, kb checks]
-    Push[Push to main, 0.4.x or develop] --> Gate
+    Push[Push to main or 0.4.x] --> Gate
     Rel[GitHub Release published] --> Gate
     Dispatch[Manual dispatch] --> Gate
 
@@ -73,8 +73,8 @@ cut from it, and signing comes before verification, which comes before either up
 
 | Event | GitHub Actions trigger | Condition | What runs |
 | --- | --- | --- | --- |
-| Pull request | `pull_request` | into `main`, `0.4.x`, `develop` | `ci` gate; nothing publishes. Desktop packaging also runs, `linux-amd64` alone, unless the switch below turns it off |
-| Push | `push` | to `main`, `0.4.x`, `develop` | `ci` gate, then `publish` (`ci.publish`, every area) once it passes. Desktop packaging also runs, all five platforms, unless the switch below turns it off |
+| Pull request | `pull_request` | into `main`, `0.4.x` | `ci` gate; nothing publishes. Desktop packaging also runs, `linux-amd64` alone, unless the switch below turns it off |
+| Push | `push` | to `main`, `0.4.x` | `ci` gate, then `publish` (`ci.publish`, every area) once it passes. Desktop packaging also runs, all five platforms, unless the switch below turns it off |
 | Release published | `release`, `types: [published]` | not scoped to a branch | `ci` gate, then whichever of `publish`, `publish-plugins` or `desktop-release` the tag's namespace routes to; see [Release routing](#release-routing). Desktop packaging (all five platforms) always runs alongside it, since a release's `github.ref` carries a tag and `desktop-matrix` treats any tag as the full-platform case |
 | Manual dispatch | `workflow_dispatch` | whichever ref is chosen | the same jobs that ref would otherwise trigger |
 
@@ -103,7 +103,7 @@ unnamespaced library stream, a check that also rejects `refs/tags/desktop/v...` 
 guards are mutually exclusive by construction. A single tag can only ever start one of `refs/tags/v`,
 `refs/tags/desktop/v` or `refs/tags/mill-plugins/v`, so a release never triggers two publish paths at
 once. Snapshot and milestone publishing from a branch push is unaffected by this table: `publish`
-still runs `ci.publish` on `main`, `develop` and `0.4.x`, publishing every area together, each stamped
+still runs `ci.publish` on `main` and `0.4.x`, publishing every area together, each stamped
 from its own changelog. Only the release path routes by tag.
 
 ### Desktop packaging in ordinary CI
@@ -114,7 +114,7 @@ rather than at release time. Four jobs carry this:
 
 | Job | Does |
 | --- | --- |
-| `desktop-matrix` | Computes the platform set: all five tokens on a tag, a published release, or a push to `main`, `develop` or `0.4.x`; `linux-amd64` alone everywhere else (a pull request). Outputs both the matrix JSON and the same set as a comma-separated token list. |
+| `desktop-matrix` | Computes the platform set: all five tokens on a tag, a published release, or a push to `main` or `0.4.x`; `linux-amd64` alone everywhere else (a pull request). Outputs both the matrix JSON and the same set as a comma-separated token list. |
 | `desktop-package` | The same packaging matrix described below, now sized from `desktop-matrix`'s output instead of always covering all five. |
 | `desktop-verify` | Downloads the packaged artifacts, normalizes staging the way `desktop-release` does, then runs `ci.desktop.canonicalize` and `ci.desktop.verify` over exactly that subset, with the signature check relaxed because nothing signs `checksums.txt` here and a pull request carries no GPG secret. No signing and no upload happen in this job, or anywhere in ordinary CI. |
 | `packaging` | Aggregates the three above, the way `ci` aggregates lint and the test jobs. It reads `desktop-matrix` first, because a skip on its own is ambiguous: `desktop-package` also skips when `ci` fails upstream. If `desktop-matrix` was skipped the switch is off and every member must be skipped together; if it ran, packaging was expected to run and only success will do. |
@@ -138,8 +138,8 @@ packaging must never weaken a real release. `desktop-release` depends on `packag
 
 `excludedModuleSubstrings` in `ci/package.mill.yaml` drops `.integration.` (test-only) and
 `.desktop.dist.`: the desktop archives publish through the separate `ci.desktop` destination described
-below, because there is no archive to publish on an ordinary snapshot run. Snapshots publish from `main`
-and `develop`; milestones and releases publish from `0.4.x` and tags. See
+below, because there is no archive to publish on an ordinary snapshot run. Snapshots publish from `main`;
+milestones and releases publish from `0.4.x` and tags. See
 [Continuous Integration](/continuous-integration.md) for the exact coordinate formats, which this page
 reuses rather than restating.
 

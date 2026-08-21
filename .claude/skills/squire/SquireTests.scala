@@ -41,12 +41,11 @@ object SquireLauncherFixtures:
     if !path.toFile.setExecutable(true) then throw new AssertionError(s"could not make $path executable")
 
 object SquireCiPolicy:
-  val SupportedBranches = List("main", "0.4.x", "develop")
+  val SupportedBranches = List("main", "0.4.x")
   val PublishPredicate  =
     "github.repository == 'finos/morphir-scala' && " +
       "(github.ref == 'refs/heads/main' || " +
       "github.ref == 'refs/heads/0.4.x' || " +
-      "github.ref == 'refs/heads/develop' || " +
       "startsWith(github.ref, 'refs/tags/v'))"
   val PublishPluginsPredicate =
     "github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/mill-plugins/v')"
@@ -58,7 +57,6 @@ object SquireCiPolicy:
   val CachePredicate =
     "github.ref == 'refs/heads/main' || " +
       "github.ref == 'refs/heads/0.4.x' || " +
-      "github.ref == 'refs/heads/develop' || " +
       "startsWith(github.ref, 'refs/tags/')"
   val SnapshotCommands = List(
     "echo \"MORPHIR_PUBLISH_MODE=snapshot\" >> \"$GITHUB_ENV\"",
@@ -344,8 +342,8 @@ object SquireCiPolicy:
     val publish  = publishBlock(workflow)
     val snapshot = indentedBlock(publish, "- name: Configure snapshot version", 6)
     expect(
-      scalar(snapshot, "if") == "github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'",
-      "snapshot step must run only on main and develop"
+      scalar(snapshot, "if") == "github.ref == 'refs/heads/main'",
+      "snapshot step must run only on main"
     )
     val lines    = snapshot.linesIterator.toList
     val runIndex = lines.indexWhere(_.trim == "run: |")
@@ -994,12 +992,12 @@ class SquireCliSpec extends Test[Any]:
       val json       = new StringBuilder
       for
         textExit <- SquireCli.runBranch(
-          BranchRefreshOpts(dryRun = true),
+          BranchRefreshOpts(target = "develop", dryRun = true),
           textRunner,
           value => text.append(value)
         )
         jsonExit <- SquireCli.runBranch(
-          BranchRefreshOpts(dryRun = true, json = true),
+          BranchRefreshOpts(target = "develop", dryRun = true, json = true),
           jsonRunner,
           value => json.append(value)
         )
@@ -1642,7 +1640,7 @@ class SquireCiPolicySpec extends Test[Any]:
         assert(scala.util.Try(assertPublishTargetInventory(withoutPlugin)).isFailure)
     }
 
-    "scopes the exact snapshot configuration to main and develop" in {
+    "scopes the exact snapshot configuration to main" in {
       assertSnapshotPolicy(workflow)
       assert(true)
     }
@@ -2018,13 +2016,13 @@ class SquireCiPolicySpec extends Test[Any]:
     "rejects representative branch snapshot and publish regressions" in {
       val pushWithExtraBranch = replaceOnce(
         workflow,
-        "  push:\n    branches: [\"main\", \"0.4.x\", \"develop\"]",
-        "  push:\n    branches: [\"main\", \"0.4.x\", \"develop\", \"feature\"]"
+        "  push:\n    branches: [\"main\", \"0.4.x\"]",
+        "  push:\n    branches: [\"main\", \"0.4.x\", \"feature\"]"
       )
       val broadSnapshotCondition = replaceOnce(
         workflow,
-        "        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'\n        run: |",
-        "        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/feature'\n        run: |"
+        "        if: github.ref == 'refs/heads/main'\n        run: |",
+        "        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature'\n        run: |"
       )
       val extraSnapshotWrite = replaceOnce(
         workflow,
@@ -2064,7 +2062,6 @@ class SquireCiPolicySpec extends Test[Any]:
       val predicates = List(
         "github.ref == 'refs/heads/main'",
         "github.ref == 'refs/heads/0.4.x'",
-        "github.ref == 'refs/heads/develop'",
         "startsWith(github.ref, 'refs/tags/')"
       )
       val mutations =
@@ -2558,27 +2555,22 @@ class SquireBranchSpec extends Test[Any]:
   import SquireBranchFixtures.*
 
   "CLI options" - {
-    "default to develop without dry-run or JSON" in {
+    // `--target` has no default. It defaulted to `develop` while that branch existed; with the
+    // repository on trunk-based development there is no branch it would be right to assume, so the
+    // caller names one.
+    "require a target rather than assuming one" in {
       val parsed = Parser[BranchRefreshOpts].parse(Seq.empty)
-      assert(parsed == Right((BranchRefreshOpts(), Seq.empty)))
+      assert(parsed.isLeft, s"a bare refresh must not parse, got $parsed")
     }
 
+    // A bare positional is refused at parse time now that `--target` carries no default. It used to
+    // parse — the default supplied the target and the positional fell through to a later check — so
+    // the refusal moved earlier rather than away, and still happens before any process runs.
     "accept a named target and reject a bare positional target before any process" in {
       val named      = Parser[BranchRefreshOpts].parse(Seq("--target", "release-line"))
       val positional = SquireApp.BranchRefreshCmd.parser.detailedParse(Seq("release-line"))
-      positional match
-        case Left(_)                     => assert(false)
-        case Right((options, remaining)) =>
-          val runner = BranchRecordingRunner(Map.empty)
-          Abort.run[SquireError](
-            SquireCli.runBranch(options, remaining.all, runner, _ => ())
-          ).map { outcome =>
-            assert(
-              named == Right((BranchRefreshOpts(target = "release-line"), Seq.empty)) &&
-                failureContains(outcome, "unexpected positional arguments", "release-line") &&
-                runner.requests.isEmpty
-            )
-          }
+      assert(named == Right((BranchRefreshOpts(target = "release-line"), Seq.empty)))
+      assert(positional.isLeft, s"a bare positional target must not parse, got $positional")
     }
   }
 

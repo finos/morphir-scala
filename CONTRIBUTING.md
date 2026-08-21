@@ -15,8 +15,8 @@ NOTE: All contributors must have a contributor license agreement (CLA) on file w
 
 ## Development and snapshot releases
 
-Feature and contributor pull requests target `develop`. Pull-request events run the validation jobs, but never
-publish artifacts. After a pull request is merged, a successful push to `main` or `develop` runs the full aggregate
+Feature and contributor pull requests target `main`. Pull-request events run the validation jobs, but never
+publish artifacts. After a pull request is merged, a successful push to `main` runs the full aggregate
 CI gate and then automatically publishes a traceable snapshot from the canonical `finos/morphir-scala` repository.
 Publication credentials remain in that repository's CI environment; contributors neither need nor receive them
 locally.
@@ -28,15 +28,15 @@ Each snapshot uses an exact coordinate. On `main`, the coordinate is `$releaseLi
 0.5.0-57-SNAPSHOT
 ```
 
-On `develop`, the coordinate is `$releaseLine-$branch.$distance.g$abbrev-SNAPSHOT`, for example:
+On any other publishing branch, the coordinate is `$releaseLine-$branch.$distance.g$abbrev-SNAPSHOT`, for example:
 
 ```text
-0.5.0-M04-develop.57.gbd4cd2-SNAPSHOT
-0.5.0-develop.57.gbd4cd2-SNAPSHOT
+0.5.0-M04-0.4.x.57.gbd4cd2-SNAPSHOT
+0.5.0-0.4.x.57.gbd4cd2-SNAPSHOT
 ```
 
-The release line may include a qualifier (`M04`). On `develop`, the coordinate also records the branch (`develop`),
-the commit distance from the nearest version tag (`57`), and a `g` followed by the first six hexadecimal characters
+The release line may include a qualifier (`M04`). Off `main`, the coordinate also records the branch, the commit
+distance from the nearest version tag (`57`), and a `g` followed by the first six hexadecimal characters
 of the Git revision (`bd4cd2`), before the terminal `SNAPSHOT` marker. Consumers must add the Sonatype snapshot
 repository and depend on the exact coordinate they intend to test:
 
@@ -80,14 +80,15 @@ The focused CI jobs are:
 
 The cache changes performance only. A disabled or empty cache must not change build results.
 
-### Promoting `develop` to `main`
+### Refreshing a long-lived branch from `main`
 
-Maintainers open a `develop`-to-`main` release pull request and **MUST squash-merge it**. Confirming the squash merge
-in GitHub is an operator precondition: the refresh script can prove the merged pull request and its ancestry, but it
-cannot determine which merge method GitHub used.
+`main` is the trunk: pull requests target it and merge into it, and there is no integration branch in front of it.
+See [decision 0014](kb/bundles/morphir/morphir-scala/decisions/0014-trunk-based-development-on-main.md) for why the
+`develop` branch was retired.
 
-After the squash merge is visible on `origin/main`, verify that `origin` is the intended canonical repository and that
-the GitHub CLI is authenticated and resolves the same repository:
+A long-lived branch that is *behind* `main` — a release line such as `0.4.x`, say — can be refreshed from it, once
+the branch's own pull request into `main` has been squash-merged and is visible on `origin/main`. First verify that
+`origin` is the intended canonical repository and that the GitHub CLI is authenticated and resolves the same one:
 
 ```bash
 git remote get-url origin
@@ -96,20 +97,20 @@ gh repo view --json nameWithOwner --jq .nameWithOwner
 ```
 
 Stop if the remote is not the canonical `finos/morphir-scala` repository or the final command does not print
-`finos/morphir-scala`. Then prove the default `develop` refresh without pushing, review the reported branch and SHAs,
-and perform it:
+`finos/morphir-scala`. Then prove the refresh without pushing, review the reported branch and SHAs, and perform it:
 
 ```bash
-.claude/skills/squire/squire branch refresh --dry-run
-.claude/skills/squire/squire branch refresh
+.claude/skills/squire/squire branch refresh --target <branch> --dry-run
+.claude/skills/squire/squire branch refresh --target <branch>
 ```
 
-The equivalent assisted workflow is `/squire branch refresh`. The command defaults to `develop`; for a different
-integration branch, pass `--target <branch>` to both invocations. It fetches remote-tracking refs but does not
-check out a branch or mutate the working tree. Before updating the remote target, it requires the target SHA to match
-the merged pull request's exact head and requires that pull request's merge commit to be an ancestor of
-`origin/main`. It therefore refuses to refresh if `develop` advanced after the matching pull request. The only remote
-update it can make is protected by `--force-with-lease`; it never uses or recommends unconditional force.
+The equivalent assisted workflow is `/squire branch refresh --target <branch>`. `--target` is required and has no
+default; it defaulted to `develop` while that branch existed, and there is now no branch it would be right to assume.
+The command fetches remote-tracking refs but does not check out a branch or mutate the working tree. Before updating
+the remote target, it requires the target SHA to match the merged pull request's exact head and requires that pull
+request's merge commit to be an ancestor of `origin/main`. It therefore refuses to refresh if the target advanced
+after the matching pull request. The only remote update it can make is protected by `--force-with-lease`; it never
+uses or recommends unconditional force.
 
 ## Benchmarking
 

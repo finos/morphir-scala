@@ -6,9 +6,9 @@ env:
 
 on:
   pull_request:
-    branches: ["main", "0.4.x", "develop"]
+    branches: ["main", "0.4.x"]
   push:
-    branches: ["main", "0.4.x", "develop"]
+    branches: ["main", "0.4.x"]
   release:
     types:
       - published
@@ -326,7 +326,7 @@ jobs:
     # under 15 minutes and has also exceeded 30 on the same branch with no JS sources changed, and a
     # timed-out job is reported as *cancelled*, which reads like an unrelated failure. Pull requests
     # always pay a cold build here: the JS build cache is keyed by the exact commit SHA and is only
-    # saved on main, develop, 0.4.x and tags, so a PR can never restore it.
+    # saved on main, 0.4.x and tags, so a PR can never restore it.
     timeout-minutes: 45
     strategy:
       fail-fast: false
@@ -371,7 +371,7 @@ jobs:
 
       - name: Cache JS build output
         # when in master repo: all commits to main branch and all additional tags
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/')
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || startsWith(github.ref, 'refs/tags/')
         uses: actions/cache/save@v6
         with:
           path: |
@@ -427,7 +427,7 @@ jobs:
 
       - name: Cache JS build output
         # when in master repo: all commits to main branch and all additional tags
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/')
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || startsWith(github.ref, 'refs/tags/')
         uses: actions/cache/save@v6
         with:
           path: |
@@ -497,14 +497,16 @@ jobs:
           #
           # `github.ref_name` is part of the key because the commit alone does not identify a run.
           # GitHub lets any branch read a cache written on the default branch, and a fast-forward
-          # `main`-to-`develop` sync leaves both branches on one commit — so `develop`'s *first*
+          # `main`-to-`develop` sync left both branches on one commit — so `develop`'s *first*
           # run restored `main`'s entry on a fresh runner and failed exactly as the reverted
           # cross-commit restore did: the same 11 GithubClientTests assertions, this time
           # `SnapshotNotFound`, because `out/morphir/**/native/` carries the task metadata that
           # tells Mill the work is done while the no-daemon sandbox holding the blessed snapshots
           # is not cached. Proven at f83f27b4 on 2026-08-19: `main` cold gave 81 passed / 0 failed,
-          # `develop` restoring that entry gave 70 / 11, and a cold re-run gave 81 / 0 again. The
-          # ref keeps the two apart while a re-run still hits its own entry. See bead morphir-8qz;
+          # `develop` restoring that entry gave 70 / 11, and a cold re-run gave 81 / 0 again.
+          # `develop` has since been retired, but the reason holds for any two refs sharing one
+          # commit — a release branch cut from `main`, or a re-run of the same SHA. The ref keeps
+          # them apart while a re-run still hits its own entry. See bead morphir-8qz;
           # the other Mill build-output caches in this file share the unscoped shape and have not
           # yet been changed.
           key: ${{ runner.os }}-mill-native-${{ matrix.java }}-${{ github.ref_name }}-${{ github.sha }}
@@ -550,7 +552,7 @@ jobs:
 
       - name: Cache JVM build output
         # when in master repo: all commits to main branch and all additional tags
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/')
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || startsWith(github.ref, 'refs/tags/')
         uses: actions/cache/save@v6
         with:
           path: |
@@ -562,7 +564,7 @@ jobs:
   desktop-matrix:
     # A desktop/v* tag or the desktop release it came from always packages all five platforms,
     # ignoring the switch below — turning off ordinary-CI packaging must never weaken a real
-    # release. A push to main, develop or 0.4.x also packages all five; everything else (a pull
+    # release. A push to main or 0.4.x also packages all five; everything else (a pull
     # request, or a v*/mill-plugins/v* release, which are not this job's business) packages the
     # three-leg smoke matrix, one per operating system. This job just computes which;
     # desktop-package and desktop-verify consume its outputs.
@@ -600,7 +602,7 @@ jobs:
           # "$GITHUB_EVENT_NAME" == "release" test would start all five packaging runners for one.
           # The ref carries the tag on a release event too, so this covers a bare tag push and the
           # release cut from it alike.
-          if [[ "$GITHUB_REF" == refs/tags/desktop/v* || "$GITHUB_REF" == "refs/heads/main" || "$GITHUB_REF" == "refs/heads/develop" || "$GITHUB_REF" == "refs/heads/0.4.x" ]]; then
+          if [[ "$GITHUB_REF" == refs/tags/desktop/v* || "$GITHUB_REF" == "refs/heads/main" || "$GITHUB_REF" == "refs/heads/0.4.x" ]]; then
             MATRIX='{"include":[{"token":"mac-aarch64","runner":"macos-14"},{"token":"mac-amd64","runner":"macos-15-intel"},{"token":"linux-amd64","runner":"ubuntu-24.04"},{"token":"linux-aarch64","runner":"ubuntu-24.04-arm"},{"token":"win-amd64","runner":"windows-latest"}]}'
             PLATFORMS="mac-aarch64,mac-amd64,linux-amd64,linux-aarch64,win-amd64"
           else
@@ -878,7 +880,7 @@ jobs:
     # plugin family releases through the sibling publish-plugins job below, gated on
     # refs/tags/mill-plugins/v*; the desktop application ships through desktop-release, gated on
     # refs/tags/desktop/v*.
-    if: github.repository == 'finos/morphir-scala' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/v'))
+    if: github.repository == 'finos/morphir-scala' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || startsWith(github.ref, 'refs/tags/v'))
     needs: [ci]
 
     # Without this the job inherits GitHub's six-hour default. An `apt-get update` wedged against
@@ -941,7 +943,7 @@ jobs:
           key: ${{ runner.os }}-mill-js-desktop-25-${{ github.sha }}
 
       - name: Configure snapshot version
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+        if: github.ref == 'refs/heads/main'
         run: |
           echo "MORPHIR_PUBLISH_MODE=snapshot" >> "$GITHUB_ENV"
           echo "MORPHIR_PUBLISH_BRANCH=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
@@ -965,7 +967,7 @@ jobs:
           # shellcheck disable=SC1090
           source "$envfile"
           set +a
-          # Branch pushes (main, develop, 0.4.x) are the snapshot case and keep publishing every
+          # Branch pushes (main, 0.4.x) are the snapshot case and keep publishing every
           # area — libraries and plugins — each stamped from its own changelog, via ci.publish.
           # A refs/tags/v* release is the routed case: this job's guard above already limits the
           # tag path to that one namespace, so ci.sonatype.libraries is the only kind-specific
@@ -982,7 +984,7 @@ jobs:
     # bare v* library tag or a desktop/v* tag — both continue the ref differently ('refs/tags/v...'
     # and 'refs/tags/d...' respectively) — so this job and `publish` above can never both claim
     # the same tag. Unlike `publish`, this job has no branch case: the plugin family's snapshot
-    # publishing already happens from the `publish` job's ci.publish call on main/develop/0.4.x;
+    # publishing already happens from the `publish` job's ci.publish call on main/0.4.x;
     # only the release path is routed separately.
     if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/mill-plugins/v')
     needs: [ci]

@@ -34,6 +34,7 @@ past-tense and answers *why is it shaped this way*. See
 ## Build and tooling
 
 * [Keep compiling Mill Morphir plugins into the metabuild](/decisions/0012-keep-source-metabuild-for-mill-morphir-plugins.md) - Normal builds continue to compile mill-plugins/morphir sources into the metabuild; pinned Central artifacts are deferred until bootstrap experience is measured.
+* [Trunk-based development on main; the develop branch is retired](/decisions/0014-trunk-based-development-on-main.md) - Pull requests target main and merge into it. The develop integration branch and its promotion ritual are removed, because the second branch cost more than it returned.
 
 ## Published libraries
 

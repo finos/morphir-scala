@@ -22,7 +22,7 @@ branches.
 | `test-js` | ScalaJS tests, including the WebAssembly link variants, for every JS/Wasm module except the desktop/UI subset (see `test-js-desktop`) |
 | `test-js-desktop` | The same ScalaJS/WebAssembly workload as `test-js`, scoped to `morphir.ui`, `morphir.desktop` and `morphir.appkit.electron`. Split into its own runner because linking that subset alongside the rest of the JS tree in one Mill daemon exceeded the 8 GB heap in `.mill-jvm-opts`; `ci.testJs`/`ci.testJsWasmLink` (`ci/MorphirCi.mill`) resolve the shared wildcard once and partition it with `millbuild.JsTestSelectors`, so the two jobs' targets are exhaustive and disjoint by construction. |
 | `test-native` | Scala Native tests |
-| `publish` | Sonatype publication via Mill `ci.publish`. Branch snapshots on `main` and `develop`; VCS milestones and releases on `0.4.x` and tags. The publish set is whatever Mill resolves for `__.publishSonatypeCentral`, including the Mill Morphir plugin family (`org.finos.morphir.mill`); the test-only `integration` module is not a publish module and is not uploaded. Destination tasks live under `ci.sonatype.*`. |
+| `publish` | Sonatype publication via Mill `ci.publish`. Branch snapshots on `main`; VCS milestones and releases on `0.4.x` and tags. The publish set is whatever Mill resolves for `__.publishSonatypeCentral`, including the Mill Morphir plugin family (`org.finos.morphir.mill`); the test-only `integration` module is not a publish module and is not uploaded. Destination tasks live under `ci.sonatype.*`. |
 | `desktop-package` | Matrix job, one runner per platform token (`mac-aarch64`, `mac-amd64`, `linux-amd64`, `linux-aarch64`, `win-amd64`). Links Scala.js with `fullLinkJS` and runs `electron-builder`, then uploads the raw output as a workflow artifact. Runs only when a GitHub Release publishes or the ref is a tag. |
 | `desktop-release` | One Linux runner. Canonicalizes the staged assets, signs `checksums.txt`, verifies, then uploads to the GitHub Release and to Sonatype Central as one bundle. Destination tasks live under `ci.desktop.*`. Same trigger scope as `desktop-package`, and needs it to finish first. |
 | `ci` | Aggregate gate, depending on lint, knowledge-base and all four test jobs |
@@ -31,23 +31,23 @@ See [Packaging and Release](/packaging-and-release.md) for what `publish`, `desk
 `desktop-release` actually ship, the ordered steps each one runs, and the signing keys involved. This page is
 the job inventory; that one is the release story.
 
-CI runs on pull requests into `main`, `0.4.x`, and `develop`; pushes to those same branches; published releases; and
+CI runs on pull requests into `main` and `0.4.x`; pushes to those same branches; published releases; and
 manual dispatch. Older runs of the same pull request are cancelled automatically. Hosted mill invocations pass
 `--ticker false`. That includes the workflow, the local `lint` mise wrapper, and `test:jvm-platform`. The GitHub
 log is then a linear task trace rather than a replayed progress ticker.
 
 The Release step runs `ci.sonatype.writeMillEnv` first, with Morphir `GPG_*` and `SONATYPE_*` names in that mill.
 It sources the written file and then starts `./mill --ticker false -i ci.publish`. Mill snapshots `Task.env` at process start, so
-conversion has to happen in an earlier mill. Live Central upload is the first `develop` publish job after merge.
+conversion has to happen in an earlier mill. Live Central upload is the first `main` publish job after merge.
 
 ## Branch snapshots
 
-A push or merge to `main` or `develop` must pass the full aggregate `ci` gate before publishing. On `main`, the
+A push or merge to `main` must pass the full aggregate `ci` gate before publishing. On `main`, the
 exact coordinate is `$releaseLine-$distance-SNAPSHOT`, for example `0.5.0-M04-57-SNAPSHOT` or `0.5.0-57-SNAPSHOT`.
-On `develop`, the coordinate is `$releaseLine-$branch.$distance.g$abbrev-SNAPSHOT`, for example
-`0.5.0-M04-develop.57.gbd4cd2-SNAPSHOT` or `0.5.0-develop.57.gbd4cd2-SNAPSHOT`: the release line may have a
-qualifier, and the coordinate records `develop`, the distance from the nearest version tag, and a six-character Git
-abbreviation before the terminal `SNAPSHOT` marker.
+On any other publishing branch, the coordinate is `$releaseLine-$branch.$distance.g$abbrev-SNAPSHOT`, for example
+`0.5.0-M04-0.4.x.57.gbd4cd2-SNAPSHOT`: the release line may have a qualifier, and the coordinate records the branch,
+the distance from the nearest version tag, and a six-character Git abbreviation before the terminal `SNAPSHOT`
+marker.
 
 Only non-PR runs in the canonical `finos/morphir-scala` repository can reach publication and its credentials. Pull
 requests validate without publishing, and contributors do not receive publication credentials locally. Consumers
