@@ -2,7 +2,7 @@ package morphir.langkit.markdown.cst
 
 import kyo.*
 import morphir.langkit.core.Span
-import morphir.langkit.markdown.MdcNode
+import morphir.langkit.markdown.MdNode
 
 /**
  * Which of CommonMark's four link forms the author wrote.
@@ -26,7 +26,7 @@ private[markdown] final case class LinkNote(
     destination: Maybe[(span: Span, angled: Boolean)],
     title: Maybe[Span],
     reference: Maybe[Span],
-    alt: Maybe[Chunk[MdcNode.PhrasingContent]]
+    alt: Maybe[Chunk[MdNode.PhrasingContent]]
 )
 
 /**

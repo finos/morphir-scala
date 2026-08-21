@@ -77,21 +77,21 @@ Approach rather than merely extend it. The case for replacing it is weaker than 
 covers the whole of CommonMark 0.31.2.
 
 *Settled: whether the CST and the AST stay one tree.* Two trees, related by a total lowering, and the lowering
-is the parse. The CST (`MdcCstNode`) holds every byte under the leaf-tiling invariant — its leaves partition the
+is the parse. The CST (`MdCstNode`) holds every byte under the leaf-tiling invariant — its leaves partition the
 source, so printing it reproduces the document exactly, checked over the whole conformance corpus. The AST
-(`MdcNode`, rooted at `MdcNode.Root`) holds the meaning. `Lower.lower: MdcCstNode.Document => MdcNode.Root` is
+(`MdNode`, rooted at `MdNode.Root`) holds the meaning. `Lower.lower: MdCstNode.Document => MdNode.Root` is
 total, `Parser.parse` produces its AST only by lowering the CST, and a second conformance suite proves the
 lowered pipeline renders all 652 examples byte for byte. The AST now speaks mdast vocabulary: one node type
-(`MdcNode`) instead of a case class per kind, content-category unions (`FlowContent`, `PhrasingContent`) in
+(`MdNode`) instead of a case class per kind, content-category unions (`FlowContent`, `PhrasingContent`) in
 place of separate block/inline hierarchies, and an optional `Span` carried only where a node was produced by
 lowering rather than generated. The deferred-prose machinery inside the parser survives as the engine that
 fills the CST's inline slots once every definition is known; the definitions map is that machinery's internal
 bookkeeping, no longer the AST's source of truth — lowering re-collects definitions from the CST's own nodes. The
-module now also writes: authored `MdcNode` trees, built with the `dsl` package and carrying `MdcMeta`
+module now also writes: authored `MdNode` trees, built with the `dsl` package and carrying `MdMeta`
 position-and-data, serialize to Markdown through `MdWriter.write` under a given `MdStyle`, and `MdWriter.raise`
 produces tiled CSTs by write-then-parse — both held to the rendering oracle corpus-wide. Parsing is profiled as
 well: an `MdProfile` names which frontmatter kinds a parse recognizes, each kind carrying its own delimiter, and an
-opt-in YAML block travels the whole way — a CST node, the `frontmatter` seat on `MdcNode.Root`, and back out through
+opt-in YAML block travels the whole way — a CST node, the `frontmatter` seat on `MdNode.Root`, and back out through
 `MdWriter` — so `morphir-knowledge-okf` reads concept frontmatter through the parser rather than splitting the fence
 itself.
 

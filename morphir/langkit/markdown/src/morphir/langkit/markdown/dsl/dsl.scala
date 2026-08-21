@@ -2,17 +2,17 @@ package morphir.langkit.markdown.dsl
 
 import kyo.*
 import morphir.langkit.markdown.*
-import morphir.langkit.markdown.MdcNode.*
+import morphir.langkit.markdown.MdNode.*
 
 /**
- * The authoring DSL for [[MdcNode]]: scalatags-style call sites, varargs, string literals as text.
+ * The authoring DSL for [[MdNode]]: scalatags-style call sites, varargs, string literals as text.
  *
  * Every combinator returns its precise case type, so the content-category unions ([[FlowContent]], [[PhrasingContent]])
- * typecheck at the call site the way they typecheck on [[MdcNode]] itself — a paragraph accepts only phrasing content,
- * never a heading. Every node constructs with [[MdcMeta.empty]]: these are generated nodes, not parsed ones, and their
+ * typecheck at the call site the way they typecheck on [[MdNode]] itself — a paragraph accepts only phrasing content,
+ * never a heading. Every node constructs with [[MdMeta.empty]]: these are generated nodes, not parsed ones, and their
  * `span` is honestly `Absent`.
  *
- * `List` here means [[MdcNode.List]], not `scala.collection.immutable.List` — the wildcard import shadows it, on
+ * `List` here means [[MdNode.List]], not `scala.collection.immutable.List` — the wildcard import shadows it, on
  * purpose, so `ul`/`ol` can return the node's own name.
  */
 

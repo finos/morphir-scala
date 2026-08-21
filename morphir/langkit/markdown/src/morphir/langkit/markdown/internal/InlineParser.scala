@@ -7,7 +7,7 @@ import morphir.langkit.markdown.*
 import morphir.langkit.markdown.cst.{InlineNotes, LinkForm, LinkNote}
 
 /**
- * Splits a block's raw prose into [[MdcNode.PhrasingContent]] nodes.
+ * Splits a block's raw prose into [[MdNode.PhrasingContent]] nodes.
  *
  * Internal on purpose: blocks reach callers already carrying inline content, and no caller runs this itself. Each
  * construct this learns to recognise turns text that used to be literal into a typed node, so the set of cases grows
@@ -79,7 +79,7 @@ private[markdown] object InlineParser:
     autolink("<" + inner + ">", 0).map(link => normalizeUri(link.destination))
 
   /** An image's `alt` text: inline content flattened to what an attribute can hold, for lowering. */
-  def altTextOf(content: Chunk[MdcNode.PhrasingContent]): String = content.map(plainOf).mkString
+  def altTextOf(content: Chunk[MdNode.PhrasingContent]): String = content.map(plainOf).mkString
 
   /**
    * Parse `text` into inline nodes.
@@ -96,7 +96,7 @@ private[markdown] object InlineParser:
       sourceOffsetAt: Int => Int,
       definitions: Map[String, LinkDefinition] = Map.empty,
       notes: Maybe[InlineNotes] = Absent
-  ): Chunk[MdcNode.PhrasingContent] =
+  ): Chunk[MdNode.PhrasingContent] =
     val items = scanItems(text, sourceOffsetAt, definitions, notes)
     processEmphasis(items, sourceOffsetAt)
     Chunk.from(items.filterNot(_.dropped).map(item => item.inline.getOrElse(literal(item, sourceOffsetAt))))
@@ -108,7 +108,7 @@ private[markdown] object InlineParser:
    * `*foo**` matches one `*` and leaves the other as text.
    */
   private final class Item(
-      val inline: Maybe[MdcNode.PhrasingContent],
+      val inline: Maybe[MdNode.PhrasingContent],
       val delimiter: Char,
       var count: Int,
       val originalCount: Int,
@@ -121,10 +121,10 @@ private[markdown] object InlineParser:
     def isDelimiter: Boolean = inline.isEmpty
 
   /** What an unmatched delimiter run turns into: the characters it was made of. */
-  private def literal(item: Item, sourceOffsetAt: Int => Int): MdcNode.Text =
+  private def literal(item: Item, sourceOffsetAt: Int => Int): MdNode.Text =
     // A run consumed a pair at a time leaves its tail behind, so the span narrows to what is left.
     val start = item.end - item.count
-    MdcNode.Text(item.delimiter.toString * item.count, MdcMeta.at(spanOf(start, item.end, sourceOffsetAt)))
+    MdNode.Text(item.delimiter.toString * item.count, MdMeta.at(spanOf(start, item.end, sourceOffsetAt)))
 
   /** Pass one: constructs become nodes, `*`/`_` runs become delimiters, everything else accumulates as text. */
   private def scanItems(
@@ -138,11 +138,11 @@ private[markdown] object InlineParser:
     var pendingStart = 0
     var index        = 0
 
-    def node(inline: MdcNode.PhrasingContent): Item = Item(Present(inline), ' ', 0, 0, false, false, 0, 0)
+    def node(inline: MdNode.PhrasingContent): Item = Item(Present(inline), ' ', 0, 0, false, false, 0, 0)
 
     def flushPending(): Unit =
       if pending.nonEmpty then
-        items += node(MdcNode.Text(pending.toString, MdcMeta.at(spanOf(pendingStart, index, sourceOffsetAt))))
+        items += node(MdNode.Text(pending.toString, MdMeta.at(spanOf(pendingStart, index, sourceOffsetAt))))
         pending.clear()
 
     while index < text.length do
@@ -248,9 +248,9 @@ private[markdown] object InlineParser:
           )
           items.slice(found + 1, closerIndex).foreach(_.dropped = true)
 
-          val span                          = spanOf(opener.start, closer.end, sourceOffsetAt)
-          val node: MdcNode.PhrasingContent =
-            if strong then MdcNode.Strong(inner, MdcMeta.at(span)) else MdcNode.Emphasis(inner, MdcMeta.at(span))
+          val span                         = spanOf(opener.start, closer.end, sourceOffsetAt)
+          val node: MdNode.PhrasingContent =
+            if strong then MdNode.Strong(inner, MdMeta.at(span)) else MdNode.Emphasis(inner, MdMeta.at(span))
           items.insert(closerIndex, Item(Present(node), ' ', 0, 0, false, false, 0, 0))
           closerIndex += 1
 
@@ -291,7 +291,7 @@ private[markdown] object InlineParser:
       sourceOffsetAt: Int => Int,
       definitions: Map[String, LinkDefinition],
       notes: Maybe[InlineNotes]
-  ): Maybe[(Int, MdcNode.PhrasingContent)] =
+  ): Maybe[(Int, MdNode.PhrasingContent)] =
     val char = text.charAt(index)
     if char == ' ' || char == '\\' then lineEndingAt(text, index, sourceOffsetAt)
     else if char == '`' then
@@ -300,9 +300,9 @@ private[markdown] object InlineParser:
         val end = closeStart + run
         (
           end,
-          MdcNode.InlineCode(
+          MdNode.InlineCode(
             normalize(text.substring(index + run, closeStart)),
-            MdcMeta.at(spanOf(index, end, sourceOffsetAt))
+            MdMeta.at(spanOf(index, end, sourceOffsetAt))
           )
         )
       }
@@ -313,11 +313,11 @@ private[markdown] object InlineParser:
           val span = spanOf(index, link.end, sourceOffsetAt)
           Present((
             link.end,
-            MdcNode.Link(
+            MdNode.Link(
               normalizeUri(link.destination),
               Absent,
-              Chunk(MdcNode.Text(link.text, MdcMeta.at(span))),
-              MdcMeta.at(span)
+              Chunk(MdNode.Text(link.text, MdMeta.at(span))),
+              MdMeta.at(span)
             )
           ))
         case Absent =>
@@ -325,7 +325,7 @@ private[markdown] object InlineParser:
           // inside it is ever looked at again, so `<a href="&ouml;">` keeps its entity and `**<a href="**">` has no
           // emphasis in it.
           HtmlTag.endOf(text, index).map { end =>
-            (end, MdcNode.InlineHtml(text.substring(index, end), MdcMeta.at(spanOf(index, end, sourceOffsetAt))))
+            (end, MdNode.InlineHtml(text.substring(index, end), MdMeta.at(spanOf(index, end, sourceOffsetAt))))
           }
     else if isLinkStart(text, index) then
       val image = char == '!'
@@ -347,10 +347,10 @@ private[markdown] object InlineParser:
       text: String,
       start: Int,
       sourceOffsetAt: Int => Int
-  ): Maybe[(Int, MdcNode.PhrasingContent)] =
+  ): Maybe[(Int, MdNode.PhrasingContent)] =
     if text.charAt(start) == '\\' then
       if start + 1 < text.length && text.charAt(start + 1) == '\n' then
-        Present((start + 2, MdcNode.Break(MdcMeta.at(spanOf(start, start + 2, sourceOffsetAt)))))
+        Present((start + 2, MdNode.Break(MdMeta.at(spanOf(start, start + 2, sourceOffsetAt)))))
       else Absent
     else
       @tailrec def spacesEnd(index: Int): Int =
@@ -358,9 +358,9 @@ private[markdown] object InlineParser:
       val end = spacesEnd(start)
       if end >= text.length || text.charAt(end) != '\n' then Absent
       else if end - start >= 2 then
-        Present((end + 1, MdcNode.Break(MdcMeta.at(spanOf(start, end + 1, sourceOffsetAt)))))
+        Present((end + 1, MdNode.Break(MdMeta.at(spanOf(start, end + 1, sourceOffsetAt)))))
       // One space before a line ending is neither a break nor content: the line ending stands on its own.
-      else Present((end + 1, MdcNode.Text("\n", MdcMeta.at(spanOf(start, end + 1, sourceOffsetAt)))))
+      else Present((end + 1, MdNode.Text("\n", MdMeta.at(spanOf(start, end + 1, sourceOffsetAt)))))
 
   /**
    * A character reference: `&name;`, `&#dddd;` or `&#xhhhh;`.
@@ -374,10 +374,10 @@ private[markdown] object InlineParser:
       start: Int,
       sourceOffsetAt: Int => Int,
       notes: Maybe[InlineNotes]
-  ): Maybe[(Int, MdcNode.PhrasingContent)] =
+  ): Maybe[(Int, MdNode.PhrasingContent)] =
     entityValue(text, start).map { case (end, value) =>
       notes.foreach(_.recordEntity(sourceOffsetAt(start), sourceOffsetAt(end)))
-      (end, MdcNode.Text(value, MdcMeta.at(spanOf(start, end, sourceOffsetAt))))
+      (end, MdNode.Text(value, MdMeta.at(spanOf(start, end, sourceOffsetAt))))
     }
 
   /** The character a reference beginning at `start` stands for, and where it ends. */
@@ -436,7 +436,7 @@ private[markdown] object InlineParser:
       sourceOffsetAt: Int => Int,
       definitions: Map[String, LinkDefinition],
       notes: Maybe[InlineNotes]
-  ): Maybe[(Int, MdcNode.PhrasingContent)] =
+  ): Maybe[(Int, MdNode.PhrasingContent)] =
     labelEnd(text, open) match
       case Absent         => Absent
       case Present(close) =>
@@ -473,10 +473,10 @@ private[markdown] object InlineParser:
             destination: String,
             title: Maybe[String],
             normalize: Boolean
-        ): Maybe[(Int, MdcNode.PhrasingContent)] =
+        ): Maybe[(Int, MdNode.PhrasingContent)] =
           val span = spanOf(start, end, sourceOffsetAt)
           val uri  = if normalize then normalizeUri(destination) else destination
-          if image then Present((end, MdcNode.Image(uri, title, plainText(label, definitions), MdcMeta.at(span))))
+          if image then Present((end, MdNode.Image(uri, title, plainText(label, definitions), MdMeta.at(span))))
           else
             val content = parse(label, index => sourceOffsetAt(open + index), definitions, notes)
             // Links may not contain links. The bracket that would have opened this one is ordinary text instead, and
@@ -484,7 +484,7 @@ private[markdown] object InlineParser:
             // Images are not bound by this -- their content becomes `alt` text, where a nested link flattens to what
             // it says.
             if content.exists(holdsLink) then Absent
-            else Present((end, MdcNode.Link(uri, title, content, MdcMeta.at(span))))
+            else Present((end, MdNode.Link(uri, title, content, MdMeta.at(span))))
 
         val inlineForm =
           if close + 1 < text.length && text.charAt(close + 1) == '(' then
@@ -512,14 +512,14 @@ private[markdown] object InlineParser:
       label: String,
       sourceOffsetAt: Int => Int,
       definitions: Map[String, LinkDefinition],
-      build: (Int, String, Maybe[String], Boolean) => Maybe[(Int, MdcNode.PhrasingContent)],
+      build: (Int, String, Maybe[String], Boolean) => Maybe[(Int, MdNode.PhrasingContent)],
       record: (
           LinkForm,
           Maybe[(start: Int, end: Int, angled: Boolean)],
           Maybe[(start: Int, end: Int)],
           Maybe[(start: Int, end: Int)]
       ) => Unit
-  ): Maybe[(Int, MdcNode.PhrasingContent)] =
+  ): Maybe[(Int, MdNode.PhrasingContent)] =
     val explicit =
       if close + 1 < text.length && text.charAt(close + 1) == '[' then referenceLabelEnd(text, close + 2)
       else Absent
@@ -941,28 +941,28 @@ private[markdown] object InlineParser:
    * still stops the label becoming a link. An image's alt text is a `String` by then, so a link inside one has already
    * flattened and cannot be found -- which is right, because an image may hold a link.
    */
-  private def holdsLink(node: MdcNode.PhrasingContent): Boolean = node match
-    case MdcNode.Link(_, _, _, _)   => true
-    case MdcNode.Emphasis(inner, _) => inner.exists(holdsLink)
-    case MdcNode.Strong(inner, _)   => inner.exists(holdsLink)
-    case _                          => false
+  private def holdsLink(node: MdNode.PhrasingContent): Boolean = node match
+    case MdNode.Link(_, _, _, _)   => true
+    case MdNode.Emphasis(inner, _) => inner.exists(holdsLink)
+    case MdNode.Strong(inner, _)   => inner.exists(holdsLink)
+    case _                         => false
 
   /** The plain text of a label, which is what an `alt` attribute can hold. */
   private def plainText(label: String, definitions: Map[String, LinkDefinition]): String =
     parse(label, identity, definitions).map(plainOf).mkString
 
   /** Flatten a node to the text an attribute can carry: markup contributes its content, not its markers. */
-  private def plainOf(node: MdcNode.PhrasingContent): String = node match
-    case MdcNode.Text(value, _)       => value
-    case MdcNode.InlineCode(value, _) => value
-    case MdcNode.Link(_, _, inner, _) => inner.map(plainOf).mkString
-    case MdcNode.Image(_, _, alt, _)  => alt
-    case MdcNode.Emphasis(inner, _)   => inner.map(plainOf).mkString
-    case MdcNode.Strong(inner, _)     => inner.map(plainOf).mkString
+  private def plainOf(node: MdNode.PhrasingContent): String = node match
+    case MdNode.Text(value, _)       => value
+    case MdNode.InlineCode(value, _) => value
+    case MdNode.Link(_, _, inner, _) => inner.map(plainOf).mkString
+    case MdNode.Image(_, _, alt, _)  => alt
+    case MdNode.Emphasis(inner, _)   => inner.map(plainOf).mkString
+    case MdNode.Strong(inner, _)     => inner.map(plainOf).mkString
     // An `alt` attribute is text, and raw HTML in a label contributes none: it is markup, not content.
-    case MdcNode.InlineHtml(_, _) => ""
+    case MdNode.InlineHtml(_, _) => ""
     // A break in alt text is the line ending it stands for; the `alt` attribute has no markup to carry it.
-    case MdcNode.Break(_) => "\n"
+    case MdNode.Break(_) => "\n"
 
   private def spanOf(start: Int, end: Int, sourceOffsetAt: Int => Int): Span =
     Span.fromStartEnd(sourceOffsetAt(start), sourceOffsetAt(end))

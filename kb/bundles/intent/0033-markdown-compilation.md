@@ -156,7 +156,7 @@ trait Compiler[Out]:
   def text(value: String): Out
 ```
 
-`Chunk` is Kyo's array-backed sequence. `HeadingLevel` is the type for `depth` on `MdcNode.Heading` in the AST.
+`Chunk` is Kyo's array-backed sequence. `HeadingLevel` is the type for `depth` on `MdNode.Heading` in the AST.
 
 A fold walks the tree bottom-up. Children are compiled first, and each node combines the compiled children into
 one `Out`. One driver owns that traversal, and each output format supplies only the node mapping.

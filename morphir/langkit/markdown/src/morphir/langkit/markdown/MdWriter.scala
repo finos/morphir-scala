@@ -2,34 +2,34 @@ package morphir.langkit.markdown
 
 import kyo.*
 import morphir.langkit.markdown.cst.CstParser
-import morphir.langkit.markdown.cst.MdcCstNode
+import morphir.langkit.markdown.cst.MdCstNode
 
 /**
- * Markdown text from an [[MdcNode]] tree, and the CST that text parses to.
+ * Markdown text from an [[MdNode]] tree, and the CST that text parses to.
  *
  * The contract is **structural fidelity**, not byte fidelity: `Parser.parse(write(tree))` succeeds and yields the tree
  * it was given, once positions are dropped and prose split by escapes is merged back. Which bytes carry that meaning is
  * the writer's business, and it spends them freely — the escaper over-escapes on purpose, because an unnecessary
  * backslash costs a byte while a missing one costs the tree.
  *
- * Spelling that [[MdcNode]] does not carry comes from an [[MdStyle]] in scope, overridden per node through the keys in
+ * Spelling that [[MdNode]] does not carry comes from an [[MdStyle]] in scope, overridden per node through the keys in
  * [[MdStyleKeys]]: the writer asks the node's own data first and falls back to the style. Nothing here consults the CST
  * — the AST is the input, and a tree the parser never saw writes exactly as well as one it did.
  *
  * Six shapes have no faithful spelling and are documented rather than fixed.
  *
- * An [[MdcNode.InlineCode]] whose value is empty writes as a single-space code span, because CommonMark cannot express
- * a code span holding nothing. It is a node no parse produces, and the alternative — an unbalanced backtick run, which
+ * An [[MdNode.InlineCode]] whose value is empty writes as a single-space code span, because CommonMark cannot express a
+ * code span holding nothing. It is a node no parse produces, and the alternative — an unbalanced backtick run, which
  * reparses as prose — loses the code span altogether. See [[writeInlineCode]].
  *
- * An ATX heading is exactly one physical line, so nothing inside one can carry a real line break. An [[MdcNode.Break]]
- * (a hard break needs a second line to land on) and a soft break inside a [[MdcNode.Text]] both write as `&#10;`
- * instead — content the ATX line's single-line rule does not see, which the parser resolves back to the same character
- * but never back to a break of its own. An embedded newline inside an [[MdcNode.InlineCode]] or [[MdcNode.InlineHtml]]
- * value has no such entity available to it — a character reference does not resolve inside a code span or raw HTML — so
- * each downgrades to a single space instead, the nearest either can spell one line at a time. Every one of these is
- * again a node no parse of an ATX heading produces (Setext is what a source spells for multi-line heading content), and
- * the alternative — writing the break literally — truncates the heading rather than merely losing one construct's own
+ * An ATX heading is exactly one physical line, so nothing inside one can carry a real line break. An [[MdNode.Break]]
+ * (a hard break needs a second line to land on) and a soft break inside a [[MdNode.Text]] both write as `&#10;` instead
+ * — content the ATX line's single-line rule does not see, which the parser resolves back to the same character but
+ * never back to a break of its own. An embedded newline inside an [[MdNode.InlineCode]] or [[MdNode.InlineHtml]] value
+ * has no such entity available to it — a character reference does not resolve inside a code span or raw HTML — so each
+ * downgrades to a single space instead, the nearest either can spell one line at a time. Every one of these is again a
+ * node no parse of an ATX heading produces (Setext is what a source spells for multi-line heading content), and the
+ * alternative — writing the break literally — truncates the heading rather than merely losing one construct's own
  * meaning. See `oneLine` on [[inlines]] and [[escapeText]].
  *
  * A link or image destination is written as given: [[writeDestination]] adds angle brackets and escapes `\`, `<` and
@@ -38,7 +38,7 @@ import morphir.langkit.markdown.cst.MdcCstNode
  * a hand-built destination holding a raw space or a raw `&`-entity is outside the reparse image this contract covers,
  * and an author supplying one should percent-encode it first.
  *
- * An [[MdcNode.FrontMatter.Yaml]] value holding a line that reads exactly as its own closing delimiter (`---`) has no
+ * An [[MdNode.FrontMatter.Yaml]] value holding a line that reads exactly as its own closing delimiter (`---`) has no
  * faithful spelling either: [[write]] emits the value verbatim between the two delimiter lines it owns, and a reparse
  * closes the block at the first such line inside it rather than at the one the author meant, spilling the remainder
  * into a document body that was never there. A fenced code block escapes the same jeopardy by outgrowing the longest
@@ -63,7 +63,7 @@ object MdWriter:
    * @param root
    *   the tree to write
    */
-  def write(root: MdcNode.Root)(using MdStyle): String =
+  def write(root: MdNode.Root)(using MdStyle): String =
     val body = if root.children.isEmpty then "" else blocks(root.children, BlankSeparated) + "\n"
     root.frontmatter match
       case Absent         => body
@@ -79,7 +79,7 @@ object MdWriter:
    * writes as `***` or `___`, and text is escaped. So a document with no frontmatter raises to exactly the CST plain
    * CommonMark gives it, and a document with frontmatter raises to one that spells what was written.
    */
-  def raise(root: MdcNode.Root)(using MdStyle): MdcCstNode.Document =
+  def raise(root: MdNode.Root)(using MdStyle): MdCstNode.Document =
     CstParser.parse(write(root))(using MdProfile.commonmark.withYamlFrontmatter)
 
   /**
@@ -90,8 +90,8 @@ object MdWriter:
    * left alone. An empty value stays empty rather than becoming a single blank line, matching what an empty value
    * region parses back to.
    */
-  private def writeFrontMatter(front: MdcNode.FrontMatter): String = front match
-    case MdcNode.FrontMatter.Yaml(value, _) =>
+  private def writeFrontMatter(front: MdNode.FrontMatter): String = front match
+    case MdNode.FrontMatter.Yaml(value, _) =>
       val delimiter = FrontMatterKind.Yaml.delimiter
       val raw       = value.unwrap
       val body      = if raw.isEmpty || raw.endsWith("\n") then raw else raw + "\n"
@@ -119,7 +119,7 @@ object MdWriter:
   /**
    * A run of blocks, joined by whatever the run that holds them keeps between siblings.
    *
-   * Two sibling [[MdcNode.List]]s of the same `ordered`ness, one directly after the other with nothing but a block
+   * Two sibling [[MdNode.List]]s of the same `ordered`ness, one directly after the other with nothing but a block
    * separator between them, are how the AST represents what the source spelled as two lists rather than one loose one —
    * a bullet or a delimiter changed mid-run, which is the only thing that ends a list without ending the run of items.
    * The AST keeps no memory of which marker the source used, so on its own the writer would give both the same default
@@ -127,11 +127,11 @@ object MdWriter:
    * by any other block in between, since only *directly* adjacent same-kind lists are at risk of fusing — is what lets
    * [[writeList]] pick a different one when it must.
    */
-  private def blocks(nodes: Chunk[MdcNode.FlowContent], separator: String)(using MdStyle): String =
+  private def blocks(nodes: Chunk[MdNode.FlowContent], separator: String)(using MdStyle): String =
     val pieces                               = Chunk.newBuilder[String]
     var previousList: Maybe[(Boolean, Char)] = Absent
     nodes.foreach {
-      case list: MdcNode.List =>
+      case list: MdNode.List =>
         val avoid = previousList.flatMap { case (ordered, marker) =>
           if ordered == list.ordered then Present(marker) else Absent
         }
@@ -145,19 +145,19 @@ object MdWriter:
     pieces.result().mkString(separator)
 
   /** One block, with its own internal newlines and no trailing one. */
-  private def block(node: MdcNode.FlowContent)(using style: MdStyle): String = node match
-    case MdcNode.Paragraph(children, _)  => inlines(children, atLineStart = true)
-    case heading: MdcNode.Heading        => writeHeading(heading)
-    case code: MdcNode.Code              => writeCode(code)
-    case MdcNode.Html(value, _)          => value
-    case MdcNode.Blockquote(children, _) => prefixed(blocks(children, BlankSeparated), "> ", ">")
-    case list: MdcNode.List              => writeList(list)._1
+  private def block(node: MdNode.FlowContent)(using style: MdStyle): String = node match
+    case MdNode.Paragraph(children, _)  => inlines(children, atLineStart = true)
+    case heading: MdNode.Heading        => writeHeading(heading)
+    case code: MdNode.Code              => writeCode(code)
+    case MdNode.Html(value, _)          => value
+    case MdNode.Blockquote(children, _) => prefixed(blocks(children, BlankSeparated), "> ", ">")
+    case list: MdNode.List              => writeList(list)._1
     // Three spellings mean one break; only what else they could be read as differs. A `-` bullet takes `***`, so a
     // break is never the `- - -` its own list could have written. Every other bullet takes `___`, which is neither a
     // list marker nor a setext underline. `---` is both, and the second is what rules it out: a tight list item
     // writes its blocks with no blank line between them, and a `---` under a paragraph there is that paragraph's
     // underline rather than a break — the break disappears and the paragraph becomes a heading.
-    case MdcNode.ThematicBreak(_) => if style.bullet == '-' then "***" else "___"
+    case MdNode.ThematicBreak(_) => if style.bullet == '-' then "***" else "___"
 
   /**
    * A heading, ATX or setext.
@@ -165,7 +165,7 @@ object MdWriter:
    * Setext is available only for depths one and two, and only for a heading that says something: an underline under
    * nothing is a paragraph of `===`. Everything else falls back to ATX, which every depth can spell.
    */
-  private def writeHeading(heading: MdcNode.Heading)(using style: MdStyle): String =
+  private def writeHeading(heading: MdNode.Heading)(using style: MdStyle): String =
     val depth = heading.depth.toInt
     val kind  = heading.meta.get(MdStyleKeys.headingStyle).getOrElse(style.headingStyle)
     // Setext content spans one line per child line and tolerates an embedded soft break; only Setext's own
@@ -190,7 +190,7 @@ object MdWriter:
    * body holding its own fence cannot close the block early. A backtick fence gives way to a tilde when the info string
    * holds a backtick, which CommonMark forbids outright.
    */
-  private def writeCode(code: MdcNode.Code)(using style: MdStyle): String =
+  private def writeCode(code: MdNode.Code)(using style: MdStyle): String =
     val info      = code.info.raw
     val requested = code.meta.get(MdStyleKeys.fence).getOrElse(style.fence)
     val marker    = if requested == '`' && info.contains('`') then '~' else requested
@@ -214,7 +214,7 @@ object MdWriter:
    *   the written list, and the bullet or delimiter character it settled on — what the next sibling list, if any, must
    *   avoid in turn
    */
-  private def writeList(list: MdcNode.List, avoid: Maybe[Char] = Absent)(using style: MdStyle): (String, Char) =
+  private def writeList(list: MdNode.List, avoid: Maybe[Char] = Absent)(using style: MdStyle): (String, Char) =
     val wantedBullet    = list.meta.get(MdStyleKeys.bullet).getOrElse(style.bullet)
     val wantedDelimiter = list.meta.get(MdStyleKeys.orderedDelimiter).getOrElse(style.orderedDelimiter)
     val bullet = if !list.ordered && avoid.contains(wantedBullet) then alternateBullet(wantedBullet) else wantedBullet
@@ -252,7 +252,7 @@ object MdWriter:
    * The one piece of state is whether the next character lands at the head of a line, which the escaper needs and only
    * this fold knows: a hard break ends a line, and so does a soft break inside a text node.
    *
-   * Every consecutive run of [[MdcNode.Text]] siblings escapes as one string rather than one call per node. A parse
+   * Every consecutive run of [[MdNode.Text]] siblings escapes as one string rather than one call per node. A parse
    * splits prose into a new node at every escape and every entity, so the digits of a line-leading ordered-list marker
    * can end one node while its delimiter opens the next — [[escapeText]]'s line-leading rules need to see both to
    * escape the delimiter, and a node boundary that fell between them by accident of the source's own escaping is not a
@@ -264,7 +264,7 @@ object MdWriter:
    *   as the same character without ending the line early; a code span or raw HTML's own embedded newline has no such
    *   escape available to it, so it downgrades to a space, the nearest either can spell one line at a time.
    */
-  private def inlines(nodes: Chunk[MdcNode.PhrasingContent], atLineStart: Boolean, oneLine: Boolean = false)(using
+  private def inlines(nodes: Chunk[MdNode.PhrasingContent], atLineStart: Boolean, oneLine: Boolean = false)(using
       MdStyle
   ): String =
     val out       = new StringBuilder
@@ -272,10 +272,10 @@ object MdWriter:
     var index     = 0
     while index < nodes.length do
       nodes(index) match
-        case MdcNode.Text(_, _) =>
+        case MdNode.Text(_, _) =>
           val start = index
-          while index < nodes.length && nodes(index).isInstanceOf[MdcNode.Text] do index += 1
-          val merged = nodes.slice(start, index).collect { case MdcNode.Text(value, _) => value }.mkString
+          while index < nodes.length && nodes(index).isInstanceOf[MdNode.Text] do index += 1
+          val merged = nodes.slice(start, index).collect { case MdNode.Text(value, _) => value }.mkString
           val piece  = escapeText(merged, lineStart, oneLine)
           out.append(piece)
           if piece.nonEmpty then lineStart = piece.endsWith("\n")
@@ -286,28 +286,28 @@ object MdWriter:
           index += 1
     out.toString
 
-  private def writeInline(node: MdcNode.PhrasingContent, atLineStart: Boolean, oneLine: Boolean)(using
+  private def writeInline(node: MdNode.PhrasingContent, atLineStart: Boolean, oneLine: Boolean)(using
       style: MdStyle
   ): String =
     node match
-      case MdcNode.Text(value, _)       => escapeText(value, atLineStart, oneLine)
-      case MdcNode.InlineCode(value, _) =>
+      case MdNode.Text(value, _)       => escapeText(value, atLineStart, oneLine)
+      case MdNode.InlineCode(value, _) =>
         // A code span's own line endings are the parser's to turn into spaces on the way in (CommonMark strips line
         // endings from a code span's content), so doing the same here when this span cannot carry a line ending of
         // its own — a `oneLine` context — spells the nearest thing CommonMark itself would ever produce, at the cost
         // of the value's own embedded newline surviving as a space rather than as itself. A code span holding a raw
         // newline is a node no parse of a `oneLine` context produces, so this only fires for a hand-built tree.
         writeInlineCode(if oneLine then value.replace('\n', ' ') else value)
-      case MdcNode.InlineHtml(value, _) =>
+      case MdNode.InlineHtml(value, _) =>
         // Raw HTML is emitted verbatim everywhere else — escaping it would show the author their own markup — but a
         // `oneLine` context has nowhere to put a literal line ending at all, so it is downgraded to a space here, the
         // one substitution HTML's own whitespace handling treats as equivalent inside a tag.
         if oneLine then value.replace('\n', ' ') else value
-      case link: MdcNode.Link =>
+      case link: MdNode.Link =>
         s"[${inlines(link.children, atLineStart = false, oneLine)}](${target(link.url, link.title)})"
-      case image: MdcNode.Image =>
+      case image: MdNode.Image =>
         s"![${escapeText(image.alt, atLineStart = false, oneLine)}](${target(image.url, image.title)})"
-      case emphasis: MdcNode.Emphasis =>
+      case emphasis: MdNode.Emphasis =>
         val marker = emphasis.meta.get(MdStyleKeys.emphasisMarker).getOrElse(style.emphasisMarker)
         // A sole child that is itself an Emphasis resolving to the same marker touches it on both sides: two
         // single-character delimiters run together into one two-character run, which a parse always reads as Strong
@@ -316,7 +316,7 @@ object MdWriter:
         val soleInnerEmphasis         = soleChildEmphasis(emphasis.children)
         val (outerMarker, childStyle) = resolveEmphasisClash(marker, soleInnerEmphasis)
         s"$outerMarker${inlines(emphasis.children, atLineStart = false, oneLine)(using childStyle)}$outerMarker"
-      case strong: MdcNode.Strong =>
+      case strong: MdNode.Strong =>
         val marker = strong.meta.get(MdStyleKeys.strongMarker).getOrElse(style.strongMarker)
         // A sole child that is an Emphasis resolving to the same marker character touches it on the inside: the
         // outer's two-character run runs straight into the inner's one-character run, and a parse of the resulting
@@ -326,7 +326,7 @@ object MdWriter:
         val (outerMarker, childStyle) = resolveEmphasisClash(marker, soleInnerEmphasis)
         val delimiter                 = outerMarker.toString * 2
         s"$delimiter${inlines(strong.children, atLineStart = false, oneLine)(using childStyle)}$delimiter"
-      case MdcNode.Break(meta) =>
+      case MdNode.Break(meta) =>
         if oneLine then "&#10;"
         else
           meta.get(MdStyleKeys.hardBreak).getOrElse(style.hardBreak) match
@@ -459,18 +459,18 @@ object MdWriter:
     out.toString
   end escapeText
 
-  /** `children`'s sole member, when there is exactly one and it is an [[MdcNode.Emphasis]]. */
-  private def soleChildEmphasis(children: Chunk[MdcNode.PhrasingContent]): Maybe[MdcNode.Emphasis] =
+  /** `children`'s sole member, when there is exactly one and it is an [[MdNode.Emphasis]]. */
+  private def soleChildEmphasis(children: Chunk[MdNode.PhrasingContent]): Maybe[MdNode.Emphasis] =
     if children.size == 1 then
       children(0) match
-        case inner: MdcNode.Emphasis => Present(inner)
-        case _                       => Absent
+        case inner: MdNode.Emphasis => Present(inner)
+        case _                      => Absent
     else Absent
 
   /**
    * The marker an Emphasis or Strong delimiter should use, and the style its content should render under, given the
    * marker it would use before any clash resolution and its sole child when that child is itself an
-   * [[MdcNode.Emphasis]].
+   * [[MdNode.Emphasis]].
    *
    * A sole inner Emphasis whose resolved marker is a different character never touches the outer delimiter on reparse
    * and needs no adjustment. One resolving to the same character does: the two delimiter runs touch and a parse always
@@ -482,9 +482,9 @@ object MdWriter:
    *   the character the outer delimiter would use before any clash resolution — the marker itself for Emphasis, or the
    *   character later doubled for Strong
    * @param soleInnerEmphasis
-   *   the outer node's sole child, when it is itself an [[MdcNode.Emphasis]] — see [[soleChildEmphasis]]
+   *   the outer node's sole child, when it is itself an [[MdNode.Emphasis]] — see [[soleChildEmphasis]]
    */
-  private def resolveEmphasisClash(marker: Char, soleInnerEmphasis: Maybe[MdcNode.Emphasis])(using
+  private def resolveEmphasisClash(marker: Char, soleInnerEmphasis: Maybe[MdNode.Emphasis])(using
       style: MdStyle
   ): (Char, MdStyle) =
     soleInnerEmphasis match

@@ -15,24 +15,24 @@ class ParserTests extends Test[Any]:
    * A list item holds blocks, so even the shortest one is a paragraph. Tests that only care what an item says go
    * through this rather than repeating the unwrap.
    */
-  private def paragraphOf(item: MdcNode.ListItem): Chunk[MdcNode.PhrasingContent] =
+  private def paragraphOf(item: MdNode.ListItem): Chunk[MdNode.PhrasingContent] =
     item.children.headOption match
-      case Some(MdcNode.Paragraph(content, _)) => content
-      case _                                   => Chunk.empty
+      case Some(MdNode.Paragraph(content, _)) => content
+      case _                                  => Chunk.empty
 
-  private def textOf(content: Chunk[MdcNode.PhrasingContent]): String =
+  private def textOf(content: Chunk[MdNode.PhrasingContent]): String =
     content.map {
-      case MdcNode.Text(value, _)       => value
-      case MdcNode.InlineCode(value, _) => value
-      case MdcNode.Link(_, _, inner, _) => textOf(inner)
-      case MdcNode.Image(_, _, alt, _)  => alt
-      case MdcNode.Emphasis(inner, _)   => textOf(inner)
-      case MdcNode.Strong(inner, _)     => textOf(inner)
+      case MdNode.Text(value, _)       => value
+      case MdNode.InlineCode(value, _) => value
+      case MdNode.Link(_, _, inner, _) => textOf(inner)
+      case MdNode.Image(_, _, alt, _)  => alt
+      case MdNode.Emphasis(inner, _)   => textOf(inner)
+      case MdNode.Strong(inner, _)     => textOf(inner)
       // Raw HTML is markup rather than text, and contributes none: a test asserting on it matches the node itself.
-      case MdcNode.InlineHtml(_, _) => ""
+      case MdNode.InlineHtml(_, _) => ""
       // A hard break reads as the line ending it stands for, so a test that only cares what the prose says need not
       // know which kind of break produced it.
-      case MdcNode.Break(_) => "\n"
+      case MdNode.Break(_) => "\n"
     }.mkString
 
   private def parseMetrics(source: String): ScanMetrics =
@@ -109,70 +109,70 @@ class ParserTests extends Test[Any]:
     }
     "preserves exact documents across the existing block subset" in {
       val cases = Chunk(
-        ""        -> MdcNode.Root(Chunk.empty, meta = MdcMeta.at(Span.zero)),
-        "# Title" -> MdcNode.Root(
-          Chunk(MdcNode.Heading(
+        ""        -> MdNode.Root(Chunk.empty, meta = MdMeta.at(Span.zero)),
+        "# Title" -> MdNode.Root(
+          Chunk(MdNode.Heading(
             HeadingLevel.One,
-            Chunk(MdcNode.Text("Title", MdcMeta.at(Span(2, 5)))),
-            MdcMeta.at(Span(0, 7))
+            Chunk(MdNode.Text("Title", MdMeta.at(Span(2, 5)))),
+            MdMeta.at(Span(0, 7))
           )),
-          meta = MdcMeta.at(Span(0, 7))
+          meta = MdMeta.at(Span(0, 7))
         ),
         "alpha\nbeta" ->
-          MdcNode.Root(
-            Chunk(MdcNode.Paragraph(
-              Chunk(MdcNode.Text("alpha\nbeta", MdcMeta.at(Span(0, 10)))),
-              MdcMeta.at(Span(0, 10))
+          MdNode.Root(
+            Chunk(MdNode.Paragraph(
+              Chunk(MdNode.Text("alpha\nbeta", MdMeta.at(Span(0, 10)))),
+              MdMeta.at(Span(0, 10))
             )),
-            meta = MdcMeta.at(Span(0, 10))
+            meta = MdMeta.at(Span(0, 10))
           ),
-        "```scala\none\n\ntwo\n```" -> MdcNode.Root(
-          Chunk(MdcNode.Code(FenceInfo.parse("scala"), "one\n\ntwo\n", MdcMeta.at(Span(0, 21)))),
-          meta = MdcMeta.at(Span(0, 21))
+        "```scala\none\n\ntwo\n```" -> MdNode.Root(
+          Chunk(MdNode.Code(FenceInfo.parse("scala"), "one\n\ntwo\n", MdMeta.at(Span(0, 21)))),
+          meta = MdMeta.at(Span(0, 21))
         ),
-        "```\ncode" -> MdcNode.Root(
-          Chunk(MdcNode.Code(FenceInfo.empty, "code", MdcMeta.at(Span(0, 8)))),
-          meta = MdcMeta.at(Span(0, 8))
+        "```\ncode" -> MdNode.Root(
+          Chunk(MdNode.Code(FenceInfo.empty, "code", MdMeta.at(Span(0, 8)))),
+          meta = MdMeta.at(Span(0, 8))
         ),
-        "```\ncode\n" -> MdcNode.Root(
-          Chunk(MdcNode.Code(FenceInfo.empty, "code\n", MdcMeta.at(Span(0, 9)))),
-          meta = MdcMeta.at(Span(0, 9))
+        "```\ncode\n" -> MdNode.Root(
+          Chunk(MdNode.Code(FenceInfo.empty, "code\n", MdMeta.at(Span(0, 9)))),
+          meta = MdMeta.at(Span(0, 9))
         ),
         // An item spans its whole line, marker included, because that is what the item occupies in the source. Its
         // paragraph spans only the content, which is what an inline node needs to point through.
-        "- alpha\n- beta" -> MdcNode.Root(
-          Chunk(MdcNode.List(
+        "- alpha\n- beta" -> MdNode.Root(
+          Chunk(MdNode.List(
             ordered = false,
             start = Absent,
             spread = false,
             Chunk(
-              MdcNode.ListItem(
-                Chunk(MdcNode.Paragraph(Chunk(MdcNode.Text("alpha", MdcMeta.at(Span(2, 5)))), MdcMeta.at(Span(2, 5)))),
-                MdcMeta.at(Span(0, 7))
+              MdNode.ListItem(
+                Chunk(MdNode.Paragraph(Chunk(MdNode.Text("alpha", MdMeta.at(Span(2, 5)))), MdMeta.at(Span(2, 5)))),
+                MdMeta.at(Span(0, 7))
               ),
-              MdcNode.ListItem(
-                Chunk(MdcNode.Paragraph(Chunk(MdcNode.Text("beta", MdcMeta.at(Span(10, 4)))), MdcMeta.at(Span(10, 4)))),
-                MdcMeta.at(Span(8, 6))
+              MdNode.ListItem(
+                Chunk(MdNode.Paragraph(Chunk(MdNode.Text("beta", MdMeta.at(Span(10, 4)))), MdMeta.at(Span(10, 4)))),
+                MdMeta.at(Span(8, 6))
               )
             ),
-            MdcMeta.at(Span(0, 14))
+            MdMeta.at(Span(0, 14))
           )),
-          meta = MdcMeta.at(Span(0, 14))
+          meta = MdMeta.at(Span(0, 14))
         ),
-        "---"      -> MdcNode.Root(Chunk(MdcNode.ThematicBreak(MdcMeta.at(Span(0, 3)))), meta = MdcMeta.at(Span(0, 3))),
-        "# A\n\nB" -> MdcNode.Root(
+        "---"      -> MdNode.Root(Chunk(MdNode.ThematicBreak(MdMeta.at(Span(0, 3)))), meta = MdMeta.at(Span(0, 3))),
+        "# A\n\nB" -> MdNode.Root(
           Chunk(
-            MdcNode.Heading(HeadingLevel.One, Chunk(MdcNode.Text("A", MdcMeta.at(Span(2, 1)))), MdcMeta.at(Span(0, 3))),
-            MdcNode.Paragraph(Chunk(MdcNode.Text("B", MdcMeta.at(Span(5, 1)))), MdcMeta.at(Span(5, 1)))
+            MdNode.Heading(HeadingLevel.One, Chunk(MdNode.Text("A", MdMeta.at(Span(2, 1)))), MdMeta.at(Span(0, 3))),
+            MdNode.Paragraph(Chunk(MdNode.Text("B", MdMeta.at(Span(5, 1)))), MdMeta.at(Span(5, 1)))
           ),
-          meta = MdcMeta.at(Span(0, 6))
+          meta = MdMeta.at(Span(0, 6))
         ),
-        "# A\r\n\r\nB" -> MdcNode.Root(
+        "# A\r\n\r\nB" -> MdNode.Root(
           Chunk(
-            MdcNode.Heading(HeadingLevel.One, Chunk(MdcNode.Text("A", MdcMeta.at(Span(2, 1)))), MdcMeta.at(Span(0, 3))),
-            MdcNode.Paragraph(Chunk(MdcNode.Text("B", MdcMeta.at(Span(7, 1)))), MdcMeta.at(Span(7, 1)))
+            MdNode.Heading(HeadingLevel.One, Chunk(MdNode.Text("A", MdMeta.at(Span(2, 1)))), MdMeta.at(Span(0, 3))),
+            MdNode.Paragraph(Chunk(MdNode.Text("B", MdMeta.at(Span(7, 1)))), MdMeta.at(Span(7, 1)))
           ),
-          meta = MdcMeta.at(Span(0, 8))
+          meta = MdMeta.at(Span(0, 8))
         )
       )
 
@@ -292,17 +292,17 @@ class ParserTests extends Test[Any]:
         maxOutputNodes = NodeCount.one
       )
 
-      assert(Parser.parse("", exact) == Result.succeed(MdcNode.Root(Chunk.empty, meta = MdcMeta.at(Span.zero))))
+      assert(Parser.parse("", exact) == Result.succeed(MdNode.Root(Chunk.empty, meta = MdMeta.at(Span.zero))))
     }
     "accepts an explicitly unsafe unbounded budget" in {
       Parser.parse("# Title", ScanBudget.UnsafeUnbounded) match
-        case Result.Success(MdcNode.Root(blocks, _, _)) =>
+        case Result.Success(MdNode.Root(blocks, _, _)) =>
           assert(
             blocks == Chunk(
-              MdcNode.Heading(
+              MdNode.Heading(
                 HeadingLevel.One,
-                Chunk(MdcNode.Text("Title", MdcMeta.at(Span(2, 5)))),
-                MdcMeta.at(Span(0, 7))
+                Chunk(MdNode.Text("Title", MdMeta.at(Span(2, 5)))),
+                MdMeta.at(Span(0, 7))
               )
             )
           )
@@ -342,7 +342,7 @@ class ParserTests extends Test[Any]:
       )
 
       Parser.parse(source, budget) match
-        case Result.Success(MdcNode.Root(Chunk(MdcNode.Code(info, "", _)), _, _)) =>
+        case Result.Success(MdNode.Root(Chunk(MdNode.Code(info, "", _)), _, _)) =>
           assert(info == FenceInfo.parse("scala flag key=value {.class}"))
           assert(info.language == Present("scala"))
           assert(info.flag("flag"))
@@ -355,13 +355,13 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           assert(doc.children.size == 2)
           doc.children(0) match
-            case MdcNode.Heading(level, content, _) =>
+            case MdNode.Heading(level, content, _) =>
               assert(level.toInt == 1)
               assert(textOf(content) == "Title")
             case _ => assert(false)
           doc.children(1) match
-            case MdcNode.Paragraph(content, _) => assert(textOf(content) == "Hello")
-            case _                             => assert(false)
+            case MdNode.Paragraph(content, _) => assert(textOf(content) == "Hello")
+            case _                            => assert(false)
         case _ => assert(false)
     }
     "splits a heading from the next block at a single newline" in {
@@ -369,13 +369,13 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           assert(doc.children.size == 2)
           doc.children(0) match
-            case MdcNode.Heading(level, content, _) =>
+            case MdNode.Heading(level, content, _) =>
               assert(level.toInt == 1)
               assert(textOf(content) == "Title")
             case _ => assert(false)
           doc.children(1) match
-            case MdcNode.Paragraph(content, _) => assert(textOf(content) == "Body")
-            case _                             => assert(false)
+            case MdNode.Paragraph(content, _) => assert(textOf(content) == "Body")
+            case _                            => assert(false)
         case _ => assert(false)
     }
     "splits consecutive headings without a blank line" in {
@@ -383,11 +383,11 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           assert(doc.children.size == 2)
           doc.children(0) match
-            case MdcNode.Heading(HeadingLevel.One, content, _) => assert(textOf(content) == "One")
-            case _                                             => assert(false)
+            case MdNode.Heading(HeadingLevel.One, content, _) => assert(textOf(content) == "One")
+            case _                                            => assert(false)
           doc.children(1) match
-            case MdcNode.Heading(HeadingLevel.Two, content, _) => assert(textOf(content) == "Two")
-            case _                                             => assert(false)
+            case MdNode.Heading(HeadingLevel.Two, content, _) => assert(textOf(content) == "Two")
+            case _                                            => assert(false)
         case _ => assert(false)
     }
     "spans the whole source" in {
@@ -403,12 +403,12 @@ class ParserTests extends Test[Any]:
           assert(doc.span == Present(Span(0, source.length)))
           assert(doc.children.size == 2)
           doc.children(0) match
-            case MdcNode.Heading(HeadingLevel.One, content, meta) =>
+            case MdNode.Heading(HeadingLevel.One, content, meta) =>
               assert(textOf(content) == "Title")
               assert(meta.span == Present(Span(0, "# Title".length)))
             case _ => assert(false)
           doc.children(1) match
-            case MdcNode.Paragraph(content, MdcMeta(Present(span), _)) if textOf(content) == "Hello" =>
+            case MdNode.Paragraph(content, MdMeta(Present(span), _)) if textOf(content) == "Hello" =>
               assert(span.offset == source.indexOf("Hello"))
               assert(span.length == "Hello".length)
             case _ => assert(false)
@@ -419,14 +419,14 @@ class ParserTests extends Test[Any]:
 
       assert(
         Parser.parse(source) == Result.succeed(
-          MdcNode.Root(
+          MdNode.Root(
             Chunk(
-              MdcNode.Paragraph(
-                Chunk(MdcNode.Text(source, MdcMeta.at(Span(0, source.length)))),
-                MdcMeta.at(Span(0, source.length))
+              MdNode.Paragraph(
+                Chunk(MdNode.Text(source, MdMeta.at(Span(0, source.length)))),
+                MdMeta.at(Span(0, source.length))
               )
             ),
-            meta = MdcMeta.at(Span(0, source.length))
+            meta = MdMeta.at(Span(0, source.length))
           )
         )
       )
@@ -442,7 +442,7 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           assert(doc.children.size == 1)
           doc.children(0) match
-            case MdcNode.Code(info, content, _) =>
+            case MdNode.Code(info, content, _) =>
               assert(info.raw == "scala")
               assert(info.language == Present("scala"))
               assert(content == "val x = 1\n\nval y = 2\n")
@@ -455,7 +455,7 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           assert(doc.children.size == 1)
           doc.children(0) match
-            case MdcNode.Code(_, content, _) =>
+            case MdNode.Code(_, content, _) =>
               assert(content == "value\n```\nafter\n")
             case _ => assert(false)
         case _ => assert(false)
@@ -471,8 +471,8 @@ class ParserTests extends Test[Any]:
           assert(
             doc.children.size != 1 ||
               (doc.children.headOption match {
-                case Some(MdcNode.Code(_, content, _)) => content != "value\n"
-                case _                                 => true
+                case Some(MdNode.Code(_, content, _)) => content != "value\n"
+                case _                                => true
               }),
             s"a four-space-indented backtick run was recognized as a fence: $doc"
           )
@@ -481,19 +481,19 @@ class ParserTests extends Test[Any]:
     "removes opening-fence indentation from fenced code content" in {
       val source = "   ```\n   value\n value\n```"
       Parser.parse(source) match
-        case Result.Success(MdcNode.Root(blocks, _, _)) =>
+        case Result.Success(MdNode.Root(blocks, _, _)) =>
           blocks(0) match
-            case MdcNode.Code(_, content, _) => assert(content == "value\nvalue\n")
-            case _                           => assert(false)
+            case MdNode.Code(_, content, _) => assert(content == "value\nvalue\n")
+            case _                          => assert(false)
         case _ => assert(false)
     }
     "requires a closing fence with matching marker, valid indentation, and no trailing text" in {
       val source = "~~~\nfirst\n```\n    ~~~\n~~~ language\nlast\n~~~~\t"
       Parser.parse(source) match
-        case Result.Success(MdcNode.Root(blocks, _, _)) =>
+        case Result.Success(MdNode.Root(blocks, _, _)) =>
           assert(blocks.size == 1)
           blocks(0) match
-            case MdcNode.Code(_, content, _) =>
+            case MdNode.Code(_, content, _) =>
               assert(content == "first\n```\n    ~~~\n~~~ language\nlast\n")
             case _ => assert(false)
         case _ => assert(false)
@@ -501,57 +501,57 @@ class ParserTests extends Test[Any]:
     "does not accept non-space trailing characters on a closing fence" in {
       val source = "~~~\nfirst\n~~~\u000c\nlast\n~~~"
       Parser.parse(source) match
-        case Result.Success(MdcNode.Root(blocks, _, _)) =>
+        case Result.Success(MdNode.Root(blocks, _, _)) =>
           blocks(0) match
-            case MdcNode.Code(_, content, _) => assert(content == "first\n~~~\u000c\nlast\n")
-            case _                           => assert(false)
+            case MdNode.Code(_, content, _) => assert(content == "first\n~~~\u000c\nlast\n")
+            case _                          => assert(false)
         case _ => assert(false)
     }
     "trims only spaces and tabs around an info string" in {
       Parser.parse("~~~ \u000c example \u000c \nbody\n~~~") match
-        case Result.Success(MdcNode.Root(blocks, _, _)) =>
+        case Result.Success(MdNode.Root(blocks, _, _)) =>
           blocks(0) match
-            case MdcNode.Code(info, _, _) => assert(info.raw == "\u000c example \u000c")
-            case _                        => assert(false)
+            case MdNode.Code(info, _, _) => assert(info.raw == "\u000c example \u000c")
+            case _                       => assert(false)
         case _ => assert(false)
     }
     "allows a three-space opening and closing fence to interrupt a paragraph" in {
       Parser.parse("before\n   ```\ncode\n  ```\nafter") match
-        case Result.Success(MdcNode.Root(blocks, _, _)) =>
+        case Result.Success(MdNode.Root(blocks, _, _)) =>
           assert(blocks.size == 3)
           assert(blocks(0) ==
-            MdcNode.Paragraph(Chunk(MdcNode.Text("before", MdcMeta.at(Span(0, 6)))), MdcMeta.at(Span(0, 6))))
+            MdNode.Paragraph(Chunk(MdNode.Text("before", MdMeta.at(Span(0, 6)))), MdMeta.at(Span(0, 6))))
           blocks(1) match
-            case MdcNode.Code(_, content, _) => assert(content == "code\n")
-            case _                           => assert(false)
+            case MdNode.Code(_, content, _) => assert(content == "code\n")
+            case _                          => assert(false)
           assert(blocks(2) ==
-            MdcNode.Paragraph(Chunk(MdcNode.Text("after", MdcMeta.at(Span(25, 5)))), MdcMeta.at(Span(25, 5))))
+            MdNode.Paragraph(Chunk(MdNode.Text("after", MdMeta.at(Span(25, 5)))), MdMeta.at(Span(25, 5))))
         case _ => assert(false)
     }
     "uses end of document as the close of an unclosed fence" in {
       Parser.parse("```\ncode") match
-        case Result.Success(MdcNode.Root(blocks, _, _)) =>
+        case Result.Success(MdNode.Root(blocks, _, _)) =>
           assert(blocks.size == 1)
           blocks(0) match
-            case MdcNode.Code(_, content, _) => assert(content == "code")
-            case _                           => assert(false)
+            case MdNode.Code(_, content, _) => assert(content == "code")
+            case _                          => assert(false)
         case _ => assert(false)
     }
     "allows an empty fenced code block" in {
       Parser.parse("```\n```") match
-        case Result.Success(MdcNode.Root(blocks, _, _)) =>
+        case Result.Success(MdNode.Root(blocks, _, _)) =>
           assert(blocks.size == 1)
           blocks(0) match
-            case MdcNode.Code(_, content, _) => assert(content.isEmpty)
-            case _                           => assert(false)
+            case MdNode.Code(_, content, _) => assert(content.isEmpty)
+            case _                          => assert(false)
         case _ => assert(false)
     }
     "accepts tildes in a tilde-fence info string but not backticks in a backtick-fence info string" in {
       Parser.parse("~~~ aa ~~~ `example`\nbody\n~~~\n\n``` `example`\nbody") match
-        case Result.Success(MdcNode.Root(blocks, _, _)) =>
+        case Result.Success(MdNode.Root(blocks, _, _)) =>
           assert(blocks.size == 2)
           blocks(0) match
-            case MdcNode.Code(info, content, _) =>
+            case MdNode.Code(info, content, _) =>
               assert(info.raw == "aa ~~~ `example`")
               assert(info.language == Present("aa"))
               assert(content == "body\n")
@@ -559,11 +559,11 @@ class ParserTests extends Test[Any]:
           blocks(1) match
             // Not a fence: a backtick fence's info string may not contain a backtick, so the line is prose --
             // and its `example` is now an ordinary code span.
-            case MdcNode.Paragraph(content, _) =>
+            case MdNode.Paragraph(content, _) =>
               assert(content.size == 3)
-              assert(content(0) == MdcNode.Text("``` ", MdcMeta.at(Span(31, 4))))
-              assert(content(1) == MdcNode.InlineCode("example", MdcMeta.at(Span(35, 9))))
-              assert(content(2) == MdcNode.Text("\nbody", MdcMeta.at(Span(44, 5))))
+              assert(content(0) == MdNode.Text("``` ", MdMeta.at(Span(31, 4))))
+              assert(content(1) == MdNode.InlineCode("example", MdMeta.at(Span(35, 9))))
+              assert(content(2) == MdNode.Text("\nbody", MdMeta.at(Span(44, 5))))
             case _ => assert(false)
         case _ => assert(false)
     }
@@ -572,7 +572,7 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           assert(doc.children.size == 1)
           doc.children(0) match
-            case MdcNode.List(false, Absent, _, items, _) =>
+            case MdNode.List(false, Absent, _, items, _) =>
               assert(items.map(item => textOf(paragraphOf(item))) == Chunk("alpha", "beta"))
             case _ => assert(false)
         case _ => assert(false)
@@ -582,16 +582,16 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           assert(doc.children.size == 1)
           doc.children(0) match
-            case MdcNode.Blockquote(content, _) =>
+            case MdNode.Blockquote(content, _) =>
               assert(content.size == 2)
               content(0) match
-                case MdcNode.Heading(level, inner, _) =>
+                case MdNode.Heading(level, inner, _) =>
                   assert(level == HeadingLevel.One)
                   assert(textOf(inner) == "Foo")
                 case _ => assert(false)
               content(1) match
-                case MdcNode.Paragraph(inner, _) => assert(textOf(inner) == "bar\nbaz")
-                case _                           => assert(false)
+                case MdNode.Paragraph(inner, _) => assert(textOf(inner) == "bar\nbaz")
+                case _                          => assert(false)
             case _ => assert(false)
         case _ => assert(false)
     }
@@ -600,11 +600,11 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           assert(doc.children.size == 1)
           doc.children(0) match
-            case MdcNode.Blockquote(content, _) =>
+            case MdNode.Blockquote(content, _) =>
               assert(content.size == 2)
               content(1) match
-                case MdcNode.Paragraph(inner, _) => assert(textOf(inner) == "bar\nbaz")
-                case _                           => assert(false)
+                case MdNode.Paragraph(inner, _) => assert(textOf(inner) == "bar\nbaz")
+                case _                          => assert(false)
             case _ => assert(false)
         case _ => assert(false)
     }
@@ -615,14 +615,14 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           assert(doc.children.size == 2)
           doc.children(0) match
-            case MdcNode.Blockquote(content, _) =>
+            case MdNode.Blockquote(content, _) =>
               content(0) match
-                case MdcNode.Paragraph(inner, _) => assert(textOf(inner) == "foo")
-                case _                           => assert(false)
+                case MdNode.Paragraph(inner, _) => assert(textOf(inner) == "foo")
+                case _                          => assert(false)
             case _ => assert(false)
           doc.children(1) match
-            case MdcNode.ThematicBreak(_) => assert(true)
-            case _                        => assert(false)
+            case MdNode.ThematicBreak(_) => assert(true)
+            case _                       => assert(false)
         case _ => assert(false)
     }
     "reads a quote with no content as an empty container (spec example 239)" in {
@@ -630,8 +630,8 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           assert(doc.children.size == 1)
           doc.children(0) match
-            case MdcNode.Blockquote(content, _) => assert(content.isEmpty)
-            case _                              => assert(false)
+            case MdNode.Blockquote(content, _) => assert(content.isEmpty)
+            case _                             => assert(false)
         case _ => assert(false)
     }
     "splits a quote at a blank line and joins it at a bare marker (spec examples 242 and 244)" in {
@@ -643,8 +643,8 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           assert(doc.children.size == 1)
           doc.children(0) match
-            case MdcNode.Blockquote(content, _) => assert(content.size == 2)
-            case _                              => assert(false)
+            case MdNode.Blockquote(content, _) => assert(content.size == 2)
+            case _                             => assert(false)
         case _ => assert(false)
     }
     "lets a quote interrupt the paragraph above it (spec example 245)" in {
@@ -652,27 +652,27 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           assert(doc.children.size == 2)
           doc.children(0) match
-            case MdcNode.Paragraph(inner, _) => assert(textOf(inner) == "foo")
-            case _                           => assert(false)
+            case MdNode.Paragraph(inner, _) => assert(textOf(inner) == "foo")
+            case _                          => assert(false)
           doc.children(1) match
-            case MdcNode.Blockquote(_, _) => assert(true)
-            case _                        => assert(false)
+            case MdNode.Blockquote(_, _) => assert(true)
+            case _                       => assert(false)
         case _ => assert(false)
     }
     "nests quotes as deeply as the markers go, laziness included (spec example 250)" in {
       Parser.parse("> > > foo\nbar\n") match
         case Result.Success(doc) =>
-          def onlyQuote(block: MdcNode.FlowContent): MdcNode.FlowContent =
+          def onlyQuote(block: MdNode.FlowContent): MdNode.FlowContent =
             block match
-              case MdcNode.Blockquote(content, _) =>
+              case MdNode.Blockquote(content, _) =>
                 assert(content.size == 1)
                 content(0)
               case other => other
 
           val innermost = onlyQuote(onlyQuote(onlyQuote(doc.children(0))))
           innermost match
-            case MdcNode.Paragraph(inner, _) => assert(textOf(inner) == "foo\nbar")
-            case _                           => assert(false)
+            case MdNode.Paragraph(inner, _) => assert(textOf(inner) == "foo\nbar")
+            case _                          => assert(false)
         case _ => assert(false)
     }
     // Stripping `> ` shortens the text, so a span taken from the remainder would point four characters early unless
@@ -682,9 +682,9 @@ class ParserTests extends Test[Any]:
       Parser.parse(source) match
         case Result.Success(doc) =>
           doc.children(0) match
-            case MdcNode.Blockquote(content, _) =>
+            case MdNode.Blockquote(content, _) =>
               content(0) match
-                case MdcNode.Paragraph(Chunk(MdcNode.Text(value, MdcMeta(Present(span), _))), _) =>
+                case MdNode.Paragraph(Chunk(MdNode.Text(value, MdMeta(Present(span), _))), _) =>
                   assert(value == "alpha")
                   assert(source.substring(span.offset, span.end) == "alpha")
                 case _ => assert(false)
@@ -698,17 +698,17 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           assert(doc.children.size == 1)
           doc.children(0) match
-            case MdcNode.Paragraph(content, _) => assert(textOf(content) == "Foo\n---")
-            case other                         => assert(false, s"expected a paragraph, got $other")
+            case MdNode.Paragraph(content, _) => assert(textOf(content) == "Foo\n---")
+            case other                        => assert(false, s"expected a paragraph, got $other")
         case _ => assert(false)
 
       Parser.parse("> foo\n    - bar\n") match
         case Result.Success(doc) =>
           doc.children(0) match
-            case MdcNode.Blockquote(content, _) =>
+            case MdNode.Blockquote(content, _) =>
               content(0) match
-                case MdcNode.Paragraph(inner, _) => assert(textOf(inner) == "foo\n- bar")
-                case other                       => assert(false, s"expected a paragraph, got $other")
+                case MdNode.Paragraph(inner, _) => assert(textOf(inner) == "foo\n- bar")
+                case other                      => assert(false, s"expected a paragraph, got $other")
             case other => assert(false, s"expected a block quote, got $other")
         case _ => assert(false)
     }
@@ -717,8 +717,8 @@ class ParserTests extends Test[Any]:
       Parser.parse(source) match
         case Result.Success(doc) =>
           doc.children(0) match
-            case MdcNode.Paragraph(content, _) =>
-              content.collectFirst { case MdcNode.InlineCode(value, MdcMeta(Present(span), _)) => (value, span) } match
+            case MdNode.Paragraph(content, _) =>
+              content.collectFirst { case MdNode.InlineCode(value, MdMeta(Present(span), _)) => (value, span) } match
                 // The span covers the backticks, as an inline span does everywhere: what it must not do is point four
                 // characters early, which is what would happen if the text lost its indentation and the offset did not.
                 case Some((value, span)) =>
@@ -733,15 +733,15 @@ class ParserTests extends Test[Any]:
       Parser.parse("1.  foo\n\n    ```\n    bar\n    ```\n\n    baz\n\n    > bam\n") match
         case Result.Success(doc) =>
           doc.children(0) match
-            case MdcNode.List(true, Present(_), spread, items, _) =>
+            case MdNode.List(true, Present(_), spread, items, _) =>
               assert(items.size == 1)
               assert(spread, "blank lines between an item's blocks make the list loose")
               val content = items(0).children
               assert(content.size == 4)
-              assert(content(0).isInstanceOf[MdcNode.Paragraph])
-              assert(content(1).isInstanceOf[MdcNode.Code])
-              assert(content(2).isInstanceOf[MdcNode.Paragraph])
-              assert(content(3).isInstanceOf[MdcNode.Blockquote])
+              assert(content(0).isInstanceOf[MdNode.Paragraph])
+              assert(content(1).isInstanceOf[MdNode.Code])
+              assert(content(2).isInstanceOf[MdNode.Paragraph])
+              assert(content(3).isInstanceOf[MdNode.Blockquote])
             case other => assert(false, s"expected an ordered list, got $other")
         case _ => assert(false)
     }
@@ -752,8 +752,8 @@ class ParserTests extends Test[Any]:
         Parser.parse(source) match
           case Result.Success(doc) =>
             doc.children(0) match
-              case MdcNode.List(_, _, spread, _, _) => !spread
-              case other                            => throw new AssertionError(s"expected a list, got $other")
+              case MdNode.List(_, _, spread, _, _) => !spread
+              case other                           => throw new AssertionError(s"expected a list, got $other")
           case other => throw new AssertionError(s"parse failed: $other")
 
       assert(tightnessOf("- one\n- two\n"))
@@ -788,12 +788,12 @@ class ParserTests extends Test[Any]:
       Parser.parse("- a\n  - b\n") match
         case Result.Success(doc) =>
           doc.children(0) match
-            case MdcNode.List(false, Absent, _, items, _) =>
+            case MdNode.List(false, Absent, _, items, _) =>
               assert(items.size == 1, "the indented marker belongs to the item above it, not beside it")
               assert(items(0).children.size == 2)
               items(0).children(1) match
-                case MdcNode.List(false, Absent, _, inner, _) => assert(inner.size == 1)
-                case other                                    => assert(false, s"expected a nested list, got $other")
+                case MdNode.List(false, Absent, _, inner, _) => assert(inner.size == 1)
+                case other                                   => assert(false, s"expected a nested list, got $other")
             case other => assert(false, s"expected a list, got $other")
         case _ => assert(false)
     }
@@ -804,7 +804,7 @@ class ParserTests extends Test[Any]:
       Parser.parse("1. one\n2. two\n") match
         case Result.Success(doc) =>
           doc.children(0) match
-            case MdcNode.List(true, start, _, items, _) =>
+            case MdNode.List(true, start, _, items, _) =>
               assert(start == Present(1))
               assert(items.size == 2)
             case other => assert(false, s"expected an ordered list, got $other")
@@ -815,11 +815,11 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           assert(doc.children.size == 2, "a list item may begin with at most one blank line")
           doc.children(0) match
-            case MdcNode.List(false, Absent, _, items, _) =>
+            case MdNode.List(false, Absent, _, items, _) =>
               assert(items.size == 1)
               assert(items(0).children.isEmpty)
             case other => assert(false, s"expected a list, got $other")
-          assert(doc.children(1).isInstanceOf[MdcNode.Paragraph])
+          assert(doc.children(1).isInstanceOf[MdNode.Paragraph])
         case _ => assert(false)
     }
     // Four spaces past the marker is code inside the item, not a very indented paragraph: the item spends one space
@@ -828,9 +828,9 @@ class ParserTests extends Test[Any]:
       Parser.parse("- foo\n\n      bar\n") match
         case Result.Success(doc) =>
           doc.children(0) match
-            case MdcNode.List(false, Absent, _, items, _) =>
+            case MdNode.List(false, Absent, _, items, _) =>
               items(0).children(1) match
-                case MdcNode.Code(info, content, _) =>
+                case MdNode.Code(info, content, _) =>
                   assert(info == FenceInfo.empty)
                   assert(content == "bar\n")
                 case other => assert(false, s"expected indented code, got $other")
@@ -856,15 +856,15 @@ class ParserTests extends Test[Any]:
     // A tab advances to the next four-column stop, so what it counts for depends on where it sits. These are the four
     // places that ask, and each one used to count the tab as a single character.
     "measures a tab in columns wherever indentation is counted" in {
-      def blockOf(source: String): MdcNode.FlowContent =
+      def blockOf(source: String): MdNode.FlowContent =
         Parser.parse(source) match
           case Result.Success(document) => document.children(0)
           case other                    => throw new AssertionError(s"parse failed: $other")
 
-      def codeIn(block: MdcNode.FlowContent): String =
+      def codeIn(block: MdNode.FlowContent): String =
         block match
-          case MdcNode.Code(_, content, _) => content
-          case other                       => throw new AssertionError(s"expected indented code, got $other")
+          case MdNode.Code(_, content, _) => content
+          case other                      => throw new AssertionError(s"expected indented code, got $other")
 
       // One leading tab is four columns, so it opens a code block -- and the tabs inside the body are content, left
       // exactly as written (spec example 1).
@@ -874,15 +874,15 @@ class ParserTests extends Test[Any]:
       // The quote marker takes one column of the tab that follows it, leaving six -- four for the code block, two
       // over (6).
       blockOf(">\t\tfoo\n") match
-        case MdcNode.Blockquote(content, _) => assert(codeIn(content(0)) == "  foo\n")
-        case other                          => assert(false, s"expected a block quote, got $other")
+        case MdNode.Blockquote(content, _) => assert(codeIn(content(0)) == "  foo\n")
+        case other                         => assert(false, s"expected a block quote, got $other")
       // The same for a bullet: more than four columns after the marker means the item spends one and holds code (7).
       blockOf("-\t\tfoo\n") match
-        case MdcNode.List(false, Absent, _, items, _) => assert(codeIn(items(0).children(0)) == "  foo\n")
-        case other                                    => assert(false, s"expected a list, got $other")
+        case MdNode.List(false, Absent, _, items, _) => assert(codeIn(items(0).children(0)) == "  foo\n")
+        case other                                   => assert(false, s"expected a list, got $other")
       // A tab separates the hashes of a heading from its text as well as a space does (10).
       blockOf("#\tFoo\n") match
-        case MdcNode.Heading(level, content, _) =>
+        case MdNode.Heading(level, content, _) =>
           assert(level == HeadingLevel.One)
           assert(textOf(content) == "Foo")
         case other => assert(false, s"expected a heading, got $other")
@@ -893,9 +893,9 @@ class ParserTests extends Test[Any]:
     "keeps a tab-indented marker in the same coordinates as the source (spec example 9)" in {
       Parser.parse(" - foo\n   - bar\n\t - baz\n") match
         case Result.Success(doc) =>
-          def onlyItem(block: MdcNode.FlowContent): MdcNode.ListItem =
+          def onlyItem(block: MdNode.FlowContent): MdNode.ListItem =
             block match
-              case MdcNode.List(false, Absent, _, items, _) =>
+              case MdNode.List(false, Absent, _, items, _) =>
                 assert(items.size == 1)
                 items(0)
               case other => throw new AssertionError(s"expected a list, got $other")
@@ -903,7 +903,7 @@ class ParserTests extends Test[Any]:
           val second = onlyItem(doc.children(0)).children(1)
           val third  = onlyItem(second).children(1)
           third match
-            case MdcNode.List(false, Absent, _, items, _) =>
+            case MdNode.List(false, Absent, _, items, _) =>
               assert(items.size == 1, "the tab-indented marker belongs to the item above it")
             case other => assert(false, s"expected a third-level list, got $other")
         case other => assert(false, s"parse failed: $other")
@@ -913,8 +913,8 @@ class ParserTests extends Test[Any]:
       Parser.parse(source) match
         case Result.Success(doc) =>
           doc.children(0) match
-            case MdcNode.Paragraph(content, _) =>
-              content.collectFirst { case MdcNode.InlineCode(_, MdcMeta(Present(span), _)) => span } match
+            case MdNode.Paragraph(content, _) =>
+              content.collectFirst { case MdNode.InlineCode(_, MdMeta(Present(span), _)) => span } match
                 case Some(span) => assert(source.substring(span.offset, span.end) == "`beta`")
                 case None       => assert(false, "expected a code span on the continuation line")
             case other => assert(false, s"expected a paragraph, got $other")
@@ -925,8 +925,8 @@ class ParserTests extends Test[Any]:
       Parser.parse("1.5\tfoo\n") match
         case Result.Success(doc) =>
           doc.children(0) match
-            case MdcNode.Paragraph(content, _) => assert(textOf(content) == "1.5\tfoo")
-            case other                         => assert(false, s"expected a paragraph, got $other")
+            case MdNode.Paragraph(content, _) => assert(textOf(content) == "1.5\tfoo")
+            case other                        => assert(false, s"expected a paragraph, got $other")
         case _ => assert(false)
     }
     // A fence whose first line is blank writes nothing, which used to look the same as having written no line at all,
@@ -936,8 +936,8 @@ class ParserTests extends Test[Any]:
         Parser.parse(source) match
           case Result.Success(doc) =>
             doc.children(0) match
-              case MdcNode.Code(_, content, _) => content
-              case other                       => throw new AssertionError(s"expected a fence, got $other")
+              case MdNode.Code(_, content, _) => content
+              case other                      => throw new AssertionError(s"expected a fence, got $other")
           case other => throw new AssertionError(s"parse failed: $other")
 
       // Five backticks are not closed by three, so the rest of the input is content -- blank first line included.
@@ -951,8 +951,8 @@ class ParserTests extends Test[Any]:
         Parser.parse(source) match
           case Result.Success(doc) =>
             doc.children(0) match
-              case MdcNode.Code(info, _, _) => info.language.getOrElse("")
-              case other                    => throw new AssertionError(s"expected a fence, got $other")
+              case MdNode.Code(info, _, _) => info.language.getOrElse("")
+              case other                   => throw new AssertionError(s"expected a fence, got $other")
           case other => throw new AssertionError(s"parse failed: $other")
 
       assert(languageOf("``` foo\\+bar\nfoo\n```\n") == "foo+bar")
@@ -973,8 +973,8 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           assert(doc.children.size == 1)
           doc.children(0) match
-            case MdcNode.Paragraph(content, _) => assert(textOf(content).startsWith("==="))
-            case other                         => assert(false, s"expected a paragraph, got $other")
+            case MdNode.Paragraph(content, _) => assert(textOf(content).startsWith("==="))
+            case other                        => assert(false, s"expected a paragraph, got $other")
         case other => assert(false, s"parse failed: $other")
     }
     // A line of exactly four spaces is both blank and indented, and it is the blankness that decides: it belongs to
@@ -983,7 +983,7 @@ class ParserTests extends Test[Any]:
       Parser.parse("\n    \n    foo\n    \n\n") match
         case Result.Success(doc) =>
           doc.children(0) match
-            case MdcNode.Code(info, content, _) =>
+            case MdNode.Code(info, content, _) =>
               assert(info == FenceInfo.empty)
               assert(content == "foo\n")
             case other => assert(false, s"expected indented code, got $other")
@@ -994,14 +994,14 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           assert(doc.children.size == 3)
           doc.children(1) match
-            case MdcNode.ThematicBreak(_) => assert(true)
-            case _                        => assert(false)
+            case MdNode.ThematicBreak(_) => assert(true)
+            case _                       => assert(false)
           doc.children(0) match
-            case MdcNode.Paragraph(content, _) => assert(textOf(content) == "Hello")
-            case _                             => assert(false)
+            case MdNode.Paragraph(content, _) => assert(textOf(content) == "Hello")
+            case _                            => assert(false)
           doc.children(2) match
-            case MdcNode.Paragraph(content, _) => assert(textOf(content) == "World")
-            case _                             => assert(false)
+            case MdNode.Paragraph(content, _) => assert(textOf(content) == "World")
+            case _                            => assert(false)
         case _ => assert(false)
     }
   }

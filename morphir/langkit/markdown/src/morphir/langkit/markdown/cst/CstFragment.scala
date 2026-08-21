@@ -3,7 +3,7 @@ package morphir.langkit.markdown.cst
 import kyo.*
 import morphir.langkit.core.Span
 import morphir.langkit.markdown.HeadingLevel
-import morphir.langkit.markdown.MdcNode
+import morphir.langkit.markdown.MdNode
 
 /**
  * What a Parser construction site knows about a graduated block, as spans into the source.
@@ -15,7 +15,7 @@ import morphir.langkit.markdown.MdcNode
  * Containers nest: a [[BlockQuote]] or [[ListItem]] carries the fragments its own run recorded, plus the `markers` its
  * cursor spent taking prefixes off each line. A child's span covers marker bytes the child does not own — `> foo` over
  * `> bar` is one paragraph spanning the middle `> ` — so [[CstParser]] punches the recorded marker spans out of gaps
- * and leaf interiors as [[MdcCstNode.Token]] leaves, and the tiling invariant carries the container problem.
+ * and leaf interiors as [[MdCstNode.Token]] leaves, and the tiling invariant carries the container problem.
  */
 /**
  * One marker a container's cursor spent: its bytes, and the columns its final tab reached past what the container
@@ -82,15 +82,15 @@ private[markdown] enum CstFragment:
  * materialization needs to tile a prose interior.
  */
 private[markdown] final class InlineSlot:
-  private var slot: Maybe[Chunk[MdcNode.PhrasingContent]] = Absent
-  private var noted: Maybe[InlineNotes]                   = Absent
+  private var slot: Maybe[Chunk[MdNode.PhrasingContent]] = Absent
+  private var noted: Maybe[InlineNotes]                  = Absent
 
-  def fill(content: Chunk[MdcNode.PhrasingContent], notes: Maybe[InlineNotes]): Unit =
+  def fill(content: Chunk[MdNode.PhrasingContent], notes: Maybe[InlineNotes]): Unit =
     slot = Present(content)
     noted = notes
 
-  def content: Maybe[Chunk[MdcNode.PhrasingContent]] = slot
-  def notes: Maybe[InlineNotes]                      = noted
+  def content: Maybe[Chunk[MdNode.PhrasingContent]] = slot
+  def notes: Maybe[InlineNotes]                     = noted
 
 /**
  * Collects fragments in source order while the parser runs. Threaded like the `definitions` map.

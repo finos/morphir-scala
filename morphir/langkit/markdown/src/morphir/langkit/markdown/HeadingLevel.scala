@@ -5,7 +5,7 @@ import kyo.*
 /**
  * A CommonMark heading level, always between one and six.
  *
- * Replaces a bare `Int` on [[MdcNode.Heading]] so a level the spec cannot express is unrepresentable. CommonMark caps
+ * Replaces a bare `Int` on [[MdNode.Heading]] so a level the spec cannot express is unrepresentable. CommonMark caps
  * both ATX and setext headings at six, and treats a longer run of `#` as a paragraph rather than a deeper heading.
  */
 opaque type HeadingLevel = Int

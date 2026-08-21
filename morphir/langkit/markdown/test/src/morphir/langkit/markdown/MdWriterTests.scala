@@ -12,8 +12,8 @@ import morphir.langkit.markdown.dsl.given
  *
  * Normalization drops the three differences a parse legitimately introduces. Positions are provenance — a generated
  * node honestly has none, a parsed one does — so they come off. A parse splits prose at every escape and every entity,
- * so `\*a` arrives as two [[MdcNode.Text]] nodes where the author wrote one; adjacent text merges back into one node
- * before the comparison. And a [[MdcNode.FrontMatter.Yaml]] value gains a trailing newline when it lacks one: the
+ * so `\*a` arrives as two [[MdNode.Text]] nodes where the author wrote one; adjacent text merges back into one node
+ * before the comparison. And a [[MdNode.FrontMatter.Yaml]] value gains a trailing newline when it lacks one: the
  * closing delimiter always starts a line of its own, so a parse of a non-empty value can never hand back one without a
  * final `\n`, the same fact [[MdWriter.write]] relies on to emit it. Nothing else is forgiven: a broken parse or a
  * changed meaning is a failure, while over-escaping, which changes only the bytes, is not.
@@ -23,51 +23,51 @@ class MdWriterTests extends Test[Any]:
   /** Newlines shown as `\n` so a mismatch prints on one line and a missing trailing newline is visible. */
   private def oneLine(text: String): String = text.replace("\n", "\\n")
 
-  private def mergedTexts(nodes: Chunk[MdcNode]): Chunk[MdcNode] =
-    val out = scala.collection.mutable.ListBuffer.empty[MdcNode]
+  private def mergedTexts(nodes: Chunk[MdNode]): Chunk[MdNode] =
+    val out = scala.collection.mutable.ListBuffer.empty[MdNode]
     nodes.foreach { node =>
       (out.lastOption, normalize(node)) match
-        case (Some(MdcNode.Text(before, meta)), MdcNode.Text(after, _)) =>
+        case (Some(MdNode.Text(before, meta)), MdNode.Text(after, _)) =>
           out.remove(out.size - 1)
-          out += MdcNode.Text(before + after, meta)
+          out += MdNode.Text(before + after, meta)
         case (_, normalized) => out += normalized
     }
     Chunk.from(out.toList)
 
-  private def flowOf(nodes: Chunk[MdcNode.FlowContent]): Chunk[MdcNode.FlowContent] =
-    mergedTexts(nodes).map(_.asInstanceOf[MdcNode.FlowContent])
+  private def flowOf(nodes: Chunk[MdNode.FlowContent]): Chunk[MdNode.FlowContent] =
+    mergedTexts(nodes).map(_.asInstanceOf[MdNode.FlowContent])
 
-  private def phrasingOf(nodes: Chunk[MdcNode.PhrasingContent]): Chunk[MdcNode.PhrasingContent] =
-    mergedTexts(nodes).map(_.asInstanceOf[MdcNode.PhrasingContent])
+  private def phrasingOf(nodes: Chunk[MdNode.PhrasingContent]): Chunk[MdNode.PhrasingContent] =
+    mergedTexts(nodes).map(_.asInstanceOf[MdNode.PhrasingContent])
 
   /**
    * A frontmatter value, padded with the trailing newline a parse always hands one back with (see the class doc):
    * `yaml("title: x")`, authored with no trailing newline, and the same value reparsed from what the writer wrote,
    * compare equal after this padding even though only one of them carries the `\n` before it.
    */
-  private def normalizeFrontMatter(front: MdcNode.FrontMatter): MdcNode.FrontMatter = front match
-    case MdcNode.FrontMatter.Yaml(value, meta) =>
+  private def normalizeFrontMatter(front: MdNode.FrontMatter): MdNode.FrontMatter = front match
+    case MdNode.FrontMatter.Yaml(value, meta) =>
       val raw    = value.unwrap
       val padded = if raw.isEmpty || raw.endsWith("\n") then raw else raw + "\n"
-      MdcNode.FrontMatter.Yaml(YamlDocText(padded), meta)
+      MdNode.FrontMatter.Yaml(YamlDocText(padded), meta)
 
-  private def normalize(node: MdcNode): MdcNode = node match
-    case MdcNode.Root(children, frontmatter, meta) =>
-      MdcNode.Root(flowOf(children), frontmatter.map(normalizeFrontMatter), meta)
-    case MdcNode.Paragraph(children, meta)                    => MdcNode.Paragraph(phrasingOf(children), meta)
-    case MdcNode.Heading(depth, children, meta)               => MdcNode.Heading(depth, phrasingOf(children), meta)
-    case MdcNode.Blockquote(children, meta)                   => MdcNode.Blockquote(flowOf(children), meta)
-    case MdcNode.List(ordered, start, spread, children, meta) =>
-      MdcNode.List(ordered, start, spread, children.map(item => normalize(item).asInstanceOf[MdcNode.ListItem]), meta)
-    case MdcNode.ListItem(children, meta)         => MdcNode.ListItem(flowOf(children), meta)
-    case MdcNode.Link(url, title, children, meta) => MdcNode.Link(url, title, phrasingOf(children), meta)
-    case MdcNode.Emphasis(children, meta)         => MdcNode.Emphasis(phrasingOf(children), meta)
-    case MdcNode.Strong(children, meta)           => MdcNode.Strong(phrasingOf(children), meta)
-    case leaf                                     => leaf
+  private def normalize(node: MdNode): MdNode = node match
+    case MdNode.Root(children, frontmatter, meta) =>
+      MdNode.Root(flowOf(children), frontmatter.map(normalizeFrontMatter), meta)
+    case MdNode.Paragraph(children, meta)                    => MdNode.Paragraph(phrasingOf(children), meta)
+    case MdNode.Heading(depth, children, meta)               => MdNode.Heading(depth, phrasingOf(children), meta)
+    case MdNode.Blockquote(children, meta)                   => MdNode.Blockquote(flowOf(children), meta)
+    case MdNode.List(ordered, start, spread, children, meta) =>
+      MdNode.List(ordered, start, spread, children.map(item => normalize(item).asInstanceOf[MdNode.ListItem]), meta)
+    case MdNode.ListItem(children, meta)         => MdNode.ListItem(flowOf(children), meta)
+    case MdNode.Link(url, title, children, meta) => MdNode.Link(url, title, phrasingOf(children), meta)
+    case MdNode.Emphasis(children, meta)         => MdNode.Emphasis(phrasingOf(children), meta)
+    case MdNode.Strong(children, meta)           => MdNode.Strong(phrasingOf(children), meta)
+    case leaf                                    => leaf
 
-  private def normalized(root: MdcNode.Root): MdcNode = normalize(root.unpositioned)
+  private def normalized(root: MdNode.Root): MdNode = normalize(root.unpositioned)
 
-  private def roundTrips(tree: MdcNode.Root, label: String)(using MdStyle)(using MdProfile)(using AssertScope): Unit =
+  private def roundTrips(tree: MdNode.Root, label: String)(using MdStyle)(using MdProfile)(using AssertScope): Unit =
     val written = MdWriter.write(tree)
     Parser.parse(written) match
       case Result.Success(reparsed) =>
@@ -82,14 +82,14 @@ class MdWriterTests extends Test[Any]:
         throw new IllegalStateException(s"$label: write produced unparseable text ${oneLine(written)}: $other")
 
   /** Every document the writer produces is a document the CST parser tiles and reprints exactly. */
-  private def raises(tree: MdcNode.Root, label: String)(using MdStyle)(using AssertScope): Unit =
+  private def raises(tree: MdNode.Root, label: String)(using MdStyle)(using AssertScope): Unit =
     val written  = MdWriter.write(tree)
     val document = MdWriter.raise(tree)
     val errors   = Cst.tilingErrors(document, written.length)
     assert(errors.isEmpty, s"$label raised a CST that does not tile: ${errors.mkString("; ")}")
     assert(Cst.print(document) == written, s"$label raised a CST that does not reprint what was written")
 
-  private val example: MdcNode.Root =
+  private val example: MdNode.Root =
     doc(
       h1("Title"),
       p("hello ", strong("world"), " — see ", a("https://x.y")("here")),
@@ -362,7 +362,7 @@ class MdWriterTests extends Test[Any]:
       assert(MdWriter.write(doc(p(strong("x").withMeta(MdStyleKeys.strongMarker, '_')))) == "__x__\n")
 
     /**
-     * Not [[roundTrips]]: the override rides [[MdcMeta.data]], which the parser has no way to reconstruct, so the
+     * Not [[roundTrips]]: the override rides [[MdMeta.data]], which the parser has no way to reconstruct, so the
      * reparsed tree's `Break` carries no such annotation and cannot compare equal to the tree that wrote it. What does
      * survive is the meaning — a two-space hard break — so the reparse is checked against the plain, unannotated tree
      * instead, the same way the empty-code-span case above checks its own no-faithful-spelling reparse.

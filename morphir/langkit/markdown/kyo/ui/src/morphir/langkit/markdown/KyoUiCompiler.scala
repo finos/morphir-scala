@@ -112,6 +112,6 @@ object KyoUiCompiler:
    * Nothing is rendered here. The caller decides: `UI.runRender` for a fragment, `UI.runRenderPage` for a whole
    * document, or mounting it live in a browser.
    */
-  def compile(root: MdcNode.Root): UI =
+  def compile(root: MdNode.Root): UI =
     Compiler.compile[UI](root)(using instance)
 end KyoUiCompiler

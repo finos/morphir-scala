@@ -16,9 +16,9 @@ import kyo.*
  * first, and [[text]] is the leaf that carries the literal runs. Every `String` this algebra hands you is raw source
  * text, never escaped. **Escaping is the writer's job.**
  *
- * The method names are mdast's, because [[MdcNode]] is: one [[code]] for both source forms of a code block, one
- * [[list]] reading `ordered` rather than a method per bullet style. A source-form distinction a target wants back is
- * the CST's to answer, not this algebra's.
+ * The method names are mdast's, because [[MdNode]] is: one [[code]] for both source forms of a code block, one [[list]]
+ * reading `ordered` rather than a method per bullet style. A source-form distinction a target wants back is the CST's
+ * to answer, not this algebra's.
  *
  * The rules for adding a node kind, and the shapes considered and rejected for this stage, are in this module's
  * `CONTRIBUTING.md`.

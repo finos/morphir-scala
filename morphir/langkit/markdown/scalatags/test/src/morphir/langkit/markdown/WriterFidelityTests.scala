@@ -48,7 +48,7 @@ class WriterFidelityTests extends Test[Any]:
   private def oneLine(text: String): String = text.replace("\n", "\\n")
 
   /** `tree` renders the same directly as it does after a round trip through [[MdWriter]] and back. */
-  private def rendersSame(tree: MdcNode.Root, label: String)(using MdStyle)(using AssertScope): Unit =
+  private def rendersSame(tree: MdNode.Root, label: String)(using MdStyle)(using AssertScope): Unit =
     val direct  = ScalatagsCompiler.render(tree)
     val written = ScalatagsCompiler.render(Lower.lower(MdWriter.raise(tree)))
     assert(
@@ -212,7 +212,7 @@ class WriterFidelityTests extends Test[Any]:
     "marker clashes" - {
 
       /**
-       * The inner [[MdcNode.Emphasis]]'s marker is pinned by an explicit [[MdStyleKeys.emphasisMarker]] override — `*`,
+       * The inner [[MdNode.Emphasis]]'s marker is pinned by an explicit [[MdStyleKeys.emphasisMarker]] override — `*`,
        * matching what the outer level would also pick from the default style — so the writer cannot shadow the inner
        * level to the alternate marker the way it does when neither level is pinned (see the "emphasis" case in
        * `writeInline`). The outer level takes the alternate marker instead, since an explicit inner choice wins.
@@ -344,7 +344,7 @@ class WriterFidelityTests extends Test[Any]:
     s"CommonMark 0.31.2 renders 652/652 identically after a write/read round trip" in {
       assert(examples.size == 652)
 
-      def rendered(root: MdcNode.Root): String = ScalatagsCompiler.render(root)
+      def rendered(root: MdNode.Root): String = ScalatagsCompiler.render(root)
 
       val failures = examples.flatMap { example =>
         val original       = Lower.lower(CstParser.parse(example.markdown))

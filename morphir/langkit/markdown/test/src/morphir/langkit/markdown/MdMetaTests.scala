@@ -4,7 +4,7 @@ import kyo.*
 import kyo.test.*
 import morphir.langkit.core.Span
 
-class MdcMetaTests extends Test[Any]:
+class MdMetaTests extends Test[Any]:
 
   private val weight  = MetaKey[Int]("weight")
   private val label   = MetaKey[String]("label")
@@ -19,19 +19,19 @@ class MdcMetaTests extends Test[Any]:
     }
   }
 
-  "MdcMeta" - {
+  "MdMeta" - {
     "empty carries nothing" in {
-      assert(MdcMeta.empty.span == Absent)
-      assert(MdcMeta.empty.data.isEmpty)
+      assert(MdMeta.empty.span == Absent)
+      assert(MdMeta.empty.data.isEmpty)
     }
     "at carries a position" in
-      assert(MdcMeta.at(Span(3, 4)).span == Present(Span(3, 4)))
+      assert(MdMeta.at(Span(3, 4)).span == Present(Span(3, 4)))
     "get and updated are typed and non-destructive" in {
-      val meta = MdcMeta.empty.updated(weight, 3).updated(label, "x")
+      val meta = MdMeta.empty.updated(weight, 3).updated(label, "x")
       assert(meta.get(weight) == Present(3))
       assert(meta.get(label) == Present("x"))
       assert(meta.get(MetaKey[String]("weight")) == Absent) // type is part of identity
-      assert(MdcMeta.empty.get(weight) == Absent)
+      assert(MdMeta.empty.get(weight) == Absent)
       assert(meta.updated(weight, 4).get(weight) == Present(4))
       assert(meta.get(weight) == Present(3))
     }

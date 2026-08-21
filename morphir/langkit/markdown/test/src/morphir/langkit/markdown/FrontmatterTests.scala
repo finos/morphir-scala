@@ -5,7 +5,7 @@ import kyo.test.*
 import morphir.langkit.core.Span
 import morphir.langkit.markdown.cst.Cst
 import morphir.langkit.markdown.cst.CstParser
-import morphir.langkit.markdown.cst.MdcCstNode
+import morphir.langkit.markdown.cst.MdCstNode
 
 /**
  * Frontmatter recognition, which is opt-in: what an [[MdProfile]] carrying [[FrontMatterKind.Yaml]] claims, and what
@@ -20,13 +20,13 @@ class FrontmatterTests extends Test[Any]:
 
   private given yamlProfile: MdProfile = MdProfile.commonmark.withYamlFrontmatter
 
-  private def rootOf(source: String)(using MdProfile): MdcNode.Root =
+  private def rootOf(source: String)(using MdProfile): MdNode.Root =
     Parser.parse(source) match
       case Result.Success(root) => root
       case other                => throw new AssertionError(s"parse of ${oneLine(source)} failed: $other")
 
-  private def yamlOf(root: MdcNode.Root): Maybe[MdcNode.FrontMatter.Yaml] =
-    root.frontmatter.map { case yaml: MdcNode.FrontMatter.Yaml => yaml }
+  private def yamlOf(root: MdNode.Root): Maybe[MdNode.FrontMatter.Yaml] =
+    root.frontmatter.map { case yaml: MdNode.FrontMatter.Yaml => yaml }
 
   /** Newlines shown as `\n` so a mismatch prints on one line. */
   private def oneLine(text: String): String = text.replace("\r", "\\r").replace("\n", "\\n")
@@ -63,7 +63,7 @@ class FrontmatterTests extends Test[Any]:
 
     "keeps body spans absolute in the original source" in {
       val root    = rootOf(Happy)
-      val heading = root.children.collectFirst { case heading: MdcNode.Heading => heading }
+      val heading = root.children.collectFirst { case heading: MdNode.Heading => heading }
       assert(heading.isDefined, s"no heading in ${root.children}")
       heading.foreach { node =>
         node.meta.span match
@@ -138,9 +138,9 @@ class FrontmatterTests extends Test[Any]:
     "and parses as the thematic break and setext heading CommonMark reads there" in {
       val root  = rootOf("---\ntitle: x\n---\n")(using MdProfile.commonmark)
       val kinds = root.children.map {
-        case MdcNode.ThematicBreak(_) => "thematicBreak"
-        case MdcNode.Heading(_, _, _) => "heading"
-        case _                        => "other"
+        case MdNode.ThematicBreak(_) => "thematicBreak"
+        case MdNode.Heading(_, _, _) => "heading"
+        case _                       => "other"
       }
       assert(kinds == Chunk("thematicBreak", "heading"), s"read as $kinds")
     }
@@ -151,8 +151,8 @@ class FrontmatterTests extends Test[Any]:
       assert(root.children.nonEmpty)
       val document = CstParser.parse("---\ntitle: x\n---\n")(using MdProfile.default)
       assert(document.childNodes.forall {
-        case _: MdcCstNode.Frontmatter => false
-        case _                         => true
+        case _: MdCstNode.Frontmatter => false
+        case _                        => true
       })
     }
   }
@@ -162,12 +162,12 @@ class FrontmatterTests extends Test[Any]:
     "materializes as delimiter tokens around a raw text leaf" in {
       val document = CstParser.parse(Happy)
       document.children.headOption match
-        case Some(front: MdcCstNode.Frontmatter) =>
+        case Some(front: MdCstNode.Frontmatter) =>
           assert(front.span == Span(0, 17))
           assert(front.childNodes == Chunk(
-            MdcCstNode.Token("---\n", Span(0, 4)),
-            MdcCstNode.Text("title: x\n", Span(4, 9)),
-            MdcCstNode.Token("---\n", Span(13, 4))
+            MdCstNode.Token("---\n", Span(0, 4)),
+            MdCstNode.Text("title: x\n", Span(4, 9)),
+            MdCstNode.Token("---\n", Span(13, 4))
           ))
         case other => assert(false, s"expected a frontmatter node, got $other")
     }
@@ -175,10 +175,10 @@ class FrontmatterTests extends Test[Any]:
     "an empty value region carries no text leaf" in {
       val document = CstParser.parse("---\n---\nbody\n")
       document.children.headOption match
-        case Some(front: MdcCstNode.Frontmatter) =>
+        case Some(front: MdCstNode.Frontmatter) =>
           assert(front.childNodes == Chunk(
-            MdcCstNode.Token("---\n", Span(0, 4)),
-            MdcCstNode.Token("---\n", Span(4, 4))
+            MdCstNode.Token("---\n", Span(0, 4)),
+            MdCstNode.Token("---\n", Span(4, 4))
           ))
         case other => assert(false, s"expected a frontmatter node, got $other")
     }

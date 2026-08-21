@@ -1,7 +1,7 @@
 package morphir.langkit.markdown.trees
 
 import kyo.*
-import morphir.langkit.markdown.cst.MdcCstNode
+import morphir.langkit.markdown.cst.MdCstNode
 import morphir.langkit.trees.{FieldName, NodeTypeName, QueryableTree}
 import morphir.langkit.trees.unist.{UnistProjection, UnistSpan}
 
@@ -17,45 +17,45 @@ import morphir.langkit.trees.unist.{UnistProjection, UnistSpan}
  */
 object CstQueryableTree:
 
-  given queryableTree: QueryableTree[MdcCstNode] with
+  given queryableTree: QueryableTree[MdCstNode] with
 
-    def nodeType(t: MdcCstNode): NodeTypeName = t match
-      case _: MdcCstNode.Document                => NodeTypeName("document")
-      case _: MdcCstNode.Frontmatter             => NodeTypeName("frontmatter")
-      case _: MdcCstNode.ThematicBreak           => NodeTypeName("thematicBreak")
-      case _: MdcCstNode.AtxHeading              => NodeTypeName("atxHeading")
-      case _: MdcCstNode.SetextHeading           => NodeTypeName("setextHeading")
-      case _: MdcCstNode.FencedCode              => NodeTypeName("fencedCode")
-      case _: MdcCstNode.IndentedCode            => NodeTypeName("indentedCode")
-      case _: MdcCstNode.Paragraph               => NodeTypeName("paragraph")
-      case _: MdcCstNode.BlockQuote              => NodeTypeName("blockQuote")
-      case _: MdcCstNode.BulletList              => NodeTypeName("bulletList")
-      case _: MdcCstNode.OrderedList             => NodeTypeName("orderedList")
-      case _: MdcCstNode.ListItem                => NodeTypeName("listItem")
-      case _: MdcCstNode.HtmlBlock               => NodeTypeName("htmlBlock")
-      case _: MdcCstNode.LinkReferenceDefinition => NodeTypeName("linkReferenceDefinition")
-      case _: MdcCstNode.CodeSpan                => NodeTypeName("codeSpan")
-      case _: MdcCstNode.Autolink                => NodeTypeName("autolink")
-      case _: MdcCstNode.RawHtml                 => NodeTypeName("rawHtml")
-      case _: MdcCstNode.Link                    => NodeTypeName("link")
-      case _: MdcCstNode.Image                   => NodeTypeName("image")
-      case _: MdcCstNode.Emphasis                => NodeTypeName("emphasis")
-      case _: MdcCstNode.HardBreak               => NodeTypeName("hardBreak")
-      case _: MdcCstNode.Escape                  => NodeTypeName("escape")
-      case _: MdcCstNode.Entity                  => NodeTypeName("entity")
-      case _: MdcCstNode.Token                   => NodeTypeName("token")
-      case _: MdcCstNode.Text                    => NodeTypeName("text")
-      case _: MdcCstNode.Verbatim                => NodeTypeName("verbatim")
-      case _: MdcCstNode.PhantomIndent           => NodeTypeName("phantomIndent")
+    def nodeType(t: MdCstNode): NodeTypeName = t match
+      case _: MdCstNode.Document                => NodeTypeName("document")
+      case _: MdCstNode.Frontmatter             => NodeTypeName("frontmatter")
+      case _: MdCstNode.ThematicBreak           => NodeTypeName("thematicBreak")
+      case _: MdCstNode.AtxHeading              => NodeTypeName("atxHeading")
+      case _: MdCstNode.SetextHeading           => NodeTypeName("setextHeading")
+      case _: MdCstNode.FencedCode              => NodeTypeName("fencedCode")
+      case _: MdCstNode.IndentedCode            => NodeTypeName("indentedCode")
+      case _: MdCstNode.Paragraph               => NodeTypeName("paragraph")
+      case _: MdCstNode.BlockQuote              => NodeTypeName("blockQuote")
+      case _: MdCstNode.BulletList              => NodeTypeName("bulletList")
+      case _: MdCstNode.OrderedList             => NodeTypeName("orderedList")
+      case _: MdCstNode.ListItem                => NodeTypeName("listItem")
+      case _: MdCstNode.HtmlBlock               => NodeTypeName("htmlBlock")
+      case _: MdCstNode.LinkReferenceDefinition => NodeTypeName("linkReferenceDefinition")
+      case _: MdCstNode.CodeSpan                => NodeTypeName("codeSpan")
+      case _: MdCstNode.Autolink                => NodeTypeName("autolink")
+      case _: MdCstNode.RawHtml                 => NodeTypeName("rawHtml")
+      case _: MdCstNode.Link                    => NodeTypeName("link")
+      case _: MdCstNode.Image                   => NodeTypeName("image")
+      case _: MdCstNode.Emphasis                => NodeTypeName("emphasis")
+      case _: MdCstNode.HardBreak               => NodeTypeName("hardBreak")
+      case _: MdCstNode.Escape                  => NodeTypeName("escape")
+      case _: MdCstNode.Entity                  => NodeTypeName("entity")
+      case _: MdCstNode.Token                   => NodeTypeName("token")
+      case _: MdCstNode.Text                    => NodeTypeName("text")
+      case _: MdCstNode.Verbatim                => NodeTypeName("verbatim")
+      case _: MdCstNode.PhantomIndent           => NodeTypeName("phantomIndent")
 
-    def children(t: MdcCstNode): Seq[MdcCstNode] = t.childNodes
+    def children(t: MdCstNode): Seq[MdCstNode] = t.childNodes
 
-    def fields(t: MdcCstNode): Map[FieldName, Seq[MdcCstNode]] = Map.empty
+    def fields(t: MdCstNode): Map[FieldName, Seq[MdCstNode]] = Map.empty
 
-    def text(t: MdcCstNode): Option[String] = t.leafText match
+    def text(t: MdCstNode): Option[String] = t.leafText match
       case Present(value) => Some(value)
       case Absent         => None
 
-  given unistProjection: UnistProjection[MdcCstNode] with
-    def span(t: MdcCstNode): Option[UnistSpan] =
+  given unistProjection: UnistProjection[MdCstNode] with
+    def span(t: MdCstNode): Option[UnistSpan] =
       Some(UnistSpan(t.span.offset, t.span.end))

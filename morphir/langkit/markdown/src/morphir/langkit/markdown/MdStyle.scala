@@ -23,10 +23,10 @@ enum HardBreakStyle derives CanEqual, Schema:
   case Spaces
 
 /**
- * House style for the Markdown writer: the syntax spellings [[MdcNode]] itself does not carry.
+ * House style for the Markdown writer: the syntax spellings [[MdNode]] itself does not carry.
  *
- * `MdcNode` carries meaning, not spelling — a [[MdcNode.Strong]] node says nothing about whether the source should use
- * `**` or `__`. `MdStyle` is that spelling, read by the writer as a default; a per-node override rides [[MdcMeta.data]]
+ * `MdNode` carries meaning, not spelling — a [[MdNode.Strong]] node says nothing about whether the source should use
+ * `**` or `__`. `MdStyle` is that spelling, read by the writer as a default; a per-node override rides [[MdMeta.data]]
  * through the published keys in [[MdStyleKeys]], and the writer consults the node's data before falling back to the
  * style in scope.
  */

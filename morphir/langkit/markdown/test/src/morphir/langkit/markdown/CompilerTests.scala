@@ -36,28 +36,28 @@ class CompilerTests extends Test[Any]:
     def thematicBreak: String                       = "(hr)"
   end given
 
-  private def prose(value: String): Chunk[MdcNode.PhrasingContent] = Chunk(MdcNode.Text(value))
-  private def item(value: String): MdcNode.ListItem = MdcNode.ListItem(Chunk(MdcNode.Paragraph(prose(value))))
+  private def prose(value: String): Chunk[MdNode.PhrasingContent] = Chunk(MdNode.Text(value))
+  private def item(value: String): MdNode.ListItem = MdNode.ListItem(Chunk(MdNode.Paragraph(prose(value))))
 
-  private def compile(blocks: MdcNode.FlowContent*): String =
-    Compiler.compile[String](MdcNode.Root(Chunk.from(blocks)))
+  private def compile(blocks: MdNode.FlowContent*): String =
+    Compiler.compile[String](MdNode.Root(Chunk.from(blocks)))
 
   "Compiler.compile" - {
     "folds an empty document" in
       assert(compile() == "(doc )")
     "folds each block kind in document order" in {
       val actual = compile(
-        MdcNode.Heading(HeadingLevel.One, prose("Title")),
-        MdcNode.Paragraph(prose("Body")),
-        MdcNode.ThematicBreak()
+        MdNode.Heading(HeadingLevel.One, prose("Title")),
+        MdNode.Paragraph(prose("Body")),
+        MdNode.ThematicBreak()
       )
       assert(actual == "(doc (h1 Title) (p Body) (hr))")
     }
     "compiles list items before the list that holds them" in
-      assert(compile(MdcNode.List(ordered = false, start = Absent, spread = false, Chunk(item("one"), item("two")))) ==
+      assert(compile(MdNode.List(ordered = false, start = Absent, spread = false, Chunk(item("one"), item("two")))) ==
         "(doc (ul (li one) (li two)))")
     "passes the fence info through to the code node" in
-      assert(compile(MdcNode.Code(FenceInfo.parse("scala"), "x")) == "(doc (code:scala x))")
+      assert(compile(MdNode.Code(FenceInfo.parse("scala"), "x")) == "(doc (code:scala x))")
     "carries the heading level rather than flattening it" in
-      assert(compile(MdcNode.Heading(HeadingLevel.Six, prose("Deep"))) == "(doc (h6 Deep))")
+      assert(compile(MdNode.Heading(HeadingLevel.Six, prose("Deep"))) == "(doc (h6 Deep))")
   }

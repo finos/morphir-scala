@@ -2,7 +2,7 @@ package morphir.knowledge.okf
 
 import kyo.*
 import kyo.test.*
-import morphir.langkit.markdown.MdcNode
+import morphir.langkit.markdown.MdNode
 
 class ConceptTests extends Test[Any]:
 
@@ -33,12 +33,12 @@ class ConceptTests extends Test[Any]:
           assert(concept.frontmatter.tags == Chunk("elm", "ir"))
           assert(concept.body.children.size == 2)
           concept.body.children(0) match
-            case MdcNode.Heading(depth, content, _) =>
+            case MdNode.Heading(depth, content, _) =>
               assert(depth.toInt == 1)
               assert(content.map {
-                case MdcNode.Text(value, _)       => value
-                case MdcNode.InlineCode(value, _) => value
-                case other                        => other.toString
+                case MdNode.Text(value, _)       => value
+                case MdNode.InlineCode(value, _) => value
+                case other                       => other.toString
               }.mkString == "Title")
             case _ => assert(false)
         case _ => assert(false)

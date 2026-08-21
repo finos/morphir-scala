@@ -2,8 +2,8 @@ package morphir.langkit.markdown.trees
 
 import kyo.*
 import kyo.test.*
-import morphir.langkit.markdown.{MdcNode, MdProfile, Parser}
-import morphir.langkit.markdown.cst.{Cst, MdcCstNode, CstParser}
+import morphir.langkit.markdown.{MdNode, MdProfile, Parser}
+import morphir.langkit.markdown.cst.{Cst, MdCstNode, CstParser}
 import morphir.langkit.trees.{NodeTypeName, QueryableTree}
 import morphir.langkit.trees.unist.UnistProjection
 
@@ -18,7 +18,7 @@ import morphir.langkit.trees.unist.UnistProjection
 class MarkdownTreesTests extends Test[Any]:
 
   import CstQueryableTree.given
-  import MdcNodeQueryableTree.given
+  import MdNodeQueryableTree.given
 
   private val source = "# Title\n\n- item `code`\n"
 
@@ -26,14 +26,14 @@ class MarkdownTreesTests extends Test[Any]:
 
   private val withFrontmatter = "---\ntitle: x\n---\n\n# H\n"
 
-  private def ast: MdcNode.Root =
+  private def ast: MdNode.Root =
     Parser.parse(source) match
       case Result.Success(document) => document
       case other                    => throw new IllegalStateException(s"parse failed: $other")
 
-  private def typeNames(node: MdcNode): Seq[String] =
-    NodeTypeName.unwrap(QueryableTree[MdcNode].nodeType(node))
-      +: QueryableTree[MdcNode].children(node).flatMap(typeNames)
+  private def typeNames(node: MdNode): Seq[String] =
+    NodeTypeName.unwrap(QueryableTree[MdNode].nodeType(node))
+      +: QueryableTree[MdNode].children(node).flatMap(typeNames)
 
   "mdast view" - {
 
@@ -47,7 +47,7 @@ class MarkdownTreesTests extends Test[Any]:
     }
 
     "projects to Unist with positions from the source" in {
-      val projected = UnistProjection.project[MdcNode](ast, Some(source))
+      val projected = UnistProjection.project[MdNode](ast, Some(source))
       assert(projected.`type` == "root")
       assert(projected.position.exists(_.start.line == 1))
       val heading = projected.children.head
@@ -56,13 +56,13 @@ class MarkdownTreesTests extends Test[Any]:
     }
 
     "projects without positions when no source is supplied" in {
-      val projected = UnistProjection.project[MdcNode](ast)
+      val projected = UnistProjection.project[MdNode](ast)
       assert(projected.position.isEmpty)
       assert(projected.children.forall(_.position.isEmpty))
     }
 
     "exposes named fields as index sets over the children" in {
-      val projected = UnistProjection.project[MdcNode](ast)
+      val projected = UnistProjection.project[MdNode](ast)
       assert(projected.data.fields.get("children").exists(_.size == projected.children.size))
     }
   }
@@ -72,9 +72,9 @@ class MarkdownTreesTests extends Test[Any]:
     "names nodes in CST vocabulary" in {
       val cst   = CstParser.parse(source)
       val names =
-        def walk(node: MdcCstNode): Seq[String] =
-          NodeTypeName.unwrap(QueryableTree[MdcCstNode].nodeType(node))
-            +: QueryableTree[MdcCstNode].children(node).flatMap(walk)
+        def walk(node: MdCstNode): Seq[String] =
+          NodeTypeName.unwrap(QueryableTree[MdCstNode].nodeType(node))
+            +: QueryableTree[MdCstNode].children(node).flatMap(walk)
         walk(cst)
       assert(names.head == "document")
       assert(names.contains("atxHeading"))
@@ -84,16 +84,16 @@ class MarkdownTreesTests extends Test[Any]:
     }
 
     "reassembles the source from leaf text through the generic contract" in {
-      val cst                              = CstParser.parse(source)
-      def leaves(node: MdcCstNode): String =
-        QueryableTree[MdcCstNode].text(node) match
+      val cst                             = CstParser.parse(source)
+      def leaves(node: MdCstNode): String =
+        QueryableTree[MdCstNode].text(node) match
           case Some(text) => text
-          case None       => QueryableTree[MdcCstNode].children(node).map(leaves).mkString
+          case None       => QueryableTree[MdCstNode].children(node).map(leaves).mkString
       assert(leaves(cst) == source)
     }
 
     "projects to Unist with faithful positions" in {
-      val projected = UnistProjection.project[MdcCstNode](CstParser.parse(source), Some(source))
+      val projected = UnistProjection.project[MdCstNode](CstParser.parse(source), Some(source))
       assert(projected.`type` == "document")
       assert(projected.position.exists(p => p.start.offset.contains(0) && p.end.offset.contains(source.length)))
     }
@@ -105,12 +105,12 @@ class MarkdownTreesTests extends Test[Any]:
       val root = Parser.parse(withFrontmatter)(using yamlProfile) match
         case Result.Success(document) => document
         case other                    => throw new IllegalStateException(s"parse failed: $other")
-      val first = QueryableTree[MdcNode].children(root).head
-      assert(NodeTypeName.unwrap(QueryableTree[MdcNode].nodeType(first)) == "yaml")
+      val first = QueryableTree[MdNode].children(root).head
+      assert(NodeTypeName.unwrap(QueryableTree[MdNode].nodeType(first)) == "yaml")
 
-      def walk(node: MdcCstNode): Seq[String] =
-        NodeTypeName.unwrap(QueryableTree[MdcCstNode].nodeType(node))
-          +: QueryableTree[MdcCstNode].children(node).flatMap(walk)
+      def walk(node: MdCstNode): Seq[String] =
+        NodeTypeName.unwrap(QueryableTree[MdCstNode].nodeType(node))
+          +: QueryableTree[MdCstNode].children(node).flatMap(walk)
       assert(walk(CstParser.parse(withFrontmatter)(using yamlProfile)).contains("frontmatter"))
     }
   }

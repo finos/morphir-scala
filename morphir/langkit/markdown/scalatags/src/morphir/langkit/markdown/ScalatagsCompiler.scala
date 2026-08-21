@@ -111,6 +111,6 @@ object ScalatagsCompiler:
   end instance
 
   /** Compile a document to the HTML the CommonMark fixtures expect. */
-  def render(root: MdcNode.Root): String =
+  def render(root: MdNode.Root): String =
     Compiler.compile[Frag](root)(using instance).render
 end ScalatagsCompiler

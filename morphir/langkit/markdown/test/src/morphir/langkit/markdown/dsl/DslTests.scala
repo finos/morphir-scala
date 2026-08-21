@@ -3,7 +3,7 @@ package morphir.langkit.markdown.dsl
 import kyo.*
 import kyo.test.*
 import morphir.langkit.markdown.*
-import morphir.langkit.markdown.MdcNode as N
+import morphir.langkit.markdown.MdNode as N
 
 class DslTests extends Test[Any]:
 
@@ -66,7 +66,7 @@ class DslTests extends Test[Any]:
       assert(li().childNodes.isEmpty)
 
     "string conversion applies inside varargs" in {
-      val paragraph: MdcNode.Paragraph = p("plain")
+      val paragraph: MdNode.Paragraph = p("plain")
       assert(paragraph == N.Paragraph(Chunk(N.Text("plain"))))
     }
 
@@ -118,7 +118,7 @@ class DslTests extends Test[Any]:
     }
 
     "every DSL node is generated: span is Absent" in {
-      val nodes: Chunk[MdcNode] = Chunk(
+      val nodes: Chunk[MdNode] = Chunk(
         doc(),
         h1("t"),
         h2("t"),
