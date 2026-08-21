@@ -10,4 +10,8 @@ class MdProfileTests extends Test[Any]:
       assert(MdProfile.commonmark.withYamlFrontmatter.frontmatter == Set(FrontMatterKind.Yaml))
     "the kind carries its delimiter" in assert(FrontMatterKind.Yaml.delimiter == "---")
     "the given default is commonmark" in assert(summon[MdProfile] == MdProfile.commonmark)
+    "supportsFrontMatter mirrors the set being non-empty" in {
+      assert(!MdProfile.commonmark.supportsFrontMatter)
+      assert(MdProfile.commonmark.withYamlFrontmatter.supportsFrontMatter)
+    }
   }
