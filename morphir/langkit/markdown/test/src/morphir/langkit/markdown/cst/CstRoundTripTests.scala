@@ -8,7 +8,7 @@ import kyo.test.*
  * byte for byte, over the whole vendored CommonMark corpus, and every parsed tree tiles — its leaves partition the
  * document with no gap and no overlap.
  *
- * Green from day one because an unstructured region is a [[CstNode.Verbatim]] leaf, which prints as itself. Later
+ * Green from day one because an unstructured region is a [[MdcCstNode.Verbatim]] leaf, which prints as itself. Later
  * slices graduate constructs out of verbatim into typed nodes; this suite is what proves each graduation lost nothing.
  * See morphir-lc8.20 and intent 0021.
  */

@@ -77,9 +77,9 @@ Approach rather than merely extend it. The case for replacing it is weaker than 
 covers the whole of CommonMark 0.31.2.
 
 *Settled: whether the CST and the AST stay one tree.* Two trees, related by a total lowering, and the lowering
-is the parse. The CST (`CstNode`) holds every byte under the leaf-tiling invariant — its leaves partition the
+is the parse. The CST (`MdcCstNode`) holds every byte under the leaf-tiling invariant — its leaves partition the
 source, so printing it reproduces the document exactly, checked over the whole conformance corpus. The AST
-(`MdcNode`, rooted at `MdcNode.Root`) holds the meaning. `Lower.lower: CstNode.Document => MdcNode.Root` is
+(`MdcNode`, rooted at `MdcNode.Root`) holds the meaning. `Lower.lower: MdcCstNode.Document => MdcNode.Root` is
 total, `Parser.parse` produces its AST only by lowering the CST, and a second conformance suite proves the
 lowered pipeline renders all 652 examples byte for byte. The AST now speaks mdast vocabulary: one node type
 (`MdcNode`) instead of a case class per kind, content-category unions (`FlowContent`, `PhrasingContent`) in

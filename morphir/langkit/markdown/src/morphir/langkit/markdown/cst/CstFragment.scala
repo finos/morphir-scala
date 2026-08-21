@@ -15,7 +15,7 @@ import morphir.langkit.markdown.MdcNode
  * Containers nest: a [[BlockQuote]] or [[ListItem]] carries the fragments its own run recorded, plus the `markers` its
  * cursor spent taking prefixes off each line. A child's span covers marker bytes the child does not own — `> foo` over
  * `> bar` is one paragraph spanning the middle `> ` — so [[CstParser]] punches the recorded marker spans out of gaps
- * and leaf interiors as [[CstNode.Token]] leaves, and the tiling invariant carries the container problem.
+ * and leaf interiors as [[MdcCstNode.Token]] leaves, and the tiling invariant carries the container problem.
  */
 /**
  * One marker a container's cursor spent: its bytes, and the columns its final tab reached past what the container

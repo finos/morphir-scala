@@ -3,7 +3,7 @@ package morphir.langkit.markdown.trees
 import kyo.*
 import kyo.test.*
 import morphir.langkit.markdown.{MdcNode, Parser}
-import morphir.langkit.markdown.cst.{Cst, CstNode, CstParser}
+import morphir.langkit.markdown.cst.{Cst, MdcCstNode, CstParser}
 import morphir.langkit.trees.{NodeTypeName, QueryableTree}
 import morphir.langkit.trees.unist.UnistProjection
 
@@ -68,9 +68,9 @@ class MarkdownTreesTests extends Test[Any]:
     "names nodes in CST vocabulary" in {
       val cst   = CstParser.parse(source)
       val names =
-        def walk(node: CstNode): Seq[String] =
-          NodeTypeName.unwrap(QueryableTree[CstNode].nodeType(node))
-            +: QueryableTree[CstNode].children(node).flatMap(walk)
+        def walk(node: MdcCstNode): Seq[String] =
+          NodeTypeName.unwrap(QueryableTree[MdcCstNode].nodeType(node))
+            +: QueryableTree[MdcCstNode].children(node).flatMap(walk)
         walk(cst)
       assert(names.head == "document")
       assert(names.contains("atxHeading"))
@@ -80,16 +80,16 @@ class MarkdownTreesTests extends Test[Any]:
     }
 
     "reassembles the source from leaf text through the generic contract" in {
-      val cst                           = CstParser.parse(source)
-      def leaves(node: CstNode): String =
-        QueryableTree[CstNode].text(node) match
+      val cst                              = CstParser.parse(source)
+      def leaves(node: MdcCstNode): String =
+        QueryableTree[MdcCstNode].text(node) match
           case Some(text) => text
-          case None       => QueryableTree[CstNode].children(node).map(leaves).mkString
+          case None       => QueryableTree[MdcCstNode].children(node).map(leaves).mkString
       assert(leaves(cst) == source)
     }
 
     "projects to Unist with faithful positions" in {
-      val projected = UnistProjection.project[CstNode](CstParser.parse(source), Some(source))
+      val projected = UnistProjection.project[MdcCstNode](CstParser.parse(source), Some(source))
       assert(projected.`type` == "document")
       assert(projected.position.exists(p => p.start.offset.contains(0) && p.end.offset.contains(source.length)))
     }

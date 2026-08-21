@@ -14,55 +14,55 @@ import morphir.langkit.markdown.Parser
  * by construction rather than by effort. [[Cst.tilingErrors]] checks the invariant and the round-trip suite enforces it
  * over the whole vendored CommonMark corpus.
  *
- * Three leaf kinds, by what they claim. [[CstNode.Token]] is syntax the author spent — a marker run, a fence, an
- * underline. [[CstNode.Text]] is literal content in its final form — the body of a code fence. [[CstNode.Verbatim]] is
- * the graduation device: a region no slice has yet modelled, printed as itself so the round-trip invariant holds while
- * constructs move out of it one slice at a time (morphir-lc8.21 through lc8.26). A block whose interior is still a
- * single verbatim leaf — a paragraph before inlines graduate — is typed at the block level and unmodelled within, which
- * is exactly the state the slice plan names.
+ * Three leaf kinds, by what they claim. [[MdcCstNode.Token]] is syntax the author spent — a marker run, a fence, an
+ * underline. [[MdcCstNode.Text]] is literal content in its final form — the body of a code fence.
+ * [[MdcCstNode.Verbatim]] is the graduation device: a region no slice has yet modelled, printed as itself so the
+ * round-trip invariant holds while constructs move out of it one slice at a time (morphir-lc8.21 through lc8.26). A
+ * block whose interior is still a single verbatim leaf — a paragraph before inlines graduate — is typed at the block
+ * level and unmodelled within, which is exactly the state the slice plan names.
  */
-enum CstNode derives CanEqual:
+enum MdcCstNode derives CanEqual:
 
   /** The root. Its children, in source order, tile the whole input. */
-  case Document(children: Chunk[CstNode], span: Span)
+  case Document(children: Chunk[MdcCstNode], span: Span)
 
-  case ThematicBreak(children: Chunk[CstNode], span: Span)
-  case AtxHeading(level: HeadingLevel, children: Chunk[CstNode], span: Span)
-  case SetextHeading(level: HeadingLevel, children: Chunk[CstNode], span: Span)
-  case FencedCode(children: Chunk[CstNode], span: Span)
-  case IndentedCode(children: Chunk[CstNode], span: Span)
-  case Paragraph(children: Chunk[CstNode], span: Span)
+  case ThematicBreak(children: Chunk[MdcCstNode], span: Span)
+  case AtxHeading(level: HeadingLevel, children: Chunk[MdcCstNode], span: Span)
+  case SetextHeading(level: HeadingLevel, children: Chunk[MdcCstNode], span: Span)
+  case FencedCode(children: Chunk[MdcCstNode], span: Span)
+  case IndentedCode(children: Chunk[MdcCstNode], span: Span)
+  case Paragraph(children: Chunk[MdcCstNode], span: Span)
 
   /**
    * A quote. Its children interleave per-line `>` marker [[Token]]s with the blocks the quote holds; a marker that
    * falls inside a child's span — the middle of a two-line paragraph — appears as a token *inside* that child, because
    * the child spans the marker bytes without owning them.
    */
-  case BlockQuote(children: Chunk[CstNode], span: Span)
+  case BlockQuote(children: Chunk[MdcCstNode], span: Span)
 
   /** A run of bullet items sharing `bullet`. `tight` is the rendering evidence the parser gathered from blank lines. */
-  case BulletList(bullet: Char, tight: Boolean, children: Chunk[CstNode], span: Span)
+  case BulletList(bullet: Char, tight: Boolean, children: Chunk[MdcCstNode], span: Span)
 
   /** A run of numbered items sharing `delimiter`, numbered from `start`. */
-  case OrderedList(start: Int, delimiter: Char, tight: Boolean, children: Chunk[CstNode], span: Span)
+  case OrderedList(start: Int, delimiter: Char, tight: Boolean, children: Chunk[MdcCstNode], span: Span)
 
   /** One item. Its first child is the marker [[Token]]; continuation-line indentation appears as tokens too. */
-  case ListItem(children: Chunk[CstNode], span: Span)
+  case ListItem(children: Chunk[MdcCstNode], span: Span)
 
   /** A raw HTML block. Its interior is [[Text]]: the content is HTML, not Markdown, and is already in final form. */
-  case HtmlBlock(children: Chunk[CstNode], span: Span)
+  case HtmlBlock(children: Chunk[MdcCstNode], span: Span)
 
   /** A `[label]: destination "title"` definition, unresolved. Its interior stays verbatim until inlines graduate. */
-  case LinkReferenceDefinition(children: Chunk[CstNode], span: Span)
+  case LinkReferenceDefinition(children: Chunk[MdcCstNode], span: Span)
 
   /** An inline code span: backtick-run [[Token]]s around the raw [[Text]] between them. */
-  case CodeSpan(children: Chunk[CstNode], span: Span)
+  case CodeSpan(children: Chunk[MdcCstNode], span: Span)
 
   /** An autolink, kept in its angle-bracket form: `<`, the literal destination, `>`. */
-  case Autolink(children: Chunk[CstNode], span: Span)
+  case Autolink(children: Chunk[MdcCstNode], span: Span)
 
   /** Inline raw HTML, taken whole as [[Text]]: its interior is HTML the inline grammar never re-reads. */
-  case RawHtml(children: Chunk[CstNode], span: Span)
+  case RawHtml(children: Chunk[MdcCstNode], span: Span)
 
   /**
    * A link, in whichever of the four forms the author wrote. Its children keep the leaves in place — bracket and
@@ -77,7 +77,7 @@ enum CstNode derives CanEqual:
       destination: Maybe[String],
       title: Maybe[String],
       reference: Maybe[String],
-      children: Chunk[CstNode],
+      children: Chunk[MdcCstNode],
       span: Span
   )
 
@@ -87,7 +87,7 @@ enum CstNode derives CanEqual:
       destination: Maybe[String],
       title: Maybe[String],
       reference: Maybe[String],
-      children: Chunk[CstNode],
+      children: Chunk[MdcCstNode],
       span: Span
   )
 
@@ -96,16 +96,16 @@ enum CstNode derives CanEqual:
    * content; its span is what it owns — a partially consumed run's leftover delimiters fall outside it, into the
    * surrounding gaps.
    */
-  case Emphasis(delimiter: Char, strong: Boolean, children: Chunk[CstNode], span: Span)
+  case Emphasis(delimiter: Char, strong: Boolean, children: Chunk[MdcCstNode], span: Span)
 
   /** A hard line break, spelled as the author wrote it: trailing spaces or a backslash, then the line ending. */
-  case HardBreak(children: Chunk[CstNode], span: Span)
+  case HardBreak(children: Chunk[MdcCstNode], span: Span)
 
   /** A backslash escape: the backslash [[Token]] and the character it makes literal as [[Text]]. */
-  case Escape(children: Chunk[CstNode], span: Span)
+  case Escape(children: Chunk[MdcCstNode], span: Span)
 
   /** A character reference — `&amp;`, `&#35;` — kept as written; its decoded value is a resolution, not a spelling. */
-  case Entity(children: Chunk[CstNode], span: Span)
+  case Entity(children: Chunk[MdcCstNode], span: Span)
 
   /** Syntax the author spent: marker runs, fences, setext underlines. */
   case Token(text: String, span: Span)
@@ -133,7 +133,7 @@ enum CstNode derives CanEqual:
     case _                 => Absent
 
   /** Children of an interior node, in source order; empty for leaves. */
-  def childNodes: Chunk[CstNode] = this match
+  def childNodes: Chunk[MdcCstNode] = this match
     case Document(children, _)                => children
     case ThematicBreak(children, _)           => children
     case AtxHeading(_, children, _)           => children
@@ -162,9 +162,9 @@ enum CstNode derives CanEqual:
 object Cst:
 
   /** The source, reproduced from the tree's leaves in order. Byte-exact whenever the tree tiles. */
-  def print(node: CstNode): String =
-    val out                    = new StringBuilder
-    def walk(n: CstNode): Unit = n.leafText match
+  def print(node: MdcCstNode): String =
+    val out                       = new StringBuilder
+    def walk(n: MdcCstNode): Unit = n.leafText match
       case Present(text) => out.append(text)
       case Absent        => n.childNodes.foreach(walk)
     walk(node)
@@ -176,10 +176,10 @@ object Cst:
    * Checks that the leaves, in tree order, cover `[0, sourceLength)` exactly: each leaf starts where the previous one
    * ended, the first at zero, the last ending at the length, and each carrying exactly as much text as its span claims.
    */
-  def tilingErrors(node: CstNode, sourceLength: Int): Chunk[String] =
-    val errors                 = Chunk.newBuilder[String]
-    var cursor                 = 0
-    def walk(n: CstNode): Unit = n.leafText match
+  def tilingErrors(node: MdcCstNode, sourceLength: Int): Chunk[String] =
+    val errors                    = Chunk.newBuilder[String]
+    var cursor                    = 0
+    def walk(n: MdcCstNode): Unit = n.leafText match
       case Present(text) =>
         if n.span.offset != cursor then errors.addOne(s"leaf at ${n.span.offset} does not start at cursor $cursor")
         if text.length != n.span.length then
@@ -194,46 +194,46 @@ object Cst:
  * Parses a source into its CST.
  *
  * The block phase records a [[CstFragment]] at each graduated construction site; this object turns those fragments into
- * typed nodes by slicing the source, and holds every unclaimed region — blank runs, mostly — as [[CstNode.Verbatim]]
+ * typed nodes by slicing the source, and holds every unclaimed region — blank runs, mostly — as [[MdcCstNode.Verbatim]]
  * until its slice graduates it. A source the parser rejects (budget exhaustion) degrades to one verbatim leaf, so
  * parsing stays total and round-trip exact.
  *
  * Containers bring marker spans with them: the bytes their cursor spent on `>` prefixes and item indentation. Those
- * spans are punched out of gaps and leaf interiors as [[CstNode.Token]] leaves wherever they fall inside the region
+ * spans are punched out of gaps and leaf interiors as [[MdcCstNode.Token]] leaves wherever they fall inside the region
  * being tiled — which is how a child that spans marker bytes ends up not owning them. A marker recorded on a peek past
  * the container's end falls outside every region and is clamped away by the same tiling.
  */
 object CstParser:
 
-  def parse(source: String): CstNode.Document =
+  def parse(source: String): MdcCstNode.Document =
     Parser.parseFragments(source) match
       case Result.Success(fragments) => assembleDocument(source, fragments)
       case _                         => fallback(source)
 
   /** The document from an already-run block phase; [[Parser.parse]] uses this to lower in a single pass. */
-  private[markdown] def assembleDocument(source: String, fragments: Chunk[CstFragment]): CstNode.Document =
-    CstNode.Document(assembleRegion(source, Span(0, source.length), Chunk.empty, fragments), Span(0, source.length))
+  private[markdown] def assembleDocument(source: String, fragments: Chunk[CstFragment]): MdcCstNode.Document =
+    MdcCstNode.Document(assembleRegion(source, Span(0, source.length), Chunk.empty, fragments), Span(0, source.length))
 
-  private def fallback(source: String): CstNode.Document =
+  private def fallback(source: String): MdcCstNode.Document =
     val span = Span(0, source.length)
-    if source.isEmpty then CstNode.Document(Chunk.empty, span)
-    else CstNode.Document(Chunk(CstNode.Verbatim(source, span)), span)
+    if source.isEmpty then MdcCstNode.Document(Chunk.empty, span)
+    else MdcCstNode.Document(Chunk(MdcCstNode.Verbatim(source, span)), span)
 
   /**
-   * The children of one region: fragments materialized in order, gaps tiled as [[CstNode.Verbatim]] with any marker
-   * spans punched out as [[CstNode.Token]]s. The document is the region with no markers; containers pass their own.
+   * The children of one region: fragments materialized in order, gaps tiled as [[MdcCstNode.Verbatim]] with any marker
+   * spans punched out as [[MdcCstNode.Token]]s. The document is the region with no markers; containers pass their own.
    */
   private def assembleRegion(
       source: String,
       span: Span,
       markers: Chunk[Marker],
       fragments: Chunk[CstFragment]
-  ): Chunk[CstNode] =
-    val children              = Chunk.newBuilder[CstNode]
+  ): Chunk[MdcCstNode] =
+    val children              = Chunk.newBuilder[MdcCstNode]
     var cursor                = span.offset
     def gap(until: Int): Unit =
       if until > cursor then
-        children.addAll(tile(source, cursor, until, markers)(CstNode.Verbatim(_, _)))
+        children.addAll(tile(source, cursor, until, markers)(MdcCstNode.Verbatim(_, _)))
         cursor = until
     fragments.foreach { fragment =>
       if fragment.span.offset >= cursor && fragment.span.end <= span.end then
@@ -247,88 +247,88 @@ object CstParser:
   /**
    * A leaf over `[from, until)`, or nothing when the range is empty — empty leaves would break nothing but say nothing.
    */
-  private def leaf(source: String, from: Int, until: Int)(make: (String, Span) => CstNode): Chunk[CstNode] =
+  private def leaf(source: String, from: Int, until: Int)(make: (String, Span) => MdcCstNode): Chunk[MdcCstNode] =
     if until > from then Chunk(make(source.substring(from, until), Span.fromStartEnd(from, until)))
     else Chunk.empty
 
   /**
-   * Leaves over `[from, until)` with every marker span that intersects the range cut out as a [[CstNode.Token]] and the
-   * rest made by `make`. Markers arrive sorted by offset; ranges that overlap — the same prefix recorded at two nesting
-   * depths — degrade to adjacent tokens rather than to a tiling violation.
+   * Leaves over `[from, until)` with every marker span that intersects the range cut out as a [[MdcCstNode.Token]] and
+   * the rest made by `make`. Markers arrive sorted by offset; ranges that overlap — the same prefix recorded at two
+   * nesting depths — degrade to adjacent tokens rather than to a tiling violation.
    */
   private def tile(source: String, from: Int, until: Int, markers: Chunk[Marker])(
-      make: (String, Span) => CstNode
-  ): Chunk[CstNode] =
+      make: (String, Span) => MdcCstNode
+  ): Chunk[MdcCstNode] =
     if markers.isEmpty then leaf(source, from, until)(make)
     else
-      val out    = Chunk.newBuilder[CstNode]
+      val out    = Chunk.newBuilder[MdcCstNode]
       var cursor = from
       markers.foreach { marker =>
         val start = math.max(marker.span.offset, cursor)
         val end   = math.min(marker.span.end, until)
         if start < end then
           out.addAll(leaf(source, cursor, start)(make))
-          out.addAll(leaf(source, start, end)(CstNode.Token(_, _)))
+          out.addAll(leaf(source, start, end)(MdcCstNode.Token(_, _)))
           // The marker's final tab may have reached past the container's claim; the leftover columns belong to the
           // content and are kept as zero-width layout so the round-trip stays byte-exact.
           if marker.phantom > 0 && end == marker.span.end then
-            out.addOne(CstNode.PhantomIndent(marker.phantom, Span(end, 0)))
+            out.addOne(MdcCstNode.PhantomIndent(marker.phantom, Span(end, 0)))
           cursor = end
       }
       out.addAll(leaf(source, cursor, until)(make))
       out.result()
 
   /** `markers` are the enclosing container's, for punching out of this fragment's unstructured interiors. */
-  private def materialize(source: String, fragment: CstFragment, markers: Chunk[Marker]): CstNode = fragment match
+  private def materialize(source: String, fragment: CstFragment, markers: Chunk[Marker]): MdcCstNode = fragment match
     case CstFragment.ThematicBreak(span) =>
-      CstNode.ThematicBreak(leaf(source, span.offset, span.end)(CstNode.Token(_, _)), span)
+      MdcCstNode.ThematicBreak(leaf(source, span.offset, span.end)(MdcCstNode.Token(_, _)), span)
 
     case CstFragment.AtxHeading(level, span, content, inlines) =>
       val children =
-        leaf(source, span.offset, content.offset)(CstNode.Token(_, _))
+        leaf(source, span.offset, content.offset)(MdcCstNode.Token(_, _))
           ++ prose(source, content.offset, content.end, markers, inlines)
-          ++ leaf(source, content.end, span.end)(CstNode.Token(_, _))
-      CstNode.AtxHeading(level, children, span)
+          ++ leaf(source, content.end, span.end)(MdcCstNode.Token(_, _))
+      MdcCstNode.AtxHeading(level, children, span)
 
     case CstFragment.SetextHeading(level, span, underlineOffset, inlines) =>
       val children =
         prose(source, span.offset, underlineOffset, markers, inlines)
-          ++ leaf(source, underlineOffset, span.end)(CstNode.Token(_, _))
-      CstNode.SetextHeading(level, children, span)
+          ++ leaf(source, underlineOffset, span.end)(MdcCstNode.Token(_, _))
+      MdcCstNode.SetextHeading(level, children, span)
 
     case CstFragment.FencedCode(span, openEnd, closeStart) =>
       val contentEnd = closeStart.getOrElse(span.end)
       val children   =
-        leaf(source, span.offset, openEnd)(CstNode.Token(_, _))
-          ++ tile(source, openEnd, contentEnd, markers)(CstNode.Text(_, _))
-          ++ leaf(source, contentEnd, span.end)(CstNode.Token(_, _))
-      CstNode.FencedCode(children, span)
+        leaf(source, span.offset, openEnd)(MdcCstNode.Token(_, _))
+          ++ tile(source, openEnd, contentEnd, markers)(MdcCstNode.Text(_, _))
+          ++ leaf(source, contentEnd, span.end)(MdcCstNode.Token(_, _))
+      MdcCstNode.FencedCode(children, span)
 
     case CstFragment.IndentedCode(span) =>
-      CstNode.IndentedCode(tile(source, span.offset, span.end, markers)(CstNode.Verbatim(_, _)), span)
+      MdcCstNode.IndentedCode(tile(source, span.offset, span.end, markers)(MdcCstNode.Verbatim(_, _)), span)
 
     case CstFragment.Paragraph(span, inlines) =>
-      CstNode.Paragraph(prose(source, span.offset, span.end, markers, inlines), span)
+      MdcCstNode.Paragraph(prose(source, span.offset, span.end, markers, inlines), span)
 
     case CstFragment.HtmlBlock(span) =>
-      CstNode.HtmlBlock(tile(source, span.offset, span.end, markers)(CstNode.Text(_, _)), span)
+      MdcCstNode.HtmlBlock(tile(source, span.offset, span.end, markers)(MdcCstNode.Text(_, _)), span)
 
     case CstFragment.LinkReferenceDefinition(span) =>
-      CstNode.LinkReferenceDefinition(tile(source, span.offset, span.end, markers)(CstNode.Verbatim(_, _)), span)
+      MdcCstNode.LinkReferenceDefinition(tile(source, span.offset, span.end, markers)(MdcCstNode.Verbatim(_, _)), span)
 
     case CstFragment.BlockQuote(span, own, children) =>
       val all = merged(markers, own)
-      CstNode.BlockQuote(assembleRegion(source, span, all, children), span)
+      MdcCstNode.BlockQuote(assembleRegion(source, span, all, children), span)
 
     case CstFragment.BulletList(bullet, tight, span, items) =>
-      CstNode.BulletList(bullet, tight, assembleRegion(source, span, markers, items), span)
+      MdcCstNode.BulletList(bullet, tight, assembleRegion(source, span, markers, items), span)
 
     case CstFragment.OrderedList(start, delimiter, tight, span, items) =>
-      CstNode.OrderedList(start, delimiter, tight, assembleRegion(source, span, markers, items), span)
+      MdcCstNode.OrderedList(start, delimiter, tight, assembleRegion(source, span, markers, items), span)
 
     case CstFragment.ListItem(span, own, children) =>
       val all = merged(markers, own)
-      CstNode.ListItem(assembleRegion(source, span, all, children), span)
+      MdcCstNode.ListItem(assembleRegion(source, span, all, children), span)
 
   /**
    * The enclosing container's markers and this container's, one sorted run. A container's own recorder only sees the
@@ -354,9 +354,9 @@ object CstParser:
       until: Int,
       markers: Chunk[Marker],
       inlines: InlineSlot
-  ): Chunk[CstNode] =
+  ): Chunk[MdcCstNode] =
     inlines.content match
-      case Absent         => tile(source, from, until, markers)(CstNode.Verbatim(_, _))
+      case Absent         => tile(source, from, until, markers)(MdcCstNode.Verbatim(_, _))
       case Present(items) => inlineRegion(source, from, until, markers, items, inlines.notes)
 
   /** One inline region: graduated constructs at their spans, gaps verbatim; link content recurses through here. */
@@ -367,8 +367,8 @@ object CstParser:
       markers: Chunk[Marker],
       items: Chunk[MdcNode.PhrasingContent],
       notes: Maybe[InlineNotes]
-  ): Chunk[CstNode] =
-    val out                                         = Chunk.newBuilder[CstNode]
+  ): Chunk[MdcCstNode] =
+    val out                                         = Chunk.newBuilder[MdcCstNode]
     var cursor                                      = from
     def emit(inline: MdcNode.PhrasingContent): Unit =
       graduate(source, inline, markers, notes) match
@@ -397,14 +397,14 @@ object CstParser:
       until: Int,
       markers: Chunk[Marker],
       notes: Maybe[InlineNotes]
-  ): Chunk[CstNode] =
+  ): Chunk[MdcCstNode] =
     notes match
-      case Absent             => tile(source, from, until, markers)(CstNode.Verbatim(_, _))
+      case Absent             => tile(source, from, until, markers)(MdcCstNode.Verbatim(_, _))
       case Present(collected) =>
         val punches =
           (collected.escapeOffsets.map(o => (span = Span.fromStartEnd(o, o + 2), escape = true))
             ++ collected.entitySpans.map(s => (span = s, escape = false))).sortBy(_.span.offset)
-        val out    = Chunk.newBuilder[CstNode]
+        val out    = Chunk.newBuilder[MdcCstNode]
         var cursor = from
         punches.foreach { punch =>
           val s = punch.span
@@ -413,16 +413,16 @@ object CstParser:
               if punch.escape then s.offset < source.length && source.charAt(s.offset) == '\\'
               else s.offset < source.length && source.charAt(s.offset) == '&'
             if valid then
-              out.addAll(tile(source, cursor, s.offset, markers)(CstNode.Verbatim(_, _)))
+              out.addAll(tile(source, cursor, s.offset, markers)(MdcCstNode.Verbatim(_, _)))
               if punch.escape then
                 val children =
-                  leaf(source, s.offset, s.offset + 1)(CstNode.Token(_, _))
-                    ++ leaf(source, s.offset + 1, s.end)(CstNode.Text(_, _))
-                out.addOne(CstNode.Escape(children, s))
-              else out.addOne(CstNode.Entity(leaf(source, s.offset, s.end)(CstNode.Token(_, _)), s))
+                  leaf(source, s.offset, s.offset + 1)(MdcCstNode.Token(_, _))
+                    ++ leaf(source, s.offset + 1, s.end)(MdcCstNode.Text(_, _))
+                out.addOne(MdcCstNode.Escape(children, s))
+              else out.addOne(MdcCstNode.Entity(leaf(source, s.offset, s.end)(MdcCstNode.Token(_, _)), s))
               cursor = s.end
         }
-        out.addAll(tile(source, cursor, until, markers)(CstNode.Verbatim(_, _)))
+        out.addAll(tile(source, cursor, until, markers)(MdcCstNode.Verbatim(_, _)))
         out.result()
 
   /**
@@ -438,29 +438,29 @@ object CstParser:
       inline: MdcNode.PhrasingContent,
       markers: Chunk[Marker],
       notes: Maybe[InlineNotes]
-  ): Maybe[CstNode] = inline match
+  ): Maybe[MdcCstNode] = inline match
     case MdcNode.InlineCode(_, Present(span)) if span.offset < source.length && source.charAt(span.offset) == '`' =>
       var run = span.offset
       while run < span.end && source.charAt(run) == '`' do run += 1
       val ticks    = run - span.offset
       val children =
-        leaf(source, span.offset, run)(CstNode.Token(_, _))
-          ++ tile(source, run, span.end - ticks, markers)(CstNode.Text(_, _))
-          ++ leaf(source, span.end - ticks, span.end)(CstNode.Token(_, _))
-      Present(CstNode.CodeSpan(children, span))
+        leaf(source, span.offset, run)(MdcCstNode.Token(_, _))
+          ++ tile(source, run, span.end - ticks, markers)(MdcCstNode.Text(_, _))
+          ++ leaf(source, span.end - ticks, span.end)(MdcCstNode.Token(_, _))
+      Present(MdcCstNode.CodeSpan(children, span))
 
     case MdcNode.InlineHtml(_, Present(span)) if span.offset < source.length && source.charAt(span.offset) == '<' =>
-      Present(CstNode.RawHtml(tile(source, span.offset, span.end, markers)(CstNode.Text(_, _)), span))
+      Present(MdcCstNode.RawHtml(tile(source, span.offset, span.end, markers)(MdcCstNode.Text(_, _)), span))
 
     // An autolink is a Link whose source form starts with `<`; a bracketed link or image starts with `[` or `!`.
     case MdcNode.Link(_, _, _, Present(span))
         if span.offset < source.length && source.charAt(span.offset) == '<'
           && span.end <= source.length && span.length >= 2 && source.charAt(span.end - 1) == '>' =>
       val children =
-        leaf(source, span.offset, span.offset + 1)(CstNode.Token(_, _))
-          ++ tile(source, span.offset + 1, span.end - 1, markers)(CstNode.Text(_, _))
-          ++ leaf(source, span.end - 1, span.end)(CstNode.Token(_, _))
-      Present(CstNode.Autolink(children, span))
+        leaf(source, span.offset, span.offset + 1)(MdcCstNode.Token(_, _))
+          ++ tile(source, span.offset + 1, span.end - 1, markers)(MdcCstNode.Text(_, _))
+          ++ leaf(source, span.end - 1, span.end)(MdcCstNode.Token(_, _))
+      Present(MdcCstNode.Autolink(children, span))
 
     case MdcNode.Link(_, _, content, Present(span))
         if span.offset < source.length && source.charAt(span.offset) == '[' =>
@@ -488,7 +488,7 @@ object CstParser:
     case MdcNode.Break(Present(span))
         if span.offset < source.length
           && (source.charAt(span.offset) == ' ' || source.charAt(span.offset) == '\\') =>
-      Present(CstNode.HardBreak(tile(source, span.offset, span.end, markers)(CstNode.Token(_, _)), span))
+      Present(MdcCstNode.HardBreak(tile(source, span.offset, span.end, markers)(MdcCstNode.Token(_, _)), span))
 
     case _ => Absent
 
@@ -510,7 +510,7 @@ object CstParser:
       notes: Maybe[InlineNotes],
       used: Int,
       strong: Boolean
-  ): Maybe[CstNode] =
+  ): Maybe[MdcCstNode] =
     def claimOf(item: MdcNode.PhrasingContent): (start: Int, end: Int) = item match
       case MdcNode.Emphasis(inner, Present(s)) => narrowed(inner, 1, s)
       case MdcNode.Strong(inner, Present(s))   => narrowed(inner, 2, s)
@@ -545,10 +545,10 @@ object CstParser:
         then Absent
         else
           val children =
-            leaf(source, openStart, contentStart)(CstNode.Token(_, _))
+            leaf(source, openStart, contentStart)(MdcCstNode.Token(_, _))
               ++ inlineRegion(source, contentStart, contentEnd, markers, content, notes)
-              ++ leaf(source, contentEnd, closeEnd)(CstNode.Token(_, _))
-          Present(CstNode.Emphasis(delimiter, strong, children, Span.fromStartEnd(openStart, closeEnd)))
+              ++ leaf(source, contentEnd, closeEnd)(MdcCstNode.Token(_, _))
+          Present(MdcCstNode.Emphasis(delimiter, strong, children, Span.fromStartEnd(openStart, closeEnd)))
 
   /**
    * A link or image node from its note, or [[kyo.Absent]] when the note's geometry does not fit the span.
@@ -565,13 +565,13 @@ object CstParser:
       markers: Chunk[Marker],
       notes: Maybe[InlineNotes],
       image: Boolean
-  ): Maybe[CstNode] =
-    val pieces = List.newBuilder[(from: Int, until: Int, make: (Int, Int) => Chunk[CstNode])]
+  ): Maybe[MdcCstNode] =
+    val pieces = List.newBuilder[(from: Int, until: Int, make: (Int, Int) => Chunk[MdcCstNode])]
 
     def tok(from: Int, until: Int): Unit =
-      pieces += ((from = from, until = until, make = (a, b) => leaf(source, a, b)(CstNode.Token(_, _))))
+      pieces += ((from = from, until = until, make = (a, b) => leaf(source, a, b)(MdcCstNode.Token(_, _))))
     def txt(from: Int, until: Int): Unit =
-      pieces += ((from = from, until = until, make = (a, b) => tile(source, a, b, markers)(CstNode.Text(_, _))))
+      pieces += ((from = from, until = until, make = (a, b) => tile(source, a, b, markers)(MdcCstNode.Text(_, _))))
 
     tok(span.offset, note.content.offset)
     pieces +=
@@ -608,19 +608,19 @@ object CstParser:
       case LinkForm.ReferenceShortcut =>
         tok(note.content.end, span.end) // "]"
 
-    val out    = Chunk.newBuilder[CstNode]
+    val out    = Chunk.newBuilder[MdcCstNode]
     var cursor = span.offset
     var sound  = true
     pieces.result().foreach { piece =>
       if piece.from < cursor || piece.until < piece.from || piece.until > span.end then sound = false
       else if sound then
-        out.addAll(tile(source, cursor, piece.from, markers)(CstNode.Verbatim(_, _)))
+        out.addAll(tile(source, cursor, piece.from, markers)(MdcCstNode.Verbatim(_, _)))
         out.addAll(piece.make(piece.from, piece.until))
         cursor = piece.until
     }
     if !sound then Absent
     else
-      out.addAll(tile(source, cursor, span.end, markers)(CstNode.Verbatim(_, _)))
+      out.addAll(tile(source, cursor, span.end, markers)(MdcCstNode.Verbatim(_, _)))
       val children    = out.result()
       val destination = note.destination.map(d => stripped(source, d.span.offset, d.span.end, markers))
       val title       = note.title.map(t => stripped(source, t.offset + 1, t.end - 1, markers))
@@ -632,8 +632,8 @@ object CstParser:
         case LinkForm.ReferenceCollapsed | LinkForm.ReferenceShortcut =>
           Present(stripped(source, note.content.offset, note.content.end, markers))
       Present(
-        if image then CstNode.Image(note.form, destination, title, reference, children, span)
-        else CstNode.Link(note.form, destination, title, reference, children, span)
+        if image then MdcCstNode.Image(note.form, destination, title, reference, children, span)
+        else MdcCstNode.Link(note.form, destination, title, reference, children, span)
       )
 
   /** The source over `[from, until)` with container marker bytes cut out: a raw spelling, free of the container. */

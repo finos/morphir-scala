@@ -25,7 +25,7 @@ sealed trait MdcNode derives CanEqual:
   /**
    * Every child in document order; empty for leaves. Total, for generic walks.
    *
-   * Named `childNodes` (matching `CstNode.childNodes`) rather than `children`: the cases' `children` fields carry
+   * Named `childNodes` (matching `MdcCstNode.childNodes`) rather than `children`: the cases' `children` fields carry
    * narrower category types, and a field may implement a trait member only at the exact same type.
    */
   def childNodes: Chunk[MdcNode] = this match
