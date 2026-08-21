@@ -13,20 +13,21 @@ import morphir.langkit.core.Span
  */
 class ScalatagsCompilerTests extends Test[Any]:
 
-  private val span = Span.zero
+  private val span = Present(Span.zero)
 
-  private def prose(value: String): Chunk[Inline] = Chunk(Inline.Text(value, span))
+  private def prose(value: String): Chunk[MdcNode.PhrasingContent] = Chunk(MdcNode.Text(value, span))
 
   /** A one-paragraph item, which is what a tight list's items are. */
-  private def item(value: String): ListItem = ListItem(Chunk(Block.Paragraph(prose(value), span)), span)
+  private def item(value: String): MdcNode.ListItem =
+    MdcNode.ListItem(Chunk(MdcNode.Paragraph(prose(value), span)), span)
 
-  private def render(blocks: Block*): String =
-    ScalatagsCompiler.render(Document(Chunk.from(blocks), span))
+  private def render(blocks: MdcNode.FlowContent*): String =
+    ScalatagsCompiler.render(MdcNode.Root(Chunk.from(blocks), span))
 
   "ScalatagsCompiler" - {
 
     "renders an ATX heading (spec example 67)" in
-      assert(render(Block.Heading(HeadingLevel.One, prose("foo"), span)) == "<h1>foo</h1>\n")
+      assert(render(MdcNode.Heading(HeadingLevel.One, prose("foo"), span)) == "<h1>foo</h1>\n")
 
     "renders every heading level" in {
       val levels = Chunk(
@@ -38,49 +39,55 @@ class ScalatagsCompilerTests extends Test[Any]:
         HeadingLevel.Six   -> "<h6>x</h6>\n"
       )
       levels.foreach { case (level, expected) =>
-        assert(render(Block.Heading(level, prose("x"), span)) == expected)
+        assert(render(MdcNode.Heading(level, prose("x"), span)) == expected)
       }
     }
 
     "renders a paragraph (spec example 645)" in
-      assert(render(Block.Paragraph(prose("foo"), span)) == "<p>foo</p>\n")
+      assert(render(MdcNode.Paragraph(prose("foo"), span)) == "<p>foo</p>\n")
 
     "spells a thematic break the way the fixtures do (spec example 11)" in
-      assert(render(Block.ThematicBreak(span)) == "<hr />\n")
+      assert(render(MdcNode.ThematicBreak(span)) == "<hr />\n")
 
     "escapes text the way the spec does, leaving the apostrophe literal (spec example 12)" in {
       val text     = """!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~"""
       val expected = """<p>!&quot;#$%&amp;'()*+,-./:;&lt;=&gt;?@[\]^_`{|}~</p>""" + "\n"
-      assert(render(Block.Paragraph(prose(text), span)) == expected)
+      assert(render(MdcNode.Paragraph(prose(text), span)) == expected)
     }
 
     "puts the language in a class on the inner code element (spec example 142)" in
       assert(
-        render(Block.FencedCode(FenceInfo.parse("ruby"), "def foo(x)\n  return 3\nend\n", span)) ==
+        render(MdcNode.Code(FenceInfo.parse("ruby"), "def foo(x)\n  return 3\nend\n", span)) ==
           "<pre><code class=\"language-ruby\">def foo(x)\n  return 3\nend\n</code></pre>\n"
       )
 
     "omits the class when the fence names no language, and escapes the code (spec example 119)" in
       assert(
-        render(Block.FencedCode(FenceInfo.empty, "<\n >\n", span)) ==
+        render(MdcNode.Code(FenceInfo.empty, "<\n >\n", span)) ==
           "<pre><code>&lt;\n &gt;\n</code></pre>\n"
       )
 
     "adds no newline inside an empty code block (spec example 130)" in
-      assert(render(Block.FencedCode(FenceInfo.empty, "", span)) == "<pre><code></code></pre>\n")
+      assert(render(MdcNode.Code(FenceInfo.empty, "", span)) == "<pre><code></code></pre>\n")
 
     "renders a bullet list with one item per line (spec example 281)" in
       assert(
-        render(Block.UnorderedList(Chunk(item("foo"), item(""), item("bar")), tight = true, span)) ==
+        render(MdcNode.List(
+          ordered = false,
+          Absent,
+          spread = false,
+          Chunk(item("foo"), item(""), item("bar")),
+          span
+        )) ==
           "<ul>\n<li>foo</li>\n<li></li>\n<li>bar</li>\n</ul>\n"
       )
 
     "separates sibling blocks with a newline apiece (spec example 57)" in
       assert(
         render(
-          Block.UnorderedList(Chunk(item("foo")), tight = true, span),
-          Block.ThematicBreak(span),
-          Block.UnorderedList(Chunk(item("bar")), tight = true, span)
+          MdcNode.List(ordered = false, Absent, spread = false, Chunk(item("foo")), span),
+          MdcNode.ThematicBreak(span),
+          MdcNode.List(ordered = false, Absent, spread = false, Chunk(item("bar")), span)
         ) == "<ul>\n<li>foo</li>\n</ul>\n<hr />\n<ul>\n<li>bar</li>\n</ul>\n"
       )
 
