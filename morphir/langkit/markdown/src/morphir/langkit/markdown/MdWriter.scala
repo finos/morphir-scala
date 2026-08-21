@@ -59,9 +59,32 @@ object MdWriter:
   /** Punctuation that means something only at the head of a line: two list markers and a setext underline. */
   private val LineLeadEscaped: Set[Char] = Set('-', '+', '=')
 
-  /** A run of blocks, joined by whatever the run that holds them keeps between siblings. */
+  /**
+   * A run of blocks, joined by whatever the run that holds them keeps between siblings.
+   *
+   * Two sibling [[MdcNode.List]]s of the same `ordered`ness, one after the other with nothing but a block separator
+   * between them, are how the AST represents what the source spelled as two lists rather than one loose one — a bullet
+   * or a delimiter changed mid-run, which is the only thing that ends a list without ending the run of items. The AST
+   * keeps no memory of which marker the source used, so on its own the writer would give both the same default marker
+   * and a reparse would fuse them back into one. Tracking the immediately preceding list's marker here, across an
+   * arbitrary other block in between, is what lets [[writeList]] pick a different one when it must.
+   */
   private def blocks(nodes: Chunk[MdcNode.FlowContent], separator: String)(using MdStyle): String =
-    nodes.map(block).mkString(separator)
+    val pieces                               = Chunk.newBuilder[String]
+    var previousList: Maybe[(Boolean, Char)] = Absent
+    nodes.foreach {
+      case list: MdcNode.List =>
+        val avoid = previousList.flatMap { case (ordered, marker) =>
+          if ordered == list.ordered then Present(marker) else Absent
+        }
+        val (written, marker) = writeList(list, avoid)
+        pieces += written
+        previousList = Present((list.ordered, marker))
+      case other =>
+        pieces += block(other)
+        previousList = Absent
+    }
+    pieces.result().mkString(separator)
 
   /** One block, with its own internal newlines and no trailing one. */
   private def block(node: MdcNode.FlowContent)(using style: MdStyle): String = node match
@@ -70,7 +93,7 @@ object MdWriter:
     case code: MdcNode.Code              => writeCode(code)
     case MdcNode.Html(value, _)          => value
     case MdcNode.Blockquote(children, _) => prefixed(blocks(children, BlankSeparated), "> ", ">")
-    case list: MdcNode.List              => writeList(list)
+    case list: MdcNode.List              => writeList(list)._1
     // Three spellings mean one break; only what else they could be read as differs. A `-` bullet takes `***`, so a
     // break is never the `- - -` its own list could have written. Every other bullet takes `___`, which is neither a
     // list marker nor a setext underline. `---` is both, and the second is what rules it out: a tight list item
@@ -85,14 +108,22 @@ object MdWriter:
    * nothing is a paragraph of `===`. Everything else falls back to ATX, which every depth can spell.
    */
   private def writeHeading(heading: MdcNode.Heading)(using style: MdStyle): String =
-    val body  = inlines(heading.children, atLineStart = true)
     val depth = heading.depth.toInt
     val kind  = heading.meta.get(MdStyleKeys.headingStyle).getOrElse(style.headingStyle)
-    if kind == HeadingStyle.Setext && depth <= 2 && !body.isBlank then
+    // Setext content spans one line per child line and tolerates an embedded soft break; only Setext's own
+    // eligibility check (depth, blankness) needs it, so it is computed once and reused for the body itself.
+    lazy val setextBody = inlines(heading.children, atLineStart = true)
+    if kind == HeadingStyle.Setext && depth <= 2 && !setextBody.isBlank then
       val underline = if depth == 1 then "===" else "---"
-      s"$body\n$underline"
-    else if body.isEmpty then "#" * depth
-    else s"${"#" * depth} $body"
+      s"$setextBody\n$underline"
+    else
+      // ATX syntax is exactly one physical line: a heading whose content carries a soft break or a hard break —
+      // reachable whenever Setext is unavailable, at depth three and up, or a two-line Setext candidate falls back
+      // here for some other reason — cannot spell that break literally without splitting the line in two. `oneLine`
+      // asks `inlines` for the nearest meaning instead: every line break, hard or soft, becomes `&#10;`, which reads
+      // back as the same character without ending the ATX line early.
+      val body = inlines(heading.children, atLineStart = true, oneLine = true)
+      if body.isEmpty then "#" * depth else s"${"#" * depth} $body"
 
   /**
    * A fenced code block. The indented form is not written: a fence carries every body, including an empty info string.
@@ -115,17 +146,31 @@ object MdWriter:
    * Tightness is the same fact at both levels: a tight list separates its items by a single newline *and* the blocks
    * within an item by one, because a blank line anywhere inside a list is what makes the parser call it loose.
    */
-  private def writeList(list: MdcNode.List)(using style: MdStyle): String =
-    val bullet    = list.meta.get(MdStyleKeys.bullet).getOrElse(style.bullet)
-    val delimiter = list.meta.get(MdStyleKeys.orderedDelimiter).getOrElse(style.orderedDelimiter)
+  /**
+   * @param avoid
+   *   the marker an immediately preceding sibling list of the same `ordered`ness already used, when there is one — see
+   *   [[blocks]]. Reusing it here would fuse the two back into one list on reparse, so this list takes the other marker
+   *   in its two- (ordered) or three-way (bullet) choice instead, regardless of what the style in scope or a per-node
+   *   override asked for.
+   * @return
+   *   the written list, and the bullet or delimiter character it settled on — what the next sibling list, if any, must
+   *   avoid in turn
+   */
+  private def writeList(list: MdcNode.List, avoid: Maybe[Char] = Absent)(using style: MdStyle): (String, Char) =
+    val wantedBullet    = list.meta.get(MdStyleKeys.bullet).getOrElse(style.bullet)
+    val wantedDelimiter = list.meta.get(MdStyleKeys.orderedDelimiter).getOrElse(style.orderedDelimiter)
+    val bullet = if !list.ordered && avoid.contains(wantedBullet) then alternateBullet(wantedBullet) else wantedBullet
+    val delimiter =
+      if list.ordered && avoid.contains(wantedDelimiter) then alternateDelimiter(wantedDelimiter) else wantedDelimiter
     val first     = list.start.getOrElse(1)
     val separator = if list.tight then LineSeparated else BlankSeparated
-    list.children.zipWithIndex.map { case (item, index) =>
+    val written   = list.children.zipWithIndex.map { case (item, index) =>
       val marker = if list.ordered then s"${first + index}$delimiter " else s"$bullet "
       val body   = blocks(item.children, separator)
       // An item that holds nothing spends no space after its marker: a trailing one would be whitespace no line needs.
       if body.isEmpty then marker.stripTrailing else marked(body, marker)
     }.mkString(separator)
+    (written, if list.ordered then delimiter else bullet)
 
   /** Every line of `text` behind `prefix`; a blank line takes `blankPrefix`, so no line ends in dead whitespace. */
   private def prefixed(text: String, prefix: String, blankPrefix: String): String =
@@ -148,35 +193,74 @@ object MdWriter:
    *
    * The one piece of state is whether the next character lands at the head of a line, which the escaper needs and only
    * this fold knows: a hard break ends a line, and so does a soft break inside a text node.
+   *
+   * Every consecutive run of [[MdcNode.Text]] siblings escapes as one string rather than one call per node. A parse
+   * splits prose into a new node at every escape and every entity, so the digits of a line-leading ordered-list marker
+   * can end one node while its delimiter opens the next — [[escapeText]]'s line-leading rules need to see both to
+   * escape the delimiter, and a node boundary that fell between them by accident of the source's own escaping is not a
+   * boundary this writer owes any respect to.
+   *
+   * @param oneLine
+   *   when true, no line break in this run may reach the page literally — the run is headed for a context, such as an
+   *   ATX heading, that is exactly one physical line. Every soft break and hard break spells as `&#10;` instead, which
+   *   reads back as the same character without ending the line early.
    */
-  private def inlines(nodes: Chunk[MdcNode.PhrasingContent], atLineStart: Boolean)(using MdStyle): String =
+  private def inlines(nodes: Chunk[MdcNode.PhrasingContent], atLineStart: Boolean, oneLine: Boolean = false)(using
+      MdStyle
+  ): String =
     val out       = new StringBuilder
     var lineStart = atLineStart
-    nodes.foreach { node =>
-      val piece = writeInline(node, lineStart)
-      out.append(piece)
-      if piece.nonEmpty then lineStart = piece.endsWith("\n")
-    }
+    var index     = 0
+    while index < nodes.length do
+      nodes(index) match
+        case MdcNode.Text(_, _) =>
+          val start = index
+          while index < nodes.length && nodes(index).isInstanceOf[MdcNode.Text] do index += 1
+          val merged = nodes.slice(start, index).collect { case MdcNode.Text(value, _) => value }.mkString
+          val piece  = escapeText(merged, lineStart, oneLine)
+          out.append(piece)
+          if piece.nonEmpty then lineStart = piece.endsWith("\n")
+        case node =>
+          val piece = writeInline(node, lineStart, oneLine)
+          out.append(piece)
+          if piece.nonEmpty then lineStart = piece.endsWith("\n")
+          index += 1
     out.toString
 
-  private def writeInline(node: MdcNode.PhrasingContent, atLineStart: Boolean)(using style: MdStyle): String =
+  private def writeInline(node: MdcNode.PhrasingContent, atLineStart: Boolean, oneLine: Boolean)(using
+      style: MdStyle
+  ): String =
     node match
-      case MdcNode.Text(value, _)       => escapeText(value, atLineStart)
+      case MdcNode.Text(value, _)       => escapeText(value, atLineStart, oneLine)
       case MdcNode.InlineCode(value, _) => writeInlineCode(value)
       case MdcNode.InlineHtml(value, _) => value
-      case link: MdcNode.Link   => s"[${inlines(link.children, atLineStart = false)}](${target(link.url, link.title)})"
+      case link: MdcNode.Link           =>
+        s"[${inlines(link.children, atLineStart = false, oneLine)}](${target(link.url, link.title)})"
       case image: MdcNode.Image =>
-        s"![${escapeText(image.alt, atLineStart = false)}](${target(image.url, image.title)})"
+        s"![${escapeText(image.alt, atLineStart = false, oneLine)}](${target(image.url, image.title)})"
       case emphasis: MdcNode.Emphasis =>
         val marker = emphasis.meta.get(MdStyleKeys.emphasisMarker).getOrElse(style.emphasisMarker)
-        s"$marker${inlines(emphasis.children, atLineStart = false)}$marker"
+        // A sole child that is itself an Emphasis with the same marker touches it on both sides: two single-character
+        // delimiters run together into one two-character run, which a parse always reads as Strong rather than as
+        // emphasis nested in emphasis — CommonMark prefers the longer match whenever both flanking runs allow it, and
+        // a run of exactly two never has a leftover single character to spend on the outer level. The inner level
+        // takes the other marker in scope for its own subtree, so the touching run never forms.
+        val innerClashes = emphasis.children.size == 1 &&
+          (emphasis.children(0) match
+            case inner: MdcNode.Emphasis =>
+              inner.meta.get(MdStyleKeys.emphasisMarker).getOrElse(style.emphasisMarker) == marker
+            case _ => false)
+        val childStyle = if innerClashes then style.copy(emphasisMarker = alternateMarker(marker)) else style
+        s"$marker${inlines(emphasis.children, atLineStart = false, oneLine)(using childStyle)}$marker"
       case strong: MdcNode.Strong =>
         val marker = strong.meta.get(MdStyleKeys.strongMarker).getOrElse(style.strongMarker).toString * 2
-        s"$marker${inlines(strong.children, atLineStart = false)}$marker"
+        s"$marker${inlines(strong.children, atLineStart = false, oneLine)}$marker"
       case MdcNode.Break(_) =>
-        style.hardBreak match
-          case HardBreakStyle.Backslash => "\\\n"
-          case HardBreakStyle.Spaces    => "  \n"
+        if oneLine then "&#10;"
+        else
+          style.hardBreak match
+            case HardBreakStyle.Backslash => "\\\n"
+            case HardBreakStyle.Spaces    => "  \n"
 
   /**
    * An inline code span.
@@ -243,16 +327,29 @@ object MdWriter:
    *
    * `atLineStart` is the writer's position rather than the value's: a text node that follows a hard break begins a line
    * even though its own value does not start with a newline.
+   *
+   * A newline in the value is not always safe to write literally, and two different hazards decide when it is not. Two
+   * of them in a row would leave an empty line between them — a blank line, which is exactly what ends the block this
+   * text belongs to, whether or not the author meant a break there — so every newline after the first in such a run
+   * spells as `&#10;` instead, content the block scanner sees and the parser resolves back to the same character.
+   * `oneLine` asks for the same treatment for the first newline in a run too, because its context — an ATX heading —
+   * has no second physical line to spend one on at all.
    */
-  private[markdown] def escapeText(value: String, atLineStart: Boolean): String =
+  private[markdown] def escapeText(value: String, atLineStart: Boolean, oneLine: Boolean = false): String =
     val out       = new StringBuilder
     var lineStart = atLineStart
     var index     = 0
     while index < value.length do
       val character = value.charAt(index)
       if character == '\n' then
-        out.append('\n')
-        lineStart = true
+        if oneLine || lineStart then
+          // Either this line already holds nothing and another bare newline would leave it blank, or no line break
+          // is allowed here at all: either way the newline's content survives, but not as a physical line ending.
+          out.append("&#10;")
+          lineStart = false
+        else
+          out.append('\n')
+          lineStart = true
         index += 1
       else if character == ' ' then
         val end = runEnd(value, index, ' ')
@@ -288,6 +385,18 @@ object MdWriter:
         index += 1
     out.toString
   end escapeText
+
+  /** The other emphasis marker CommonMark recognises, for the one place two of the same one cannot touch. */
+  private def alternateMarker(marker: Char): Char = if marker == '*' then '_' else '*'
+
+  /**
+   * A bullet other than `marker`, from CommonMark's three (`-`, `+`, `*`); which one is unimportant, only that it
+   * differs.
+   */
+  private def alternateBullet(marker: Char): Char = if marker == '-' then '+' else '-'
+
+  /** The other ordered-list delimiter CommonMark recognises. */
+  private def alternateDelimiter(delimiter: Char): Char = if delimiter == '.' then ')' else '.'
 
   private def runEnd(text: String, from: Int, character: Char): Int =
     var index = from
