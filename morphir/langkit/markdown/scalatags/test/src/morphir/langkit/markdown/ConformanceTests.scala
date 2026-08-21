@@ -132,13 +132,16 @@ class ConformanceTests extends Test[Any]:
   /** Newlines shown as `\n`, so one example stays on one line and a missing trailing newline is visible. */
   private def oneLine(text: String): String = text.replace("\n", "\\n")
 
-  private def reportFailure(example: Example): Unit =
-    println(s"  [${example.section}] example ${example.example}")
-    println(s"    source   ${oneLine(example.markdown)}")
-    Parser.parse(example.markdown) match
-      case Result.Success(document) => println(s"    produced ${oneLine(ScalatagsCompiler.render(document))}")
-      case other                    => println(s"    produced <parse failed: $other>")
-    println(s"    expected ${oneLine(example.html)}")
+  private def reportFailure(example: Example) =
+    val produced = Parser.parse(example.markdown) match
+      case Result.Success(document) => oneLine(ScalatagsCompiler.render(document))
+      case other                    => s"<parse failed: $other>"
+    Console.printLine(
+      s"  [${example.section}] example ${example.example}\n" +
+        s"    source   ${oneLine(example.markdown)}\n" +
+        s"    produced $produced\n" +
+        s"    expected ${oneLine(example.html)}"
+    )
 
   "conformance" - {
 
@@ -169,30 +172,37 @@ class ConformanceTests extends Test[Any]:
           .toSeq
           .sortBy((section, passed, size) => (-passed, section))
 
-        println(
-          f"${baseline.name}: $passing/$total (${passing * 100.0 / total}%.1f%%), recorded ${baseline.passing}/${baseline.total}"
-        )
-        bySection.filter((_, passed, _) => passed > 0).foreach { (section, passed, size) =>
-          println(f"    $passed%3d/$size%-3d  $section")
-        }
         val untouched = bySection.count((_, passed, _) => passed == 0)
-        if untouched > 0 then println(s"    (and $untouched sections with nothing passing yet)")
+        val reported  = examples.filter(example => selectedForReport(example) && !conforms(example))
 
-        val reported = examples.filter(example => selectedForReport(example) && !conforms(example))
-        if reported.nonEmpty then
-          println(s"failing examples in the selected sections (${reported.size}):")
-          reported.foreach(reportFailure)
-
-        assert(
-          passing >= baseline.passing,
-          s"${baseline.name} conformance regressed: $passing passing, ${baseline.passing} recorded. " +
-            "Something stopped rendering the way the fixtures expect."
-        )
-        if passing > baseline.passing then
-          println(
-            s">>> ${baseline.name} rose to $passing/$total. " +
-              s"Raise its passing count in $BaselineFile from ${baseline.passing} to $passing."
+        for
+          _ <- Console.printLine(
+            f"${baseline.name}: $passing/$total (${passing * 100.0 / total}%.1f%%), recorded ${baseline.passing}/${baseline.total}"
           )
+          _ <- Kyo.foreachDiscard(bySection.filter((_, passed, _) => passed > 0)) { (section, passed, size) =>
+            Console.printLine(f"    $passed%3d/$size%-3d  $section")
+          }
+          _ <-
+            if untouched > 0 then Console.printLine(s"    (and $untouched sections with nothing passing yet)")
+            else Kyo.unit
+          _ <-
+            if reported.nonEmpty then
+              Console.printLine(s"failing examples in the selected sections (${reported.size}):")
+                .andThen(Kyo.foreachDiscard(reported)(reportFailure))
+            else Kyo.unit
+          _ = assert(
+            passing >= baseline.passing,
+            s"${baseline.name} conformance regressed: $passing passing, ${baseline.passing} recorded. " +
+              "Something stopped rendering the way the fixtures expect."
+          )
+          _ <-
+            if passing > baseline.passing then
+              Console.printLine(
+                s">>> ${baseline.name} rose to $passing/$total. " +
+                  s"Raise its passing count in $BaselineFile from ${baseline.passing} to $passing."
+              )
+            else Kyo.unit
+        yield ()
       }
     }
   }
