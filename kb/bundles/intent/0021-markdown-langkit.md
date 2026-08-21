@@ -76,11 +76,14 @@ platforms and maps onto the CST without losing spans. Until then this stays open
 Approach rather than merely extend it. The case for replacing it is weaker than it was: the owned parser now
 covers the whole of CommonMark 0.31.2.
 
-**Whether the CST and the AST stay one tree.** The parser emits a single tree with source spans on every node,
-not the CST and the separate lowered AST this intent describes. That has been enough to reach full conformance,
-and the spans have carried source positions faithfully throughout — including where a container strips a marker
-and where a tab is expanded to the columns it occupies. What is not yet answered is whether reconstructing the
-source needs a genuine second tree, which is the question the `QueryableTree` and Unist work will force.
+*Settled: whether the CST and the AST stay one tree.* Two trees, related by a total lowering. The CST
+(`CstNode`) holds every byte under the leaf-tiling invariant — its leaves partition the source, so printing it
+reproduces the document exactly, checked over the whole conformance corpus. The AST (`Document`) holds the
+meaning. `Lower.lower: CstNode.Document => Document` is total, and a second conformance suite proves the lowered
+pipeline renders all 652 examples byte for byte, same as the direct parse. What remains inside the module is
+mechanical: the parser still builds the AST directly as well, and retiring that path — deleting the deferred
+prose machinery and the threaded definitions map so the AST is produced only by lowering — is the tail of the
+same slice.
 
 *Settled: how much of CommonMark the owned parser covers.* All of it — 652 of 652 examples, every section of the
 specification. *Settled: whether the AST shape survives the conformance suite.* It did, though it grew: list
