@@ -100,4 +100,44 @@ class ConceptTests extends Test[Any]:
         case Result.Failure(OkfError.InvalidFrontmatter(_)) => assert(true)
         case _                                              => assert(false)
     }
+    "leaves an unclosed fence to the body" in {
+      val source =
+        """---
+          |title: Publishing
+          |
+          |# Title
+          |""".stripMargin
+      Concept.parse("note.md", source) match
+        case Result.Success(concept) =>
+          assert(!concept.hasFrontmatterBlock)
+          assert(concept.frontmatter == Frontmatter.empty)
+          assert(concept.body.frontmatter == Absent)
+          assert(concept.body.children.size == 3)
+        case _ => assert(false)
+    }
+    "reads frontmatter written with CRLF line endings" in {
+      val source = "---\r\ntype: Playbook\r\ntitle: Publishing\r\n---\r\n\r\n# Title\r\n"
+      Concept.parse("publishing.md", source) match
+        case Result.Success(concept) =>
+          assert(concept.hasFrontmatterBlock)
+          assert(concept.frontmatter.`type` == Present("Playbook"))
+          assert(concept.frontmatter.title == Present("Publishing"))
+          assert(concept.body.children.size == 1)
+        case _ => assert(false)
+    }
+    "measures body spans against the whole file, frontmatter included" in {
+      val source =
+        """---
+          |type: Playbook
+          |---
+          |
+          |# Title
+          |""".stripMargin
+      Concept.parse("publishing.md", source) match
+        case Result.Success(concept) =>
+          concept.body.children(0).meta.span match
+            case Present(span) => assert(source.substring(span.start).startsWith("# Title"))
+            case Absent        => assert(false)
+        case _ => assert(false)
+    }
   }
