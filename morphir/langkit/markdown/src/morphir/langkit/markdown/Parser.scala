@@ -3,6 +3,8 @@ package morphir.langkit.markdown
 import kyo.*
 import scala.annotation.tailrec
 import morphir.langkit.core.Span
+import morphir.langkit.markdown.cst.CstCollector
+import morphir.langkit.markdown.cst.CstFragment
 import morphir.langkit.core.scanner.*
 import morphir.langkit.markdown.internal.{ContainerCursor, ContainerPrefix, HtmlTag, InlineParser, Line, LinkDefinition}
 
@@ -33,10 +35,30 @@ object Parser:
     SourceScanner.scan(source, budget, phase = Present(BlocksPhase)) { scanner =>
       scanner.chargeOutputNodes(NodeCount.one)
       val definitions = scala.collection.mutable.Map.empty[String, LinkDefinition]
-      val blocks      = parseBlocks(ContainerCursor.top(scanner), definitions)
+      val blocks      = parseBlocks(ContainerCursor.top(scanner), definitions, Absent)
       // Keep the caller's coordinate space: do not rewrite CRLF before measuring spans.
       val document = Document(blocks, Span(0, source.length))
       (document, scanner.metrics)
+    } match
+      case ScanResult.Success(value) => Result.succeed(value)
+      case ScanResult.Failure(error) => Result.fail(ParseError.Scan(error))
+
+  /**
+   * The block phase again, reporting what it read as [[CstFragment]]s rather than as a document.
+   *
+   * Same loop, same budget discipline; the collector rides along the way `definitions` does, and only top-level sites
+   * record into it. [[morphir.langkit.markdown.cst.CstParser]] is the one caller.
+   */
+  private[markdown] def parseFragments(
+      source: String,
+      budget: ScanBudget = ScanBudget.default
+  ): Result[ParseError, Chunk[CstFragment]] =
+    SourceScanner.scan(source, budget, phase = Present(BlocksPhase)) { scanner =>
+      scanner.chargeOutputNodes(NodeCount.one)
+      val definitions = scala.collection.mutable.Map.empty[String, LinkDefinition]
+      val collector   = CstCollector()
+      val _           = parseBlocks(ContainerCursor.top(scanner), definitions, Present(collector))
+      collector.fragments
     } match
       case ScanResult.Success(value) => Result.succeed(value)
       case ScanResult.Failure(error) => Result.fail(ParseError.Scan(error))
@@ -153,9 +175,10 @@ object Parser:
 
   private def parseBlocks(
       cursor: ContainerCursor,
-      definitions: scala.collection.mutable.Map[String, LinkDefinition]
+      definitions: scala.collection.mutable.Map[String, LinkDefinition],
+      cst: Maybe[CstCollector]
   ): Chunk[Block] =
-    val run = parseDeferred(cursor, definitions)
+    val run = parseDeferred(cursor, definitions, cst)
     // Second phase: every definition in the document is known now, so prose can resolve references that point
     // forward as well as back.
     Chunk.from(run.blocks.map(_.resolve(definitions.toMap)))
@@ -197,7 +220,8 @@ object Parser:
 
   private def parseDeferred(
       cursor: ContainerCursor,
-      definitions: scala.collection.mutable.Map[String, LinkDefinition]
+      definitions: scala.collection.mutable.Map[String, LinkDefinition],
+      cst: Maybe[CstCollector]
   ): BlockRun =
     val scanner       = cursor.scanner
     val blocks        = List.newBuilder[Deferred]
@@ -213,7 +237,7 @@ object Parser:
           if classified.kind == LineKind.Blank then blankSince = true
           else
             val opened = classified.kind match
-              case LineKind.IndentedCode => Opened.leaf(readIndentedCode(cursor, line))
+              case LineKind.IndentedCode => Opened.leaf(readIndentedCode(cursor, line, cst))
               case LineKind.BlockQuote   =>
                 // A quote's own cursor has to see the marker, so the line goes back before the recursion reads it.
                 cursor.restore(opening)
@@ -221,11 +245,15 @@ object Parser:
               case LineKind.Heading(level, rest) =>
                 val headingSpan = Span(line.offset, line.length)
                 val base        = contentSpan(line, rest).offset
+                cst.foreach(_.record(CstFragment.AtxHeading(level, headingSpan, Span(base, rest.length))))
                 Opened.deferred(Deferred.prose { defs =>
                   Block.Heading(level, InlineParser.parse(rest, index => base + index, defs), headingSpan)
                 })
-              case LineKind.Fence(open)      => Opened.leaf(readFencedCode(cursor, line, open))
-              case LineKind.ThematicBreak    => Opened.leaf(Block.ThematicBreak(Span(line.offset, line.length)))
+              case LineKind.Fence(open)   => Opened.leaf(readFencedCode(cursor, line, open, cst))
+              case LineKind.ThematicBreak =>
+                val breakSpan = Span(line.offset, line.length)
+                cst.foreach(_.record(CstFragment.ThematicBreak(breakSpan)))
+                Opened.leaf(Block.ThematicBreak(breakSpan))
               case LineKind.Html(_)          => Opened.leaf(readHtmlBlock(cursor, line))
               case LineKind.BulletItem(item) =>
                 cursor.restore(opening)
@@ -234,7 +262,7 @@ object Parser:
                 cursor.restore(opening)
                 readOrderedList(cursor, definitions, marker, line.offset)
               case LineKind.Text | LineKind.Blank =>
-                Opened(readParagraph(cursor, line, definitions), endedOnBlank = false)
+                Opened(readParagraph(cursor, line, definitions, cst), endedOnBlank = false)
             scanner.chargeOutputNodes(NodeCount.one)
             contentEnd = cursor.consumedEnd
             opened.block.foreach { deferred =>
@@ -268,7 +296,7 @@ object Parser:
     val scanner = cursor.scanner
     val start   = scanner.offset.toInt
     val inner   = cursor.nested(ContainerPrefix.BlockQuote)
-    val run     = scanner.withNesting(parseDeferred(inner, definitions))
+    val run     = scanner.withNesting(parseDeferred(inner, definitions, Absent))
     val span    = Span.fromStartEnd(start, cursor.consumedEnd)
     // Not a container that can end on a blank line, unlike a list item: the quote's prefix needs a `>`, so the blank
     // lines it swallows are `>` with nothing after it. Those are blank *content*, not blank lines, and they do not
@@ -465,7 +493,7 @@ object Parser:
    * Blank lines belong to the block when more indented content follows, which is what keeps the gaps in a multi-chunk
    * block; blank lines at the end do not, so the block stops at the last indented line.
    */
-  private def readIndentedCode(cursor: ContainerCursor, first: Line): Block =
+  private def readIndentedCode(cursor: ContainerCursor, first: Line, cst: Maybe[CstCollector]): Block =
     val scanner = cursor.scanner
     val lines   = List.newBuilder[String]
     // Blank lines are held back rather than appended: they belong to the block only if indented content follows, so a
@@ -491,7 +519,9 @@ object Parser:
 
     val content = lines.result().mkString("", "\n", "\n")
     scanner.chargeWork(WorkUnits.from(content.length.toLong).getOrThrow)
-    Block.IndentedCode(content, Span.fromStartEnd(first.offset, last.end))
+    val span = Span.fromStartEnd(first.offset, last.end)
+    cst.foreach(_.record(CstFragment.IndentedCode(span)))
+    Block.IndentedCode(content, span)
 
   /** Remove up to four leading spaces, which is the indentation the block form spends rather than content. */
   private def stripIndent(text: String): String =
@@ -501,7 +531,7 @@ object Parser:
 
   private type FenceOpen = (marker: Char, length: Int, indentation: Int, info: String)
 
-  private def readFencedCode(cursor: ContainerCursor, opening: Line, open: FenceOpen): Block =
+  private def readFencedCode(cursor: ContainerCursor, opening: Line, open: FenceOpen, cst: Maybe[CstCollector]): Block =
     val scanner = cursor.scanner
     val body    = StringBuilder()
     // A fence is consumed whether or not it closes: an unterminated one runs to the end of its container, and whether
@@ -509,6 +539,8 @@ object Parser:
     // `written`, not `body.nonEmpty`: a fence whose first line is blank writes nothing and would otherwise look like
     // it had written nothing at all, so the next line would join it and the blank line would vanish.
     var written = 0
+    // Where the closing fence line starts, for the CST: the closing token leaf runs from here to the block's end.
+    var closeStart: Maybe[Int] = Absent
 
     @tailrec def gather(closingEnd: Int, closed: Boolean, endedWithLf: Boolean): (Int, Boolean, Boolean) =
       if closed then (closingEnd, closed, endedWithLf)
@@ -516,7 +548,9 @@ object Parser:
         cursor.readLine() match
           case Absent        => (closingEnd, closed, endedWithLf)
           case Present(line) =>
-            if isClosingFence(scanner, line, open.marker, open.length) then (line.end, true, endedWithLf)
+            if isClosingFence(scanner, line, open.marker, open.length) then
+              closeStart = Present(line.offset)
+              (line.end, true, endedWithLf)
             else
               if written > 0 then body.append('\n')
               body.append(removeFenceIndentation(scanner, line, open.indentation))
@@ -534,13 +568,16 @@ object Parser:
         if written > 0 && bodyEndedWithLf then body.append('\n')
         body.toString
 
+    val span = Span.fromStartEnd(opening.offset, end)
+    cst.foreach(_.record(CstFragment.FencedCode(span, opening.end, closeStart)))
     // The budgeted FenceInfo path reserves deterministic work and output before token materialization.
-    Block.FencedCode(FenceInfo.parseBudgeted(open.info, scanner), content, Span.fromStartEnd(opening.offset, end))
+    Block.FencedCode(FenceInfo.parseBudgeted(open.info, scanner), content, span)
 
   private def readParagraph(
       cursor: ContainerCursor,
       first: Line,
-      definitions: scala.collection.mutable.Map[String, LinkDefinition]
+      definitions: scala.collection.mutable.Map[String, LinkDefinition],
+      cst: Maybe[CstCollector]
   ): Maybe[Deferred] =
     val scanner  = cursor.scanner
     val segments = List.newBuilder[(Int, String)]
@@ -591,6 +628,9 @@ object Parser:
     else
       val bodyStart = leading + consumed
       val span      = Span.fromStartEnd(first.offset, last.end)
+      cst.foreach(_.record(setext match
+        case Present(level) => CstFragment.SetextHeading(level, span, last.offset)
+        case Absent         => CstFragment.Paragraph(span)))
       Present(Deferred.prose { defs =>
         val content = InlineParser.parse(body.trim, index => sourceOffsetOf(lines, index + bodyStart), defs)
         setext match
@@ -823,7 +863,8 @@ object Parser:
     // An item must consume at least the line that opened it. Guarding that here rather than trusting it: an item that
     // consumed nothing would leave the list gathering the same line for ever, and because nothing was read there is no
     // work charged for the scan budget to notice.
-    def read(): BlockRun = scanner.requireProgress(BlocksPhase)(scanner.withNesting(parseDeferred(inner, definitions)))
+    def read(): BlockRun =
+      scanner.requireProgress(BlocksPhase)(scanner.withNesting(parseDeferred(inner, definitions, Absent)))
 
     if !startsEmpty then item(read())
     else
