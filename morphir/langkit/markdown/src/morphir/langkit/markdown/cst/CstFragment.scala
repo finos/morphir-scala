@@ -3,6 +3,7 @@ package morphir.langkit.markdown.cst
 import kyo.*
 import morphir.langkit.core.Span
 import morphir.langkit.markdown.HeadingLevel
+import morphir.langkit.markdown.Inline
 
 /**
  * What a Parser construction site knows about a graduated block, as spans into the source.
@@ -20,16 +21,16 @@ private[markdown] enum CstFragment:
   case ThematicBreak(span: Span)
 
   /** `content` is the heading text between the opening marker run and any closing sequence. */
-  case AtxHeading(level: HeadingLevel, span: Span, content: Span)
+  case AtxHeading(level: HeadingLevel, span: Span, content: Span, inlines: InlineSlot)
 
   /** `underlineOffset` is where the `===` or `---` line starts inside `span`. */
-  case SetextHeading(level: HeadingLevel, span: Span, underlineOffset: Int)
+  case SetextHeading(level: HeadingLevel, span: Span, underlineOffset: Int, inlines: InlineSlot)
 
   /** `openEnd` ends the opening fence line; `closeStart` begins the closing one, absent when the fence ran out. */
   case FencedCode(span: Span, openEnd: Int, closeStart: Maybe[Int])
 
   case IndentedCode(span: Span)
-  case Paragraph(span: Span)
+  case Paragraph(span: Span, inlines: InlineSlot)
 
   /** A raw HTML block, whatever start condition opened it. Its interior is HTML, not Markdown. */
   case HtmlBlock(span: Span)
@@ -53,6 +54,20 @@ private[markdown] enum CstFragment:
   case ListItem(span: Span, markers: Chunk[Span], children: Chunk[CstFragment])
 
   def span: Span
+
+/**
+ * The inline content of one prose block, filled in when the block's deferred prose resolves.
+ *
+ * Block structure is read in one pass but prose is parsed only after every link definition in the document is known, so
+ * a prose fragment cannot carry its inlines at record time. The slot is created with the fragment, captured by the
+ * block's resolve closure, and filled exactly once when that closure runs — which is before [[CstParser]] reads it,
+ * because `parseFragments` resolves every block before returning. The inline nodes carry source spans, which is all
+ * materialization needs to tile a prose interior.
+ */
+private[markdown] final class InlineSlot:
+  private var slot: Maybe[Chunk[Inline]] = Absent
+  def fill(content: Chunk[Inline]): Unit = slot = Present(content)
+  def content: Maybe[Chunk[Inline]]      = slot
 
 /**
  * Collects fragments in source order while the parser runs. Threaded like the `definitions` map.

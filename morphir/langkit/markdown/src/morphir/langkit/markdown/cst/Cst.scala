@@ -3,6 +3,7 @@ package morphir.langkit.markdown.cst
 import kyo.*
 import morphir.langkit.core.Span
 import morphir.langkit.markdown.HeadingLevel
+import morphir.langkit.markdown.Inline
 import morphir.langkit.markdown.Parser
 
 /**
@@ -54,6 +55,15 @@ enum CstNode derives CanEqual:
   /** A `[label]: destination "title"` definition, unresolved. Its interior stays verbatim until inlines graduate. */
   case LinkReferenceDefinition(children: Chunk[CstNode], span: Span)
 
+  /** An inline code span: backtick-run [[Token]]s around the raw [[Text]] between them. */
+  case CodeSpan(children: Chunk[CstNode], span: Span)
+
+  /** An autolink, kept in its angle-bracket form: `<`, the literal destination, `>`. */
+  case Autolink(children: Chunk[CstNode], span: Span)
+
+  /** Inline raw HTML, taken whole as [[Text]]: its interior is HTML the inline grammar never re-reads. */
+  case RawHtml(children: Chunk[CstNode], span: Span)
+
   /** Syntax the author spent: marker runs, fences, setext underlines. */
   case Token(text: String, span: Span)
 
@@ -87,6 +97,9 @@ enum CstNode derives CanEqual:
     case ListItem(children, _)                => children
     case HtmlBlock(children, _)               => children
     case LinkReferenceDefinition(children, _) => children
+    case CodeSpan(children, _)                => children
+    case Autolink(children, _)                => children
+    case RawHtml(children, _)                 => children
     case _: (Token | Text | Verbatim)         => Chunk.empty
 
 object Cst:
@@ -206,16 +219,16 @@ object CstParser:
     case CstFragment.ThematicBreak(span) =>
       CstNode.ThematicBreak(leaf(source, span.offset, span.end)(CstNode.Token(_, _)), span)
 
-    case CstFragment.AtxHeading(level, span, content) =>
+    case CstFragment.AtxHeading(level, span, content, inlines) =>
       val children =
         leaf(source, span.offset, content.offset)(CstNode.Token(_, _))
-          ++ leaf(source, content.offset, content.end)(CstNode.Verbatim(_, _))
+          ++ prose(source, content.offset, content.end, markers, inlines)
           ++ leaf(source, content.end, span.end)(CstNode.Token(_, _))
       CstNode.AtxHeading(level, children, span)
 
-    case CstFragment.SetextHeading(level, span, underlineOffset) =>
+    case CstFragment.SetextHeading(level, span, underlineOffset, inlines) =>
       val children =
-        tile(source, span.offset, underlineOffset, markers)(CstNode.Verbatim(_, _))
+        prose(source, span.offset, underlineOffset, markers, inlines)
           ++ leaf(source, underlineOffset, span.end)(CstNode.Token(_, _))
       CstNode.SetextHeading(level, children, span)
 
@@ -230,8 +243,8 @@ object CstParser:
     case CstFragment.IndentedCode(span) =>
       CstNode.IndentedCode(tile(source, span.offset, span.end, markers)(CstNode.Verbatim(_, _)), span)
 
-    case CstFragment.Paragraph(span) =>
-      CstNode.Paragraph(tile(source, span.offset, span.end, markers)(CstNode.Verbatim(_, _)), span)
+    case CstFragment.Paragraph(span, inlines) =>
+      CstNode.Paragraph(prose(source, span.offset, span.end, markers, inlines), span)
 
     case CstFragment.HtmlBlock(span) =>
       CstNode.HtmlBlock(tile(source, span.offset, span.end, markers)(CstNode.Text(_, _)), span)
@@ -262,3 +275,72 @@ object CstParser:
     if outer.isEmpty then own
     else if own.isEmpty then outer
     else Chunk.from((outer ++ own).sortBy(_.offset))
+
+  /**
+   * A prose interior: graduated inline constructs at their source spans, everything between them verbatim.
+   *
+   * The inline nodes come from the resolved parse and carry source spans, so tiling an interior is the same walk a
+   * container's region gets one level up. A construct inside an ungraduated wrapper — a code span inside emphasis —
+   * still surfaces here at its own span, with the wrapper's delimiters left in the verbatim gaps around it; the
+   * emphasis slice will claim them later. An unfilled slot (a parse that never resolved) degrades to verbatim.
+   */
+  private def prose(
+      source: String,
+      from: Int,
+      until: Int,
+      markers: Chunk[Span],
+      inlines: InlineSlot
+  ): Chunk[CstNode] =
+    inlines.content match
+      case Absent         => tile(source, from, until, markers)(CstNode.Verbatim(_, _))
+      case Present(items) =>
+        val out                        = Chunk.newBuilder[CstNode]
+        var cursor                     = from
+        def emit(inline: Inline): Unit =
+          graduate(source, inline, markers) match
+            case Present(node) if node.span.offset >= cursor && node.span.end <= until =>
+              out.addAll(tile(source, cursor, node.span.offset, markers)(CstNode.Verbatim(_, _)))
+              out.addOne(node)
+              cursor = node.span.end
+            case _ =>
+              inline match
+                case Inline.Emphasis(content, _)       => content.foreach(emit)
+                case Inline.StrongEmphasis(content, _) => content.foreach(emit)
+                case Inline.Link(_, _, content, _)     => content.foreach(emit)
+                case _                                 => ()
+        items.foreach(emit)
+        out.addAll(tile(source, cursor, until, markers)(CstNode.Verbatim(_, _)))
+        out.result()
+
+  /**
+   * The typed CST node for one inline construct, for the kinds this slice has graduated; [[kyo.Absent]] otherwise.
+   *
+   * Each case checks the source at its span before claiming it — a code span must start with a backtick, an autolink or
+   * raw HTML with `<`. A span that fails the check is a mapping the parse and the source disagree on, and the safe
+   * answer is to leave the region verbatim rather than mislabel it.
+   */
+  private def graduate(source: String, inline: Inline, markers: Chunk[Span]): Maybe[CstNode] = inline match
+    case Inline.CodeSpan(_, span) if span.offset < source.length && source.charAt(span.offset) == '`' =>
+      var run = span.offset
+      while run < span.end && source.charAt(run) == '`' do run += 1
+      val ticks    = run - span.offset
+      val children =
+        leaf(source, span.offset, run)(CstNode.Token(_, _))
+          ++ tile(source, run, span.end - ticks, markers)(CstNode.Text(_, _))
+          ++ leaf(source, span.end - ticks, span.end)(CstNode.Token(_, _))
+      Present(CstNode.CodeSpan(children, span))
+
+    case Inline.RawHtml(_, span) if span.offset < source.length && source.charAt(span.offset) == '<' =>
+      Present(CstNode.RawHtml(tile(source, span.offset, span.end, markers)(CstNode.Text(_, _)), span))
+
+    // An autolink is a Link whose source form starts with `<`; a bracketed link or image starts with `[` or `!`.
+    case Inline.Link(_, _, _, span)
+        if span.offset < source.length && source.charAt(span.offset) == '<'
+          && span.end <= source.length && span.length >= 2 && source.charAt(span.end - 1) == '>' =>
+      val children =
+        leaf(source, span.offset, span.offset + 1)(CstNode.Token(_, _))
+          ++ tile(source, span.offset + 1, span.end - 1, markers)(CstNode.Text(_, _))
+          ++ leaf(source, span.end - 1, span.end)(CstNode.Token(_, _))
+      Present(CstNode.Autolink(children, span))
+
+    case _ => Absent

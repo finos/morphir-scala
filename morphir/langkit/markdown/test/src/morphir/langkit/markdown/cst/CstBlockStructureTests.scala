@@ -244,3 +244,64 @@ class CstBlockStructureTests extends Test[Any]:
         case other => assert(false, s"expected paragraph then definition, got $other")
     }
   }
+
+  "graduated inlines" - {
+
+    def paragraphChildren(source: String): Chunk[CstNode] =
+      blocks(source).head match
+        case CstNode.Paragraph(children, _) => children
+        case other                          => throw new AssertionError(s"expected Paragraph, got $other")
+
+    "a code span is backtick tokens around raw text" in {
+      paragraphChildren("before ``code`` after\n").collect { case c: CstNode.CodeSpan => c } match
+        case Chunk(code) =>
+          code.childNodes.toSeq match
+            case Seq(CstNode.Token("``", _), CstNode.Text("code", _), CstNode.Token("``", _)) => assert(true)
+            case other => assert(false, s"expected token/text/token, got $other")
+        case other => assert(false, s"expected one CodeSpan, got $other")
+    }
+
+    "an autolink keeps its angle brackets as tokens" in {
+      paragraphChildren("see <https://example.com> now\n").collect { case a: CstNode.Autolink => a } match
+        case Chunk(link) =>
+          link.childNodes.toSeq match
+            case Seq(CstNode.Token("<", _), CstNode.Text("https://example.com", _), CstNode.Token(">", _)) =>
+              assert(true)
+            case other => assert(false, s"expected bracketed autolink, got $other")
+        case other => assert(other.size == 1, s"expected one Autolink, got $other")
+    }
+
+    "inline raw HTML is typed with its verbatim value" in
+      assert(paragraphChildren("a <b x='y'> c\n").exists {
+        case _: CstNode.RawHtml => true
+        case _                  => false
+      })
+
+    "a code span inside emphasis surfaces, the emphasis staying verbatim" in
+      assert(paragraphChildren("*a `b` c*\n").exists {
+        case _: CstNode.CodeSpan => true
+        case _                   => false
+      })
+
+    "a heading's code span is typed inside the heading" in {
+      blocks("# uses `f`\n").head match
+        case CstNode.AtxHeading(_, children, _) =>
+          assert(children.exists {
+            case _: CstNode.CodeSpan => true
+            case _                   => false
+          })
+        case other => assert(false, s"expected AtxHeading, got $other")
+    }
+
+    "a multi-line code span in a quote keeps the interior marker as a token" in {
+      blocks("> a `b\n> c` d\n").head match
+        case CstNode.BlockQuote(children, _) =>
+          val spans = children.flatMap(_.childNodes).collect { case c: CstNode.CodeSpan => c }
+          assert(spans.size == 1)
+          assert(spans.head.childNodes.exists {
+            case CstNode.Token("> ", _) => true
+            case _                      => false
+          })
+        case other => assert(false, s"expected BlockQuote, got $other")
+    }
+  }

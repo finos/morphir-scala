@@ -5,6 +5,7 @@ import scala.annotation.tailrec
 import morphir.langkit.core.Span
 import morphir.langkit.markdown.cst.CstCollector
 import morphir.langkit.markdown.cst.CstFragment
+import morphir.langkit.markdown.cst.InlineSlot
 import morphir.langkit.core.scanner.*
 import morphir.langkit.markdown.internal.{ContainerCursor, ContainerPrefix, HtmlTag, InlineParser, Line, LinkDefinition}
 
@@ -246,9 +247,12 @@ object Parser:
               case LineKind.Heading(level, rest) =>
                 val headingSpan = Span(line.offset, line.length)
                 val base        = contentSpan(line, rest).offset
-                cst.foreach(_.record(CstFragment.AtxHeading(level, headingSpan, Span(base, rest.length))))
+                val slot        = InlineSlot()
+                cst.foreach(_.record(CstFragment.AtxHeading(level, headingSpan, Span(base, rest.length), slot)))
                 Opened.deferred(Deferred.prose { defs =>
-                  Block.Heading(level, InlineParser.parse(rest, index => base + index, defs), headingSpan)
+                  val content = InlineParser.parse(rest, index => base + index, defs)
+                  slot.fill(content)
+                  Block.Heading(level, content, headingSpan)
                 })
               case LineKind.Fence(open)   => Opened.leaf(readFencedCode(cursor, line, open, cst))
               case LineKind.ThematicBreak =>
@@ -647,18 +651,21 @@ object Parser:
       gathered.beforeUnderline.foreach(cursor.restore)
       Absent
     else
-      val bodyStart = leading + consumed
-      val span      = Span.fromStartEnd(first.offset, last.end)
+      // Where the prose itself begins in the joined text: past the consumed definitions and past any whitespace the
+      // body's own trim will strip, so the inline mapping and the CST fragment agree on the first content character.
+      val contentIndex = leading + consumed + (body.length - body.stripLeading.length)
+      val span         = Span.fromStartEnd(first.offset, last.end)
       // The CST fragment starts at the body, not at the run: definitions consumed off the front are their own nodes,
       // and a fragment overlapping them would lose the paragraph to a verbatim gap at materialization.
-      val cstStart = if consumed == 0 then span.offset
-      else sourceOffsetOf(lines, bodyStart + (body.length - body.stripLeading.length))
-      val cstSpan = Span.fromStartEnd(cstStart, span.end)
+      val cstStart = if consumed == 0 then span.offset else sourceOffsetOf(lines, contentIndex)
+      val cstSpan  = Span.fromStartEnd(cstStart, span.end)
+      val slot     = InlineSlot()
       cst.foreach(_.record(setext match
-        case Present(level) => CstFragment.SetextHeading(level, cstSpan, last.offset)
-        case Absent         => CstFragment.Paragraph(cstSpan)))
+        case Present(level) => CstFragment.SetextHeading(level, cstSpan, last.offset, slot)
+        case Absent         => CstFragment.Paragraph(cstSpan, slot)))
       Present(Deferred.prose { defs =>
-        val content = InlineParser.parse(body.trim, index => sourceOffsetOf(lines, index + bodyStart), defs)
+        val content = InlineParser.parse(body.trim, index => sourceOffsetOf(lines, index + contentIndex), defs)
+        slot.fill(content)
         setext match
           case Present(level) => Block.Heading(level, content, span)
           case Absent         => Block.Paragraph(content, span)
