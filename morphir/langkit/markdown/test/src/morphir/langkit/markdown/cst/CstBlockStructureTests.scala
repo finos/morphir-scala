@@ -305,3 +305,69 @@ class CstBlockStructureTests extends Test[Any]:
         case other => assert(false, s"expected BlockQuote, got $other")
     }
   }
+
+  "graduated links and images" - {
+
+    def firstLink(source: String): CstNode.Link =
+      blocks(source).head.childNodes.collectFirst { case l: CstNode.Link => l } match
+        case Some(link) => link
+        case None       => throw new AssertionError(s"no Link in ${blocks(source).head}")
+
+    "an inline link keeps its tokens, destination and title spelling" in {
+      val link = firstLink("[text](/url \"title\")\n")
+      assert(link.form == LinkForm.Inline)
+      val tokens = link.childNodes.collect { case CstNode.Token(t, _) => t }
+      assert(tokens.toSeq == Seq("[", "](", "\"", "\"", ")"))
+      val texts = link.childNodes.collect { case CstNode.Text(t, _) => t }
+      assert(texts.toSeq == Seq("/url", "title"))
+    }
+
+    "an angle-bracketed destination keeps its brackets as tokens" in {
+      val link = firstLink("[t](</my url>)\n")
+      assert(link.childNodes.collect { case CstNode.Text(t, _) => t }.toSeq == Seq("/my url"))
+      assert(link.childNodes.collect { case CstNode.Token(t, _) => t }.contains("<"))
+    }
+
+    "a full reference link keeps its second label" in {
+      val link = firstLink("[text][ref]\n\n[ref]: /url\n")
+      assert(link.form == LinkForm.ReferenceFull)
+      assert(link.childNodes.collect { case CstNode.Text(t, _) => t }.toSeq == Seq("ref"))
+    }
+
+    "a collapsed reference link is bracketed as written" in {
+      val link = firstLink("[ref][]\n\n[ref]: /url\n")
+      assert(link.form == LinkForm.ReferenceCollapsed)
+      assert(link.childNodes.collect { case CstNode.Token(t, _) => t }.toSeq == Seq("[", "][]"))
+    }
+
+    "a shortcut reference link is just its brackets" in {
+      val link = firstLink("[ref]\n\n[ref]: /url\n")
+      assert(link.form == LinkForm.ReferenceShortcut)
+      assert(link.childNodes.collect { case CstNode.Token(t, _) => t }.toSeq == Seq("[", "]"))
+    }
+
+    "a link's text is inline content, code spans typed inside it" in {
+      val link = firstLink("[a `b` c](/u)\n")
+      assert(link.childNodes.exists {
+        case _: CstNode.CodeSpan => true
+        case _                   => false
+      })
+    }
+
+    "an image's alt is inline content in the CST" in {
+      blocks("![alt `x`](/img)\n").head.childNodes.collectFirst { case i: CstNode.Image => i } match
+        case Some(image) =>
+          assert(image.form == LinkForm.Inline)
+          assert(image.childNodes.exists {
+            case _: CstNode.CodeSpan => true
+            case _                   => false
+          })
+        case None => assert(false, s"no Image in ${blocks("![alt `x`](/img)\n").head}")
+    }
+
+    "an unresolved shortcut stays verbatim, not a link" in
+      assert(blocks("[nope]\n").head.childNodes.forall {
+        case _: CstNode.Verbatim => true
+        case _                   => false
+      })
+  }

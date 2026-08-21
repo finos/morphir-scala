@@ -66,8 +66,14 @@ private[markdown] enum CstFragment:
  */
 private[markdown] final class InlineSlot:
   private var slot: Maybe[Chunk[Inline]] = Absent
-  def fill(content: Chunk[Inline]): Unit = slot = Present(content)
-  def content: Maybe[Chunk[Inline]]      = slot
+  private var noted: Maybe[InlineNotes]  = Absent
+
+  def fill(content: Chunk[Inline], notes: Maybe[InlineNotes]): Unit =
+    slot = Present(content)
+    noted = notes
+
+  def content: Maybe[Chunk[Inline]] = slot
+  def notes: Maybe[InlineNotes]     = noted
 
 /**
  * Collects fragments in source order while the parser runs. Threaded like the `definitions` map.

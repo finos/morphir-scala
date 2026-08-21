@@ -5,6 +5,7 @@ import scala.annotation.tailrec
 import morphir.langkit.core.Span
 import morphir.langkit.markdown.cst.CstCollector
 import morphir.langkit.markdown.cst.CstFragment
+import morphir.langkit.markdown.cst.InlineNotes
 import morphir.langkit.markdown.cst.InlineSlot
 import morphir.langkit.core.scanner.*
 import morphir.langkit.markdown.internal.{ContainerCursor, ContainerPrefix, HtmlTag, InlineParser, Line, LinkDefinition}
@@ -248,10 +249,11 @@ object Parser:
                 val headingSpan = Span(line.offset, line.length)
                 val base        = contentSpan(line, rest).offset
                 val slot        = InlineSlot()
+                val notes       = cst.map(_ => InlineNotes())
                 cst.foreach(_.record(CstFragment.AtxHeading(level, headingSpan, Span(base, rest.length), slot)))
                 Opened.deferred(Deferred.prose { defs =>
-                  val content = InlineParser.parse(rest, index => base + index, defs)
-                  slot.fill(content)
+                  val content = InlineParser.parse(rest, index => base + index, defs, notes)
+                  slot.fill(content, notes)
                   Block.Heading(level, content, headingSpan)
                 })
               case LineKind.Fence(open)   => Opened.leaf(readFencedCode(cursor, line, open, cst))
@@ -660,12 +662,13 @@ object Parser:
       val cstStart = if consumed == 0 then span.offset else sourceOffsetOf(lines, contentIndex)
       val cstSpan  = Span.fromStartEnd(cstStart, span.end)
       val slot     = InlineSlot()
+      val notes    = cst.map(_ => InlineNotes())
       cst.foreach(_.record(setext match
         case Present(level) => CstFragment.SetextHeading(level, cstSpan, last.offset, slot)
         case Absent         => CstFragment.Paragraph(cstSpan, slot)))
       Present(Deferred.prose { defs =>
-        val content = InlineParser.parse(body.trim, index => sourceOffsetOf(lines, index + contentIndex), defs)
-        slot.fill(content)
+        val content = InlineParser.parse(body.trim, index => sourceOffsetOf(lines, index + contentIndex), defs, notes)
+        slot.fill(content, notes)
         setext match
           case Present(level) => Block.Heading(level, content, span)
           case Absent         => Block.Paragraph(content, span)

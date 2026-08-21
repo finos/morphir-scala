@@ -64,6 +64,16 @@ enum CstNode derives CanEqual:
   /** Inline raw HTML, taken whole as [[Text]]: its interior is HTML the inline grammar never re-reads. */
   case RawHtml(children: Chunk[CstNode], span: Span)
 
+  /**
+   * A link, in whichever of the four forms the author wrote. Its children keep the raw spelling: bracket and
+   * parenthesis [[Token]]s, the link text as inline content, and for the inline form the destination and title as
+   * [[Text]] exactly as written — the AST's normalized URI is a resolution, not a spelling.
+   */
+  case Link(form: LinkForm, children: Chunk[CstNode], span: Span)
+
+  /** An image. Its bracketed label is inline content here, where the AST flattens it to an `alt` string. */
+  case Image(form: LinkForm, children: Chunk[CstNode], span: Span)
+
   /** Syntax the author spent: marker runs, fences, setext underlines. */
   case Token(text: String, span: Span)
 
@@ -100,6 +110,8 @@ enum CstNode derives CanEqual:
     case CodeSpan(children, _)                => children
     case Autolink(children, _)                => children
     case RawHtml(children, _)                 => children
+    case Link(_, children, _)                 => children
+    case Image(_, children, _)                => children
     case _: (Token | Text | Verbatim)         => Chunk.empty
 
 object Cst:
@@ -293,33 +305,48 @@ object CstParser:
   ): Chunk[CstNode] =
     inlines.content match
       case Absent         => tile(source, from, until, markers)(CstNode.Verbatim(_, _))
-      case Present(items) =>
-        val out                        = Chunk.newBuilder[CstNode]
-        var cursor                     = from
-        def emit(inline: Inline): Unit =
-          graduate(source, inline, markers) match
-            case Present(node) if node.span.offset >= cursor && node.span.end <= until =>
-              out.addAll(tile(source, cursor, node.span.offset, markers)(CstNode.Verbatim(_, _)))
-              out.addOne(node)
-              cursor = node.span.end
-            case _ =>
-              inline match
-                case Inline.Emphasis(content, _)       => content.foreach(emit)
-                case Inline.StrongEmphasis(content, _) => content.foreach(emit)
-                case Inline.Link(_, _, content, _)     => content.foreach(emit)
-                case _                                 => ()
-        items.foreach(emit)
-        out.addAll(tile(source, cursor, until, markers)(CstNode.Verbatim(_, _)))
-        out.result()
+      case Present(items) => inlineRegion(source, from, until, markers, items, inlines.notes)
+
+  /** One inline region: graduated constructs at their spans, gaps verbatim; link content recurses through here. */
+  private def inlineRegion(
+      source: String,
+      from: Int,
+      until: Int,
+      markers: Chunk[Span],
+      items: Chunk[Inline],
+      notes: Maybe[InlineNotes]
+  ): Chunk[CstNode] =
+    val out                        = Chunk.newBuilder[CstNode]
+    var cursor                     = from
+    def emit(inline: Inline): Unit =
+      graduate(source, inline, markers, notes) match
+        case Present(node) if node.span.offset >= cursor && node.span.end <= until =>
+          out.addAll(tile(source, cursor, node.span.offset, markers)(CstNode.Verbatim(_, _)))
+          out.addOne(node)
+          cursor = node.span.end
+        case _ =>
+          inline match
+            case Inline.Emphasis(content, _)       => content.foreach(emit)
+            case Inline.StrongEmphasis(content, _) => content.foreach(emit)
+            case Inline.Link(_, _, content, _)     => content.foreach(emit)
+            case _                                 => ()
+    items.foreach(emit)
+    out.addAll(tile(source, cursor, until, markers)(CstNode.Verbatim(_, _)))
+    out.result()
 
   /**
    * The typed CST node for one inline construct, for the kinds this slice has graduated; [[kyo.Absent]] otherwise.
    *
    * Each case checks the source at its span before claiming it — a code span must start with a backtick, an autolink or
-   * raw HTML with `<`. A span that fails the check is a mapping the parse and the source disagree on, and the safe
-   * answer is to leave the region verbatim rather than mislabel it.
+   * raw HTML with `<`, a bracketed link with `[`. A span that fails the check is a mapping the parse and the source
+   * disagree on, and the safe answer is to leave the region verbatim rather than mislabel it.
    */
-  private def graduate(source: String, inline: Inline, markers: Chunk[Span]): Maybe[CstNode] = inline match
+  private def graduate(
+      source: String,
+      inline: Inline,
+      markers: Chunk[Span],
+      notes: Maybe[InlineNotes]
+  ): Maybe[CstNode] = inline match
     case Inline.CodeSpan(_, span) if span.offset < source.length && source.charAt(span.offset) == '`' =>
       var run = span.offset
       while run < span.end && source.charAt(run) == '`' do run += 1
@@ -343,4 +370,92 @@ object CstParser:
           ++ leaf(source, span.end - 1, span.end)(CstNode.Token(_, _))
       Present(CstNode.Autolink(children, span))
 
+    case Inline.Link(_, _, content, span) if span.offset < source.length && source.charAt(span.offset) == '[' =>
+      for
+        collected <- notes
+        note      <- collected.linkAt(span.offset)
+        node      <- linkNode(source, span, note, content, markers, notes, image = false)
+      yield node
+
+    case Inline.Image(_, _, _, span) if span.offset < source.length && source.charAt(span.offset) == '!' =>
+      for
+        collected <- notes
+        note      <- collected.linkAt(span.offset)
+        node      <- linkNode(source, span, note, note.alt.getOrElse(Chunk.empty), markers, notes, image = true)
+      yield node
+
     case _ => Absent
+
+  /**
+   * A link or image node from its note, or [[kyo.Absent]] when the note's geometry does not fit the span.
+   *
+   * The children are laid out as ordered pieces — brackets, content, destination, title, reference label — with every
+   * gap between them tiled verbatim. A piece that would run backwards or past the span means the note and the source
+   * disagree, and the whole construct stays verbatim rather than tile wrongly.
+   */
+  private def linkNode(
+      source: String,
+      span: Span,
+      note: LinkNote,
+      content: Chunk[Inline],
+      markers: Chunk[Span],
+      notes: Maybe[InlineNotes],
+      image: Boolean
+  ): Maybe[CstNode] =
+    val pieces = List.newBuilder[(from: Int, until: Int, make: (Int, Int) => Chunk[CstNode])]
+
+    def tok(from: Int, until: Int): Unit =
+      pieces += ((from = from, until = until, make = (a, b) => leaf(source, a, b)(CstNode.Token(_, _))))
+    def txt(from: Int, until: Int): Unit =
+      pieces += ((from = from, until = until, make = (a, b) => tile(source, a, b, markers)(CstNode.Text(_, _))))
+
+    tok(span.offset, note.content.offset)
+    pieces +=
+      ((
+        from = note.content.offset,
+        until = note.content.end,
+        make = (a, b) => inlineRegion(source, a, b, markers, content, notes)
+      ))
+
+    note.form match
+      case LinkForm.Inline =>
+        tok(note.content.end, note.content.end + 2) // "]("
+        note.destination.foreach { destination =>
+          if destination.angled then
+            tok(destination.span.offset - 1, destination.span.offset)
+            txt(destination.span.offset, destination.span.end)
+            tok(destination.span.end, destination.span.end + 1)
+          else txt(destination.span.offset, destination.span.end)
+        }
+        note.title.foreach { title =>
+          tok(title.offset, title.offset + 1)
+          txt(title.offset + 1, title.end - 1)
+          tok(title.end - 1, title.end)
+        }
+        tok(span.end - 1, span.end) // ")"
+      case LinkForm.ReferenceFull =>
+        note.reference.foreach { reference =>
+          tok(note.content.end, reference.offset) // "]["
+          txt(reference.offset, reference.end)
+          tok(reference.end, span.end) // "]"
+        }
+      case LinkForm.ReferenceCollapsed =>
+        tok(note.content.end, span.end) // "][]"
+      case LinkForm.ReferenceShortcut =>
+        tok(note.content.end, span.end) // "]"
+
+    val out    = Chunk.newBuilder[CstNode]
+    var cursor = span.offset
+    var sound  = true
+    pieces.result().foreach { piece =>
+      if piece.from < cursor || piece.until < piece.from || piece.until > span.end then sound = false
+      else if sound then
+        out.addAll(tile(source, cursor, piece.from, markers)(CstNode.Verbatim(_, _)))
+        out.addAll(piece.make(piece.from, piece.until))
+        cursor = piece.until
+    }
+    if !sound then Absent
+    else
+      out.addAll(tile(source, cursor, span.end, markers)(CstNode.Verbatim(_, _)))
+      val children = out.result()
+      Present(if image then CstNode.Image(note.form, children, span) else CstNode.Link(note.form, children, span))

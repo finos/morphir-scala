@@ -4,6 +4,7 @@ import kyo.*
 import scala.annotation.tailrec
 import morphir.langkit.core.Span
 import morphir.langkit.markdown.*
+import morphir.langkit.markdown.cst.{InlineNotes, LinkForm, LinkNote}
 
 /**
  * Splits a block's raw prose into [[Inline]] nodes.
@@ -21,9 +22,17 @@ private[markdown] object InlineParser:
    * Where a link points, and where the construct that named it ends.
    *
    * Named because three of these in a row said nothing about which was which: `(Int, String, Maybe[String])` reads the
-   * same whichever way round the caller has it.
+   * same whichever way round the caller has it. `destinationAt` and `titleAt` are the raw spellings' bounds in the text
+   * — the destination's exclude its angle brackets, the title's include its quotes — kept for the CST, which records
+   * where the author wrote things rather than what they resolve to.
    */
-  private[markdown] type Target = (end: Int, destination: String, title: Maybe[String])
+  private[markdown] type Target = (
+      end: Int,
+      destination: String,
+      title: Maybe[String],
+      destinationAt: Maybe[(start: Int, end: Int, angled: Boolean)],
+      titleAt: Maybe[(start: Int, end: Int)]
+  )
 
   /** An autolink: where it ends, what it says, and where it points -- which differ for the email form. */
   private type Autolink = (end: Int, text: String, destination: String)
@@ -72,9 +81,10 @@ private[markdown] object InlineParser:
   def parse(
       text: String,
       sourceOffsetAt: Int => Int,
-      definitions: Map[String, LinkDefinition] = Map.empty
+      definitions: Map[String, LinkDefinition] = Map.empty,
+      notes: Maybe[InlineNotes] = Absent
   ): Chunk[Inline] =
-    val items = scanItems(text, sourceOffsetAt, definitions)
+    val items = scanItems(text, sourceOffsetAt, definitions, notes)
     processEmphasis(items, sourceOffsetAt)
     Chunk.from(items.filterNot(_.dropped).map(item => item.inline.getOrElse(literal(item, sourceOffsetAt))))
 
@@ -107,7 +117,8 @@ private[markdown] object InlineParser:
   private def scanItems(
       text: String,
       sourceOffsetAt: Int => Int,
-      definitions: Map[String, LinkDefinition]
+      definitions: Map[String, LinkDefinition],
+      notes: Maybe[InlineNotes]
   ): scala.collection.mutable.ArrayBuffer[Item] =
     val items        = scala.collection.mutable.ArrayBuffer.empty[Item]
     val pending      = StringBuilder()
@@ -129,7 +140,7 @@ private[markdown] object InlineParser:
         pending.append(text.charAt(index + 1))
         index += 2
       else
-        constructAt(text, index, sourceOffsetAt, definitions) match
+        constructAt(text, index, sourceOffsetAt, definitions, notes) match
           case Present((constructEnd, inline)) =>
             flushPending()
             items += node(inline)
@@ -263,7 +274,8 @@ private[markdown] object InlineParser:
       text: String,
       index: Int,
       sourceOffsetAt: Int => Int,
-      definitions: Map[String, LinkDefinition]
+      definitions: Map[String, LinkDefinition],
+      notes: Maybe[InlineNotes]
   ): Maybe[(Int, Inline)] =
     val char = text.charAt(index)
     if char == ' ' || char == '\\' then lineEndingAt(text, index, sourceOffsetAt)
@@ -292,7 +304,7 @@ private[markdown] object InlineParser:
     else if isLinkStart(text, index) then
       val image = char == '!'
       val open  = if image then index + 2 else index + 1
-      linkAt(text, index, open, image, sourceOffsetAt, definitions)
+      linkAt(text, index, open, image, sourceOffsetAt, definitions, notes)
     else Absent
 
   /**
@@ -385,19 +397,45 @@ private[markdown] object InlineParser:
       open: Int,
       image: Boolean,
       sourceOffsetAt: Int => Int,
-      definitions: Map[String, LinkDefinition]
+      definitions: Map[String, LinkDefinition],
+      notes: Maybe[InlineNotes]
   ): Maybe[(Int, Inline)] =
     labelEnd(text, open) match
       case Absent         => Absent
       case Present(close) =>
         val label = text.substring(open, close)
 
+        // The CST's record of what was written here, made only when a form succeeds. The alt of an image is its label
+        // parsed as inlines — the AST flattens it to a string, the CST keeps the structure. Parsed only when someone
+        // is taking notes, because the plain parse has no use for it.
+        def record(
+            form: LinkForm,
+            destinationAt: Maybe[(start: Int, end: Int, angled: Boolean)],
+            titleAt: Maybe[(start: Int, end: Int)],
+            reference: Maybe[(start: Int, end: Int)]
+        ): Unit =
+          notes.foreach { collected =>
+            val alt =
+              if image then Present(parse(label, index => sourceOffsetAt(open + index), definitions)) else Absent
+            collected.recordLink(
+              sourceOffsetAt(start),
+              LinkNote(
+                form,
+                spanOf(open, close, sourceOffsetAt),
+                destinationAt.map(d => (span = spanOf(d.start, d.end, sourceOffsetAt), angled = d.angled)),
+                titleAt.map(t => spanOf(t.start, t.end, sourceOffsetAt)),
+                reference.map(r => spanOf(r.start, r.end, sourceOffsetAt)),
+                alt
+              )
+            )
+          }
+
         def build(end: Int, destination: String, title: Maybe[String], normalize: Boolean): Maybe[(Int, Inline)] =
           val span = spanOf(start, end, sourceOffsetAt)
           val uri  = if normalize then normalizeUri(destination) else destination
           if image then Present((end, Inline.Image(uri, title, plainText(label, definitions), span)))
           else
-            val content = parse(label, index => sourceOffsetAt(open + index), definitions)
+            val content = parse(label, index => sourceOffsetAt(open + index), definitions, notes)
             // Links may not contain links. The bracket that would have opened this one is ordinary text instead, and
             // the link inside it stands: `[foo [bar](/uri)](/uri)` is the word `[foo `, a link, then `](/uri)`.
             // Images are not bound by this -- their content becomes `alt` text, where a nested link flattens to what
@@ -408,12 +446,15 @@ private[markdown] object InlineParser:
         val inlineForm =
           if close + 1 < text.length && text.charAt(close + 1) == '(' then
             inlineTarget(text, close + 2) match
-              case Present(target) => build(target.end, target.destination, target.title, true)
-              case Absent          => Absent
+              case Present(target) =>
+                val built = build(target.end, target.destination, target.title, true)
+                if built.isDefined then record(LinkForm.Inline, target.destinationAt, target.titleAt, Absent)
+                built
+              case Absent => Absent
           else Absent
 
         if inlineForm.isDefined then inlineForm
-        else referenceForm(text, open, close, label, sourceOffsetAt, definitions, build)
+        else referenceForm(text, open, close, label, sourceOffsetAt, definitions, build, record)
 
   /**
    * The three reference forms: `[text][label]`, the collapsed `[text][]`, and the shortcut `[text]`.
@@ -428,7 +469,13 @@ private[markdown] object InlineParser:
       label: String,
       sourceOffsetAt: Int => Int,
       definitions: Map[String, LinkDefinition],
-      build: (Int, String, Maybe[String], Boolean) => Maybe[(Int, Inline)]
+      build: (Int, String, Maybe[String], Boolean) => Maybe[(Int, Inline)],
+      record: (
+          LinkForm,
+          Maybe[(start: Int, end: Int, angled: Boolean)],
+          Maybe[(start: Int, end: Int)],
+          Maybe[(start: Int, end: Int)]
+      ) => Unit
   ): Maybe[(Int, Inline)] =
     val explicit =
       if close + 1 < text.length && text.charAt(close + 1) == '[' then referenceLabelEnd(text, close + 2)
@@ -448,8 +495,17 @@ private[markdown] object InlineParser:
         // Normalised here rather than when the definition was recorded, so a definition keeps the destination the author
         // wrote and every use of it is encoded the same way an inline destination would be: `/φου` reaches the writer as
         // `/%CF%86%CE%BF%CF%85`.
-        case Some(definition) => build(end, definition.destination, definition.title, true)
-        case None             => Absent
+        case Some(definition) =>
+          val built = build(end, definition.destination, definition.title, true)
+          if built.isDefined then
+            explicit match
+              case Present(secondClose) =>
+                val named = text.substring(close + 2, secondClose)
+                if named.isBlank then record(LinkForm.ReferenceCollapsed, Absent, Absent, Absent)
+                else record(LinkForm.ReferenceFull, Absent, Absent, Present((start = close + 2, end = secondClose)))
+              case Absent => record(LinkForm.ReferenceShortcut, Absent, Absent, Absent)
+          built
+        case None => Absent
 
   /**
    * Where a link *label* closes: at the first `]` that no backslash escapes.
@@ -526,11 +582,12 @@ private[markdown] object InlineParser:
     var index = skipWhitespace(text, from)
     if index >= text.length then Absent
     else
-      val destination: Maybe[(Int, String)] =
-        if text.charAt(index) == '<' then
+      val angled                                 = text.charAt(index) == '<'
+      val destination: Maybe[(Int, String, Int)] =
+        if angled then
           angleDestinationEnd(text, index + 1) match
             case Absent         => Absent
-            case Present(close) => Present((close + 1, unescape(text.substring(index + 1, close))))
+            case Present(close) => Present((close + 1, unescape(text.substring(index + 1, close)), index + 1))
         else
           var cursor = index
           var depth  = 0
@@ -544,21 +601,33 @@ private[markdown] object InlineParser:
               else { depth -= 1; cursor += 1 }
             else if char.isWhitespace then broken = true
             else cursor += 1
-          Present((cursor, unescape(text.substring(index, cursor))))
+          Present((cursor, unescape(text.substring(index, cursor)), index))
 
       destination match
-        case Absent                            => Absent
-        case Present((afterDestination, dest)) =>
+        case Absent                                       => Absent
+        case Present((afterDestination, dest, destStart)) =>
+          val destAt = Present((
+            start = destStart,
+            end = if angled then afterDestination - 1 else afterDestination,
+            angled = angled
+          ))
           index = skipWhitespace(text, afterDestination)
           if index < text.length && text.charAt(index) == ')' then
-            Present((end = index + 1, destination = dest, title = Absent))
+            Present((end = index + 1, destination = dest, title = Absent, destinationAt = destAt, titleAt = Absent))
           else
+            val titleStart = index
             titleAt(text, index) match
               case Absent                       => Absent
               case Present((afterTitle, title)) =>
                 val closing = skipWhitespace(text, afterTitle)
                 if closing < text.length && text.charAt(closing) == ')' then
-                  Present((end = closing + 1, destination = dest, title = Present(title)))
+                  Present((
+                    end = closing + 1,
+                    destination = dest,
+                    title = Present(title),
+                    destinationAt = destAt,
+                    titleAt = Present((start = titleStart, end = afterTitle))
+                  ))
                 else Absent
 
   /**
@@ -609,32 +678,56 @@ private[markdown] object InlineParser:
     val start = skipWhitespace(text, from)
     if start >= text.length then Absent
     else
-      val destination: Maybe[(Int, String)] =
-        if text.charAt(start) == '<' then
+      val angled                                 = text.charAt(start) == '<'
+      val destination: Maybe[(Int, String, Int)] =
+        if angled then
           val close = text.indexOf('>', start + 1)
-          if close < 0 then Absent else Present((close + 1, unescape(text.substring(start + 1, close))))
+          if close < 0 then Absent else Present((close + 1, unescape(text.substring(start + 1, close)), start + 1))
         else
           var cursor = start
           while cursor < text.length && !text.charAt(cursor).isWhitespace do cursor += 1
-          if cursor == start then Absent else Present((cursor, unescape(text.substring(start, cursor))))
+          if cursor == start then Absent else Present((cursor, unescape(text.substring(start, cursor)), start))
 
       destination match
-        case Absent                            => Absent
-        case Present((afterDestination, dest)) =>
+        case Absent                                       => Absent
+        case Present((afterDestination, dest, destStart)) =>
+          val destAt = Present((
+            start = destStart,
+            end = if angled then afterDestination - 1 else afterDestination,
+            angled = angled
+          ))
           val afterSpace = skipWhitespace(text, afterDestination)
           if afterSpace >= text.length || endsLine(text, afterDestination, afterSpace) && afterSpace >= text.length then
-            Present((end = afterDestination, destination = dest, title = Absent))
+            Present((
+              end = afterDestination,
+              destination = dest,
+              title = Absent,
+              destinationAt = destAt,
+              titleAt = Absent
+            ))
           // Whitespace has to separate a title from the destination. Without that, `[foo]: <bar>(baz)` reads `(baz)`
           // as a parenthesised title and defines a link, where the spec leaves the whole line as prose.
           else if afterSpace == afterDestination then Absent
           else
             titleAt(text, afterSpace) match
               case Present((afterTitle, title)) if restIsBlank(text, afterTitle) =>
-                Present((end = afterTitle, destination = dest, title = Present(title)))
+                Present((
+                  end = afterTitle,
+                  destination = dest,
+                  title = Present(title),
+                  destinationAt = destAt,
+                  titleAt = Present((start = afterSpace, end = afterTitle))
+                ))
               case _ =>
                 // No title, so the definition ends at the destination -- but only if nothing else shares its line.
                 if endsLine(text, afterDestination, afterSpace) then
-                  Present((end = afterDestination, destination = dest, title = Absent))
+                  Present((
+                    end = afterDestination,
+                    destination = dest,
+                    title = Absent,
+                    destinationAt = destAt,
+                    titleAt = Absent
+                  ))
                 else Absent
 
   /** True when only whitespace separates `from` from the end of the text or the next line. */
