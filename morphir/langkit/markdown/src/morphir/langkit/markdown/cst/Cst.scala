@@ -74,6 +74,21 @@ enum CstNode derives CanEqual:
   /** An image. Its bracketed label is inline content here, where the AST flattens it to an `alt` string. */
   case Image(form: LinkForm, children: Chunk[CstNode], span: Span)
 
+  /**
+   * Emphasis, keeping its delimiter char and strength. Its children are the delimiter-run [[Token]]s around inline
+   * content; a partially consumed run's leftover delimiters stay verbatim at the edges, unclaimed by the tokens.
+   */
+  case Emphasis(delimiter: Char, strong: Boolean, children: Chunk[CstNode], span: Span)
+
+  /** A hard line break, spelled as the author wrote it: trailing spaces or a backslash, then the line ending. */
+  case HardBreak(children: Chunk[CstNode], span: Span)
+
+  /** A backslash escape: the backslash [[Token]] and the character it makes literal as [[Text]]. */
+  case Escape(children: Chunk[CstNode], span: Span)
+
+  /** A character reference — `&amp;`, `&#35;` — kept as written; its decoded value is a resolution, not a spelling. */
+  case Entity(children: Chunk[CstNode], span: Span)
+
   /** Syntax the author spent: marker runs, fences, setext underlines. */
   case Token(text: String, span: Span)
 
@@ -112,6 +127,10 @@ enum CstNode derives CanEqual:
     case RawHtml(children, _)                 => children
     case Link(_, children, _)                 => children
     case Image(_, children, _)                => children
+    case Emphasis(_, _, children, _)          => children
+    case HardBreak(children, _)               => children
+    case Escape(children, _)                  => children
+    case Entity(children, _)                  => children
     case _: (Token | Text | Verbatim)         => Chunk.empty
 
 object Cst:
@@ -321,7 +340,7 @@ object CstParser:
     def emit(inline: Inline): Unit =
       graduate(source, inline, markers, notes) match
         case Present(node) if node.span.offset >= cursor && node.span.end <= until =>
-          out.addAll(tile(source, cursor, node.span.offset, markers)(CstNode.Verbatim(_, _)))
+          out.addAll(inlineGap(source, cursor, node.span.offset, markers, notes))
           out.addOne(node)
           cursor = node.span.end
         case _ =>
@@ -331,8 +350,47 @@ object CstParser:
             case Inline.Link(_, _, content, _)     => content.foreach(emit)
             case _                                 => ()
     items.foreach(emit)
-    out.addAll(tile(source, cursor, until, markers)(CstNode.Verbatim(_, _)))
+    out.addAll(inlineGap(source, cursor, until, markers, notes))
     out.result()
+
+  /**
+   * A gap between inline constructs: verbatim text with escapes and character references punched out as their own
+   * nodes. Only inline gaps get this — an escape is an escape because the inline grammar read it as one, so the
+   * punching follows what the parse recorded rather than re-deriving it from the characters.
+   */
+  private def inlineGap(
+      source: String,
+      from: Int,
+      until: Int,
+      markers: Chunk[Span],
+      notes: Maybe[InlineNotes]
+  ): Chunk[CstNode] =
+    notes match
+      case Absent             => tile(source, from, until, markers)(CstNode.Verbatim(_, _))
+      case Present(collected) =>
+        val punches =
+          (collected.escapeOffsets.map(o => (span = Span.fromStartEnd(o, o + 2), escape = true))
+            ++ collected.entitySpans.map(s => (span = s, escape = false))).sortBy(_.span.offset)
+        val out    = Chunk.newBuilder[CstNode]
+        var cursor = from
+        punches.foreach { punch =>
+          val s = punch.span
+          if s.offset >= cursor && s.end <= until then
+            val valid =
+              if punch.escape then s.offset < source.length && source.charAt(s.offset) == '\\'
+              else s.offset < source.length && source.charAt(s.offset) == '&'
+            if valid then
+              out.addAll(tile(source, cursor, s.offset, markers)(CstNode.Verbatim(_, _)))
+              if punch.escape then
+                val children =
+                  leaf(source, s.offset, s.offset + 1)(CstNode.Token(_, _))
+                    ++ leaf(source, s.offset + 1, s.end)(CstNode.Text(_, _))
+                out.addOne(CstNode.Escape(children, s))
+              else out.addOne(CstNode.Entity(leaf(source, s.offset, s.end)(CstNode.Token(_, _)), s))
+              cursor = s.end
+        }
+        out.addAll(tile(source, cursor, until, markers)(CstNode.Verbatim(_, _)))
+        out.result()
 
   /**
    * The typed CST node for one inline construct, for the kinds this slice has graduated; [[kyo.Absent]] otherwise.
@@ -384,7 +442,61 @@ object CstParser:
         node      <- linkNode(source, span, note, note.alt.getOrElse(Chunk.empty), markers, notes, image = true)
       yield node
 
+    case Inline.Emphasis(content, span) =>
+      emphasisNode(source, span, content, markers, notes, used = 1, strong = false)
+
+    case Inline.StrongEmphasis(content, span) =>
+      emphasisNode(source, span, content, markers, notes, used = 2, strong = true)
+
+    // A hard break's span runs to the next line's content, so it may cover a container marker; tiling with the
+    // markers keeps the break's own characters and the marker as separate tokens.
+    case Inline.LineBreak(span)
+        if span.offset < source.length
+          && (source.charAt(span.offset) == ' ' || source.charAt(span.offset) == '\\') =>
+      Present(CstNode.HardBreak(tile(source, span.offset, span.end, markers)(CstNode.Token(_, _)), span))
+
     case _ => Absent
+
+  /**
+   * An emphasis node, its delimiter tokens found from the content rather than the span.
+   *
+   * The AST span covers the whole delimiter runs, but a run consumed a pair at a time can leave delimiters behind:
+   * `*foo**` is emphasis and a literal `*`, and the span covers both. The consumed delimiters are the ones adjacent to
+   * the content — `used` on each side — so the tokens sit there, and whatever else the span covers stays verbatim at
+   * the edges. Content that is empty or delimiters that fail the character check degrade to [[kyo.Absent]].
+   */
+  private def emphasisNode(
+      source: String,
+      span: Span,
+      content: Chunk[Inline],
+      markers: Chunk[Span],
+      notes: Maybe[InlineNotes],
+      used: Int,
+      strong: Boolean
+  ): Maybe[CstNode] =
+    if content.isEmpty then Absent
+    else
+      val contentStart                                      = content.map(_.span.offset).min
+      val contentEnd                                        = content.map(_.span.end).max
+      val openStart                                         = contentStart - used
+      val closeEnd                                          = contentEnd + used
+      def isRun(from: Int, until: Int, char: Char): Boolean = (from until until).forall(i =>
+        i >= 0 && i < source.length && source.charAt(i) == char
+      )
+      if openStart < span.offset || closeEnd > span.end || openStart < 0 then Absent
+      else
+        val delimiter = source.charAt(openStart)
+        if (delimiter != '*' && delimiter != '_')
+          || !isRun(openStart, contentStart, delimiter) || !isRun(contentEnd, closeEnd, delimiter)
+        then Absent
+        else
+          val children =
+            tile(source, span.offset, openStart, markers)(CstNode.Verbatim(_, _))
+              ++ leaf(source, openStart, contentStart)(CstNode.Token(_, _))
+              ++ inlineRegion(source, contentStart, contentEnd, markers, content, notes)
+              ++ leaf(source, contentEnd, closeEnd)(CstNode.Token(_, _))
+              ++ tile(source, closeEnd, span.end, markers)(CstNode.Verbatim(_, _))
+          Present(CstNode.Emphasis(delimiter, strong, children, span))
 
   /**
    * A link or image node from its note, or [[kyo.Absent]] when the note's geometry does not fit the span.

@@ -136,6 +136,7 @@ private[markdown] object InlineParser:
       val char = text.charAt(index)
       if char == '\\' && index + 1 < text.length && isAsciiPunctuation(text.charAt(index + 1)) then
         // A backslash escape makes the next character literal, so it can never open or close anything.
+        notes.foreach(_.recordEscape(sourceOffsetAt(index)))
         if pending.isEmpty then pendingStart = index
         pending.append(text.charAt(index + 1))
         index += 2
@@ -285,7 +286,7 @@ private[markdown] object InlineParser:
         val end = closeStart + run
         (end, Inline.CodeSpan(normalize(text.substring(index + run, closeStart)), spanOf(index, end, sourceOffsetAt)))
       }
-    else if char == '&' then entityAt(text, index, sourceOffsetAt)
+    else if char == '&' then entityAt(text, index, sourceOffsetAt, notes)
     else if char == '<' then
       autolink(text, index) match
         case Present(link) =>
@@ -338,8 +339,14 @@ private[markdown] object InlineParser:
    * becomes a text node holding `&`, which ScalaTags then writes back as `&amp;`. Anything that does not parse cleanly
    * stays literal text, which is what makes `&MadeUpEntity;` and a bare `&copy` render as themselves.
    */
-  private def entityAt(text: String, start: Int, sourceOffsetAt: Int => Int): Maybe[(Int, Inline)] =
+  private def entityAt(
+      text: String,
+      start: Int,
+      sourceOffsetAt: Int => Int,
+      notes: Maybe[InlineNotes]
+  ): Maybe[(Int, Inline)] =
     entityValue(text, start).map { case (end, value) =>
+      notes.foreach(_.recordEntity(sourceOffsetAt(start), sourceOffsetAt(end)))
       (end, Inline.Text(value, spanOf(start, end, sourceOffsetAt)))
     }
 

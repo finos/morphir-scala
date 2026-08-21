@@ -37,10 +37,24 @@ private[markdown] final case class LinkNote(
  * construct at the same offset records the same note.
  */
 private[markdown] final class InlineNotes:
-  private val links = scala.collection.mutable.Map.empty[Int, LinkNote]
+  private val links    = scala.collection.mutable.Map.empty[Int, LinkNote]
+  private val escapes  = scala.collection.mutable.TreeSet.empty[Int]
+  private val entities = scala.collection.mutable.TreeMap.empty[Int, Int]
 
   def recordLink(offset: Int, note: LinkNote): Unit = links(offset) = note
 
   def linkAt(offset: Int): Maybe[LinkNote] = links.get(offset) match
     case Some(note) => Present(note)
     case None       => Absent
+
+  /** A backslash escape at `offset`: the backslash, then the character it makes literal. */
+  def recordEscape(offset: Int): Unit = escapes += offset
+
+  /** A character reference over `[offset, end)`, as written. */
+  def recordEntity(offset: Int, end: Int): Unit = entities(offset) = end
+
+  /** Escape offsets in order, for punching out of prose gaps. */
+  def escapeOffsets: Chunk[Int] = Chunk.from(escapes.iterator)
+
+  /** Entity spans in order, for punching out of prose gaps. */
+  def entitySpans: Chunk[Span] = Chunk.from(entities.iterator.map((o, e) => Span.fromStartEnd(o, e)))

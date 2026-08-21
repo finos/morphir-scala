@@ -277,11 +277,66 @@ class CstBlockStructureTests extends Test[Any]:
         case _                  => false
       })
 
-    "a code span inside emphasis surfaces, the emphasis staying verbatim" in
-      assert(paragraphChildren("*a `b` c*\n").exists {
-        case _: CstNode.CodeSpan => true
-        case _                   => false
+    "a code span inside emphasis is typed inside the emphasis" in {
+      paragraphChildren("*a `b` c*\n").collectFirst { case e: CstNode.Emphasis => e } match
+        case Some(emphasis) =>
+          assert(emphasis.childNodes.exists {
+            case _: CstNode.CodeSpan => true
+            case _                   => false
+          })
+        case None => assert(false, "expected an Emphasis node")
+    }
+
+    "emphasis keeps its delimiter and its run tokens" in {
+      paragraphChildren("a *b* c\n").collectFirst { case e: CstNode.Emphasis => e } match
+        case Some(CstNode.Emphasis(delimiter, strong, children, _)) =>
+          assert(delimiter == '*')
+          assert(!strong)
+          assert(children.collect { case CstNode.Token(t, _) => t }.toSeq == Seq("*", "*"))
+        case _ => assert(false, "expected an Emphasis node")
+    }
+
+    "strong emphasis spends two delimiters a side" in {
+      paragraphChildren("__b__\n").collectFirst { case e: CstNode.Emphasis => e } match
+        case Some(CstNode.Emphasis(delimiter, strong, children, _)) =>
+          assert(delimiter == '_')
+          assert(strong)
+          assert(children.collect { case CstNode.Token(t, _) => t }.toSeq == Seq("__", "__"))
+        case _ => assert(false, "expected a strong Emphasis node")
+    }
+
+    "a partially consumed run leaves its extra delimiter verbatim" in {
+      paragraphChildren("*foo**\n").collectFirst { case e: CstNode.Emphasis => e } match
+        case Some(CstNode.Emphasis(_, strong, children, _)) =>
+          assert(!strong)
+          assert(children.collect { case CstNode.Token(t, _) => t }.toSeq == Seq("*", "*"))
+        case _ => assert(false, "expected an Emphasis node")
+    }
+
+    "a hard break keeps its spelling" in
+      assert(paragraphChildren("a\\\nb\n").exists {
+        case CstNode.HardBreak(children, _) =>
+          children.collect { case CstNode.Token(t, _) => t }.mkString.startsWith("\\")
+        case _ => false
       })
+
+    "an escape is a backslash token and the literal character" in {
+      paragraphChildren("a \\* b\n").collectFirst { case e: CstNode.Escape => e } match
+        case Some(escape) =>
+          escape.childNodes.toSeq match
+            case Seq(CstNode.Token("\\", _), CstNode.Text("*", _)) => assert(true)
+            case other => assert(false, s"expected backslash token + char, got $other")
+        case None => assert(false, "expected an Escape node")
+    }
+
+    "an entity keeps its raw spelling" in {
+      paragraphChildren("a &amp; b\n").collectFirst { case e: CstNode.Entity => e } match
+        case Some(entity) =>
+          assert(entity.childNodes.toSeq match
+            case Seq(CstNode.Token("&amp;", _)) => true
+            case _                              => false)
+        case None => assert(false, "expected an Entity node")
+    }
 
     "a heading's code span is typed inside the heading" in {
       blocks("# uses `f`\n").head match

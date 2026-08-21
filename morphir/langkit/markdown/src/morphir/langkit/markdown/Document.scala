@@ -128,3 +128,6 @@ enum Inline derives CanEqual:
    * space or a newline as it likes.
    */
   case LineBreak(span: Span)
+
+  /** Where this inline sits in the source, including its own delimiters. */
+  def span: Span
