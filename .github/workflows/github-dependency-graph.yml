@@ -9,6 +9,8 @@ jobs:
   submit-dependency-graph:
     if: github.repository == 'finos/morphir-scala' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
     
       - uses: actions/checkout@v7.0.1
@@ -25,6 +27,9 @@ jobs:
       # Generate and submit the dependency graph to GitHub's Dependency Submission API.
       # Uses the Eleven19 fork of mill-github-dependency-graph (the original
       # ckipp01/mill-github-dependency-graph is archived and does not support Mill 1.x).
+      # From 0.3.0 the plugin reports test-module dependencies as `development`
+      # rather than `runtime`, and includes dependencies reached through internal
+      # moduleDeps. The plugin version is pinned in the `//|` header of build.mill.
       - name: Submit dependency graph
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
