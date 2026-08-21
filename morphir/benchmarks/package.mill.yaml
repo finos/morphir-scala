@@ -1,0 +1,9 @@
+extends: Module
+
+# JVM only, and not published: JMH is a measuring instrument for this repository. `jmhCoreVersion` is a Task, so the
+# wiring lives in build.MorphirBenchmarksModule rather than here.
+object jvm:
+  extends: [build.MorphirBenchmarksModule, build.MorphirKyoCoreMvnDeps]
+  moduleDeps:
+  - build.morphir.langkit.markdown.jvm
+  - build.morphir.langkit.markdown.scalatags.jvm

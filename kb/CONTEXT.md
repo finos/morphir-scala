@@ -18,6 +18,35 @@ _Avoid_: ticket, issue, story, task
 Something the system does today, described in the present tense. Has no lifecycle — it is either true or stale.
 _Avoid_: delivered feature, shipped work, functionality
 
+**Design Note**:
+The narrative account of a capability while it is still being worked out. It states the capability plainly, records
+the research and the constraints adopted, lists what is unresolved, and maps the Intents that partition delivery. It
+is revised as understanding improves, which is what separates it from a Decision Record.
+_Avoid_: design doc, RFC, spec
+
+**Register**:
+How a document reads and who it is written for, selected by its `type`. There are three: *article* for guidance a
+reader follows step by step, *white-paper* for content that argues a position, and *reference* for lookup material.
+Intent, Design Note and Decision Record are all white-paper, so each owes rejected alternatives and an unresolved
+section.
+_Avoid_: format, style, genre
+
+**Altitude**:
+The height a document flies at over its subject. A high-altitude document shows a whole capability in one frame. A
+low-altitude document covers one API, one mechanism, or one pinned version in full detail. Altitude says what a
+document is responsible for, where Register says how it reads.
+
+**Narrative Home**:
+The one Design Note at capability altitude that owns a capability's story. Every other document serving that
+capability must be reachable from it in one link. A knowledge base with no narrative homes is the failure this
+vocabulary exists to prevent: every detail recorded, and nothing showing how the details arrange into a capability.
+
+This is the closest thing here to a high-level design document, but the model is not a high-level and low-level
+design pair. Those form a hierarchy where the lower tier decomposes the upper. This knowledge base is hub and spoke:
+one Narrative Home, plus documents that earn separate existence by being independently reusable, independently
+version-pinned, or owned by a different Register. Length and level of detail are not reasons to split.
+_Avoid_: HLD, LLD, high-level design, low-level design, parent doc
+
 **Decision Record**:
 An architectural decision, recorded past-tense with the alternatives that were rejected and the condition under which
 it should be revisited. Immutable: superseded by a later record rather than edited, so the reasoning available at the

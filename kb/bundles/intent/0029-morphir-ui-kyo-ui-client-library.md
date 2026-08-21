@@ -29,7 +29,9 @@ Morphir types, so it belongs to no publishing family ([decision 0013](../morphir
 Two things live here:
 
 - **Components**: the IR explorer and the knowledge/intent browser, written against kyo-ui so one value mounts
-  in the browser (`UI.runMount`) and in the Electron renderer unchanged.
+  in the browser (`UI.runMount`) and in the Electron renderer unchanged. Concept bodies arrive as Markdown; the
+  browser compiles them through `Compiler[UI]` from `morphir-langkit-markdown-kyo-ui`
+  ([0033](/0033-markdown-compilation.md)) rather than putting the source text in a paragraph as it does today.
 - **The service contract**: kyo-schema-typed protocol and kyo-jsonrpc route definitions the components consume
   — `IrService` and `KnowledgeService` (read-only) plus `ShellService` (host affordances the browser stubs).
   The contract is transport-blind; hosts choose the wire.

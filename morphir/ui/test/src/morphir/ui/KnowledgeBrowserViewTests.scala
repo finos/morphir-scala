@@ -36,5 +36,30 @@ class KnowledgeBrowserViewTests extends Test[Any]:
         assert(html.contains("Electron appkit") && html.contains("kb-concept"))
       }
     }
+
+    "conceptView compiles the Markdown body instead of showing its source" in {
+      val ui = KnowledgeBrowserView.conceptView(
+        ConceptDetail(
+          ConceptRef("intent", "0033-markdown-compilation.md"),
+          "Intent",
+          "Markdown compilation",
+          "## Problem\n\nCompile the AST.\n\n- one\n- two\n"
+        )
+      )
+      renderOnce(ui).map { html =>
+        assert(html.contains("<h2"), "the heading should be a heading element")
+        assert(html.contains("<ul"), "the bullet list should be a list element")
+        assert(html.contains("<li"), "the list should hold item elements")
+        assert(!html.contains("## Problem"), "the raw Markdown source should not survive to the page")
+        assert(!html.contains("- one"), "the raw bullet markers should not survive to the page")
+      }
+    }
+
+    "conceptView shows a diagnostic rather than blanking when a body cannot be parsed" in {
+      val ui = KnowledgeBrowserView.conceptView(
+        ConceptDetail(ConceptRef("intent", "x.md"), "Intent", "Broken", "\u0000")
+      )
+      renderOnce(ui).map(html => assert(html.contains("kb-concept")))
+    }
   }
 end KnowledgeBrowserViewTests

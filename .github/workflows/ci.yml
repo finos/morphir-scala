@@ -467,11 +467,11 @@ jobs:
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
 
-      - name: Install libuv
+      - name: Install native dependencies
         # Bounded: a stalled Ubuntu mirror otherwise consumes the job budget. The script skips the
         # Azure archive (see actions/runner-images#12949) rather than waiting on it.
         timeout-minutes: 6
-        run: .github/scripts/install-libuv.sh
+        run: .github/scripts/install-native-deps.sh
 
       # Reuse of this job's own native build output. Unlike test-js's cache, which is save-only and
       # restored by `publish` rather than by test-js itself, this both restores and saves, so a
@@ -494,7 +494,20 @@ jobs:
           #
           # What remains is reuse across re-runs of the same commit, which is exactly the case that
           # follows a timeout or an infrastructure flake. Cold runs stay cold; see bead morphir-dru.
-          key: ${{ runner.os }}-mill-native-${{ matrix.java }}-${{ github.sha }}
+          #
+          # `github.ref_name` is part of the key because the commit alone does not identify a run.
+          # GitHub lets any branch read a cache written on the default branch, and a fast-forward
+          # `main`-to-`develop` sync leaves both branches on one commit — so `develop`'s *first*
+          # run restored `main`'s entry on a fresh runner and failed exactly as the reverted
+          # cross-commit restore did: the same 11 GithubClientTests assertions, this time
+          # `SnapshotNotFound`, because `out/morphir/**/native/` carries the task metadata that
+          # tells Mill the work is done while the no-daemon sandbox holding the blessed snapshots
+          # is not cached. Proven at f83f27b4 on 2026-08-19: `main` cold gave 81 passed / 0 failed,
+          # `develop` restoring that entry gave 70 / 11, and a cold re-run gave 81 / 0 again. The
+          # ref keeps the two apart while a re-run still hits its own entry. See bead morphir-8qz;
+          # the other Mill build-output caches in this file share the unscoped shape and have not
+          # yet been changed.
+          key: ${{ runner.os }}-mill-native-${{ matrix.java }}-${{ github.ref_name }}-${{ github.sha }}
 
       - name: Run Native tests
         # Kept in step with .config/mise/tasks/test/native for the selectors, but `-j 2` rather than
@@ -897,12 +910,12 @@ jobs:
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
 
-      - name: Install libuv
+      - name: Install native dependencies
         # Bounded: run 32158142566 spent this job's entire 60-minute budget inside `apt-get update`
         # against azure.archive.ubuntu.com. The shared script skips that mirror; timeout-minutes is
         # the backstop if retrying still cannot finish.
         timeout-minutes: 6
-        run: .github/scripts/install-libuv.sh
+        run: .github/scripts/install-native-deps.sh
 
       - name: Restore JVM Build Output From Cache
         uses: actions/cache/restore@v6
