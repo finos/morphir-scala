@@ -586,7 +586,13 @@ object Parser:
         body.toString
 
     val span = Span.fromStartEnd(opening.offset, end)
-    cst.foreach(_.record(CstFragment.FencedCode(span, opening.end, closeStart)))
+    // The CST fragment of an unterminated fence cut short by its container ends at the consumed content: the scanner
+    // is rewound past a line the container never held, and a fragment spanning that line would overrun the
+    // container's own span and be clamped away whole. A fence that ran to the end of the input keeps its true end.
+    val cstEnd =
+      if closed || scanner.offset.toInt >= scanner.source.length then end
+      else cursor.consumedEnd
+    cst.foreach(_.record(CstFragment.FencedCode(Span.fromStartEnd(opening.offset, cstEnd), opening.end, closeStart)))
     // The budgeted FenceInfo path reserves deterministic work and output before token materialization.
     Block.FencedCode(FenceInfo.parseBudgeted(open.info, scanner), content, span)
 

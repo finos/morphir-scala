@@ -17,6 +17,13 @@ import morphir.langkit.markdown.Inline
  * `> bar` is one paragraph spanning the middle `> ` — so [[CstParser]] punches the recorded marker spans out of gaps
  * and leaf interiors as [[CstNode.Token]] leaves, and the tiling invariant carries the container problem.
  */
+/**
+ * One marker a container's cursor spent: its bytes, and the columns its final tab reached past what the container
+ * claimed. A tab is consumed by column, not by character, so a marker that needs two columns of a four-column tab owns
+ * the whole character and owes the content two `phantom` columns that exist as layout rather than as bytes.
+ */
+private[markdown] type Marker = (span: Span, phantom: Int)
+
 private[markdown] enum CstFragment:
   case ThematicBreak(span: Span)
 
@@ -42,7 +49,7 @@ private[markdown] enum CstFragment:
   case LinkReferenceDefinition(span: Span)
 
   /** A quote's run: `markers` are the per-line `>` prefixes its cursor spent, `children` what those lines held. */
-  case BlockQuote(span: Span, markers: Chunk[Span], children: Chunk[CstFragment])
+  case BlockQuote(span: Span, markers: Chunk[Marker], children: Chunk[CstFragment])
 
   /** A run of bullet items sharing one bullet. `tight` mirrors what the AST list records. */
   case BulletList(bullet: Char, tight: Boolean, span: Span, items: Chunk[CstFragment])
@@ -51,7 +58,7 @@ private[markdown] enum CstFragment:
   case OrderedList(start: Int, delimiter: Char, tight: Boolean, span: Span, items: Chunk[CstFragment])
 
   /** One item: `markers` cover its marker line's prefix and each continuation line's indentation. */
-  case ListItem(span: Span, markers: Chunk[Span], children: Chunk[CstFragment])
+  case ListItem(span: Span, markers: Chunk[Marker], children: Chunk[CstFragment])
 
   def span: Span
 
@@ -83,9 +90,10 @@ private[markdown] final class InlineSlot:
  * repeats idempotent, and a peek past the container's end is clamped away at materialization rather than here.
  */
 private[markdown] final class CstCollector:
-  private val buffer                            = List.newBuilder[CstFragment]
-  private val markerSpans                       = scala.collection.mutable.TreeMap.empty[Int, Int]
-  def record(fragment: CstFragment): Unit       = buffer += fragment
-  def recordMarker(offset: Int, end: Int): Unit = markerSpans(offset) = end
-  def fragments: Chunk[CstFragment]             = Chunk.from(buffer.result())
-  def markers: Chunk[Span] = Chunk.from(markerSpans.iterator.map((o, e) => Span.fromStartEnd(o, e)))
+  private val buffer                                          = List.newBuilder[CstFragment]
+  private val markerSpans                                     = scala.collection.mutable.TreeMap.empty[Int, (Int, Int)]
+  def record(fragment: CstFragment): Unit                     = buffer += fragment
+  def recordMarker(offset: Int, end: Int, phantom: Int): Unit = markerSpans(offset) = (end, phantom)
+  def fragments: Chunk[CstFragment]                           = Chunk.from(buffer.result())
+  def markers: Chunk[Marker]                                  =
+    Chunk.from(markerSpans.iterator.map((o, v) => (span = Span.fromStartEnd(o, v._1), phantom = v._2)))

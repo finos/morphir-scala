@@ -186,9 +186,14 @@ private[markdown] final class ContainerCursor private (
       val (consumed, matchedAll) = consume(prefixes, 0)
       // Recorded even on a partial match: the prefixes that did consume are container syntax whoever ends up owning
       // the line. Re-reads land on the same offset with the same result, and a peek past the container's end is
-      // clamped away when the CST materializes, so recording here is idempotent and safe.
+      // clamped away when the CST materializes, so recording here is idempotent and safe. `phantom` is how many
+      // columns the cut overshot the claim — a tab consumed by column but owned by character — which the CST keeps
+      // as layout the content is owed.
       if consumed > 0 then
-        sink.foreach(_.recordMarker(raw.offset, raw.offset + Tabs.sourceCut(raw.view.text, consumed)))
+        sink.foreach { collector =>
+          val cut = Tabs.sourceCut(raw.view.text, consumed)
+          collector.recordMarker(raw.offset, raw.offset + cut, Tabs.widthOf(raw.view.text, cut) - consumed)
+        }
       ContinuedLine(strip(raw, consumed), matchedAll)
 
   /** Where the scanner has read to, with the line terminator that got it there discounted. */
@@ -314,6 +319,16 @@ private[internal] object Tabs:
       then Present(end + 1)
       else Absent
     else Absent
+
+  /** How many columns the first `chars` characters of `source` occupy, tabs advancing to their stops. */
+  def widthOf(source: String, chars: Int): Int =
+    var index  = 0
+    var column = 0
+    while index < chars && index < source.length do
+      if source.charAt(index) == '\t' then column = ((column / Stop) + 1) * Stop
+      else column += 1
+      index += 1
+    column
 
   /** How many characters of `source` the first `columns` columns occupy. */
   def sourceCut(source: String, columns: Int): Int =

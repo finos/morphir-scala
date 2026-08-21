@@ -65,18 +65,36 @@ enum CstNode derives CanEqual:
   case RawHtml(children: Chunk[CstNode], span: Span)
 
   /**
-   * A link, in whichever of the four forms the author wrote. Its children keep the raw spelling: bracket and
-   * parenthesis [[Token]]s, the link text as inline content, and for the inline form the destination and title as
-   * [[Text]] exactly as written — the AST's normalized URI is a resolution, not a spelling.
+   * A link, in whichever of the four forms the author wrote. Its children keep the leaves in place — bracket and
+   * parenthesis [[Token]]s, the link text as inline content, the destination and title as [[Text]] — and the fields
+   * repeat the raw spellings with container marker bytes stripped, so a consumer need not reassemble them from leaves.
+   * The AST's normalized URI is a resolution, not a spelling; resolution is lowering's job.
+   *
+   * `destination` and `title` are present only for the inline form; `reference` only for the full reference form.
    */
-  case Link(form: LinkForm, children: Chunk[CstNode], span: Span)
+  case Link(
+      form: LinkForm,
+      destination: Maybe[String],
+      title: Maybe[String],
+      reference: Maybe[String],
+      children: Chunk[CstNode],
+      span: Span
+  )
 
   /** An image. Its bracketed label is inline content here, where the AST flattens it to an `alt` string. */
-  case Image(form: LinkForm, children: Chunk[CstNode], span: Span)
+  case Image(
+      form: LinkForm,
+      destination: Maybe[String],
+      title: Maybe[String],
+      reference: Maybe[String],
+      children: Chunk[CstNode],
+      span: Span
+  )
 
   /**
    * Emphasis, keeping its delimiter char and strength. Its children are the delimiter-run [[Token]]s around inline
-   * content; a partially consumed run's leftover delimiters stay verbatim at the edges, unclaimed by the tokens.
+   * content; its span is what it owns — a partially consumed run's leftover delimiters fall outside it, into the
+   * surrounding gaps.
    */
   case Emphasis(delimiter: Char, strong: Boolean, children: Chunk[CstNode], span: Span)
 
@@ -97,6 +115,13 @@ enum CstNode derives CanEqual:
 
   /** A region held as raw text because no slice has yet given it structure. */
   case Verbatim(text: String, span: Span)
+
+  /**
+   * Columns a container marker's final tab spent past what the container claimed. A tab is consumed by column but owned
+   * by character, so the content after such a marker is owed indentation that exists as layout rather than as bytes.
+   * Zero-width: it prints nothing and claims no source, which keeps the round-trip exact.
+   */
+  case PhantomIndent(columns: Int, span: Span)
 
   def span: Span
 
@@ -125,12 +150,13 @@ enum CstNode derives CanEqual:
     case CodeSpan(children, _)                => children
     case Autolink(children, _)                => children
     case RawHtml(children, _)                 => children
-    case Link(_, children, _)                 => children
-    case Image(_, children, _)                => children
+    case Link(_, _, _, _, children, _)        => children
+    case Image(_, _, _, _, children, _)       => children
     case Emphasis(_, _, children, _)          => children
     case HardBreak(children, _)               => children
     case Escape(children, _)                  => children
     case Entity(children, _)                  => children
+    case PhantomIndent(_, _)                  => Chunk.empty
     case _: (Token | Text | Verbatim)         => Chunk.empty
 
 object Cst:
@@ -197,7 +223,7 @@ object CstParser:
   private def assembleRegion(
       source: String,
       span: Span,
-      markers: Chunk[Span],
+      markers: Chunk[Marker],
       fragments: Chunk[CstFragment]
   ): Chunk[CstNode] =
     val children              = Chunk.newBuilder[CstNode]
@@ -227,7 +253,7 @@ object CstParser:
    * rest made by `make`. Markers arrive sorted by offset; ranges that overlap — the same prefix recorded at two nesting
    * depths — degrade to adjacent tokens rather than to a tiling violation.
    */
-  private def tile(source: String, from: Int, until: Int, markers: Chunk[Span])(
+  private def tile(source: String, from: Int, until: Int, markers: Chunk[Marker])(
       make: (String, Span) => CstNode
   ): Chunk[CstNode] =
     if markers.isEmpty then leaf(source, from, until)(make)
@@ -235,18 +261,22 @@ object CstParser:
       val out    = Chunk.newBuilder[CstNode]
       var cursor = from
       markers.foreach { marker =>
-        val start = math.max(marker.offset, cursor)
-        val end   = math.min(marker.end, until)
+        val start = math.max(marker.span.offset, cursor)
+        val end   = math.min(marker.span.end, until)
         if start < end then
           out.addAll(leaf(source, cursor, start)(make))
           out.addAll(leaf(source, start, end)(CstNode.Token(_, _)))
+          // The marker's final tab may have reached past the container's claim; the leftover columns belong to the
+          // content and are kept as zero-width layout so the round-trip stays byte-exact.
+          if marker.phantom > 0 && end == marker.span.end then
+            out.addOne(CstNode.PhantomIndent(marker.phantom, Span(end, 0)))
           cursor = end
       }
       out.addAll(leaf(source, cursor, until)(make))
       out.result()
 
   /** `markers` are the enclosing container's, for punching out of this fragment's unstructured interiors. */
-  private def materialize(source: String, fragment: CstFragment, markers: Chunk[Span]): CstNode = fragment match
+  private def materialize(source: String, fragment: CstFragment, markers: Chunk[Marker]): CstNode = fragment match
     case CstFragment.ThematicBreak(span) =>
       CstNode.ThematicBreak(leaf(source, span.offset, span.end)(CstNode.Token(_, _)), span)
 
@@ -302,10 +332,10 @@ object CstParser:
    * lines its cursor read directly, so the outer set fills in lines that fell between — the `>` on a blank line
    * standing between two list items, which the items never read.
    */
-  private def merged(outer: Chunk[Span], own: Chunk[Span]): Chunk[Span] =
+  private def merged(outer: Chunk[Marker], own: Chunk[Marker]): Chunk[Marker] =
     if outer.isEmpty then own
     else if own.isEmpty then outer
-    else Chunk.from((outer ++ own).sortBy(_.offset))
+    else Chunk.from((outer ++ own).sortBy(_.span.offset))
 
   /**
    * A prose interior: graduated inline constructs at their source spans, everything between them verbatim.
@@ -319,7 +349,7 @@ object CstParser:
       source: String,
       from: Int,
       until: Int,
-      markers: Chunk[Span],
+      markers: Chunk[Marker],
       inlines: InlineSlot
   ): Chunk[CstNode] =
     inlines.content match
@@ -331,7 +361,7 @@ object CstParser:
       source: String,
       from: Int,
       until: Int,
-      markers: Chunk[Span],
+      markers: Chunk[Marker],
       items: Chunk[Inline],
       notes: Maybe[InlineNotes]
   ): Chunk[CstNode] =
@@ -362,7 +392,7 @@ object CstParser:
       source: String,
       from: Int,
       until: Int,
-      markers: Chunk[Span],
+      markers: Chunk[Marker],
       notes: Maybe[InlineNotes]
   ): Chunk[CstNode] =
     notes match
@@ -402,7 +432,7 @@ object CstParser:
   private def graduate(
       source: String,
       inline: Inline,
-      markers: Chunk[Span],
+      markers: Chunk[Marker],
       notes: Maybe[InlineNotes]
   ): Maybe[CstNode] = inline match
     case Inline.CodeSpan(_, span) if span.offset < source.length && source.charAt(span.offset) == '`' =>
@@ -458,26 +488,39 @@ object CstParser:
     case _ => Absent
 
   /**
-   * An emphasis node, its delimiter tokens found from the content rather than the span.
+   * An emphasis node, its extent found from the content rather than from the AST span.
    *
-   * The AST span covers the whole delimiter runs, but a run consumed a pair at a time can leave delimiters behind:
-   * `*foo**` is emphasis and a literal `*`, and the span covers both. The consumed delimiters are the ones adjacent to
-   * the content — `used` on each side — so the tokens sit there, and whatever else the span covers stays verbatim at
-   * the edges. Content that is empty or delimiters that fail the character check degrade to [[kyo.Absent]].
+   * The AST span covers the whole delimiter runs, but a run consumed a pair at a time shares its bytes: in
+   * `__foo_ bar_` the inner emphasis's AST span starts at the run the outer also draws from. What an emphasis actually
+   * owns is `used` delimiters each side of its content, where nested emphasis content is measured by the same rule
+   * recursively — so the CST node's span is that narrowed claim, leftover delimiters fall outside it into the
+   * surrounding gaps, and nesting tiles cleanly. Content that is empty or delimiters that fail the character check
+   * degrade to [[kyo.Absent]].
    */
   private def emphasisNode(
       source: String,
       span: Span,
       content: Chunk[Inline],
-      markers: Chunk[Span],
+      markers: Chunk[Marker],
       notes: Maybe[InlineNotes],
       used: Int,
       strong: Boolean
   ): Maybe[CstNode] =
+    def claimOf(item: Inline): (start: Int, end: Int) = item match
+      case Inline.Emphasis(inner, s)       => narrowed(inner, 1, s)
+      case Inline.StrongEmphasis(inner, s) => narrowed(inner, 2, s)
+      case other                           => (start = other.span.offset, end = other.span.end)
+    def narrowed(inner: Chunk[Inline], innerUsed: Int, s: Span): (start: Int, end: Int) =
+      if inner.isEmpty then (start = s.offset, end = s.end)
+      else
+        val claims = inner.map(claimOf)
+        (start = claims.map(_.start).min - innerUsed, end = claims.map(_.end).max + innerUsed)
+
     if content.isEmpty then Absent
     else
-      val contentStart                                      = content.map(_.span.offset).min
-      val contentEnd                                        = content.map(_.span.end).max
+      val claims                                            = content.map(claimOf)
+      val contentStart                                      = claims.map(_.start).min
+      val contentEnd                                        = claims.map(_.end).max
       val openStart                                         = contentStart - used
       val closeEnd                                          = contentEnd + used
       def isRun(from: Int, until: Int, char: Char): Boolean = (from until until).forall(i =>
@@ -491,12 +534,10 @@ object CstParser:
         then Absent
         else
           val children =
-            tile(source, span.offset, openStart, markers)(CstNode.Verbatim(_, _))
-              ++ leaf(source, openStart, contentStart)(CstNode.Token(_, _))
+            leaf(source, openStart, contentStart)(CstNode.Token(_, _))
               ++ inlineRegion(source, contentStart, contentEnd, markers, content, notes)
               ++ leaf(source, contentEnd, closeEnd)(CstNode.Token(_, _))
-              ++ tile(source, closeEnd, span.end, markers)(CstNode.Verbatim(_, _))
-          Present(CstNode.Emphasis(delimiter, strong, children, span))
+          Present(CstNode.Emphasis(delimiter, strong, children, Span.fromStartEnd(openStart, closeEnd)))
 
   /**
    * A link or image node from its note, or [[kyo.Absent]] when the note's geometry does not fit the span.
@@ -510,7 +551,7 @@ object CstParser:
       span: Span,
       note: LinkNote,
       content: Chunk[Inline],
-      markers: Chunk[Span],
+      markers: Chunk[Marker],
       notes: Maybe[InlineNotes],
       image: Boolean
   ): Maybe[CstNode] =
@@ -569,5 +610,33 @@ object CstParser:
     if !sound then Absent
     else
       out.addAll(tile(source, cursor, span.end, markers)(CstNode.Verbatim(_, _)))
-      val children = out.result()
-      Present(if image then CstNode.Image(note.form, children, span) else CstNode.Link(note.form, children, span))
+      val children    = out.result()
+      val destination = note.destination.map(d => stripped(source, d.span.offset, d.span.end, markers))
+      val title       = note.title.map(t => stripped(source, t.offset + 1, t.end - 1, markers))
+      // The label this reference resolves through: the second label for the full form, the link text's own spelling
+      // for the collapsed and shortcut forms, nothing for the inline form, which names its target in place.
+      val reference = note.form match
+        case LinkForm.Inline        => Absent
+        case LinkForm.ReferenceFull => note.reference.map(r => stripped(source, r.offset, r.end, markers))
+        case LinkForm.ReferenceCollapsed | LinkForm.ReferenceShortcut =>
+          Present(stripped(source, note.content.offset, note.content.end, markers))
+      Present(
+        if image then CstNode.Image(note.form, destination, title, reference, children, span)
+        else CstNode.Link(note.form, destination, title, reference, children, span)
+      )
+
+  /** The source over `[from, until)` with container marker bytes cut out: a raw spelling, free of the container. */
+  private def stripped(source: String, from: Int, until: Int, markers: Chunk[Marker]): String =
+    if until <= from then ""
+    else
+      val out    = new StringBuilder
+      var cursor = from
+      markers.foreach { marker =>
+        val start = math.max(marker.span.offset, cursor)
+        val end   = math.min(marker.span.end, until)
+        if start < end then
+          out.append(source.substring(cursor, start))
+          cursor = end
+      }
+      out.append(source.substring(cursor, until))
+      out.toString

@@ -68,6 +68,19 @@ private[markdown] object InlineParser:
   /** Resolve backslash escapes and character references, for a caller outside this object. */
   def resolveEscapes(value: String): String = unescape(value)
 
+  /** Normalise a destination as a URI, for lowering. */
+  def normalizeUriOf(destination: String): String = normalizeUri(destination)
+
+  /** A code span's rendered value from its raw interior, for lowering. */
+  def codeSpanValueOf(raw: String): String = normalize(raw)
+
+  /** What an autolink's inner text points at — the URI itself, or `mailto:` for the email form — for lowering. */
+  def autolinkDestinationOf(inner: String): Maybe[String] =
+    autolink("<" + inner + ">", 0).map(link => normalizeUri(link.destination))
+
+  /** An image's `alt` text: inline content flattened to what an attribute can hold, for lowering. */
+  def altTextOf(content: Chunk[Inline]): String = content.map(plainOf).mkString
+
   /**
    * Parse `text` into inline nodes.
    *
@@ -423,7 +436,8 @@ private[markdown] object InlineParser:
         ): Unit =
           notes.foreach { collected =>
             val alt =
-              if image then Present(parse(label, index => sourceOffsetAt(open + index), definitions)) else Absent
+              if image then Present(parse(label, index => sourceOffsetAt(open + index), definitions, notes))
+              else Absent
             collected.recordLink(
               sourceOffsetAt(start),
               LinkNote(
