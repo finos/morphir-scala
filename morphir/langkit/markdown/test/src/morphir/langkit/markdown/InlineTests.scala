@@ -66,12 +66,16 @@ class InlineTests extends Test[Any]:
       val heading = parse("# Title").children.head
       assert(
         heading ==
-          MdcNode.Heading(HeadingLevel.One, Chunk(MdcNode.Text("Title", Present(Span(2, 5)))), Present(Span(0, 7)))
+          MdcNode.Heading(
+            HeadingLevel.One,
+            Chunk(MdcNode.Text("Title", MdcMeta.at(Span(2, 5)))),
+            MdcMeta.at(Span(0, 7))
+          )
       )
     }
     "reports the span its text occupies in the source, not the whole line" in {
       parse("#   Title").children.head match
-        case MdcNode.Heading(_, Chunk(MdcNode.Text(value, Present(span))), _) =>
+        case MdcNode.Heading(_, Chunk(MdcNode.Text(value, MdcMeta(Present(span), _))), _) =>
           assert(value == "Title")
           assert(span == Span(4, 5))
         case other => assert(false, s"expected a heading, got $other")
@@ -82,7 +86,7 @@ class InlineTests extends Test[Any]:
     "carries its prose as one text node" in {
       parse("hello").children.head match
         case MdcNode.Paragraph(content, _) =>
-          assert(content == Chunk(MdcNode.Text("hello", Present(Span(0, 5)))))
+          assert(content == Chunk(MdcNode.Text("hello", MdcMeta.at(Span(0, 5)))))
         case other => assert(false, s"expected a paragraph, got $other")
     }
     "keeps a soft line break inside the text, uncollapsed" in {
@@ -101,13 +105,13 @@ class InlineTests extends Test[Any]:
           assert(items.size == 2)
           assert(items(0) ==
             MdcNode.ListItem(
-              Chunk(MdcNode.Paragraph(Chunk(MdcNode.Text("one", Present(Span(2, 3)))), Present(Span(2, 3)))),
-              Present(Span(0, 5))
+              Chunk(MdcNode.Paragraph(Chunk(MdcNode.Text("one", MdcMeta.at(Span(2, 3)))), MdcMeta.at(Span(2, 3)))),
+              MdcMeta.at(Span(0, 5))
             ))
           assert(items(1) ==
             MdcNode.ListItem(
-              Chunk(MdcNode.Paragraph(Chunk(MdcNode.Text("two", Present(Span(8, 3)))), Present(Span(8, 3)))),
-              Present(Span(6, 5))
+              Chunk(MdcNode.Paragraph(Chunk(MdcNode.Text("two", MdcMeta.at(Span(8, 3)))), MdcMeta.at(Span(8, 3)))),
+              MdcMeta.at(Span(6, 5))
             ))
         case other => assert(false, s"expected a list, got $other")
     }
@@ -116,16 +120,17 @@ class InlineTests extends Test[Any]:
   "a code span" - {
     "is parsed out of surrounding text (spec example 328)" in {
       parse("`foo`").children.head match
-        case MdcNode.Paragraph(content, _) => assert(content == Chunk(MdcNode.InlineCode("foo", Present(Span(0, 5)))))
-        case other                         => assert(false, s"expected a paragraph, got $other")
+        case MdcNode.Paragraph(content, _) =>
+          assert(content == Chunk(MdcNode.InlineCode("foo", MdcMeta.at(Span(0, 5)))))
+        case other => assert(false, s"expected a paragraph, got $other")
     }
     "splits a run of text into the pieces around it" in {
       parse("a `b` c").children.head match
         case MdcNode.Paragraph(content, _) =>
           assert(content.size == 3)
-          assert(content(0) == MdcNode.Text("a ", Present(Span(0, 2))))
-          assert(content(1) == MdcNode.InlineCode("b", Present(Span(2, 3))))
-          assert(content(2) == MdcNode.Text(" c", Present(Span(5, 2))))
+          assert(content(0) == MdcNode.Text("a ", MdcMeta.at(Span(0, 2))))
+          assert(content(1) == MdcNode.InlineCode("b", MdcMeta.at(Span(2, 3))))
+          assert(content(2) == MdcNode.Text(" c", MdcMeta.at(Span(5, 2))))
         case other => assert(false, s"expected a paragraph, got $other")
     }
     "closes on a backtick run of the same length, not a shorter one (spec example 339)" in
@@ -146,12 +151,12 @@ class InlineTests extends Test[Any]:
       assert(codeSpans("`foo\\`bar`") == Chunk("foo\\"))
     "leaves an unmatched backtick run as literal text (spec example 348)" in {
       parse("`foo").children.head match
-        case MdcNode.Paragraph(content, _) => assert(content == Chunk(MdcNode.Text("`foo", Present(Span(0, 4)))))
+        case MdcNode.Paragraph(content, _) => assert(content == Chunk(MdcNode.Text("`foo", MdcMeta.at(Span(0, 4)))))
         case other                         => assert(false, s"expected a paragraph, got $other")
     }
     "leaves a run with no equal-length closer as literal text (spec example 347)" in {
       parse("```foo``").children.head match
-        case MdcNode.Paragraph(content, _) => assert(content == Chunk(MdcNode.Text("```foo``", Present(Span(0, 8)))))
+        case MdcNode.Paragraph(content, _) => assert(content == Chunk(MdcNode.Text("```foo``", MdcMeta.at(Span(0, 8)))))
         case other                         => assert(false, s"expected a paragraph, got $other")
     }
     "is not scanned inside fenced code" in {
@@ -167,7 +172,7 @@ class InlineTests extends Test[Any]:
         case Chunk(MdcNode.Link(url, title, content, _)) =>
           assert(url == "/uri")
           assert(title == Present("title"))
-          assert(content == Chunk(MdcNode.Text("link", Present(Span(1, 4)))))
+          assert(content == Chunk(MdcNode.Text("link", MdcMeta.at(Span(1, 4)))))
         case other => assert(false, s"expected one link, got $other")
     }
     "has no title when none is given (spec example 483)" in {
@@ -205,7 +210,7 @@ class InlineTests extends Test[Any]:
       inlines("[a `b` c](/u)") match
         case Chunk(MdcNode.Link(_, _, content, _)) =>
           assert(content.size == 3)
-          assert(content(1) == MdcNode.InlineCode("b", Present(Span(3, 3))))
+          assert(content(1) == MdcNode.InlineCode("b", MdcMeta.at(Span(3, 3))))
         case other => assert(false, s"expected one link, got $other")
     }
   }
@@ -292,7 +297,7 @@ class InlineTests extends Test[Any]:
       val content = inlines("*foo**")
       assert(content.size == 2)
       assert(content(0).isInstanceOf[MdcNode.Emphasis])
-      assert(content(1) == MdcNode.Text("*", Present(Span(5, 1))))
+      assert(content(1) == MdcNode.Text("*", MdcMeta.at(Span(5, 1))))
     }
     "does not treat a lone run as a delimiter pair (spec example 436)" in
       assert(textOf(inlines("foo ***")) == "foo ***")
@@ -752,7 +757,7 @@ class InlineTests extends Test[Any]:
     }
     "reports the span the break occupies in the source" in {
       val source = "foo  \nbaz\n"
-      inlines(source).collectFirst { case MdcNode.Break(Present(span)) => span } match
+      inlines(source).collectFirst { case MdcNode.Break(MdcMeta(Present(span), _)) => span } match
         case Some(span) => assert(source.substring(span.offset, span.end) == "  \n")
         case None       => assert(false, "expected a hard break")
     }
@@ -822,7 +827,7 @@ class InlineTests extends Test[Any]:
     }
     "reports the span the markup occupies in the source" in {
       val source = "text <br /> more\n"
-      inlines(source).collectFirst { case MdcNode.InlineHtml(value, Present(span)) => (value, span) } match
+      inlines(source).collectFirst { case MdcNode.InlineHtml(value, MdcMeta(Present(span), _)) => (value, span) } match
         case Some((value, span)) =>
           assert(value == "<br />")
           assert(source.substring(span.offset, span.end) == "<br />")

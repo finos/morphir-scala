@@ -124,7 +124,7 @@ private[markdown] object InlineParser:
   private def literal(item: Item, sourceOffsetAt: Int => Int): MdcNode.Text =
     // A run consumed a pair at a time leaves its tail behind, so the span narrows to what is left.
     val start = item.end - item.count
-    MdcNode.Text(item.delimiter.toString * item.count, Present(spanOf(start, item.end, sourceOffsetAt)))
+    MdcNode.Text(item.delimiter.toString * item.count, MdcMeta.at(spanOf(start, item.end, sourceOffsetAt)))
 
   /** Pass one: constructs become nodes, `*`/`_` runs become delimiters, everything else accumulates as text. */
   private def scanItems(
@@ -142,7 +142,7 @@ private[markdown] object InlineParser:
 
     def flushPending(): Unit =
       if pending.nonEmpty then
-        items += node(MdcNode.Text(pending.toString, Present(spanOf(pendingStart, index, sourceOffsetAt))))
+        items += node(MdcNode.Text(pending.toString, MdcMeta.at(spanOf(pendingStart, index, sourceOffsetAt))))
         pending.clear()
 
     while index < text.length do
@@ -250,7 +250,7 @@ private[markdown] object InlineParser:
 
           val span                          = spanOf(opener.start, closer.end, sourceOffsetAt)
           val node: MdcNode.PhrasingContent =
-            if strong then MdcNode.Strong(inner, Present(span)) else MdcNode.Emphasis(inner, Present(span))
+            if strong then MdcNode.Strong(inner, MdcMeta.at(span)) else MdcNode.Emphasis(inner, MdcMeta.at(span))
           items.insert(closerIndex, Item(Present(node), ' ', 0, 0, false, false, 0, 0))
           closerIndex += 1
 
@@ -302,7 +302,7 @@ private[markdown] object InlineParser:
           end,
           MdcNode.InlineCode(
             normalize(text.substring(index + run, closeStart)),
-            Present(spanOf(index, end, sourceOffsetAt))
+            MdcMeta.at(spanOf(index, end, sourceOffsetAt))
           )
         )
       }
@@ -316,8 +316,8 @@ private[markdown] object InlineParser:
             MdcNode.Link(
               normalizeUri(link.destination),
               Absent,
-              Chunk(MdcNode.Text(link.text, Present(span))),
-              Present(span)
+              Chunk(MdcNode.Text(link.text, MdcMeta.at(span))),
+              MdcMeta.at(span)
             )
           ))
         case Absent =>
@@ -325,7 +325,7 @@ private[markdown] object InlineParser:
           // inside it is ever looked at again, so `<a href="&ouml;">` keeps its entity and `**<a href="**">` has no
           // emphasis in it.
           HtmlTag.endOf(text, index).map { end =>
-            (end, MdcNode.InlineHtml(text.substring(index, end), Present(spanOf(index, end, sourceOffsetAt))))
+            (end, MdcNode.InlineHtml(text.substring(index, end), MdcMeta.at(spanOf(index, end, sourceOffsetAt))))
           }
     else if isLinkStart(text, index) then
       val image = char == '!'
@@ -350,16 +350,17 @@ private[markdown] object InlineParser:
   ): Maybe[(Int, MdcNode.PhrasingContent)] =
     if text.charAt(start) == '\\' then
       if start + 1 < text.length && text.charAt(start + 1) == '\n' then
-        Present((start + 2, MdcNode.Break(Present(spanOf(start, start + 2, sourceOffsetAt)))))
+        Present((start + 2, MdcNode.Break(MdcMeta.at(spanOf(start, start + 2, sourceOffsetAt)))))
       else Absent
     else
       @tailrec def spacesEnd(index: Int): Int =
         if index < text.length && text.charAt(index) == ' ' then spacesEnd(index + 1) else index
       val end = spacesEnd(start)
       if end >= text.length || text.charAt(end) != '\n' then Absent
-      else if end - start >= 2 then Present((end + 1, MdcNode.Break(Present(spanOf(start, end + 1, sourceOffsetAt)))))
+      else if end - start >= 2 then
+        Present((end + 1, MdcNode.Break(MdcMeta.at(spanOf(start, end + 1, sourceOffsetAt)))))
       // One space before a line ending is neither a break nor content: the line ending stands on its own.
-      else Present((end + 1, MdcNode.Text("\n", Present(spanOf(start, end + 1, sourceOffsetAt)))))
+      else Present((end + 1, MdcNode.Text("\n", MdcMeta.at(spanOf(start, end + 1, sourceOffsetAt)))))
 
   /**
    * A character reference: `&name;`, `&#dddd;` or `&#xhhhh;`.
@@ -376,7 +377,7 @@ private[markdown] object InlineParser:
   ): Maybe[(Int, MdcNode.PhrasingContent)] =
     entityValue(text, start).map { case (end, value) =>
       notes.foreach(_.recordEntity(sourceOffsetAt(start), sourceOffsetAt(end)))
-      (end, MdcNode.Text(value, Present(spanOf(start, end, sourceOffsetAt))))
+      (end, MdcNode.Text(value, MdcMeta.at(spanOf(start, end, sourceOffsetAt))))
     }
 
   /** The character a reference beginning at `start` stands for, and where it ends. */
@@ -475,7 +476,7 @@ private[markdown] object InlineParser:
         ): Maybe[(Int, MdcNode.PhrasingContent)] =
           val span = spanOf(start, end, sourceOffsetAt)
           val uri  = if normalize then normalizeUri(destination) else destination
-          if image then Present((end, MdcNode.Image(uri, title, plainText(label, definitions), Present(span))))
+          if image then Present((end, MdcNode.Image(uri, title, plainText(label, definitions), MdcMeta.at(span))))
           else
             val content = parse(label, index => sourceOffsetAt(open + index), definitions, notes)
             // Links may not contain links. The bracket that would have opened this one is ordinary text instead, and
@@ -483,7 +484,7 @@ private[markdown] object InlineParser:
             // Images are not bound by this -- their content becomes `alt` text, where a nested link flattens to what
             // it says.
             if content.exists(holdsLink) then Absent
-            else Present((end, MdcNode.Link(uri, title, content, Present(span))))
+            else Present((end, MdcNode.Link(uri, title, content, MdcMeta.at(span))))
 
         val inlineForm =
           if close + 1 < text.length && text.charAt(close + 1) == '(' then

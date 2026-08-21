@@ -3,6 +3,7 @@ package morphir.langkit.markdown.cst
 import kyo.*
 import morphir.langkit.core.Span
 import morphir.langkit.markdown.HeadingLevel
+import morphir.langkit.markdown.MdcMeta
 import morphir.langkit.markdown.MdcNode
 import morphir.langkit.markdown.Parser
 
@@ -439,7 +440,8 @@ object CstParser:
       markers: Chunk[Marker],
       notes: Maybe[InlineNotes]
   ): Maybe[MdcCstNode] = inline match
-    case MdcNode.InlineCode(_, Present(span)) if span.offset < source.length && source.charAt(span.offset) == '`' =>
+    case MdcNode.InlineCode(_, MdcMeta(Present(span), _))
+        if span.offset < source.length && source.charAt(span.offset) == '`' =>
       var run = span.offset
       while run < span.end && source.charAt(run) == '`' do run += 1
       val ticks    = run - span.offset
@@ -449,11 +451,12 @@ object CstParser:
           ++ leaf(source, span.end - ticks, span.end)(MdcCstNode.Token(_, _))
       Present(MdcCstNode.CodeSpan(children, span))
 
-    case MdcNode.InlineHtml(_, Present(span)) if span.offset < source.length && source.charAt(span.offset) == '<' =>
+    case MdcNode.InlineHtml(_, MdcMeta(Present(span), _))
+        if span.offset < source.length && source.charAt(span.offset) == '<' =>
       Present(MdcCstNode.RawHtml(tile(source, span.offset, span.end, markers)(MdcCstNode.Text(_, _)), span))
 
     // An autolink is a Link whose source form starts with `<`; a bracketed link or image starts with `[` or `!`.
-    case MdcNode.Link(_, _, _, Present(span))
+    case MdcNode.Link(_, _, _, MdcMeta(Present(span), _))
         if span.offset < source.length && source.charAt(span.offset) == '<'
           && span.end <= source.length && span.length >= 2 && source.charAt(span.end - 1) == '>' =>
       val children =
@@ -462,7 +465,7 @@ object CstParser:
           ++ leaf(source, span.end - 1, span.end)(MdcCstNode.Token(_, _))
       Present(MdcCstNode.Autolink(children, span))
 
-    case MdcNode.Link(_, _, content, Present(span))
+    case MdcNode.Link(_, _, content, MdcMeta(Present(span), _))
         if span.offset < source.length && source.charAt(span.offset) == '[' =>
       for
         collected <- notes
@@ -470,22 +473,23 @@ object CstParser:
         node      <- linkNode(source, span, note, content, markers, notes, image = false)
       yield node
 
-    case MdcNode.Image(_, _, _, Present(span)) if span.offset < source.length && source.charAt(span.offset) == '!' =>
+    case MdcNode.Image(_, _, _, MdcMeta(Present(span), _))
+        if span.offset < source.length && source.charAt(span.offset) == '!' =>
       for
         collected <- notes
         note      <- collected.linkAt(span.offset)
         node      <- linkNode(source, span, note, note.alt.getOrElse(Chunk.empty), markers, notes, image = true)
       yield node
 
-    case MdcNode.Emphasis(content, Present(span)) =>
+    case MdcNode.Emphasis(content, MdcMeta(Present(span), _)) =>
       emphasisNode(source, span, content, markers, notes, used = 1, strong = false)
 
-    case MdcNode.Strong(content, Present(span)) =>
+    case MdcNode.Strong(content, MdcMeta(Present(span), _)) =>
       emphasisNode(source, span, content, markers, notes, used = 2, strong = true)
 
     // A hard break's span runs to the next line's content, so it may cover a container marker; tiling with the
     // markers keeps the break's own characters and the marker as separate tokens.
-    case MdcNode.Break(Present(span))
+    case MdcNode.Break(MdcMeta(Present(span), _))
         if span.offset < source.length
           && (source.charAt(span.offset) == ' ' || source.charAt(span.offset) == '\\') =>
       Present(MdcCstNode.HardBreak(tile(source, span.offset, span.end, markers)(MdcCstNode.Token(_, _)), span))
@@ -512,9 +516,9 @@ object CstParser:
       strong: Boolean
   ): Maybe[MdcCstNode] =
     def claimOf(item: MdcNode.PhrasingContent): (start: Int, end: Int) = item match
-      case MdcNode.Emphasis(inner, Present(s)) => narrowed(inner, 1, s)
-      case MdcNode.Strong(inner, Present(s))   => narrowed(inner, 2, s)
-      case other                               =>
+      case MdcNode.Emphasis(inner, MdcMeta(Present(s), _)) => narrowed(inner, 1, s)
+      case MdcNode.Strong(inner, MdcMeta(Present(s), _))   => narrowed(inner, 2, s)
+      case other                                           =>
         other.span match
           case Present(s) => (start = s.offset, end = s.end)
           // A node the parse did not position claims nothing this can measure. A negative start propagates through

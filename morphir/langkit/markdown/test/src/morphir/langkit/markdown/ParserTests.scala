@@ -109,31 +109,34 @@ class ParserTests extends Test[Any]:
     }
     "preserves exact documents across the existing block subset" in {
       val cases = Chunk(
-        ""        -> MdcNode.Root(Chunk.empty, Present(Span.zero)),
+        ""        -> MdcNode.Root(Chunk.empty, MdcMeta.at(Span.zero)),
         "# Title" -> MdcNode.Root(
           Chunk(MdcNode.Heading(
             HeadingLevel.One,
-            Chunk(MdcNode.Text("Title", Present(Span(2, 5)))),
-            Present(Span(0, 7))
+            Chunk(MdcNode.Text("Title", MdcMeta.at(Span(2, 5)))),
+            MdcMeta.at(Span(0, 7))
           )),
-          Present(Span(0, 7))
+          MdcMeta.at(Span(0, 7))
         ),
         "alpha\nbeta" ->
           MdcNode.Root(
-            Chunk(MdcNode.Paragraph(Chunk(MdcNode.Text("alpha\nbeta", Present(Span(0, 10)))), Present(Span(0, 10)))),
-            Present(Span(0, 10))
+            Chunk(MdcNode.Paragraph(
+              Chunk(MdcNode.Text("alpha\nbeta", MdcMeta.at(Span(0, 10)))),
+              MdcMeta.at(Span(0, 10))
+            )),
+            MdcMeta.at(Span(0, 10))
           ),
         "```scala\none\n\ntwo\n```" -> MdcNode.Root(
-          Chunk(MdcNode.Code(FenceInfo.parse("scala"), "one\n\ntwo\n", Present(Span(0, 21)))),
-          Present(Span(0, 21))
+          Chunk(MdcNode.Code(FenceInfo.parse("scala"), "one\n\ntwo\n", MdcMeta.at(Span(0, 21)))),
+          MdcMeta.at(Span(0, 21))
         ),
         "```\ncode" -> MdcNode.Root(
-          Chunk(MdcNode.Code(FenceInfo.empty, "code", Present(Span(0, 8)))),
-          Present(Span(0, 8))
+          Chunk(MdcNode.Code(FenceInfo.empty, "code", MdcMeta.at(Span(0, 8)))),
+          MdcMeta.at(Span(0, 8))
         ),
         "```\ncode\n" -> MdcNode.Root(
-          Chunk(MdcNode.Code(FenceInfo.empty, "code\n", Present(Span(0, 9)))),
-          Present(Span(0, 9))
+          Chunk(MdcNode.Code(FenceInfo.empty, "code\n", MdcMeta.at(Span(0, 9)))),
+          MdcMeta.at(Span(0, 9))
         ),
         // An item spans its whole line, marker included, because that is what the item occupies in the source. Its
         // paragraph spans only the content, which is what an inline node needs to point through.
@@ -144,32 +147,32 @@ class ParserTests extends Test[Any]:
             spread = false,
             Chunk(
               MdcNode.ListItem(
-                Chunk(MdcNode.Paragraph(Chunk(MdcNode.Text("alpha", Present(Span(2, 5)))), Present(Span(2, 5)))),
-                Present(Span(0, 7))
+                Chunk(MdcNode.Paragraph(Chunk(MdcNode.Text("alpha", MdcMeta.at(Span(2, 5)))), MdcMeta.at(Span(2, 5)))),
+                MdcMeta.at(Span(0, 7))
               ),
               MdcNode.ListItem(
-                Chunk(MdcNode.Paragraph(Chunk(MdcNode.Text("beta", Present(Span(10, 4)))), Present(Span(10, 4)))),
-                Present(Span(8, 6))
+                Chunk(MdcNode.Paragraph(Chunk(MdcNode.Text("beta", MdcMeta.at(Span(10, 4)))), MdcMeta.at(Span(10, 4)))),
+                MdcMeta.at(Span(8, 6))
               )
             ),
-            Present(Span(0, 14))
+            MdcMeta.at(Span(0, 14))
           )),
-          Present(Span(0, 14))
+          MdcMeta.at(Span(0, 14))
         ),
-        "---"      -> MdcNode.Root(Chunk(MdcNode.ThematicBreak(Present(Span(0, 3)))), Present(Span(0, 3))),
+        "---"      -> MdcNode.Root(Chunk(MdcNode.ThematicBreak(MdcMeta.at(Span(0, 3)))), MdcMeta.at(Span(0, 3))),
         "# A\n\nB" -> MdcNode.Root(
           Chunk(
-            MdcNode.Heading(HeadingLevel.One, Chunk(MdcNode.Text("A", Present(Span(2, 1)))), Present(Span(0, 3))),
-            MdcNode.Paragraph(Chunk(MdcNode.Text("B", Present(Span(5, 1)))), Present(Span(5, 1)))
+            MdcNode.Heading(HeadingLevel.One, Chunk(MdcNode.Text("A", MdcMeta.at(Span(2, 1)))), MdcMeta.at(Span(0, 3))),
+            MdcNode.Paragraph(Chunk(MdcNode.Text("B", MdcMeta.at(Span(5, 1)))), MdcMeta.at(Span(5, 1)))
           ),
-          Present(Span(0, 6))
+          MdcMeta.at(Span(0, 6))
         ),
         "# A\r\n\r\nB" -> MdcNode.Root(
           Chunk(
-            MdcNode.Heading(HeadingLevel.One, Chunk(MdcNode.Text("A", Present(Span(2, 1)))), Present(Span(0, 3))),
-            MdcNode.Paragraph(Chunk(MdcNode.Text("B", Present(Span(7, 1)))), Present(Span(7, 1)))
+            MdcNode.Heading(HeadingLevel.One, Chunk(MdcNode.Text("A", MdcMeta.at(Span(2, 1)))), MdcMeta.at(Span(0, 3))),
+            MdcNode.Paragraph(Chunk(MdcNode.Text("B", MdcMeta.at(Span(7, 1)))), MdcMeta.at(Span(7, 1)))
           ),
-          Present(Span(0, 8))
+          MdcMeta.at(Span(0, 8))
         )
       )
 
@@ -289,14 +292,18 @@ class ParserTests extends Test[Any]:
         maxOutputNodes = NodeCount.one
       )
 
-      assert(Parser.parse("", exact) == Result.succeed(MdcNode.Root(Chunk.empty, Present(Span.zero))))
+      assert(Parser.parse("", exact) == Result.succeed(MdcNode.Root(Chunk.empty, MdcMeta.at(Span.zero))))
     }
     "accepts an explicitly unsafe unbounded budget" in {
       Parser.parse("# Title", ScanBudget.UnsafeUnbounded) match
         case Result.Success(MdcNode.Root(blocks, _)) =>
           assert(
             blocks == Chunk(
-              MdcNode.Heading(HeadingLevel.One, Chunk(MdcNode.Text("Title", Present(Span(2, 5)))), Present(Span(0, 7)))
+              MdcNode.Heading(
+                HeadingLevel.One,
+                Chunk(MdcNode.Text("Title", MdcMeta.at(Span(2, 5)))),
+                MdcMeta.at(Span(0, 7))
+              )
             )
           )
         case _ => assert(false)
@@ -396,12 +403,12 @@ class ParserTests extends Test[Any]:
           assert(doc.span == Present(Span(0, source.length)))
           assert(doc.children.size == 2)
           doc.children(0) match
-            case MdcNode.Heading(HeadingLevel.One, content, span) =>
+            case MdcNode.Heading(HeadingLevel.One, content, meta) =>
               assert(textOf(content) == "Title")
-              assert(span == Present(Span(0, "# Title".length)))
+              assert(meta.span == Present(Span(0, "# Title".length)))
             case _ => assert(false)
           doc.children(1) match
-            case MdcNode.Paragraph(content, Present(span)) if textOf(content) == "Hello" =>
+            case MdcNode.Paragraph(content, MdcMeta(Present(span), _)) if textOf(content) == "Hello" =>
               assert(span.offset == source.indexOf("Hello"))
               assert(span.length == "Hello".length)
             case _ => assert(false)
@@ -415,11 +422,11 @@ class ParserTests extends Test[Any]:
           MdcNode.Root(
             Chunk(
               MdcNode.Paragraph(
-                Chunk(MdcNode.Text(source, Present(Span(0, source.length)))),
-                Present(Span(0, source.length))
+                Chunk(MdcNode.Text(source, MdcMeta.at(Span(0, source.length)))),
+                MdcMeta.at(Span(0, source.length))
               )
             ),
-            Present(Span(0, source.length))
+            MdcMeta.at(Span(0, source.length))
           )
         )
       )
@@ -513,12 +520,12 @@ class ParserTests extends Test[Any]:
         case Result.Success(MdcNode.Root(blocks, _)) =>
           assert(blocks.size == 3)
           assert(blocks(0) ==
-            MdcNode.Paragraph(Chunk(MdcNode.Text("before", Present(Span(0, 6)))), Present(Span(0, 6))))
+            MdcNode.Paragraph(Chunk(MdcNode.Text("before", MdcMeta.at(Span(0, 6)))), MdcMeta.at(Span(0, 6))))
           blocks(1) match
             case MdcNode.Code(_, content, _) => assert(content == "code\n")
             case _                           => assert(false)
           assert(blocks(2) ==
-            MdcNode.Paragraph(Chunk(MdcNode.Text("after", Present(Span(25, 5)))), Present(Span(25, 5))))
+            MdcNode.Paragraph(Chunk(MdcNode.Text("after", MdcMeta.at(Span(25, 5)))), MdcMeta.at(Span(25, 5))))
         case _ => assert(false)
     }
     "uses end of document as the close of an unclosed fence" in {
@@ -554,9 +561,9 @@ class ParserTests extends Test[Any]:
             // and its `example` is now an ordinary code span.
             case MdcNode.Paragraph(content, _) =>
               assert(content.size == 3)
-              assert(content(0) == MdcNode.Text("``` ", Present(Span(31, 4))))
-              assert(content(1) == MdcNode.InlineCode("example", Present(Span(35, 9))))
-              assert(content(2) == MdcNode.Text("\nbody", Present(Span(44, 5))))
+              assert(content(0) == MdcNode.Text("``` ", MdcMeta.at(Span(31, 4))))
+              assert(content(1) == MdcNode.InlineCode("example", MdcMeta.at(Span(35, 9))))
+              assert(content(2) == MdcNode.Text("\nbody", MdcMeta.at(Span(44, 5))))
             case _ => assert(false)
         case _ => assert(false)
     }
@@ -677,7 +684,7 @@ class ParserTests extends Test[Any]:
           doc.children(0) match
             case MdcNode.Blockquote(content, _) =>
               content(0) match
-                case MdcNode.Paragraph(Chunk(MdcNode.Text(value, Present(span))), _) =>
+                case MdcNode.Paragraph(Chunk(MdcNode.Text(value, MdcMeta(Present(span), _))), _) =>
                   assert(value == "alpha")
                   assert(source.substring(span.offset, span.end) == "alpha")
                 case _ => assert(false)
@@ -711,7 +718,7 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           doc.children(0) match
             case MdcNode.Paragraph(content, _) =>
-              content.collectFirst { case MdcNode.InlineCode(value, Present(span)) => (value, span) } match
+              content.collectFirst { case MdcNode.InlineCode(value, MdcMeta(Present(span), _)) => (value, span) } match
                 // The span covers the backticks, as an inline span does everywhere: what it must not do is point four
                 // characters early, which is what would happen if the text lost its indentation and the offset did not.
                 case Some((value, span)) =>
@@ -907,7 +914,7 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           doc.children(0) match
             case MdcNode.Paragraph(content, _) =>
-              content.collectFirst { case MdcNode.InlineCode(_, Present(span)) => span } match
+              content.collectFirst { case MdcNode.InlineCode(_, MdcMeta(Present(span), _)) => span } match
                 case Some(span) => assert(source.substring(span.offset, span.end) == "`beta`")
                 case None       => assert(false, "expected a code span on the continuation line")
             case other => assert(false, s"expected a paragraph, got $other")

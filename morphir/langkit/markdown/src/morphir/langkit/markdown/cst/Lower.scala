@@ -24,7 +24,7 @@ object Lower:
 
   def lower(document: MdcCstNode.Document): MdcNode.Root =
     val definitions = collectDefinitions(document)
-    MdcNode.Root(blocks(document.children, definitions, document.span.end), Present(document.span))
+    MdcNode.Root(blocks(document.children, definitions, document.span.end), MdcMeta.at(document.span))
 
   /** Every definition in the tree, first spelling of a label winning, in document order. */
   private def collectDefinitions(root: MdcCstNode): Map[String, LinkDefinition] =
@@ -131,28 +131,32 @@ object Lower:
         case MdcCstNode.Token(text, _)                    => advanceGap(text)
         case MdcCstNode.Verbatim(text, _)                 => advanceGap(text)
         case MdcCstNode.PhantomIndent(columns, _)         => phantom += columns
-        case MdcCstNode.ThematicBreak(_, span)            => out.addOne(MdcNode.ThematicBreak(Present(span)))
+        case MdcCstNode.ThematicBreak(_, span)            => out.addOne(MdcNode.ThematicBreak(MdcMeta.at(span)))
         case MdcCstNode.AtxHeading(level, children, span) =>
-          out.addOne(MdcNode.Heading(level, inlines(children, definitions), Present(span)))
+          out.addOne(MdcNode.Heading(level, inlines(children, definitions), MdcMeta.at(span)))
         case MdcCstNode.SetextHeading(level, children, span) =>
-          out.addOne(MdcNode.Heading(level, inlines(children, definitions), Present(span)))
+          out.addOne(MdcNode.Heading(level, inlines(children, definitions), MdcMeta.at(span)))
         case MdcCstNode.Paragraph(children, span) =>
-          out.addOne(MdcNode.Paragraph(inlines(children, definitions), Present(span)))
+          out.addOne(MdcNode.Paragraph(inlines(children, definitions), MdcMeta.at(span)))
         case MdcCstNode.FencedCode(children, span) =>
           out.addOne(loweredFence(children, span, docEnd))
         case MdcCstNode.IndentedCode(children, span) =>
-          out.addOne(MdcNode.Code(FenceInfo.empty, indentedContent(codeText(children, column, phantom)), Present(span)))
+          out.addOne(MdcNode.Code(
+            FenceInfo.empty,
+            indentedContent(codeText(children, column, phantom)),
+            MdcMeta.at(span)
+          ))
         case MdcCstNode.HtmlBlock(children, span) =>
-          out.addOne(MdcNode.Html(contentText(children), Present(span)))
+          out.addOne(MdcNode.Html(contentText(children), MdcMeta.at(span)))
         case MdcCstNode.BlockQuote(children, span) =>
-          out.addOne(MdcNode.Blockquote(blocks(children, definitions, docEnd), Present(span)))
+          out.addOne(MdcNode.Blockquote(blocks(children, definitions, docEnd), MdcMeta.at(span)))
         case MdcCstNode.BulletList(_, tight, children, span) =>
           out.addOne(MdcNode.List(
             ordered = false,
             start = Absent,
             spread = !tight,
             items(children, definitions, docEnd),
-            Present(span)
+            MdcMeta.at(span)
           ))
         case MdcCstNode.OrderedList(start, _, tight, children, span) =>
           out.addOne(MdcNode.List(
@@ -160,7 +164,7 @@ object Lower:
             start = Present(start),
             spread = !tight,
             items(children, definitions, docEnd),
-            Present(span)
+            MdcMeta.at(span)
           ))
         case _ =>
           // Link reference definitions contribute no block.
@@ -180,7 +184,7 @@ object Lower:
       docEnd: Int
   ): Chunk[MdcNode.ListItem] =
     children.collect { case MdcCstNode.ListItem(itemChildren, span) =>
-      MdcNode.ListItem(blocks(itemChildren, definitions, docEnd), Present(span))
+      MdcNode.ListItem(blocks(itemChildren, definitions, docEnd), MdcMeta.at(span))
     }
 
   /** Fence metadata from the opening token's info string; content from the text leaves, indentation removed. */
@@ -215,7 +219,7 @@ object Lower:
         val trailing = restored.endsWith("\n")
         val lines    = (if trailing then restored.dropRight(1) else restored).split("\n", -1)
         lines.map(removeIndentation(_, indentation)).mkString("", "\n", if trailing then "\n" else "")
-    MdcNode.Code(info, content, Present(span))
+    MdcNode.Code(info, content, MdcMeta.at(span))
 
   /** Remove up to `indentation` leading spaces, which the opening fence spent rather than the content. */
   private def removeIndentation(line: String, indentation: Int): String =
@@ -301,28 +305,28 @@ object Lower:
 
       case MdcCstNode.Verbatim(text, span) =>
         val value = proseValue(text)
-        if value.isEmpty then Chunk.empty else Chunk(MdcNode.Text(value, Present(span)))
+        if value.isEmpty then Chunk.empty else Chunk(MdcNode.Text(value, MdcMeta.at(span)))
 
       case MdcCstNode.Escape(children, span) =>
-        Chunk(MdcNode.Text(children.collect { case MdcCstNode.Text(text, _) => text }.mkString, Present(span)))
+        Chunk(MdcNode.Text(children.collect { case MdcCstNode.Text(text, _) => text }.mkString, MdcMeta.at(span)))
 
       case MdcCstNode.Entity(children, span) =>
         val raw = children.collect { case MdcCstNode.Token(text, _) => text }.mkString
-        Chunk(MdcNode.Text(InlineParser.resolveEscapes(raw), Present(span)))
+        Chunk(MdcNode.Text(InlineParser.resolveEscapes(raw), MdcMeta.at(span)))
 
       case MdcCstNode.HardBreak(_, span) =>
-        Chunk(MdcNode.Break(Present(span)))
+        Chunk(MdcNode.Break(MdcMeta.at(span)))
 
       case MdcCstNode.CodeSpan(children, span) =>
-        Chunk(MdcNode.InlineCode(InlineParser.codeSpanValueOf(contentText(children)), Present(span)))
+        Chunk(MdcNode.InlineCode(InlineParser.codeSpanValueOf(contentText(children)), MdcMeta.at(span)))
 
       case MdcCstNode.Autolink(children, span) =>
         val inner       = contentText(children)
         val destination = InlineParser.autolinkDestinationOf(inner).getOrElse(InlineParser.normalizeUriOf(inner))
-        Chunk(MdcNode.Link(destination, Absent, Chunk(MdcNode.Text(inner, Present(span))), Present(span)))
+        Chunk(MdcNode.Link(destination, Absent, Chunk(MdcNode.Text(inner, MdcMeta.at(span))), MdcMeta.at(span)))
 
       case MdcCstNode.RawHtml(children, span) =>
-        Chunk(MdcNode.InlineHtml(contentText(children), Present(span)))
+        Chunk(MdcNode.InlineHtml(contentText(children), MdcMeta.at(span)))
 
       case MdcCstNode.Emphasis(_, strong, children, span) =>
         // Leftover delimiters of a partially consumed run sit verbatim outside the tokens; they are prose siblings,
@@ -335,23 +339,23 @@ object Lower:
           val interior                      = inlines(children.slice(firstToken + 1, lastToken), definitions)
           val after                         = children.drop(lastToken + 1).flatMap(loweredInline(_, definitions))
           val node: MdcNode.PhrasingContent =
-            if strong then MdcNode.Strong(interior, Present(span)) else MdcNode.Emphasis(interior, Present(span))
+            if strong then MdcNode.Strong(interior, MdcMeta.at(span)) else MdcNode.Emphasis(interior, MdcMeta.at(span))
           Chunk.from(before) ++ Chunk(node) ++ Chunk.from(after)
 
       case MdcCstNode.Link(form, destination, title, reference, children, span) =>
         val content             = inlines(linkContent(children), definitions)
         val (uri, loweredTitle) = resolveTarget(form, destination, title, reference, definitions)
-        Chunk(MdcNode.Link(uri, loweredTitle, content, Present(span)))
+        Chunk(MdcNode.Link(uri, loweredTitle, content, MdcMeta.at(span)))
 
       case MdcCstNode.Image(form, destination, title, reference, children, span) =>
         val content             = inlines(linkContent(children), definitions)
         val (uri, loweredTitle) = resolveTarget(form, destination, title, reference, definitions)
-        Chunk(MdcNode.Image(uri, loweredTitle, InlineParser.altTextOf(content), Present(span)))
+        Chunk(MdcNode.Image(uri, loweredTitle, InlineParser.altTextOf(content), MdcMeta.at(span)))
 
       case other =>
         // A block node cannot appear in an inline region; hold its text rather than lose it.
         val text = contentText(Chunk(other))
-        if text.isEmpty then Chunk.empty else Chunk(MdcNode.Text(text, Present(other.span)))
+        if text.isEmpty then Chunk.empty else Chunk(MdcNode.Text(text, MdcMeta.at(other.span)))
 
   /** The children between the opening bracket token and the token that closes the link text. */
   private def linkContent(children: Chunk[MdcCstNode]): Chunk[MdcCstNode] =

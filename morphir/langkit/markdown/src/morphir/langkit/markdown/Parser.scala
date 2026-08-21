@@ -44,7 +44,7 @@ object Parser:
       val definitions = scala.collection.mutable.Map.empty[String, LinkDefinition]
       val blocks      = parseBlocks(ContainerCursor.top(scanner), definitions, Absent)
       // Keep the caller's coordinate space: do not rewrite CRLF before measuring spans.
-      val document = MdcNode.Root(blocks, Present(Span(0, source.length)))
+      val document = MdcNode.Root(blocks, MdcMeta.at(Span(0, source.length)))
       (document, scanner.metrics)
     } match
       case ScanResult.Success(value) => Result.succeed(value)
@@ -259,13 +259,13 @@ object Parser:
                 Opened.deferred(Deferred.prose { defs =>
                   val content = InlineParser.parse(rest, index => base + index, defs, notes)
                   slot.fill(content, notes)
-                  MdcNode.Heading(level, content, Present(headingSpan))
+                  MdcNode.Heading(level, content, MdcMeta.at(headingSpan))
                 })
               case LineKind.Fence(open)   => Opened.leaf(readFencedCode(cursor, line, open, cst))
               case LineKind.ThematicBreak =>
                 val breakSpan = Span(line.offset, line.length)
                 cst.foreach(_.record(CstFragment.ThematicBreak(breakSpan)))
-                Opened.leaf(MdcNode.ThematicBreak(Present(breakSpan)))
+                Opened.leaf(MdcNode.ThematicBreak(MdcMeta.at(breakSpan)))
               case LineKind.Html(_)          => Opened.leaf(readHtmlBlock(cursor, line, cst))
               case LineKind.BulletItem(item) =>
                 cursor.restore(opening)
@@ -323,7 +323,7 @@ object Parser:
     // loosen the list holding the quote -- example 320 is `* a`, an indented quote ending in a bare `>`, then `* c`,
     // and it renders tight.
     Opened.deferred(Deferred.prose(defs =>
-      MdcNode.Blockquote(Chunk.from(run.blocks.map(_.resolve(defs))), Present(span))
+      MdcNode.Blockquote(Chunk.from(run.blocks.map(_.resolve(defs))), MdcMeta.at(span))
     ))
 
   /** Whether a line carries a block quote marker: up to three spaces, then `>`. */
@@ -491,7 +491,7 @@ object Parser:
     scanner.chargeWork(WorkUnits.from(content.length.toLong).getOrThrow)
     val span = Span.fromStartEnd(first.offset, last.end)
     cst.foreach(_.record(CstFragment.HtmlBlock(span)))
-    MdcNode.Html(content, Present(span))
+    MdcNode.Html(content, MdcMeta.at(span))
 
   private def endsOnBlankLine(kind: HtmlBlockKind): Boolean =
     kind == HtmlBlockKind.KnownTag || kind == HtmlBlockKind.AnyTag
@@ -547,7 +547,7 @@ object Parser:
     cst.foreach(_.record(CstFragment.IndentedCode(span)))
     // An indented block has no info string, which is exactly what an info-less fence lowers to: CommonMark renders
     // both as pre > code, and the fence-or-indent distinction stays in the CST.
-    MdcNode.Code(FenceInfo.empty, content, Present(span))
+    MdcNode.Code(FenceInfo.empty, content, MdcMeta.at(span))
 
   /** Remove up to four leading spaces, which is the indentation the block form spends rather than content. */
   private def stripIndent(text: String): String =
@@ -608,7 +608,7 @@ object Parser:
       else cursor.consumedEnd
     cst.foreach(_.record(CstFragment.FencedCode(Span.fromStartEnd(opening.offset, cstEnd), opening.end, closeStart)))
     // The budgeted FenceInfo path reserves deterministic work and output before token materialization.
-    MdcNode.Code(FenceInfo.parseBudgeted(open.info, scanner), content, Present(span))
+    MdcNode.Code(FenceInfo.parseBudgeted(open.info, scanner), content, MdcMeta.at(span))
 
   private def readParagraph(
       cursor: ContainerCursor,
@@ -690,8 +690,8 @@ object Parser:
         val content = InlineParser.parse(body.trim, index => sourceOffsetOf(lines, index + contentIndex), defs, notes)
         slot.fill(content, notes)
         setext match
-          case Present(level) => MdcNode.Heading(level, content, Present(span))
-          case Absent         => MdcNode.Paragraph(content, Present(span))
+          case Present(level) => MdcNode.Heading(level, content, MdcMeta.at(span))
+          case Absent         => MdcNode.Paragraph(content, MdcMeta.at(span))
       })
   end readParagraph
 
@@ -840,7 +840,7 @@ object Parser:
           start = Absent,
           spread = loose,
           collected.map(_.resolve(defs)),
-          Present(listSpan)
+          MdcMeta.at(listSpan)
         )
       )),
       gathered.endedOnBlank
@@ -900,7 +900,7 @@ object Parser:
           start = Present(first.number),
           spread = loose,
           collected.map(_.resolve(defs)),
-          Present(listSpan)
+          MdcMeta.at(listSpan)
         )
       )),
       gathered.endedOnBlank
@@ -957,7 +957,7 @@ object Parser:
         collector <- cst
         recorded  <- child
       do collector.record(CstFragment.ListItem(span, recorded.markers, recorded.fragments))
-      (DeferredItem(defs => MdcNode.ListItem(Chunk.from(run.blocks.map(_.resolve(defs))), Present(span))), run)
+      (DeferredItem(defs => MdcNode.ListItem(Chunk.from(run.blocks.map(_.resolve(defs))), MdcMeta.at(span))), run)
 
     // An item must consume at least the line that opened it. Guarding that here rather than trusting it: an item that
     // consumed nothing would leave the list gathering the same line for ever, and because nothing was read there is no

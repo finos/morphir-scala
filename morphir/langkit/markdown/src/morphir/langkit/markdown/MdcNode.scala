@@ -7,7 +7,7 @@ import morphir.langkit.core.Span
  * The Markdown AST: one node type, mdast vocabulary, typed containment.
  *
  * The CST records what was written; this tree is what it means, produced only by lowering the CST. One sealed trait
- * gives uniform traversal — every node answers [[span]], [[childNodes]] and [[literal]] — while the content-category
+ * gives uniform traversal — every node answers [[meta]], [[childNodes]] and [[literal]] — while the content-category
  * unions in the companion keep invalid states unrepresentable the way mdast's own content models do: a paragraph holds
  * phrasing content, never a heading. Cases are final case classes rather than enum cases because an enum case's
  * constructor widens to the enum type, which no union member ever is; a case class constructs at its precise type,
@@ -19,8 +19,16 @@ import morphir.langkit.core.Span
  */
 sealed trait MdcNode derives CanEqual:
 
-  /** Where this node sits in the source, including its own delimiters; Absent marks a generated node. */
-  def span: Maybe[Span]
+  /** What this node knows about itself beyond its content: its position, and whatever data a consumer attached. */
+  def meta: MdcMeta
+
+  /**
+   * Where this node sits in the source, including its own delimiters; Absent marks a generated node.
+   *
+   * Derived from [[meta]] rather than stored, so the position stays one field of one record while every reader keeps
+   * asking a node for its span directly.
+   */
+  def span: Maybe[Span] = meta.span
 
   /**
    * Every child in document order; empty for leaves. Total, for generic walks.
@@ -51,40 +59,55 @@ sealed trait MdcNode derives CanEqual:
     case MdcNode.InlineHtml(value, _) => Present(value)
     case _                            => Absent
 
-  /** This tree with every span stripped, for structural comparison of generated against parsed trees. */
+  /**
+   * This tree with every span stripped and every node's data kept, for structural comparison of generated against
+   * parsed trees.
+   *
+   * Position is derived provenance — it says where the parser found the node — so a comparison that does not care where
+   * the text sat drops it. Data is content the author attached, so it survives.
+   */
   def unpositioned: MdcNode = this match
-    case MdcNode.Root(children, _) =>
-      MdcNode.Root(children.map(_.unpositioned.asInstanceOf[MdcNode.FlowContent]), Absent)
-    case MdcNode.Paragraph(children, _) =>
-      MdcNode.Paragraph(children.map(_.unpositioned.asInstanceOf[MdcNode.PhrasingContent]), Absent)
-    case MdcNode.Heading(depth, children, _) =>
-      MdcNode.Heading(depth, children.map(_.unpositioned.asInstanceOf[MdcNode.PhrasingContent]), Absent)
-    case MdcNode.Code(info, value, _)    => MdcNode.Code(info, value, Absent)
-    case MdcNode.Html(value, _)          => MdcNode.Html(value, Absent)
-    case MdcNode.Blockquote(children, _) =>
-      MdcNode.Blockquote(children.map(_.unpositioned.asInstanceOf[MdcNode.FlowContent]), Absent)
-    case MdcNode.List(ordered, start, spread, children, _) =>
+    case MdcNode.Root(children, meta) =>
+      MdcNode.Root(children.map(_.unpositioned.asInstanceOf[MdcNode.FlowContent]), meta.copy(span = Absent))
+    case MdcNode.Paragraph(children, meta) =>
+      MdcNode.Paragraph(children.map(_.unpositioned.asInstanceOf[MdcNode.PhrasingContent]), meta.copy(span = Absent))
+    case MdcNode.Heading(depth, children, meta) =>
+      MdcNode.Heading(
+        depth,
+        children.map(_.unpositioned.asInstanceOf[MdcNode.PhrasingContent]),
+        meta.copy(span = Absent)
+      )
+    case MdcNode.Code(info, value, meta)    => MdcNode.Code(info, value, meta.copy(span = Absent))
+    case MdcNode.Html(value, meta)          => MdcNode.Html(value, meta.copy(span = Absent))
+    case MdcNode.Blockquote(children, meta) =>
+      MdcNode.Blockquote(children.map(_.unpositioned.asInstanceOf[MdcNode.FlowContent]), meta.copy(span = Absent))
+    case MdcNode.List(ordered, start, spread, children, meta) =>
       MdcNode.List(
         ordered,
         start,
         spread,
         children.map(item => item.unpositioned.asInstanceOf[MdcNode.ListItem]),
-        Absent
+        meta.copy(span = Absent)
       )
-    case MdcNode.ListItem(children, _) =>
-      MdcNode.ListItem(children.map(_.unpositioned.asInstanceOf[MdcNode.FlowContent]), Absent)
-    case MdcNode.ThematicBreak(_)              => MdcNode.ThematicBreak(Absent)
-    case MdcNode.Text(value, _)                => MdcNode.Text(value, Absent)
-    case MdcNode.InlineCode(value, _)          => MdcNode.InlineCode(value, Absent)
-    case MdcNode.Link(url, title, children, _) =>
-      MdcNode.Link(url, title, children.map(_.unpositioned.asInstanceOf[MdcNode.PhrasingContent]), Absent)
-    case MdcNode.Image(url, title, alt, _) => MdcNode.Image(url, title, alt, Absent)
-    case MdcNode.Emphasis(children, _)     =>
-      MdcNode.Emphasis(children.map(_.unpositioned.asInstanceOf[MdcNode.PhrasingContent]), Absent)
-    case MdcNode.Strong(children, _) =>
-      MdcNode.Strong(children.map(_.unpositioned.asInstanceOf[MdcNode.PhrasingContent]), Absent)
-    case MdcNode.InlineHtml(value, _) => MdcNode.InlineHtml(value, Absent)
-    case MdcNode.Break(_)             => MdcNode.Break(Absent)
+    case MdcNode.ListItem(children, meta) =>
+      MdcNode.ListItem(children.map(_.unpositioned.asInstanceOf[MdcNode.FlowContent]), meta.copy(span = Absent))
+    case MdcNode.ThematicBreak(meta)              => MdcNode.ThematicBreak(meta.copy(span = Absent))
+    case MdcNode.Text(value, meta)                => MdcNode.Text(value, meta.copy(span = Absent))
+    case MdcNode.InlineCode(value, meta)          => MdcNode.InlineCode(value, meta.copy(span = Absent))
+    case MdcNode.Link(url, title, children, meta) =>
+      MdcNode.Link(
+        url,
+        title,
+        children.map(_.unpositioned.asInstanceOf[MdcNode.PhrasingContent]),
+        meta.copy(span = Absent)
+      )
+    case MdcNode.Image(url, title, alt, meta) => MdcNode.Image(url, title, alt, meta.copy(span = Absent))
+    case MdcNode.Emphasis(children, meta)     =>
+      MdcNode.Emphasis(children.map(_.unpositioned.asInstanceOf[MdcNode.PhrasingContent]), meta.copy(span = Absent))
+    case MdcNode.Strong(children, meta) =>
+      MdcNode.Strong(children.map(_.unpositioned.asInstanceOf[MdcNode.PhrasingContent]), meta.copy(span = Absent))
+    case MdcNode.InlineHtml(value, meta) => MdcNode.InlineHtml(value, meta.copy(span = Absent))
+    case MdcNode.Break(meta)             => MdcNode.Break(meta.copy(span = Absent))
 
 object MdcNode:
 
@@ -95,18 +118,18 @@ object MdcNode:
   type PhrasingContent = Text | InlineCode | Link | Image | Emphasis | Strong | InlineHtml | Break
 
   // flow
-  final case class Root(children: Chunk[FlowContent], span: Maybe[Span] = Absent)          extends MdcNode
-  final case class Paragraph(children: Chunk[PhrasingContent], span: Maybe[Span] = Absent) extends MdcNode
-  final case class Heading(depth: HeadingLevel, children: Chunk[PhrasingContent], span: Maybe[Span] = Absent)
+  final case class Root(children: Chunk[FlowContent], meta: MdcMeta = MdcMeta.empty)          extends MdcNode
+  final case class Paragraph(children: Chunk[PhrasingContent], meta: MdcMeta = MdcMeta.empty) extends MdcNode
+  final case class Heading(depth: HeadingLevel, children: Chunk[PhrasingContent], meta: MdcMeta = MdcMeta.empty)
       extends MdcNode
 
   /** Fenced and indented code both: the fence-or-indent distinction is the CST's. Indented code has empty info. */
-  final case class Code(info: FenceInfo, value: String, span: Maybe[Span] = Absent) extends MdcNode
+  final case class Code(info: FenceInfo, value: String, meta: MdcMeta = MdcMeta.empty) extends MdcNode
 
   /** Block-position raw HTML. Its inline twin is [[InlineHtml]]; both project as Unist `html`. */
-  final case class Html(value: String, span: Maybe[Span] = Absent) extends MdcNode
+  final case class Html(value: String, meta: MdcMeta = MdcMeta.empty) extends MdcNode
 
-  final case class Blockquote(children: Chunk[FlowContent], span: Maybe[Span] = Absent) extends MdcNode
+  final case class Blockquote(children: Chunk[FlowContent], meta: MdcMeta = MdcMeta.empty) extends MdcNode
 
   /** `start` is Present only when `ordered`. `spread` is mdast's field; the renderer reads the derived `tight`. */
   final case class List(
@@ -114,25 +137,59 @@ object MdcNode:
       start: Maybe[Int],
       spread: Boolean,
       children: Chunk[ListItem],
-      span: Maybe[Span] = Absent
+      meta: MdcMeta = MdcMeta.empty
   ) extends MdcNode
 
-  final case class ListItem(children: Chunk[FlowContent], span: Maybe[Span] = Absent) extends MdcNode
-  final case class ThematicBreak(span: Maybe[Span] = Absent)                          extends MdcNode
+  final case class ListItem(children: Chunk[FlowContent], meta: MdcMeta = MdcMeta.empty) extends MdcNode
+  final case class ThematicBreak(meta: MdcMeta = MdcMeta.empty)                          extends MdcNode
 
   // phrasing
-  final case class Text(value: String, span: Maybe[Span] = Absent)       extends MdcNode
-  final case class InlineCode(value: String, span: Maybe[Span] = Absent) extends MdcNode
+  final case class Text(value: String, meta: MdcMeta = MdcMeta.empty)       extends MdcNode
+  final case class InlineCode(value: String, meta: MdcMeta = MdcMeta.empty) extends MdcNode
 
   /** A link. An autolink lowers here too, its raw URI as both destination and only text child. */
-  final case class Link(url: String, title: Maybe[String], children: Chunk[PhrasingContent], span: Maybe[Span] = Absent)
-      extends MdcNode
-  final case class Image(url: String, title: Maybe[String], alt: String, span: Maybe[Span] = Absent) extends MdcNode
-  final case class Emphasis(children: Chunk[PhrasingContent], span: Maybe[Span] = Absent)            extends MdcNode
-  final case class Strong(children: Chunk[PhrasingContent], span: Maybe[Span] = Absent)              extends MdcNode
-  final case class InlineHtml(value: String, span: Maybe[Span] = Absent)                             extends MdcNode
-  final case class Break(span: Maybe[Span] = Absent)                                                 extends MdcNode
+  final case class Link(
+      url: String,
+      title: Maybe[String],
+      children: Chunk[PhrasingContent],
+      meta: MdcMeta = MdcMeta.empty
+  ) extends MdcNode
+  final case class Image(url: String, title: Maybe[String], alt: String, meta: MdcMeta = MdcMeta.empty) extends MdcNode
+  final case class Emphasis(children: Chunk[PhrasingContent], meta: MdcMeta = MdcMeta.empty)            extends MdcNode
+  final case class Strong(children: Chunk[PhrasingContent], meta: MdcMeta = MdcMeta.empty)              extends MdcNode
+  final case class InlineHtml(value: String, meta: MdcMeta = MdcMeta.empty)                             extends MdcNode
+  final case class Break(meta: MdcMeta = MdcMeta.empty)                                                 extends MdcNode
 
   extension (list: List)
     /** The renderer's positive: a tight list drops the `p` from its items. Derived, never stored. */
     def tight: Boolean = !list.spread
+
+  extension [N <: MdcNode](node: N)
+    /**
+     * This node with one more typed annotation on it, at its own type.
+     *
+     * The result type is the node's own case, not [[MdcNode]], which is what lets an annotated node stay in the
+     * content-category position it came from — a `Text` annotated is still phrasing content. Each arm rebuilds its own
+     * case, so the cast back to `N` restores exactly the type the match tore off.
+     */
+    def withMeta[A](key: MetaKey[A], value: A): N =
+      val updated         = node.meta.updated(key, value)
+      val result: MdcNode = node match
+        case n: Root          => n.copy(meta = updated)
+        case n: Paragraph     => n.copy(meta = updated)
+        case n: Heading       => n.copy(meta = updated)
+        case n: Code          => n.copy(meta = updated)
+        case n: Html          => n.copy(meta = updated)
+        case n: Blockquote    => n.copy(meta = updated)
+        case n: List          => n.copy(meta = updated)
+        case n: ListItem      => n.copy(meta = updated)
+        case n: ThematicBreak => n.copy(meta = updated)
+        case n: Text          => n.copy(meta = updated)
+        case n: InlineCode    => n.copy(meta = updated)
+        case n: Link          => n.copy(meta = updated)
+        case n: Image         => n.copy(meta = updated)
+        case n: Emphasis      => n.copy(meta = updated)
+        case n: Strong        => n.copy(meta = updated)
+        case n: InlineHtml    => n.copy(meta = updated)
+        case n: Break         => n.copy(meta = updated)
+      result.asInstanceOf[N]
