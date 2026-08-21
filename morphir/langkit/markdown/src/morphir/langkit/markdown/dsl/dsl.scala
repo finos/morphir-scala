@@ -30,7 +30,7 @@ def h6(children: PhrasingContent*): Heading = Heading(HeadingLevel.Six, Chunk.fr
 
 def p(children: PhrasingContent*): Paragraph = Paragraph(Chunk.from(children))
 
-/** Indented-style code: no info string. */
+/** Code with no info string. */
 def codeBlock(value: String): Code = Code(FenceInfo.empty, value)
 
 /** Fenced code with an info string, structurally parsed via [[FenceInfo.parse]]. */

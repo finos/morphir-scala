@@ -204,6 +204,23 @@ class WriterFidelityTests extends Test[Any]:
           doc(p(em(em("x").withMeta(MdStyleKeys.emphasisMarker, '*')))),
           "explicit inner marker clash"
         )
+
+      /**
+       * Strong's default marker and Emphasis's default marker are both `*`: written naively, `strong(em("x"))` would
+       * touch a two-character run against a one-character run of the same character, giving `***x***`, which a parse
+       * always reads back as the longer match — Emphasis nested in Strong rather than Strong nested in Emphasis. The
+       * Strong arm of `writeInline` mirrors the Emphasis arm's own same-child clash handling to avoid it.
+       */
+      "a sole nested emphasis inside strong with the same default marker shadows the inner marker" in
+        rendersSame(doc(p(strong(em("x")))), "strong of emphasis, default markers")
+
+      /**
+       * The mirror direction never clashes: `***x***` is what CommonMark itself resolves to Emphasis nested in Strong,
+       * which is exactly what `em(strong("x"))` means, so no adjustment is needed and a faithful spelling already
+       * exists.
+       */
+      "a sole nested strong inside emphasis with the same default marker already has a faithful spelling" in
+        rendersSame(doc(p(em(strong("x")))), "emphasis of strong, default markers")
     }
 
     /**

@@ -183,6 +183,10 @@ class DslTests extends Test[Any]:
       val node = h1("t").withMeta(MdStyleKeys.headingStyle, HeadingStyle.Setext)
       assert(node.meta.get(MdStyleKeys.headingStyle) == Present(HeadingStyle.Setext))
     }
+    "hardBreak round-trips" in {
+      val node = br.withMeta(MdStyleKeys.hardBreak, HardBreakStyle.Spaces)
+      assert(node.meta.get(MdStyleKeys.hardBreak) == Present(HardBreakStyle.Spaces))
+    }
     "a key absent from a node's meta reads Absent" in
       assert(em("x").meta.get(MdStyleKeys.bullet) == Absent)
   }

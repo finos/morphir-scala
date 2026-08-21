@@ -51,3 +51,4 @@ object MdStyleKeys:
   val fence: MetaKey[Char]                = MetaKey[Char]("md.fence")
   val orderedDelimiter: MetaKey[Char]     = MetaKey[Char]("md.orderedDelimiter")
   val headingStyle: MetaKey[HeadingStyle] = MetaKey[HeadingStyle]("md.headingStyle")
+  val hardBreak: MetaKey[HardBreakStyle]  = MetaKey[HardBreakStyle]("md.hardBreak")

@@ -308,6 +308,23 @@ class MdWriterTests extends Test[Any]:
     "a per-node strong marker overrides the style" in
       assert(MdWriter.write(doc(p(strong("x").withMeta(MdStyleKeys.strongMarker, '_')))) == "__x__\n")
 
+    /**
+     * Not [[roundTrips]]: the override rides [[MdcMeta.data]], which the parser has no way to reconstruct, so the
+     * reparsed tree's `Break` carries no such annotation and cannot compare equal to the tree that wrote it. What does
+     * survive is the meaning — a two-space hard break — so the reparse is checked against the plain, unannotated tree
+     * instead, the same way the empty-code-span case above checks its own no-faithful-spelling reparse.
+     */
+    "a per-node hard-break style overrides the style" in {
+      val tree    = doc(p("first", br.withMeta(MdStyleKeys.hardBreak, HardBreakStyle.Spaces), "second"))
+      val written = MdWriter.write(tree)
+      assert(written == "first  \nsecond\n", oneLine(written))
+      Parser.parse(written) match
+        case Result.Success(reparsed) =>
+          val expected = doc(p("first", br, "second"))
+          assert(normalized(reparsed) == normalized(expected), s"${normalized(reparsed)}")
+        case other => throw new IllegalStateException(s"per-node hard break wrote unparseable text: $other")
+    }
+
     "a thematic break avoids the bullet in scope" in {
       assert(MdWriter.write(doc(hr)) == "***\n")
       assert(MdWriter.write(doc(hr))(using MdStyle(bullet = '*')) == "___\n")

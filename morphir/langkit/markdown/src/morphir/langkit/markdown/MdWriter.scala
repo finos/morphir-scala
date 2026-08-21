@@ -16,19 +16,27 @@ import morphir.langkit.markdown.cst.MdcCstNode
  * [[MdStyleKeys]]: the writer asks the node's own data first and falls back to the style. Nothing here consults the CST
  * — the AST is the input, and a tree the parser never saw writes exactly as well as one it did.
  *
- * Two shapes have no faithful spelling and are documented rather than fixed. An [[MdcNode.InlineCode]] whose value is
- * empty writes as a single-space code span, because CommonMark cannot express a code span holding nothing. It is a node
- * no parse produces, and the alternative — an unbalanced backtick run, which reparses as prose — loses the code span
- * altogether. See [[writeInlineCode]].
+ * Five shapes have no faithful spelling and are documented rather than fixed.
  *
- * An ATX heading is exactly one physical line, so nothing inside one can carry a real line break: not an
- * [[MdcNode.Break]] (a hard break needs a second line to land on), not a soft break inside a [[MdcNode.Text]], not an
- * embedded newline inside an [[MdcNode.InlineCode]] or [[MdcNode.InlineHtml]] value. Every one of those writes as
- * `&#10;` instead — content the ATX line's single-line rule does not see, which the parser resolves back to the same
- * character but never back to a hard break, a code span's own line ending, or a raw-HTML line ending. It is again a
- * node no parse of an ATX heading produces (Setext is what a source spells for multi-line heading content), and the
- * alternative — writing the break literally — truncates the heading rather than merely losing one construct's own
+ * An [[MdcNode.InlineCode]] whose value is empty writes as a single-space code span, because CommonMark cannot express
+ * a code span holding nothing. It is a node no parse produces, and the alternative — an unbalanced backtick run, which
+ * reparses as prose — loses the code span altogether. See [[writeInlineCode]].
+ *
+ * An ATX heading is exactly one physical line, so nothing inside one can carry a real line break. An [[MdcNode.Break]]
+ * (a hard break needs a second line to land on) and a soft break inside a [[MdcNode.Text]] both write as `&#10;`
+ * instead — content the ATX line's single-line rule does not see, which the parser resolves back to the same character
+ * but never back to a break of its own. An embedded newline inside an [[MdcNode.InlineCode]] or [[MdcNode.InlineHtml]]
+ * value has no such entity available to it — a character reference does not resolve inside a code span or raw HTML — so
+ * each downgrades to a single space instead, the nearest either can spell one line at a time. Every one of these is
+ * again a node no parse of an ATX heading produces (Setext is what a source spells for multi-line heading content), and
+ * the alternative — writing the break literally — truncates the heading rather than merely losing one construct's own
  * meaning. See `oneLine` on [[inlines]] and [[escapeText]].
+ *
+ * A link or image destination is written as given: [[writeDestination]] adds angle brackets and escapes `\`, `<` and
+ * `>` when the raw bytes demand them, but does not percent-encode anything. The parse pipeline this writer round-trips
+ * against always yields a percent-encoded url, so a destination that came from a parsed tree already carries that form;
+ * a hand-built destination holding a raw space or a raw `&`-entity is outside the reparse image this contract covers,
+ * and an author supplying one should percent-encode it first.
  *
  * Blocks are written whole, each to its own string, and joined; container prefixes (`> `, list-item indentation) are
  * then applied line by line to what a container holds. Writing a prefix stack down through a streaming emitter would
@@ -265,34 +273,23 @@ object MdWriter:
         // single-character delimiters run together into one two-character run, which a parse always reads as Strong
         // rather than as emphasis nested in emphasis — CommonMark prefers the longer match whenever both flanking
         // runs allow it, and a run of exactly two never has a leftover single character to spend on the outer level.
-        val soleInnerEmphasis: Maybe[MdcNode.Emphasis] =
-          if emphasis.children.size == 1 then
-            emphasis.children(0) match
-              case inner: MdcNode.Emphasis => Present(inner)
-              case _                       => Absent
-          else Absent
-        val (outerMarker, childStyle) = soleInnerEmphasis match
-          case Present(inner) =>
-            val innerOverride = inner.meta.get(MdStyleKeys.emphasisMarker)
-            val innerResolved = innerOverride.getOrElse(style.emphasisMarker)
-            if innerResolved != marker then (marker, style)
-            else
-              innerOverride match
-                // The inner marker is pinned by its own explicit override, which this writer must respect rather
-                // than shadow: the outer level takes the other marker instead, so the two still differ.
-                case Present(_) => (alternateMarker(marker), style)
-                // Neither level is pinned by an override: the inner subtree's ambient style shadows to the other
-                // marker instead, leaving the outer as the style — or its own override — asked for.
-                case Absent => (marker, style.copy(emphasisMarker = alternateMarker(marker)))
-          case Absent => (marker, style)
+        val soleInnerEmphasis         = soleChildEmphasis(emphasis.children)
+        val (outerMarker, childStyle) = resolveEmphasisClash(marker, soleInnerEmphasis)
         s"$outerMarker${inlines(emphasis.children, atLineStart = false, oneLine)(using childStyle)}$outerMarker"
       case strong: MdcNode.Strong =>
-        val marker = strong.meta.get(MdStyleKeys.strongMarker).getOrElse(style.strongMarker).toString * 2
-        s"$marker${inlines(strong.children, atLineStart = false, oneLine)}$marker"
-      case MdcNode.Break(_) =>
+        val marker = strong.meta.get(MdStyleKeys.strongMarker).getOrElse(style.strongMarker)
+        // A sole child that is an Emphasis resolving to the same marker character touches it on the inside: the
+        // outer's two-character run runs straight into the inner's one-character run, and a parse of the resulting
+        // three-character run always prefers the longer match — reading emphasis nested in strong back as strong
+        // nested in emphasis instead. Same clash, same resolution, as the Emphasis arm above.
+        val soleInnerEmphasis         = soleChildEmphasis(strong.children)
+        val (outerMarker, childStyle) = resolveEmphasisClash(marker, soleInnerEmphasis)
+        val delimiter                 = outerMarker.toString * 2
+        s"$delimiter${inlines(strong.children, atLineStart = false, oneLine)(using childStyle)}$delimiter"
+      case MdcNode.Break(meta) =>
         if oneLine then "&#10;"
         else
-          style.hardBreak match
+          meta.get(MdStyleKeys.hardBreak).getOrElse(style.hardBreak) match
             case HardBreakStyle.Backslash => "\\\n"
             case HardBreakStyle.Spaces    => "  \n"
 
@@ -421,6 +418,45 @@ object MdWriter:
         index += 1
     out.toString
   end escapeText
+
+  /** `children`'s sole member, when there is exactly one and it is an [[MdcNode.Emphasis]]. */
+  private def soleChildEmphasis(children: Chunk[MdcNode.PhrasingContent]): Maybe[MdcNode.Emphasis] =
+    if children.size == 1 then
+      children(0) match
+        case inner: MdcNode.Emphasis => Present(inner)
+        case _                       => Absent
+    else Absent
+
+  /**
+   * The marker an Emphasis or Strong delimiter should use, and the style its content should render under, given the
+   * marker it would use before any clash resolution and its sole child when that child is itself an
+   * [[MdcNode.Emphasis]].
+   *
+   * A sole inner Emphasis whose resolved marker is a different character never touches the outer delimiter on reparse
+   * and needs no adjustment. One resolving to the same character does: the two delimiter runs touch and a parse always
+   * prefers the longer match, so the inner subtree's ambient style shadows to the other marker instead — unless the
+   * inner marker is pinned by its own explicit [[MdStyleKeys.emphasisMarker]] override, which this writer must respect
+   * rather than shadow, in which case the outer level takes the other marker so the two still differ.
+   *
+   * @param marker
+   *   the character the outer delimiter would use before any clash resolution — the marker itself for Emphasis, or the
+   *   character later doubled for Strong
+   * @param soleInnerEmphasis
+   *   the outer node's sole child, when it is itself an [[MdcNode.Emphasis]] — see [[soleChildEmphasis]]
+   */
+  private def resolveEmphasisClash(marker: Char, soleInnerEmphasis: Maybe[MdcNode.Emphasis])(using
+      style: MdStyle
+  ): (Char, MdStyle) =
+    soleInnerEmphasis match
+      case Present(inner) =>
+        val innerOverride = inner.meta.get(MdStyleKeys.emphasisMarker)
+        val innerResolved = innerOverride.getOrElse(style.emphasisMarker)
+        if innerResolved != marker then (marker, style)
+        else
+          innerOverride match
+            case Present(_) => (alternateMarker(marker), style)
+            case Absent     => (marker, style.copy(emphasisMarker = alternateMarker(marker)))
+      case Absent => (marker, style)
 
   /** The other emphasis marker CommonMark recognises, for the one place two of the same one cannot touch. */
   private def alternateMarker(marker: Char): Char = if marker == '*' then '_' else '*'
