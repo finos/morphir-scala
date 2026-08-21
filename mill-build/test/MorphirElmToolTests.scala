@@ -14,7 +14,7 @@ def assertEquals[A](actual: A, expected: A): Unit =
   assertEquals(MorphirElmTool.Version, "2.99.0")
   assertEquals(
     os.read(toolDirectory / "package.json").trim,
-    """{"name":"morphir-scala-morphir-elm-tool","private":true,"dependencies":{"morphir-elm":"2.99.0"},"overrides":{"uuid":"^11.1.1"}}"""
+    """{"name":"morphir-scala-morphir-elm-tool","private":true,"dependencies":{"morphir-elm":"2.99.0"},"overrides":{"uuid":"^14.0.0"}}"""
   )
   assertEquals(manifest("name").str, "morphir-scala-morphir-elm-tool")
   assert(manifest("private").bool)
