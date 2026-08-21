@@ -28,8 +28,8 @@ commit carries and, in one case, a commit SHA that exists nowhere in the reposit
 worth nothing without the commit metadata that supports it. Before reporting one, read the metadata:
 
 ```bash
-git log --format='%H%n  author:    %an <%ae>%n  committer: %cn <%ce>' origin/develop..HEAD
-git log origin/develop..HEAD --format='%B' | grep -i 'co-authored-by'
+git log --format='%H%n  author:    %an <%ae>%n  committer: %cn <%ce>' origin/main..HEAD
+git log origin/main..HEAD --format='%B' | grep -i 'co-authored-by'
 ```
 
 Quote what those commands print. If they show a human author, no `Co-authored-by:` trailer naming an assistant, and
@@ -372,9 +372,10 @@ The project uses GitHub Actions for CI:
 - `test-jvm` - JVM tests, including `langkit.itest`
 - `test-js` - ScalaJS tests, including the wasm link variants
 - `test-native` - Scala Native tests
-- `publish` - SNAPSHOTs from `main` and `develop`; milestones/releases from `0.4.x` and tags, via `./mill --ticker false -i ci.publish`
+- `publish` - SNAPSHOTs from `main`; milestones/releases from `0.4.x` and tags, via `./mill --ticker false -i ci.publish`
 
-CI runs on pull requests targeting and pushes to `main`, `0.4.x`, and `develop`, plus releases and manual triggers.
+CI runs on pull requests targeting and pushes to `main` and `0.4.x`, plus releases and manual triggers. `main` is
+the trunk: pull requests target it directly.
 
 ## Pull Request & CI Protocol
 

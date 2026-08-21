@@ -62,7 +62,7 @@ final case class ReferenceRepoRemoveOpts(
 )
 
 final case class BranchRefreshOpts(
-    @HelpMessage("Target branch to refresh") target: String = "develop",
+    @HelpMessage("Target branch to refresh, for example a release line") target: String,
     @HelpMessage("Report the update without writing") dryRun: Boolean = false,
     @HelpMessage("Output the typed result as JSON") json: Boolean = false
 )

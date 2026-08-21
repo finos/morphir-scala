@@ -6,6 +6,13 @@ the shape of the next release, and it is what CI stamps on every build. Dated he
 `## [Unreleased]` is optional and carries no build meaning; use it for entries not yet assigned to
 a release.
 
+## [Unreleased]
+
+### Changed
+- The repository moved to trunk-based development. Pull requests target `main` and merge into it; the `develop`
+  integration branch, its promotion pull request and its back-migration are retired. Snapshots publish from `main`
+  alone, and `squire branch refresh` now requires `--target`. See decision 0014.
+
 ## [0.5.0-M05]
 
 The first release cut through the independent version streams, and the first since this changelog

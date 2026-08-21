@@ -1,5 +1,14 @@
 # Log
 
+## 2026-08-21
+
+* **Decision**: Recorded [Trunk-based development on main](/decisions/0014-trunk-based-development-on-main.md).
+  The `develop` branch is retired: pull requests target `main` and merge into it, snapshots publish from `main`
+  alone, and `squire branch refresh` now requires `--target`. Earlier entries on this page that describe a
+  `develop` publish or a `main`-to-`develop` sync record what was true then and are left as written.
+* **Update**: [Packaging and Release](/packaging-and-release.md) now names `main` and `0.4.x` as the trigger and
+  publish branches.
+
 ## 2026-08-17
 
 * **Creation**: Added [Packaging and Release](/packaging-and-release.md), covering the destinations, triggers,
