@@ -441,14 +441,14 @@ object SquireCiPolicy:
     val classicPrefix = "morphir.runtime.classic.jvm"
     val compileSelectors = List(
       "morphir.jvm.__.compile",
-      "morphir.{appkit,benchmarks,buildkit.core,connector.github,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile"
+      "morphir.{appkit,benchmarks,buildkit.core,connector.github,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile"
     )
     val publishSelectors = List(
       "morphir.jvm.publishArtifacts",
       "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,extensibility,interop.borer,interop.zio.json,knowledge.okf,langkit.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,lib.interop,model,model.lowering,naming,prelude,tests,tools}.jvm.publishArtifacts"
     )
     val testSelectors = List(
-      "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.trees,model,model.lowering,prelude,tests}.jvm.test"
+      "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,model,model.lowering,prelude,tests}.jvm.test"
     )
 
     def targets(selector: String): Set[String] =
@@ -1398,12 +1398,12 @@ class SquireCiPolicySpec extends Test[Any]:
   private val jvmTargetSelectors = List(
     "morphir.__.jvm.__.compile",
     "morphir.jvm.__.compile",
-    "morphir.{appkit,benchmarks,buildkit.core,connector.github,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile",
+    "morphir.{appkit,benchmarks,buildkit.core,connector.github,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile",
     "morphir.__.jvm.publishArtifacts",
     "morphir.jvm.publishArtifacts",
     "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,extensibility,interop.borer,interop.zio.json,knowledge.okf,langkit.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,lib.interop,model,model.lowering,naming,prelude,tests,tools}.jvm.publishArtifacts",
     "morphir.__.jvm.__.test",
-    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.trees,model,model.lowering,prelude,tests}.jvm.test"
+    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,model,model.lowering,prelude,tests}.jvm.test"
   )
 
   /**
