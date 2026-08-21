@@ -9,8 +9,12 @@ import morphir.langkit.markdown.HeadingLevel
  *
  * Fragments carry decisions, not text: the parser records which form it read and where, and [[CstParser]] turns that
  * into leaves by slicing the source. That keeps the parser's CST duty to one `record` call per site and keeps all
- * leaf-splitting in this package, where later slices refine it. Only top-level sites record — a construct inside a
- * container spans marker bytes it does not own, which is lc8.22's problem, not this slice's.
+ * leaf-splitting in this package, where later slices refine it.
+ *
+ * Containers nest: a [[BlockQuote]] or [[ListItem]] carries the fragments its own run recorded, plus the `markers` its
+ * cursor spent taking prefixes off each line. A child's span covers marker bytes the child does not own — `> foo` over
+ * `> bar` is one paragraph spanning the middle `> ` — so [[CstParser]] punches the recorded marker spans out of gaps
+ * and leaf interiors as [[CstNode.Token]] leaves, and the tiling invariant carries the container problem.
  */
 private[markdown] enum CstFragment:
   case ThematicBreak(span: Span)
@@ -27,10 +31,31 @@ private[markdown] enum CstFragment:
   case IndentedCode(span: Span)
   case Paragraph(span: Span)
 
+  /** A quote's run: `markers` are the per-line `>` prefixes its cursor spent, `children` what those lines held. */
+  case BlockQuote(span: Span, markers: Chunk[Span], children: Chunk[CstFragment])
+
+  /** A run of bullet items sharing one bullet. `tight` mirrors what the AST list records. */
+  case BulletList(bullet: Char, tight: Boolean, span: Span, items: Chunk[CstFragment])
+
+  /** A run of numbered items sharing one delimiter, starting at `start`. */
+  case OrderedList(start: Int, delimiter: Char, tight: Boolean, span: Span, items: Chunk[CstFragment])
+
+  /** One item: `markers` cover its marker line's prefix and each continuation line's indentation. */
+  case ListItem(span: Span, markers: Chunk[Span], children: Chunk[CstFragment])
+
   def span: Span
 
-/** Collects fragments in source order while the parser runs. Threaded like the `definitions` map. */
+/**
+ * Collects fragments in source order while the parser runs. Threaded like the `definitions` map.
+ *
+ * Each container run gets its own collector, so nesting is recorded by construction. Marker spans arrive from the
+ * container's cursor, which may read, rewind and re-read a line any number of times: keying on the offset makes the
+ * repeats idempotent, and a peek past the container's end is clamped away at materialization rather than here.
+ */
 private[markdown] final class CstCollector:
-  private val buffer                      = List.newBuilder[CstFragment]
-  def record(fragment: CstFragment): Unit = buffer += fragment
-  def fragments: Chunk[CstFragment]       = Chunk.from(buffer.result())
+  private val buffer                            = List.newBuilder[CstFragment]
+  private val markerSpans                       = scala.collection.mutable.TreeMap.empty[Int, Int]
+  def record(fragment: CstFragment): Unit       = buffer += fragment
+  def recordMarker(offset: Int, end: Int): Unit = markerSpans(offset) = end
+  def fragments: Chunk[CstFragment]             = Chunk.from(buffer.result())
+  def markers: Chunk[Span] = Chunk.from(markerSpans.iterator.map((o, e) => Span.fromStartEnd(o, e)))

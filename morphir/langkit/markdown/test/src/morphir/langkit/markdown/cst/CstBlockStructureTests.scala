@@ -9,8 +9,7 @@ import morphir.langkit.markdown.HeadingLevel
  *
  * The round-trip suite proves nothing is lost; this suite proves something is gained — a parse where every node were
  * verbatim would round-trip perfectly and mean nothing. One test per graduated form, plus the negative cases that pin
- * what lc8.22 and lc8.23 still own: containers and HTML stay verbatim, and a construct inside a container is not
- * recorded at top level.
+ * what lc8.23 still owns: HTML blocks and link reference definitions stay verbatim.
  */
 class CstBlockStructureTests extends Test[Any]:
 
@@ -81,23 +80,135 @@ class CstBlockStructureTests extends Test[Any]:
     }
   }
 
+  "graduated containers" - {
+
+    "a block quote holds its marker as a token and its content typed" in {
+      blocks("> quoted\n").head match
+        case CstNode.BlockQuote(children, _) =>
+          assert(children.headOption.exists {
+            case CstNode.Token("> ", _) => true
+            case _                      => false
+          })
+          assert(children.exists {
+            case _: CstNode.Paragraph => true
+            case _                    => false
+          })
+        case other => assert(false, s"expected BlockQuote, got $other")
+    }
+
+    "a two-line quote's interior marker is a token inside the paragraph" in {
+      blocks("> a\n> b\n").head match
+        case CstNode.BlockQuote(children, _) =>
+          val para = children.collect { case p: CstNode.Paragraph => p }
+          assert(para.size == 1)
+          assert(para.head.childNodes.exists {
+            case CstNode.Token("> ", _) => true
+            case _                      => false
+          })
+        case other => assert(false, s"expected BlockQuote, got $other")
+    }
+
+    "a heading inside a quote is typed inside the quote" in {
+      blocks("> # H\n").head match
+        case CstNode.BlockQuote(children, _) =>
+          assert(children.exists {
+            case CstNode.AtxHeading(HeadingLevel.One, _, _) => true
+            case _                                          => false
+          })
+        case other => assert(false, s"expected BlockQuote, got $other")
+    }
+
+    "a nested quote is a quote inside a quote" in {
+      blocks("> > deep\n").head match
+        case CstNode.BlockQuote(children, _) =>
+          assert(children.exists {
+            case _: CstNode.BlockQuote => true
+            case _                     => false
+          })
+        case other => assert(false, s"expected BlockQuote, got $other")
+    }
+
+    "a bullet list carries its bullet and its item's marker token" in {
+      blocks("- item\n").head match
+        case CstNode.BulletList('-', tight, children, _) =>
+          assert(tight)
+          children.head match
+            case CstNode.ListItem(itemChildren, _) =>
+              assert(itemChildren.headOption.exists {
+                case CstNode.Token("- ", _) => true
+                case _                      => false
+              })
+              assert(itemChildren.exists {
+                case _: CstNode.Paragraph => true
+                case _                    => false
+              })
+            case other => assert(false, s"expected ListItem first, got $other")
+        case other => assert(false, s"expected BulletList, got $other")
+    }
+
+    "an ordered list keeps its start number and delimiter" in {
+      blocks("3) go\n4) stop\n").head match
+        case CstNode.OrderedList(start, delimiter, tight, children, _) =>
+          assert(start == 3)
+          assert(delimiter == ')')
+          assert(tight)
+          assert(children.collect { case i: CstNode.ListItem => i }.size == 2)
+        case other => assert(false, s"expected OrderedList, got $other")
+    }
+
+    "a blank line between items makes the list loose" in {
+      blocks("- a\n\n- b\n").head match
+        case CstNode.BulletList(_, tight, _, _) => assert(!tight)
+        case other                              => assert(false, s"expected BulletList, got $other")
+    }
+
+    "a continuation line's indentation is a token inside the item's paragraph" in {
+      blocks("- a\n  b\n").head match
+        case CstNode.BulletList(_, _, children, _) =>
+          val para = children.head.childNodes.collect { case p: CstNode.Paragraph => p }
+          assert(para.size == 1)
+          assert(para.head.childNodes.exists {
+            case CstNode.Token("  ", _) => true
+            case _                      => false
+          })
+        case other => assert(false, s"expected BulletList, got $other")
+    }
+
+    "a list inside a quote nests, marker bytes shared but owned once" in {
+      blocks("> - a\n").head match
+        case CstNode.BlockQuote(children, _) =>
+          assert(children.exists {
+            case _: CstNode.BulletList => true
+            case _                     => false
+          })
+        case other => assert(false, s"expected BlockQuote, got $other")
+    }
+
+    "an empty item is its marker token alone" in {
+      blocks("-\n").head match
+        case CstNode.BulletList(_, _, children, _) =>
+          children.head match
+            case CstNode.ListItem(itemChildren, _) =>
+              assert(itemChildren.forall {
+                case _: CstNode.Token => true
+                case _                => false
+              })
+            case other => assert(false, s"expected ListItem, got $other")
+        case other => assert(false, s"expected BulletList, got $other")
+    }
+  }
+
   "not yet graduated" - {
 
-    "a block quote stays verbatim" in
-      assert(blocks("> quoted\n").forall {
+    "an HTML block stays verbatim" in
+      assert(blocks("<div>\nhi\n</div>\n").forall {
         case _: CstNode.Verbatim => true
         case _                   => false
       })
 
-    "a list stays verbatim" in
-      assert(blocks("- item\n").forall {
+    "a link reference definition stays verbatim" in
+      assert(blocks("[a]: /url\n").forall {
         case _: CstNode.Verbatim => true
         case _                   => false
-      })
-
-    "a heading inside a quote is the quote's problem, not the document's" in
-      assert(blocks("> # H\n").forall {
-        case _: CstNode.AtxHeading => false
-        case _                     => true
       })
   }

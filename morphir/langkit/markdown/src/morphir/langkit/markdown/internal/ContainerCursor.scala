@@ -4,6 +4,7 @@ import kyo.*
 import scala.annotation.tailrec
 import morphir.langkit.core.Span
 import morphir.langkit.core.scanner.*
+import morphir.langkit.markdown.cst.CstCollector
 
 /**
  * One line of source, carrying the span it was read from.
@@ -111,16 +112,21 @@ private[markdown] object ContainerPrefix:
 private[markdown] final class ContainerCursor private (
     val scanner: SourceScanner,
     private val prefixes: List[ContainerPrefix],
-    private val lines: LineCache
+    private val lines: LineCache,
+    private val sink: Maybe[CstCollector]
 ):
 
   private val phase = ScanPhase("markdown.lines")
 
   /**
    * A cursor for the content of a container opening here, reading through `prefix` as well as the ones already open.
+   *
+   * `sink`, when present, receives the marker span of every line this cursor reads — the characters the whole prefix
+   * stack spent before the content began. It is the CST's record of where the container syntax sits; the plain parse
+   * passes [[kyo.Absent]] and records nothing.
    */
-  def nested(prefix: ContainerPrefix): ContainerCursor =
-    new ContainerCursor(scanner, prefixes :+ prefix, lines)
+  def nested(prefix: ContainerPrefix, sink: Maybe[CstCollector] = Absent): ContainerCursor =
+    new ContainerCursor(scanner, prefixes :+ prefix, lines, sink)
 
   def checkpoint(): ScanCheckpoint = scanner.checkpoint()
 
@@ -178,6 +184,11 @@ private[markdown] final class ContainerCursor private (
               case Present(next) => consume(tail, next)
               case Absent        => (cursor, false)
       val (consumed, matchedAll) = consume(prefixes, 0)
+      // Recorded even on a partial match: the prefixes that did consume are container syntax whoever ends up owning
+      // the line. Re-reads land on the same offset with the same result, and a peek past the container's end is
+      // clamped away when the CST materializes, so recording here is idempotent and safe.
+      if consumed > 0 then
+        sink.foreach(_.recordMarker(raw.offset, raw.offset + Tabs.sourceCut(raw.view.text, consumed)))
       ContinuedLine(strip(raw, consumed), matchedAll)
 
   /** Where the scanner has read to, with the line terminator that got it there discounted. */
@@ -233,7 +244,7 @@ end ContainerCursor
 
 private[markdown] object ContainerCursor:
   /** A cursor at the top level of a document, where no container is open. */
-  def top(scanner: SourceScanner): ContainerCursor = new ContainerCursor(scanner, Nil, LineCache())
+  def top(scanner: SourceScanner): ContainerCursor = new ContainerCursor(scanner, Nil, LineCache(), Absent)
 
 /**
  * Tabs, which CommonMark measures in columns rather than in characters.

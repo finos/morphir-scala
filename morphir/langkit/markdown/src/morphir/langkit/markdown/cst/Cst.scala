@@ -32,6 +32,22 @@ enum CstNode derives CanEqual:
   case IndentedCode(children: Chunk[CstNode], span: Span)
   case Paragraph(children: Chunk[CstNode], span: Span)
 
+  /**
+   * A quote. Its children interleave per-line `>` marker [[Token]]s with the blocks the quote holds; a marker that
+   * falls inside a child's span — the middle of a two-line paragraph — appears as a token *inside* that child, because
+   * the child spans the marker bytes without owning them.
+   */
+  case BlockQuote(children: Chunk[CstNode], span: Span)
+
+  /** A run of bullet items sharing `bullet`. `tight` is the rendering evidence the parser gathered from blank lines. */
+  case BulletList(bullet: Char, tight: Boolean, children: Chunk[CstNode], span: Span)
+
+  /** A run of numbered items sharing `delimiter`, numbered from `start`. */
+  case OrderedList(start: Int, delimiter: Char, tight: Boolean, children: Chunk[CstNode], span: Span)
+
+  /** One item. Its first child is the marker [[Token]]; continuation-line indentation appears as tokens too. */
+  case ListItem(children: Chunk[CstNode], span: Span)
+
   /** Syntax the author spent: marker runs, fences, setext underlines. */
   case Token(text: String, span: Span)
 
@@ -52,14 +68,18 @@ enum CstNode derives CanEqual:
 
   /** Children of an interior node, in source order; empty for leaves. */
   def childNodes: Chunk[CstNode] = this match
-    case Document(children, _)         => children
-    case ThematicBreak(children, _)    => children
-    case AtxHeading(_, children, _)    => children
-    case SetextHeading(_, children, _) => children
-    case FencedCode(children, _)       => children
-    case IndentedCode(children, _)     => children
-    case Paragraph(children, _)        => children
-    case _: (Token | Text | Verbatim)  => Chunk.empty
+    case Document(children, _)             => children
+    case ThematicBreak(children, _)        => children
+    case AtxHeading(_, children, _)        => children
+    case SetextHeading(_, children, _)     => children
+    case FencedCode(children, _)           => children
+    case IndentedCode(children, _)         => children
+    case Paragraph(children, _)            => children
+    case BlockQuote(children, _)           => children
+    case BulletList(_, _, children, _)     => children
+    case OrderedList(_, _, _, children, _) => children
+    case ListItem(children, _)             => children
+    case _: (Token | Text | Verbatim)      => Chunk.empty
 
 object Cst:
 
@@ -95,38 +115,53 @@ object Cst:
 /**
  * Parses a source into its CST.
  *
- * The block phase records a [[CstFragment]] at each graduated top-level construction site; this object turns those
- * fragments into typed nodes by slicing the source, and holds every unclaimed region — containers, HTML blocks, blank
- * runs, link reference definitions — as [[CstNode.Verbatim]] until its slice graduates it. A source the parser rejects
- * (budget exhaustion) degrades to one verbatim leaf, so parsing stays total and round-trip exact.
+ * The block phase records a [[CstFragment]] at each graduated construction site; this object turns those fragments into
+ * typed nodes by slicing the source, and holds every unclaimed region — HTML blocks, blank runs, link reference
+ * definitions — as [[CstNode.Verbatim]] until its slice graduates it. A source the parser rejects (budget exhaustion)
+ * degrades to one verbatim leaf, so parsing stays total and round-trip exact.
+ *
+ * Containers bring marker spans with them: the bytes their cursor spent on `>` prefixes and item indentation. Those
+ * spans are punched out of gaps and leaf interiors as [[CstNode.Token]] leaves wherever they fall inside the region
+ * being tiled — which is how a child that spans marker bytes ends up not owning them. A marker recorded on a peek past
+ * the container's end falls outside every region and is clamped away by the same tiling.
  */
 object CstParser:
 
   def parse(source: String): CstNode.Document =
     Parser.parseFragments(source) match
-      case Result.Success(fragments) => assemble(source, fragments)
-      case _                         => fallback(source)
+      case Result.Success(fragments) =>
+        CstNode.Document(assembleRegion(source, Span(0, source.length), Chunk.empty, fragments), Span(0, source.length))
+      case _ => fallback(source)
 
   private def fallback(source: String): CstNode.Document =
     val span = Span(0, source.length)
     if source.isEmpty then CstNode.Document(Chunk.empty, span)
     else CstNode.Document(Chunk(CstNode.Verbatim(source, span)), span)
 
-  private def assemble(source: String, fragments: Chunk[CstFragment]): CstNode.Document =
+  /**
+   * The children of one region: fragments materialized in order, gaps tiled as [[CstNode.Verbatim]] with any marker
+   * spans punched out as [[CstNode.Token]]s. The document is the region with no markers; containers pass their own.
+   */
+  private def assembleRegion(
+      source: String,
+      span: Span,
+      markers: Chunk[Span],
+      fragments: Chunk[CstFragment]
+  ): Chunk[CstNode] =
     val children              = Chunk.newBuilder[CstNode]
-    var cursor                = 0
+    var cursor                = span.offset
     def gap(until: Int): Unit =
       if until > cursor then
-        children.addOne(CstNode.Verbatim(source.substring(cursor, until), Span.fromStartEnd(cursor, until)))
+        children.addAll(tile(source, cursor, until, markers)(CstNode.Verbatim(_, _)))
         cursor = until
     fragments.foreach { fragment =>
-      if fragment.span.offset >= cursor then
+      if fragment.span.offset >= cursor && fragment.span.end <= span.end then
         gap(fragment.span.offset)
-        children.addOne(materialize(source, fragment))
+        children.addOne(materialize(source, fragment, markers))
         cursor = fragment.span.end
     }
-    gap(source.length)
-    CstNode.Document(children.result(), Span(0, source.length))
+    gap(span.end)
+    children.result()
 
   /**
    * A leaf over `[from, until)`, or nothing when the range is empty — empty leaves would break nothing but say nothing.
@@ -135,7 +170,31 @@ object CstParser:
     if until > from then Chunk(make(source.substring(from, until), Span.fromStartEnd(from, until)))
     else Chunk.empty
 
-  private def materialize(source: String, fragment: CstFragment): CstNode = fragment match
+  /**
+   * Leaves over `[from, until)` with every marker span that intersects the range cut out as a [[CstNode.Token]] and the
+   * rest made by `make`. Markers arrive sorted by offset; ranges that overlap — the same prefix recorded at two nesting
+   * depths — degrade to adjacent tokens rather than to a tiling violation.
+   */
+  private def tile(source: String, from: Int, until: Int, markers: Chunk[Span])(
+      make: (String, Span) => CstNode
+  ): Chunk[CstNode] =
+    if markers.isEmpty then leaf(source, from, until)(make)
+    else
+      val out    = Chunk.newBuilder[CstNode]
+      var cursor = from
+      markers.foreach { marker =>
+        val start = math.max(marker.offset, cursor)
+        val end   = math.min(marker.end, until)
+        if start < end then
+          out.addAll(leaf(source, cursor, start)(make))
+          out.addAll(leaf(source, start, end)(CstNode.Token(_, _)))
+          cursor = end
+      }
+      out.addAll(leaf(source, cursor, until)(make))
+      out.result()
+
+  /** `markers` are the enclosing container's, for punching out of this fragment's unstructured interiors. */
+  private def materialize(source: String, fragment: CstFragment, markers: Chunk[Span]): CstNode = fragment match
     case CstFragment.ThematicBreak(span) =>
       CstNode.ThematicBreak(leaf(source, span.offset, span.end)(CstNode.Token(_, _)), span)
 
@@ -148,7 +207,7 @@ object CstParser:
 
     case CstFragment.SetextHeading(level, span, underlineOffset) =>
       val children =
-        leaf(source, span.offset, underlineOffset)(CstNode.Verbatim(_, _))
+        tile(source, span.offset, underlineOffset, markers)(CstNode.Verbatim(_, _))
           ++ leaf(source, underlineOffset, span.end)(CstNode.Token(_, _))
       CstNode.SetextHeading(level, children, span)
 
@@ -156,12 +215,36 @@ object CstParser:
       val contentEnd = closeStart.getOrElse(span.end)
       val children   =
         leaf(source, span.offset, openEnd)(CstNode.Token(_, _))
-          ++ leaf(source, openEnd, contentEnd)(CstNode.Text(_, _))
+          ++ tile(source, openEnd, contentEnd, markers)(CstNode.Text(_, _))
           ++ leaf(source, contentEnd, span.end)(CstNode.Token(_, _))
       CstNode.FencedCode(children, span)
 
     case CstFragment.IndentedCode(span) =>
-      CstNode.IndentedCode(leaf(source, span.offset, span.end)(CstNode.Verbatim(_, _)), span)
+      CstNode.IndentedCode(tile(source, span.offset, span.end, markers)(CstNode.Verbatim(_, _)), span)
 
     case CstFragment.Paragraph(span) =>
-      CstNode.Paragraph(leaf(source, span.offset, span.end)(CstNode.Verbatim(_, _)), span)
+      CstNode.Paragraph(tile(source, span.offset, span.end, markers)(CstNode.Verbatim(_, _)), span)
+
+    case CstFragment.BlockQuote(span, own, children) =>
+      val all = merged(markers, own)
+      CstNode.BlockQuote(assembleRegion(source, span, all, children), span)
+
+    case CstFragment.BulletList(bullet, tight, span, items) =>
+      CstNode.BulletList(bullet, tight, assembleRegion(source, span, markers, items), span)
+
+    case CstFragment.OrderedList(start, delimiter, tight, span, items) =>
+      CstNode.OrderedList(start, delimiter, tight, assembleRegion(source, span, markers, items), span)
+
+    case CstFragment.ListItem(span, own, children) =>
+      val all = merged(markers, own)
+      CstNode.ListItem(assembleRegion(source, span, all, children), span)
+
+  /**
+   * The enclosing container's markers and this container's, one sorted run. A container's own recorder only sees the
+   * lines its cursor read directly, so the outer set fills in lines that fell between — the `>` on a blank line
+   * standing between two list items, which the items never read.
+   */
+  private def merged(outer: Chunk[Span], own: Chunk[Span]): Chunk[Span] =
+    if outer.isEmpty then own
+    else if own.isEmpty then outer
+    else Chunk.from((outer ++ own).sortBy(_.offset))

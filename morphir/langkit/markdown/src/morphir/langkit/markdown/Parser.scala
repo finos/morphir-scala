@@ -46,8 +46,9 @@ object Parser:
   /**
    * The block phase again, reporting what it read as [[CstFragment]]s rather than as a document.
    *
-   * Same loop, same budget discipline; the collector rides along the way `definitions` does, and only top-level sites
-   * record into it. [[morphir.langkit.markdown.cst.CstParser]] is the one caller.
+   * Same loop, same budget discipline; the collector rides along the way `definitions` does. Container readers open a
+   * child collector per container, so the fragments nest the way the blocks do.
+   * [[morphir.langkit.markdown.cst.CstParser]] is the one caller.
    */
   private[markdown] def parseFragments(
       source: String,
@@ -241,7 +242,7 @@ object Parser:
               case LineKind.BlockQuote   =>
                 // A quote's own cursor has to see the marker, so the line goes back before the recursion reads it.
                 cursor.restore(opening)
-                readBlockQuote(cursor, definitions)
+                readBlockQuote(cursor, definitions, cst)
               case LineKind.Heading(level, rest) =>
                 val headingSpan = Span(line.offset, line.length)
                 val base        = contentSpan(line, rest).offset
@@ -257,10 +258,10 @@ object Parser:
               case LineKind.Html(_)          => Opened.leaf(readHtmlBlock(cursor, line))
               case LineKind.BulletItem(item) =>
                 cursor.restore(opening)
-                readUnorderedList(cursor, definitions, item, line.offset)
+                readUnorderedList(cursor, definitions, item, line.offset, cst)
               case LineKind.OrderedItem(marker) =>
                 cursor.restore(opening)
-                readOrderedList(cursor, definitions, marker, line.offset)
+                readOrderedList(cursor, definitions, marker, line.offset, cst)
               case LineKind.Text | LineKind.Blank =>
                 Opened(readParagraph(cursor, line, definitions, cst), endedOnBlank = false)
             scanner.chargeOutputNodes(NodeCount.one)
@@ -291,13 +292,21 @@ object Parser:
    */
   private def readBlockQuote(
       cursor: ContainerCursor,
-      definitions: scala.collection.mutable.Map[String, LinkDefinition]
+      definitions: scala.collection.mutable.Map[String, LinkDefinition],
+      cst: Maybe[CstCollector]
   ): Opened =
     val scanner = cursor.scanner
     val start   = scanner.offset.toInt
-    val inner   = cursor.nested(ContainerPrefix.BlockQuote)
-    val run     = scanner.withNesting(parseDeferred(inner, definitions, Absent))
-    val span    = Span.fromStartEnd(start, cursor.consumedEnd)
+    // The quote's own collector: its run records child fragments into it, and its cursor records the `>` marker span
+    // of every line it reads. The quote fragment carries both, so nesting is recorded by construction.
+    val child = cst.map(_ => CstCollector())
+    val inner = cursor.nested(ContainerPrefix.BlockQuote, child)
+    val run   = scanner.withNesting(parseDeferred(inner, definitions, child))
+    val span  = Span.fromStartEnd(start, cursor.consumedEnd)
+    for
+      collector <- cst
+      recorded  <- child
+    do collector.record(CstFragment.BlockQuote(span, recorded.markers, recorded.fragments))
     // Not a container that can end on a blank line, unlike a list item: the quote's prefix needs a `>`, so the blank
     // lines it swallows are `>` with nothing after it. Those are blank *content*, not blank lines, and they do not
     // loosen the list holding the quote -- example 320 is `* a`, an indented quote ending in a bare `>`, then `* c`,
@@ -739,17 +748,20 @@ object Parser:
       cursor: ContainerCursor,
       definitions: scala.collection.mutable.Map[String, LinkDefinition],
       first: BulletMarker,
-      markerAt: Int
+      markerAt: Int,
+      cst: Maybe[CstCollector]
   ): Opened =
     val start = cursor.scanner.offset.toInt
     val items = List.newBuilder[DeferredItem]
+    // The list's own collector: each item records its fragment here, and the list fragment gathers them.
+    val listCst = cst.map(_ => CstCollector())
 
     @tailrec def gather(
         marker: BulletMarker,
         at: Int,
         loose: Boolean
     ): (loose: Boolean, end: Int, endedOnBlank: Boolean) =
-      val (item, run) = readItem(cursor, definitions, at, marker.columns, marker.empty)
+      val (item, run) = readItem(cursor, definitions, at, marker.columns, marker.empty, listCst)
       items += item
       val soFar  = loose || run.interiorBlank
       val resume = cursor.checkpoint()
@@ -766,6 +778,10 @@ object Parser:
     val loose     = gathered.loose
     val collected = Chunk.from(items.result())
     val listSpan  = Span.fromStartEnd(start, gathered.end)
+    for
+      collector <- cst
+      recorded  <- listCst
+    do collector.record(CstFragment.BulletList(first.bullet, tight = !loose, listSpan, recorded.fragments))
     Opened(
       Present(Deferred.prose(defs => Block.UnorderedList(collected.map(_.resolve(defs)), !loose, listSpan))),
       gathered.endedOnBlank
@@ -781,17 +797,20 @@ object Parser:
       cursor: ContainerCursor,
       definitions: scala.collection.mutable.Map[String, LinkDefinition],
       first: OrderedMarker,
-      markerAt: Int
+      markerAt: Int,
+      cst: Maybe[CstCollector]
   ): Opened =
     val start = cursor.scanner.offset.toInt
     val items = List.newBuilder[DeferredItem]
+    // The list's own collector: each item records its fragment here, and the list fragment gathers them.
+    val listCst = cst.map(_ => CstCollector())
 
     @tailrec def gather(
         marker: OrderedMarker,
         at: Int,
         loose: Boolean
     ): (loose: Boolean, end: Int, endedOnBlank: Boolean) =
-      val (item, run) = readItem(cursor, definitions, at, marker.columns, marker.empty)
+      val (item, run) = readItem(cursor, definitions, at, marker.columns, marker.empty, listCst)
       items += item
       val soFar  = loose || run.interiorBlank
       val resume = cursor.checkpoint()
@@ -808,6 +827,13 @@ object Parser:
     val loose     = gathered.loose
     val collected = Chunk.from(items.result())
     val listSpan  = Span.fromStartEnd(start, gathered.end)
+    for
+      collector <- cst
+      recorded  <- listCst
+    do
+      collector.record(
+        CstFragment.OrderedList(first.number, first.delimiter, tight = !loose, listSpan, recorded.fragments)
+      )
     Opened(
       Present(Deferred.prose(defs =>
         Block.OrderedList(first.number, collected.map(_.resolve(defs)), !loose, listSpan)
@@ -850,21 +876,29 @@ object Parser:
       definitions: scala.collection.mutable.Map[String, LinkDefinition],
       markerAt: Int,
       columns: Int,
-      startsEmpty: Boolean
+      startsEmpty: Boolean,
+      cst: Maybe[CstCollector]
   ): (DeferredItem, BlockRun) =
     val scanner = cursor.scanner
     val start   = scanner.offset.toInt
-    val inner   = cursor.nested(ContainerPrefix.ListItem(markerAt, columns))
+    // The item's own collector: child fragments and the marker spans its cursor spends — the marker line's prefix and
+    // each continuation line's indentation. The item fragment is recorded into the list's collector, `cst`.
+    val child = cst.map(_ => CstCollector())
+    val inner = cursor.nested(ContainerPrefix.ListItem(markerAt, columns), child)
 
     def item(run: BlockRun): (DeferredItem, BlockRun) =
       val span = Span.fromStartEnd(start, run.contentEnd)
+      for
+        collector <- cst
+        recorded  <- child
+      do collector.record(CstFragment.ListItem(span, recorded.markers, recorded.fragments))
       (DeferredItem(defs => ListItem(Chunk.from(run.blocks.map(_.resolve(defs))), span)), run)
 
     // An item must consume at least the line that opened it. Guarding that here rather than trusting it: an item that
     // consumed nothing would leave the list gathering the same line for ever, and because nothing was read there is no
     // work charged for the scan budget to notice.
     def read(): BlockRun =
-      scanner.requireProgress(BlocksPhase)(scanner.withNesting(parseDeferred(inner, definitions, Absent)))
+      scanner.requireProgress(BlocksPhase)(scanner.withNesting(parseDeferred(inner, definitions, child)))
 
     if !startsEmpty then item(read())
     else
