@@ -10,11 +10,13 @@ import morphir.langkit.markdown.dsl.given
  * The writer's contract is structural fidelity, not byte fidelity: `Parser.parse(MdWriter.write(tree))` succeeds and
  * yields the tree it was given, compared after normalization.
  *
- * Normalization drops the two differences a parse legitimately introduces. Positions are provenance — a generated node
- * honestly has none, a parsed one does — so they come off. And a parse splits prose at every escape and every entity,
+ * Normalization drops the three differences a parse legitimately introduces. Positions are provenance — a generated
+ * node honestly has none, a parsed one does — so they come off. A parse splits prose at every escape and every entity,
  * so `\*a` arrives as two [[MdcNode.Text]] nodes where the author wrote one; adjacent text merges back into one node
- * before the comparison. Nothing else is forgiven: a broken parse or a changed meaning is a failure, while
- * over-escaping, which changes only the bytes, is not.
+ * before the comparison. And a [[MdcNode.FrontMatter.Yaml]] value gains a trailing newline when it lacks one: the
+ * closing delimiter always starts a line of its own, so a parse of a non-empty value can never hand back one without a
+ * final `\n`, the same fact [[MdWriter.write]] relies on to emit it. Nothing else is forgiven: a broken parse or a
+ * changed meaning is a failure, while over-escaping, which changes only the bytes, is not.
  */
 class MdWriterTests extends Test[Any]:
 
@@ -38,8 +40,20 @@ class MdWriterTests extends Test[Any]:
   private def phrasingOf(nodes: Chunk[MdcNode.PhrasingContent]): Chunk[MdcNode.PhrasingContent] =
     mergedTexts(nodes).map(_.asInstanceOf[MdcNode.PhrasingContent])
 
+  /**
+   * A frontmatter value, padded with the trailing newline a parse always hands one back with (see the class doc):
+   * `yaml("title: x")`, authored with no trailing newline, and the same value reparsed from what the writer wrote,
+   * compare equal after this padding even though only one of them carries the `\n` before it.
+   */
+  private def normalizeFrontMatter(front: MdcNode.FrontMatter): MdcNode.FrontMatter = front match
+    case MdcNode.FrontMatter.Yaml(value, meta) =>
+      val raw    = value.unwrap
+      val padded = if raw.isEmpty || raw.endsWith("\n") then raw else raw + "\n"
+      MdcNode.FrontMatter.Yaml(YamlDocText(padded), meta)
+
   private def normalize(node: MdcNode): MdcNode = node match
-    case MdcNode.Root(children, frontmatter, meta)            => MdcNode.Root(flowOf(children), frontmatter, meta)
+    case MdcNode.Root(children, frontmatter, meta) =>
+      MdcNode.Root(flowOf(children), frontmatter.map(normalizeFrontMatter), meta)
     case MdcNode.Paragraph(children, meta)                    => MdcNode.Paragraph(phrasingOf(children), meta)
     case MdcNode.Heading(depth, children, meta)               => MdcNode.Heading(depth, phrasingOf(children), meta)
     case MdcNode.Blockquote(children, meta)                   => MdcNode.Blockquote(flowOf(children), meta)
@@ -53,7 +67,7 @@ class MdWriterTests extends Test[Any]:
 
   private def normalized(root: MdcNode.Root): MdcNode = normalize(root.unpositioned)
 
-  private def roundTrips(tree: MdcNode.Root, label: String)(using MdStyle)(using AssertScope): Unit =
+  private def roundTrips(tree: MdcNode.Root, label: String)(using MdStyle)(using MdProfile)(using AssertScope): Unit =
     val written = MdWriter.write(tree)
     Parser.parse(written) match
       case Result.Success(reparsed) =>
@@ -131,6 +145,45 @@ class MdWriterTests extends Test[Any]:
     }
 
     "a code span of spaces keeps every one of them" in roundTrips(doc(p(code("   "))), "all-space code span")
+  }
+
+  "frontmatter" - {
+    given MdProfile = MdProfile.commonmark.withYamlFrontmatter
+
+    "a document with frontmatter writes the delimiter, value and delimiter first, then a blank line before the body" in {
+      val tree    = doc(frontmatter = yaml("title: x"))(p("hi"))
+      val written = MdWriter.write(tree)
+      assert(written == "---\ntitle: x\n---\n\nhi\n", oneLine(written))
+      roundTrips(tree, "frontmatter with a body")
+    }
+
+    "a frontmatter-only document ends right after the closing delimiter line" in {
+      val tree    = doc(frontmatter = yaml("title: x"))()
+      val written = MdWriter.write(tree)
+      assert(written == "---\ntitle: x\n---\n", oneLine(written))
+      roundTrips(tree, "frontmatter only")
+    }
+
+    "a frontmatter value that already ends in a newline is not given a second one" in
+      assert(MdWriter.write(doc(frontmatter = yaml("title: x\n"))()) == "---\ntitle: x\n---\n")
+
+    "an empty frontmatter value emits nothing between its two delimiter lines" in {
+      val tree = doc(frontmatter = yaml(""))()
+      assert(MdWriter.write(tree) == "---\n---\n")
+      roundTrips(tree, "empty frontmatter value")
+    }
+
+    /**
+     * The sixth shape with no faithful spelling (see the [[MdWriter]] class doc): a frontmatter value holding a line
+     * that reads exactly as the closing delimiter. The writer spells the value as given — there is no escape a YAML
+     * value line can take the way a fenced code block outgrows its own longest run of backticks — so a reparse closes
+     * the block at that line instead of the one the author meant, and the remainder becomes body content that was never
+     * there. Pinned by written text rather than round-tripped, since the round trip is exactly what breaks.
+     */
+    "a frontmatter value holding a `---` line has no faithful spelling; the writer spells it as given" in {
+      val written = MdWriter.write(doc(frontmatter = yaml("a\n---\nb"))())
+      assert(written == "---\na\n---\nb\n---\n", oneLine(written))
+    }
   }
 
   "constructs round-trip" - {

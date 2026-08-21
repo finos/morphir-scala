@@ -16,7 +16,7 @@ import morphir.langkit.markdown.cst.MdcCstNode
  * [[MdStyleKeys]]: the writer asks the node's own data first and falls back to the style. Nothing here consults the CST
  * — the AST is the input, and a tree the parser never saw writes exactly as well as one it did.
  *
- * Five shapes have no faithful spelling and are documented rather than fixed.
+ * Six shapes have no faithful spelling and are documented rather than fixed.
  *
  * An [[MdcNode.InlineCode]] whose value is empty writes as a single-space code span, because CommonMark cannot express
  * a code span holding nothing. It is a node no parse produces, and the alternative — an unbalanced backtick run, which
@@ -38,6 +38,13 @@ import morphir.langkit.markdown.cst.MdcCstNode
  * a hand-built destination holding a raw space or a raw `&`-entity is outside the reparse image this contract covers,
  * and an author supplying one should percent-encode it first.
  *
+ * An [[MdcNode.FrontMatter.Yaml]] value holding a line that reads exactly as its own closing delimiter (`---`) has no
+ * faithful spelling either: [[write]] emits the value verbatim between the two delimiter lines it owns, and a reparse
+ * closes the block at the first such line inside it rather than at the one the author meant, spilling the remainder
+ * into a document body that was never there. A fenced code block escapes the same jeopardy by outgrowing the longest
+ * run of its own fence character; a frontmatter value has no equivalent escape to grow, so this one is pinned by its
+ * written text rather than round-tripped. See [[write]].
+ *
  * Blocks are written whole, each to its own string, and joined; container prefixes (`> `, list-item indentation) are
  * then applied line by line to what a container holds. Writing a prefix stack down through a streaming emitter would
  * save the intermediate strings and cost the clarity, and a Markdown document is not large enough for that trade.
@@ -45,14 +52,24 @@ import morphir.langkit.markdown.cst.MdcCstNode
 object MdWriter:
 
   /**
-   * The document as Markdown text, ending in exactly one newline; the empty document writes nothing.
+   * The document as Markdown text, ending in exactly one newline; the empty document — no frontmatter, no children —
+   * writes nothing.
+   *
+   * Frontmatter, when present, is written first: its delimiter line, its value, and the delimiter line again, each
+   * ending in its own newline. A frontmatter-only document ends there, right after the closing delimiter line; one
+   * followed by blocks gets the same blank line every other pair of blocks does, between the closing delimiter and the
+   * first one.
    *
    * @param root
    *   the tree to write
    */
   def write(root: MdcNode.Root)(using MdStyle): String =
-    if root.children.isEmpty then ""
-    else blocks(root.children, BlankSeparated) + "\n"
+    val body = if root.children.isEmpty then "" else blocks(root.children, BlankSeparated) + "\n"
+    root.frontmatter match
+      case Absent         => body
+      case Present(front) =>
+        val frontText = writeFrontMatter(front)
+        if body.isEmpty then frontText else frontText + "\n" + body
 
   /**
    * The document's CST, obtained by writing it and parsing what was written.
@@ -64,6 +81,21 @@ object MdWriter:
    */
   def raise(root: MdcNode.Root)(using MdStyle): MdcCstNode.Document =
     CstParser.parse(write(root))(using MdProfile.commonmark.withYamlFrontmatter)
+
+  /**
+   * A frontmatter block: its kind's delimiter, its value, and the delimiter again, each ending its own line.
+   *
+   * The value gains a trailing newline when it lacks one, since a delimiter line always closes a line of its own — a
+   * parse slices the value up to where the closing delimiter's own line begins, so a value that already ends in `\n` is
+   * left alone. An empty value stays empty rather than becoming a single blank line, matching what an empty value
+   * region parses back to.
+   */
+  private def writeFrontMatter(front: MdcNode.FrontMatter): String = front match
+    case MdcNode.FrontMatter.Yaml(value, _) =>
+      val delimiter = FrontMatterKind.Yaml.delimiter
+      val raw       = value.unwrap
+      val body      = if raw.isEmpty || raw.endsWith("\n") then raw else raw + "\n"
+      s"$delimiter\n$body$delimiter\n"
 
   /** Between blocks that may not touch: paragraphs, and everything at the top level or inside a quote. */
   private val BlankSeparated = "\n\n"

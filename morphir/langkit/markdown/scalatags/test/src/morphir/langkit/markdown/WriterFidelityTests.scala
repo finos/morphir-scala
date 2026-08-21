@@ -127,6 +127,24 @@ class WriterFidelityTests extends Test[Any]:
       "a soft break inside one text node" in rendersSame(doc(p(text("first\nsecond"))), "soft break")
     }
 
+    "frontmatter" - {
+
+      /**
+       * Frontmatter carries no rendering of its own — [[MarkdownFold.compile]] folds only `Root.children`, so a
+       * frontmatter tree's body renders exactly as it would with no frontmatter at all. What the writer owes here is
+       * the frontmatter value itself: that it comes back structurally unchanged once written and reparsed.
+       */
+      "a frontmatter doc's body renders unaffected, and the frontmatter value round-trips structurally" in {
+        val tree = doc(frontmatter = yaml("title: x\n"))(p("hi"))
+        rendersSame(tree, "frontmatter doc body")
+        val writtenRoot = Lower.lower(MdWriter.raise(tree))
+        assert(
+          writtenRoot.frontmatter.map(_.unpositioned) == tree.frontmatter.map(_.unpositioned),
+          s"frontmatter did not round-trip: ${writtenRoot.frontmatter}"
+        )
+      }
+    }
+
     "nested quote, list and code" - {
 
       "a quote holding a list holding code" in
@@ -224,11 +242,14 @@ class WriterFidelityTests extends Test[Any]:
     }
 
     /**
-     * Five shapes the writer's scaladoc documents as unspellable, and none is skipped outright.
+     * Five of the six shapes the writer's scaladoc documents as unspellable have an HTML rendering to compare, and none
+     * of those five is skipped here. The sixth — a frontmatter value holding a line that reads as its own closing
+     * delimiter — has no HTML rendering at all, since frontmatter never reaches the compiler fold that turns a tree
+     * into HTML; it is pinned by written text alone, in `MdWriterTests`.
      *
-     * The first two are checked against the nearest-meaning behaviour the writer commits to, using the writer's own
-     * fixed point rather than a hardcoded HTML string. A tree the writer already wrote once should write the same way
-     * again — if `rendersSame` held here, the documented limit would already be gone, so the assertions are that it
+     * The first two below are checked against the nearest-meaning behaviour the writer commits to, using the writer's
+     * own fixed point rather than a hardcoded HTML string. A tree the writer already wrote once should write the same
+     * way again — if `rendersSame` held here, the documented limit would already be gone, so the assertions are that it
      * does not, and that what the writer settles on is stable.
      *
      * The remaining three all share one context — content that must fit inside a single-physical-line ATX heading — so

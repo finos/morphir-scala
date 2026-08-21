@@ -21,6 +21,15 @@ given Conversion[String, Text] = Text(_)
 
 def doc(children: FlowContent*): Root = Root(Chunk.from(children))
 
+/**
+ * A document opening with frontmatter, curried so the body reads as a trailing varargs call:
+ * `doc(frontmatter = yaml("..."))(p("hi"))`.
+ */
+def doc(frontmatter: FrontMatter)(children: FlowContent*): Root = Root(Chunk.from(children), Present(frontmatter))
+
+/** A `---`-delimited YAML frontmatter block, authored from its raw document text. */
+def yaml(value: String): FrontMatter.Yaml = FrontMatter.Yaml(YamlDocText(value))
+
 def h1(children: PhrasingContent*): Heading = Heading(HeadingLevel.One, Chunk.from(children))
 def h2(children: PhrasingContent*): Heading = Heading(HeadingLevel.Two, Chunk.from(children))
 def h3(children: PhrasingContent*): Heading = Heading(HeadingLevel.Three, Chunk.from(children))
