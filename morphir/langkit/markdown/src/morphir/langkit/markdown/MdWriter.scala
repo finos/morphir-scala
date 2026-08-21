@@ -16,6 +16,11 @@ import morphir.langkit.markdown.cst.MdcCstNode
  * [[MdStyleKeys]]: the writer asks the node's own data first and falls back to the style. Nothing here consults the CST
  * — the AST is the input, and a tree the parser never saw writes exactly as well as one it did.
  *
+ * One node has no faithful spelling and is documented rather than fixed: an [[MdcNode.InlineCode]] whose value is empty
+ * writes as a single-space code span, because CommonMark cannot express a code span holding nothing. It is a node no
+ * parse produces, and the alternative — an unbalanced backtick run, which reparses as prose — loses the code span
+ * altogether. See [[writeInlineCode]].
+ *
  * Blocks are written whole, each to its own string, and joined; container prefixes (`> `, list-item indentation) are
  * then applied line by line to what a container holds. Writing a prefix stack down through a streaming emitter would
  * save the intermediate strings and cost the clarity, and a Markdown document is not large enough for that trade.
@@ -66,9 +71,12 @@ object MdWriter:
     case MdcNode.Html(value, _)          => value
     case MdcNode.Blockquote(children, _) => prefixed(blocks(children, BlankSeparated), "> ", ">")
     case list: MdcNode.List              => writeList(list)
-    // `***` where `---` would be a setext underline for a paragraph it follows, and where `- - -` would be ambiguous
-    // with the bullet in scope. The two spellings mean the same break; only the collisions differ.
-    case MdcNode.ThematicBreak(_) => if style.bullet == '-' then "***" else "---"
+    // Three spellings mean one break; only what else they could be read as differs. A `-` bullet takes `***`, so a
+    // break is never the `- - -` its own list could have written. Every other bullet takes `___`, which is neither a
+    // list marker nor a setext underline. `---` is both, and the second is what rules it out: a tight list item
+    // writes its blocks with no blank line between them, and a `---` under a paragraph there is that paragraph's
+    // underline rather than a break — the break disappears and the paragraph becomes a heading.
+    case MdcNode.ThematicBreak(_) => if style.bullet == '-' then "***" else "___"
 
   /**
    * A heading, ATX or setext.
@@ -176,12 +184,20 @@ object MdWriter:
    * The backtick run outgrows the longest run inside the value, so the closer cannot land early. Padding spaces go on
    * when the value would otherwise touch the delimiter — a leading or trailing backtick — or when the value both begins
    * and ends with a space, which CommonMark strips off again on the way back in.
+   *
+   * An empty value is the one case with no faithful spelling, and it writes as a single-space span. CommonMark has no
+   * way to say "a code span holding nothing": the padding rule removes a space from each end only when the interior
+   * does *not* consist entirely of spaces, so `` ` ` `` is a span holding one space and `` `` `` is two backticks that
+   * close nothing, which reparses as literal text. Between a span whose value is off by one space and prose that is no
+   * longer code at all, the first keeps the node a code span, and the writer never emits an unbalanced run.
    */
   private def writeInlineCode(value: String): String =
-    val ticks    = "`" * math.max(1, longestRun(value, '`') + 1)
-    val touches  = value.startsWith("`") || value.endsWith("`")
-    val stripped = value.startsWith(" ") && value.endsWith(" ") && !value.forall(_ == ' ')
-    if touches || stripped then s"$ticks $value $ticks" else s"$ticks$value$ticks"
+    if value.isEmpty then "` `"
+    else
+      val ticks    = "`" * math.max(1, longestRun(value, '`') + 1)
+      val touches  = value.startsWith("`") || value.endsWith("`")
+      val stripped = value.startsWith(" ") && value.endsWith(" ") && !value.forall(_ == ' ')
+      if touches || stripped then s"$ticks $value $ticks" else s"$ticks$value$ticks"
 
   /** A link or image target: the destination, and the title behind it when there is one. */
   private def target(url: String, title: Maybe[String]): String =

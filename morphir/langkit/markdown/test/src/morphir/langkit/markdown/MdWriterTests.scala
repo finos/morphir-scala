@@ -115,6 +115,22 @@ class MdWriterTests extends Test[Any]:
      */
     "a code value gains the newline its closing fence needs" in
       assert(MdWriter.write(doc(codeBlock("scala", "val x = 1"))) == "```scala\nval x = 1\n```\n")
+
+    /**
+     * The one node with no faithful spelling. CommonMark strips a space from each end of a code span only when its
+     * interior is not all spaces, so no backtick run says "holding nothing"; and `` `` `` says nothing at all, being an
+     * unbalanced run that reparses as prose. The written form is pinned here, and so is what it reparses to, so the
+     * limit is a fact of the suite rather than a claim in a comment.
+     */
+    "an empty inline code value writes as a single-space code span" in {
+      assert(MdWriter.write(doc(p(code("")))) == "` `\n")
+      Parser.parse(MdWriter.write(doc(p(code(""))))) match
+        case Result.Success(reparsed) =>
+          assert(normalized(reparsed) == normalized(doc(p(code(" ")))), s"${normalized(reparsed)}")
+        case other => throw new IllegalStateException(s"an empty code span wrote unparseable text: $other")
+    }
+
+    "a code span of spaces keeps every one of them" in roundTrips(doc(p(code("   "))), "all-space code span")
   }
 
   "constructs round-trip" - {
@@ -294,7 +310,18 @@ class MdWriterTests extends Test[Any]:
 
     "a thematic break avoids the bullet in scope" in {
       assert(MdWriter.write(doc(hr)) == "***\n")
-      assert(MdWriter.write(doc(hr))(using MdStyle(bullet = '*')) == "---\n")
+      assert(MdWriter.write(doc(hr))(using MdStyle(bullet = '*')) == "___\n")
+    }
+
+    /**
+     * A tight list item writes its blocks with no blank line between them, which is where the third spelling of a
+     * thematic break earns its keep: `---` under a paragraph is that paragraph's setext underline, so a break that
+     * follows one inside a tight item would silently promote it to a heading.
+     */
+    "a thematic break after a paragraph in a tight item stays a break under every bullet" in {
+      roundTrips(doc(ul(li(p("x"), hr))), "break after a paragraph, `-` bullet")
+      roundTrips(doc(ul(li(p("x"), hr))), "break after a paragraph, `*` bullet")(using MdStyle(bullet = '*'))
+      roundTrips(doc(ul(li(p("x"), hr))), "break after a paragraph, `+` bullet")(using MdStyle(bullet = '+'))
     }
   }
 
