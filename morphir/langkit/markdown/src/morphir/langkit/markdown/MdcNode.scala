@@ -123,6 +123,8 @@ object MdcNode:
   // phrasing
   final case class Text(value: String, span: Maybe[Span] = Absent)       extends MdcNode
   final case class InlineCode(value: String, span: Maybe[Span] = Absent) extends MdcNode
+
+  /** A link. An autolink lowers here too, its raw URI as both destination and only text child. */
   final case class Link(url: String, title: Maybe[String], children: Chunk[PhrasingContent], span: Maybe[Span] = Absent)
       extends MdcNode
   final case class Image(url: String, title: Maybe[String], alt: String, span: Maybe[Span] = Absent) extends MdcNode

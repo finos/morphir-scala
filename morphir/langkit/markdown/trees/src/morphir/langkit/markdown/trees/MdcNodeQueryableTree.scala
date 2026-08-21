@@ -13,7 +13,7 @@ import morphir.langkit.trees.unist.{UnistProjection, UnistSpan}
  * match, never from `getClass.getSimpleName`, which is fragile under `fullLinkJS` renaming.
  *
  * [[MdcNode]] gives every case one supertype, so the union alias the old `Document | Block | ListItem | Inline`
- * instance needed is gone: `nodeType`, `children` and `text` read the enum's own accessors (`childNodes`, `literal`)
+ * instance needed is gone: `nodeType`, `children` and `text` read the trait's own accessors (`childNodes`, `literal`)
  * instead of matching per case, and the field name is uniformly `children` because [[MdcNode]] carries no per-case
  * field names.
  */

@@ -22,7 +22,7 @@ class MdcNodeTests extends Test[Any]:
       assert(MdcNode.Image("/u", Absent, "alt", span).childNodes.isEmpty)
     }
 
-    "value is Present exactly on the five literals" in {
+    "literal is Present exactly on the five literals" in {
       assert(text("a").literal == Present("a"))
       assert(MdcNode.InlineCode("c", span).literal == Present("c"))
       assert(MdcNode.Code(FenceInfo.empty, "b", span).literal == Present("b"))

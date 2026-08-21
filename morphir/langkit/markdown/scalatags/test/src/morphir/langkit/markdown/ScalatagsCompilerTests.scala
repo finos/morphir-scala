@@ -7,9 +7,6 @@ import morphir.langkit.core.Span
 /**
  * Every expectation here is the `html` field of a real CommonMark 0.31.2 example, named by its number, copied
  * byte-for-byte. None is hand-written: if an expectation and the spec disagree, the expectation is the bug.
- *
- * The AST reaches only five block kinds today, so these cover the whole algebra. Inline nodes, and the examples that
- * exercise them, arrive with intent 0021.
  */
 class ScalatagsCompilerTests extends Test[Any]:
 
