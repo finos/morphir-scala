@@ -2,7 +2,7 @@ package morphir.knowledge.okf
 
 import kyo.*
 import kyo.test.*
-import morphir.langkit.markdown.{Block, Inline}
+import morphir.langkit.markdown.MdcNode
 
 class ConceptTests extends Test[Any]:
 
@@ -31,14 +31,14 @@ class ConceptTests extends Test[Any]:
           assert(concept.frontmatter.title == Present("Publishing"))
           assert(concept.frontmatter.description == Present("End-to-end steps."))
           assert(concept.frontmatter.tags == Chunk("elm", "ir"))
-          assert(concept.body.blocks.size == 2)
-          concept.body.blocks(0) match
-            case Block.Heading(level, content, _) =>
-              assert(level.toInt == 1)
+          assert(concept.body.children.size == 2)
+          concept.body.children(0) match
+            case MdcNode.Heading(depth, content, _) =>
+              assert(depth.toInt == 1)
               assert(content.map {
-                case Inline.Text(value, _)     => value
-                case Inline.CodeSpan(value, _) => value
-                case other                     => other.toString
+                case MdcNode.Text(value, _)       => value
+                case MdcNode.InlineCode(value, _) => value
+                case other                        => other.toString
               }.mkString == "Title")
             case _ => assert(false)
         case _ => assert(false)
@@ -48,7 +48,7 @@ class ConceptTests extends Test[Any]:
         case Result.Success(concept) =>
           assert(!concept.hasFrontmatterBlock)
           assert(concept.frontmatter == Frontmatter.empty)
-          assert(concept.body.blocks.size == 1)
+          assert(concept.body.children.size == 1)
         case _ => assert(false)
     }
     "reads a sources list of mappings" in {

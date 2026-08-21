@@ -1,13 +1,13 @@
 package morphir.knowledge.okf
 
 import kyo.*
-import morphir.langkit.markdown.{Document, Parser}
+import morphir.langkit.markdown.{MdcNode, Parser}
 
 /** One markdown file inside an OKF bundle: frontmatter plus a parsed body. */
 final case class Concept(
     path: String,
     frontmatter: Frontmatter,
-    body: Document,
+    body: MdcNode.Root,
     kind: DocKind = DocKind.Concept,
     hasFrontmatterBlock: Boolean = false
 ) derives CanEqual
@@ -38,7 +38,7 @@ object Concept:
           markdown(body).map(doc => Concept(path, fm, doc, kind, hasFrontmatterBlock = true))
         }
 
-  private def markdown(source: String): Result[OkfError, Document] =
+  private def markdown(source: String): Result[OkfError, MdcNode.Root] =
     Parser.parse(source) match
       case Result.Success(doc) => Result.succeed(doc)
       case Result.Failure(err) => Result.fail(OkfError.Markdown(err))
