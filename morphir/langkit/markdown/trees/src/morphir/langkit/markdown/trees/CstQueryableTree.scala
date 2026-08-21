@@ -21,6 +21,7 @@ object CstQueryableTree:
 
     def nodeType(t: MdcCstNode): NodeTypeName = t match
       case _: MdcCstNode.Document                => NodeTypeName("document")
+      case _: MdcCstNode.Frontmatter             => NodeTypeName("frontmatter")
       case _: MdcCstNode.ThematicBreak           => NodeTypeName("thematicBreak")
       case _: MdcCstNode.AtxHeading              => NodeTypeName("atxHeading")
       case _: MdcCstNode.SetextHeading           => NodeTypeName("setextHeading")

@@ -24,27 +24,36 @@ object Parser:
 
   private val BlocksPhase = ScanPhase("markdown.blocks")
 
-  def parse(source: String): Result[ParseError, MdcNode.Root] =
+  def parse(source: String)(using MdProfile): Result[ParseError, MdcNode.Root] =
     parse(source, ScanBudget.default)
 
   /**
    * The AST is produced only by lowering: one block-phase pass records the CST's fragments and fills its inline slots,
    * the CST assembles from them, and [[morphir.langkit.markdown.cst.Lower]] walks it down to the [[MdcNode.Root]]. The
    * CST is the parse; the AST is its meaning.
+   *
+   * The [[MdProfile]] in scope says what is recognized beyond CommonMark. Its given default recognizes nothing, so a
+   * call site that names no profile parses exactly the CommonMark it always did.
    */
-  def parse(source: String, budget: ScanBudget): Result[ParseError, MdcNode.Root] =
-    parseFragments(source, budget).map(fragments => cst.Lower.lower(cst.CstParser.assembleDocument(source, fragments)))
+  def parse(source: String, budget: ScanBudget)(using profile: MdProfile): Result[ParseError, MdcNode.Root] =
+    parseFragments(source, budget, profile).map(fragments =>
+      cst.Lower.lower(cst.CstParser.assembleDocument(source, fragments))
+    )
 
   private[markdown] def parseWithMetrics(
       source: String,
-      budget: ScanBudget
+      budget: ScanBudget,
+      profile: MdProfile
   ): Result[ParseError, (MdcNode.Root, ScanMetrics)] =
     SourceScanner.scan(source, budget, phase = Present(BlocksPhase)) { scanner =>
       scanner.chargeOutputNodes(NodeCount.one)
       val definitions = scala.collection.mutable.Map.empty[String, LinkDefinition]
-      val blocks      = parseBlocks(ContainerCursor.top(scanner), definitions, Absent)
+      val cursor      = ContainerCursor.top(scanner)
+      val front       = frontMatterOf(cursor, profile)
+      val blocks      = parseBlocks(cursor, definitions, Absent)
       // Keep the caller's coordinate space: do not rewrite CRLF before measuring spans.
-      val document = MdcNode.Root(blocks, meta = MdcMeta.at(Span(0, source.length)))
+      val document =
+        MdcNode.Root(blocks, front.map(frontMatterNode(source, _)), meta = MdcMeta.at(Span(0, source.length)))
       (document, scanner.metrics)
     } match
       case ScanResult.Success(value) => Result.succeed(value)
@@ -59,17 +68,90 @@ object Parser:
    */
   private[markdown] def parseFragments(
       source: String,
-      budget: ScanBudget = ScanBudget.default
+      budget: ScanBudget,
+      profile: MdProfile
   ): Result[ParseError, Chunk[CstFragment]] =
     SourceScanner.scan(source, budget, phase = Present(BlocksPhase)) { scanner =>
       scanner.chargeOutputNodes(NodeCount.one)
       val definitions = scala.collection.mutable.Map.empty[String, LinkDefinition]
       val collector   = CstCollector()
-      val _           = parseBlocks(ContainerCursor.top(scanner), definitions, Present(collector))
+      val cursor      = ContainerCursor.top(scanner)
+      // Recorded before the block phase runs, so the fragment sits first in source order the way every other one does.
+      frontMatterOf(cursor, profile).foreach(front =>
+        collector.record(CstFragment.Frontmatter(front.span, front.openEnd, front.closeStart))
+      )
+      val _ = parseBlocks(cursor, definitions, Present(collector))
       collector.fragments
     } match
       case ScanResult.Success(value) => Result.succeed(value)
       case ScanResult.Failure(error) => Result.fail(ParseError.Scan(error))
+
+  /**
+   * The geometry of a recognized frontmatter block: which kind claimed it, what it spans, and where its value sits.
+   *
+   * `openEnd` is the offset after the opening delimiter line's terminator and `closeStart` the offset of the closing
+   * line, so `[openEnd, closeStart)` is the raw value exactly as written — line endings and all.
+   */
+  private type FrontMatterSlice = (kind: FrontMatterKind, span: Span, openEnd: Int, closeStart: Int)
+
+  /**
+   * The frontmatter block at the head of the source, or [[kyo.Absent]] when there is none to recognize.
+   *
+   * Runs inside the scan, before the block phase, and reads through the same cursor the block phase will use, so the
+   * lines it consumes are charged once and the block phase carries on from wherever this left the scanner. Recognition
+   * is by exact match on the *raw* line — `Line.view.text`, not the tab-expanded `text`, and no trimming — because a
+   * delimiter is a spelling rather than a shape: ` ---` is not `---`, and neither is `----`.
+   *
+   * A block that never closes is not frontmatter (a document may legitimately open with a thematic break), so the EOF
+   * case rewinds to where it started and the block phase reads those lines itself. That case costs a second scan of
+   * what the search read, charged to the same budget: the rule cannot know a block is unclosed without reaching the
+   * end, and charging twice is the safe direction to be wrong in.
+   */
+  private def frontMatterOf(cursor: ContainerCursor, profile: MdProfile): Maybe[FrontMatterSlice] =
+    if !profile.supportsFrontMatter then Absent
+    else
+      val scanner = cursor.scanner
+      val start   = cursor.checkpoint()
+
+      @tailrec def seekClose(delimiter: String): Maybe[(closeStart: Int, end: Int)] =
+        cursor.readLine() match
+          case Absent        => Absent
+          case Present(line) =>
+            if line.view.text == delimiter then Present((closeStart = line.offset, end = scanner.offset.toInt))
+            else seekClose(delimiter)
+
+      val recognized: Maybe[FrontMatterSlice] =
+        cursor.readLine() match
+          case Absent         => Absent
+          case Present(first) =>
+            profile.frontmatter.find(_.delimiter == first.view.text) match
+              case None       => Absent
+              case Some(kind) =>
+                // Whatever terminated the opening line, the scanner stands after it: that is where the value opens.
+                val openEnd = scanner.offset.toInt
+                seekClose(kind.delimiter).map(close =>
+                  (
+                    kind = kind,
+                    span = Span.fromStartEnd(0, close.end),
+                    openEnd = openEnd,
+                    closeStart = close.closeStart
+                  )
+                )
+
+      if recognized.isEmpty then cursor.restore(start)
+      recognized
+
+  /**
+   * The AST node one recognized block lowers to, its raw value sliced straight out of the source.
+   *
+   * For [[parseWithMetrics]], which builds its root from the block loop rather than from the CST. It agrees with
+   * [[morphir.langkit.markdown.cst.Lower]] by construction: the value region is `[openEnd, closeStart)` there too, held
+   * as the block's one text leaf.
+   */
+  private def frontMatterNode(source: String, slice: FrontMatterSlice): MdcNode.FrontMatter =
+    val raw = source.substring(slice.openEnd, slice.closeStart)
+    slice.kind match
+      case FrontMatterKind.Yaml => MdcNode.FrontMatter.Yaml(YamlDocText(raw), MdcMeta.at(slice.span))
 
   /**
    * A block whose inline content has not been parsed yet.

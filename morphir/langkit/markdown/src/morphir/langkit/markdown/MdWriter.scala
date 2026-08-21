@@ -54,8 +54,16 @@ object MdWriter:
     if root.children.isEmpty then ""
     else blocks(root.children, BlankSeparated) + "\n"
 
-  /** The document's CST, obtained by writing it and parsing what was written. */
-  def raise(root: MdcNode.Root)(using MdStyle): MdcCstNode.Document = CstParser.parse(write(root))
+  /**
+   * The document's CST, obtained by writing it and parsing what was written.
+   *
+   * Read back under the YAML-frontmatter profile always, and one profile serves every tree because the profile is inert
+   * on text that does not open with `---`. Nothing this writer spells opens that way by accident: a thematic break
+   * writes as `***` or `___`, and text is escaped. So a document with no frontmatter raises to exactly the CST plain
+   * CommonMark gives it, and a document with frontmatter raises to one that spells what was written.
+   */
+  def raise(root: MdcNode.Root)(using MdStyle): MdcCstNode.Document =
+    CstParser.parse(write(root))(using MdProfile.commonmark.withYamlFrontmatter)
 
   /** Between blocks that may not touch: paragraphs, and everything at the top level or inside a quote. */
   private val BlankSeparated = "\n\n"

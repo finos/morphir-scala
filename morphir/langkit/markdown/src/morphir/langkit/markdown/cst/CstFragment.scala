@@ -25,6 +25,16 @@ import morphir.langkit.markdown.MdcNode
 private[markdown] type Marker = (span: Span, phantom: Int)
 
 private[markdown] enum CstFragment:
+
+  /**
+   * A frontmatter block the profile recognized at the document's head.
+   *
+   * `openEnd` ends the opening delimiter line, terminator included; `closeStart` begins the closing one. Both are
+   * present because the block is only ever recorded when it closed — an unclosed one is not frontmatter at all — which
+   * is why neither is a [[kyo.Maybe]] the way a fence's `closeStart` is.
+   */
+  case Frontmatter(span: Span, openEnd: Int, closeStart: Int)
+
   case ThematicBreak(span: Span)
 
   /** `content` is the heading text between the opening marker run and any closing sequence. */

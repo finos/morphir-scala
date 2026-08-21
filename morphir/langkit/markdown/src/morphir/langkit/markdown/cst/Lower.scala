@@ -24,7 +24,27 @@ object Lower:
 
   def lower(document: MdcCstNode.Document): MdcNode.Root =
     val definitions = collectDefinitions(document)
-    MdcNode.Root(blocks(document.children, definitions, document.span.end), meta = MdcMeta.at(document.span))
+    // Frontmatter is a field on the root rather than a block, and it is only ever the first child — the parser
+    // recognizes it at offset zero or not at all — so the head is the only place worth looking.
+    val frontmatter = document.children.headOption.collect { case front: MdcCstNode.Frontmatter => front }
+    val children    = if frontmatter.isDefined then document.children.drop(1) else document.children
+    MdcNode.Root(
+      blocks(children, definitions, document.span.end),
+      Maybe.fromOption(frontmatter.map(loweredFrontMatter)),
+      meta = MdcMeta.at(document.span)
+    )
+
+  /**
+   * The frontmatter node one CST block means: its raw value, undecoded.
+   *
+   * Only the interior is [[MdcCstNode.Text]] — both delimiter lines are tokens — so the text leaf, when there is one,
+   * is exactly the value region. A block whose value region is empty has no text leaf at all and means the empty
+   * document, not a missing one. Which kind the delimiters spelled is not read back off the source: `---` is YAML by
+   * construction, and a second kind arrives as its own case here alongside its own delimiter.
+   */
+  private def loweredFrontMatter(front: MdcCstNode.Frontmatter): MdcNode.FrontMatter =
+    val raw = front.children.collectFirst { case MdcCstNode.Text(text, _) => text }.getOrElse("")
+    MdcNode.FrontMatter.Yaml(YamlDocText(raw), MdcMeta.at(front.span))
 
   /** Every definition in the tree, first spelling of a label winning, in document order. */
   private def collectDefinitions(root: MdcCstNode): Map[String, LinkDefinition] =
@@ -166,6 +186,9 @@ object Lower:
             items(children, definitions, docEnd),
             MdcMeta.at(span)
           ))
+        case MdcCstNode.Frontmatter(_, _) =>
+          // Already lifted onto the root by `lower`; a frontmatter block is metadata, not flow content.
+          ()
         case _ =>
           // Link reference definitions contribute no block.
           ()

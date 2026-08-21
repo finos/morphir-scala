@@ -2,7 +2,9 @@ package morphir.langkit.markdown.cst
 
 import kyo.*
 import morphir.langkit.core.Span
+import morphir.langkit.core.scanner.ScanBudget
 import morphir.langkit.markdown.HeadingLevel
+import morphir.langkit.markdown.MdProfile
 import morphir.langkit.markdown.MdcMeta
 import morphir.langkit.markdown.MdcNode
 import morphir.langkit.markdown.Parser
@@ -26,6 +28,13 @@ enum MdcCstNode derives CanEqual:
 
   /** The root. Its children, in source order, tile the whole input. */
   case Document(children: Chunk[MdcCstNode], span: Span)
+
+  /**
+   * A frontmatter block, which only a profile that enables its kind produces. Spelled like a fenced code block: the
+   * opening delimiter line as a [[Token]], the raw value as [[Text]] — undecoded, whatever the kind's grammar is — and
+   * the closing delimiter line as a [[Token]]. Legal only as the document's first child.
+   */
+  case Frontmatter(children: Chunk[MdcCstNode], span: Span)
 
   case ThematicBreak(children: Chunk[MdcCstNode], span: Span)
   case AtxHeading(level: HeadingLevel, children: Chunk[MdcCstNode], span: Span)
@@ -136,6 +145,7 @@ enum MdcCstNode derives CanEqual:
   /** Children of an interior node, in source order; empty for leaves. */
   def childNodes: Chunk[MdcCstNode] = this match
     case Document(children, _)                => children
+    case Frontmatter(children, _)             => children
     case ThematicBreak(children, _)           => children
     case AtxHeading(_, children, _)           => children
     case SetextHeading(_, children, _)        => children
@@ -206,8 +216,8 @@ object Cst:
  */
 object CstParser:
 
-  def parse(source: String): MdcCstNode.Document =
-    Parser.parseFragments(source) match
+  def parse(source: String)(using profile: MdProfile): MdcCstNode.Document =
+    Parser.parseFragments(source, ScanBudget.default, profile) match
       case Result.Success(fragments) => assembleDocument(source, fragments)
       case _                         => fallback(source)
 
@@ -281,6 +291,15 @@ object CstParser:
 
   /** `markers` are the enclosing container's, for punching out of this fragment's unstructured interiors. */
   private def materialize(source: String, fragment: CstFragment, markers: Chunk[Marker]): MdcCstNode = fragment match
+    // Laid out like a closed fence, and with no marker punching: frontmatter is recognized at offset zero, before any
+    // container can be open, so there are never marker bytes inside it.
+    case CstFragment.Frontmatter(span, openEnd, closeStart) =>
+      val children =
+        leaf(source, span.offset, openEnd)(MdcCstNode.Token(_, _))
+          ++ leaf(source, openEnd, closeStart)(MdcCstNode.Text(_, _))
+          ++ leaf(source, closeStart, span.end)(MdcCstNode.Token(_, _))
+      MdcCstNode.Frontmatter(children, span)
+
     case CstFragment.ThematicBreak(span) =>
       MdcCstNode.ThematicBreak(leaf(source, span.offset, span.end)(MdcCstNode.Token(_, _)), span)
 

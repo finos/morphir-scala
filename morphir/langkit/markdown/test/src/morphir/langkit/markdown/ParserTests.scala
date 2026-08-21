@@ -36,7 +36,7 @@ class ParserTests extends Test[Any]:
     }.mkString
 
   private def parseMetrics(source: String): ScanMetrics =
-    Parser.parseWithMetrics(source, ScanBudget.UnsafeUnbounded) match
+    Parser.parseWithMetrics(source, ScanBudget.UnsafeUnbounded, MdProfile.commonmark) match
       case Result.Success((_, metrics)) => metrics
       case _                            => throw new AssertionError("unbounded parse unexpectedly failed")
 
