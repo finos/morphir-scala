@@ -89,7 +89,11 @@ fills the CST's inline slots once every definition is known; the definitions map
 bookkeeping, no longer the AST's source of truth — lowering re-collects definitions from the CST's own nodes. The
 module now also writes: authored `MdcNode` trees, built with the `dsl` package and carrying `MdcMeta`
 position-and-data, serialize to Markdown through `MdWriter.write` under a given `MdStyle`, and `MdWriter.raise`
-produces tiled CSTs by write-then-parse — both held to the rendering oracle corpus-wide.
+produces tiled CSTs by write-then-parse — both held to the rendering oracle corpus-wide. Parsing is profiled as
+well: an `MdProfile` names which frontmatter kinds a parse recognizes, each kind carrying its own delimiter, and an
+opt-in YAML block travels the whole way — a CST node, the `frontmatter` seat on `MdcNode.Root`, and back out through
+`MdWriter` — so `morphir-knowledge-okf` reads concept frontmatter through the parser rather than splitting the fence
+itself.
 
 *Settled: how much of CommonMark the owned parser covers.* All of it — 652 of 652 examples, every section of the
 specification. *Settled: whether the AST shape survives the conformance suite.* It did, though it grew: list
