@@ -75,6 +75,8 @@ object ScalatagsCompiler:
 
     def strong(children: Chunk[Frag]): Frag = _root_.scalatags.Text.all.strong(frag(children.toSeq*))
 
+    def delete(children: Chunk[Frag]): Frag = del(frag(children.toSeq*))
+
     /** Attribute order follows the fixtures: `href` then `title`, and no `title` attribute at all when absent. */
     def link(url: String, title: Maybe[String], children: Chunk[Frag]): Frag =
       title match

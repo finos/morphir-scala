@@ -24,6 +24,7 @@ class CompilerTests extends Test[Any]:
     def inlineCode(value: String): String                                = s"(code-span $value)"
     def emphasis(children: Chunk[String]): String                        = s"(em ${children.mkString(" ")})"
     def strong(children: Chunk[String]): String                          = s"(strong ${children.mkString(" ")})"
+    def delete(children: Chunk[String]): String                          = s"(del ${children.mkString(" ")})"
     def link(url: String, title: Maybe[String], children: Chunk[String]) =
       s"(link $url ${title.getOrElse("-")} ${children.mkString(" ")})"
     def image(url: String, title: Maybe[String], alt: String) =

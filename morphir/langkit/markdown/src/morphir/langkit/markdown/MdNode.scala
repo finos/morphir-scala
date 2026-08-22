@@ -47,6 +47,7 @@ sealed trait MdNode derives CanEqual:
     case MdNode.Link(_, _, children, _)        => children
     case MdNode.Emphasis(children, _)          => children
     case MdNode.Strong(children, _)            => children
+    case MdNode.Delete(children, _)            => children
     case _: (MdNode.Code | MdNode.Html | MdNode.ThematicBreak | MdNode.Text | MdNode.InlineCode |
           MdNode.Image | MdNode.InlineHtml | MdNode.Break | MdNode.FrontMatter.Yaml) =>
       Chunk.empty
@@ -112,8 +113,10 @@ sealed trait MdNode derives CanEqual:
       MdNode.Emphasis(children.map(_.unpositioned.asInstanceOf[MdNode.PhrasingContent]), meta.copy(span = Absent))
     case MdNode.Strong(children, meta) =>
       MdNode.Strong(children.map(_.unpositioned.asInstanceOf[MdNode.PhrasingContent]), meta.copy(span = Absent))
-    case MdNode.InlineHtml(value, meta)       => MdNode.InlineHtml(value, meta.copy(span = Absent))
-    case MdNode.Break(meta)                   => MdNode.Break(meta.copy(span = Absent))
+    case MdNode.InlineHtml(value, meta) => MdNode.InlineHtml(value, meta.copy(span = Absent))
+    case MdNode.Break(meta)             => MdNode.Break(meta.copy(span = Absent))
+    case MdNode.Delete(children, meta)  =>
+      MdNode.Delete(children.map(_.unpositioned.asInstanceOf[MdNode.PhrasingContent]), meta.copy(span = Absent))
     case MdNode.FrontMatter.Yaml(value, meta) => MdNode.FrontMatter.Yaml(value, meta.copy(span = Absent))
 
 object MdNode:
@@ -122,7 +125,7 @@ object MdNode:
   type FlowContent = Paragraph | Heading | Code | Html | Blockquote | List | ThematicBreak
 
   /** What a prose position may hold — mdast's phrasing content. */
-  type PhrasingContent = Text | InlineCode | Link | Image | Emphasis | Strong | InlineHtml | Break
+  type PhrasingContent = Text | InlineCode | Link | Image | Emphasis | Strong | InlineHtml | Break | Delete
 
   /**
    * Front matter: metadata block a profile recognizes at document start. Cases nest here; Toml/Json are later members.
@@ -180,6 +183,9 @@ object MdNode:
   final case class InlineHtml(value: String, meta: MdMeta = MdMeta.empty)                             extends MdNode
   final case class Break(meta: MdMeta = MdMeta.empty)                                                 extends MdNode
 
+  /** GFM strikethrough. mdast's name for it is `delete`, and this AST follows mdast. */
+  final case class Delete(children: Chunk[PhrasingContent], meta: MdMeta = MdMeta.empty) extends MdNode
+
   extension (list: List)
     /** The renderer's positive: a tight list drops the `p` from its items. Derived, never stored. */
     def tight: Boolean = !list.spread
@@ -212,5 +218,6 @@ object MdNode:
         case n: Strong           => n.copy(meta = updated)
         case n: InlineHtml       => n.copy(meta = updated)
         case n: Break            => n.copy(meta = updated)
+        case n: Delete           => n.copy(meta = updated)
         case n: FrontMatter.Yaml => n.copy(meta = updated)
       result.asInstanceOf[N]

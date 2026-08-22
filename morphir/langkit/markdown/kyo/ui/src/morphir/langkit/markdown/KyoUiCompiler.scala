@@ -68,6 +68,9 @@ object KyoUiCompiler:
 
     def strong(children: Chunk[UI]): UI = UI.span(content(children)).cssClass("md-strong")
 
+    /** kyo-ui has no `del` element, so strikethrough is carried by a `span` with a class, as emphasis is. */
+    def delete(children: Chunk[UI]): UI = UI.span(content(children)).cssClass("md-del")
+
     /**
      * `Href.Path` and `ImgSrc.Path` render their value verbatim, which is what a Markdown destination needs: it is an
      * arbitrary URI the parser has already normalised, not something to re-classify as absolute, path or fragment.

@@ -102,6 +102,9 @@ enum MdCstNode derives CanEqual:
    */
   case Emphasis(delimiter: Char, strong: Boolean, children: Chunk[MdCstNode], span: Span)
 
+  /** A `~~`-delimited run. The delimiters are `Token` children, as they are for [[Emphasis]]. */
+  case Strikethrough(children: Chunk[MdCstNode], span: Span)
+
   /** A hard line break, spelled as the author wrote it: trailing spaces or a backslash, then the line ending. */
   case HardBreak(children: Chunk[MdCstNode], span: Span)
 
@@ -158,6 +161,7 @@ enum MdCstNode derives CanEqual:
     case Link(_, _, _, _, children, _)        => children
     case Image(_, _, _, _, children, _)       => children
     case Emphasis(_, _, children, _)          => children
+    case Strikethrough(children, _)           => children
     case HardBreak(children, _)               => children
     case Escape(children, _)                  => children
     case Entity(children, _)                  => children

@@ -82,7 +82,7 @@ object dsl:
       case c: (Paragraph | Heading | Code | Html | Blockquote | List | ThematicBreak) =>
         flushPhrasing()
         flow.addOne(c)
-      case c: (Text | InlineCode | Link | Image | Emphasis | Strong | InlineHtml | Break) =>
+      case c: (Text | InlineCode | Link | Image | Emphasis | Strong | InlineHtml | Break | Delete) =>
         phrasing.addOne(c)
     }
     flushPhrasing()
@@ -103,6 +103,9 @@ object dsl:
 
   def em(children: PhrasingContent*): Emphasis   = Emphasis(Chunk.from(children))
   def strong(children: PhrasingContent*): Strong = Strong(Chunk.from(children))
+
+  /** GFM strikethrough, authored directly rather than through a parse. */
+  def del(children: PhrasingContent*): Delete = Delete(Chunk.from(children))
 
   def inlineHtml(value: String): InlineHtml = InlineHtml(value)
 

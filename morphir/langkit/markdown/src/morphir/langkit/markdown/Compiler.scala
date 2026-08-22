@@ -140,6 +140,14 @@ trait Compiler[Out]:
   def strong(children: Chunk[Out]): Out
 
   /**
+   * Compile strikethrough from its compiled content.
+   *
+   * Present on the algebra unconditionally, even though only a GFM-profile parse produces the node. A writer that
+   * cannot express it should render its children unchanged rather than drop them: the text was written to be read.
+   */
+  def delete(children: Chunk[Out]): Out
+
+  /**
    * Compile raw HTML written inside prose.
    *
    * The inline counterpart of [[html]], and it carries the same warning: `value` is emitted verbatim, never escaped. A

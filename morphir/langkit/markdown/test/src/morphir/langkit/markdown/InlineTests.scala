@@ -44,6 +44,7 @@ class InlineTests extends Test[Any]:
       case MdNode.Image(_, _, alt, _)  => alt
       case MdNode.Emphasis(inner, _)   => textOf(inner)
       case MdNode.Strong(inner, _)     => textOf(inner)
+      case MdNode.Delete(inner, _)     => textOf(inner)
       // Raw HTML is markup rather than text, and contributes none: a test asserting on it matches the node itself.
       case MdNode.InlineHtml(_, _) => ""
       // A hard break reads as the line ending it stands for, so a test that only cares what the prose says need not

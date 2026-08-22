@@ -131,7 +131,7 @@ private[markdown] object InlineParser:
       sourceOffsetAt: Int => Int,
       definitions: Map[String, LinkDefinition],
       notes: Maybe[InlineNotes]
-  ): scala.collection.mutable.ArrayBuffer[Item] =
+  )(using MdProfile): scala.collection.mutable.ArrayBuffer[Item] =
     val items        = scala.collection.mutable.ArrayBuffer.empty[Item]
     val pending      = StringBuilder()
     var pendingStart = 0
@@ -166,6 +166,20 @@ private[markdown] object InlineParser:
               items += run
               index = run.end
               pendingStart = index
+            else if char == '~' && summon[MdProfile].supports(MdExtension.Strikethrough) then
+              val run = delimiterRun(text, index, '~')
+              // Two tildes exactly. The 0.29-gfm specification wraps struck text in two, so a lone tilde and a run of
+              // three or more are literal — and a literal run must not enter the delimiter stack, or `processEmphasis`
+              // would pair it.
+              if run.count == 2 then
+                flushPending()
+                items += run
+                index = run.end
+                pendingStart = index
+              else
+                if pending.isEmpty then pendingStart = index
+                pending.append(text.substring(index, run.end))
+                index = run.end
             else
               val run = if char == '`' then backtickRun(text, index) else 1
               if pending.isEmpty then pendingStart = index
@@ -177,11 +191,12 @@ private[markdown] object InlineParser:
   end scanItems
 
   /**
-   * A run of `*` or `_`, classified by the spec's flanking rules.
+   * A run of `*`, `_` or `~`, classified by the spec's flanking rules.
    *
    * Left-flanking means the run is not followed by whitespace, and either is not followed by punctuation or is preceded
    * by whitespace or punctuation; right-flanking is the mirror. `_` is stricter than `*` so that intraword underscores
-   * stay literal, which is why `foo_bar_` is not emphasis.
+   * stay literal, which is why `foo_bar_` is not emphasis. `~` uses `*`'s looser rule, not `_`'s: GFM's strikethrough
+   * has no intraword restriction.
    */
   private def delimiterRun(text: String, start: Int, char: Char): Item =
     var end = start
@@ -199,8 +214,8 @@ private[markdown] object InlineParser:
     val leftFlanking  = !afterWhitespace && (!afterPunct || beforeWhitespace || beforePunct)
     val rightFlanking = !beforeWhitespace && (!beforePunct || afterWhitespace || afterPunct)
 
-    val canOpen  = if char == '*' then leftFlanking else leftFlanking && (!rightFlanking || beforePunct)
-    val canClose = if char == '*' then rightFlanking else rightFlanking && (!leftFlanking || afterPunct)
+    val canOpen  = if char == '_' then leftFlanking && (!rightFlanking || beforePunct) else leftFlanking
+    val canClose = if char == '_' then rightFlanking && (!leftFlanking || afterPunct) else rightFlanking
 
     Item(Absent, char, length, length, canOpen, canClose, start, end)
   end delimiterRun
@@ -237,8 +252,10 @@ private[markdown] object InlineParser:
 
         if found >= 0 then
           val opener = items(found)
-          val strong = opener.count >= 2 && closer.count >= 2
-          val used   = if strong then 2 else 1
+          // A `~~` run is strikethrough or nothing: it never pairs one tilde and leaves the other, the way `**` may,
+          // and it is never `Strong`. Order matters — `used` reads `strong`.
+          val strong = opener.delimiter != '~' && opener.count >= 2 && closer.count >= 2
+          val used   = if opener.delimiter == '~' then 2 else if strong then 2 else 1
 
           val inner = Chunk.from(
             items.slice(found + 1, closerIndex).filterNot(_.dropped).map(item =>
@@ -249,7 +266,9 @@ private[markdown] object InlineParser:
 
           val span                         = spanOf(opener.start, closer.end, sourceOffsetAt)
           val node: MdNode.PhrasingContent =
-            if strong then MdNode.Strong(inner, MdMeta.at(span)) else MdNode.Emphasis(inner, MdMeta.at(span))
+            if opener.delimiter == '~' then MdNode.Delete(inner, MdMeta.at(span))
+            else if strong then MdNode.Strong(inner, MdMeta.at(span))
+            else MdNode.Emphasis(inner, MdMeta.at(span))
           items.insert(closerIndex, Item(Present(node), ' ', 0, 0, false, false, 0, 0))
           closerIndex += 1
 
@@ -944,6 +963,7 @@ private[markdown] object InlineParser:
     case MdNode.Link(_, _, _, _)   => true
     case MdNode.Emphasis(inner, _) => inner.exists(holdsLink)
     case MdNode.Strong(inner, _)   => inner.exists(holdsLink)
+    case MdNode.Delete(inner, _)   => inner.exists(holdsLink)
     case _                         => false
 
   /** The plain text of a label, which is what an `alt` attribute can hold. */
@@ -958,6 +978,7 @@ private[markdown] object InlineParser:
     case MdNode.Image(_, _, alt, _)  => alt
     case MdNode.Emphasis(inner, _)   => inner.map(plainOf).mkString
     case MdNode.Strong(inner, _)     => inner.map(plainOf).mkString
+    case MdNode.Delete(inner, _)     => inner.map(plainOf).mkString
     // An `alt` attribute is text, and raw HTML in a label contributes none: it is markup, not content.
     case MdNode.InlineHtml(_, _) => ""
     // A break in alt text is the line ending it stands for; the `alt` attribute has no markup to carry it.

@@ -62,6 +62,7 @@ private[markdown] object MarkdownFold:
       case MdNode.Image(url, title, alt, _)     => compiler.image(url, title, alt)
       case MdNode.Emphasis(children, _)         => compiler.emphasis(children.map(compilePhrasing))
       case MdNode.Strong(children, _)           => compiler.strong(children.map(compilePhrasing))
+      case MdNode.Delete(children, _)           => compiler.delete(children.map(compilePhrasing))
       case MdNode.InlineHtml(value, _)          => compiler.inlineHtml(value)
       case MdNode.Break(_)                      => compiler.break
 end MarkdownFold

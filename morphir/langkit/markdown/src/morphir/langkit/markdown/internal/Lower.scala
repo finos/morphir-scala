@@ -364,6 +364,9 @@ private[markdown] object Lower:
             if strong then MdNode.Strong(interior, MdMeta.at(span)) else MdNode.Emphasis(interior, MdMeta.at(span))
           Chunk.from(before) ++ Chunk(node) ++ Chunk.from(after)
 
+      case MdCstNode.Strikethrough(children, span) =>
+        Chunk(MdNode.Delete(inlines(children, definitions), MdMeta.at(span)))
+
       case MdCstNode.Link(form, destination, title, reference, children, span) =>
         val content             = inlines(linkContent(children), definitions)
         val (uri, loweredTitle) = resolveTarget(form, destination, title, reference, definitions)
