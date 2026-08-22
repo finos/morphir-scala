@@ -439,6 +439,18 @@ class MdWriterTests extends Test[Any]:
 
     "leaves an empty value alone" in
       assert(MdWriter.escapeText("", atLineStart = true) == "")
+
+    /**
+     * A single long unbroken run of alphanumerics, with no whitespace and no `AlwaysEscaped` character to stop an
+     * unbounded scan early. This does not time anything; it exists so the shape stays exercised. `escapeText` was once
+     * quadratic in a text node's length: the autolink lookahead it runs at every index scanned to the end of the value
+     * each time, because the `end` argument was evaluated eagerly even where the guard ahead of it never needed it. A
+     * regression here would not fail this assertion, only reappear as the slowdown the ledger measured.
+     */
+    "writes a long unbroken run of text without incident" in {
+      val text = "a1" * 16000
+      assert(MdWriter.escapeText(text, atLineStart = false) == text)
+    }
   }
 
   "MdWriter.raise" - {

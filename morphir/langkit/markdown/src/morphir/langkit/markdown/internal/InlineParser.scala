@@ -1227,16 +1227,21 @@ private[markdown] object InlineParser:
    * autolinks — becomes its own node in a reparse, so a match has to be complete *within* that segment to be one a
    * reparse will actually see. Checking the unbounded string would find matches a reparse never will, and miss the
    * mirror case: a prefix invalid over the whole string only because of what comes after the cut.
+   *
+   * `end` is by-name because finding it can itself be a scan of the string, as it is for [[MdWriter]]'s caller. The
+   * guard above rejects most positions in a long run without ever reading past `at - 1`, and evaluating `end` strictly
+   * would force that scan at every rejected position too, turning a linear pass over the text quadratic.
    */
   private[markdown] def extendedAutolinkAt(
       value: String,
       at: Int,
       nodeStart: Boolean,
-      end: Int = -1
+      end: => Int = -1
   ): Maybe[ExtendedMatch] =
     if at > 0 && !nodeStart && !isExtendedBoundary(value.charAt(at - 1)) then Absent
     else
-      val bounded = if end < 0 || end == value.length then value else value.substring(0, end)
+      val endValue = end
+      val bounded  = if endValue < 0 || endValue == value.length then value else value.substring(0, endValue)
       wwwAutolinkAt(bounded, at) match
         case found @ Present(_) => found
         case Absent             =>
