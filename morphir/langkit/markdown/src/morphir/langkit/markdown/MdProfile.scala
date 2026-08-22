@@ -18,6 +18,13 @@ enum FrontMatterKind(val delimiter: String) derives CanEqual:
  * of what is on. The empty set is off; the parser walks whichever members are enabled. Two sets rather than one because
  * they answer different questions — a frontmatter kind is a delimiter to recognize at document start, a [[MdExtension]]
  * is a grammar rule to switch on — and because GitHub's own dialect enables the second without the first.
+ *
+ * Per-extension configuration is deliberately absent. Every value it would hold today — the tag filter's tag list, the
+ * autolink scheme set, the strikethrough tilde rule — is pinned by the GFM specification, so each key would ship with
+ * exactly one conformant setting. When a consumer needs it, it arrives here as a third defaulted field, an
+ * [[MdMeta]]-shaped `options: Map[MdOptionKey[?], Any]`, and not as state on [[MdExtension]]: an enum case is a
+ * singleton shared by every profile, so a map on it would be shared too, and parameterizing the cases would cost set
+ * membership and with it [[supports]]. Writer-side spellings belong to [[MdStyle]] and go there.
  */
 final case class MdProfile(
     frontmatter: Set[FrontMatterKind] = Set.empty,

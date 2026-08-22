@@ -95,7 +95,7 @@ private[markdown] object InlineParser:
       sourceOffsetAt: Int => Int,
       definitions: Map[String, LinkDefinition] = Map.empty,
       notes: Maybe[InlineNotes] = Absent
-  ): Chunk[MdNode.PhrasingContent] =
+  )(using MdProfile): Chunk[MdNode.PhrasingContent] =
     val items = scanItems(text, sourceOffsetAt, definitions, notes)
     processEmphasis(items, sourceOffsetAt)
     Chunk.from(items.filterNot(_.dropped).map(item => item.inline.getOrElse(literal(item, sourceOffsetAt))))

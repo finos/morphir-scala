@@ -21,7 +21,7 @@ import morphir.langkit.markdown.*
  */
 private[markdown] object Lower:
 
-  def lower(document: MdCstNode.Document): MdNode.Root =
+  def lower(document: MdCstNode.Document)(using MdProfile): MdNode.Root =
     val definitions = collectDefinitions(document)
     // Frontmatter is a field on the root rather than a block, and it is only ever the first child — the parser
     // recognizes it at offset zero or not at all — so the head is the only place worth looking.

@@ -46,7 +46,7 @@ private[markdown] object Parser:
       val definitions = scala.collection.mutable.Map.empty[String, LinkDefinition]
       val cursor      = ContainerCursor.top(scanner)
       val front       = frontMatterOf(cursor, profile)
-      val blocks      = parseBlocks(cursor, definitions, Absent)
+      val blocks      = parseBlocks(cursor, definitions, Absent, profile)
       // Keep the caller's coordinate space: do not rewrite CRLF before measuring spans.
       val document =
         MdNode.Root(blocks, front.map(frontMatterNode(source, _)), meta = MdMeta.at(Span(0, source.length)))
@@ -76,7 +76,7 @@ private[markdown] object Parser:
       frontMatterOf(cursor, profile).foreach(front =>
         collector.record(CstFragment.Frontmatter(front.span, front.openEnd, front.closeStart))
       )
-      val _ = parseBlocks(cursor, definitions, Present(collector))
+      val _ = parseBlocks(cursor, definitions, Present(collector), profile)
       collector.fragments
     } match
       case ScanResult.Success(value) => Result.succeed(value)
@@ -262,9 +262,10 @@ private[markdown] object Parser:
   private def parseBlocks(
       cursor: ContainerCursor,
       definitions: scala.collection.mutable.Map[String, LinkDefinition],
-      cst: Maybe[CstCollector]
+      cst: Maybe[CstCollector],
+      profile: MdProfile
   ): Chunk[MdNode.FlowContent] =
-    val run = parseDeferred(cursor, definitions, cst)
+    val run = parseDeferred(cursor, definitions, cst, profile)
     // Second phase: every definition in the document is known now, so prose can resolve references that point
     // forward as well as back.
     Chunk.from(run.blocks.map(_.resolve(definitions.toMap)))
@@ -307,7 +308,8 @@ private[markdown] object Parser:
   private def parseDeferred(
       cursor: ContainerCursor,
       definitions: scala.collection.mutable.Map[String, LinkDefinition],
-      cst: Maybe[CstCollector]
+      cst: Maybe[CstCollector],
+      profile: MdProfile
   ): BlockRun =
     val scanner       = cursor.scanner
     val blocks        = List.newBuilder[Deferred]
@@ -327,7 +329,7 @@ private[markdown] object Parser:
               case LineKind.BlockQuote   =>
                 // A quote's own cursor has to see the marker, so the line goes back before the recursion reads it.
                 cursor.restore(opening)
-                readBlockQuote(cursor, definitions, cst)
+                readBlockQuote(cursor, definitions, cst, profile)
               case LineKind.Heading(level, rest) =>
                 val headingSpan = Span(line.offset, line.length)
                 val base        = contentSpan(line, rest).offset
@@ -335,7 +337,7 @@ private[markdown] object Parser:
                 val notes       = cst.map(_ => InlineNotes())
                 cst.foreach(_.record(CstFragment.AtxHeading(level, headingSpan, Span(base, rest.length), slot)))
                 Opened.deferred(Deferred.prose { defs =>
-                  val content = InlineParser.parse(rest, index => base + index, defs, notes)
+                  val content = InlineParser.parse(rest, index => base + index, defs, notes)(using profile)
                   slot.fill(content, notes)
                   MdNode.Heading(level, content, MdMeta.at(headingSpan))
                 })
@@ -347,12 +349,12 @@ private[markdown] object Parser:
               case LineKind.Html(_)          => Opened.leaf(readHtmlBlock(cursor, line, cst))
               case LineKind.BulletItem(item) =>
                 cursor.restore(opening)
-                readUnorderedList(cursor, definitions, item, line.offset, cst)
+                readUnorderedList(cursor, definitions, item, line.offset, cst, profile)
               case LineKind.OrderedItem(marker) =>
                 cursor.restore(opening)
-                readOrderedList(cursor, definitions, marker, line.offset, cst)
+                readOrderedList(cursor, definitions, marker, line.offset, cst, profile)
               case LineKind.Text | LineKind.Blank =>
-                Opened(readParagraph(cursor, line, definitions, cst), endedOnBlank = false)
+                Opened(readParagraph(cursor, line, definitions, cst, profile), endedOnBlank = false)
             scanner.chargeOutputNodes(NodeCount.one)
             contentEnd = cursor.consumedEnd
             opened.block.foreach { deferred =>
@@ -382,7 +384,8 @@ private[markdown] object Parser:
   private def readBlockQuote(
       cursor: ContainerCursor,
       definitions: scala.collection.mutable.Map[String, LinkDefinition],
-      cst: Maybe[CstCollector]
+      cst: Maybe[CstCollector],
+      profile: MdProfile
   ): Opened =
     val scanner = cursor.scanner
     val start   = scanner.offset.toInt
@@ -390,7 +393,7 @@ private[markdown] object Parser:
     // of every line it reads. The quote fragment carries both, so nesting is recorded by construction.
     val child = cst.map(_ => CstCollector())
     val inner = cursor.nested(ContainerPrefix.BlockQuote, child)
-    val run   = scanner.withNesting(parseDeferred(inner, definitions, child))
+    val run   = scanner.withNesting(parseDeferred(inner, definitions, child, profile))
     val span  = Span.fromStartEnd(start, cursor.consumedEnd)
     for
       collector <- cst
@@ -692,7 +695,8 @@ private[markdown] object Parser:
       cursor: ContainerCursor,
       first: Line,
       definitions: scala.collection.mutable.Map[String, LinkDefinition],
-      cst: Maybe[CstCollector]
+      cst: Maybe[CstCollector],
+      profile: MdProfile
   ): Maybe[Deferred] =
     val scanner  = cursor.scanner
     val segments = List.newBuilder[(Int, String)]
@@ -765,7 +769,10 @@ private[markdown] object Parser:
         case Present(level) => CstFragment.SetextHeading(level, cstSpan, last.offset, slot)
         case Absent         => CstFragment.Paragraph(cstSpan, slot)))
       Present(Deferred.prose { defs =>
-        val content = InlineParser.parse(body.trim, index => sourceOffsetOf(lines, index + contentIndex), defs, notes)
+        val content =
+          InlineParser.parse(body.trim, index => sourceOffsetOf(lines, index + contentIndex), defs, notes)(using
+            profile
+          )
         slot.fill(content, notes)
         setext match
           case Present(level) => MdNode.Heading(level, content, MdMeta.at(span))
@@ -878,7 +885,8 @@ private[markdown] object Parser:
       definitions: scala.collection.mutable.Map[String, LinkDefinition],
       first: BulletMarker,
       markerAt: Int,
-      cst: Maybe[CstCollector]
+      cst: Maybe[CstCollector],
+      profile: MdProfile
   ): Opened =
     val start = cursor.scanner.offset.toInt
     val items = List.newBuilder[DeferredItem]
@@ -890,7 +898,7 @@ private[markdown] object Parser:
         at: Int,
         loose: Boolean
     ): (loose: Boolean, end: Int, endedOnBlank: Boolean) =
-      val (item, run) = readItem(cursor, definitions, at, marker.columns, marker.empty, listCst)
+      val (item, run) = readItem(cursor, definitions, at, marker.columns, marker.empty, listCst, profile)
       items += item
       val soFar  = loose || run.interiorBlank
       val resume = cursor.checkpoint()
@@ -935,7 +943,8 @@ private[markdown] object Parser:
       definitions: scala.collection.mutable.Map[String, LinkDefinition],
       first: OrderedMarker,
       markerAt: Int,
-      cst: Maybe[CstCollector]
+      cst: Maybe[CstCollector],
+      profile: MdProfile
   ): Opened =
     val start = cursor.scanner.offset.toInt
     val items = List.newBuilder[DeferredItem]
@@ -947,7 +956,7 @@ private[markdown] object Parser:
         at: Int,
         loose: Boolean
     ): (loose: Boolean, end: Int, endedOnBlank: Boolean) =
-      val (item, run) = readItem(cursor, definitions, at, marker.columns, marker.empty, listCst)
+      val (item, run) = readItem(cursor, definitions, at, marker.columns, marker.empty, listCst, profile)
       items += item
       val soFar  = loose || run.interiorBlank
       val resume = cursor.checkpoint()
@@ -1020,7 +1029,8 @@ private[markdown] object Parser:
       markerAt: Int,
       columns: Int,
       startsEmpty: Boolean,
-      cst: Maybe[CstCollector]
+      cst: Maybe[CstCollector],
+      profile: MdProfile
   ): (DeferredItem, BlockRun) =
     val scanner = cursor.scanner
     val start   = scanner.offset.toInt
@@ -1041,7 +1051,7 @@ private[markdown] object Parser:
     // consumed nothing would leave the list gathering the same line for ever, and because nothing was read there is no
     // work charged for the scan budget to notice.
     def read(): BlockRun =
-      scanner.requireProgress(BlocksPhase)(scanner.withNesting(parseDeferred(inner, definitions, child)))
+      scanner.requireProgress(BlocksPhase)(scanner.withNesting(parseDeferred(inner, definitions, child, profile)))
 
     if !startsEmpty then item(read())
     else
