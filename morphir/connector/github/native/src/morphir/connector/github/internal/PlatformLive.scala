@@ -39,6 +39,29 @@ private[github] object PlatformLive:
         replyDepth: ReplyDepth
     ): ConnectionPage[Discussion] < (Abort[GitHubException] & Async) =
       Abort.fail(GitHubException.Transport(detail))
+    def listGists(
+        user: GithubLogin,
+        after: Maybe[Cursor],
+        first: PageSize
+    ): ConnectionPage[GistSummary] < (Abort[GitHubException] & Async) =
+      Abort.fail(GitHubException.Transport(detail))
+    def listMyGists(
+        privacy: GistPrivacy,
+        after: Maybe[Cursor],
+        first: PageSize
+    ): ConnectionPage[GistSummary] < (Abort[GitHubException] & Async) =
+      Abort.fail(GitHubException.Transport(detail))
+    def getGist(user: GithubLogin, name: GistName): Maybe[Gist] < (Abort[GitHubException] & Async) =
+      Abort.fail(GitHubException.Transport(detail))
+    def getMyGist(name: GistName): Maybe[Gist] < (Abort[GitHubException] & Async) =
+      Abort.fail(GitHubException.Transport(detail))
+    def listGistComments(
+        user: GithubLogin,
+        name: GistName,
+        after: Maybe[Cursor],
+        first: PageSize
+    ): ConnectionPage[GistComment] < (Abort[GitHubException] & Async) =
+      Abort.fail(GitHubException.Transport(detail))
     def listDiscussionReplies(
         commentId: DiscussionCommentId,
         after: Maybe[Cursor],

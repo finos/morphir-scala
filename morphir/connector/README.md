@@ -10,7 +10,7 @@ libraries Morphir builds on) and out of feature modules, where it otherwise accu
 
 | Connector | Artifact | For |
 | --- | --- | --- |
-| [`github`](./github) | `morphir-connector-github` | The GitHub GraphQL API (issues, pull requests, discussions) |
+| [`github`](./github) | `morphir-connector-github` | The GitHub GraphQL API (issues, pull requests, discussions, gists) |
 
 ## What belongs in a connector
 

@@ -5,13 +5,15 @@ import morphir.connector.github.internal.GraphQl
 import morphir.connector.github.internal.PlatformLive
 
 /**
- * Lists issues, pull requests, and discussions for a repository, and looks up one of those objects by number.
+ * Reads repository issues, pull requests, and discussions, plus public and authenticated-viewer gists.
  *
- * List methods return [[ConnectionPage]] and accept `after` / `first` so a caller can page. [[GithubClient.recorded]]
- * replays GraphQL JSON envelopes. [[GithubClient.fixture]] replays already-decoded values. [[GithubClient.live]] posts
- * to GitHub over `kyo-http` on the JVM and on Node.js. Pass a [[Token]] or take [[TokenProvider]] from [[kyo.Env]]. On
- * Scala Native, listing fails with [[GitHubException.Transport]] because the published kyo-net Native artifact at
- * 1.0.0-RC6 does not link kqueue on macOS. Tests use recorded or fixture clients and do not call `api.github.com`.
+ * List methods return [[ConnectionPage]] and accept `after` / `first` so a caller can page. Gist lists return
+ * [[GistSummary]] values; [[getGist]] and [[getMyGist]] load files and the first comment page.
+ * [[GithubClient.recorded]] replays GraphQL JSON envelopes. [[GithubClient.fixture]] replays already-decoded values.
+ * [[GithubClient.live]] posts to GitHub over `kyo-http` on the JVM and on Node.js. Pass a [[Token]] or take
+ * [[TokenProvider]] from [[kyo.Env]]. On Scala Native, reads fail with [[GitHubException.Transport]] because the
+ * published kyo-net Native artifact at 1.0.0-RC6 does not link kqueue on macOS. Tests use recorded or fixture clients
+ * and do not call `api.github.com`.
  */
 trait GithubClient:
   def listIssues(
@@ -30,6 +32,24 @@ trait GithubClient:
       first: PageSize = PageSize.default,
       replyDepth: ReplyDepth = ReplyDepth.one
   ): ConnectionPage[Discussion] < (Abort[GitHubException] & Async)
+  def listGists(
+      user: GithubLogin,
+      after: Maybe[Cursor] = Absent,
+      first: PageSize = PageSize.default
+  ): ConnectionPage[GistSummary] < (Abort[GitHubException] & Async)
+  def listMyGists(
+      privacy: GistPrivacy = GistPrivacy.All,
+      after: Maybe[Cursor] = Absent,
+      first: PageSize = PageSize.default
+  ): ConnectionPage[GistSummary] < (Abort[GitHubException] & Async)
+  def getGist(user: GithubLogin, name: GistName): Maybe[Gist] < (Abort[GitHubException] & Async)
+  def getMyGist(name: GistName): Maybe[Gist] < (Abort[GitHubException] & Async)
+  def listGistComments(
+      user: GithubLogin,
+      name: GistName,
+      after: Maybe[Cursor] = Absent,
+      first: PageSize = PageSize.default
+  ): ConnectionPage[GistComment] < (Abort[GitHubException] & Async)
   def listDiscussionReplies(
       commentId: DiscussionCommentId,
       after: Maybe[Cursor] = Absent,
@@ -78,12 +98,22 @@ object GithubClient:
       discussionComments: ConnectionPage[DiscussionComment] = ConnectionPage(),
       issue: Maybe[Issue] = Absent,
       pullRequest: Maybe[PullRequest] = Absent,
-      discussion: Maybe[Discussion] = Absent
+      discussion: Maybe[Discussion] = Absent,
+      gists: Chunk[GistSummary] = Chunk.empty,
+      myGists: Chunk[GistSummary] = Chunk.empty,
+      gist: Maybe[Gist] = Absent,
+      myGist: Maybe[Gist] = Absent,
+      gistComments: ConnectionPage[GistComment] = ConnectionPage()
   ): GithubClient =
     FixtureClient(
       issues,
       pullRequests,
       discussions,
+      gists,
+      myGists,
+      gist,
+      myGist,
+      gistComments,
       discussionReplies,
       issueComments,
       pullRequestComments,
@@ -103,12 +133,22 @@ object GithubClient:
       discussionComments: String = GraphQl.emptyDiscussionComments,
       issue: String = GraphQl.emptyIssue,
       pullRequest: String = GraphQl.emptyPullRequest,
-      discussion: String = GraphQl.emptyDiscussion
+      discussion: String = GraphQl.emptyDiscussion,
+      gists: String = GraphQl.emptyGists,
+      myGists: String = GraphQl.emptyMyGists,
+      gist: String = GraphQl.emptyGist,
+      myGist: String = GraphQl.emptyMyGist,
+      gistComments: String = GraphQl.emptyGistComments
   ): GithubClient =
     RecordedClient(
       issues,
       pullRequests,
       discussions,
+      gists,
+      myGists,
+      gist,
+      myGist,
+      gistComments,
       discussionReplies,
       issueComments,
       pullRequestComments,
@@ -134,6 +174,11 @@ object GithubClient:
       issues: Chunk[Issue],
       pullRequests: Chunk[PullRequest],
       discussions: Chunk[Discussion],
+      gists: Chunk[GistSummary],
+      myGists: Chunk[GistSummary],
+      gist: Maybe[Gist],
+      myGist: Maybe[Gist],
+      gistComments: ConnectionPage[GistComment],
       discussionReplies: ConnectionPage[DiscussionComment],
       issueComments: ConnectionPage[IssueComment],
       pullRequestComments: ConnectionPage[IssueComment],
@@ -161,6 +206,29 @@ object GithubClient:
         replyDepth: ReplyDepth
     ): ConnectionPage[Discussion] < (Abort[GitHubException] & Async) =
       ConnectionPage(nodes = discussions)
+    def listGists(
+        user: GithubLogin,
+        after: Maybe[Cursor],
+        first: PageSize
+    ): ConnectionPage[GistSummary] < (Abort[GitHubException] & Async) =
+      ConnectionPage(nodes = gists)
+    def listMyGists(
+        privacy: GistPrivacy,
+        after: Maybe[Cursor],
+        first: PageSize
+    ): ConnectionPage[GistSummary] < (Abort[GitHubException] & Async) =
+      ConnectionPage(nodes = myGists)
+    def getGist(user: GithubLogin, name: GistName): Maybe[Gist] < (Abort[GitHubException] & Async) =
+      gist
+    def getMyGist(name: GistName): Maybe[Gist] < (Abort[GitHubException] & Async) =
+      myGist
+    def listGistComments(
+        user: GithubLogin,
+        name: GistName,
+        after: Maybe[Cursor],
+        first: PageSize
+    ): ConnectionPage[GistComment] < (Abort[GitHubException] & Async) =
+      gistComments
     def listDiscussionReplies(
         commentId: DiscussionCommentId,
         after: Maybe[Cursor],
@@ -208,6 +276,11 @@ object GithubClient:
       issuesJson: String,
       pullRequestsJson: String,
       discussionsJson: String,
+      gistsJson: String,
+      myGistsJson: String,
+      gistJson: String,
+      myGistJson: String,
+      gistCommentsJson: String,
       discussionRepliesJson: String,
       issueCommentsJson: String,
       pullRequestCommentsJson: String,
@@ -235,6 +308,29 @@ object GithubClient:
         replyDepth: ReplyDepth
     ): ConnectionPage[Discussion] < (Abort[GitHubException] & Async) =
       lift(GraphQl.decodeDiscussions(discussionsJson))
+    def listGists(
+        user: GithubLogin,
+        after: Maybe[Cursor],
+        first: PageSize
+    ): ConnectionPage[GistSummary] < (Abort[GitHubException] & Async) =
+      lift(GraphQl.decodeGists(gistsJson))
+    def listMyGists(
+        privacy: GistPrivacy,
+        after: Maybe[Cursor],
+        first: PageSize
+    ): ConnectionPage[GistSummary] < (Abort[GitHubException] & Async) =
+      lift(GraphQl.decodeMyGists(myGistsJson))
+    def getGist(user: GithubLogin, name: GistName): Maybe[Gist] < (Abort[GitHubException] & Async) =
+      lift(GraphQl.decodeGist(gistJson))
+    def getMyGist(name: GistName): Maybe[Gist] < (Abort[GitHubException] & Async) =
+      lift(GraphQl.decodeMyGist(myGistJson))
+    def listGistComments(
+        user: GithubLogin,
+        name: GistName,
+        after: Maybe[Cursor],
+        first: PageSize
+    ): ConnectionPage[GistComment] < (Abort[GitHubException] & Async) =
+      lift(GraphQl.decodeGistComments(gistCommentsJson))
     def listDiscussionReplies(
         commentId: DiscussionCommentId,
         after: Maybe[Cursor],

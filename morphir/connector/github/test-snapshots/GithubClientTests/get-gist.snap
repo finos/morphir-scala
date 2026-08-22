@@ -1,0 +1,1 @@
+query{user(login:"octocat"){gist(name:"gist1"){name description url owner{login url} isPublic isFork stargazerCount createdAt updatedAt pushedAt files(limit:300){name encoding extension language{name} size isImage isTruncated text} comments(first:100){pageInfo{hasNextPage endCursor} nodes{author{login url} body createdAt updatedAt}}}}}

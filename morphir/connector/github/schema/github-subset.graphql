@@ -19,6 +19,20 @@ interface Node {
 type Query {
   repository(owner: String!, name: String!): Repository
   node(id: ID!): Node
+  user(login: String!): User
+  viewer: User!
+}
+
+interface RepositoryOwner {
+  login: String!
+  url: URI!
+}
+
+type User implements RepositoryOwner {
+  login: String!
+  url: URI!
+  gist(name: String!): Gist
+  gists(first: Int, after: String, privacy: GistPrivacy): GistConnection!
 }
 
 type Repository {
@@ -33,6 +47,60 @@ type Repository {
 type Actor {
   login: String!
   url: URI!
+}
+
+enum GistPrivacy {
+  ALL
+  PUBLIC
+  SECRET
+}
+
+type GistConnection {
+  nodes: [Gist]
+  pageInfo: PageInfo!
+}
+
+type Gist {
+  comments(first: Int, after: String): GistCommentConnection!
+  createdAt: DateTime!
+  description: String
+  files(limit: Int): [GistFile]
+  id: ID!
+  isFork: Boolean!
+  isPublic: Boolean!
+  name: String!
+  owner: RepositoryOwner
+  pushedAt: DateTime
+  stargazerCount: Int!
+  updatedAt: DateTime!
+  url: URI!
+}
+
+type GistFile {
+  encoding: String
+  extension: String
+  isImage: Boolean!
+  isTruncated: Boolean!
+  language: Language
+  name: String
+  size: Int
+  text(truncate: Int): String
+}
+
+type Language {
+  name: String!
+}
+
+type GistComment {
+  author: Actor
+  body: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+type GistCommentConnection {
+  nodes: [GistComment]
+  pageInfo: PageInfo!
 }
 
 type Label {

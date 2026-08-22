@@ -1,0 +1,1 @@
+query{user(login:"octocat"){gist(name:"gist1"){comments(first:20,after:"gc1"){pageInfo{hasNextPage endCursor} nodes{author{login url} body createdAt updatedAt}}}}}

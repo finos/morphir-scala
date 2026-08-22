@@ -1,6 +1,6 @@
 # morphir-connector-github
 
-A Kyo GitHub GraphQL client for issues, pull requests, and discussions. No Morphir types, no OKF types.
+A Kyo GitHub GraphQL client for issues, pull requests, discussions, and gists. No Morphir types, no OKF types.
 
 Listing includes author, UTC `createdAt` / `updatedAt` as `Maybe[java.time.Instant]`, labels, and comments.
 Discussions include upvote count, an accepted answer, and nested comment replies. `listDiscussions` takes a
@@ -18,6 +18,13 @@ Cursors are `Cursor`. A discussion comment node id is
 Public models and `GitHubException` have `Render` instances so logs and snapshots print opaque numbers and ids as
 `issue:975`, `pr:3`, `discussion:100`, `cursor:c1`, and `dc:DC_1`. Issue and pull request comments have no upvote count and no
 reply tree.
+
+Gist reads are user-scoped rather than repository-scoped. `listGists` lists a named user's public gists, while
+`listMyGists` lists the authenticated viewer's gists with an `All`, `Public`, or `Secret` privacy filter. Lists return
+lightweight `GistSummary` values without file contents or comments. `getGist` and `getMyGist` return a full `Gist`
+with up to three hundred files and the first comment page. A file's text is absent for binary content and may be partial
+when `isTruncated` is true. `listGistComments` pages further comments. User logins and gist names are opaque
+`GithubLogin` and `GistName` values.
 
 `Token` does not print the secret. Long GitHub tokens show a type prefix and the last four characters
 (`Token(ghp_...abcd)`). Short values print `Token(redacted)`. `GithubClient.live(token)` still takes a parsed
@@ -51,7 +58,7 @@ Native artifact links kqueue. See the published-library-families Design Note.
 
 Listing methods return `ConnectionPage[A] < (Abort[GitHubException] & Async)`. Pass `after` and a positive
 `PageSize` as `first` to page.
-`getIssue`, `getPullRequest`, and `getDiscussion` return `Maybe[A]`. Nested comments use the same page type;
+`getIssue`, `getPullRequest`, `getDiscussion`, `getGist`, and `getMyGist` return `Maybe[A]`. Nested comments use the same page type;
 `listIssueComments`, `listPullRequestComments`, `listDiscussionComments`, and `listDiscussionReplies` page further:
 
 ```scala

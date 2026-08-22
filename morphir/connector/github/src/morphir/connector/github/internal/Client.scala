@@ -1,13 +1,72 @@
 package morphir.connector.github.internal
 
+import caliban.client.CalibanClientError.DecodingError
 import caliban.client.FieldBuilder._
 import caliban.client._
+import caliban.client.__Value._
 
 object Client {
+
+  sealed trait GistPrivacy extends scala.Product with scala.Serializable { def value: String }
+  object GistPrivacy {
+    case object ALL    extends GistPrivacy { val value: String = "ALL"    }
+    case object PUBLIC extends GistPrivacy { val value: String = "PUBLIC" }
+    case object SECRET extends GistPrivacy { val value: String = "SECRET" }
+
+    implicit val decoder: ScalarDecoder[GistPrivacy] = {
+      case __StringValue("ALL")    => Right(GistPrivacy.ALL)
+      case __StringValue("PUBLIC") => Right(GistPrivacy.PUBLIC)
+      case __StringValue("SECRET") => Right(GistPrivacy.SECRET)
+      case other                   => Left(DecodingError(s"Can't build GistPrivacy from input $other"))
+    }
+    implicit val encoder: ArgEncoder[GistPrivacy] = {
+      case GistPrivacy.ALL    => __EnumValue("ALL")
+      case GistPrivacy.PUBLIC => __EnumValue("PUBLIC")
+      case GistPrivacy.SECRET => __EnumValue("SECRET")
+    }
+
+    val values: scala.collection.immutable.Vector[GistPrivacy] = scala.collection.immutable.Vector(ALL, PUBLIC, SECRET)
+  }
 
   type Node
   object Node {
     def id: SelectionBuilder[Node, String] = _root_.caliban.client.SelectionBuilder.Field("id", Scalar())
+  }
+
+  type RepositoryOwner
+  object RepositoryOwner {
+    def login: SelectionBuilder[RepositoryOwner, String] =
+      _root_.caliban.client.SelectionBuilder.Field("login", Scalar())
+    def url: SelectionBuilder[RepositoryOwner, String] = _root_.caliban.client.SelectionBuilder.Field("url", Scalar())
+  }
+
+  type User
+  object User {
+    def login: SelectionBuilder[User, String] = _root_.caliban.client.SelectionBuilder.Field("login", Scalar())
+    def url: SelectionBuilder[User, String]   = _root_.caliban.client.SelectionBuilder.Field("url", Scalar())
+    def gist[A](name: String)(innerSelection: SelectionBuilder[Gist, A])(implicit
+        encoder0: ArgEncoder[String]
+    ): SelectionBuilder[User, scala.Option[A]] = _root_.caliban.client.SelectionBuilder.Field(
+      "gist",
+      OptionOf(Obj(innerSelection)),
+      arguments = List(Argument("name", name, "String!"))
+    )
+    def gists[A](
+        first: scala.Option[Int] = None,
+        after: scala.Option[String] = None,
+        privacy: scala.Option[GistPrivacy] = None
+    )(innerSelection: SelectionBuilder[GistConnection, A])(implicit
+        encoder0: ArgEncoder[scala.Option[Int]],
+        encoder1: ArgEncoder[scala.Option[String]]
+    ): SelectionBuilder[User, A] = _root_.caliban.client.SelectionBuilder.Field(
+      "gists",
+      Obj(innerSelection),
+      arguments = List(
+        Argument("first", first, "Int"),
+        Argument("after", after, "String"),
+        Argument("privacy", privacy, "GistPrivacy")
+      )
+    )
   }
 
   type Repository
@@ -72,6 +131,108 @@ object Client {
   object Actor {
     def login: SelectionBuilder[Actor, String] = _root_.caliban.client.SelectionBuilder.Field("login", Scalar())
     def url: SelectionBuilder[Actor, String]   = _root_.caliban.client.SelectionBuilder.Field("url", Scalar())
+  }
+
+  type GistConnection
+  object GistConnection {
+    def nodes[A](innerSelection: SelectionBuilder[Gist, A])
+        : SelectionBuilder[GistConnection, scala.Option[List[scala.Option[A]]]] =
+      _root_.caliban.client.SelectionBuilder.Field("nodes", OptionOf(ListOf(OptionOf(Obj(innerSelection)))))
+    def pageInfo[A](innerSelection: SelectionBuilder[PageInfo, A]): SelectionBuilder[GistConnection, A] =
+      _root_.caliban.client.SelectionBuilder.Field("pageInfo", Obj(innerSelection))
+  }
+
+  type Gist
+  object Gist {
+    def comments[A](
+        first: scala.Option[Int] = None,
+        after: scala.Option[String] = None
+    )(innerSelection: SelectionBuilder[GistCommentConnection, A])(implicit
+        encoder0: ArgEncoder[scala.Option[Int]],
+        encoder1: ArgEncoder[scala.Option[String]]
+    ): SelectionBuilder[Gist, A] = _root_.caliban.client.SelectionBuilder.Field(
+      "comments",
+      Obj(innerSelection),
+      arguments = List(Argument("first", first, "Int"), Argument("after", after, "String"))
+    )
+    def createdAt: SelectionBuilder[Gist, String] = _root_.caliban.client.SelectionBuilder.Field("createdAt", Scalar())
+    def description: SelectionBuilder[Gist, scala.Option[String]] =
+      _root_.caliban.client.SelectionBuilder.Field("description", OptionOf(Scalar()))
+    def files[A](limit: scala.Option[Int] = None)(innerSelection: SelectionBuilder[GistFile, A])(implicit
+        encoder0: ArgEncoder[scala.Option[Int]]
+    ): SelectionBuilder[Gist, scala.Option[List[scala.Option[A]]]] = _root_.caliban.client.SelectionBuilder.Field(
+      "files",
+      OptionOf(ListOf(OptionOf(Obj(innerSelection)))),
+      arguments = List(Argument("limit", limit, "Int"))
+    )
+    def id: SelectionBuilder[Gist, String]        = _root_.caliban.client.SelectionBuilder.Field("id", Scalar())
+    def isFork: SelectionBuilder[Gist, Boolean]   = _root_.caliban.client.SelectionBuilder.Field("isFork", Scalar())
+    def isPublic: SelectionBuilder[Gist, Boolean] = _root_.caliban.client.SelectionBuilder.Field("isPublic", Scalar())
+    def name: SelectionBuilder[Gist, String]      = _root_.caliban.client.SelectionBuilder.Field("name", Scalar())
+    def owner[A](onUser: SelectionBuilder[User, A]): SelectionBuilder[Gist, scala.Option[A]] =
+      _root_.caliban.client.SelectionBuilder.Field("owner", OptionOf(ChoiceOf(Map("User" -> Obj(onUser)))))
+    def pushedAt: SelectionBuilder[Gist, scala.Option[String]] =
+      _root_.caliban.client.SelectionBuilder.Field("pushedAt", OptionOf(Scalar()))
+    def stargazerCount: SelectionBuilder[Gist, Int] =
+      _root_.caliban.client.SelectionBuilder.Field("stargazerCount", Scalar())
+    def updatedAt: SelectionBuilder[Gist, String] = _root_.caliban.client.SelectionBuilder.Field("updatedAt", Scalar())
+    def url: SelectionBuilder[Gist, String]       = _root_.caliban.client.SelectionBuilder.Field("url", Scalar())
+    def ownerOption[A](onUser: scala.Option[SelectionBuilder[User, A]] =
+      None): SelectionBuilder[Gist, scala.Option[scala.Option[A]]] = _root_.caliban.client.SelectionBuilder.Field(
+      "owner",
+      OptionOf(ChoiceOf(Map("User" -> onUser.fold[FieldBuilder[scala.Option[A]]](NullField)(a => OptionOf(Obj(a))))))
+    )
+    def ownerInterface[A](owner: SelectionBuilder[RepositoryOwner, A]): SelectionBuilder[Gist, scala.Option[A]] =
+      _root_.caliban.client.SelectionBuilder.Field("owner", OptionOf(Obj(owner)))
+  }
+
+  type GistFile
+  object GistFile {
+    def encoding: SelectionBuilder[GistFile, scala.Option[String]] =
+      _root_.caliban.client.SelectionBuilder.Field("encoding", OptionOf(Scalar()))
+    def `extension`: SelectionBuilder[GistFile, scala.Option[String]] =
+      _root_.caliban.client.SelectionBuilder.Field("extension", OptionOf(Scalar()))
+    def isImage: SelectionBuilder[GistFile, Boolean] = _root_.caliban.client.SelectionBuilder.Field("isImage", Scalar())
+    def isTruncated: SelectionBuilder[GistFile, Boolean] =
+      _root_.caliban.client.SelectionBuilder.Field("isTruncated", Scalar())
+    def language[A](innerSelection: SelectionBuilder[Language, A]): SelectionBuilder[GistFile, scala.Option[A]] =
+      _root_.caliban.client.SelectionBuilder.Field("language", OptionOf(Obj(innerSelection)))
+    def name: SelectionBuilder[GistFile, scala.Option[String]] =
+      _root_.caliban.client.SelectionBuilder.Field("name", OptionOf(Scalar()))
+    def size: SelectionBuilder[GistFile, scala.Option[Int]] =
+      _root_.caliban.client.SelectionBuilder.Field("size", OptionOf(Scalar()))
+    def text(truncate: scala.Option[Int] = None)(implicit
+        encoder0: ArgEncoder[scala.Option[Int]]
+    ): SelectionBuilder[GistFile, scala.Option[String]] = _root_.caliban.client.SelectionBuilder.Field(
+      "text",
+      OptionOf(Scalar()),
+      arguments = List(Argument("truncate", truncate, "Int"))
+    )
+  }
+
+  type Language
+  object Language {
+    def name: SelectionBuilder[Language, String] = _root_.caliban.client.SelectionBuilder.Field("name", Scalar())
+  }
+
+  type GistComment
+  object GistComment {
+    def author[A](innerSelection: SelectionBuilder[Actor, A]): SelectionBuilder[GistComment, scala.Option[A]] =
+      _root_.caliban.client.SelectionBuilder.Field("author", OptionOf(Obj(innerSelection)))
+    def body: SelectionBuilder[GistComment, String] = _root_.caliban.client.SelectionBuilder.Field("body", Scalar())
+    def createdAt: SelectionBuilder[GistComment, String] =
+      _root_.caliban.client.SelectionBuilder.Field("createdAt", Scalar())
+    def updatedAt: SelectionBuilder[GistComment, String] =
+      _root_.caliban.client.SelectionBuilder.Field("updatedAt", Scalar())
+  }
+
+  type GistCommentConnection
+  object GistCommentConnection {
+    def nodes[A](innerSelection: SelectionBuilder[GistComment, A])
+        : SelectionBuilder[GistCommentConnection, scala.Option[List[scala.Option[A]]]] =
+      _root_.caliban.client.SelectionBuilder.Field("nodes", OptionOf(ListOf(OptionOf(Obj(innerSelection)))))
+    def pageInfo[A](innerSelection: SelectionBuilder[PageInfo, A]): SelectionBuilder[GistCommentConnection, A] =
+      _root_.caliban.client.SelectionBuilder.Field("pageInfo", Obj(innerSelection))
   }
 
   type Label
@@ -305,6 +466,17 @@ object Client {
           onDiscussionComment.fold[FieldBuilder[scala.Option[A]]](NullField)(a => OptionOf(Obj(a)))))),
         arguments = List(Argument("id", id, "ID!"))
       )
+    def user[A](login: String)(innerSelection: SelectionBuilder[User, A])(implicit
+        encoder0: ArgEncoder[String]
+    ): SelectionBuilder[_root_.caliban.client.Operations.RootQuery, scala.Option[A]] =
+      _root_.caliban.client.SelectionBuilder.Field(
+        "user",
+        OptionOf(Obj(innerSelection)),
+        arguments = List(Argument("login", login, "String!"))
+      )
+    def viewer[A](innerSelection: SelectionBuilder[User, A])
+        : SelectionBuilder[_root_.caliban.client.Operations.RootQuery, A] =
+      _root_.caliban.client.SelectionBuilder.Field("viewer", Obj(innerSelection))
   }
 
 }
