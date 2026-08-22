@@ -2,6 +2,7 @@ package morphir.langkit.markdown
 
 import kyo.*
 import kyo.test.*
+import morphir.langkit.markdown.internal.{CstParser, Lower}
 
 /**
  * The same conformance measurement as [[ConformanceTests]], through the other pipeline: parse to the CST, lower to the

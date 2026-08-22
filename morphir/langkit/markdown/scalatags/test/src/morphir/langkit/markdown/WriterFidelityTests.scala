@@ -4,7 +4,7 @@ import kyo.*
 import kyo.test.*
 import morphir.langkit.markdown.dsl.*
 import morphir.langkit.markdown.dsl.given
-import morphir.langkit.markdown.internal.MdWriter
+import morphir.langkit.markdown.internal.{CstParser, Lower, MdWriter}
 
 /**
  * Fidelity between [[MdWriter]] and [[ScalatagsCompiler]], the byte-exact conformance oracle: writing a tree and

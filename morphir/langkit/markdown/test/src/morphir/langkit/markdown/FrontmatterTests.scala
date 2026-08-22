@@ -3,7 +3,7 @@ package morphir.langkit.markdown
 import kyo.*
 import kyo.test.*
 import morphir.langkit.core.Span
-import morphir.langkit.markdown.internal.Parser
+import morphir.langkit.markdown.internal.{Cst, CstParser, Parser}
 
 /**
  * Frontmatter recognition, which is opt-in: what an [[MdProfile]] carrying [[FrontMatterKind.Yaml]] claims, and what

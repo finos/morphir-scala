@@ -15,11 +15,12 @@ package morphir.langkit.markdown
  * val back = parser.parse(text)
  * }}}
  *
- * '''The verbs live in namespaces, not at the top.''' [[MD.parser]] parses and [[MD.writer]] writes; there is no flat
- * `MD.parse`. The objects behind them — `morphir.langkit.markdown.internal.Parser` and `internal.MdWriter` — are
- * `private[markdown]` machinery, and this is the only way to them from outside the module. Grouping them also keeps
- * `parse` and `write` from landing as bare names in a file that did `import MD.*`, where they would say nothing about
- * what they parse or write.
+ * '''The verbs live in namespaces, not at the top.''' [[MD.parser]] parses, [[MD.writer]] writes and [[MD.cst]] reads
+ * and lowers the concrete syntax tree; there is no flat `MD.parse`. Every object behind them —
+ * `morphir.langkit.markdown.internal.Parser`, `internal.MdWriter`, `internal.CstParser`, `internal.Cst` and
+ * `internal.Lower` — is `private[markdown]` machinery, and this is the only way to them from outside the module.
+ * Grouping them also keeps `parse` and `write` from landing as bare names in a file that did `import MD.*`, where they
+ * would say nothing about what they parse or write.
  *
  * '''Which half authors, which half you match on.''' `MD.*` deliberately holds two spellings of the same tree in one
  * namespace. The lowercase combinators — `doc`, `h1`, `p`, `ul`, `li`, `a`, `em`, `strong` — are the authoring door;
@@ -140,9 +141,11 @@ object MD:
   /**
    * The verbs over the concrete syntax tree: what the source said, not what it meant.
    *
-   * Four methods, which is every verb the CST has. They arrive here as verbs rather than as the objects that hold them
-   * because [[Cst]], [[CstParser]] and [[Lower]] are each a single-purpose object of one or two methods, and a
-   * namespace per method buys nothing. [[MdCstNode]] itself is flat on [[MD]], with the rest of the types.
+   * Four methods, which is every verb the CST has, and the only way to them. The objects behind them —
+   * `internal.CstParser`, `internal.Cst` and `internal.Lower` — are `private[markdown]` machinery for the same reason
+   * [[parser]]'s and [[writer]]'s are, and each is a single-purpose object of one or two methods, so a namespace per
+   * object would buy nothing. [[MdCstNode]] itself is flat on [[MD]], with the rest of the types: it is a type a
+   * caller's signature names, where these are operations a caller only performs.
    *
    * `cst.parse` and [[parser.parse]] are both here on purpose, and are not two spellings of one thing: each is named
    * for what it produces. `cst.parse` yields an [[MdCstNode.Document]] — every byte of the source, tokens and all — and
@@ -152,12 +155,12 @@ object MD:
   object cst:
 
     /** Source to CST. Total: a source the parser rejects degrades to one verbatim leaf. */
-    export morphir.langkit.markdown.CstParser.parse
+    export morphir.langkit.markdown.internal.CstParser.parse
 
     /** A tree back to source, byte for byte, and the leaf-tiling invariant that makes that exact. */
-    export morphir.langkit.markdown.Cst.{print, tilingErrors}
+    export morphir.langkit.markdown.internal.Cst.{print, tilingErrors}
 
     /** CST to AST — `MdCstNode.Document => MdNode.Root`, total. */
-    export morphir.langkit.markdown.Lower.lower
+    export morphir.langkit.markdown.internal.Lower.lower
   end cst
 end MD

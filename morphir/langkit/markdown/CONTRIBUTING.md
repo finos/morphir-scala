@@ -22,14 +22,20 @@ Depth is still available — it just goes downward, not sideways:
 
 | Where | What | Visibility |
 | --- | --- | --- |
-| `morphir.langkit.markdown` | the public surface: `MD`, `dsl`, `MdNode`, `MdCstNode`, `Cst`, `CstParser`, `Lower`, `LinkForm`, `HeadingLevel`, `ListStart`, `FenceInfo`, `MdProfile`, `MdStyle`, `MdMeta`, `MdParseError`, `YamlDocText`, `Compiler`, and each writer's entry point | public |
-| `morphir.langkit.markdown.internal` | machinery no caller should name — `Parser`, `MdWriter`, `InlineParser`, `CstFragment`, `InlineNotes` | `private[markdown]` |
+| `morphir.langkit.markdown` | the public surface: the two trees `MdNode` and `MdCstNode`, the types their signatures name — `HeadingLevel`, `ListStart`, `FenceInfo`, `LinkForm`, `MdMeta`, `YamlDocText`, `MdProfile`, `MdStyle`, `MdStyleKeys`, `MdParseError` — the `Compiler` algebra, the `dsl` combinators, and `MD`, which is the door | public |
+| `morphir.langkit.markdown.internal` | machinery no caller should name — `Parser`, `MdWriter`, `CstParser`, `Cst`, `Lower`, `InlineParser`, `MarkdownFold`, `CstFragment`, `InlineNotes` | `private[markdown]` |
 
-The concrete syntax tree is the case worth spelling out, because it is where the rule is easiest to break. `MdCstNode`
-and the three objects over it sit in the root package beside `MdNode`, not in a `cst` package; the fragments and inline
-notes the parser records on the way to building one are `private[markdown]` and sit in `internal`. `MD.cst` is a *verb*
-namespace — an object inside `MD` holding `parse`, `print`, `tilingErrors` and `lower` — which is a member name rather
-than a package name, so it groups the verbs at a call site without putting `cst` in any type's fully qualified name.
+**Types are public; verbs are not.** A type a caller's own signature has to name must be reachable, so `MdNode` and
+`MdCstNode` are public. An operation is reached through `MD`, which re-exports the members of the internal object that
+holds it: `MD.parser.parse`, `MD.writer.write`, `MD.cst.parse`. That leaves exactly one spelling per operation, and it
+keeps the object names — `Parser`, `MdWriter`, `CstParser`, `Cst`, `Lower` — out of the compatibility surface, so the
+decomposition behind a verb can change without any of it reaching a consumer.
+
+The concrete syntax tree is the case worth spelling out, because it is where both halves of the rule were broken at
+once. `MdCstNode` and `LinkForm` are types callers name, so they sit in the root package beside `MdNode` rather than in
+a `cst` package. The four verbs over them are machinery and sit in `internal`, reached only as `MD.cst.parse`,
+`MD.cst.print`, `MD.cst.tilingErrors` and `MD.cst.lower`. `MD.cst` is a member name rather than a package name, so it
+groups the verbs at a call site without putting `cst` in any type's fully qualified name.
 
 **This makes `morphir.langkit.markdown` a split package** — three published artifacts contribute types to it. On a
 classpath that is fine, and it is what makes the single import work. It would not be fine on a Java module path:

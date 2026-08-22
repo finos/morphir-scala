@@ -2,6 +2,7 @@ package morphir.langkit.markdown
 
 import kyo.*
 import kyo.test.*
+import morphir.langkit.markdown.internal.{Cst, CstParser}
 
 /**
  * The rewrite's forcing invariant, from the first slice on: `Cst.print(CstParser.parse(source))` reproduces the source

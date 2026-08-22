@@ -1,9 +1,9 @@
-package morphir.langkit.markdown
+package morphir.langkit.markdown.internal
 
 import kyo.*
 import scala.annotation.tailrec
 import morphir.langkit.core.Span
-import morphir.langkit.markdown.internal.{InlineParser, LinkDefinition}
+import morphir.langkit.markdown.*
 
 /**
  * Lowers a CST into the AST: `lower: MdCstNode.Document => MdNode.Root`, total.
@@ -19,7 +19,7 @@ import morphir.langkit.markdown.internal.{InlineParser, LinkDefinition}
  * [[MdNode.Text]] chunks than the direct parse produces — but the rendered document is the same, which the conformance
  * suite measures over the whole CommonMark corpus.
  */
-object Lower:
+private[markdown] object Lower:
 
   def lower(document: MdCstNode.Document): MdNode.Root =
     val definitions = collectDefinitions(document)

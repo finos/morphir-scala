@@ -4,7 +4,7 @@ import kyo.*
 import kyo.test.*
 import morphir.langkit.markdown.dsl.*
 import morphir.langkit.markdown.dsl.given
-import morphir.langkit.markdown.internal.{MdWriter, Parser}
+import morphir.langkit.markdown.internal.{Cst, MdWriter, Parser}
 
 /**
  * The writer's contract is structural fidelity, not byte fidelity: `Parser.parse(MdWriter.write(tree))` succeeds and
