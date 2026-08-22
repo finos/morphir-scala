@@ -37,8 +37,8 @@ meaning. Both belong to this intent. The output stage that folds the AST belongs
 Native. It began as a subset — ATX headings, paragraphs, fenced code, unordered lists and thematic breaks, with
 inlines left as raw text — and is now complete against CommonMark 0.31.2: all 652 examples parse and render byte
 for byte. Adopting a third-party engine instead is no longer under consideration: this parser measures full
-conformance against CommonMark, and, since [0035](/0035-github-flavored-markdown-profile.md), against GitHub
-Flavored Markdown as well.
+conformance against CommonMark 0.31.2, and, since [0035](/0035-github-flavored-markdown-profile.md), 662 of 663
+measured examples against GitHub Flavored Markdown, with the one gap tracked as beads `morphir-t3p.8`.
 
 ```mermaid
 flowchart LR
@@ -74,9 +74,10 @@ sets out.
 ## Unresolved
 
 *Settled: whether a third-party engine eventually replaces it.* It does not. The owned parser now measures full
-conformance against CommonMark 0.31.2, and, since [0035](/0035-github-flavored-markdown-profile.md), against
-GitHub Flavored Markdown as well — the case a replacement would have to make against that record only gets
-harder, and nothing here proposes reopening the Approach to make it. Recorded as
+conformance against CommonMark 0.31.2, and, since [0035](/0035-github-flavored-markdown-profile.md), 662 of 663
+measured examples against GitHub Flavored Markdown, with one gap tracked as beads `morphir-t3p.8` — the case a
+replacement would have to make against that record only gets harder, and nothing here proposes reopening the
+Approach to make it. Recorded as
 [decision 0016](../morphir/morphir-scala/decisions/0016-the-markdown-parser-is-our-own.md).
 
 *Settled: whether the CST and the AST stay one tree.* Two trees, related by a total lowering, and the lowering
