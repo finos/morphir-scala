@@ -35,9 +35,9 @@ private[github] object PlatformGhAuth extends GhAuth:
   private def commandFailure(exception: CommandException): GitHubException.Unauthorized =
     exception match
       case _: ProgramNotFoundException | _: PermissionDeniedException =>
-        GitHubException.Unauthorized(s"gh is not installed or could not be started: ${exception.getMessage}")
-      case other =>
-        GitHubException.Unauthorized(other.getMessage)
+        GitHubException.Unauthorized("gh is not installed or could not be started")
+      case _ =>
+        GitHubException.Unauthorized("gh auth token could not be started")
 
   private def detail(code: Int, err: String, out: String): String =
     val fromErr = err.trim

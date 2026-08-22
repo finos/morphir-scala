@@ -11,7 +11,16 @@ object js:
 object main:
   extends: [build.MorphirCommonModule, build.MorphirPublishModule, build.AssemblyPublishInfo, build.MorphirCliBuildInfo, build.MorphirMainMvnDeps]
   mainClass: org.finos.morphir.cli.MorphirCliMain
+  compileModuleDeps:
+  - build.morphir.web.server.jvm
   moduleDeps:
+  - build.morphir.appkit.jvm
+  - build.morphir.connector.github.jvm
   - build.morphir.jvm
   - build.morphir.runtime.classic.jvm
   - build.morphir.tools.jvm
+  runModuleDeps:
+  - build.morphir.web.server.jvm
+  object test:
+    extends: [ScalaTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps]
+    moduleDeps: !append [build.morphir.web.server.jvm]

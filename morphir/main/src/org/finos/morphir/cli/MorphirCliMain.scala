@@ -259,17 +259,20 @@ object ElmTestCommand extends KyoCommand[ElmTestOptions]:
 
 object MorphirCliMain extends CommandsEntryPoint:
   def progName                  = "morphir-cli"
-  def commands: Seq[Command[?]] = Seq(
-    BundleCommand,
-    DevelopCommand,
-    LibraryCommand,
-    SetupCommand,
-    TestCommand,
-    VersionCommand,
-    ElmCommand,
-    ElmDevelopCommand,
-    ElmInitCommand,
-    ElmMakeCommand,
-    ElmRestoreCommand,
-    ElmTestCommand
-  )
+  def commands: Seq[Command[?]] =
+    val serve = if ServeCommand.available then Seq(ServeCommand) else Seq.empty
+    Seq(
+      BundleCommand,
+      DevelopCommand,
+      LibraryCommand,
+      SetupCommand,
+      TestCommand,
+      VersionCommand
+    ) ++ serve ++ Seq(
+      ElmCommand,
+      ElmDevelopCommand,
+      ElmInitCommand,
+      ElmMakeCommand,
+      ElmRestoreCommand,
+      ElmTestCommand
+    )

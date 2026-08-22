@@ -41,5 +41,6 @@ object DemoServices:
     def recentWorkspaces() = Chunk(WorkspaceRef("/demo"))
     def appVersion()       = version
 
-  def routes(version: String): Chunk[JsonRpcRoute[?, ?, ?]] =
-    IrRpc.routes(ir) ++ KnowledgeRpc.routes(knowledge) ++ ShellRpc.routes(shell(version))
+  def routes(version: String, github: GitHubConnectionService): Chunk[JsonRpcRoute[?, ?, ?]] =
+    IrRpc.routes(ir) ++ KnowledgeRpc.routes(knowledge) ++ ShellRpc.routes(shell(version)) ++
+      GitHubConnectionRpc.routes(github)

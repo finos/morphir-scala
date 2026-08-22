@@ -9,6 +9,14 @@ private[github] object PlatformLive:
   def make(token: Token): GithubClient =
     LiveClient(token)
 
+  def verify(token: Token): GitHubLogin < (Abort[GitHubException] & Async) =
+    postBody[GraphQl.ViewerLoginEnvelope, GraphQl.ViewerLoginRequest](
+      token,
+      GraphQl.ViewerLoginRequest(GraphQl.viewerLoginDocument),
+      mapVerifierHttp,
+      _ => GitHubTokenVerifier.httpFailure(0)
+    ).map(envelope => GitHubTokenVerifier.lift(GraphQl.viewerLoginFrom(envelope)))
+
   private final class LiveClient(token: Token) extends GithubClient:
     def listIssues(
         repository: RepositoryRef,
@@ -142,29 +150,42 @@ private[github] object PlatformLive:
       postBody(request)
 
     private def postBody[A: Schema, B: Schema](body: B): A < (Abort[GitHubException] & Async) =
-      val send =
-        HttpClient.withConfig(
-          HttpClientConfig()
-            .baseUrl("https://api.github.com")
-            .filter(HttpFilter.client.bearerAuth(token.unsafeReveal))
-            .filter(HttpFilter.client.addHeader("User-Agent", "morphir-connector-github"))
-        ) {
-          HttpClient.postJson[A]("/graphql", body)
-        }
-      Abort.run[HttpException](send).map {
-        case Result.Success(body) => body
-        case Result.Failure(err)  => Abort.fail(mapHttp(err))
-        case Result.Panic(err)    => Abort.fail(GitHubException.Transport(err.getMessage))
-      }
+      PlatformLive.postBody(token, body, mapClientHttp, err => GitHubException.Transport(err.getMessage))
 
-    private def mapHttp(err: HttpException): GitHubException =
-      err match
-        case status: HttpStatusException =>
-          GitHubException.fromHttpStatus(status.status.code, statusDetail(status))
-        case other => GitHubException.Transport(other.getMessage)
-
-    private def statusDetail(status: HttpStatusException): String =
-      val message = Option(status.getMessage).map(_.trim).filter(_.nonEmpty)
-      message.getOrElse {
-        Option(status.body).map(_.toString.trim).filter(_.nonEmpty).getOrElse("")
+  private def postBody[A: Schema, B: Schema](
+      token: Token,
+      body: B,
+      mapHttp: HttpException => GitHubException,
+      mapPanic: Throwable => GitHubException
+  ): A < (Abort[GitHubException] & Async) =
+    val send =
+      HttpClient.withConfig(
+        HttpClientConfig()
+          .baseUrl("https://api.github.com")
+          .filter(HttpFilter.client.bearerAuth(token.unsafeReveal))
+          .filter(HttpFilter.client.addHeader("User-Agent", "morphir-connector-github"))
+      ) {
+        HttpClient.postJson[A]("/graphql", body)
       }
+    Abort.run[HttpException](send).map {
+      case Result.Success(body) => body
+      case Result.Failure(err)  => Abort.fail(mapHttp(err))
+      case Result.Panic(err)    => Abort.fail(mapPanic(err))
+    }
+
+  private def mapVerifierHttp(err: HttpException): GitHubException =
+    err match
+      case status: HttpStatusException => GitHubTokenVerifier.httpFailure(status.status.code)
+      case _                           => GitHubTokenVerifier.httpFailure(0)
+
+  private def mapClientHttp(err: HttpException): GitHubException =
+    err match
+      case status: HttpStatusException =>
+        GitHubException.fromHttpStatus(status.status.code, statusDetail(status))
+      case other => GitHubException.Transport(other.getMessage)
+
+  private def statusDetail(status: HttpStatusException): String =
+    val message = Option(status.getMessage).map(_.trim).filter(_.nonEmpty)
+    message.getOrElse {
+      Option(status.body).map(_.toString.trim).filter(_.nonEmpty).getOrElse("")
+    }

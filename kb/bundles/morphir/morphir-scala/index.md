@@ -15,6 +15,7 @@ Draft Design Notes and research are provisional.
 
 * [Published library families](/design/published-library-families.md) - The narrative home for kit, connector, appkit, langkit markdown, and knowledge/okf: taxonomy, first modules, and the CommonMark and Native HTTP questions.
 * [GitHub token providers and appkit secrets](/design/github-token-providers-and-appkit-secrets.md) - Live GitHub calls take Env[TokenProvider]; named providers and appkit SecretStore supply the token without logging it.
+* [GitHub connection settings and local web host](/design/github-connection-settings-and-local-web-host.md) - Browser and Electron clients submit a GitHub.com token once to a host-owned connection service, with session-only use by default and optional operating-system persistence.
 * [Package URL-centered package management](/design/package-url-package-management.md) - A design for PURL identities, reproducible materialization, and packages outside ecosystem registries.
 * [Multi-frontend pipeline and workspace boundaries](/design/pipeline-workspace-boundaries.md) - A design for shared buildkit phases, workspace normalization, frontend isolation, and issue #930.
 * [Mill Morphir plugin architecture](/design/mill-morphir-plugin-architecture.md) - Design for publishable Mill plugins that acquire tools and compose Morphir generation with host-language builds.

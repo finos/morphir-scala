@@ -41,6 +41,10 @@ object SettingsView:
       body
     )
 
+  /** The shared settings group for host-backed external connections. */
+  def connections(body: UI): UI =
+    contentGroup("Connections", "Connect Morphir to external services.", body)
+
   def group(title: String, rows: Chunk[Row]): UI =
     section.cssClass(Css.group)(
       h2(title).cssClass(Css.groupTitle),

@@ -2,6 +2,7 @@
 
 ## 2026-08-21
 
+* **Creation**: Added [GitHub connection settings and local web host](/design/github-connection-settings-and-local-web-host.md), covering the shared connection contract, loopback server, Electron host, optional persistence, UI states, and required security audit.
 * **Decision**: Recorded [Trunk-based development on main](/decisions/0014-trunk-based-development-on-main.md).
   The `develop` branch is retired: pull requests target `main` and merge into it, snapshots publish from `main`
   alone, and `squire branch refresh` now requires `--target`. Earlier entries on this page that describe a
