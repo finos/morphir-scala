@@ -1258,11 +1258,11 @@ private[markdown] object Parser:
       (
         DeferredItem(defs =>
           val resolved = Chunk.from(run.blocks.map(_.resolve(defs)))
-          val marker   = taskMarkerOf(resolved, profile)
+          val marker   = taskMarkerOf(scanner.source, resolved, profile)
           task.fill(marker)
           val content = marker match
             case Absent                                    => resolved
-            case Present((checked = _, span = markerSpan)) => stripTaskMarker(resolved, markerSpan.length)
+            case Present((checked = _, span = markerSpan)) => stripTaskMarker(resolved, markerSpan)
           MdNode.ListItem(content, marker.map(_.checked), MdMeta.at(span))
         ),
         run
@@ -1288,16 +1288,25 @@ private[markdown] object Parser:
 
   private final case class DeferredItem(resolve: Map[String, LinkDefinition] => MdNode.ListItem)
 
+  /** A marker is always these four characters of the paragraph's text: `[`, whitespace or `x`, `]`, and whitespace. */
+  private final val TaskMarkerLength = 4
+
   /**
    * The checkbox at the head of an item's first paragraph, and the source span of its four characters.
    *
-   * A marker is `[`, a space or `x` in either case, `]`, and then whitespace, and it counts only as the very first
-   * thing in the item's first paragraph. Absent under a profile that does not recognize task list items, when the first
-   * block is not a paragraph, or when its first inline is not literal text carrying the pattern — an item that opens
-   * with emphasis or a link has no marker to find, and neither does `- foo [ ] bar`, whose first text node is
-   * `foo [ ] bar` rather than the bracket run itself.
+   * A marker is `[`, a whitespace character or `x` in either case, `]`, and then whitespace, and it counts only as the
+   * very first thing in the item's first paragraph. Absent under a profile that does not recognize task list items,
+   * when the first block is not a paragraph, or when its first inline is not literal text carrying the pattern — an
+   * item that opens with emphasis or a link has no marker to find, and neither does `- foo [ ] bar`, whose first text
+   * node is `foo [ ] bar` rather than the bracket run itself.
+   *
+   * Both whitespace positions take the whole class the specification defines — space, tab, newline, line tabulation,
+   * form feed and carriage return — rather than the space the checkbox is usually written with. The newline is the
+   * member that earns the generality: `- [x]` with its content on the next line is a task item, because the paragraph's
+   * text joins its lines and the line ending is the whitespace the marker needs.
    */
   private def taskMarkerOf(
+      source: String,
       blocks: Chunk[MdNode.FlowContent],
       profile: MdProfile
   ): Maybe[(checked: Boolean, span: Span)] =
@@ -1307,31 +1316,64 @@ private[markdown] object Parser:
         case Some(MdNode.Paragraph(content, _)) =>
           content.headOption match
             case Some(MdNode.Text(value, meta))
-                if value.length >= 4 && value.charAt(0) == '[' && value.charAt(2) == ']' &&
-                  (value.charAt(3) == ' ' || value.charAt(3) == '\t') =>
+                if value.length >= TaskMarkerLength && value.charAt(0) == '[' && value.charAt(2) == ']' &&
+                  isMarkdownWhitespace(value.charAt(3)) =>
               val ticked = value.charAt(1) match
-                case ' '       => Present(false)
-                case 'x' | 'X' => Present(true)
-                case _         => Absent
+                case 'x' | 'X'                          => Present(true)
+                case char if isMarkdownWhitespace(char) => Present(false)
+                case _                                  => Absent
               for
                 checked <- ticked
                 span    <- meta.span
-              yield (checked = checked, span = Span(span.offset, 4))
+              yield (checked = checked, span = Span(span.offset, markerSourceLength(source, span.offset, value)))
             case _ => Absent
         case _ => Absent
+
+  /** The specification's whitespace class: space, tab, newline, line tabulation, form feed, carriage return. */
+  private def isMarkdownWhitespace(char: Char): Boolean =
+    char == ' ' || char == '\t' || char == '\n' || char == '\u000B' || char == '\f' || char == '\r'
+
+  /**
+   * How many source characters the marker's four text characters were written as.
+   *
+   * Not four, necessarily. A paragraph's text joins its lines with a single `\n` whatever the source wrote, so a marker
+   * whose whitespace is a line ending stands for one source character on `\n` or a lone `\r` and two on `\r\n`.
+   * Counting the text's characters instead would leave the span one short on a CRLF document, and the byte it failed to
+   * claim would surface as prose — the checkbox's own line ending read as content.
+   *
+   * The walk stays inside the text node, whose span is a contiguous run of source: the inline phase only joins adjacent
+   * nodes, so a node holding a line ending holds the characters on both sides of it too.
+   */
+  private def markerSourceLength(source: String, offset: Int, value: String): Int =
+    @tailrec def loop(index: Int, cursor: Int): Int =
+      if index >= TaskMarkerLength then cursor - offset
+      else if value.charAt(index) == '\n' && cursor + 1 < source.length &&
+        source.charAt(cursor) == '\r' && source.charAt(cursor + 1) == '\n'
+      then loop(index + 1, cursor + 2)
+      else loop(index + 1, cursor + 1)
+    loop(0, offset)
 
   /**
    * `blocks` with the task marker's characters removed from the first paragraph's first text node, and that node's span
    * narrowed to match, so every other span in the item stays true to the source it still owns.
+   *
+   * The four characters removed from the text are not always the `markerSpan.length` characters removed from the span —
+   * see [[markerSourceLength]] — which is why the new span starts where the marker ends rather than being measured off
+   * the text. A node the marker fills entirely, which is what `- [x]` with its content on the next line leaves, is
+   * dropped: an empty text node holding an empty span is not something the rest of the tree should have to expect.
    */
-  private def stripTaskMarker(blocks: Chunk[MdNode.FlowContent], markerLength: Int): Chunk[MdNode.FlowContent] =
+  private def stripTaskMarker(blocks: Chunk[MdNode.FlowContent], markerSpan: Span): Chunk[MdNode.FlowContent] =
     blocks.headOption match
       case Some(paragraph: MdNode.Paragraph) =>
         paragraph.children.headOption match
           case Some(text: MdNode.Text) =>
-            val strippedSpan = text.meta.span.map(s => Span(s.offset + markerLength, s.length - markerLength))
-            val stripped     = MdNode.Text(text.value.drop(markerLength), text.meta.copy(span = strippedSpan))
-            blocks.updated(0, paragraph.copy(children = paragraph.children.updated(0, stripped)))
+            val rest     = text.value.drop(TaskMarkerLength)
+            val children =
+              if rest.isEmpty then paragraph.children.drop(1)
+              else
+                val strippedSpan = text.meta.span.map(s => Span.fromStartEnd(markerSpan.end, s.end))
+                paragraph.children.updated(0, MdNode.Text(rest, text.meta.copy(span = strippedSpan)))
+            blocks.updated(0, paragraph.copy(children = children))
           case _ => blocks
       case _ => blocks
 
