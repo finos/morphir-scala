@@ -2,55 +2,46 @@ package morphir.langkit.markdown
 
 import java.util.Locale
 import kyo.test.*
-import morphir.langkit.markdown.internal.Parser
+import morphir.langkit.markdown.internal.HtmlTag
 
 /**
- * Tag matching under a hostile default locale.
+ * Tag matching must not read the default locale.
  *
  * `String.toLowerCase` with no locale argument folds against the JVM's default one, and Turkish maps `I` to the dotless
  * `ı` rather than to `i`: `"TITLE".toLowerCase` is `"tıtle"` there, which matches no name in the disallowed roster and
- * lets `<TITLE>` through unescaped. The same trap sits under the HTML block start conditions, where `<SCRIPT>` would
- * stop opening a script-like block.
+ * would let `<TITLE>` through unescaped. The same trap sat under the HTML block start conditions, where `<SCRIPT>`
+ * would stop opening a script-like block. Tag names are ASCII by the spec's own grammar, so the fold the production
+ * code uses reads no locale at all.
  *
- * The lowercasing this defends is an ASCII fold that reads no locale at all, and setting the default is the only way to
- * observe that it is one — which is why this suite is JVM-only rather than sitting beside the rest of the tag filter's
- * tests. Scala.js and Scala Native have no default locale to set, and the fold is the same code on all three.
+ * This suite deliberately does NOT call `Locale.setDefault`. The default locale is process state shared by every suite
+ * in the module's test JVM, and a first version of this test flipped it to Turkish around a parse — which
+ * intermittently broke unrelated suites running at the same time: kyo's `Flag` uppercases a flag name through the
+ * default locale, so `morphir.conformance.fixtures` became `MORPHİR_CONFORMANCE_FİXTURES` mid-window and the
+ * conformance corpus read as missing. The failure CI saw was exactly that race. Instead, this suite pins the two halves
+ * separately: the Turkish fold really does corrupt ASCII names (so the hazard is real, not hypothetical), and the fold
+ * the production code uses is byte-stable regardless of any locale. The end-to-end path over `<TITLE>` and `<Iframe>`
+ * is covered in `TagFilterTests` under the ambient locale, where it exercises the same `asciiLower` calls this suite
+ * proves locale-free.
+ *
+ * JVM-only because `java.util.Locale` is where the hazard lives; the fold is the same code on all three platforms.
  */
 class TagFilterLocaleTests extends Test[Any]:
 
-  /** Runs `body` with the default locale set to `locale`, restoring whatever was there before. */
-  private def underLocale[A](locale: Locale)(body: => A): A =
-    val previous = Locale.getDefault
-    Locale.setDefault(locale)
-    try body
-    finally Locale.setDefault(previous)
+  private val turkish = Locale.forLanguageTag("tr")
 
-  private def inlineHtmlOf(source: String)(using MdProfile): String =
-    Parser.parse(source).getOrThrow.children.head match
-      case MdNode.Paragraph(content, _) => content.collect { case MdNode.InlineHtml(value, _) => value }.mkString
-      case other                        => throw new AssertionError(s"expected a paragraph, got $other")
+  "locale-free tag folding" - {
 
-  "under a Turkish default locale" - {
-
-    "the tag filter still escapes an upper-case disallowed tag" in {
-      given MdProfile = MdProfile.gfm
-      // Guards the premise rather than assuming it: if this fold ever stopped being locale-sensitive the test below
-      // would pass for the wrong reason, and say nothing about the code it defends.
-      assert(underLocale(Locale.forLanguageTag("tr"))("TITLE".toLowerCase) == "tıtle")
-
-      // Led by `<strong>`, which opens no HTML block, so the line stays a paragraph and the tags are inline ones.
-      val filtered = underLocale(Locale.forLanguageTag("tr"))(inlineHtmlOf("<strong> <TITLE> <Iframe>\n"))
-      assert(filtered.contains("&lt;TITLE>"), filtered)
-      assert(filtered.contains("&lt;Iframe>"), filtered)
+    "the Turkish fold corrupts ASCII tag names, which is the hazard being defended" in {
+      assert("TITLE".toLowerCase(turkish) == "tıtle")
+      assert("SCRIPT".toLowerCase(turkish) == "scrıpt")
     }
 
-    "an upper-case script tag still opens an HTML block" in {
-      given MdProfile = MdProfile.commonmark
-      val root = underLocale(Locale.forLanguageTag("tr"))(Parser.parse("<SCRIPT>\nx < y\n</SCRIPT>\n").getOrThrow)
-      // Condition one runs to its closing tag rather than to a blank line, so the whole run is one raw HTML block and
-      // the `<` inside it is never read as an inline construct.
-      val html = root.children.collect { case MdNode.Html(value, _) => value }.mkString
-      assert(html.contains("x < y"), html)
-      assert(html.contains("</SCRIPT>"), html)
+    "the production fold is exact for ASCII whatever any locale says" in {
+      assert(HtmlTag.asciiLower("TITLE") == "title")
+      assert(HtmlTag.asciiLower("SCRIPT") == "script")
+      assert(HtmlTag.asciiLower("Iframe") == "iframe")
+      // Non-ASCII passes through untouched rather than being case-folded: a tag name containing one matches
+      // nothing in the roster either way, and folding it would be the locale-dependence this fold exists to avoid.
+      assert(HtmlTag.asciiLower("İframe") == "İframe")
     }
   }
