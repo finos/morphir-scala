@@ -121,24 +121,34 @@ object KyoUiCompiler:
       case Present(ColumnAlignment.Center) => "md-align-center"
 
     /**
-     * kyo-ui has `table`, `tbody`, `tr`, `th` and `td`, but no `thead`, so the header row is written as a direct child
-     * of the table carrying the class [[tableRow]] puts on it, and only the body rows get a group element.
+     * kyo-ui has `table`, `tbody`, `tr`, `th` and `td`, but no `thead`, so the header row goes in a `tbody` of its own
+     * marked `md-thead`, and the body rows go in a second one.
      *
-     * A `div` bearing a class was the other candidate for the missing element and is rejected: a `div` between `table`
-     * and `tr` is not a legal table child, and every browser hoists it out of the table, which visibly breaks the
-     * rendering. A bare `tr` under a `table` is legal and is a shape kyo-ui documents on [[kyo.UI.Ast.Tbody]] -- a row
-     * placed directly under a table gets its own row-group host. What is lost is the `thead` element itself, and with
-     * it the semantics assistive technology reads off it: this is the same class of gap as the missing `em` and the
-     * dropped list `start`, and it is recorded here for the same reason.
+     * Two shapes were rejected for the missing element. A `div` between `table` and `tr` is not a legal table child,
+     * and every browser hoists it out of the table, which visibly breaks the rendering. A bare `tr` directly under the
+     * `table` is legal, but kyo-ui advises against it in exactly the case this writer is for: [[kyo.UI.Ast.Tbody]]
+     * records that a browser synthesizes an implicit `tbody` only while *parsing* row content, and that rows patched
+     * into a live table -- which is what a reactive mount does -- become direct `table` children instead, which
+     * "renders fine but breaks `tbody`-scoped selectors and semantics". A real row group is what it asks for, so that
+     * is what both halves get.
      *
-     * `tbody` is omitted entirely for a table with no body rows, matching what the specification's own rendering does.
+     * What is lost is the head-versus-body distinction itself. `md-thead` names the header group for a stylesheet, but
+     * a `tbody` is not a `thead`, so the semantics assistive technology reads off the real element are gone. This is
+     * the same class of gap as the missing `em` and the dropped list `start`, and it is recorded here for the same
+     * reason.
+     *
+     * A table with no body rows gets no second group at all, matching what the specification's own rendering does with
+     * `tbody` there.
      */
     def table(align: Chunk[Maybe[ColumnAlignment]], header: UI, rows: Chunk[UI]): UI =
-      if rows.isEmpty then UI.table(header) else UI.table(header, UI.tbody(content(rows)))
+      val head = UI.tbody(header).cssClass("md-thead")
+      if rows.isEmpty then UI.table(head) else UI.table(head, UI.tbody(content(rows)))
 
-    def tableRow(header: Boolean, children: Chunk[UI]): UI =
-      val row = UI.tr(content(children))
-      if header then row.cssClass("md-thead") else row
+    /**
+     * A row is a `tr` in either half of the table, so `header` says nothing here: which of `th` and `td` the cells take
+     * is [[tableCell]]'s decision, and which row group the row lands in is [[table]]'s.
+     */
+    def tableRow(header: Boolean, children: Chunk[UI]): UI = UI.tr(content(children))
 
     def tableCell(alignment: Maybe[ColumnAlignment], header: Boolean, children: Chunk[UI]): UI =
       val cell = if header then UI.th(content(children)) else UI.td(content(children))

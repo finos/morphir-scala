@@ -806,10 +806,16 @@ private[markdown] object Parser:
    *
    * A backslash before a pipe means the pipe is content — spec example 200 puts one inside a code span — so an escaped
    * pipe never splits a cell. The backslash itself is left in the range and removed by inline parsing, which already
-   * handles backslash escapes; taking it out here would move every offset after it away from the source and break the
-   * CST's tiling. The cost is that an escaped pipe inside a code span stays escaped, since a backslash means nothing
-   * there: `` `\|` `` renders as `\|` rather than as `|`, which is the one thing spec example 200 asks for that this
-   * parser does not do.
+   * handles backslash escapes.
+   *
+   * GFM removes it here instead, before inline parsing, which is what makes `` `\|` `` mean `` `|` ``. The obstacle is
+   * not the offsets — [[readTable]] hands [[InlineParser]] an `Int => Int` map exactly as [[readParagraph]] does, and
+   * that mechanism already carries a shorter text against a longer source. It is that the AST is produced by lowering
+   * the CST, and the CST holds what was written: a code span's interior would still spell `\|`, so [[Lower]] would read
+   * that value back while the block phase's own tree held `|`, and the two would disagree — which `TableTests`'
+   * agree-between-a-direct-parse-and-a-lowered-CST case exists to catch. Closing it means teaching the CST to own a
+   * consumed escape inside a code-span interior, which is its own piece of work. Until then an escaped pipe inside a
+   * code span stays escaped, and that is the one thing spec example 200 asks for that this parser does not do.
    *
    * Outer pipes are optional and each produces an empty cell when present. The first and last cell is dropped when it
    * is empty and there was a split to produce it, which is what tells `| a |` (one cell) from `a | b` (two) and from

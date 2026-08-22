@@ -105,8 +105,8 @@ class KyoUiCompilerTests extends Test[Any]:
       }
 
     /**
-     * kyo-ui has no `thead`, so the header row is a bare `tr` under the table carrying `md-thead`, and alignment is a
-     * class rather than the `align` attribute the ScalaTags oracle writes. Both are recorded gaps, not accidents.
+     * kyo-ui has no `thead`, so the header row goes in a `tbody` marked `md-thead`, and alignment is a class rather
+     * than the `align` attribute the ScalaTags oracle writes. Both are recorded gaps, not accidents.
      */
     "renders a table as th and td cells, with alignment as a class" in
       render(MdNode.Table(
@@ -118,19 +118,25 @@ class KyoUiCompilerTests extends Test[Any]:
         assert(html.contains("<table"))
         assert(html.contains("<th"))
         assert(html.contains("<td"))
-        assert(html.contains("<tbody"))
         assert(html.contains("md-thead"))
         assert(html.contains("md-align-center"))
+        // The header row group is a real `tbody`, not a bare `tr` under the table: kyo-ui's own guidance is that a
+        // row patched into a live table outside a group breaks `tbody`-scoped selectors and semantics.
+        assert(html.contains("<tbody"))
         assert(!html.contains("<thead"))
       }
 
-    "omits tbody when a table has no body rows" in
+    /** One row group, the header's; a table with no body rows gets no second one. */
+    "gives a table with no body rows only its header row group" in
       render(MdNode.Table(
         Chunk(Absent),
         MdNode.TableRow(Chunk(cell("only")), meta),
         Chunk.empty,
         meta
-      )).map(html => assert(!html.contains("tbody")))
+      )).map { html =>
+        assert(html.split("<tbody", -1).length - 1 == 1, html)
+        assert(html.contains("md-thead"))
+      }
 
     "renders an empty document without raising" in
       render().map(html => assert(html.isEmpty))

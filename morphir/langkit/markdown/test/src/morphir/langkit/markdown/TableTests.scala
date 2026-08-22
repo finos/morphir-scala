@@ -106,6 +106,55 @@ class TableTests extends Test[Any]:
       assert(root.children.head.isInstanceOf[MdNode.Paragraph])
     }
 
+    /**
+     * The negative case, under the GFM profile, which is the only place it can be measured.
+     *
+     * The conformance suite scopes each example to the extensions its own fence names, so every untagged example in
+     * both fixture files parses with tables off — and `CstRoundTripTests` takes the CommonMark default. `652/652`
+     * therefore says nothing about whether the delimiter-row hook stays quiet under a profile that has tables on. It
+     * rests on the guards inside `gather` and on the order of the branches there, and that is what these cases pin.
+     */
+    "leave a paragraph alone" - {
+
+      /**
+       * Doubly guarded, and worth a test for exactly that reason: the setext branch matches first, and `---` classifies
+       * as a thematic break rather than as text, which the hook's own guard rejects. Neither guard is visible at the
+       * other's site, so a refactor that moved the table check above the setext branch would pass every other case in
+       * this file. This is also the commonest two-line shape in a real GFM document.
+       */
+      "a setext underline stays a heading" in {
+        given MdProfile = MdProfile.gfm
+        val root        = Parser.parse("foo\n---\n").getOrThrow
+        assert(root.children.size == 1)
+        root.children.head match
+          case MdNode.Heading(level, _, _) => assert(level == HeadingLevel.Two)
+          case other                       => throw new AssertionError(s"expected a setext heading, got $other")
+      }
+
+      "a second line of ordinary text stays paragraph content" in {
+        given MdProfile = MdProfile.gfm
+        val root        = Parser.parse("foo\nbar\n").getOrThrow
+        assert(root.children.size == 1)
+        assert(root.children.head.isInstanceOf[MdNode.Paragraph])
+      }
+
+      "a second line that opens another block opens it" in {
+        given MdProfile = MdProfile.gfm
+        Chunk(
+          "foo\n```\ncode\n```\n" -> classOf[MdNode.Code],
+          "foo\n- item\n"         -> classOf[MdNode.List],
+          "foo\n# heading\n"      -> classOf[MdNode.Heading],
+          "foo\n> quoted\n"       -> classOf[MdNode.Blockquote]
+        ).foreach { case (source, expected) =>
+          val root  = Parser.parse(source).getOrThrow
+          val shown = source.replace("\n", "\\n")
+          assert(root.children.size == 2, s"$shown produced ${root.children.size} blocks")
+          assert(root.children.head.isInstanceOf[MdNode.Paragraph], s"$shown lost its paragraph")
+          assert(expected.isInstance(root.children(1)), s"$shown did not open a ${expected.getSimpleName}")
+        }
+      }
+    }
+
     "are off under the CommonMark profile" in {
       given MdProfile = MdProfile.commonmark
       val root        = Parser.parse("| foo | bar |\n| --- | --- |\n| baz | bim |\n").getOrThrow
