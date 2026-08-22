@@ -515,7 +515,6 @@ private[markdown] object MdWriter:
     def loop(index: Int, lineStart: Boolean, nodeStart: Boolean, breakAt: Int): String =
       if index >= value.length then out.result()
       else
-        val character = value.charAt(index)
         // A pending break is looked for only when none is outstanding, and the character that carries one is always
         // past the position the match began at, so the two never collide on one index.
         val pending =
@@ -525,52 +524,66 @@ private[markdown] object MdWriter:
               case Present(matched) => matched.anchor
               case Absent           => breakAt
 
+        // A break is a *position*, not a character class -- the character it lands on is whatever the destination
+        // spelled there -- so it is decided ahead of the dispatch rather than as a guard pretending to be about the
+        // character.
         if index == pending then
           // The one character that makes the run a link -- the `.` of a `www.` host, a scheme's `:`, an address's
           // `@` -- written as the reference for itself. It carries the same character back through a parse, and a
           // reference is a node boundary there, so neither half of what it split can be read as a bare destination.
-          out.append("&#").append(character.toInt).append(';')
+          out.append("&#").append(value.charAt(index).toInt).append(';')
           loop(index + 1, lineStart = false, nodeStart = true, pending)
-        else if character == '\n' then
-          if oneLine || lineStart then
-            // Either this line already holds nothing and another bare newline would leave it blank, or no line break
-            // is allowed here at all: either way the newline's content survives, but not as a physical line ending.
-            out.append("&#10;")
-            loop(index + 1, lineStart = false, nodeStart = true, pending)
-          else
-            out.append('\n')
-            loop(index + 1, lineStart = true, nodeStart = false, pending)
-        else if character == ' ' then
-          val end = runEnd(value, index, ' ')
-          // A space survives literally only in the middle of a line: at either end of one it is stripped, and two of
-          // them at the end are a hard break. The end of the value counts as the end of a line, because whatever
-          // follows may be nothing at all.
-          val vulnerable = lineStart || end >= value.length || value.charAt(end) == '\n'
-          out.append(if vulnerable then "&#32;" * (end - index) else " " * (end - index))
-          loop(end, lineStart = false, nodeStart = vulnerable, pending)
-        else if character == '\t' then
-          out.append("&#9;")
-          loop(index + 1, lineStart = false, nodeStart = true, pending)
-        else if AlwaysEscaped.contains(character) || (lineStart && LineLeadEscaped.contains(character)) then
-          out.append('\\').append(character)
-          // A parse makes an escape a node of its own, so what follows one opens a node too. Without the `true`,
-          // `#www.example.com` would write as `\#www.example.com` and read back as a link the tree never held.
-          loop(index + 1, lineStart = false, nodeStart = true, pending)
-        else if lineStart && character.isDigit then
-          // A digit run at the head of a line is an ordered-list marker only when a delimiter closes it, so the
-          // escape goes on the delimiter rather than on the digits: `1\.` rather than `\1.`, which is not an escape
-          // at all.
-          val end = digitsEnd(value, index)
-          out.append(value.substring(index, end))
-          val delimited = end < value.length && (value.charAt(end) == '.' || value.charAt(end) == ')')
-          if delimited then
-            out.append('\\').append(value.charAt(end))
-            // The delimiter went out as an escape, so what follows it opens a node, exactly as above.
-            loop(end + 1, lineStart = false, nodeStart = true, pending)
-          else loop(end, lineStart = false, nodeStart = false, pending)
         else
-          out.append(character)
-          loop(index + 1, lineStart = false, nodeStart = false, pending)
+          value.charAt(index) match
+            // A line ending whose line holds nothing yet would leave a blank line, which ends the block this text
+            // belongs to; an ATX heading has no second physical line at all. Either way the content survives, but
+            // not as a break.
+            case '\n' if oneLine || lineStart =>
+              out.append("&#10;")
+              loop(index + 1, lineStart = false, nodeStart = true, pending)
+
+            case '\n' =>
+              out.append('\n')
+              loop(index + 1, lineStart = true, nodeStart = false, pending)
+
+            case ' ' =>
+              val end = runEnd(value, index, ' ')
+              // A space survives literally only in the middle of a line: at either end of one it is stripped, and
+              // two of them at the end are a hard break. The end of the value counts as the end of a line, because
+              // whatever follows may be nothing at all.
+              val vulnerable = lineStart || end >= value.length || value.charAt(end) == '\n'
+              out.append(if vulnerable then "&#32;" * (end - index) else " " * (end - index))
+              loop(end, lineStart = false, nodeStart = vulnerable, pending)
+
+            case '\t' =>
+              out.append("&#9;")
+              loop(index + 1, lineStart = false, nodeStart = true, pending)
+
+            case character
+                if AlwaysEscaped.contains(character) ||
+                  (lineStart && LineLeadEscaped.contains(character)) =>
+              out.append('\\').append(character)
+              // A parse makes an escape a node of its own, so what follows one opens a node too. Without the `true`,
+              // `#www.example.com` would write as `\#www.example.com` and read back as a link the tree never held.
+              loop(index + 1, lineStart = false, nodeStart = true, pending)
+
+            case character if lineStart && character.isDigit =>
+              // A digit run at the head of a line is an ordered-list marker only when a delimiter closes it, so the
+              // escape goes on the delimiter rather than on the digits: `1\.` rather than `\1.`, which is not an
+              // escape at all.
+              val end = digitsEnd(value, index)
+              out.append(value.substring(index, end))
+              val delimited = end < value.length && (value.charAt(end) == '.' || value.charAt(end) == ')')
+              if delimited then
+                out.append('\\').append(value.charAt(end))
+                // The delimiter went out as an escape, so what follows it opens a node, exactly as above: without
+                // the `true`, `1.www.example.com` would read back as a link this text never held.
+                loop(end + 1, lineStart = false, nodeStart = true, pending)
+              else loop(end, lineStart = false, nodeStart = false, pending)
+
+            case character =>
+              out.append(character)
+              loop(index + 1, lineStart = false, nodeStart = false, pending)
     end loop
 
     loop(0, atLineStart, nodeStart = true, breakAt = -1)

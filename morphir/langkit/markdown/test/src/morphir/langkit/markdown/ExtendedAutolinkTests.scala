@@ -413,6 +413,20 @@ class ExtendedAutolinkTests extends Test[Any]:
         normalize(Parser.parse(spelled).getOrThrow.unpositioned) == normalize(escaped.unpositioned),
         s"round trip changed: $spelled"
       )
+      // The writer's other backslash has the same pairing: the delimiter of what would read as an ordered-list
+      // marker at the head of a line. `1.www.example.com` needs both halves — the `\.` so the paragraph does not
+      // come back as a list, and the `&#46;` because that escape opens a node in a parse, so the destination behind
+      // it would be linked without it. This is the shape that exercises the branch: a space after the delimiter
+      // would make the following character follow whitespace, and a boundary it already has.
+      val marker  = MdNode.Root(Chunk(MdNode.Paragraph(Chunk(MdNode.Text("1.www.example.com")))))
+      val ordered = MdWriter.write(marker)
+      assert(ordered == "1\\.www&#46;example.com\n", ordered)
+      val reread = Parser.parse(ordered).getOrThrow
+      assert(reread.children.head.isInstanceOf[MdNode.Paragraph], s"the marker escape was lost: ${reread.children}")
+      assert(
+        normalize(reread.unpositioned) == normalize(marker.unpositioned),
+        s"round trip changed: $ordered"
+      )
       // What the writer spells still tiles: the references it spent are entities like any other.
       val raised = MdWriter.raise(tree)
       assert(Cst.tilingErrors(raised, written.length).isEmpty, Cst.tilingErrors(raised, written.length).mkString("; "))
