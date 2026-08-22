@@ -25,6 +25,34 @@ class StrikethroughTests extends Test[Any]:
       case other                   => other.literal.getOrElse("")
     }.mkString
 
+  /**
+   * Adjacent `Text` nodes merged back into one, the same normalization [[MdWriterTests]] applies before a structural
+   * comparison: a parse splits prose at every escape and every entity, so a round trip through the writer's `&#32;`
+   * escaping can hand back two `Text` nodes where the direct parse produced one, without the meaning having changed at
+   * all. Scoped to the shapes this suite's trees actually take — `Root`, `Paragraph`, `Delete` — rather than
+   * duplicating `MdWriterTests`' full per-case walk.
+   */
+  private def normalize(node: MdNode): MdNode = node match
+    case MdNode.Root(children, frontmatter, meta) =>
+      MdNode.Root(children.map(child => normalize(child).asInstanceOf[MdNode.FlowContent]), frontmatter, meta)
+    case MdNode.Paragraph(children, meta) => MdNode.Paragraph(mergedTexts(children), meta)
+    case leaf                             => leaf
+
+  private def normalizePhrasing(node: MdNode.PhrasingContent): MdNode.PhrasingContent = node match
+    case MdNode.Delete(children, meta) => MdNode.Delete(mergedTexts(children), meta)
+    case leaf                          => leaf
+
+  private def mergedTexts(nodes: Chunk[MdNode.PhrasingContent]): Chunk[MdNode.PhrasingContent] =
+    val out = scala.collection.mutable.ListBuffer.empty[MdNode.PhrasingContent]
+    nodes.foreach { node =>
+      (out.lastOption, normalizePhrasing(node)) match
+        case (Some(MdNode.Text(before, meta)), MdNode.Text(after, _)) =>
+          out.remove(out.size - 1)
+          out += MdNode.Text(before + after, meta)
+        case (_, normalized) => out += normalized
+    }
+    Chunk.from(out.toList)
+
   "strikethrough" - {
 
     "wraps text in two tildes (spec example 491)" in {
@@ -63,7 +91,9 @@ class StrikethroughTests extends Test[Any]:
       given MdProfile = MdProfile.gfm
       // A leading "~~~" would open a fenced code block (CommonMark's fence marker is `` ` `` or `~`), which is a
       // block-level rule with nothing to do with inline strikethrough, so the run sits mid-line here instead.
-      assert(inlines("a ~~~Hi~~~ there\n").forall(node => !node.isInstanceOf[MdNode.Delete]))
+      val content = inlines("a ~~~Hi~~~ there\n")
+      assert(textOf(content) == "a ~~~Hi~~~ there")
+      assert(content.forall(node => !node.isInstanceOf[MdNode.Delete]))
     }
 
     "round-trips through the CST and the Markdown writer" in {
@@ -71,10 +101,13 @@ class StrikethroughTests extends Test[Any]:
       given MdStyle   = MdStyle()
       val source      = "a ~~b~~ c\n"
       val direct      = Parser.parse(source).getOrThrow
-      assert(morphir.langkit.markdown.internal.Lower.lower(
+      assert(normalize(morphir.langkit.markdown.internal.Lower.lower(
         morphir.langkit.markdown.internal.CstParser.parse(source)
-      ).unpositioned == direct.unpositioned)
+      ).unpositioned) == normalize(direct.unpositioned))
       val written = morphir.langkit.markdown.internal.MdWriter.write(direct)
-      assert(Parser.parse(written).getOrThrow.unpositioned == direct.unpositioned, s"round trip changed: $written")
+      assert(
+        normalize(Parser.parse(written).getOrThrow.unpositioned) == normalize(direct.unpositioned),
+        s"round trip changed: $written"
+      )
     }
   }

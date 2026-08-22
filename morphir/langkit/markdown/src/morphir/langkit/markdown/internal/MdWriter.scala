@@ -275,10 +275,7 @@ private[markdown] object MdWriter:
           val start = index
           while index < nodes.length && nodes(index).isInstanceOf[MdNode.Text] do index += 1
           val merged = nodes.slice(start, index).collect { case MdNode.Text(value, _) => value }.mkString
-          // A trailing space is only at risk of the parser's end-of-line stripping when nothing else follows on this
-          // physical line; a sibling node immediately after this run — `Delete`, `Strong`, a link — keeps the line
-          // going, so the merged run's own end is not the line's end.
-          val piece = escapeText(merged, lineStart, oneLine, atRunEnd = index >= nodes.length)
+          val piece  = escapeText(merged, lineStart, oneLine)
           out.append(piece)
           if piece.nonEmpty then lineStart = piece.endsWith("\n")
         case node =>
@@ -413,19 +410,8 @@ private[markdown] object MdWriter:
    * `&#10;` instead, content the block scanner sees and the parser resolves back to the same character. `oneLine` asks
    * for the same treatment unconditionally, because its context — an ATX heading — has no second physical line to spend
    * even a single newline on.
-   *
-   * `atRunEnd` is the mirror of `atLineStart` at the other edge: whether the end of `value` is the end of this run of
-   * prose rather than merely the end of the merged Text nodes that happened to sit next to each other. A trailing space
-   * this call cannot see past is only at risk of the parser's own end-of-line stripping when nothing else follows on
-   * the physical line — a sibling node right after this one, `Delete` or `Strong` or a link, keeps the line going, so
-   * `value`'s own end is not the line's end even though it is this call's.
    */
-  private[markdown] def escapeText(
-      value: String,
-      atLineStart: Boolean,
-      oneLine: Boolean = false,
-      atRunEnd: Boolean = true
-  ): String =
+  private[markdown] def escapeText(value: String, atLineStart: Boolean, oneLine: Boolean = false): String =
     val out       = new StringBuilder
     var lineStart = atLineStart
     var index     = 0
@@ -444,11 +430,9 @@ private[markdown] object MdWriter:
       else if character == ' ' then
         val end = runEnd(value, index, ' ')
         // A space survives literally only in the middle of a line: at either end of one it is stripped, and two of
-        // them at the end are a hard break. The end of the value counts as the end of a line only when `atRunEnd`
-        // says nothing else follows on it; otherwise a sibling node's own output continues the same physical line.
-        val reachesValueEnd = end >= value.length
-        val vulnerable      = lineStart || (reachesValueEnd && atRunEnd) ||
-          (!reachesValueEnd && value.charAt(end) == '\n')
+        // them at the end are a hard break. The end of the value counts as the end of a line, because whatever
+        // follows may be nothing at all.
+        val vulnerable = lineStart || end >= value.length || value.charAt(end) == '\n'
         out.append(if vulnerable then "&#32;" * (end - index) else " " * (end - index))
         lineStart = false
         index = end

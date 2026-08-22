@@ -355,32 +355,32 @@ private[markdown] object CstParser:
     case _ => Absent
 
   /**
-   * An emphasis node, its extent found from the content rather than from the AST span.
+   * Where an emphasis-shaped construct's delimiters actually start and end, measured from its content rather than from
+   * the AST span. Shared by [[emphasisNode]] and [[strikethroughNode]], which differ only in which delimiter character
+   * they accept and which CST node they build from the result.
    *
    * The AST span covers the whole delimiter runs, but a run consumed a pair at a time shares its bytes: in
-   * `__foo_ bar_` the inner emphasis's AST span starts at the run the outer also draws from. What an emphasis actually
-   * owns is `used` delimiters each side of its content, where nested emphasis content is measured by the same rule
-   * recursively — so the CST node's span is that narrowed claim, leftover delimiters fall outside it into the
-   * surrounding gaps, and nesting tiles cleanly. Content that is empty or delimiters that fail the character check
-   * degrade to [[kyo.Absent]].
+   * `__foo_ bar_` the inner emphasis's AST span starts at the run the outer also draws from. What a construct actually
+   * owns is `used` delimiters each side of its content, where nested emphasis, strong or strikethrough content is
+   * measured by the same rule recursively — so the claimed extent is that narrowed claim, leftover delimiters fall
+   * outside it into the surrounding gaps, and nesting tiles cleanly. Empty content, or an extent that does not fit
+   * inside `span`, degrades to [[kyo.Absent]] rather than tile against a claim it does not have.
    */
-  private def emphasisNode(
+  private def delimitedExtent(
       source: String,
       span: Span,
       content: Chunk[MdNode.PhrasingContent],
-      markers: Chunk[Marker],
-      notes: Maybe[InlineNotes],
-      used: Int,
-      strong: Boolean
-  ): Maybe[MdCstNode] =
+      used: Int
+  ): Maybe[(openStart: Int, contentStart: Int, contentEnd: Int, closeEnd: Int)] =
     def claimOf(item: MdNode.PhrasingContent): (start: Int, end: Int) = item match
       case MdNode.Emphasis(inner, MdMeta(Present(s), _)) => narrowed(inner, 1, s)
       case MdNode.Strong(inner, MdMeta(Present(s), _))   => narrowed(inner, 2, s)
+      case MdNode.Delete(inner, MdMeta(Present(s), _))   => narrowed(inner, 2, s)
       case other                                         =>
         other.span match
           case Present(s) => (start = s.offset, end = s.end)
           // A node the parse did not position claims nothing this can measure. A negative start propagates through
-          // every enclosing `narrowed` and trips the `openStart < 0` check below, so the emphasis degrades to
+          // every enclosing `narrowed` and trips the `openStart < 0` check below, so the construct degrades to
           // verbatim rather than tile against a span it does not have.
           case Absent => (start = -1, end = -1)
     def narrowed(inner: Chunk[MdNode.PhrasingContent], innerUsed: Int, s: Span): (start: Int, end: Int) =
@@ -391,19 +391,38 @@ private[markdown] object CstParser:
 
     if content.isEmpty then Absent
     else
-      val claims                                            = content.map(claimOf)
-      val contentStart                                      = claims.map(_.start).min
-      val contentEnd                                        = claims.map(_.end).max
-      val openStart                                         = contentStart - used
-      val closeEnd                                          = contentEnd + used
-      def isRun(from: Int, until: Int, char: Char): Boolean = (from until until).forall(i =>
-        i >= 0 && i < source.length && source.charAt(i) == char
-      )
+      val claims       = content.map(claimOf)
+      val contentStart = claims.map(_.start).min
+      val contentEnd   = claims.map(_.end).max
+      val openStart    = contentStart - used
+      val closeEnd     = contentEnd + used
       if openStart < span.offset || closeEnd > span.end || openStart < 0 then Absent
       else
+        Present((openStart = openStart, contentStart = contentStart, contentEnd = contentEnd, closeEnd = closeEnd))
+
+  /** Whether every character in `[from, until)` is `char`, in bounds. */
+  private def isRun(source: String, from: Int, until: Int, char: Char): Boolean = (from until until).forall(i =>
+    i >= 0 && i < source.length && source.charAt(i) == char
+  )
+
+  /**
+   * An emphasis node, its extent found from the content via [[delimitedExtent]]. Content that is empty or delimiters
+   * that fail the character check degrade to [[kyo.Absent]].
+   */
+  private def emphasisNode(
+      source: String,
+      span: Span,
+      content: Chunk[MdNode.PhrasingContent],
+      markers: Chunk[Marker],
+      notes: Maybe[InlineNotes],
+      used: Int,
+      strong: Boolean
+  ): Maybe[MdCstNode] =
+    delimitedExtent(source, span, content, used).flatMap {
+      case (openStart = openStart, contentStart = contentStart, contentEnd = contentEnd, closeEnd = closeEnd) =>
         val delimiter = source.charAt(openStart)
         if (delimiter != '*' && delimiter != '_')
-          || !isRun(openStart, contentStart, delimiter) || !isRun(contentEnd, closeEnd, delimiter)
+          || !isRun(source, openStart, contentStart, delimiter) || !isRun(source, contentEnd, closeEnd, delimiter)
         then Absent
         else
           val children =
@@ -411,9 +430,11 @@ private[markdown] object CstParser:
               ++ inlineRegion(source, contentStart, contentEnd, markers, content, notes)
               ++ leaf(source, contentEnd, closeEnd)(MdCstNode.Token(_, _))
           Present(MdCstNode.Emphasis(delimiter, strong, children, Span.fromStartEnd(openStart, closeEnd)))
+    }
 
   /**
-   * A strikethrough node, its extent found from the content the same way [[emphasisNode]] finds an emphasis's.
+   * A strikethrough node, its extent found from the content via [[delimitedExtent]] the same way [[emphasisNode]] finds
+   * an emphasis's.
    *
    * A `~~` run is always exactly two, and `processEmphasis` always consumes it whole, so this narrowing never actually
    * splits a run the way a partially-consumed `*`/`_` run can — but nested content still measures through the same
@@ -426,38 +447,16 @@ private[markdown] object CstParser:
       markers: Chunk[Marker],
       notes: Maybe[InlineNotes]
   ): Maybe[MdCstNode] =
-    def claimOf(item: MdNode.PhrasingContent): (start: Int, end: Int) = item match
-      case MdNode.Emphasis(inner, MdMeta(Present(s), _)) => narrowed(inner, 1, s)
-      case MdNode.Strong(inner, MdMeta(Present(s), _))   => narrowed(inner, 2, s)
-      case MdNode.Delete(inner, MdMeta(Present(s), _))   => narrowed(inner, 2, s)
-      case other                                         =>
-        other.span match
-          case Present(s) => (start = s.offset, end = s.end)
-          case Absent     => (start = -1, end = -1)
-    def narrowed(inner: Chunk[MdNode.PhrasingContent], innerUsed: Int, s: Span): (start: Int, end: Int) =
-      if inner.isEmpty then (start = s.offset, end = s.end)
-      else
-        val claims = inner.map(claimOf)
-        (start = claims.map(_.start).min - innerUsed, end = claims.map(_.end).max + innerUsed)
-
-    if content.isEmpty then Absent
-    else
-      val claims                                            = content.map(claimOf)
-      val contentStart                                      = claims.map(_.start).min
-      val contentEnd                                        = claims.map(_.end).max
-      val openStart                                         = contentStart - 2
-      val closeEnd                                          = contentEnd + 2
-      def isRun(from: Int, until: Int, char: Char): Boolean = (from until until).forall(i =>
-        i >= 0 && i < source.length && source.charAt(i) == char
-      )
-      if openStart < span.offset || closeEnd > span.end || openStart < 0 then Absent
-      else if !isRun(openStart, contentStart, '~') || !isRun(contentEnd, closeEnd, '~') then Absent
-      else
-        val children =
-          leaf(source, openStart, contentStart)(MdCstNode.Token(_, _))
-            ++ inlineRegion(source, contentStart, contentEnd, markers, content, notes)
-            ++ leaf(source, contentEnd, closeEnd)(MdCstNode.Token(_, _))
-        Present(MdCstNode.Strikethrough(children, Span.fromStartEnd(openStart, closeEnd)))
+    delimitedExtent(source, span, content, used = 2).flatMap {
+      case (openStart = openStart, contentStart = contentStart, contentEnd = contentEnd, closeEnd = closeEnd) =>
+        if !isRun(source, openStart, contentStart, '~') || !isRun(source, contentEnd, closeEnd, '~') then Absent
+        else
+          val children =
+            leaf(source, openStart, contentStart)(MdCstNode.Token(_, _))
+              ++ inlineRegion(source, contentStart, contentEnd, markers, content, notes)
+              ++ leaf(source, contentEnd, closeEnd)(MdCstNode.Token(_, _))
+          Present(MdCstNode.Strikethrough(children, Span.fromStartEnd(openStart, closeEnd)))
+    }
 
   /**
    * A link or image node from its note, or [[kyo.Absent]] when the note's geometry does not fit the span.

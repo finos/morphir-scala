@@ -40,6 +40,7 @@ object CstQueryableTree:
       case _: MdCstNode.Link                    => NodeTypeName("link")
       case _: MdCstNode.Image                   => NodeTypeName("image")
       case _: MdCstNode.Emphasis                => NodeTypeName("emphasis")
+      case _: MdCstNode.Strikethrough           => NodeTypeName("strikethrough")
       case _: MdCstNode.HardBreak               => NodeTypeName("hardBreak")
       case _: MdCstNode.Escape                  => NodeTypeName("escape")
       case _: MdCstNode.Entity                  => NodeTypeName("entity")

@@ -63,6 +63,7 @@ class MdWriterTests extends Test[Any]:
     case MdNode.Link(url, title, children, meta) => MdNode.Link(url, title, phrasingOf(children), meta)
     case MdNode.Emphasis(children, meta)         => MdNode.Emphasis(phrasingOf(children), meta)
     case MdNode.Strong(children, meta)           => MdNode.Strong(phrasingOf(children), meta)
+    case MdNode.Delete(children, meta)           => MdNode.Delete(phrasingOf(children), meta)
     case leaf                                    => leaf
 
   private def normalized(root: MdNode.Root): MdNode = normalize(root.unpositioned)

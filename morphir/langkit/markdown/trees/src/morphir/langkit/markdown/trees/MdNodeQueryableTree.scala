@@ -36,6 +36,7 @@ object MdNodeQueryableTree:
       case _: MdNode.Image            => NodeTypeName("image")
       case _: MdNode.Emphasis         => NodeTypeName("emphasis")
       case _: MdNode.Strong           => NodeTypeName("strong")
+      case _: MdNode.Delete           => NodeTypeName("delete")
       case _: MdNode.InlineHtml       => NodeTypeName("html")
       case _: MdNode.Break            => NodeTypeName("break")
       case _: MdNode.FrontMatter.Yaml => NodeTypeName("yaml")
