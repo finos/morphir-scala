@@ -86,8 +86,18 @@ class ConformanceTests extends Test[Any]:
   /**
    * The part of a fixture entry this harness reads. The published JSON also carries `start_line` and `end_line`, which
    * decoding ignores.
+   *
+   * `extension` is present only on an example whose own fence names one — GitHub's spec runner enables exactly the
+   * extension an example's own fence claims, not the full GFM profile, and `profileOf(example: Example)` below mirrors
+   * that.
    */
-  private final case class Example(markdown: String, html: String, example: Int, section: String) derives Schema
+  private final case class Example(
+      markdown: String,
+      html: String,
+      example: Int,
+      section: String,
+      extension: Maybe[String] = Absent
+  ) derives Schema
 
   /**
    * Reads one fixture file eagerly, outside the effect system.
@@ -131,6 +141,37 @@ class ConformanceTests extends Test[Any]:
   private def examplesOf(baseline: Baseline): Chunk[Example] = decode[Chunk[Example]](baseline.fixtures)
 
   /**
+   * The parse profile one example is measured under.
+   *
+   * A conformance suite for a dialect of extensions measures each extension against the base grammar, not against every
+   * other extension turned on at once. cmark-gfm's own spec runner enables exactly the one extension an example's fence
+   * names — an example fenced ` ```` example table ```` ` is a claim about tables and says nothing about strikethrough,
+   * autolinks or the tag filter — so scoring it under every extension at once asks an example that makes no claim
+   * about, say, the tag filter to behave as though GitHub's own runner had turned the tag filter on for it anyway. That
+   * is exactly backwards, and it is what made five `HTML blocks` examples holding `<script>`/`<style>` read as
+   * tag-filter failures even though neither their fence nor the published fixture ever claims the tag filter for them:
+   * their own extension field is absent, so [[MdExtension.TagFilter]] must be off when they are measured, regardless of
+   * which baseline's fixture they came from.
+   *
+   * `disabled` stands for [[MdExtension.TaskListItems]] rather than being its own extension: the two examples carrying
+   * it are both in the *Task list items (extension)* section, and cmark-gfm's own runner marks them `disabled` because
+   * its rendering of the checkbox input differs from what the prose shows — the same reason [[MdExtension.specTag]]
+   * documents for why the tag stays `tasklist` there instead of splitting into a second name.
+   */
+  private def profileOf(example: Example): MdProfile = example.extension match
+    case Absent              => MdProfile.commonmark
+    case Present("disabled") => MdProfile.commonmark.withExtension(MdExtension.TaskListItems)
+    case Present(tag)        =>
+      MdExtension.values.find(_.specTag == tag) match
+        case Some(extension) => MdProfile.commonmark.withExtension(extension)
+        case None            =>
+          throw new IllegalStateException(
+            s"example ${example.example} in section '${example.section}' names extension '$tag', which this " +
+              "harness cannot map to an MdExtension. Add it to profileOf(example: Example) alongside the extension " +
+              "it identifies."
+          )
+
+  /**
    * How much of this profile's measured set another loaded profile also carries, and how much of it passes.
    *
    * Computed by comparing source-and-expected-HTML pairs rather than stored, because the duplication is a property of
@@ -138,7 +179,7 @@ class ConformanceTests extends Test[Any]:
    * another shares most of its examples — GFM carries 636 CommonMark entries verbatim — and a score that does not
    * separate the two reads as if every example were about the extension under construction.
    */
-  private def sharedWith(baseline: Baseline)(using MdProfile): Chunk[(String, Int, Int)] =
+  private def sharedWith(baseline: Baseline): Chunk[(String, Int, Int)] =
     val measured = examplesOf(baseline).filterNot(example => baseline.divergedExamples.contains(example.example))
     Chunk.from(
       baselines.filterNot(_.profile == baseline.profile).map { other =>
@@ -148,8 +189,12 @@ class ConformanceTests extends Test[Any]:
       }
     )
 
-  /** True when our parse-and-compile reproduces the fixture's expected HTML byte for byte. */
-  private def conforms(example: Example)(using MdProfile): Boolean =
+  /**
+   * True when our parse-and-compile reproduces the fixture's expected HTML byte for byte, under the one profile
+   * `profileOf(example)` says this example is measured against.
+   */
+  private def conforms(example: Example): Boolean =
+    given MdProfile = profileOf(example)
     Parser.parse(example.markdown) match
       case Result.Success(document) => ScalatagsCompiler.render(document) == example.html
       case _                        => false
@@ -188,8 +233,9 @@ class ConformanceTests extends Test[Any]:
   /** Newlines shown as `\n`, so one example stays on one line and a missing trailing newline is visible. */
   private def oneLine(text: String): String = text.replace("\n", "\\n")
 
-  private def reportFailure(example: Example)(using MdProfile) =
-    val produced = Parser.parse(example.markdown) match
+  private def reportFailure(example: Example) =
+    given MdProfile = profileOf(example)
+    val produced    = Parser.parse(example.markdown) match
       case Result.Success(document) => oneLine(ScalatagsCompiler.render(document))
       case other                    => s"<parse failed: $other>"
     Console.printLine(
@@ -224,7 +270,13 @@ class ConformanceTests extends Test[Any]:
     }
 
     baselines.foreach { baseline =>
-      given MdProfile = profileOf(baseline)
+      // Guards `baseline.profile` against a typo in the baselines file — an unrecognised name still fails loudly
+      // here, exactly as it always has. Scoring itself no longer goes through this: each example resolves its own
+      // profile through `profileOf(example)` below, because a baseline-wide profile would turn every extension on
+      // for every example regardless of what that example's own fence claims. Kept in particular for the CommonMark
+      // baseline, whose examples carry no extension tag at all and so must all resolve to what this call already
+      // asserts for it: MdProfile.commonmark.
+      val _ = profileOf(baseline)
 
       s"${baseline.name} vendors the ${baseline.total + baseline.divergences.size} examples it claims, numbered with no gaps" in {
         val examples = examplesOf(baseline)

@@ -147,6 +147,28 @@ class MDTests extends Test[Any]:
       assert(scala.compiletime.testing.typeChecks("MD.writer"), "MD.writer is the way in")
     }
 
+    "MD.parser forwards only parse, not the internal machinery that bypasses lowering" in {
+      // A wildcard export is not stopped by `private[markdown]` — it is satisfied once a member is accessible at
+      // the export site, and every member of `Parser` is, from here. `parseWithMetrics` in particular builds a tree
+      // straight from the block loop rather than through `Lower`, so reaching it here would accept a profile and
+      // then silently ignore every extension it names. `MD.scala` names `parse` explicitly for exactly this reason;
+      // this test is what would fail if a future edit widened it back to a wildcard.
+      assert(
+        !scala.compiletime.testing.typeChecks("MD.parser.parseWithMetrics"),
+        "MD.parser.parseWithMetrics must not be reachable: it bypasses Lower and so ignores the profile it is given"
+      )
+      assert(
+        !scala.compiletime.testing.typeChecks("MD.parser.parseFragments"),
+        "MD.parser.parseFragments must not be reachable from outside the markdown package"
+      )
+    }
+
+    "MD.writer forwards only write and raise, not its internal machinery" in
+      assert(
+        !scala.compiletime.testing.typeChecks("MD.writer.escapeText"),
+        "MD.writer.escapeText must not be reachable from outside the markdown package"
+      )
+
     "types a node at the tree's own name" in {
       val node: MdNode = p("plain")
       assert(node.literal == Absent, "a paragraph is not a literal-bearing leaf")

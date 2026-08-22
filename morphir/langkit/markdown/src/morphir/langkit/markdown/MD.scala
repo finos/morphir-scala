@@ -79,18 +79,29 @@ object MD:
    * A namespace rather than a re-export of the parser itself. `export internal.Parser as parser` would make a public
    * member whose type is `private[markdown]`, which Scala rejects as escaping its defining scope; exporting the
    * *members* is fine, because each generated forwarder's signature names only public types.
+   *
+   * Named rather than a wildcard, and deliberately so: `Parser` also carries `parseWithMetrics` and `parseFragments`,
+   * both `private[markdown]` for internal callers (a metrics test, and [[internal.CstParser]]) rather than for this
+   * facade. A wildcard export is not stopped by that modifier — it is satisfied once the member is accessible at the
+   * export site, and every name in `Parser`'s own package is — so `export Parser.*` would forward them here as public
+   * members despite the modifier, silently reopening the door [[internal.Parser]] itself is walled off by. Worse, a
+   * caller reaching `parseWithMetrics` this way would get a tree built by the block loop directly rather than lowered
+   * through [[internal.Lower]], which is where a profile's extensions — the tag filter among them — take effect: the
+   * profile passed in would be accepted and then silently ignored. Naming `parse` is what keeps that door shut.
    */
   object parser:
-    export morphir.langkit.markdown.internal.Parser.*
+    export morphir.langkit.markdown.internal.Parser.parse
 
   /**
    * Tree to source: `writer.write(tree)` spells the document in the [[Style]] in scope, and `writer.raise(tree)` hands
    * back the CST of what `write` would have spelled.
    *
-   * A namespace for the same reason [[parser]] is one.
+   * A namespace for the same reason [[parser]] is one, and named for the same reason: `MdWriter` also carries
+   * `escapeText`, `private[markdown]` for its own unit tests rather than for this facade, and a wildcard export would
+   * forward it here regardless of that modifier.
    */
   object writer:
-    export morphir.langkit.markdown.internal.MdWriter.*
+    export morphir.langkit.markdown.internal.MdWriter.{write, raise}
 
   // ── The vocabulary the verbs read ──────────────────────────────────────────────────────────────────────────
   // Renamed on the way in: `MD` is the namespace, so the prefix comes off and it is `MD.Style`, not `MD.MdStyle`.

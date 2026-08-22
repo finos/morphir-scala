@@ -81,30 +81,6 @@ private[markdown] object Lower:
   private def rawHtml(value: String)(using profile: MdProfile): String =
     if profile.supports(MdExtension.TagFilter) then filterTags(value) else value
 
-  /** The four tag names whose HTML block runs to its own closing tag rather than to a blank line. */
-  private val literalBlockTags = Seq("<script", "<pre", "<style", "<textarea")
-
-  /**
-   * Whether an HTML block's content opens one of the four tags read as a literal block rather than as generic HTML —
-   * `script`, `pre`, `style` or `textarea`, CommonMark's condition one.
-   *
-   * The tag filter leaves these alone. A `<script>` or `<style>` block is not raw HTML the filter is guarding against;
-   * it is the one construct CommonMark itself already reads as an opaque literal, the same way a fenced code block's
-   * body is never Markdown, and the GFM specification's own fixtures carry it through unfiltered.
-   */
-  private def isLiteralBlock(content: String): Boolean =
-    val firstLine = content.linesIterator.nextOption().getOrElse("").stripLeading
-    val lower     = firstLine.toLowerCase
-    literalBlockTags.exists(prefix =>
-      lower.startsWith(prefix) &&
-        (lower.length == prefix.length || lower.charAt(prefix.length) == '>' ||
-          lower.charAt(prefix.length).isWhitespace)
-    )
-
-  /** Raw HTML block content, filtered unless it opens a literal block that the filter does not touch. */
-  private def rawHtmlBlock(value: String)(using MdProfile): String =
-    if isLiteralBlock(value) then value else rawHtml(value)
-
   /**
    * The frontmatter node one CST block means: its raw value, undecoded.
    *
@@ -238,7 +214,7 @@ private[markdown] object Lower:
             MdMeta.at(span)
           ))
         case MdCstNode.HtmlBlock(children, span) =>
-          out.addOne(MdNode.Html(rawHtmlBlock(contentText(children)), MdMeta.at(span)))
+          out.addOne(MdNode.Html(rawHtml(contentText(children)), MdMeta.at(span)))
         case MdCstNode.BlockQuote(children, span) =>
           out.addOne(MdNode.Blockquote(blocks(children, definitions, docEnd), MdMeta.at(span)))
         case MdCstNode.BulletList(_, tight, children, span) =>
