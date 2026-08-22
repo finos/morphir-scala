@@ -397,6 +397,12 @@ private[markdown] object CstParser:
           ++ leaf(source, span.end - 1, span.end)(MdCstNode.Token(_, _))
       Present(MdCstNode.Autolink(children, span))
 
+    // An extended autolink is a Link the author spent no syntax on: the source under its span is the destination
+    // itself, which is exactly the check — its sole text child says what the parse read there, and the two agreeing
+    // is what separates it from a bracketed link that happens to be positioned oddly.
+    case MdNode.Link(_, _, content, MdMeta(Present(span), _)) if isExtendedAutolink(source, span, content) =>
+      Present(MdCstNode.ExtendedAutolink(tile(source, span.offset, span.end, markers)(MdCstNode.Text(_, _)), span))
+
     case MdNode.Link(_, _, content, MdMeta(Present(span), _))
         if span.offset < source.length && source.charAt(span.offset) == '[' =>
       for
@@ -430,6 +436,20 @@ private[markdown] object CstParser:
       Present(MdCstNode.HardBreak(tile(source, span.offset, span.end, markers)(MdCstNode.Token(_, _)), span))
 
     case _ => Absent
+
+  /**
+   * Whether a link is one the extended-autolink pass made, rather than one the author bracketed.
+   *
+   * A bare autolink's text *is* its source: one child, holding exactly the characters under the span. A bracketed link
+   * never satisfies that — its span opens with `[` or `<` and covers delimiters its text does not — so no ordering
+   * between the arms is load-bearing, and a span the parse and the source disagree on falls through to verbatim the way
+   * every other graduation does.
+   */
+  private def isExtendedAutolink(source: String, span: Span, content: Chunk[MdNode.PhrasingContent]): Boolean =
+    span.offset >= 0 && span.end <= source.length && content.size == 1 &&
+      (content.head match
+        case MdNode.Text(value, _) => source.substring(span.offset, span.end) == value
+        case _                     => false)
 
   /**
    * Where an emphasis-shaped construct's delimiters actually start and end, measured from its content rather than from

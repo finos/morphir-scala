@@ -478,19 +478,48 @@ private[markdown] object MdWriter:
    * `&#10;` instead, content the block scanner sees and the parser resolves back to the same character. `oneLine` asks
    * for the same treatment unconditionally, because its context — an ATX heading — has no second physical line to spend
    * even a single newline on.
+   *
+   * A run that GFM would read as an extended autolink — a bare `www.` host, a `http://`, `https://` or `ftp://` URL, an
+   * email address — is broken the same way, by writing the one character that makes it a link as the reference for
+   * itself: `www&#46;example.com`. A backslash cannot do this job, since `\w` is a backslash and a `w` rather than an
+   * escape; a reference can, because it carries the character back through a parse and is a node of its own there, so
+   * neither half of what it split reads as a destination. It runs whatever profile the text will be read under, for the
+   * reason `~` and `|` sit in [[AlwaysEscaped]]: the writer spells one document, and it has to survive the widest
+   * dialect that might read it.
    */
   private[markdown] def escapeText(value: String, atLineStart: Boolean, oneLine: Boolean = false): String =
     val out       = new StringBuilder
     var lineStart = atLineStart
     var index     = 0
+    // Whether the character about to be written opens a text node of its own, as a reparse would see it: true at the
+    // start of the value, and again after every character reference written below, because a reference is its own
+    // node in a parse. It is a boundary an extended autolink may begin at, whatever precedes it in this value.
+    var nodeStart = true
+    // Where the character that has to be spelled as a reference to break a bare destination sits, or -1 for none.
+    var breakAt = -1
     while index < value.length do
       val character = value.charAt(index)
-      if character == '\n' then
+      val fresh     = nodeStart
+      nodeStart = false
+      // A pending break is written before another is looked for, and the character that carries one is always past
+      // the position the match began at, so the two never collide on one index.
+      if breakAt < index then
+        InlineParser.extendedAutolinkAt(value, index, fresh).foreach(matched => breakAt = matched.anchor)
+      if index == breakAt then
+        // The one character that makes the run a link -- the `.` of a `www.` host, a scheme's `:`, an address's `@`
+        // -- written as the reference for itself. It carries the same character back through a parse, and a
+        // reference is a node boundary there, so neither half of what it split can be read as a bare destination.
+        out.append("&#").append(character.toInt).append(';')
+        lineStart = false
+        nodeStart = true
+        index += 1
+      else if character == '\n' then
         if oneLine || lineStart then
           // Either this line already holds nothing and another bare newline would leave it blank, or no line break
           // is allowed here at all: either way the newline's content survives, but not as a physical line ending.
           out.append("&#10;")
           lineStart = false
+          nodeStart = true
         else
           out.append('\n')
           lineStart = true
@@ -503,10 +532,12 @@ private[markdown] object MdWriter:
         val vulnerable = lineStart || end >= value.length || value.charAt(end) == '\n'
         out.append(if vulnerable then "&#32;" * (end - index) else " " * (end - index))
         lineStart = false
+        nodeStart = vulnerable
         index = end
       else if character == '\t' then
         out.append("&#9;")
         lineStart = false
+        nodeStart = true
         index += 1
       else if AlwaysEscaped.contains(character) || (lineStart && LineLeadEscaped.contains(character)) then
         out.append('\\').append(character)

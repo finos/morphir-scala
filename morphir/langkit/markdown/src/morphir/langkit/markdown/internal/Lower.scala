@@ -431,6 +431,17 @@ private[markdown] object Lower:
         val destination = InlineParser.autolinkDestinationOf(inner).getOrElse(InlineParser.normalizeUriOf(inner))
         Chunk(MdNode.Link(destination, Absent, Chunk(MdNode.Text(inner, MdMeta.at(span))), MdMeta.at(span)))
 
+      // The bare form names no destination of its own, so the text is read for one: `http://` in front of a `www.`
+      // host, `mailto:` in front of an address, and the text itself when it already names a scheme.
+      case MdCstNode.ExtendedAutolink(children, span) =>
+        val inner = contentText(children)
+        Chunk(MdNode.Link(
+          InlineParser.extendedDestinationOf(inner),
+          Absent,
+          Chunk(MdNode.Text(inner, MdMeta.at(span))),
+          MdMeta.at(span)
+        ))
+
       case MdCstNode.RawHtml(children, span) =>
         Chunk(MdNode.InlineHtml(rawHtml(contentText(children)), MdMeta.at(span)))
 

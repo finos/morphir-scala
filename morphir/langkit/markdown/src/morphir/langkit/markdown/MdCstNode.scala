@@ -91,6 +91,15 @@ enum MdCstNode derives CanEqual:
   /** An autolink, kept in its angle-bracket form: `<`, the literal destination, `>`. */
   case Autolink(children: Chunk[MdCstNode], span: Span)
 
+  /**
+   * A GFM extended autolink: a destination the author wrote bare, with no `<>` around it. Its interior is the
+   * destination as written, one [[Text]] leaf, because the author spent no syntax on it at all.
+   *
+   * Its own case rather than a field on [[Autolink]], so that `Autolink` keeps meaning CommonMark's bracketed form
+   * exactly and a consumer can tell the two apart without inspecting spans.
+   */
+  case ExtendedAutolink(children: Chunk[MdCstNode], span: Span)
+
   /** Inline raw HTML, taken whole as [[Text]]: its interior is HTML the inline grammar never re-reads. */
   case RawHtml(children: Chunk[MdCstNode], span: Span)
 
@@ -187,6 +196,7 @@ enum MdCstNode derives CanEqual:
     case LinkReferenceDefinition(children, _) => children
     case CodeSpan(children, _)                => children
     case Autolink(children, _)                => children
+    case ExtendedAutolink(children, _)        => children
     case RawHtml(children, _)                 => children
     case Link(_, _, _, _, children, _)        => children
     case Image(_, _, _, _, children, _)       => children

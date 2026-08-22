@@ -40,6 +40,7 @@ object CstQueryableTree:
       case _: MdCstNode.TableDelimiterRow       => NodeTypeName("tableDelimiterRow")
       case _: MdCstNode.CodeSpan                => NodeTypeName("codeSpan")
       case _: MdCstNode.Autolink                => NodeTypeName("autolink")
+      case _: MdCstNode.ExtendedAutolink        => NodeTypeName("extendedAutolink")
       case _: MdCstNode.RawHtml                 => NodeTypeName("rawHtml")
       case _: MdCstNode.Link                    => NodeTypeName("link")
       case _: MdCstNode.Image                   => NodeTypeName("image")
