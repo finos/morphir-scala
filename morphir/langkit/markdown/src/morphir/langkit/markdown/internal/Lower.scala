@@ -81,7 +81,7 @@ private[markdown] object Lower:
       else
         val afterBracket = if index + 1 < value.length && value.charAt(index + 1) == '/' then index + 2 else index + 1
         val end          = nameEnd(afterBracket)
-        val name         = value.substring(afterBracket, end).toLowerCase
+        val name         = HtmlTag.asciiLower(value.substring(afterBracket, end))
         val delimited    = end >= value.length || value.charAt(end) == '>' || value.charAt(end).isWhitespace ||
           (value.charAt(end) == '/' && end + 1 < value.length && value.charAt(end + 1) == '>')
         out ++= (if disallowedTags.contains(name) && delimited then "&lt;" else "<")

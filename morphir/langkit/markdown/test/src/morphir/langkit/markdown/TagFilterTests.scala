@@ -55,6 +55,21 @@ class TagFilterTests extends Test[Any]:
       assert(inlineHtmlOf("<strong> <title>\n").contains("<title>"))
     }
 
+    /**
+     * Case folding a tag name is an ASCII operation, not a linguistic one. `"TITLE".toLowerCase` is `"tıtle"` under a
+     * Turkish default locale, which would leave `<TITLE>` unfiltered on a machine configured that way; the fold that
+     * replaced it reads the ASCII range and nothing else. `TagFilterLocaleTests` pins the locale itself, which only the
+     * JVM can set.
+     */
+    "escapes an all-caps and a mixed-case tag name" in {
+      given MdProfile = MdProfile.gfm
+      // Led by `<strong>`, which opens no HTML block, so the line stays a paragraph and the tags are inline ones.
+      val filtered = inlineHtmlOf("<strong> <TITLE> <Iframe> <EM>\n")
+      assert(filtered.contains("&lt;TITLE>"), filtered)
+      assert(filtered.contains("&lt;Iframe>"), filtered)
+      assert(filtered.contains("<EM>"), filtered)
+    }
+
     "leaves the concrete syntax tree verbatim" in {
       given MdProfile = MdProfile.gfm
       val source      = "<strong> <title>\n"

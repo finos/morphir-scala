@@ -494,7 +494,7 @@ private[markdown] object Parser:
     val indent  = text.length - trimmed.length
     if indent >= 4 || !trimmed.startsWith("<") then Absent
     else
-      val lower = trimmed.toLowerCase
+      val lower = HtmlTag.asciiLower(trimmed)
       // Condition one names whole tags, so the name has to end where the name ends: `<scriptorium>` is not `<script>`
       // and must not open a block that runs to `</script>` -- which, absent one, is the rest of the document.
       if Seq("<script", "<pre", "<style", "<textarea").exists(prefix =>
@@ -523,7 +523,7 @@ private[markdown] object Parser:
     else
       val rest = body.drop(name.length)
       if rest.isEmpty || rest.startsWith(">") || rest.startsWith("/>") || rest.charAt(0).isWhitespace then
-        name.toLowerCase
+        HtmlTag.asciiLower(name)
       else ""
 
   /**
@@ -578,7 +578,7 @@ private[markdown] object Parser:
     kind == HtmlBlockKind.KnownTag || kind == HtmlBlockKind.AnyTag
 
   private def closesHtmlBlock(kind: HtmlBlockKind, text: String, opening: Boolean): Boolean =
-    val lower = text.toLowerCase
+    val lower = HtmlTag.asciiLower(text)
     kind match
       case HtmlBlockKind.ScriptLike =>
         Seq("</script>", "</pre>", "</style>", "</textarea>").exists(lower.contains)
