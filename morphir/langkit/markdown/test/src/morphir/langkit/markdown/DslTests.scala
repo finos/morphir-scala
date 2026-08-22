@@ -190,4 +190,14 @@ class DslTests extends Test[Any]:
     }
     "a key absent from a node's meta reads Absent" in
       assert(em("x").meta.get(MdStyleKeys.bullet) == Absent)
+
+    "li alternating phrasing, flow, phrasing keeps each run in its own paragraph" in {
+      val item = li("a", p("b"), "c")
+      assert(item.children.size == 3)
+      assert(item.children(0) == N.Paragraph(Chunk(N.Text("a"))))
+      assert(item.children(1) == N.Paragraph(Chunk(N.Text("b"))))
+      assert(item.children(2) == N.Paragraph(Chunk(N.Text("c"))))
+    }
+
+    }
   }
