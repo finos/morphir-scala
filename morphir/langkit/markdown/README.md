@@ -2,8 +2,9 @@
 
 Markdown as a langkit: source text to a CST and an AST, on the JVM, Scala.js, and Scala Native.
 
-The module owns its own CommonMark parser rather than wrapping one. `commonmark-java` must not enter this module. A
-third-party engine remains allowed later if one compiles on JVM, JS, and Native.
+The module owns its own CommonMark parser rather than wrapping one — a settled decision, not a stopgap: with full
+CommonMark and GFM conformance measured in this repository, a third-party engine is no longer under consideration.
+`commonmark-java` must not enter this module.
 
 ## Dialects and conformance
 

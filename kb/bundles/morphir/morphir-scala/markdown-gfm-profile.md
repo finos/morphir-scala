@@ -60,7 +60,14 @@ than a settled divergence, and closing it is what brings the GFM score to its fu
 The Markdown writer carries the same round-trip guarantee GFM's conformance measurement does. Every measured GFM
 example — scoped extension by extension exactly as conformance scores it, the nine divergences and the one open
 gap excluded — survives being written back out to Markdown text and reparsed with an identical render, the same
-guarantee the CommonMark corpus already held. A table, a task list item, strikethrough and a filtered tag all
-round-trip through the writer, reparsed under the full GFM profile: the writer spells defensively for the widest
-dialect that might read a document back, escaping any punctuation run that dialect could otherwise misread,
-whether or not the profile that produced the tree enabled the extension in question.
+guarantee the CommonMark corpus already held. A table, a task list item and strikethrough all round-trip through
+the writer, reparsed always under the full GFM profile: the writer spells defensively for the widest dialect that
+might read a document back, escaping any punctuation run that dialect could otherwise misread regardless of
+whether the profile that produced the tree enabled the extension in question.
+
+A tag-filtered node is different, and the writer does not guess there. Filtering and plain authorship can produce
+the identical string — a filtered `<script>` and an author who typed `&lt;script>` outright both end up as the same
+bytes — so nothing about the value itself says which one happened. The decision is recorded instead, in the tree,
+the same as every other profile-dependent decision this parser makes: lowering attaches the pre-filter original
+to a filtered node's data, and the writer emits that recorded original back rather than inferring one from the
+string's shape.

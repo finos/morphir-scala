@@ -36,7 +36,9 @@ meaning. Both belong to this intent. The output stage that folds the AST belongs
 `commonmark-java` must not enter the core module. That module owns a CommonMark parser that runs on JVM, JS, and
 Native. It began as a subset — ATX headings, paragraphs, fenced code, unordered lists and thematic breaks, with
 inlines left as raw text — and is now complete against CommonMark 0.31.2: all 652 examples parse and render byte
-for byte. A third-party engine remains allowed later if one compiles on all three platforms.
+for byte. Adopting a third-party engine instead is no longer under consideration: this parser measures full
+conformance against CommonMark, and, since [0035](/0035-github-flavored-markdown-profile.md), against GitHub
+Flavored Markdown as well.
 
 ```mermaid
 flowchart LR
@@ -60,9 +62,9 @@ produces.
 have cost nothing to write. It is JVM-only, and the whole point of this intent is that `morphir-knowledge-okf`
 and library users need the same parse on JS and Native. It must not enter the core module.
 
-**Another third-party CommonMark engine.** Considered and deferred, not rejected. No engine was found that
-compiles on JVM, JS and Native. One remains allowed later if it appears, which is why the owned parser is
-written behind an ordinary module boundary rather than spread through callers.
+**Another third-party CommonMark engine.** Considered and deferred at the time, not rejected — no engine was
+found that compiled on JVM, JS and Native, which is why the owned parser is written behind an ordinary module
+boundary rather than spread through callers. Settled since; see Unresolved.
 
 **Placing markdown in `kit` or `connector`.** Considered and rejected. `kit` means a bridge to one upstream
 library carrying no Morphir types, and `connector` means a client for an external system. Markdown is a source
@@ -71,10 +73,10 @@ sets out.
 
 ## Unresolved
 
-**Whether a third-party engine eventually replaces it.** Settled by one appearing that compiles on all three
-platforms and maps onto the CST without losing spans. Until then this stays open, and it would reopen the
-Approach rather than merely extend it. The case for replacing it is weaker than it was: the owned parser now
-covers the whole of CommonMark 0.31.2.
+*Settled: whether a third-party engine eventually replaces it.* It does not. The owned parser now measures full
+conformance against CommonMark 0.31.2, and, since [0035](/0035-github-flavored-markdown-profile.md), against
+GitHub Flavored Markdown as well — the case a replacement would have to make against that record only gets
+harder, and nothing here proposes reopening the Approach to make it.
 
 *Settled: whether the CST and the AST stay one tree.* Two trees, related by a total lowering, and the lowering
 is the parse. The CST (`MdCstNode`) holds every byte under the leaf-tiling invariant — its leaves partition the
