@@ -6,7 +6,7 @@ import morphir.langkit.core.Span
 import morphir.langkit.markdown.*
 
 /**
- * Splits a block's raw prose into [[Inline]] nodes.
+ * Splits a block's raw prose into [[MdNode.PhrasingContent]] nodes.
  *
  * Internal on purpose: blocks reach callers already carrying inline content, and no caller runs this itself. Each
  * construct this learns to recognise turns text that used to be literal into a typed node, so the set of cases grows
@@ -21,9 +21,17 @@ private[markdown] object InlineParser:
    * Where a link points, and where the construct that named it ends.
    *
    * Named because three of these in a row said nothing about which was which: `(Int, String, Maybe[String])` reads the
-   * same whichever way round the caller has it.
+   * same whichever way round the caller has it. `destinationAt` and `titleAt` are the raw spellings' bounds in the text
+   * — the destination's exclude its angle brackets, the title's include its quotes — kept for the CST, which records
+   * where the author wrote things rather than what they resolve to.
    */
-  private[markdown] type Target = (end: Int, destination: String, title: Maybe[String])
+  private[markdown] type Target = (
+      end: Int,
+      destination: String,
+      title: Maybe[String],
+      destinationAt: Maybe[(start: Int, end: Int, angled: Boolean)],
+      titleAt: Maybe[(start: Int, end: Int)]
+  )
 
   /** An autolink: where it ends, what it says, and where it points -- which differ for the email form. */
   private type Autolink = (end: Int, text: String, destination: String)
@@ -59,6 +67,19 @@ private[markdown] object InlineParser:
   /** Resolve backslash escapes and character references, for a caller outside this object. */
   def resolveEscapes(value: String): String = unescape(value)
 
+  /** Normalise a destination as a URI, for lowering. */
+  def normalizeUriOf(destination: String): String = normalizeUri(destination)
+
+  /** A code span's rendered value from its raw interior, for lowering. */
+  def codeSpanValueOf(raw: String): String = normalize(raw)
+
+  /** What an autolink's inner text points at — the URI itself, or `mailto:` for the email form — for lowering. */
+  def autolinkDestinationOf(inner: String): Maybe[String] =
+    autolink("<" + inner + ">", 0).map(link => normalizeUri(link.destination))
+
+  /** An image's `alt` text: inline content flattened to what an attribute can hold, for lowering. */
+  def altTextOf(content: Chunk[MdNode.PhrasingContent]): String = content.map(plainOf).mkString
+
   /**
    * Parse `text` into inline nodes.
    *
@@ -72,9 +93,10 @@ private[markdown] object InlineParser:
   def parse(
       text: String,
       sourceOffsetAt: Int => Int,
-      definitions: Map[String, LinkDefinition] = Map.empty
-  ): Chunk[Inline] =
-    val items = scanItems(text, sourceOffsetAt, definitions)
+      definitions: Map[String, LinkDefinition] = Map.empty,
+      notes: Maybe[InlineNotes] = Absent
+  ): Chunk[MdNode.PhrasingContent] =
+    val items = scanItems(text, sourceOffsetAt, definitions, notes)
     processEmphasis(items, sourceOffsetAt)
     Chunk.from(items.filterNot(_.dropped).map(item => item.inline.getOrElse(literal(item, sourceOffsetAt))))
 
@@ -85,7 +107,7 @@ private[markdown] object InlineParser:
    * `*foo**` matches one `*` and leaves the other as text.
    */
   private final class Item(
-      val inline: Maybe[Inline],
+      val inline: Maybe[MdNode.PhrasingContent],
       val delimiter: Char,
       var count: Int,
       val originalCount: Int,
@@ -98,38 +120,40 @@ private[markdown] object InlineParser:
     def isDelimiter: Boolean = inline.isEmpty
 
   /** What an unmatched delimiter run turns into: the characters it was made of. */
-  private def literal(item: Item, sourceOffsetAt: Int => Int): Inline =
+  private def literal(item: Item, sourceOffsetAt: Int => Int): MdNode.Text =
     // A run consumed a pair at a time leaves its tail behind, so the span narrows to what is left.
     val start = item.end - item.count
-    Inline.Text(item.delimiter.toString * item.count, spanOf(start, item.end, sourceOffsetAt))
+    MdNode.Text(item.delimiter.toString * item.count, MdMeta.at(spanOf(start, item.end, sourceOffsetAt)))
 
   /** Pass one: constructs become nodes, `*`/`_` runs become delimiters, everything else accumulates as text. */
   private def scanItems(
       text: String,
       sourceOffsetAt: Int => Int,
-      definitions: Map[String, LinkDefinition]
+      definitions: Map[String, LinkDefinition],
+      notes: Maybe[InlineNotes]
   ): scala.collection.mutable.ArrayBuffer[Item] =
     val items        = scala.collection.mutable.ArrayBuffer.empty[Item]
     val pending      = StringBuilder()
     var pendingStart = 0
     var index        = 0
 
-    def node(inline: Inline): Item = Item(Present(inline), ' ', 0, 0, false, false, 0, 0)
+    def node(inline: MdNode.PhrasingContent): Item = Item(Present(inline), ' ', 0, 0, false, false, 0, 0)
 
     def flushPending(): Unit =
       if pending.nonEmpty then
-        items += node(Inline.Text(pending.toString, spanOf(pendingStart, index, sourceOffsetAt)))
+        items += node(MdNode.Text(pending.toString, MdMeta.at(spanOf(pendingStart, index, sourceOffsetAt))))
         pending.clear()
 
     while index < text.length do
       val char = text.charAt(index)
       if char == '\\' && index + 1 < text.length && isAsciiPunctuation(text.charAt(index + 1)) then
         // A backslash escape makes the next character literal, so it can never open or close anything.
+        notes.foreach(_.recordEscape(sourceOffsetAt(index)))
         if pending.isEmpty then pendingStart = index
         pending.append(text.charAt(index + 1))
         index += 2
       else
-        constructAt(text, index, sourceOffsetAt, definitions) match
+        constructAt(text, index, sourceOffsetAt, definitions, notes) match
           case Present((constructEnd, inline)) =>
             flushPending()
             items += node(inline)
@@ -223,8 +247,9 @@ private[markdown] object InlineParser:
           )
           items.slice(found + 1, closerIndex).foreach(_.dropped = true)
 
-          val span = spanOf(opener.start, closer.end, sourceOffsetAt)
-          val node = if strong then Inline.StrongEmphasis(inner, span) else Inline.Emphasis(inner, span)
+          val span                         = spanOf(opener.start, closer.end, sourceOffsetAt)
+          val node: MdNode.PhrasingContent =
+            if strong then MdNode.Strong(inner, MdMeta.at(span)) else MdNode.Emphasis(inner, MdMeta.at(span))
           items.insert(closerIndex, Item(Present(node), ' ', 0, 0, false, false, 0, 0))
           closerIndex += 1
 
@@ -263,36 +288,48 @@ private[markdown] object InlineParser:
       text: String,
       index: Int,
       sourceOffsetAt: Int => Int,
-      definitions: Map[String, LinkDefinition]
-  ): Maybe[(Int, Inline)] =
+      definitions: Map[String, LinkDefinition],
+      notes: Maybe[InlineNotes]
+  ): Maybe[(Int, MdNode.PhrasingContent)] =
     val char = text.charAt(index)
     if char == ' ' || char == '\\' then lineEndingAt(text, index, sourceOffsetAt)
     else if char == '`' then
       val run = backtickRun(text, index)
       closingRun(text, index + run, run).map { closeStart =>
         val end = closeStart + run
-        (end, Inline.CodeSpan(normalize(text.substring(index + run, closeStart)), spanOf(index, end, sourceOffsetAt)))
+        (
+          end,
+          MdNode.InlineCode(
+            normalize(text.substring(index + run, closeStart)),
+            MdMeta.at(spanOf(index, end, sourceOffsetAt))
+          )
+        )
       }
-    else if char == '&' then entityAt(text, index, sourceOffsetAt)
+    else if char == '&' then entityAt(text, index, sourceOffsetAt, notes)
     else if char == '<' then
       autolink(text, index) match
         case Present(link) =>
           val span = spanOf(index, link.end, sourceOffsetAt)
           Present((
             link.end,
-            Inline.Link(normalizeUri(link.destination), Absent, Chunk(Inline.Text(link.text, span)), span)
+            MdNode.Link(
+              normalizeUri(link.destination),
+              Absent,
+              Chunk(MdNode.Text(link.text, MdMeta.at(span))),
+              MdMeta.at(span)
+            )
           ))
         case Absent =>
           // Raw HTML is taken whole, which is what gives it precedence over everything else: no `*`, `_`, `&` or `\`
           // inside it is ever looked at again, so `<a href="&ouml;">` keeps its entity and `**<a href="**">` has no
           // emphasis in it.
           HtmlTag.endOf(text, index).map { end =>
-            (end, Inline.RawHtml(text.substring(index, end), spanOf(index, end, sourceOffsetAt)))
+            (end, MdNode.InlineHtml(text.substring(index, end), MdMeta.at(spanOf(index, end, sourceOffsetAt))))
           }
     else if isLinkStart(text, index) then
       val image = char == '!'
       val open  = if image then index + 2 else index + 1
-      linkAt(text, index, open, image, sourceOffsetAt, definitions)
+      linkAt(text, index, open, image, sourceOffsetAt, definitions, notes)
     else Absent
 
   /**
@@ -305,19 +342,24 @@ private[markdown] object InlineParser:
    * A run of spaces that does not reach a line ending is ordinary text, and a backslash before anything but a line
    * ending is left for the escape rules.
    */
-  private def lineEndingAt(text: String, start: Int, sourceOffsetAt: Int => Int): Maybe[(Int, Inline)] =
+  private def lineEndingAt(
+      text: String,
+      start: Int,
+      sourceOffsetAt: Int => Int
+  ): Maybe[(Int, MdNode.PhrasingContent)] =
     if text.charAt(start) == '\\' then
       if start + 1 < text.length && text.charAt(start + 1) == '\n' then
-        Present((start + 2, Inline.LineBreak(spanOf(start, start + 2, sourceOffsetAt))))
+        Present((start + 2, MdNode.Break(MdMeta.at(spanOf(start, start + 2, sourceOffsetAt)))))
       else Absent
     else
       @tailrec def spacesEnd(index: Int): Int =
         if index < text.length && text.charAt(index) == ' ' then spacesEnd(index + 1) else index
       val end = spacesEnd(start)
       if end >= text.length || text.charAt(end) != '\n' then Absent
-      else if end - start >= 2 then Present((end + 1, Inline.LineBreak(spanOf(start, end + 1, sourceOffsetAt))))
+      else if end - start >= 2 then
+        Present((end + 1, MdNode.Break(MdMeta.at(spanOf(start, end + 1, sourceOffsetAt)))))
       // One space before a line ending is neither a break nor content: the line ending stands on its own.
-      else Present((end + 1, Inline.Text("\n", spanOf(start, end + 1, sourceOffsetAt))))
+      else Present((end + 1, MdNode.Text("\n", MdMeta.at(spanOf(start, end + 1, sourceOffsetAt)))))
 
   /**
    * A character reference: `&name;`, `&#dddd;` or `&#xhhhh;`.
@@ -326,9 +368,15 @@ private[markdown] object InlineParser:
    * becomes a text node holding `&`, which ScalaTags then writes back as `&amp;`. Anything that does not parse cleanly
    * stays literal text, which is what makes `&MadeUpEntity;` and a bare `&copy` render as themselves.
    */
-  private def entityAt(text: String, start: Int, sourceOffsetAt: Int => Int): Maybe[(Int, Inline)] =
+  private def entityAt(
+      text: String,
+      start: Int,
+      sourceOffsetAt: Int => Int,
+      notes: Maybe[InlineNotes]
+  ): Maybe[(Int, MdNode.PhrasingContent)] =
     entityValue(text, start).map { case (end, value) =>
-      (end, Inline.Text(value, spanOf(start, end, sourceOffsetAt)))
+      notes.foreach(_.recordEntity(sourceOffsetAt(start), sourceOffsetAt(end)))
+      (end, MdNode.Text(value, MdMeta.at(spanOf(start, end, sourceOffsetAt))))
     }
 
   /** The character a reference beginning at `start` stands for, and where it ends. */
@@ -385,35 +433,70 @@ private[markdown] object InlineParser:
       open: Int,
       image: Boolean,
       sourceOffsetAt: Int => Int,
-      definitions: Map[String, LinkDefinition]
-  ): Maybe[(Int, Inline)] =
+      definitions: Map[String, LinkDefinition],
+      notes: Maybe[InlineNotes]
+  ): Maybe[(Int, MdNode.PhrasingContent)] =
     labelEnd(text, open) match
       case Absent         => Absent
       case Present(close) =>
         val label = text.substring(open, close)
 
-        def build(end: Int, destination: String, title: Maybe[String], normalize: Boolean): Maybe[(Int, Inline)] =
+        // The CST's record of what was written here, made only when a form succeeds. The alt of an image is its label
+        // parsed as inlines — the AST flattens it to a string, the CST keeps the structure. Parsed only when someone
+        // is taking notes, because the plain parse has no use for it.
+        def record(
+            form: LinkForm,
+            destinationAt: Maybe[(start: Int, end: Int, angled: Boolean)],
+            titleAt: Maybe[(start: Int, end: Int)],
+            reference: Maybe[(start: Int, end: Int)]
+        ): Unit =
+          notes.foreach { collected =>
+            val alt =
+              if image then Present(parse(label, index => sourceOffsetAt(open + index), definitions, notes))
+              else Absent
+            collected.recordLink(
+              sourceOffsetAt(start),
+              LinkNote(
+                form,
+                spanOf(open, close, sourceOffsetAt),
+                destinationAt.map(d => (span = spanOf(d.start, d.end, sourceOffsetAt), angled = d.angled)),
+                titleAt.map(t => spanOf(t.start, t.end, sourceOffsetAt)),
+                reference.map(r => spanOf(r.start, r.end, sourceOffsetAt)),
+                alt
+              )
+            )
+          }
+
+        def build(
+            end: Int,
+            destination: String,
+            title: Maybe[String],
+            normalize: Boolean
+        ): Maybe[(Int, MdNode.PhrasingContent)] =
           val span = spanOf(start, end, sourceOffsetAt)
           val uri  = if normalize then normalizeUri(destination) else destination
-          if image then Present((end, Inline.Image(uri, title, plainText(label, definitions), span)))
+          if image then Present((end, MdNode.Image(uri, title, plainText(label, definitions), MdMeta.at(span))))
           else
-            val content = parse(label, index => sourceOffsetAt(open + index), definitions)
+            val content = parse(label, index => sourceOffsetAt(open + index), definitions, notes)
             // Links may not contain links. The bracket that would have opened this one is ordinary text instead, and
             // the link inside it stands: `[foo [bar](/uri)](/uri)` is the word `[foo `, a link, then `](/uri)`.
             // Images are not bound by this -- their content becomes `alt` text, where a nested link flattens to what
             // it says.
             if content.exists(holdsLink) then Absent
-            else Present((end, Inline.Link(uri, title, content, span)))
+            else Present((end, MdNode.Link(uri, title, content, MdMeta.at(span))))
 
         val inlineForm =
           if close + 1 < text.length && text.charAt(close + 1) == '(' then
             inlineTarget(text, close + 2) match
-              case Present(target) => build(target.end, target.destination, target.title, true)
-              case Absent          => Absent
+              case Present(target) =>
+                val built = build(target.end, target.destination, target.title, true)
+                if built.isDefined then record(LinkForm.Inline, target.destinationAt, target.titleAt, Absent)
+                built
+              case Absent => Absent
           else Absent
 
         if inlineForm.isDefined then inlineForm
-        else referenceForm(text, open, close, label, sourceOffsetAt, definitions, build)
+        else referenceForm(text, open, close, label, sourceOffsetAt, definitions, build, record)
 
   /**
    * The three reference forms: `[text][label]`, the collapsed `[text][]`, and the shortcut `[text]`.
@@ -428,8 +511,14 @@ private[markdown] object InlineParser:
       label: String,
       sourceOffsetAt: Int => Int,
       definitions: Map[String, LinkDefinition],
-      build: (Int, String, Maybe[String], Boolean) => Maybe[(Int, Inline)]
-  ): Maybe[(Int, Inline)] =
+      build: (Int, String, Maybe[String], Boolean) => Maybe[(Int, MdNode.PhrasingContent)],
+      record: (
+          LinkForm,
+          Maybe[(start: Int, end: Int, angled: Boolean)],
+          Maybe[(start: Int, end: Int)],
+          Maybe[(start: Int, end: Int)]
+      ) => Unit
+  ): Maybe[(Int, MdNode.PhrasingContent)] =
     val explicit =
       if close + 1 < text.length && text.charAt(close + 1) == '[' then referenceLabelEnd(text, close + 2)
       else Absent
@@ -448,8 +537,17 @@ private[markdown] object InlineParser:
         // Normalised here rather than when the definition was recorded, so a definition keeps the destination the author
         // wrote and every use of it is encoded the same way an inline destination would be: `/φου` reaches the writer as
         // `/%CF%86%CE%BF%CF%85`.
-        case Some(definition) => build(end, definition.destination, definition.title, true)
-        case None             => Absent
+        case Some(definition) =>
+          val built = build(end, definition.destination, definition.title, true)
+          if built.isDefined then
+            explicit match
+              case Present(secondClose) =>
+                val named = text.substring(close + 2, secondClose)
+                if named.isBlank then record(LinkForm.ReferenceCollapsed, Absent, Absent, Absent)
+                else record(LinkForm.ReferenceFull, Absent, Absent, Present((start = close + 2, end = secondClose)))
+              case Absent => record(LinkForm.ReferenceShortcut, Absent, Absent, Absent)
+          built
+        case None => Absent
 
   /**
    * Where a link *label* closes: at the first `]` that no backslash escapes.
@@ -526,11 +624,12 @@ private[markdown] object InlineParser:
     var index = skipWhitespace(text, from)
     if index >= text.length then Absent
     else
-      val destination: Maybe[(Int, String)] =
-        if text.charAt(index) == '<' then
+      val angled                                 = text.charAt(index) == '<'
+      val destination: Maybe[(Int, String, Int)] =
+        if angled then
           angleDestinationEnd(text, index + 1) match
             case Absent         => Absent
-            case Present(close) => Present((close + 1, unescape(text.substring(index + 1, close))))
+            case Present(close) => Present((close + 1, unescape(text.substring(index + 1, close)), index + 1))
         else
           var cursor = index
           var depth  = 0
@@ -544,21 +643,33 @@ private[markdown] object InlineParser:
               else { depth -= 1; cursor += 1 }
             else if char.isWhitespace then broken = true
             else cursor += 1
-          Present((cursor, unescape(text.substring(index, cursor))))
+          Present((cursor, unescape(text.substring(index, cursor)), index))
 
       destination match
-        case Absent                            => Absent
-        case Present((afterDestination, dest)) =>
+        case Absent                                       => Absent
+        case Present((afterDestination, dest, destStart)) =>
+          val destAt = Present((
+            start = destStart,
+            end = if angled then afterDestination - 1 else afterDestination,
+            angled = angled
+          ))
           index = skipWhitespace(text, afterDestination)
           if index < text.length && text.charAt(index) == ')' then
-            Present((end = index + 1, destination = dest, title = Absent))
+            Present((end = index + 1, destination = dest, title = Absent, destinationAt = destAt, titleAt = Absent))
           else
+            val titleStart = index
             titleAt(text, index) match
               case Absent                       => Absent
               case Present((afterTitle, title)) =>
                 val closing = skipWhitespace(text, afterTitle)
                 if closing < text.length && text.charAt(closing) == ')' then
-                  Present((end = closing + 1, destination = dest, title = Present(title)))
+                  Present((
+                    end = closing + 1,
+                    destination = dest,
+                    title = Present(title),
+                    destinationAt = destAt,
+                    titleAt = Present((start = titleStart, end = afterTitle))
+                  ))
                 else Absent
 
   /**
@@ -609,32 +720,56 @@ private[markdown] object InlineParser:
     val start = skipWhitespace(text, from)
     if start >= text.length then Absent
     else
-      val destination: Maybe[(Int, String)] =
-        if text.charAt(start) == '<' then
+      val angled                                 = text.charAt(start) == '<'
+      val destination: Maybe[(Int, String, Int)] =
+        if angled then
           val close = text.indexOf('>', start + 1)
-          if close < 0 then Absent else Present((close + 1, unescape(text.substring(start + 1, close))))
+          if close < 0 then Absent else Present((close + 1, unescape(text.substring(start + 1, close)), start + 1))
         else
           var cursor = start
           while cursor < text.length && !text.charAt(cursor).isWhitespace do cursor += 1
-          if cursor == start then Absent else Present((cursor, unescape(text.substring(start, cursor))))
+          if cursor == start then Absent else Present((cursor, unescape(text.substring(start, cursor)), start))
 
       destination match
-        case Absent                            => Absent
-        case Present((afterDestination, dest)) =>
+        case Absent                                       => Absent
+        case Present((afterDestination, dest, destStart)) =>
+          val destAt = Present((
+            start = destStart,
+            end = if angled then afterDestination - 1 else afterDestination,
+            angled = angled
+          ))
           val afterSpace = skipWhitespace(text, afterDestination)
           if afterSpace >= text.length || endsLine(text, afterDestination, afterSpace) && afterSpace >= text.length then
-            Present((end = afterDestination, destination = dest, title = Absent))
+            Present((
+              end = afterDestination,
+              destination = dest,
+              title = Absent,
+              destinationAt = destAt,
+              titleAt = Absent
+            ))
           // Whitespace has to separate a title from the destination. Without that, `[foo]: <bar>(baz)` reads `(baz)`
           // as a parenthesised title and defines a link, where the spec leaves the whole line as prose.
           else if afterSpace == afterDestination then Absent
           else
             titleAt(text, afterSpace) match
               case Present((afterTitle, title)) if restIsBlank(text, afterTitle) =>
-                Present((end = afterTitle, destination = dest, title = Present(title)))
+                Present((
+                  end = afterTitle,
+                  destination = dest,
+                  title = Present(title),
+                  destinationAt = destAt,
+                  titleAt = Present((start = afterSpace, end = afterTitle))
+                ))
               case _ =>
                 // No title, so the definition ends at the destination -- but only if nothing else shares its line.
                 if endsLine(text, afterDestination, afterSpace) then
-                  Present((end = afterDestination, destination = dest, title = Absent))
+                  Present((
+                    end = afterDestination,
+                    destination = dest,
+                    title = Absent,
+                    destinationAt = destAt,
+                    titleAt = Absent
+                  ))
                 else Absent
 
   /** True when only whitespace separates `from` from the end of the text or the next line. */
@@ -805,28 +940,28 @@ private[markdown] object InlineParser:
    * still stops the label becoming a link. An image's alt text is a `String` by then, so a link inside one has already
    * flattened and cannot be found -- which is right, because an image may hold a link.
    */
-  private def holdsLink(node: Inline): Boolean = node match
-    case Inline.Link(_, _, _, _)         => true
-    case Inline.Emphasis(inner, _)       => inner.exists(holdsLink)
-    case Inline.StrongEmphasis(inner, _) => inner.exists(holdsLink)
-    case _                               => false
+  private def holdsLink(node: MdNode.PhrasingContent): Boolean = node match
+    case MdNode.Link(_, _, _, _)   => true
+    case MdNode.Emphasis(inner, _) => inner.exists(holdsLink)
+    case MdNode.Strong(inner, _)   => inner.exists(holdsLink)
+    case _                         => false
 
   /** The plain text of a label, which is what an `alt` attribute can hold. */
   private def plainText(label: String, definitions: Map[String, LinkDefinition]): String =
     parse(label, identity, definitions).map(plainOf).mkString
 
   /** Flatten a node to the text an attribute can carry: markup contributes its content, not its markers. */
-  private def plainOf(node: Inline): String = node match
-    case Inline.Text(value, _)           => value
-    case Inline.CodeSpan(value, _)       => value
-    case Inline.Link(_, _, inner, _)     => inner.map(plainOf).mkString
-    case Inline.Image(_, _, alt, _)      => alt
-    case Inline.Emphasis(inner, _)       => inner.map(plainOf).mkString
-    case Inline.StrongEmphasis(inner, _) => inner.map(plainOf).mkString
+  private def plainOf(node: MdNode.PhrasingContent): String = node match
+    case MdNode.Text(value, _)       => value
+    case MdNode.InlineCode(value, _) => value
+    case MdNode.Link(_, _, inner, _) => inner.map(plainOf).mkString
+    case MdNode.Image(_, _, alt, _)  => alt
+    case MdNode.Emphasis(inner, _)   => inner.map(plainOf).mkString
+    case MdNode.Strong(inner, _)     => inner.map(plainOf).mkString
     // An `alt` attribute is text, and raw HTML in a label contributes none: it is markup, not content.
-    case Inline.RawHtml(_, _) => ""
+    case MdNode.InlineHtml(_, _) => ""
     // A break in alt text is the line ending it stands for; the `alt` attribute has no markup to carry it.
-    case Inline.LineBreak(_) => "\n"
+    case MdNode.Break(_) => "\n"
 
   private def spanOf(start: Int, end: Int, sourceOffsetAt: Int => Int): Span =
     Span.fromStartEnd(sourceOffsetAt(start), sourceOffsetAt(end))

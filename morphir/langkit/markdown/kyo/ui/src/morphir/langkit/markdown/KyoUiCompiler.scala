@@ -22,11 +22,11 @@ object KyoUiCompiler:
 
   given instance: Compiler[UI] with
 
-    def document(children: Chunk[UI]): UI = UI.fragment(children.toSeq*)
+    def root(children: Chunk[UI]): UI = UI.fragment(children.toSeq*)
 
-    def heading(level: HeadingLevel, children: Chunk[UI]): UI =
+    def heading(depth: HeadingLevel, children: Chunk[UI]): UI =
       val body = content(children)
-      level.toInt match
+      depth.toInt match
         case 1 => UI.h1(body)
         case 2 => UI.h2(body)
         case 3 => UI.h3(body)
@@ -37,27 +37,28 @@ object KyoUiCompiler:
     def paragraph(children: Chunk[UI]): UI = UI.p(content(children))
 
     /** The fence's language becomes `class="language-…"` on the inner `code`, which is what CommonMark's HTML does. */
-    def fencedCode(info: FenceInfo, content: String): UI =
+    def code(info: FenceInfo, value: String): UI =
       val codeElement = info.language match
-        case Present(language) => UI.code(content).cssClass(s"language-$language")
-        case Absent            => UI.code(content)
+        case Present(language) => UI.code(value).cssClass(s"language-$language")
+        case Absent            => UI.code(value)
       UI.pre(codeElement)
 
-    def unorderedList(items: Chunk[UI]): UI = UI.ul(content(items))
-
     /**
-     * `start` is dropped, because kyo-ui cannot carry it: `Ast.Ol` is an attribute set and children, the attribute set
-     * is a closed one, and neither holds `start`. A list beginning at three therefore renders beginning at one. The AST
-     * keeps the number, so nothing is lost that a writer able to express it could not recover.
+     * Combines `list`'s already-compiled `listItem` children into `ul` when `!ordered`, or `ol` when `ordered`.
+     *
+     * `start` is dropped either way, because kyo-ui cannot carry it: `Ast.Ol` is an attribute set and children, the
+     * attribute set is a closed one, and neither holds `start`. A list beginning at three therefore renders beginning
+     * at one. The AST keeps the number, so nothing is lost that a writer able to express it could not recover.
      */
-    def orderedList(start: Int, items: Chunk[UI]): UI = UI.ol(content(items))
+    def list(ordered: Boolean, start: Maybe[ListStart], children: Chunk[UI]): UI =
+      if ordered then UI.ol(content(children)) else UI.ul(content(children))
 
     def listItem(children: Chunk[UI]): UI = UI.li(content(children))
 
     /** kyo-ui escapes a `Text` node when it renders, so the value is handed over raw. */
     def text(value: String): UI = UI.Ast.Text(value)
 
-    def codeSpan(value: String): UI = UI.code(value)
+    def inlineCode(value: String): UI = UI.code(value)
 
     /**
      * kyo-ui has no `em` or `strong` element, so emphasis is carried by a `span` with a class. The ScalaTags oracle
@@ -65,7 +66,7 @@ object KyoUiCompiler:
      */
     def emphasis(children: Chunk[UI]): UI = UI.span(content(children)).cssClass("md-em")
 
-    def strongEmphasis(children: Chunk[UI]): UI = UI.span(content(children)).cssClass("md-strong")
+    def strong(children: Chunk[UI]): UI = UI.span(content(children)).cssClass("md-strong")
 
     /**
      * `Href.Path` and `ImgSrc.Path` render their value verbatim, which is what a Markdown destination needs: it is an
@@ -76,20 +77,20 @@ object KyoUiCompiler:
      * attribute set is closed, and `aria`, `data`, `role` and `cssClass` are the only names it opens up. So
      * `[docs](/docs "Guide")` renders without its tooltip. The AST keeps the title either way.
      */
-    def link(destination: String, title: Maybe[String], children: Chunk[UI]): UI =
-      UI.a.href(UI.Href.Path(destination))(content(children))
+    def link(url: String, title: Maybe[String], children: Chunk[UI]): UI =
+      UI.a.href(UI.Href.Path(url))(content(children))
 
-    def image(destination: String, title: Maybe[String], alt: String): UI =
-      UI.img(UI.ImgSrc.Path(destination), alt)
+    def image(url: String, title: Maybe[String], alt: String): UI =
+      UI.img(UI.ImgSrc.Path(url), alt)
 
-    /** `UI.rawHtml` is correct here and in `rawHtml`, and nowhere else: the content is HTML the document wrote. */
-    def htmlBlock(content: String): UI = UI.rawHtml(content)
+    /** `UI.rawHtml` is correct here and in `inlineHtml`, and nowhere else: the content is HTML the document wrote. */
+    def html(value: String): UI = UI.rawHtml(value)
 
-    def rawHtml(value: String): UI = UI.rawHtml(value)
+    def inlineHtml(value: String): UI = UI.rawHtml(value)
 
-    def lineBreak: UI = UI.fragment(UI.br, UI.Ast.Text("\n"))
+    def break: UI = UI.fragment(UI.br, UI.Ast.Text("\n"))
 
-    def blockQuote(children: Chunk[UI]): UI = UI.blockquote(content(children))
+    def blockquote(children: Chunk[UI]): UI = UI.blockquote(content(children))
 
     def blockSeparator: UI = UI.Ast.Text("\n")
 
@@ -111,6 +112,6 @@ object KyoUiCompiler:
    * Nothing is rendered here. The caller decides: `UI.runRender` for a fragment, `UI.runRenderPage` for a whole
    * document, or mounting it live in a browser.
    */
-  def compile(document: Document): UI =
-    Compiler.compile[UI](document)(using instance)
+  def compile(root: MdNode.Root): UI =
+    Compiler.compile[UI](root)(using instance)
 end KyoUiCompiler

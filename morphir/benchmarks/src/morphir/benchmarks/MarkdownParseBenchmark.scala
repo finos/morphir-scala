@@ -1,7 +1,7 @@
 package morphir.benchmarks
 
 import java.util.concurrent.TimeUnit
-import morphir.langkit.markdown.{Parser, ScalatagsCompiler}
+import morphir.langkit.markdown.{MD, ScalatagsCompiler}
 import org.openjdk.jmh.annotations.*
 
 /**
@@ -63,14 +63,14 @@ class MarkdownParseBenchmark:
 
   /** Both halves of the path a reader sees, so a parser win is not paid for at the writer. */
   @Benchmark def parseAndRenderRealistic(): Unit =
-    Parser.parse(Realistic) match
-      case kyo.Result.Success(document) => consume(ScalatagsCompiler.render(document))
-      case other                        => throw new IllegalStateException(s"benchmark input failed to parse: $other")
+    MD.parser.parse(Realistic) match
+      case kyo.Result.Success(root) => consume(ScalatagsCompiler.render(root))
+      case other                    => throw new IllegalStateException(s"benchmark input failed to parse: $other")
 
   private def parse(source: String): Unit =
-    Parser.parse(source) match
-      case kyo.Result.Success(document) => consume(document.blocks.size)
-      case other                        => throw new IllegalStateException(s"benchmark input failed to parse: $other")
+    MD.parser.parse(source) match
+      case kyo.Result.Success(root) => consume(root.children.size)
+      case other                    => throw new IllegalStateException(s"benchmark input failed to parse: $other")
 
   /** Keep the result reachable so the JIT cannot delete the work. */
   private def consume(value: Any): Unit = sink = value

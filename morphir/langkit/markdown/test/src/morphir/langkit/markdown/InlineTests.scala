@@ -4,24 +4,25 @@ import kyo.*
 import kyo.test.*
 import morphir.langkit.core.Span
 import morphir.langkit.markdown.internal.NamedEntityTable
+import morphir.langkit.markdown.internal.Parser
 
 /**
- * Inline content is the AST's second level: a block that can hold prose holds a sequence of [[Inline]] rather than a
- * `String`.
+ * Inline content is the AST's second level: a block that can hold prose holds a sequence of [[MdNode.PhrasingContent]]
+ * rather than a `String`.
  *
- * Only `Inline.Text` exists at this point, so a parse produces exactly one of them per block and no output changes. The
- * shape is what later slices need — code spans, links and emphasis all arrive as further `Inline` cases.
+ * Only `MdNode.Text` exists at this point, so a parse produces exactly one of them per block and no output changes. The
+ * shape is what later slices need — code spans, links and emphasis all arrive as further phrasing cases.
  */
 class InlineTests extends Test[Any]:
 
   /** The inline content of a source's first block. */
-  private def inlines(source: String): Chunk[Inline] =
-    parse(source).blocks.head match
-      case Block.Paragraph(content, _) => content
-      case other                       => throw new AssertionError(s"expected a paragraph, got $other")
+  private def inlines(source: String): Chunk[MdNode.PhrasingContent] =
+    parse(source).children.head match
+      case MdNode.Paragraph(content, _) => content
+      case other                        => throw new AssertionError(s"expected a paragraph, got $other")
 
   private def destinations(source: String): Chunk[String] =
-    inlines(source).collect { case Inline.Link(destination, _, _, _) => destination }
+    inlines(source).collect { case MdNode.Link(url, _, _, _) => url }
 
   /** The literal text of inline content, ignoring how it is split into nodes. */
   /**
@@ -30,45 +31,52 @@ class InlineTests extends Test[Any]:
    * A list item holds blocks, so even the shortest one is a paragraph. Tests that only care what an item says go
    * through this rather than repeating the unwrap.
    */
-  private def paragraphOf(item: ListItem): Chunk[Inline] =
-    item.content.headOption match
-      case Some(Block.Paragraph(content, _)) => content
-      case _                                 => Chunk.empty
+  private def paragraphOf(item: MdNode.ListItem): Chunk[MdNode.PhrasingContent] =
+    item.children.headOption match
+      case Some(MdNode.Paragraph(content, _)) => content
+      case _                                  => Chunk.empty
 
-  private def textOf(content: Chunk[Inline]): String =
+  private def textOf(content: Chunk[MdNode.PhrasingContent]): String =
     content.map {
-      case Inline.Text(value, _)           => value
-      case Inline.CodeSpan(value, _)       => value
-      case Inline.Link(_, _, inner, _)     => textOf(inner)
-      case Inline.Image(_, _, alt, _)      => alt
-      case Inline.Emphasis(inner, _)       => textOf(inner)
-      case Inline.StrongEmphasis(inner, _) => textOf(inner)
+      case MdNode.Text(value, _)       => value
+      case MdNode.InlineCode(value, _) => value
+      case MdNode.Link(_, _, inner, _) => textOf(inner)
+      case MdNode.Image(_, _, alt, _)  => alt
+      case MdNode.Emphasis(inner, _)   => textOf(inner)
+      case MdNode.Strong(inner, _)     => textOf(inner)
       // Raw HTML is markup rather than text, and contributes none: a test asserting on it matches the node itself.
-      case Inline.RawHtml(_, _) => ""
+      case MdNode.InlineHtml(_, _) => ""
       // A hard break reads as the line ending it stands for, so a test that only cares what the prose says need not
       // know which kind of break produced it.
-      case Inline.LineBreak(_) => "\n"
+      case MdNode.Break(_) => "\n"
     }.mkString
 
   /** The values of every code span a source produces, ignoring the text around them. */
   private def codeSpans(source: String): Chunk[String] =
-    parse(source).blocks.head match
-      case Block.Paragraph(content, _) => content.collect { case Inline.CodeSpan(value, _) => value }
-      case other                       => throw new AssertionError(s"expected a paragraph, got $other")
+    parse(source).children.head match
+      case MdNode.Paragraph(content, _) => content.collect { case MdNode.InlineCode(value, _) => value }
+      case other                        => throw new AssertionError(s"expected a paragraph, got $other")
 
-  private def parse(source: String): Document =
+  private def parse(source: String): MdNode.Root =
     Parser.parse(source) match
       case Result.Success(document) => document
       case other                    => throw new AssertionError(s"parse failed: $other")
 
   "a heading" - {
     "carries its prose as inline content" in {
-      val heading = parse("# Title").blocks.head
-      assert(heading == Block.Heading(HeadingLevel.One, Chunk(Inline.Text("Title", Span(2, 5))), Span(0, 7)))
+      val heading = parse("# Title").children.head
+      assert(
+        heading ==
+          MdNode.Heading(
+            HeadingLevel.One,
+            Chunk(MdNode.Text("Title", MdMeta.at(Span(2, 5)))),
+            MdMeta.at(Span(0, 7))
+          )
+      )
     }
     "reports the span its text occupies in the source, not the whole line" in {
-      parse("#   Title").blocks.head match
-        case Block.Heading(_, Chunk(Inline.Text(value, span)), _) =>
+      parse("#   Title").children.head match
+        case MdNode.Heading(_, Chunk(MdNode.Text(value, MdMeta(Present(span), _))), _) =>
           assert(value == "Title")
           assert(span == Span(4, 5))
         case other => assert(false, s"expected a heading, got $other")
@@ -77,15 +85,15 @@ class InlineTests extends Test[Any]:
 
   "a paragraph" - {
     "carries its prose as one text node" in {
-      parse("hello").blocks.head match
-        case Block.Paragraph(content, _) =>
-          assert(content == Chunk(Inline.Text("hello", Span(0, 5))))
+      parse("hello").children.head match
+        case MdNode.Paragraph(content, _) =>
+          assert(content == Chunk(MdNode.Text("hello", MdMeta.at(Span(0, 5)))))
         case other => assert(false, s"expected a paragraph, got $other")
     }
     "keeps a soft line break inside the text, uncollapsed" in {
-      parse("alpha\nbeta").blocks.head match
-        case Block.Paragraph(Chunk(Inline.Text(value, _)), _) => assert(value == "alpha\nbeta")
-        case other                                            => assert(false, s"expected one text node, got $other")
+      parse("alpha\nbeta").children.head match
+        case MdNode.Paragraph(Chunk(MdNode.Text(value, _)), _) => assert(value == "alpha\nbeta")
+        case other                                             => assert(false, s"expected one text node, got $other")
     }
   }
 
@@ -93,30 +101,37 @@ class InlineTests extends Test[Any]:
     // An item spans its whole line, marker and all, because that is what it occupies. Its paragraph spans only the
     // content, so an inline node inside it still points at the source.
     "gives every item its own content and span" in {
-      parse("- one\n- two").blocks.head match
-        case Block.UnorderedList(items, _, _) =>
+      parse("- one\n- two").children.head match
+        case MdNode.List(false, Absent, _, items, _) =>
           assert(items.size == 2)
           assert(items(0) ==
-            ListItem(Chunk(Block.Paragraph(Chunk(Inline.Text("one", Span(2, 3))), Span(2, 3))), Span(0, 5)))
+            MdNode.ListItem(
+              Chunk(MdNode.Paragraph(Chunk(MdNode.Text("one", MdMeta.at(Span(2, 3)))), MdMeta.at(Span(2, 3)))),
+              MdMeta.at(Span(0, 5))
+            ))
           assert(items(1) ==
-            ListItem(Chunk(Block.Paragraph(Chunk(Inline.Text("two", Span(8, 3))), Span(8, 3))), Span(6, 5)))
+            MdNode.ListItem(
+              Chunk(MdNode.Paragraph(Chunk(MdNode.Text("two", MdMeta.at(Span(8, 3)))), MdMeta.at(Span(8, 3)))),
+              MdMeta.at(Span(6, 5))
+            ))
         case other => assert(false, s"expected a list, got $other")
     }
   }
 
   "a code span" - {
     "is parsed out of surrounding text (spec example 328)" in {
-      parse("`foo`").blocks.head match
-        case Block.Paragraph(content, _) => assert(content == Chunk(Inline.CodeSpan("foo", Span(0, 5))))
-        case other                       => assert(false, s"expected a paragraph, got $other")
+      parse("`foo`").children.head match
+        case MdNode.Paragraph(content, _) =>
+          assert(content == Chunk(MdNode.InlineCode("foo", MdMeta.at(Span(0, 5)))))
+        case other => assert(false, s"expected a paragraph, got $other")
     }
     "splits a run of text into the pieces around it" in {
-      parse("a `b` c").blocks.head match
-        case Block.Paragraph(content, _) =>
+      parse("a `b` c").children.head match
+        case MdNode.Paragraph(content, _) =>
           assert(content.size == 3)
-          assert(content(0) == Inline.Text("a ", Span(0, 2)))
-          assert(content(1) == Inline.CodeSpan("b", Span(2, 3)))
-          assert(content(2) == Inline.Text(" c", Span(5, 2)))
+          assert(content(0) == MdNode.Text("a ", MdMeta.at(Span(0, 2))))
+          assert(content(1) == MdNode.InlineCode("b", MdMeta.at(Span(2, 3))))
+          assert(content(2) == MdNode.Text(" c", MdMeta.at(Span(5, 2))))
         case other => assert(false, s"expected a paragraph, got $other")
     }
     "closes on a backtick run of the same length, not a shorter one (spec example 339)" in
@@ -136,42 +151,42 @@ class InlineTests extends Test[Any]:
     "does not honour a backslash escape (spec example 338)" in
       assert(codeSpans("`foo\\`bar`") == Chunk("foo\\"))
     "leaves an unmatched backtick run as literal text (spec example 348)" in {
-      parse("`foo").blocks.head match
-        case Block.Paragraph(content, _) => assert(content == Chunk(Inline.Text("`foo", Span(0, 4))))
-        case other                       => assert(false, s"expected a paragraph, got $other")
+      parse("`foo").children.head match
+        case MdNode.Paragraph(content, _) => assert(content == Chunk(MdNode.Text("`foo", MdMeta.at(Span(0, 4)))))
+        case other                        => assert(false, s"expected a paragraph, got $other")
     }
     "leaves a run with no equal-length closer as literal text (spec example 347)" in {
-      parse("```foo``").blocks.head match
-        case Block.Paragraph(content, _) => assert(content == Chunk(Inline.Text("```foo``", Span(0, 8))))
-        case other                       => assert(false, s"expected a paragraph, got $other")
+      parse("```foo``").children.head match
+        case MdNode.Paragraph(content, _) => assert(content == Chunk(MdNode.Text("```foo``", MdMeta.at(Span(0, 8)))))
+        case other                        => assert(false, s"expected a paragraph, got $other")
     }
     "is not scanned inside fenced code" in {
-      parse("```\n`foo`\n```").blocks.head match
-        case Block.FencedCode(_, content, _) => assert(content == "`foo`\n")
-        case other                           => assert(false, s"expected fenced code, got $other")
+      parse("```\n`foo`\n```").children.head match
+        case MdNode.Code(_, content, _) => assert(content == "`foo`\n")
+        case other                      => assert(false, s"expected fenced code, got $other")
     }
   }
 
   "a link" - {
     "carries destination, title and label content (spec example 482)" in {
       inlines("[link](/uri \"title\")") match
-        case Chunk(Inline.Link(destination, title, content, _)) =>
-          assert(destination == "/uri")
+        case Chunk(MdNode.Link(url, title, content, _)) =>
+          assert(url == "/uri")
           assert(title == Present("title"))
-          assert(content == Chunk(Inline.Text("link", Span(1, 4))))
+          assert(content == Chunk(MdNode.Text("link", MdMeta.at(Span(1, 4)))))
         case other => assert(false, s"expected one link, got $other")
     }
     "has no title when none is given (spec example 483)" in {
       inlines("[link](/uri)") match
-        case Chunk(Inline.Link(destination, title, _, _)) =>
-          assert(destination == "/uri")
+        case Chunk(MdNode.Link(url, title, _, _)) =>
+          assert(url == "/uri")
           assert(title == Absent)
         case other => assert(false, s"expected one link, got $other")
     }
     "allows an empty label (spec example 484)" in {
       inlines("[](./target.md)") match
-        case Chunk(Inline.Link(destination, _, content, _)) =>
-          assert(destination == "./target.md")
+        case Chunk(MdNode.Link(url, _, content, _)) =>
+          assert(url == "./target.md")
           assert(content.isEmpty)
         case other => assert(false, s"expected one link, got $other")
     }
@@ -183,20 +198,20 @@ class InlineTests extends Test[Any]:
       assert(destinations("[a](http://x/?q=1&r=2)") == Chunk("http://x/?q=1&r=2"))
     "nests balanced brackets inside the label (spec example 512)" in {
       inlines("[link [foo [bar]]](/uri)") match
-        case Chunk(Inline.Link(_, _, content, _)) =>
+        case Chunk(MdNode.Link(_, _, content, _)) =>
           assert(textOf(content) == "link [foo [bar]]")
         case other => assert(false, s"expected one link, got $other")
     }
     "loses to a code span, which binds tighter (spec example 342)" in {
       val content = inlines("[not a `link](/foo`)")
-      assert(content.exists { case _: Inline.CodeSpan => true; case _ => false })
-      assert(!content.exists { case _: Inline.Link => true; case _ => false })
+      assert(content.exists { case _: MdNode.InlineCode => true; case _ => false })
+      assert(!content.exists { case _: MdNode.Link => true; case _ => false })
     }
     "parses its label as inline content, so a code span inside it survives" in {
       inlines("[a `b` c](/u)") match
-        case Chunk(Inline.Link(_, _, content, _)) =>
+        case Chunk(MdNode.Link(_, _, content, _)) =>
           assert(content.size == 3)
-          assert(content(1) == Inline.CodeSpan("b", Span(3, 3)))
+          assert(content(1) == MdNode.InlineCode("b", MdMeta.at(Span(3, 3))))
         case other => assert(false, s"expected one link, got $other")
     }
   }
@@ -204,27 +219,27 @@ class InlineTests extends Test[Any]:
   "an image" - {
     "carries destination, title and flattened alt text (spec example 572)" in {
       inlines("![foo](/url \"title\")") match
-        case Chunk(Inline.Image(destination, title, alt, _)) =>
-          assert(destination == "/url")
+        case Chunk(MdNode.Image(url, title, alt, _)) =>
+          assert(url == "/url")
           assert(title == Present("title"))
           assert(alt == "foo")
         case other => assert(false, s"expected one image, got $other")
     }
     "flattens a nested image into its alt text (spec example 574)" in {
       inlines("![foo ![bar](/url)](/url2)") match
-        case Chunk(Inline.Image(destination, _, alt, _)) =>
-          assert(destination == "/url2")
+        case Chunk(MdNode.Image(url, _, alt, _)) =>
+          assert(url == "/url2")
           assert(alt == "foo bar")
         case other => assert(false, s"expected one image, got $other")
     }
     "flattens a nested link into its alt text (spec example 575)" in {
       inlines("![foo [bar](/url)](/url2)") match
-        case Chunk(Inline.Image(_, _, alt, _)) => assert(alt == "foo bar")
+        case Chunk(MdNode.Image(_, _, alt, _)) => assert(alt == "foo bar")
         case other                             => assert(false, s"expected one image, got $other")
     }
     "allows an empty alt (spec example 581)" in {
       inlines("![](/url)") match
-        case Chunk(Inline.Image(_, _, alt, _)) => assert(alt.isEmpty)
+        case Chunk(MdNode.Image(_, _, alt, _)) => assert(alt.isEmpty)
         case other                             => assert(false, s"expected one image, got $other")
     }
   }
@@ -232,101 +247,109 @@ class InlineTests extends Test[Any]:
   "an autolink" - {
     "becomes a link whose text is the raw URI (spec example 594 shape)" in {
       inlines("<https://foo.bar.baz>") match
-        case Chunk(Inline.Link(destination, title, content, _)) =>
-          assert(destination == "https://foo.bar.baz")
+        case Chunk(MdNode.Link(url, title, content, _)) =>
+          assert(url == "https://foo.bar.baz")
           assert(title == Absent)
           assert(textOf(content) == "https://foo.bar.baz")
         case other => assert(false, s"expected one link, got $other")
     }
     "encodes the destination while leaving the text raw (spec example 346)" in {
       inlines("<https://foo.bar.`baz>") match
-        case Chunk(Inline.Link(destination, _, content, _)) =>
-          assert(destination == "https://foo.bar.%60baz")
+        case Chunk(MdNode.Link(url, _, content, _)) =>
+          assert(url == "https://foo.bar.%60baz")
           assert(textOf(content) == "https://foo.bar.`baz")
         case other => assert(false, s"expected one link, got $other")
     }
     "is not made from something that is not an absolute URI" in
       // `<33>` is neither an autolink nor a valid tag, so it stays escaped text. `<not a link>` would not do
       // here: it IS a valid open tag -- name `not`, attributes `a` and `link` -- so CommonMark reads it as raw HTML.
-      assert(inlines("<33>").forall { case _: Inline.Link => false; case _ => true })
+      assert(inlines("<33>").forall { case _: MdNode.Link => false; case _ => true })
   }
 
   "emphasis" - {
     "wraps a single delimiter run (spec example 350)" in {
       inlines("*foo bar*") match
-        case Chunk(Inline.Emphasis(content, _)) => assert(textOf(content) == "foo bar")
+        case Chunk(MdNode.Emphasis(content, _)) => assert(textOf(content) == "foo bar")
         case other                              => assert(false, s"expected emphasis, got $other")
     }
     "wraps a double run as strong (spec example 378)" in {
       inlines("**foo bar**") match
-        case Chunk(Inline.StrongEmphasis(content, _)) => assert(textOf(content) == "foo bar")
-        case other                                    => assert(false, s"expected strong emphasis, got $other")
+        case Chunk(MdNode.Strong(content, _)) => assert(textOf(content) == "foo bar")
+        case other                            => assert(false, s"expected strong emphasis, got $other")
     }
     "underscores work the same at a word boundary (spec example 382)" in {
       inlines("__foo bar__") match
-        case Chunk(Inline.StrongEmphasis(_, _)) => assert(true)
-        case other                              => assert(false, s"expected strong emphasis, got $other")
+        case Chunk(MdNode.Strong(_, _)) => assert(true)
+        case other                      => assert(false, s"expected strong emphasis, got $other")
     }
     "stays literal when the opener is followed by whitespace (spec example 351)" in {
       assert(textOf(inlines("a * foo bar*")) == "a * foo bar*")
-      assert(!inlines("a * foo bar*").exists { case _: Inline.Emphasis => true; case _ => false })
+      assert(!inlines("a * foo bar*").exists { case _: MdNode.Emphasis => true; case _ => false })
     }
     "keeps an intraword underscore literal (spec example 360)" in
-      assert(!inlines("foo_bar_").exists { case _: Inline.Emphasis => true; case _ => false })
+      assert(!inlines("foo_bar_").exists { case _: MdNode.Emphasis => true; case _ => false })
     "nests strong inside emphasis (spec example 410)" in {
       inlines("*foo **bar** baz*") match
-        case Chunk(Inline.Emphasis(content, _)) =>
-          assert(content.exists { case _: Inline.StrongEmphasis => true; case _ => false })
+        case Chunk(MdNode.Emphasis(content, _)) =>
+          assert(content.exists { case _: MdNode.Strong => true; case _ => false })
         case other => assert(false, s"expected emphasis, got $other")
     }
     "leaves an unmatched delimiter behind as text (spec example 443)" in {
       val content = inlines("*foo**")
       assert(content.size == 2)
-      assert(content(0).isInstanceOf[Inline.Emphasis])
-      assert(content(1) == Inline.Text("*", Span(5, 1)))
+      assert(content(0).isInstanceOf[MdNode.Emphasis])
+      assert(content(1) == MdNode.Text("*", MdMeta.at(Span(5, 1))))
     }
     "does not treat a lone run as a delimiter pair (spec example 436)" in
       assert(textOf(inlines("foo ***")) == "foo ***")
     "a backslash-escaped asterisk never opens emphasis" in
-      assert(!inlines("\\*foo\\*").exists { case _: Inline.Emphasis => true; case _ => false })
+      assert(!inlines("\\*foo\\*").exists { case _: MdNode.Emphasis => true; case _ => false })
   }
 
   "indented code" - {
     "reads four spaces of indentation as a code block (spec example 107)" in {
-      parse("    a simple\n      indented code block").blocks.head match
-        case Block.IndentedCode(content, _) => assert(content == "a simple\n  indented code block\n")
-        case other                          => assert(false, s"expected indented code, got $other")
+      parse("    a simple\n      indented code block").children.head match
+        case MdNode.Code(info, content, _) =>
+          assert(info == FenceInfo.empty)
+          assert(content == "a simple\n  indented code block\n")
+        case other => assert(false, s"expected indented code, got $other")
     }
     "keeps blank lines between chunks but not at the end (spec example 111)" in {
-      parse("    chunk1\n\n    chunk2\n").blocks.head match
-        case Block.IndentedCode(content, _) => assert(content == "chunk1\n\nchunk2\n")
-        case other                          => assert(false, s"expected indented code, got $other")
+      parse("    chunk1\n\n    chunk2\n").children.head match
+        case MdNode.Code(info, content, _) =>
+          assert(info == FenceInfo.empty)
+          assert(content == "chunk1\n\nchunk2\n")
+        case other => assert(false, s"expected indented code, got $other")
     }
     "beats every other block opener, so an indented hash is not a heading" in {
-      parse("    # not a heading").blocks.head match
-        case Block.IndentedCode(content, _) => assert(content == "# not a heading\n")
-        case other                          => assert(false, s"expected indented code, got $other")
+      parse("    # not a heading").children.head match
+        case MdNode.Code(info, content, _) =>
+          assert(info == FenceInfo.empty)
+          assert(content == "# not a heading\n")
+        case other => assert(false, s"expected indented code, got $other")
     }
     // The indentation goes with it: a paragraph's content is its lines with their leading whitespace removed, so the
     // second line reads `bar` and not `    bar`. This test asserted the indentation was kept, which was our behaviour
     // rather than the spec's -- the fixture renders `<p>Foo\nbar</p>`.
     "does not interrupt a paragraph, and loses its indentation to it (spec example 113)" in {
-      parse("Foo\n    bar").blocks.head match
-        case Block.Paragraph(content, _) => assert(textOf(content) == "Foo\nbar")
-        case other                       => assert(false, s"expected a paragraph, got $other")
+      parse("Foo\n    bar").children.head match
+        case MdNode.Paragraph(content, _) => assert(textOf(content) == "Foo\nbar")
+        case other                        => assert(false, s"expected a paragraph, got $other")
     }
     "strips only four spaces, leaving deeper indentation as content (spec example 116)" in {
-      parse("        foo\n    bar").blocks.head match
-        case Block.IndentedCode(content, _) => assert(content == "    foo\nbar\n")
-        case other                          => assert(false, s"expected indented code, got $other")
+      parse("        foo\n    bar").children.head match
+        case MdNode.Code(info, content, _) =>
+          assert(info == FenceInfo.empty)
+          assert(content == "    foo\nbar\n")
+        case other => assert(false, s"expected indented code, got $other")
     }
   }
 
   "a link reference definition" - {
     "resolves a shortcut reference (spec example 192)" in {
       inlines("[foo]: /url \"title\"\n\n[foo]") match
-        case Chunk(Inline.Link(destination, title, content, _)) =>
-          assert(destination == "/url")
+        case Chunk(MdNode.Link(url, title, content, _)) =>
+          assert(url == "/url")
           assert(title == Present("title"))
           assert(textOf(content) == "foo")
         case other => assert(false, s"expected one link, got $other")
@@ -341,25 +364,25 @@ class InlineTests extends Test[Any]:
       assert(destinations("[foo][]\n\n[foo]: /url") == Chunk("/url"))
     "resolves an image reference (spec example 588)" in {
       inlines("![foo]\n\n[foo]: /url \"title\"") match
-        case Chunk(Inline.Image(destination, title, alt, _)) =>
-          assert(destination == "/url")
+        case Chunk(MdNode.Image(url, title, alt, _)) =>
+          assert(url == "/url")
           assert(title == Present("title"))
           assert(alt == "foo")
         case other => assert(false, s"expected one image, got $other")
     }
     "contributes no block of its own" in {
       val document = parse("[foo]: /url\n\nbody")
-      assert(document.blocks.size == 1)
-      document.blocks.head match
-        case Block.Paragraph(content, _) => assert(textOf(content) == "body")
-        case other                       => assert(false, s"expected one paragraph, got $other")
+      assert(document.children.size == 1)
+      document.children.head match
+        case MdNode.Paragraph(content, _) => assert(textOf(content) == "body")
+        case other                        => assert(false, s"expected one paragraph, got $other")
     }
     "keeps the first of two definitions for the same label" in
       assert(destinations("[foo]: /first\n[foo]: /second\n\n[foo]") == Chunk("/first"))
     "is not a definition when the line carries trailing content (spec example 209)" in {
       val document = parse("[foo]: /url \"title\" ok")
-      assert(document.blocks.size == 1)
-      assert(document.blocks.head.isInstanceOf[Block.Paragraph])
+      assert(document.children.size == 1)
+      assert(document.children.head.isInstanceOf[MdNode.Paragraph])
     }
     "leaves an unresolved reference as literal text" in {
       assert(destinations("[nope]") == Chunk.empty)
@@ -369,140 +392,142 @@ class InlineTests extends Test[Any]:
 
   "a setext heading" - {
     "an equals underline makes a level-one heading" in {
-      parse("Title\n=====").blocks.head match
-        case Block.Heading(level, content, _) =>
+      parse("Title\n=====").children.head match
+        case MdNode.Heading(level, content, _) =>
           assert(level == HeadingLevel.One)
           assert(textOf(content) == "Title")
         case other => assert(false, s"expected a heading, got $other")
     }
     "a dash underline makes a level-two heading" in {
-      parse("Title\n-----").blocks.head match
-        case Block.Heading(level, _, _) => assert(level == HeadingLevel.Two)
-        case other                      => assert(false, s"expected a heading, got $other")
+      parse("Title\n-----").children.head match
+        case MdNode.Heading(level, _, _) => assert(level == HeadingLevel.Two)
+        case other                       => assert(false, s"expected a heading, got $other")
     }
     "a dash run with nothing above it stays a thematic break" in {
-      parse("-----").blocks.head match
-        case Block.ThematicBreak(_) => assert(true)
-        case other                  => assert(false, s"expected a thematic break, got $other")
+      parse("-----").children.head match
+        case MdNode.ThematicBreak(_) => assert(true)
+        case other                   => assert(false, s"expected a thematic break, got $other")
     }
     "its content is inline, so a code span inside survives" in {
-      parse("a `b`\n===").blocks.head match
-        case Block.Heading(_, content, _) =>
-          assert(content.exists { case _: Inline.CodeSpan => true; case _ => false })
+      parse("a `b`\n===").children.head match
+        case MdNode.Heading(_, content, _) =>
+          assert(content.exists { case _: MdNode.InlineCode => true; case _ => false })
         case other => assert(false, s"expected a heading, got $other")
     }
   }
 
   "an ordered list" - {
     "reads consecutive numbered items as one list" in {
-      parse("1. one\n2. two").blocks.head match
-        case Block.OrderedList(start, items, _, _) =>
-          assert(start == 1)
+      parse("1. one\n2. two").children.head match
+        case MdNode.List(true, start, _, items, _) =>
+          assert(start == Present(ListStart.One))
           assert(items.map(item => textOf(paragraphOf(item))) == Chunk("one", "two"))
         case other => assert(false, s"expected an ordered list, got $other")
     }
     "keeps the first marker's number as the start" in {
-      parse("3. three\n4. four").blocks.head match
-        case Block.OrderedList(start, items, _, _) =>
-          assert(start == 3)
+      parse("3. three\n4. four").children.head match
+        case MdNode.List(true, start, _, items, _) =>
+          assert(start == Present(ListStart(3)))
           assert(items.size == 2)
         case other => assert(false, s"expected an ordered list, got $other")
     }
     "a change of delimiter begins a new list (spec example 302)" in {
-      val blocks = parse("1. foo\n2. bar\n3) baz").blocks
+      val blocks = parse("1. foo\n2. bar\n3) baz").children
       assert(blocks.size == 2)
-      assert(blocks(0).isInstanceOf[Block.OrderedList])
-      assert(blocks(1).isInstanceOf[Block.OrderedList])
+      assert(blocks(0).isInstanceOf[MdNode.List])
+      assert(blocks(1).isInstanceOf[MdNode.List])
     }
     "only a list starting at one may interrupt a paragraph (spec example 304)" in {
-      val blocks = parse("The number of windows in my house is\n14.  The number of doors is 6.").blocks
+      val blocks = parse("The number of windows in my house is\n14.  The number of doors is 6.").children
       assert(blocks.size == 1)
-      assert(blocks.head.isInstanceOf[Block.Paragraph])
+      assert(blocks.head.isInstanceOf[MdNode.Paragraph])
     }
     "a list starting at one does interrupt a paragraph" in {
-      val blocks = parse("text\n1. item").blocks
+      val blocks = parse("text\n1. item").children
       assert(blocks.size == 2)
-      assert(blocks(1).isInstanceOf[Block.OrderedList])
+      assert(blocks(1).isInstanceOf[MdNode.List])
     }
   }
 
   "an HTML block" - {
     "passes a known block tag through verbatim, Markdown and all (spec example 189)" in {
-      parse("<div>\n*Emphasized* text.\n</div>").blocks.head match
-        case Block.HtmlBlock(content, _) => assert(content == "<div>\n*Emphasized* text.\n</div>")
-        case other                       => assert(false, s"expected an HTML block, got $other")
+      parse("<div>\n*Emphasized* text.\n</div>").children.head match
+        case MdNode.Html(content, _) => assert(content == "<div>\n*Emphasized* text.\n</div>")
+        case other                   => assert(false, s"expected an HTML block, got $other")
     }
     "ends at a blank line for a known tag (spec example 190)" in {
-      val blocks = parse("<table>\n\n<tr>\n").blocks
+      val blocks = parse("<table>\n\n<tr>\n").children
       assert(blocks.size == 2)
-      assert(blocks.forall(_.isInstanceOf[Block.HtmlBlock]))
+      assert(blocks.forall(_.isInstanceOf[MdNode.Html]))
     }
     "runs to the closing tag for a script-like element" in {
-      parse("<style>\n\nh1 {}\n</style>").blocks.head match
-        case Block.HtmlBlock(content, _) => assert(content.contains("h1 {}"))
-        case other                       => assert(false, s"expected an HTML block, got $other")
+      parse("<style>\n\nh1 {}\n</style>").children.head match
+        case MdNode.Html(content, _) => assert(content.contains("h1 {}"))
+        case other                   => assert(false, s"expected an HTML block, got $other")
     }
     // Condition one names whole tags. A block opened on `<scriptorium>` would end only at a `</script>` that is never
     // coming, and would swallow the rest of the document as raw HTML. No CommonMark fixture covers this, which is why
     // it is asserted here.
     "needs the tag name to end for the script-like condition (not <scriptorium>)" in {
       val document = parse("<scriptorium>\n\nA paragraph after it.\n")
-      assert(document.blocks.size == 2, s"the block swallowed what followed it: $document")
-      assert(document.blocks(1).isInstanceOf[Block.Paragraph])
+      assert(document.children.size == 2, s"the block swallowed what followed it: $document")
+      assert(document.children(1).isInstanceOf[MdNode.Paragraph])
 
       // The real thing still runs to its terminator rather than stopping at the blank line.
-      parse("<script>\nvar x = 1;\n\nvar y = 2;\n</script>\n").blocks.head match
-        case Block.HtmlBlock(content, _) => assert(content.contains("var y = 2;"))
-        case other                       => assert(false, s"expected one HTML block, got $other")
+      parse("<script>\nvar x = 1;\n\nvar y = 2;\n</script>\n").children.head match
+        case MdNode.Html(content, _) => assert(content.contains("var y = 2;"))
+        case other                   => assert(false, s"expected one HTML block, got $other")
     }
     "takes a comment to its terminator" in {
-      parse("<!-- a\n\nb -->").blocks.head match
-        case Block.HtmlBlock(content, _) => assert(content == "<!-- a\n\nb -->")
-        case other                       => assert(false, s"expected an HTML block, got $other")
+      parse("<!-- a\n\nb -->").children.head match
+        case MdNode.Html(content, _) => assert(content == "<!-- a\n\nb -->")
+        case other                   => assert(false, s"expected an HTML block, got $other")
     }
     "needs a valid tag for the any-tag condition (spec example 619)" in {
       // `h*#ref` is not a valid attribute name, so this is not a tag and stays prose.
-      parse("<a h*#ref=\"hi\">").blocks.head match
-        case Block.Paragraph(_, _) => assert(true)
-        case other                 => assert(false, s"expected a paragraph, got $other")
+      parse("<a h*#ref=\"hi\">").children.head match
+        case MdNode.Paragraph(_, _) => assert(true)
+        case other                  => assert(false, s"expected a paragraph, got $other")
     }
     "opens on a bare closing tag, which the any-tag condition allows" in {
       // Regression guard: this was unreachable while closingTagEnd checked charAt(1) -- the `/` -- rather than the
       // first character of the name.
-      parse("</div>\ncontent").blocks.head match
-        case Block.HtmlBlock(content, _) => assert(content == "</div>\ncontent")
-        case other                       => assert(false, s"expected an HTML block, got $other")
+      parse("</div>\ncontent").children.head match
+        case MdNode.Html(content, _) => assert(content == "</div>\ncontent")
+        case other                   => assert(false, s"expected an HTML block, got $other")
     }
     "rejects a closing tag carrying attributes (spec example 624)" in {
-      parse("</a href=\"foo\">").blocks.head match
-        case Block.Paragraph(_, _) => assert(true)
-        case other                 => assert(false, s"expected a paragraph, got $other")
+      parse("</a href=\"foo\">").children.head match
+        case MdNode.Paragraph(_, _) => assert(true)
+        case other                  => assert(false, s"expected a paragraph, got $other")
     }
     "the any-tag condition does not interrupt a paragraph (spec example 187)" in {
-      val blocks = parse("Foo\n<a href=\"bar\">\nbaz").blocks
+      val blocks = parse("Foo\n<a href=\"bar\">\nbaz").children
       assert(blocks.size == 1)
-      assert(blocks.head.isInstanceOf[Block.Paragraph])
+      assert(blocks.head.isInstanceOf[MdNode.Paragraph])
     }
     "an indented opener is code, not an HTML block (spec example 231)" in {
-      parse("    <div>").blocks.head match
-        case Block.IndentedCode(content, _) => assert(content == "<div>\n")
-        case other                          => assert(false, s"expected indented code, got $other")
+      parse("    <div>").children.head match
+        case MdNode.Code(info, content, _) =>
+          assert(info == FenceInfo.empty)
+          assert(content == "<div>\n")
+        case other => assert(false, s"expected indented code, got $other")
     }
   }
 
   "a link" - {
 
-    def inlines(source: String): Chunk[Inline] =
-      parse(source).blocks.head match
-        case Block.Paragraph(content, _) => content
-        case other                       => throw new AssertionError(s"expected a paragraph, got $other")
+    def inlines(source: String): Chunk[MdNode.PhrasingContent] =
+      parse(source).children.head match
+        case MdNode.Paragraph(content, _) => content
+        case other                        => throw new AssertionError(s"expected a paragraph, got $other")
 
     def destinations(source: String): Chunk[String] =
-      def walk(node: Inline): Chunk[String] = node match
-        case Inline.Link(destination, _, inner, _) => Chunk(destination) ++ inner.flatMap(walk)
-        case Inline.Emphasis(inner, _)             => inner.flatMap(walk)
-        case Inline.StrongEmphasis(inner, _)       => inner.flatMap(walk)
-        case _                                     => Chunk.empty
+      def walk(node: MdNode.PhrasingContent): Chunk[String] = node match
+        case MdNode.Link(url, _, inner, _) => Chunk(url) ++ inner.flatMap(walk)
+        case MdNode.Emphasis(inner, _)     => inner.flatMap(walk)
+        case MdNode.Strong(inner, _)       => inner.flatMap(walk)
+        case _                             => Chunk.empty
       inlines(source).flatMap(walk)
 
     // The bracket that would have opened the outer link is ordinary text instead, and the link inside it stands.
@@ -516,8 +541,8 @@ class InlineTests extends Test[Any]:
     // An image is not bound by it: its content becomes alt text, where a nested link flattens to what it says.
     "lets an image hold what a link may not (spec example 520)" in {
       inlines("![[[foo](uri1)](uri2)](uri3)\n").head match
-        case Inline.Image(destination, _, alt, _) =>
-          assert(destination == "uri3")
+        case MdNode.Image(url, _, alt, _) =>
+          assert(url == "uri3")
           assert(alt == "[foo](uri2)")
         case other => assert(false, s"expected an image, got $other")
     }
@@ -533,7 +558,7 @@ class InlineTests extends Test[Any]:
       notLinks.foreach { source =>
         assert(destinations(source).isEmpty, s"a link was formed in $source")
         // The definition is no more valid than the reference, so both lines stay prose.
-        assert(parse(source).blocks.size == 2, s"expected two paragraphs from $source")
+        assert(parse(source).children.size == 2, s"expected two paragraphs from $source")
       }
     }
     "still takes balanced brackets in link text (spec example 512)" in
@@ -551,7 +576,7 @@ class InlineTests extends Test[Any]:
 
     "resolves references in a title (spec example 506)" in {
       inlines("[link](/url \"title \\\"&quot;\")\n").head match
-        case Inline.Link(_, Present(title), _, _) => assert(title == "title \"\"")
+        case MdNode.Link(_, Present(title), _, _) => assert(title == "title \"\"")
         case other                                => assert(false, s"expected a titled link, got $other")
     }
 
@@ -566,9 +591,9 @@ class InlineTests extends Test[Any]:
   "the flanking rules" - {
 
     def emphasised(source: String): Boolean =
-      parse(source).blocks.head match
-        case Block.Paragraph(content, _) => content.exists(_.isInstanceOf[Inline.Emphasis])
-        case _                           => false
+      parse(source).children.head match
+        case MdNode.Paragraph(content, _) => content.exists(_.isInstanceOf[MdNode.Emphasis])
+        case _                            => false
 
     // Java says a non-breaking space is not whitespace; the spec says it is. Runs surrounded by it flank neither way,
     // so this is not emphasis. Asserted here rather than only in the JVM-only conformance suite because it rests on
@@ -586,12 +611,12 @@ class InlineTests extends Test[Any]:
     // The two classifications are not the same one. A backslash escapes ASCII punctuation and nothing else, so a
     // backslash before a euro sign is two characters of text.
     "do not widen what a backslash may escape" in {
-      parse("\\\u20ac\n").blocks.head match
-        case Block.Paragraph(content, _) => assert(textOf(content) == "\\\u20ac")
-        case other                       => assert(false, s"expected a paragraph, got $other")
-      parse("\\*\n").blocks.head match
-        case Block.Paragraph(content, _) => assert(textOf(content) == "*")
-        case other                       => assert(false, s"expected a paragraph, got $other")
+      parse("\\\u20ac\n").children.head match
+        case MdNode.Paragraph(content, _) => assert(textOf(content) == "\\\u20ac")
+        case other                        => assert(false, s"expected a paragraph, got $other")
+      parse("\\*\n").children.head match
+        case MdNode.Paragraph(content, _) => assert(textOf(content) == "*")
+        case other                        => assert(false, s"expected a paragraph, got $other")
     }
   }
 
@@ -601,9 +626,9 @@ class InlineTests extends Test[Any]:
     // past anything a hand-picked set would hold.
     "holds the names the spec's own examples reach for (spec example 25)" in {
       def textIn(source: String): String =
-        parse(source).blocks.head match
-          case Block.Paragraph(content, _) => textOf(content)
-          case other                       => throw new AssertionError(s"expected a paragraph, got $other")
+        parse(source).children.head match
+          case MdNode.Paragraph(content, _) => textOf(content)
+          case other                        => throw new AssertionError(s"expected a paragraph, got $other")
 
       assert(textIn("&Dcaron;\n") == "Ď")
       assert(textIn("&HilbertSpace;\n") == "ℋ")
@@ -626,9 +651,9 @@ class InlineTests extends Test[Any]:
   "a numeric character reference" - {
 
     def textIn(source: String): String =
-      parse(source).blocks.head match
-        case Block.Paragraph(content, _) => textOf(content)
-        case other                       => throw new AssertionError(s"expected a paragraph, got $other")
+      parse(source).children.head match
+        case MdNode.Paragraph(content, _) => textOf(content)
+        case other                        => throw new AssertionError(s"expected a paragraph, got $other")
 
     // Seven digits decimal and six hexadecimal. A longer run is not an out-of-range reference to be replaced with
     // U+FFFD; it is not a reference at all (spec example 28).
@@ -642,9 +667,9 @@ class InlineTests extends Test[Any]:
   "an ATX heading" - {
 
     def headingOf(source: String): (HeadingLevel, String) =
-      parse(source).blocks.head match
-        case Block.Heading(level, content, _) => (level, textOf(content))
-        case other                            => throw new AssertionError(s"expected a heading, got $other")
+      parse(source).children.head match
+        case MdNode.Heading(level, content, _) => (level, textOf(content))
+        case other                             => throw new AssertionError(s"expected a heading, got $other")
 
     // The closing run says nothing: `### foo ###` is the same heading as `### foo`.
     "drops a closing run of hashes (spec examples 71 to 73)" in {
@@ -667,17 +692,17 @@ class InlineTests extends Test[Any]:
   "an autolink" - {
 
     def linkOf(source: String): (String, String) =
-      parse(source).blocks.head match
-        case Block.Paragraph(content, _) =>
+      parse(source).children.head match
+        case MdNode.Paragraph(content, _) =>
           content.head match
-            case Inline.Link(destination, _, inner, _) => (destination, textOf(inner))
-            case other                                 => throw new AssertionError(s"expected a link, got $other")
+            case MdNode.Link(url, _, inner, _) => (url, textOf(inner))
+            case other                         => throw new AssertionError(s"expected a link, got $other")
         case other => throw new AssertionError(s"expected a paragraph, got $other")
 
     def isLink(source: String): Boolean =
-      parse(source).blocks.head match
-        case Block.Paragraph(content, _) => content.exists(_.isInstanceOf[Inline.Link])
-        case _                           => false
+      parse(source).children.head match
+        case MdNode.Paragraph(content, _) => content.exists(_.isInstanceOf[MdNode.Link])
+        case _                            => false
 
     // The address is what it says; `mailto:` is where it points.
     "takes an email address to a mailto destination (spec examples 604 and 605)" in {
@@ -694,12 +719,12 @@ class InlineTests extends Test[Any]:
 
   "a line ending" - {
 
-    def inlines(source: String): Chunk[Inline] =
-      parse(source).blocks.head match
-        case Block.Paragraph(content, _) => content
-        case other                       => throw new AssertionError(s"expected a paragraph, got $other")
+    def inlines(source: String): Chunk[MdNode.PhrasingContent] =
+      parse(source).children.head match
+        case MdNode.Paragraph(content, _) => content
+        case other                        => throw new AssertionError(s"expected a paragraph, got $other")
 
-    def breaks(source: String): Int = inlines(source).count(_.isInstanceOf[Inline.LineBreak])
+    def breaks(source: String): Int = inlines(source).count(_.isInstanceOf[MdNode.Break])
 
     "is hard when two or more spaces or a backslash precede it (spec examples 633 to 635)" in {
       assert(breaks("foo  \nbaz\n") == 1)
@@ -715,10 +740,10 @@ class InlineTests extends Test[Any]:
     }
     "survives inside emphasis (spec examples 638 and 639)" in {
       inlines("*foo  \nbar*\n").head match
-        case Inline.Emphasis(inner, _) => assert(inner.exists(_.isInstanceOf[Inline.LineBreak]))
+        case MdNode.Emphasis(inner, _) => assert(inner.exists(_.isInstanceOf[MdNode.Break]))
         case other                     => assert(false, s"expected emphasis, got $other")
       inlines("*foo\\\nbar*\n").head match
-        case Inline.Emphasis(inner, _) => assert(inner.exists(_.isInstanceOf[Inline.LineBreak]))
+        case MdNode.Emphasis(inner, _) => assert(inner.exists(_.isInstanceOf[MdNode.Break]))
         case other                     => assert(false, s"expected emphasis, got $other")
     }
     "takes the indentation off the line that follows it (spec examples 636 and 637)" in {
@@ -733,7 +758,7 @@ class InlineTests extends Test[Any]:
     }
     "reports the span the break occupies in the source" in {
       val source = "foo  \nbaz\n"
-      inlines(source).collectFirst { case Inline.LineBreak(span) => span } match
+      inlines(source).collectFirst { case MdNode.Break(MdMeta(Present(span), _)) => span } match
         case Some(span) => assert(source.substring(span.offset, span.end) == "  \n")
         case None       => assert(false, "expected a hard break")
     }
@@ -742,13 +767,13 @@ class InlineTests extends Test[Any]:
   "raw HTML" - {
 
     /** The inline nodes of a document that is one paragraph. */
-    def inlines(source: String): Chunk[Inline] =
-      parse(source).blocks.head match
-        case Block.Paragraph(content, _) => content
-        case other                       => throw new AssertionError(s"expected a paragraph, got $other")
+    def inlines(source: String): Chunk[MdNode.PhrasingContent] =
+      parse(source).children.head match
+        case MdNode.Paragraph(content, _) => content
+        case other                        => throw new AssertionError(s"expected a paragraph, got $other")
 
     def htmlIn(source: String): Chunk[String] =
-      inlines(source).collect { case Inline.RawHtml(value, _) => value }
+      inlines(source).collect { case MdNode.InlineHtml(value, _) => value }
 
     "takes open and closing tags whole (spec examples 613 and 623)" in {
       assert(htmlIn("<a><bab><c2c>\n") == Chunk("<a>", "<bab>", "<c2c>"))
@@ -786,24 +811,24 @@ class InlineTests extends Test[Any]:
     }
     "outranks emphasis, so a delimiter inside a tag is not one (spec example 476)" in {
       val content = inlines("**<a href=\"**\">\n")
-      assert(!content.exists(_.isInstanceOf[Inline.StrongEmphasis]), s"emphasis reached inside the tag: $content")
+      assert(!content.exists(_.isInstanceOf[MdNode.Strong]), s"emphasis reached inside the tag: $content")
       assert(htmlIn("**<a href=\"**\">\n") == Chunk("<a href=\"**\">"))
     }
     // A `]` inside an attribute is the attribute's. Before raw HTML was recognised, the label closed there and the
     // whole thing became a link.
     "outranks a link label, so a bracket inside a tag does not close one (spec example 524)" in {
       val content = inlines("[foo <bar attr=\"](baz)\">\n")
-      assert(!content.exists(_.isInstanceOf[Inline.Link]), s"a link was formed through the tag: $content")
+      assert(!content.exists(_.isInstanceOf[MdNode.Link]), s"a link was formed through the tag: $content")
     }
     "gives an autolink the same standing inside a label (spec example 526)" in {
       val content = inlines("[foo<https://example.com/?search=](uri)>\n")
-      val links   = content.collect { case Inline.Link(destination, _, _, _) => destination }
+      val links   = content.collect { case MdNode.Link(url, _, _, _) => url }
       assert(links.size == 1, s"expected only the autolink, got $links")
       assert(links.head.contains("search="), s"the autolink lost its URI: $links")
     }
     "reports the span the markup occupies in the source" in {
       val source = "text <br /> more\n"
-      inlines(source).collectFirst { case Inline.RawHtml(value, span) => (value, span) } match
+      inlines(source).collectFirst { case MdNode.InlineHtml(value, MdMeta(Present(span), _)) => (value, span) } match
         case Some((value, span)) =>
           assert(value == "<br />")
           assert(source.substring(span.offset, span.end) == "<br />")
@@ -838,8 +863,8 @@ class InlineTests extends Test[Any]:
 
   "fenced code" - {
     "keeps its body as literal text, never inline content" in {
-      parse("```\n*not emphasis*\n```").blocks.head match
-        case Block.FencedCode(_, content, _) => assert(content == "*not emphasis*\n")
-        case other                           => assert(false, s"expected fenced code, got $other")
+      parse("```\n*not emphasis*\n```").children.head match
+        case MdNode.Code(_, content, _) => assert(content == "*not emphasis*\n")
+        case other                      => assert(false, s"expected fenced code, got $other")
     }
   }

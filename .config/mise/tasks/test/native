@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # MISE description="Run Scala Native tests"
 
-set -e
+set -euo pipefail
 
 echo "Running Native tests..."
 
@@ -10,19 +10,62 @@ echo "Running Native tests..."
 # `morphir.__` — every other module is jvm/js only and would resolve to
 # nothing.
 #
-# `-j 4` for the same reason as test:js: `nativeLink` runs inside the single Mill
-# daemon JVM, and each concurrent link holds a full linker working set, so the
-# daemon heap is the constraint rather than the core count. `-j 0` on a many-core
-# developer machine runs one per core and exhausts it, surfacing as
-# `OutOfMemoryError` from the daemon partway through rather than as a test
-# failure. The cap alone was not enough at `-Xmx4g` — this job OOM'd on CI with
-# `-j 4` — so `.mill-jvm-opts` is at `-Xmx8g`. Treat `-j` and `-Xmx` as one
-# setting.
+# The links run in BATCHES, each its own `./mill` process, because the binding
+# constraint is heap *retention* rather than concurrency. `-i` is daemonless, so
+# one invocation linking every module holds one JVM for all of them, and the
+# linker state from each link is not fully released. On CI the fourteenth link
+# died with `OutOfMemoryError` from `scalanative.codegen.Lower`, and the run
+# before it degraded visibly: the same phases went from 5-10s to 57s (link),
+# 0.2s to 20s (check) and 9s to 1646s (optimize). That is a GC death spiral, not
+# a large module — the heaviest module in the run, at 18531 classes, linked
+# fine, and the one that died was mid-pack at 6090.
+#
+# Halving `-j` did NOT help, which is what proves the cause: at `-j 2` it died
+# the same way, only later. So concurrency stays at 4 and the batches, not the
+# job, bound how many links share a heap.
+#
+# The batch list is resolved from Mill rather than written here, so a new native
+# module joins automatically and cannot drift out of step with the build.
+#
+# CI runs this task rather than repeating the invocation in ci.yml. It used to
+# hold its own copy, synchronised by hand, and the two drifted apart — which is
+# how `-j 4` survived here while ci.yml ran `-j 2` and each file's comments
+# described the other's settings.
+#
+# This is a stopgap. The durable fix is to shard these across runners from a
+# Mill command, which also gives each shard a fresh JVM — see morphir-lc8.38.
+BATCH="${MORPHIR_NATIVE_BATCH:-5}"
+
+# Compile and publish in one pass: these are cheap next to `nativeLink`, and
+# sharing a JVM across them is not what exhausts the heap.
 ./mill -i -k -j 4 \
     "morphir.__.native.__.compile" \
     + \
-    "morphir.__.native.publishArtifacts" \
-    + \
-    "morphir.__.native.__.test"
+    "morphir.__.native.publishArtifacts"
+
+# Read with a `while` loop rather than `mapfile`: mise runs this under
+# `/usr/bin/env bash`, which is bash 3.2 on macOS, and `mapfile` is bash 4+.
+targets=()
+while IFS= read -r target; do
+  targets+=("$target")
+done < <(./mill --ticker false resolve "morphir.__.native.__.test" | grep '^morphir\.')
+
+if [ "${#targets[@]}" -eq 0 ]; then
+  echo "no native test targets resolved — refusing to report success" >&2
+  exit 1
+fi
+
+echo "Linking and running ${#targets[@]} native test module(s) in batches of $BATCH"
+
+for ((i = 0; i < ${#targets[@]}; i += BATCH)); do
+  batch=("${targets[@]:i:BATCH}")
+  args=()
+  for target in "${batch[@]}"; do
+    [ "${#args[@]}" -eq 0 ] || args+=("+")
+    args+=("$target")
+  done
+  echo "--- batch $((i / BATCH + 1)): ${batch[*]}"
+  ./mill -i -k -j 4 "${args[@]}"
+done
 
 echo "Native tests completed successfully"

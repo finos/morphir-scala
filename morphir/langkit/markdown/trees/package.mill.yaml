@@ -1,0 +1,33 @@
+extends: Module
+
+# QueryableTree and Unist instances for the Markdown CST and AST. Unpublished on purpose: langkit.trees carries
+# parsley and neotype, which must stay out of the published morphir-langkit-markdown artifact (morphir-lc8.2).
+
+object jvm:
+  extends: [build.MorphirJVMModule, build.MorphirKyoCoreMvnDeps]
+  moduleDeps: [build.morphir.langkit.markdown.jvm, build.morphir.langkit.trees.jvm]
+  mvnDeps: !append
+  - com.github.j-mie6::parsley:4.6.2
+  - io.github.kitlangton::neotype:0.4.10
+  object test:
+    extends: [ScalaTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps]
+
+object js:
+  extends: [build.MorphirJSModule, build.MorphirKyoCoreMvnDeps]
+  moduleDeps: [build.morphir.langkit.markdown.js, build.morphir.langkit.trees.js]
+  mvnDeps: !append
+  - com.github.j-mie6::parsley::4.6.2
+  - io.github.kitlangton::neotype::0.4.10
+  object test:
+    extends: [ScalaJSTests, build.MorphirJSTestNoSourceMap, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
+
+object native:
+  extends: [build.MorphirNativeModule, build.MorphirKyoCoreMvnDeps]
+  moduleDeps: [build.morphir.langkit.markdown.native, build.morphir.langkit.trees.native]
+  mvnDeps: !append
+  - com.github.j-mie6::parsley::4.6.2
+  - io.github.kitlangton::neotype::0.4.10
+  object test:
+    extends: [ScalaNativeTests, millbuild.KyoTestNative, build.MorphirKyoTestMvnDeps]
+    mvnDeps: !append
+    - org.scala-native::test-interface::0.5.12

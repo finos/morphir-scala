@@ -14,23 +14,21 @@ import morphir.langkit.markdown.*
  */
 private[markdown] object MarkdownFold:
 
-  def compile[Out](document: Document)(using compiler: Compiler[Out]): Out =
-    compiler.document(document.blocks.map(compileBlock))
+  def compile[Out](root: MdNode.Root)(using compiler: Compiler[Out]): Out =
+    compiler.root(root.children.map(compileFlow))
 
-  private def compileBlock[Out](block: Block)(using compiler: Compiler[Out]): Out =
-    block match
-      case Block.Heading(level, content, _)   => compiler.heading(level, content.map(compileInline))
-      case Block.Paragraph(content, _)        => compiler.paragraph(content.map(compileInline))
-      case Block.FencedCode(info, content, _) => compiler.fencedCode(info, content)
-      // Same output as an info-less fence: CommonMark renders both as pre > code.
-      case Block.IndentedCode(content, _)       => compiler.fencedCode(FenceInfo.empty, content)
-      case Block.UnorderedList(items, tight, _) =>
-        compiler.unorderedList(items.map(item => compiler.listItem(compileItem(item, tight))))
-      case Block.OrderedList(start, items, tight, _) =>
-        compiler.orderedList(start, items.map(item => compiler.listItem(compileItem(item, tight))))
-      case Block.HtmlBlock(content, _)  => compiler.htmlBlock(content)
-      case Block.BlockQuote(content, _) => compiler.blockQuote(content.map(compileBlock))
-      case Block.ThematicBreak(_)       => compiler.thematicBreak
+  private def compileFlow[Out](node: MdNode.FlowContent)(using compiler: Compiler[Out]): Out =
+    node match
+      case MdNode.Heading(depth, children, _) => compiler.heading(depth, children.map(compilePhrasing))
+      case MdNode.Paragraph(children, _)      => compiler.paragraph(children.map(compilePhrasing))
+      // One branch for both source forms: the fence-or-indent distinction is the CST's, and an indented block
+      // reaches here with an empty info string, which is what CommonMark renders an info-less fence as.
+      case MdNode.Code(info, value, _)                     => compiler.code(info, value)
+      case MdNode.Html(value, _)                           => compiler.html(value)
+      case MdNode.Blockquote(children, _)                  => compiler.blockquote(children.map(compileFlow))
+      case list @ MdNode.List(ordered, start, _, items, _) =>
+        compiler.list(ordered, start, items.map(item => compiler.listItem(compileItem(item, list.tight))))
+      case MdNode.ThematicBreak(_) => compiler.thematicBreak
 
   /**
    * One list item's children, with the newlines CommonMark writes around block-level siblings.
@@ -41,30 +39,29 @@ private[markdown] object MarkdownFold:
    * is why `- a` over `  - b` renders `<li>a` then the nested list on the next line, while a loose item's two
    * paragraphs each get a line of their own.
    */
-  private def compileItem[Out](item: ListItem, tight: Boolean)(using compiler: Compiler[Out]): Chunk[Out] =
-    val children         = List.newBuilder[Out]
+  private def compileItem[Out](item: MdNode.ListItem, tight: Boolean)(using compiler: Compiler[Out]): Chunk[Out] =
+    val out              = List.newBuilder[Out]
     var previousWasBlock = false
-    item.content.foreach {
-      case Block.Paragraph(content, _) if tight =>
-        children ++= content.map(compileInline)
+    item.children.foreach {
+      case MdNode.Paragraph(children, _) if tight =>
+        out ++= children.map(compilePhrasing)
         previousWasBlock = false
       case block =>
-        if !previousWasBlock then children += compiler.blockSeparator
-        children += compileBlock(block)
-        children += compiler.blockSeparator
+        if !previousWasBlock then out += compiler.blockSeparator
+        out += compileFlow(block)
+        out += compiler.blockSeparator
         previousWasBlock = true
     }
-    Chunk.from(children.result())
+    Chunk.from(out.result())
 
-  private def compileInline[Out](inline0: Inline)(using compiler: Compiler[Out]): Out =
-    inline0 match
-      case Inline.Text(value, _)                       => compiler.text(value)
-      case Inline.CodeSpan(value, _)                   => compiler.codeSpan(value)
-      case Inline.Link(destination, title, content, _) =>
-        compiler.link(destination, title, content.map(compileInline))
-      case Inline.Image(destination, title, alt, _) => compiler.image(destination, title, alt)
-      case Inline.Emphasis(content, _)              => compiler.emphasis(content.map(compileInline))
-      case Inline.StrongEmphasis(content, _)        => compiler.strongEmphasis(content.map(compileInline))
-      case Inline.RawHtml(value, _)                 => compiler.rawHtml(value)
-      case Inline.LineBreak(_)                      => compiler.lineBreak
+  private def compilePhrasing[Out](node: MdNode.PhrasingContent)(using compiler: Compiler[Out]): Out =
+    node match
+      case MdNode.Text(value, _)                => compiler.text(value)
+      case MdNode.InlineCode(value, _)          => compiler.inlineCode(value)
+      case MdNode.Link(url, title, children, _) => compiler.link(url, title, children.map(compilePhrasing))
+      case MdNode.Image(url, title, alt, _)     => compiler.image(url, title, alt)
+      case MdNode.Emphasis(children, _)         => compiler.emphasis(children.map(compilePhrasing))
+      case MdNode.Strong(children, _)           => compiler.strong(children.map(compilePhrasing))
+      case MdNode.InlineHtml(value, _)          => compiler.inlineHtml(value)
+      case MdNode.Break(_)                      => compiler.break
 end MarkdownFold

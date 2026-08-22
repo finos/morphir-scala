@@ -2,6 +2,7 @@ package morphir.langkit.markdown
 
 import kyo.*
 import kyo.test.*
+import morphir.langkit.markdown.internal.Parser
 
 /**
  * Measures the parse-and-compile path against a vendored conformance suite, profile by profile.
@@ -19,11 +20,32 @@ import kyo.test.*
  * kyo-ui. See
  * [[https://github.com/finos/morphir-scala/blob/main/kb/bundles/intent/0033-markdown-compilation.md intent 0033]].
  *
- * JVM-only because it reads files. The compiler it measures is cross-platform and tested on all three.
+ * Runs on JVM, JS and Native. The fixtures are read as ordinary files through [[kyo.Path]], whose JS backend is
+ * `node:fs` and whose Native backend is the javalib's `java.nio`; the directory holding them arrives from the build
+ * (see `MorphirMarkdownConformanceEnv`), because neither Mill's test sandbox nor Node's working directory is
+ * dependable. An earlier version read them through the classloader, which is what confined it to the JVM.
  */
 class ConformanceTests extends Test[Any]:
 
-  private val BaselineResource = "conformance-baselines.json"
+  private val BaselineFile = "conformance-baselines.json"
+
+  /**
+   * Absolute directory holding the vendored fixture files, supplied by the build.
+   *
+   * Resolved through [[kyo.Flag]] for the same reason [[reportFailuresIn]] is: it is the one env-and-property reader
+   * that works the same on all three platforms, reading Node's `process.env` under Scala.js rather than
+   * `System.getenv`, which always returns null there. The build sets `MORPHIR_CONFORMANCE_FIXTURES` on all three test
+   * modules; the property form is for anyone running this suite outside Mill.
+   */
+  private val fixturesDir: String =
+    val configured = Flag[String]("morphir.conformance.fixtures", "")
+    if configured.nonEmpty then configured
+    else
+      throw new IllegalStateException(
+        "morphir.conformance.fixtures is unset, so the harness cannot find its fixtures. Mill sets it from " +
+          "MorphirMarkdownConformanceEnv (JVM and Native) and MorphirMarkdownConformanceJsEnv (JS); outside Mill, " +
+          "pass the absolute path to morphir/langkit/markdown/scalatags/test/resources."
+      )
 
   /**
    * One profile's recorded conformance.
@@ -47,18 +69,27 @@ class ConformanceTests extends Test[Any]:
    */
   private final case class Example(markdown: String, html: String, example: Int, section: String) derives Schema
 
-  private def readResource(name: String): String =
-    val stream = Option(getClass.getClassLoader.getResourceAsStream(name))
-      .getOrElse(throw new IllegalStateException(s"missing test resource: $name"))
-    try scala.io.Source.fromInputStream(stream, "UTF-8").mkString
-    finally stream.close()
+  /**
+   * Reads one fixture file eagerly, outside the effect system.
+   *
+   * `Path#read` is `Sync & Abort[FileReadException]`, but the baselines are needed while the test tree is being built —
+   * `baselines.foreach` below declares one pair of tests per profile — and a test tree cannot be constructed inside a
+   * `Sync`. The unsafe view is the honest way to say that: this is a test harness reading a file it vendors itself, at
+   * class-initialization time, and a failure should abort the suite rather than be threaded anywhere.
+   */
+  private def readFixture(name: String): String =
+    import AllowUnsafe.embrace.danger
+    val file = (Path(fixturesDir) / name).unsafe
+    file.read() match
+      case Result.Success(text) => text
+      case other => throw new IllegalStateException(s"missing or unreadable fixture ${file.show}: $other")
 
-  private def decode[A](resource: String)(using Schema[A], reflect.ClassTag[A]): A =
-    Json.decode[A](readResource(resource)) match
+  private def decode[A](fixture: String)(using Schema[A], reflect.ClassTag[A]): A =
+    Json.decode[A](readFixture(fixture)) match
       case Result.Success(parsed) => parsed
-      case other                  => throw new IllegalStateException(s"could not read $resource: $other")
+      case other                  => throw new IllegalStateException(s"could not read $fixture: $other")
 
-  private lazy val baselines: Chunk[Baseline] = decode[Chunk[Baseline]](BaselineResource)
+  private lazy val baselines: Chunk[Baseline] = decode[Chunk[Baseline]](BaselineFile)
 
   private def examplesOf(baseline: Baseline): Chunk[Example] = decode[Chunk[Example]](baseline.fixtures)
 
@@ -102,25 +133,28 @@ class ConformanceTests extends Test[Any]:
   /** Newlines shown as `\n`, so one example stays on one line and a missing trailing newline is visible. */
   private def oneLine(text: String): String = text.replace("\n", "\\n")
 
-  private def reportFailure(example: Example): Unit =
-    println(s"  [${example.section}] example ${example.example}")
-    println(s"    source   ${oneLine(example.markdown)}")
-    Parser.parse(example.markdown) match
-      case Result.Success(document) => println(s"    produced ${oneLine(ScalatagsCompiler.render(document))}")
-      case other                    => println(s"    produced <parse failed: $other>")
-    println(s"    expected ${oneLine(example.html)}")
+  private def reportFailure(example: Example) =
+    val produced = Parser.parse(example.markdown) match
+      case Result.Success(document) => oneLine(ScalatagsCompiler.render(document))
+      case other                    => s"<parse failed: $other>"
+    Console.printLine(
+      s"  [${example.section}] example ${example.example}\n" +
+        s"    source   ${oneLine(example.markdown)}\n" +
+        s"    produced $produced\n" +
+        s"    expected ${oneLine(example.html)}"
+    )
 
   "conformance" - {
 
     "records at least one profile" in
-      assert(baselines.nonEmpty, s"$BaselineResource lists no profiles, so nothing is being measured")
+      assert(baselines.nonEmpty, s"$BaselineFile lists no profiles, so nothing is being measured")
 
     baselines.foreach { baseline =>
       s"${baseline.name} vendors the ${baseline.total} examples it claims, numbered with no gaps" in {
         val examples = examplesOf(baseline)
         assert(
           examples.size == baseline.total,
-          s"${baseline.fixtures} holds ${examples.size} examples and $BaselineResource claims ${baseline.total}. " +
+          s"${baseline.fixtures} holds ${examples.size} examples and $BaselineFile claims ${baseline.total}. " +
             "Vendoring a different version means updating the profile's version, total and passing count together."
         )
         // Guards the vendored file against truncation or reordering: our own unit tests cite examples by number, so a
@@ -139,30 +173,37 @@ class ConformanceTests extends Test[Any]:
           .toSeq
           .sortBy((section, passed, size) => (-passed, section))
 
-        println(
-          f"${baseline.name}: $passing/$total (${passing * 100.0 / total}%.1f%%), recorded ${baseline.passing}/${baseline.total}"
-        )
-        bySection.filter((_, passed, _) => passed > 0).foreach { (section, passed, size) =>
-          println(f"    $passed%3d/$size%-3d  $section")
-        }
         val untouched = bySection.count((_, passed, _) => passed == 0)
-        if untouched > 0 then println(s"    (and $untouched sections with nothing passing yet)")
+        val reported  = examples.filter(example => selectedForReport(example) && !conforms(example))
 
-        val reported = examples.filter(example => selectedForReport(example) && !conforms(example))
-        if reported.nonEmpty then
-          println(s"failing examples in the selected sections (${reported.size}):")
-          reported.foreach(reportFailure)
-
-        assert(
-          passing >= baseline.passing,
-          s"${baseline.name} conformance regressed: $passing passing, ${baseline.passing} recorded. " +
-            "Something stopped rendering the way the fixtures expect."
-        )
-        if passing > baseline.passing then
-          println(
-            s">>> ${baseline.name} rose to $passing/$total. " +
-              s"Raise its passing count in $BaselineResource from ${baseline.passing} to $passing."
+        for
+          _ <- Console.printLine(
+            f"${baseline.name}: $passing/$total (${passing * 100.0 / total}%.1f%%), recorded ${baseline.passing}/${baseline.total}"
           )
+          _ <- Kyo.foreachDiscard(bySection.filter((_, passed, _) => passed > 0)) { (section, passed, size) =>
+            Console.printLine(f"    $passed%3d/$size%-3d  $section")
+          }
+          _ <-
+            if untouched > 0 then Console.printLine(s"    (and $untouched sections with nothing passing yet)")
+            else Kyo.unit
+          _ <-
+            if reported.nonEmpty then
+              Console.printLine(s"failing examples in the selected sections (${reported.size}):")
+                .andThen(Kyo.foreachDiscard(reported)(reportFailure))
+            else Kyo.unit
+          _ = assert(
+            passing >= baseline.passing,
+            s"${baseline.name} conformance regressed: $passing passing, ${baseline.passing} recorded. " +
+              "Something stopped rendering the way the fixtures expect."
+          )
+          _ <-
+            if passing > baseline.passing then
+              Console.printLine(
+                s">>> ${baseline.name} rose to $passing/$total. " +
+                  s"Raise its passing count in $BaselineFile from ${baseline.passing} to $passing."
+              )
+            else Kyo.unit
+        yield ()
       }
     }
   }

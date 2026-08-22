@@ -1,17 +1,21 @@
 extends: Module
 
+# The conformance harness lives in the shared `test/src` tree and runs on all three platforms. It reads its
+# vendored fixtures as files through kyo.Path, so every test object needs the fixture directory passed in
+# (MorphirMarkdownConformance*Env) and the harness's own dependencies (MorphirMarkdownConformanceMvnDeps).
+
 object jvm:
   extends: [build.MorphirJVMModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps]
   moduleDeps: [build.morphir.langkit.markdown.jvm]
   mvnDeps: !append
   - com.lihaoyi::scalatags:0.13.1
   object test:
-    extends: [ScalaTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps]
-    # Reads the vendored CommonMark fixtures in the JVM-only conformance harness. Versionless: the
-    # kyo suite pin comes from MorphirSuiteBom through depManagement.
-    mvnDeps: !append
-    - io.getkyo::kyo-schema-json
-    - io.getkyo::kyo-config
+    extends:
+    - ScalaTests
+    - millbuild.KyoTest
+    - build.MorphirKyoTestMvnDeps
+    - build.MorphirMarkdownConformanceMvnDeps
+    - build.MorphirMarkdownConformanceEnv
 
 object js:
   extends: [build.MorphirJSModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps]
@@ -19,7 +23,17 @@ object js:
   mvnDeps: !append
   - com.lihaoyi::scalatags::0.13.1
   object test:
-    extends: [ScalaJSTests, build.MorphirJSTestNoSourceMap, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
+    # MorphirJSNodeModule is on the test object alone: kyo.Path's JS backend imports node:fs, which cannot link
+    # under Mill's default ModuleKind.NoModule, but only the harness needs it. Keeping the override off the
+    # enclosing module leaves the published artifact NoModule, so downstream bundling is unaffected.
+    extends:
+    - ScalaJSTests
+    - build.MorphirJSTestNoSourceMap
+    - build.MorphirJSNodeModule
+    - millbuild.KyoTestJS
+    - build.MorphirKyoTestMvnDeps
+    - build.MorphirMarkdownConformanceMvnDeps
+    - build.MorphirMarkdownConformanceJsEnv
 
 object native:
   extends: [build.MorphirNativeModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps]
@@ -27,6 +41,11 @@ object native:
   mvnDeps: !append
   - com.lihaoyi::scalatags::0.13.1
   object test:
-    extends: [ScalaNativeTests, millbuild.KyoTestNative, build.MorphirKyoTestMvnDeps]
+    extends:
+    - ScalaNativeTests
+    - millbuild.KyoTestNative
+    - build.MorphirKyoTestMvnDeps
+    - build.MorphirMarkdownConformanceMvnDeps
+    - build.MorphirMarkdownConformanceEnv
     mvnDeps: !append
     - org.scala-native::test-interface::0.5.12

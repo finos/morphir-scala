@@ -1,10 +1,10 @@
-package morphir.langkit.markdown
+package morphir.langkit.markdown.internal
 
 import kyo.*
 import scala.annotation.tailrec
 import morphir.langkit.core.Span
 import morphir.langkit.core.scanner.*
-import morphir.langkit.markdown.internal.{ContainerCursor, ContainerPrefix, HtmlTag, InlineParser, Line, LinkDefinition}
+import morphir.langkit.markdown.*
 
 /**
  * A CommonMark parser, complete against the 0.31.2 specification.
@@ -16,30 +16,138 @@ import morphir.langkit.markdown.internal.{ContainerCursor, ContainerPrefix, Html
  * GitHub Flavored Markdown is a separate profile and is not implemented here. Tables, strikethrough, task lists and
  * autolink literals are all extensions to CommonMark rather than parts of it.
  */
-object Parser:
+private[markdown] object Parser:
 
   private val BlocksPhase = ScanPhase("markdown.blocks")
 
-  def parse(source: String): Result[ParseError, Document] =
+  def parse(source: String)(using MdProfile): Result[MdParseError, MdNode.Root] =
     parse(source, ScanBudget.default)
 
-  def parse(source: String, budget: ScanBudget): Result[ParseError, Document] =
-    parseWithMetrics(source, budget).map(_._1)
+  /**
+   * The AST is produced only by lowering: one block-phase pass records the CST's fragments and fills its inline slots,
+   * the CST assembles from them, and [[morphir.langkit.markdown.Lower]] walks it down to the [[MdNode.Root]]. The CST
+   * is the parse; the AST is its meaning.
+   *
+   * The [[MdProfile]] in scope says what is recognized beyond CommonMark. Its given default recognizes nothing, so a
+   * call site that names no profile parses exactly the CommonMark it always did.
+   */
+  def parse(source: String, budget: ScanBudget)(using profile: MdProfile): Result[MdParseError, MdNode.Root] =
+    parseFragments(source, budget, profile).map(fragments =>
+      Lower.lower(CstParser.assembleDocument(source, fragments))
+    )
 
   private[markdown] def parseWithMetrics(
       source: String,
-      budget: ScanBudget
-  ): Result[ParseError, (Document, ScanMetrics)] =
+      budget: ScanBudget,
+      profile: MdProfile
+  ): Result[MdParseError, (MdNode.Root, ScanMetrics)] =
     SourceScanner.scan(source, budget, phase = Present(BlocksPhase)) { scanner =>
       scanner.chargeOutputNodes(NodeCount.one)
       val definitions = scala.collection.mutable.Map.empty[String, LinkDefinition]
-      val blocks      = parseBlocks(ContainerCursor.top(scanner), definitions)
+      val cursor      = ContainerCursor.top(scanner)
+      val front       = frontMatterOf(cursor, profile)
+      val blocks      = parseBlocks(cursor, definitions, Absent)
       // Keep the caller's coordinate space: do not rewrite CRLF before measuring spans.
-      val document = Document(blocks, Span(0, source.length))
+      val document =
+        MdNode.Root(blocks, front.map(frontMatterNode(source, _)), meta = MdMeta.at(Span(0, source.length)))
       (document, scanner.metrics)
     } match
       case ScanResult.Success(value) => Result.succeed(value)
-      case ScanResult.Failure(error) => Result.fail(ParseError.Scan(error))
+      case ScanResult.Failure(error) => Result.fail(MdParseError.Scan(error))
+
+  /**
+   * The block phase again, reporting what it read as [[CstFragment]]s rather than as a document.
+   *
+   * Same loop, same budget discipline; the collector rides along the way `definitions` does. Container readers open a
+   * child collector per container, so the fragments nest the way the blocks do. [[morphir.langkit.markdown.CstParser]]
+   * is the one caller.
+   */
+  private[markdown] def parseFragments(
+      source: String,
+      budget: ScanBudget,
+      profile: MdProfile
+  ): Result[MdParseError, Chunk[CstFragment]] =
+    SourceScanner.scan(source, budget, phase = Present(BlocksPhase)) { scanner =>
+      scanner.chargeOutputNodes(NodeCount.one)
+      val definitions = scala.collection.mutable.Map.empty[String, LinkDefinition]
+      val collector   = CstCollector()
+      val cursor      = ContainerCursor.top(scanner)
+      // Recorded before the block phase runs, so the fragment sits first in source order the way every other one does.
+      frontMatterOf(cursor, profile).foreach(front =>
+        collector.record(CstFragment.Frontmatter(front.span, front.openEnd, front.closeStart))
+      )
+      val _ = parseBlocks(cursor, definitions, Present(collector))
+      collector.fragments
+    } match
+      case ScanResult.Success(value) => Result.succeed(value)
+      case ScanResult.Failure(error) => Result.fail(MdParseError.Scan(error))
+
+  /**
+   * The geometry of a recognized frontmatter block: which kind claimed it, what it spans, and where its value sits.
+   *
+   * `openEnd` is the offset after the opening delimiter line's terminator and `closeStart` the offset of the closing
+   * line, so `[openEnd, closeStart)` is the raw value exactly as written — line endings and all.
+   */
+  private type FrontMatterSlice = (kind: FrontMatterKind, span: Span, openEnd: Int, closeStart: Int)
+
+  /**
+   * The frontmatter block at the head of the source, or [[kyo.Absent]] when there is none to recognize.
+   *
+   * Runs inside the scan, before the block phase, and reads through the same cursor the block phase will use, so the
+   * lines it consumes are charged once and the block phase carries on from wherever this left the scanner. Recognition
+   * is by exact match on the *raw* line — `Line.view.text`, not the tab-expanded `text`, and no trimming — because a
+   * delimiter is a spelling rather than a shape: ` ---` is not `---`, and neither is `----`.
+   *
+   * A block that never closes is not frontmatter (a document may legitimately open with a thematic break), so the EOF
+   * case rewinds to where it started and the block phase reads those lines itself. That case costs a second scan of
+   * what the search read, charged to the same budget: the rule cannot know a block is unclosed without reaching the
+   * end, and charging twice is the safe direction to be wrong in.
+   */
+  private def frontMatterOf(cursor: ContainerCursor, profile: MdProfile): Maybe[FrontMatterSlice] =
+    if !profile.supportsFrontMatter then Absent
+    else
+      val scanner = cursor.scanner
+      val start   = cursor.checkpoint()
+
+      @tailrec def seekClose(delimiter: String): Maybe[(closeStart: Int, end: Int)] =
+        cursor.readLine() match
+          case Absent        => Absent
+          case Present(line) =>
+            if line.view.text == delimiter then Present((closeStart = line.offset, end = scanner.offset.toInt))
+            else seekClose(delimiter)
+
+      val recognized: Maybe[FrontMatterSlice] =
+        cursor.readLine() match
+          case Absent         => Absent
+          case Present(first) =>
+            profile.frontmatter.find(_.delimiter == first.view.text) match
+              case None       => Absent
+              case Some(kind) =>
+                // Whatever terminated the opening line, the scanner stands after it: that is where the value opens.
+                val openEnd = scanner.offset.toInt
+                seekClose(kind.delimiter).map(close =>
+                  (
+                    kind = kind,
+                    span = Span.fromStartEnd(0, close.end),
+                    openEnd = openEnd,
+                    closeStart = close.closeStart
+                  )
+                )
+
+      if recognized.isEmpty then cursor.restore(start)
+      recognized
+
+  /**
+   * The AST node one recognized block lowers to, its raw value sliced straight out of the source.
+   *
+   * For [[parseWithMetrics]], which builds its root from the block loop rather than from the CST. It agrees with
+   * [[morphir.langkit.markdown.Lower]] by construction: the value region is `[openEnd, closeStart)` there too, held as
+   * the block's one text leaf.
+   */
+  private def frontMatterNode(source: String, slice: FrontMatterSlice): MdNode.FrontMatter =
+    val raw = source.substring(slice.openEnd, slice.closeStart)
+    slice.kind match
+      case FrontMatterKind.Yaml => MdNode.FrontMatter.Yaml(YamlDocText(raw), MdMeta.at(slice.span))
 
   /**
    * A block whose inline content has not been parsed yet.
@@ -47,11 +155,11 @@ object Parser:
    * Link reference definitions may appear after the text that uses them, so no prose can be parsed until the whole
    * document has been read. A block with no prose resolves to itself.
    */
-  private final case class Deferred(resolve: Map[String, LinkDefinition] => Block)
+  private final case class Deferred(resolve: Map[String, LinkDefinition] => MdNode.FlowContent)
 
   private object Deferred:
-    def ready(block: Block): Deferred                                = Deferred(_ => block)
-    def prose(build: Map[String, LinkDefinition] => Block): Deferred = Deferred(build)
+    def ready(block: MdNode.FlowContent): Deferred                                = Deferred(_ => block)
+    def prose(build: Map[String, LinkDefinition] => MdNode.FlowContent): Deferred = Deferred(build)
 
   /**
    * What a line starts, decided in one pass.
@@ -133,7 +241,7 @@ object Parser:
       case LineKind.Text | LineKind.IndentedCode => true
       // A list interrupts a paragraph only when it starts at 1 and its first item holds something: `1.` alone under a
       // paragraph is that paragraph's text, and so is `14.` whatever follows it (example 304).
-      case LineKind.OrderedItem(marker)        => marker.number != 1 || marker.empty
+      case LineKind.OrderedItem(marker)        => marker.number != ListStart.One || marker.empty
       case LineKind.BulletItem(marker)         => marker.empty
       case LineKind.Html(HtmlBlockKind.AnyTag) => true
       case _                                   => false
@@ -153,9 +261,10 @@ object Parser:
 
   private def parseBlocks(
       cursor: ContainerCursor,
-      definitions: scala.collection.mutable.Map[String, LinkDefinition]
-  ): Chunk[Block] =
-    val run = parseDeferred(cursor, definitions)
+      definitions: scala.collection.mutable.Map[String, LinkDefinition],
+      cst: Maybe[CstCollector]
+  ): Chunk[MdNode.FlowContent] =
+    val run = parseDeferred(cursor, definitions, cst)
     // Second phase: every definition in the document is known now, so prose can resolve references that point
     // forward as well as back.
     Chunk.from(run.blocks.map(_.resolve(definitions.toMap)))
@@ -192,12 +301,13 @@ object Parser:
   private final case class Opened(block: Maybe[Deferred], endedOnBlank: Boolean)
 
   private object Opened:
-    def leaf(block: Block): Opened        = Opened(Present(Deferred.ready(block)), endedOnBlank = false)
-    def deferred(block: Deferred): Opened = Opened(Present(block), endedOnBlank = false)
+    def leaf(block: MdNode.FlowContent): Opened = Opened(Present(Deferred.ready(block)), endedOnBlank = false)
+    def deferred(block: Deferred): Opened       = Opened(Present(block), endedOnBlank = false)
 
   private def parseDeferred(
       cursor: ContainerCursor,
-      definitions: scala.collection.mutable.Map[String, LinkDefinition]
+      definitions: scala.collection.mutable.Map[String, LinkDefinition],
+      cst: Maybe[CstCollector]
   ): BlockRun =
     val scanner       = cursor.scanner
     val blocks        = List.newBuilder[Deferred]
@@ -213,28 +323,36 @@ object Parser:
           if classified.kind == LineKind.Blank then blankSince = true
           else
             val opened = classified.kind match
-              case LineKind.IndentedCode => Opened.leaf(readIndentedCode(cursor, line))
+              case LineKind.IndentedCode => Opened.leaf(readIndentedCode(cursor, line, cst))
               case LineKind.BlockQuote   =>
                 // A quote's own cursor has to see the marker, so the line goes back before the recursion reads it.
                 cursor.restore(opening)
-                readBlockQuote(cursor, definitions)
+                readBlockQuote(cursor, definitions, cst)
               case LineKind.Heading(level, rest) =>
                 val headingSpan = Span(line.offset, line.length)
                 val base        = contentSpan(line, rest).offset
+                val slot        = InlineSlot()
+                val notes       = cst.map(_ => InlineNotes())
+                cst.foreach(_.record(CstFragment.AtxHeading(level, headingSpan, Span(base, rest.length), slot)))
                 Opened.deferred(Deferred.prose { defs =>
-                  Block.Heading(level, InlineParser.parse(rest, index => base + index, defs), headingSpan)
+                  val content = InlineParser.parse(rest, index => base + index, defs, notes)
+                  slot.fill(content, notes)
+                  MdNode.Heading(level, content, MdMeta.at(headingSpan))
                 })
-              case LineKind.Fence(open)      => Opened.leaf(readFencedCode(cursor, line, open))
-              case LineKind.ThematicBreak    => Opened.leaf(Block.ThematicBreak(Span(line.offset, line.length)))
-              case LineKind.Html(_)          => Opened.leaf(readHtmlBlock(cursor, line))
+              case LineKind.Fence(open)   => Opened.leaf(readFencedCode(cursor, line, open, cst))
+              case LineKind.ThematicBreak =>
+                val breakSpan = Span(line.offset, line.length)
+                cst.foreach(_.record(CstFragment.ThematicBreak(breakSpan)))
+                Opened.leaf(MdNode.ThematicBreak(MdMeta.at(breakSpan)))
+              case LineKind.Html(_)          => Opened.leaf(readHtmlBlock(cursor, line, cst))
               case LineKind.BulletItem(item) =>
                 cursor.restore(opening)
-                readUnorderedList(cursor, definitions, item, line.offset)
+                readUnorderedList(cursor, definitions, item, line.offset, cst)
               case LineKind.OrderedItem(marker) =>
                 cursor.restore(opening)
-                readOrderedList(cursor, definitions, marker, line.offset)
+                readOrderedList(cursor, definitions, marker, line.offset, cst)
               case LineKind.Text | LineKind.Blank =>
-                Opened(readParagraph(cursor, line, definitions), endedOnBlank = false)
+                Opened(readParagraph(cursor, line, definitions, cst), endedOnBlank = false)
             scanner.chargeOutputNodes(NodeCount.one)
             contentEnd = cursor.consumedEnd
             opened.block.foreach { deferred =>
@@ -263,18 +381,28 @@ object Parser:
    */
   private def readBlockQuote(
       cursor: ContainerCursor,
-      definitions: scala.collection.mutable.Map[String, LinkDefinition]
+      definitions: scala.collection.mutable.Map[String, LinkDefinition],
+      cst: Maybe[CstCollector]
   ): Opened =
     val scanner = cursor.scanner
     val start   = scanner.offset.toInt
-    val inner   = cursor.nested(ContainerPrefix.BlockQuote)
-    val run     = scanner.withNesting(parseDeferred(inner, definitions))
-    val span    = Span.fromStartEnd(start, cursor.consumedEnd)
+    // The quote's own collector: its run records child fragments into it, and its cursor records the `>` marker span
+    // of every line it reads. The quote fragment carries both, so nesting is recorded by construction.
+    val child = cst.map(_ => CstCollector())
+    val inner = cursor.nested(ContainerPrefix.BlockQuote, child)
+    val run   = scanner.withNesting(parseDeferred(inner, definitions, child))
+    val span  = Span.fromStartEnd(start, cursor.consumedEnd)
+    for
+      collector <- cst
+      recorded  <- child
+    do collector.record(CstFragment.BlockQuote(span, recorded.markers, recorded.fragments))
     // Not a container that can end on a blank line, unlike a list item: the quote's prefix needs a `>`, so the blank
     // lines it swallows are `>` with nothing after it. Those are blank *content*, not blank lines, and they do not
     // loosen the list holding the quote -- example 320 is `* a`, an indented quote ending in a bare `>`, then `* c`,
     // and it renders tight.
-    Opened.deferred(Deferred.prose(defs => Block.BlockQuote(Chunk.from(run.blocks.map(_.resolve(defs))), span)))
+    Opened.deferred(Deferred.prose(defs =>
+      MdNode.Blockquote(Chunk.from(run.blocks.map(_.resolve(defs))), MdMeta.at(span))
+    ))
 
   /** Whether a line carries a block quote marker: up to three spaces, then `>`. */
   private def isBlockQuoteStart(text: String): Boolean =
@@ -412,7 +540,7 @@ object Parser:
    * Conditions one to five run until their closing marker appears; six and seven run until a blank line. Either way the
    * lines are kept verbatim, because the content is HTML rather than Markdown.
    */
-  private def readHtmlBlock(cursor: ContainerCursor, first: Line): Block =
+  private def readHtmlBlock(cursor: ContainerCursor, first: Line, cst: Maybe[CstCollector]): MdNode.Html =
     val scanner = cursor.scanner
     val kind    = htmlBlockStart(scanner, first).getOrElse(HtmlBlockKind.AnyTag)
     val lines   = List.newBuilder[String]
@@ -439,7 +567,9 @@ object Parser:
     // double it. A code block differs because its closing tag ends the content.
     val content = lines.result().mkString("\n")
     scanner.chargeWork(WorkUnits.from(content.length.toLong).getOrThrow)
-    Block.HtmlBlock(content, Span.fromStartEnd(first.offset, last.end))
+    val span = Span.fromStartEnd(first.offset, last.end)
+    cst.foreach(_.record(CstFragment.HtmlBlock(span)))
+    MdNode.Html(content, MdMeta.at(span))
 
   private def endsOnBlankLine(kind: HtmlBlockKind): Boolean =
     kind == HtmlBlockKind.KnownTag || kind == HtmlBlockKind.AnyTag
@@ -465,7 +595,7 @@ object Parser:
    * Blank lines belong to the block when more indented content follows, which is what keeps the gaps in a multi-chunk
    * block; blank lines at the end do not, so the block stops at the last indented line.
    */
-  private def readIndentedCode(cursor: ContainerCursor, first: Line): Block =
+  private def readIndentedCode(cursor: ContainerCursor, first: Line, cst: Maybe[CstCollector]): MdNode.Code =
     val scanner = cursor.scanner
     val lines   = List.newBuilder[String]
     // Blank lines are held back rather than appended: they belong to the block only if indented content follows, so a
@@ -491,7 +621,11 @@ object Parser:
 
     val content = lines.result().mkString("", "\n", "\n")
     scanner.chargeWork(WorkUnits.from(content.length.toLong).getOrThrow)
-    Block.IndentedCode(content, Span.fromStartEnd(first.offset, last.end))
+    val span = Span.fromStartEnd(first.offset, last.end)
+    cst.foreach(_.record(CstFragment.IndentedCode(span)))
+    // An indented block has no info string, which is exactly what an info-less fence lowers to: CommonMark renders
+    // both as pre > code, and the fence-or-indent distinction stays in the CST.
+    MdNode.Code(FenceInfo.empty, content, MdMeta.at(span))
 
   /** Remove up to four leading spaces, which is the indentation the block form spends rather than content. */
   private def stripIndent(text: String): String =
@@ -501,7 +635,12 @@ object Parser:
 
   private type FenceOpen = (marker: Char, length: Int, indentation: Int, info: String)
 
-  private def readFencedCode(cursor: ContainerCursor, opening: Line, open: FenceOpen): Block =
+  private def readFencedCode(
+      cursor: ContainerCursor,
+      opening: Line,
+      open: FenceOpen,
+      cst: Maybe[CstCollector]
+  ): MdNode.Code =
     val scanner = cursor.scanner
     val body    = StringBuilder()
     // A fence is consumed whether or not it closes: an unterminated one runs to the end of its container, and whether
@@ -509,6 +648,8 @@ object Parser:
     // `written`, not `body.nonEmpty`: a fence whose first line is blank writes nothing and would otherwise look like
     // it had written nothing at all, so the next line would join it and the blank line would vanish.
     var written = 0
+    // Where the closing fence line starts, for the CST: the closing token leaf runs from here to the block's end.
+    var closeStart: Maybe[Int] = Absent
 
     @tailrec def gather(closingEnd: Int, closed: Boolean, endedWithLf: Boolean): (Int, Boolean, Boolean) =
       if closed then (closingEnd, closed, endedWithLf)
@@ -516,7 +657,9 @@ object Parser:
         cursor.readLine() match
           case Absent        => (closingEnd, closed, endedWithLf)
           case Present(line) =>
-            if isClosingFence(scanner, line, open.marker, open.length) then (line.end, true, endedWithLf)
+            if isClosingFence(scanner, line, open.marker, open.length) then
+              closeStart = Present(line.offset)
+              (line.end, true, endedWithLf)
             else
               if written > 0 then body.append('\n')
               body.append(removeFenceIndentation(scanner, line, open.indentation))
@@ -534,13 +677,22 @@ object Parser:
         if written > 0 && bodyEndedWithLf then body.append('\n')
         body.toString
 
+    val span = Span.fromStartEnd(opening.offset, end)
+    // The CST fragment of an unterminated fence cut short by its container ends at the consumed content: the scanner
+    // is rewound past a line the container never held, and a fragment spanning that line would overrun the
+    // container's own span and be clamped away whole. A fence that ran to the end of the input keeps its true end.
+    val cstEnd =
+      if closed || scanner.offset.toInt >= scanner.source.length then end
+      else cursor.consumedEnd
+    cst.foreach(_.record(CstFragment.FencedCode(Span.fromStartEnd(opening.offset, cstEnd), opening.end, closeStart)))
     // The budgeted FenceInfo path reserves deterministic work and output before token materialization.
-    Block.FencedCode(FenceInfo.parseBudgeted(open.info, scanner), content, Span.fromStartEnd(opening.offset, end))
+    MdNode.Code(FenceInfo.parseBudgeted(open.info, scanner), content, MdMeta.at(span))
 
   private def readParagraph(
       cursor: ContainerCursor,
       first: Line,
-      definitions: scala.collection.mutable.Map[String, LinkDefinition]
+      definitions: scala.collection.mutable.Map[String, LinkDefinition],
+      cst: Maybe[CstCollector]
   ): Maybe[Deferred] =
     val scanner  = cursor.scanner
     val segments = List.newBuilder[(Int, String)]
@@ -581,21 +733,43 @@ object Parser:
 
     // A paragraph may open with link reference definitions. They are not content: they are consumed here and only
     // what follows them, if anything, becomes a paragraph.
-    val consumed = takeDefinitions(trimmed, definitions)
-    val body     = trimmed.substring(consumed)
+    val (consumed = consumed, taken = taken) = takeDefinitions(trimmed, definitions)
+    // Each definition is its own CST node, recorded where it was consumed. Indices in the trimmed text map back to
+    // the source through the lines that built it, the same way inline spans do.
+    cst.foreach { collector =>
+      taken.foreach { case (start = defStart, end = defEnd) =>
+        collector.record(CstFragment.LinkReferenceDefinition(Span.fromStartEnd(
+          sourceOffsetOf(lines, defStart + leading),
+          sourceOffsetOf(lines, defEnd + leading)
+        )))
+      }
+    }
+    val body = trimmed.substring(consumed)
     if body.isBlank then
       // Definitions and nothing else. A setext underline has no paragraph to close here, so it goes back to be read
       // on its own: `[foo]: /url` over `===` is a definition and then a paragraph beginning `===`, not a heading.
       gathered.beforeUnderline.foreach(cursor.restore)
       Absent
     else
-      val bodyStart = leading + consumed
-      val span      = Span.fromStartEnd(first.offset, last.end)
+      // Where the prose itself begins in the joined text: past the consumed definitions and past any whitespace the
+      // body's own trim will strip, so the inline mapping and the CST fragment agree on the first content character.
+      val contentIndex = leading + consumed + (body.length - body.stripLeading.length)
+      val span         = Span.fromStartEnd(first.offset, last.end)
+      // The CST fragment starts at the body, not at the run: definitions consumed off the front are their own nodes,
+      // and a fragment overlapping them would lose the paragraph to a verbatim gap at materialization.
+      val cstStart = if consumed == 0 then span.offset else sourceOffsetOf(lines, contentIndex)
+      val cstSpan  = Span.fromStartEnd(cstStart, span.end)
+      val slot     = InlineSlot()
+      val notes    = cst.map(_ => InlineNotes())
+      cst.foreach(_.record(setext match
+        case Present(level) => CstFragment.SetextHeading(level, cstSpan, last.offset, slot)
+        case Absent         => CstFragment.Paragraph(cstSpan, slot)))
       Present(Deferred.prose { defs =>
-        val content = InlineParser.parse(body.trim, index => sourceOffsetOf(lines, index + bodyStart), defs)
+        val content = InlineParser.parse(body.trim, index => sourceOffsetOf(lines, index + contentIndex), defs, notes)
+        slot.fill(content, notes)
         setext match
-          case Present(level) => Block.Heading(level, content, span)
-          case Absent         => Block.Paragraph(content, span)
+          case Present(level) => MdNode.Heading(level, content, MdMeta.at(span))
+          case Absent         => MdNode.Paragraph(content, MdMeta.at(span))
       })
   end readParagraph
 
@@ -620,7 +794,8 @@ object Parser:
   private def takeDefinitions(
       text: String,
       definitions: scala.collection.mutable.Map[String, LinkDefinition]
-  ): Int =
+  ): (consumed: Int, taken: List[(start: Int, end: Int)]) =
+    val taken                             = List.newBuilder[(start: Int, end: Int)]
     @tailrec def take(consumed: Int): Int =
       linkDefinitionAt(text, consumed) match
         case Present(definition) =>
@@ -628,12 +803,14 @@ object Parser:
           // First definition wins, which is what the spec says about duplicates.
           if !definitions.contains(key) then
             definitions(key) = LinkDefinition(definition.destination, definition.title)
+          taken += ((start = definition.start, end = definition.end))
           take(definition.end)
         case Absent => consumed
-    take(0)
+    val consumed = take(0)
+    (consumed = consumed, taken = taken.result())
 
-  /** A link reference definition: its label, where it points, and where it ends. */
-  private type Definition = (end: Int, label: String, destination: String, title: Maybe[String])
+  /** A link reference definition: where it starts and ends, its label, and where it points. */
+  private type Definition = (start: Int, end: Int, label: String, destination: String, title: Maybe[String])
 
   /** One definition beginning at `from`, or [[kyo.Absent]] if the text does not start with one. */
   private def linkDefinitionAt(text: String, from: Int): Maybe[Definition] =
@@ -658,6 +835,7 @@ object Parser:
                 case Absent          => Absent
                 case Present(target) =>
                   Present((
+                    start = index,
                     end = target.end,
                     label = label,
                     destination = target.destination,
@@ -699,17 +877,20 @@ object Parser:
       cursor: ContainerCursor,
       definitions: scala.collection.mutable.Map[String, LinkDefinition],
       first: BulletMarker,
-      markerAt: Int
+      markerAt: Int,
+      cst: Maybe[CstCollector]
   ): Opened =
     val start = cursor.scanner.offset.toInt
     val items = List.newBuilder[DeferredItem]
+    // The list's own collector: each item records its fragment here, and the list fragment gathers them.
+    val listCst = cst.map(_ => CstCollector())
 
     @tailrec def gather(
         marker: BulletMarker,
         at: Int,
         loose: Boolean
     ): (loose: Boolean, end: Int, endedOnBlank: Boolean) =
-      val (item, run) = readItem(cursor, definitions, at, marker.columns, marker.empty)
+      val (item, run) = readItem(cursor, definitions, at, marker.columns, marker.empty, listCst)
       items += item
       val soFar  = loose || run.interiorBlank
       val resume = cursor.checkpoint()
@@ -726,8 +907,20 @@ object Parser:
     val loose     = gathered.loose
     val collected = Chunk.from(items.result())
     val listSpan  = Span.fromStartEnd(start, gathered.end)
+    for
+      collector <- cst
+      recorded  <- listCst
+    do collector.record(CstFragment.BulletList(first.bullet, tight = !loose, listSpan, recorded.fragments))
     Opened(
-      Present(Deferred.prose(defs => Block.UnorderedList(collected.map(_.resolve(defs)), !loose, listSpan))),
+      Present(Deferred.prose(defs =>
+        MdNode.List(
+          ordered = false,
+          start = Absent,
+          spread = loose,
+          collected.map(_.resolve(defs)),
+          MdMeta.at(listSpan)
+        )
+      )),
       gathered.endedOnBlank
     )
 
@@ -741,17 +934,20 @@ object Parser:
       cursor: ContainerCursor,
       definitions: scala.collection.mutable.Map[String, LinkDefinition],
       first: OrderedMarker,
-      markerAt: Int
+      markerAt: Int,
+      cst: Maybe[CstCollector]
   ): Opened =
     val start = cursor.scanner.offset.toInt
     val items = List.newBuilder[DeferredItem]
+    // The list's own collector: each item records its fragment here, and the list fragment gathers them.
+    val listCst = cst.map(_ => CstCollector())
 
     @tailrec def gather(
         marker: OrderedMarker,
         at: Int,
         loose: Boolean
     ): (loose: Boolean, end: Int, endedOnBlank: Boolean) =
-      val (item, run) = readItem(cursor, definitions, at, marker.columns, marker.empty)
+      val (item, run) = readItem(cursor, definitions, at, marker.columns, marker.empty, listCst)
       items += item
       val soFar  = loose || run.interiorBlank
       val resume = cursor.checkpoint()
@@ -768,9 +964,22 @@ object Parser:
     val loose     = gathered.loose
     val collected = Chunk.from(items.result())
     val listSpan  = Span.fromStartEnd(start, gathered.end)
+    for
+      collector <- cst
+      recorded  <- listCst
+    do
+      collector.record(
+        CstFragment.OrderedList(first.number, first.delimiter, tight = !loose, listSpan, recorded.fragments)
+      )
     Opened(
       Present(Deferred.prose(defs =>
-        Block.OrderedList(first.number, collected.map(_.resolve(defs)), !loose, listSpan)
+        MdNode.List(
+          ordered = true,
+          start = Present(first.number),
+          spread = loose,
+          collected.map(_.resolve(defs)),
+          MdMeta.at(listSpan)
+        )
       )),
       gathered.endedOnBlank
     )
@@ -810,20 +1019,29 @@ object Parser:
       definitions: scala.collection.mutable.Map[String, LinkDefinition],
       markerAt: Int,
       columns: Int,
-      startsEmpty: Boolean
+      startsEmpty: Boolean,
+      cst: Maybe[CstCollector]
   ): (DeferredItem, BlockRun) =
     val scanner = cursor.scanner
     val start   = scanner.offset.toInt
-    val inner   = cursor.nested(ContainerPrefix.ListItem(markerAt, columns))
+    // The item's own collector: child fragments and the marker spans its cursor spends — the marker line's prefix and
+    // each continuation line's indentation. The item fragment is recorded into the list's collector, `cst`.
+    val child = cst.map(_ => CstCollector())
+    val inner = cursor.nested(ContainerPrefix.ListItem(markerAt, columns), child)
 
     def item(run: BlockRun): (DeferredItem, BlockRun) =
       val span = Span.fromStartEnd(start, run.contentEnd)
-      (DeferredItem(defs => ListItem(Chunk.from(run.blocks.map(_.resolve(defs))), span)), run)
+      for
+        collector <- cst
+        recorded  <- child
+      do collector.record(CstFragment.ListItem(span, recorded.markers, recorded.fragments))
+      (DeferredItem(defs => MdNode.ListItem(Chunk.from(run.blocks.map(_.resolve(defs))), MdMeta.at(span))), run)
 
     // An item must consume at least the line that opened it. Guarding that here rather than trusting it: an item that
     // consumed nothing would leave the list gathering the same line for ever, and because nothing was read there is no
     // work charged for the scan budget to notice.
-    def read(): BlockRun = scanner.requireProgress(BlocksPhase)(scanner.withNesting(parseDeferred(inner, definitions)))
+    def read(): BlockRun =
+      scanner.requireProgress(BlocksPhase)(scanner.withNesting(parseDeferred(inner, definitions, child)))
 
     if !startsEmpty then item(read())
     else
@@ -837,7 +1055,7 @@ object Parser:
       if followed then item(read())
       else item(BlockRun(Nil, markerEnd, interiorBlank = false, trailingBlank = false))
 
-  private final case class DeferredItem(resolve: Map[String, LinkDefinition] => ListItem)
+  private final case class DeferredItem(resolve: Map[String, LinkDefinition] => MdNode.ListItem)
 
   /**
    * Where a block's extracted content sits in the source.
@@ -852,7 +1070,7 @@ object Parser:
     else Span(line.offset, line.length)
 
   private type BulletMarker  = (bullet: Char, columns: Int, empty: Boolean)
-  private type OrderedMarker = (number: Int, delimiter: Char, columns: Int, empty: Boolean)
+  private type OrderedMarker = (number: ListStart, delimiter: Char, columns: Int, empty: Boolean)
 
   /**
    * How many characters a marker of `width` at `indent` spends before its content begins.
@@ -881,7 +1099,11 @@ object Parser:
       else if trimmed.length > width && trimmed.charAt(width) != ' ' then Absent
       else
         val (columns = columns, empty = empty) = markerColumns(text, indent, width)
-        Present((number = digits.toInt, delimiter = delimiter, columns = columns, empty = empty))
+        // At most nine digits, so the number is inside [[ListStart]]'s bound by the guard above; the Absent arm is
+        // unreachable, and reads the run as no marker at all rather than inventing a start.
+        ListStart.fromInt(digits.toInt).map(number =>
+          (number = number, delimiter = delimiter, columns = columns, empty = empty)
+        )
 
   /** A bullet marker: `-`, `*` or `+`, then a space or the end of the line. */
   private def unorderedItem(text: String): Maybe[BulletMarker] =

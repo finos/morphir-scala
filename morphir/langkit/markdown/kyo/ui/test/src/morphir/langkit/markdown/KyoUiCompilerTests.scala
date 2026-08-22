@@ -14,18 +14,19 @@ import morphir.langkit.core.Span
  */
 class KyoUiCompilerTests extends Test[Any]:
 
-  private val span = Span.zero
+  private val meta = MdMeta.at(Span.zero)
 
-  private def prose(value: String): Chunk[Inline] = Chunk(Inline.Text(value, span))
+  private def prose(value: String): Chunk[MdNode.PhrasingContent] = Chunk(MdNode.Text(value, meta))
 
   /** A one-paragraph item, which is what a tight list's items are. */
-  private def item(value: String): ListItem = ListItem(Chunk(Block.Paragraph(prose(value), span)), span)
+  private def item(value: String): MdNode.ListItem =
+    MdNode.ListItem(Chunk(MdNode.Paragraph(prose(value), meta)), meta)
 
-  private def compile(blocks: Block*): UI =
-    KyoUiCompiler.compile(Document(Chunk.from(blocks), span))
+  private def compile(blocks: MdNode.FlowContent*): UI =
+    KyoUiCompiler.compile(MdNode.Root(Chunk.from(blocks), meta = meta))
 
   /** The first emission of a static render: kyo-ui only emits again when a signal changes. */
-  private def render(blocks: Block*): String < Async =
+  private def render(blocks: MdNode.FlowContent*): String < Async =
     UI.runRender(compile(blocks*)).take(1).run.map(_.head)
 
   private def children(ui: UI): Chunk[UI] = ui match
@@ -35,25 +36,27 @@ class KyoUiCompilerTests extends Test[Any]:
   "KyoUiCompiler node mapping" - {
 
     "compiles a heading to the kyo-ui element for its level" in {
-      assert(children(compile(Block.Heading(HeadingLevel.One, prose("Title"), span))).head.isInstanceOf[UI.Ast.H1])
-      assert(children(compile(Block.Heading(HeadingLevel.Two, prose("Title"), span))).head.isInstanceOf[UI.Ast.H2])
-      assert(children(compile(Block.Heading(HeadingLevel.Six, prose("Title"), span))).head.isInstanceOf[UI.Ast.H6])
+      assert(children(compile(MdNode.Heading(HeadingLevel.One, prose("Title"), meta))).head.isInstanceOf[UI.Ast.H1])
+      assert(children(compile(MdNode.Heading(HeadingLevel.Two, prose("Title"), meta))).head.isInstanceOf[UI.Ast.H2])
+      assert(children(compile(MdNode.Heading(HeadingLevel.Six, prose("Title"), meta))).head.isInstanceOf[UI.Ast.H6])
     }
 
     "compiles a paragraph to a P" in
-      assert(children(compile(Block.Paragraph(prose("Body"), span))).head.isInstanceOf[UI.Ast.P])
+      assert(children(compile(MdNode.Paragraph(prose("Body"), meta))).head.isInstanceOf[UI.Ast.P])
 
     "compiles a thematic break to an Hr" in
-      assert(children(compile(Block.ThematicBreak(span))).head.isInstanceOf[UI.Ast.Hr])
+      assert(children(compile(MdNode.ThematicBreak(meta))).head.isInstanceOf[UI.Ast.Hr])
 
     "compiles a fenced code block to a Pre wrapping a Code" in {
-      val pre = children(compile(Block.FencedCode(FenceInfo.empty, "x", span))).head
+      val pre = children(compile(MdNode.Code(FenceInfo.empty, "x", meta))).head
       assert(pre.isInstanceOf[UI.Ast.Pre])
       assert(pre.asInstanceOf[UI.Ast.Pre].children.flatMap(children).head.isInstanceOf[UI.Ast.Code])
     }
 
     "compiles a bullet list to a Ul holding one Li per item" in {
-      val list = children(compile(Block.UnorderedList(Chunk(item("one"), item("two")), tight = true, span))).head
+      val list = children(
+        compile(MdNode.List(ordered = false, Absent, spread = false, Chunk(item("one"), item("two")), meta))
+      ).head
       assert(list.isInstanceOf[UI.Ast.Ul])
       // Children arrive wrapped in a Fragment, which renders with no element of its own; flatten it away.
       val items = list.asInstanceOf[UI.Ast.Ul].children.flatMap(children)
@@ -64,9 +67,9 @@ class KyoUiCompilerTests extends Test[Any]:
     "keeps every top-level block, in order" in {
       val compiled = children(
         compile(
-          Block.Heading(HeadingLevel.One, prose("T"), span),
-          Block.Paragraph(prose("B"), span),
-          Block.ThematicBreak(span)
+          MdNode.Heading(HeadingLevel.One, prose("T"), meta),
+          MdNode.Paragraph(prose("B"), meta),
+          MdNode.ThematicBreak(meta)
         )
       )
       assert(compiled.size == 3)
@@ -79,21 +82,21 @@ class KyoUiCompilerTests extends Test[Any]:
   "KyoUiCompiler rendering" - {
 
     "emits the heading tag and its text" in
-      render(Block.Heading(HeadingLevel.Two, prose("Title"), span)).map { html =>
+      render(MdNode.Heading(HeadingLevel.Two, prose("Title"), meta)).map { html =>
         assert(html.startsWith("<h2"))
         assert(html.contains("Title"))
         assert(html.endsWith("</h2>"))
       }
 
     "escapes text rather than emitting it raw" in
-      render(Block.Paragraph(prose("a < b & c"), span)).map { html =>
+      render(MdNode.Paragraph(prose("a < b & c"), meta)).map { html =>
         assert(html.contains("&lt;"))
         assert(html.contains("&amp;"))
         assert(!html.contains("a < b"))
       }
 
     "puts the fence language in a class on the code element" in
-      render(Block.FencedCode(FenceInfo.parse("scala"), "x", span)).map { html =>
+      render(MdNode.Code(FenceInfo.parse("scala"), "x", meta)).map { html =>
         assert(html.contains("language-scala"))
         assert(html.contains("<pre"))
         assert(html.contains("<code"))

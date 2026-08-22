@@ -1,13 +1,13 @@
 package morphir.knowledge.okf
 
 import kyo.*
-import morphir.langkit.markdown.{Document, Parser}
+import morphir.langkit.markdown.{MD, MdNode, MdProfile}
 
 /** One markdown file inside an OKF bundle: frontmatter plus a parsed body. */
 final case class Concept(
     path: String,
     frontmatter: Frontmatter,
-    body: Document,
+    body: MdNode.Root,
     kind: DocKind = DocKind.Concept,
     hasFrontmatterBlock: Boolean = false
 ) derives CanEqual
@@ -15,44 +15,26 @@ final case class Concept(
 object Concept:
 
   /**
-   * Splits a leading `---` fenced YAML block off the front of a document. No fence yields `(Absent, wholeText)`. An
-   * unclosed fence is treated as no frontmatter.
+   * OKF documents carry a leading YAML fence, so the parse that reads them recognizes one.
+   *
+   * Where the fence ends is a syntax question, and the parser answers it: okf reads `Root.frontmatter` and decodes the
+   * raw value it finds there. Owning the split here duplicated a parsing concern and left every body span measured from
+   * a stripped string rather than from the file.
    */
-  def splitFrontmatter(text: String): (Maybe[String], String) =
-    val normalized = text.replace("\r\n", "\n")
-    if !normalized.startsWith("---\n") then (Absent, normalized)
-    else
-      val rest = normalized.drop(4)
-      closingFence(rest) match
-        case Present(i) => (Present(rest.take(i)), rest.drop(i).dropWhile(_ != '\n').drop(1))
-        case Absent     => (Absent, normalized)
+  private val profile: MdProfile = MdProfile.commonmark.withYamlFrontmatter
 
   def parse(path: String, source: String): Result[OkfError, Concept] =
-    val (rawFm, body) = splitFrontmatter(source)
-    val kind          = DocKind.of(path)
-    rawFm match
-      case Absent =>
-        markdown(body).map(doc => Concept(path, Frontmatter.empty, doc, kind, hasFrontmatterBlock = false))
-      case Present(yaml) =>
-        Frontmatter.parse(yaml).flatMap { fm =>
-          markdown(body).map(doc => Concept(path, fm, doc, kind, hasFrontmatterBlock = true))
-        }
+    markdown(source).flatMap { document =>
+      val kind = DocKind.of(path)
+      document.frontmatter match
+        case Absent =>
+          Result.succeed(Concept(path, Frontmatter.empty, document, kind, hasFrontmatterBlock = false))
+        case Present(MdNode.FrontMatter.Yaml(value, _)) =>
+          Frontmatter.parse(value.unwrap).map(fm => Concept(path, fm, document, kind, hasFrontmatterBlock = true))
+    }
 
-  private def markdown(source: String): Result[OkfError, Document] =
-    Parser.parse(source) match
+  private def markdown(source: String): Result[OkfError, MdNode.Root] =
+    MD.parser.parse(source)(using profile) match
       case Result.Success(doc) => Result.succeed(doc)
       case Result.Failure(err) => Result.fail(OkfError.Markdown(err))
       case Result.Panic(err)   => Result.Panic(err)
-
-  private def closingFence(s: String): Maybe[Int] =
-    var idx                = 0
-    var result: Maybe[Int] = Absent
-    var done               = false
-    while !done && result.isEmpty do
-      val lineEnd = s.indexOf('\n', idx) match
-        case -1 => s.length
-        case n  => n
-      if s.substring(idx, lineEnd).trim == "---" then result = Present(idx)
-      else if lineEnd >= s.length then done = true
-      else idx = lineEnd + 1
-    result

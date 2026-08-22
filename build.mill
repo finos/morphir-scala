@@ -675,6 +675,58 @@ trait MorphirConnectorGithubSnapshotJsEnv extends ScalaJSModule {
   }
 }
 
+/**
+ * Absolute directory holding the vendored Markdown conformance fixtures.
+ *
+ * The harness used to reach them through the classloader, which is what made it JVM-only: JS and Native have no
+ * classloader. They do have a filesystem, and `kyo.Path` reaches it on all three, so the fixtures are now read as
+ * ordinary files — which means the test needs an *absolute* path. Neither Mill's test sandbox nor Node's working
+ * directory is the module directory, and the test module's own `resources` renders relative to the sandbox
+ * (`../mill-workspace/…`), which `kyo.Path` cannot resolve.
+ *
+ * `toRealPath` rather than `toAbsolutePath`, and the difference matters. Mill runs tasks with their working
+ * directory inside `out/`, reaching the sources through a `mill-workspace` symlink; under `mill -i` that symlink
+ * lives in a per-run directory that is deleted when the run ends. `forkEnv` is a cached task, so an absolute path
+ * built over that symlink is recorded during one run and handed to the next, by which time it names a directory
+ * that no longer exists. Resolving the symlink stores the real location instead, which no run can invalidate.
+ */
+def markdownConformanceFixturesDir: String =
+  (workspaceDir / "morphir" / "langkit" / "markdown" / "scalatags" / "test" / "resources")
+    .toNIO.toRealPath().toString
+
+/**
+ * What the Markdown conformance harness needs beyond the parser: `kyo.Json` from kyo-schema-json to decode the
+ * fixtures, and `kyo.Flag` from kyo-config to read the directory the build hands it.
+ *
+ * Sourced from [[millbuild.Deps]] rather than named as versionless YAML coordinates. A `group::artifact` pair in
+ * YAML parses as non-platformed and silently resolves the JVM jar, which the JS and Native test modules cannot use
+ * — resolution fails outright there rather than producing anything runnable.
+ */
+trait MorphirMarkdownConformanceMvnDeps extends ScalaModule {
+  override def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.io.getkyo.`kyo-schema-json`,
+    Deps.io.getkyo.`kyo-config`
+  )
+}
+
+/** Passes the fixture directory to the JVM and Native conformance runs. */
+trait MorphirMarkdownConformanceEnv extends ScalaModule {
+  override def forkEnv: T[Map[String, String]] = Task {
+    super.forkEnv() ++ Map("MORPHIR_CONFORMANCE_FIXTURES" -> markdownConformanceFixturesDir)
+  }
+}
+
+/** Same directory into Node, which does not inherit [[TestModule.forkEnv]]. Mirrors the GitHub connector's pair. */
+trait MorphirMarkdownConformanceJsEnv extends ScalaJSModule {
+  import mill.scalajslib.api.JsEnvConfig
+  override def jsEnvConfig: T[JsEnvConfig] = Task {
+    val extra = Map("MORPHIR_CONFORMANCE_FIXTURES" -> markdownConformanceFixturesDir)
+    super.jsEnvConfig() match
+      case node: JsEnvConfig.NodeJs => node.copy(env = node.env ++ extra)
+      case other                    => other
+  }
+}
+
 /** `caliban-client` for typed GraphQL documents. ZIO-free at compile time. Codegen is a Mill script, not a module dep. */
 trait MorphirCalibanClientMvnDeps extends ScalaModule {
   override def mvnDeps = super.mvnDeps() ++ Seq(
@@ -895,12 +947,20 @@ object MyAliases extends Aliases {
   def deps          = alias("mill.scalalib.Dependency/showUpdates")
   def testall       = alias("__.test")
   def testJVM       = alias("morphir.__.jvm.__.test")
+  /** Every non-classic JVM target, named rather than globbed; `squire ci policy` checks it against what Mill resolves.
+    *
+    * A curated list, not `morphir.__.jvm.__`, because the classic runtime is gated separately behind its generated
+    * fixtures. The cost of curating is drift: a module the list forgets is a module CI silently never builds, which is
+    * how the CommonMark conformance suite in `langkit.markdown.scalatags` went unrun on a runner. `benchmarks` compiles
+    * only — it has no test or publish target — and `langkit.markdown.trees` compiles and tests but does not publish, so
+    * parsley and neotype stay out of the published artifacts.
+    */
   def testJVMPlatform = alias(
     "morphir.jvm.__.compile",
-    "morphir.{buildkit.core,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile",
+    "morphir.{appkit,benchmarks,buildkit.core,connector.github,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile",
     "morphir.jvm.publishArtifacts",
-    "morphir.{buildkit.core,contrib.knowledge,extensibility,interop.borer,interop.zio.json,lib.interop,model,model.lowering,naming,prelude,tests,tools}.jvm.publishArtifacts",
-    "morphir.{buildkit.core,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.trees,model,model.lowering,prelude,tests}.jvm.test",
+    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,extensibility,interop.borer,interop.zio.json,knowledge.okf,langkit.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,lib.interop,model,model.lowering,naming,prelude,tests,tools}.jvm.publishArtifacts",
+    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,model,model.lowering,prelude,tests}.jvm.test",
     "morphir.langkit.itest.testCached"
   )
   def testJVMCached = alias("morphir.__.jvm.__.testCached")

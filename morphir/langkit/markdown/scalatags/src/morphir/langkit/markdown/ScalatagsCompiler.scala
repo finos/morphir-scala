@@ -31,11 +31,11 @@ object ScalatagsCompiler:
      * CommonMark puts every block on its own line, and ScalaTags concatenates siblings with no separator, so the
      * newline between blocks is the compiler's job rather than the writer's.
      */
-    def document(children: Chunk[Frag]): Frag =
+    def root(children: Chunk[Frag]): Frag =
       frag(children.toSeq.flatMap(child => Seq(child, newline))*)
 
-    def heading(level: HeadingLevel, children: Chunk[Frag]): Frag =
-      tag(s"h${level.toInt}")(frag(children.toSeq*))
+    def heading(depth: HeadingLevel, children: Chunk[Frag]): Frag =
+      tag(s"h${depth.toInt}")(frag(children.toSeq*))
 
     def paragraph(children: Chunk[Frag]): Frag = p(frag(children.toSeq*))
 
@@ -43,62 +43,67 @@ object ScalatagsCompiler:
      * The info string's first bare token becomes `class="language-…"`, and a fence naming no language gets no class at
      * all.
      *
-     * `content` is emitted verbatim apart from escaping — no newline is appended. A closed, non-empty fence already
+     * `value` is emitted verbatim apart from escaping — no newline is appended. A closed, non-empty fence already
      * carries its trailing newline from the parser, and an empty one must not gain one: spec example 130 expects
      * `<pre><code></code></pre>`.
      */
-    def fencedCode(info: FenceInfo, content: String): Frag =
+    def code(info: FenceInfo, value: String): Frag =
       info.language match
-        case Present(language) => pre(code(cls := s"language-$language")(content))
-        case Absent            => pre(code(content))
+        case Present(language) => pre(_root_.scalatags.Text.all.code(cls := s"language-$language")(value))
+        case Absent            => pre(_root_.scalatags.Text.all.code(value))
 
-    def unorderedList(items: Chunk[Frag]): Frag =
-      ul(newline, frag(items.toSeq.flatMap(item => Seq(item, newline))*))
-
-    def orderedList(start: Int, items: Chunk[Frag]): Frag =
-      val body = frag(items.toSeq.flatMap(item => Seq(item, newline))*)
-      if start == 1 then ol(newline, body) else ol(attr("start") := start.toString)(newline, body)
+    /**
+     * Combines `list`'s already-compiled `listItem` children into `ul` when `!ordered`, or `ol` when `ordered`. HTML
+     * omits the `start` attribute when it is absent or `1`, exactly as the two former methods this merges did.
+     */
+    def list(ordered: Boolean, start: Maybe[ListStart], children: Chunk[Frag]): Frag =
+      val body = frag(children.toSeq.flatMap(item => Seq(item, newline))*)
+      if !ordered then ul(newline, body)
+      else
+        start match
+          case Present(value) if value != ListStart.One => ol(attr("start") := value.toInt.toString)(newline, body)
+          case _                                        => ol(newline, body)
 
     def listItem(children: Chunk[Frag]): Frag = li(frag(children.toSeq*))
 
     /** ScalaTags escapes a `String` frag on render, which is exactly the spec's rule, so nothing is done here. */
     def text(value: String): Frag = value
 
-    def codeSpan(value: String): Frag = code(value)
+    def inlineCode(value: String): Frag = _root_.scalatags.Text.all.code(value)
 
     def emphasis(children: Chunk[Frag]): Frag = em(frag(children.toSeq*))
 
-    def strongEmphasis(children: Chunk[Frag]): Frag = strong(frag(children.toSeq*))
+    def strong(children: Chunk[Frag]): Frag = _root_.scalatags.Text.all.strong(frag(children.toSeq*))
 
     /** Attribute order follows the fixtures: `href` then `title`, and no `title` attribute at all when absent. */
-    def link(destination: String, title: Maybe[String], children: Chunk[Frag]): Frag =
+    def link(url: String, title: Maybe[String], children: Chunk[Frag]): Frag =
       title match
-        case Present(value) => a(href := destination, scalatags.Text.all.title := value)(frag(children.toSeq*))
-        case Absent         => a(href := destination)(frag(children.toSeq*))
+        case Present(value) => a(href := url, scalatags.Text.all.title := value)(frag(children.toSeq*))
+        case Absent         => a(href := url)(frag(children.toSeq*))
 
-    def image(destination: String, title: Maybe[String], alt: String): Frag =
+    def image(url: String, title: Maybe[String], alt: String): Frag =
       title match
-        case Present(value) => img(src := destination, attr("alt") := alt, scalatags.Text.all.title := value)
-        case Absent         => img(src := destination, attr("alt") := alt)
+        case Present(value) => img(src := url, attr("alt") := alt, scalatags.Text.all.title := value)
+        case Absent         => img(src := url, attr("alt") := alt)
 
-    /** `raw` is correct here and in `rawHtml`, and nowhere else: the content is HTML the document wrote. */
-    def htmlBlock(content: String): Frag = raw(content)
+    /** `raw` is correct here and in `inlineHtml`, and nowhere else: the content is HTML the document wrote. */
+    def html(value: String): Frag = raw(value)
 
-    def rawHtml(value: String): Frag = raw(value)
+    def inlineHtml(value: String): Frag = raw(value)
 
     /**
      * ScalaTags spells the element `<br />`, which is what the fixtures expect, and the line ending after it is the
      * writer's to add for the same reason the separators between blocks are: the author's line ending was spent saying
      * that the break was wanted.
      */
-    def lineBreak: Frag = frag(br, newline)
+    def break: Frag = frag(br, newline)
 
     /**
      * Every child on its own line, and a newline after the opening tag even when there are none: the fixtures spell an
      * empty quote `<blockquote>\n</blockquote>`.
      */
-    def blockQuote(children: Chunk[Frag]): Frag =
-      blockquote(newline, frag(children.toSeq.flatMap(child => Seq(child, newline))*))
+    def blockquote(children: Chunk[Frag]): Frag =
+      _root_.scalatags.Text.all.blockquote(newline, frag(children.toSeq.flatMap(child => Seq(child, newline))*))
 
     def blockSeparator: Frag = newline
 
@@ -106,6 +111,6 @@ object ScalatagsCompiler:
   end instance
 
   /** Compile a document to the HTML the CommonMark fixtures expect. */
-  def render(document: Document): String =
-    Compiler.compile[Frag](document)(using instance).render
+  def render(root: MdNode.Root): String =
+    Compiler.compile[Frag](root)(using instance).render
 end ScalatagsCompiler

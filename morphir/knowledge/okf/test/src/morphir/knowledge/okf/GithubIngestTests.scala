@@ -18,13 +18,13 @@ class GithubIngestTests extends Test[Any]:
         case Result.Success(concept) =>
           assert(concept.path == "issues/7.md")
           assert(concept.frontmatter.title == Present("A finding"))
-          assert(concept.body.blocks.size == 1)
+          assert(concept.body.children.size == 1)
         case _ => assert(false)
     }
     "parses an absent body as an empty document" in {
       val issue = Issue(issueNumber(8), "Empty", Absent, "https://example.test/8")
       GithubIngest.conceptFromIssue(issue) match
-        case Result.Success(concept) => assert(concept.body.blocks.isEmpty)
+        case Result.Success(concept) => assert(concept.body.children.isEmpty)
         case _                       => assert(false)
     }
   }
