@@ -40,6 +40,7 @@ object ProjectGraphTests extends TestSuite {
 
     object unpublishedDependency extends MorphirElmModule {
       def morphirElmTool    = outer.tool
+      def elmFormatTool     = outer.tool
       override def moduleId = Task(moduleId"test.unpublished-source-dependency")
 
       override def morphirProjectConfigPath = outer.moduleDir / "unpublished-dependency" / "morphir.json"
@@ -49,6 +50,7 @@ object ProjectGraphTests extends TestSuite {
 
     object customSource extends MorphirElmModule {
       def morphirElmTool    = outer.tool
+      def elmFormatTool     = outer.tool
       override def moduleId = Task(moduleId"test.custom-source")
 
       override def morphirProjectConfigPath = outer.moduleDir / "custom-source" / "morphir.json"
@@ -58,6 +60,7 @@ object ProjectGraphTests extends TestSuite {
 
     object consumer extends MorphirElmModule {
       def morphirElmTool = outer.tool
+      def elmFormatTool  = outer.tool
 
       override def morphirModuleDeps = Seq(outer.unpublishedDependency)
     }

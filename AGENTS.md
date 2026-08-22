@@ -198,7 +198,6 @@ Use mise for task management:
 ```bash
 mise run setup          # Install developer dependencies; it does not install Morphir build tools
 mise run lint           # Check code formatting (`./mill --ticker false -i ci.lint`)
-mise run fmt            # Format code
 mise run test:jvm       # Run JVM tests (includes langkit.itest)
 mise run test:js        # Run JS tests (includes the wasm link variants)
 mise run test:native    # Run Scala Native tests
@@ -217,6 +216,7 @@ Or use Mill directly:
 ```bash
 ./mill morphir.jvm.compile
 ./mill --ticker false -i ci.lint
+./mill format --changed   # or --paths …; see CONTRIBUTING.md Formatting
 ./mill morphir.tests.jvm.test
 ./mill -i -k 'mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test'
 ./mill mill-plugins.morphir.integration.test
@@ -224,7 +224,6 @@ Or use Mill directly:
 ./mill morphir.runtime.classic.jvm.test.generatedRuntimeFixtures
 ./mill morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery
 ./mill morphir.runtime.classic.jvm.test
-./mill mill.scalalib.scalafmt.ScalafmtModule/reformatAll 'morphir.__.sources'
 ```
 
 ### Cross-Platform Sources
@@ -251,8 +250,9 @@ Two-platform directory names are sorted and shared by both targets. See
 
 ### Formatting
 
-- Uses **scalafmt** with the Scala 3 dialect; version and settings live in [`.scalafmt.conf`](./.scalafmt.conf)
-- Run `mise run fmt` before committing
+- Command table and flags: [CONTRIBUTING.md — Formatting](./CONTRIBUTING.md#formatting)
+- Prefer `./mill format --paths …` or `./mill format --changed` for agent edits; full `./mill format` when blast radius is unknown. CI gate is `ci.lint` (`mise run lint`).
+- Uses **scalafmt** (Scala / `.mill`) and **elm-format** (Elm); scalafmt settings live in [`.scalafmt.conf`](./.scalafmt.conf)
 
 ### Scala 3 Conventions
 

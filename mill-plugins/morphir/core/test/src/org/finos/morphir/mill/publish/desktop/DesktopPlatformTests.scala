@@ -64,7 +64,8 @@ object DesktopPlatformTests extends TestSuite {
     }
 
     test("parseTokens trims whitespace around tokens") {
-      assert(DesktopPlatform.parseTokens(" linux-amd64 , win-amd64 ") == Right(Seq(DesktopPlatform.LinuxAmd64, DesktopPlatform.WinAmd64)))
+      assert(DesktopPlatform.parseTokens(" linux-amd64 , win-amd64 ") ==
+        Right(Seq(DesktopPlatform.LinuxAmd64, DesktopPlatform.WinAmd64)))
     }
 
     test("parseTokens on AllTokens round-trips every platform in declaration order") {

@@ -1,0 +1,3 @@
+# Root format entrypoint for scalafmt (.scala / .mill) and elm-format (.elm).
+extends:
+  - MorphirFormatModule

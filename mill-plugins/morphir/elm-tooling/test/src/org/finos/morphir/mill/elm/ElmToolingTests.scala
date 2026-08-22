@@ -26,7 +26,7 @@ object ElmToolingTests extends TestSuite {
   private def success[A](result: Either[ExecResult.Failing[A], UnitTester.Result[A]]): A = successResult(result).value
 
   private def npmElmBinarySupported(osName: String, osArch: String): Boolean = {
-    val supportedOs = Seq("linux", "windows", "mac").exists(osName.toLowerCase(java.util.Locale.ROOT).startsWith)
+    val supportedOs    = Seq("linux", "windows", "mac").exists(osName.toLowerCase(java.util.Locale.ROOT).startsWith)
     val normalizedArch = osArch.toLowerCase(java.util.Locale.ROOT)
     supportedOs && (normalizedArch == "amd64" || normalizedArch == "x86_64")
   }
@@ -154,6 +154,19 @@ object ElmToolingTests extends TestSuite {
           assert(command.executable.path.last == "elm")
           assert(command.arguments == Seq("make", "src/Main.elm"))
           assert(!command.arguments.exists(Set("node", "npm", "npx", "bun", "mise")))
+        }
+      }
+    }
+
+    test("elmFormatCommand uses packageBinary elm-format") {
+      withTempDir { root =>
+        val module  = new CommandBuild(root / "workspace")
+        val sources = root / "sources"
+        os.makeDir.all(sources)
+        UnitTester(module, sources).scoped { evaluator =>
+          val cmd = success(evaluator(module.elm.elmFormatCommand(Seq("--yes", "src"))))
+          assert(cmd.executable.path.last == "elm-format")
+          assert(cmd.arguments == Seq("--yes", "src"))
         }
       }
     }

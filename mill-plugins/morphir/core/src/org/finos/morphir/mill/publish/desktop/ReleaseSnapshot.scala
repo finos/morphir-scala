@@ -9,9 +9,9 @@ import scala.util.Using
 /**
  * One file inside a canonicalized release directory, as data.
  *
- * `sha256` is recomputed from the bytes actually on disk — never copied from a sidecar or a prior manifest —
- * so a [[ReleaseCheck]] comparing it against a sidecar's recorded digest genuinely re-verifies the bytes,
- * rather than comparing a value against itself.
+ * `sha256` is recomputed from the bytes actually on disk — never copied from a sidecar or a prior manifest — so a
+ * [[ReleaseCheck]] comparing it against a sidecar's recorded digest genuinely re-verifies the bytes, rather than
+ * comparing a value against itself.
  */
 final case class ReleaseFile(
     name: String,
@@ -22,11 +22,11 @@ final case class ReleaseFile(
 )
 
 /**
- * A canonicalized desktop release directory, as data: the version being published, the platforms it is
- * expected to cover, and every file present.
+ * A canonicalized desktop release directory, as data: the version being published, the platforms it is expected to
+ * cover, and every file present.
  *
- * [[ReleaseCheck]]s only ever see a `ReleaseSnapshot` — never the filesystem — which is what keeps them pure
- * and cheap to unit test. [[ReleaseSnapshot.read]] is the one place that touches disk.
+ * [[ReleaseCheck]]s only ever see a `ReleaseSnapshot` — never the filesystem — which is what keeps them pure and cheap
+ * to unit test. [[ReleaseSnapshot.read]] is the one place that touches disk.
  */
 final case class ReleaseSnapshot(version: String, platforms: Seq[DesktopPlatform], files: Seq[ReleaseFile]) {
   def file(name: String): Option[ReleaseFile] = files.find(_.name == name)

@@ -51,10 +51,10 @@ object DesktopPlatform {
   val AllTokens: String = values.toSeq.map(_.token).mkString(",")
 
   /**
-   * Parses a comma-separated token list (e.g. `linux-amd64,win-amd64`) into the platforms it names, in the
-   * order given. Every token is trimmed before matching. An empty overall string, a blank token (a stray or
-   * doubled comma), or a token that names no platform is rejected, naming every valid token so the caller
-   * does not have to look them up elsewhere.
+   * Parses a comma-separated token list (e.g. `linux-amd64,win-amd64`) into the platforms it names, in the order given.
+   * Every token is trimmed before matching. An empty overall string, a blank token (a stray or doubled comma), or a
+   * token that names no platform is rejected, naming every valid token so the caller does not have to look them up
+   * elsewhere.
    */
   def parseTokens(csv: String): Either[String, Seq[DesktopPlatform]] = {
     val tokens = csv.split(",", -1).toSeq.map(_.trim)

@@ -4,8 +4,8 @@ package org.finos.morphir.mill.publish.desktop
  * The day-one pre-publish checks for a canonicalized desktop release directory.
  *
  * Each check is a pure `ReleaseSnapshot => Seq[String]` wrapped in a [[ReleaseCheck]]; [[all]] is the list
- * [[ReleaseVerifier]] runs. Adding a new check is one entry in [[all]] and one test — nothing about how
- * checks run needs to change.
+ * [[ReleaseVerifier]] runs. Adding a new check is one entry in [[all]] and one test — nothing about how checks run
+ * needs to change.
  */
 object DesktopReleaseChecks {
 
@@ -45,27 +45,27 @@ object DesktopReleaseChecks {
   }
 
   /**
-   * Every asset's `.sha256` sidecar exists, its digest matches the asset's freshly recomputed sha256, and the
-   * filename recorded inside it matches the asset's own name.
+   * Every asset's `.sha256` sidecar exists, its digest matches the asset's freshly recomputed sha256, and the filename
+   * recorded inside it matches the asset's own name.
    *
-   * This is the check that closes the job-boundary gap: digests are computed once during canonicalization on
-   * one runner, and the assets then cross to another (uploaded as workflow artifacts, downloaded again) before
-   * anything publishes them. Recomputing the digest here, from the bytes on disk after that crossing, is what
-   * catches corruption in transit — trusting a value carried alongside the file would not.
+   * This is the check that closes the job-boundary gap: digests are computed once during canonicalization on one
+   * runner, and the assets then cross to another (uploaded as workflow artifacts, downloaded again) before anything
+   * publishes them. Recomputing the digest here, from the bytes on disk after that crossing, is what catches corruption
+   * in transit — trusting a value carried alongside the file would not.
    */
   val sidecarDigestsMatch: ReleaseCheck = ReleaseCheck(
     "sidecar-digests-match",
     snapshot =>
       expectedAssetNames(snapshot).flatMap { name =>
         snapshot.file(name) match {
-          case None => Seq.empty // reported by expectedAssetsPresent
+          case None        => Seq.empty // reported by expectedAssetsPresent
           case Some(asset) =>
             val sidecarName = DesktopReleaseLayout.sidecarName(name)
             snapshot.file(sidecarName) match {
-              case None => Seq(s"$sidecarName: missing sidecar for $name")
+              case None          => Seq(s"$sidecarName: missing sidecar for $name")
               case Some(sidecar) =>
                 sidecar.text match {
-                  case None => Seq(s"$sidecarName: could not be read as text")
+                  case None       => Seq(s"$sidecarName: could not be read as text")
                   case Some(text) =>
                     val expected = DesktopReleaseLayout.sidecarContent(asset.sha256, name)
                     if (text == expected) Seq.empty
@@ -81,18 +81,20 @@ object DesktopReleaseChecks {
     "checksums-covers-assets",
     snapshot =>
       snapshot.file(DesktopReleaseLayout.ChecksumsFileName) match {
-        case None => Seq(s"${DesktopReleaseLayout.ChecksumsFileName}: missing")
+        case None            => Seq(s"${DesktopReleaseLayout.ChecksumsFileName}: missing")
         case Some(checksums) =>
           checksums.text match {
-            case None => Seq(s"${DesktopReleaseLayout.ChecksumsFileName}: could not be read as text")
+            case None       => Seq(s"${DesktopReleaseLayout.ChecksumsFileName}: could not be read as text")
             case Some(text) =>
               val expected    = expectedAssetNames(snapshot).toSet
               val listed      = text.linesIterator.flatMap(parseChecksumsLine).toSeq
               val listedNames = listed.map(_._1)
               val missing     = (expected -- listedNames.toSet).toSeq.sorted
               val extra       = (listedNames.toSet -- expected).toSeq.sorted
-              val duplicates =
-                listedNames.groupBy(identity).collect { case (name, occurrences) if occurrences.size > 1 => name }.toSeq.sorted
+              val duplicates  =
+                listedNames.groupBy(identity).collect {
+                  case (name, occurrences) if occurrences.size > 1 => name
+                }.toSeq.sorted
               missing.map(name => s"${DesktopReleaseLayout.ChecksumsFileName}: missing entry for $name") ++
                 extra.map(name => s"${DesktopReleaseLayout.ChecksumsFileName}: unexpected entry for $name") ++
                 duplicates.map(name => s"${DesktopReleaseLayout.ChecksumsFileName}: duplicate entry for $name")
@@ -103,19 +105,19 @@ object DesktopReleaseChecks {
   /**
    * `checksums.txt.asc` exists, is non-empty, and begins with the PGP signature header.
    *
-   * The signature is produced by a workflow step after `canonicalize` runs, not by `canonicalize` itself —
-   * see [[defaults]] for how a local run opts out of this one check.
+   * The signature is produced by a workflow step after `canonicalize` runs, not by `canonicalize` itself — see
+   * [[defaults]] for how a local run opts out of this one check.
    */
   val signaturePresent: ReleaseCheck = ReleaseCheck(
     "signature-present",
     snapshot =>
       snapshot.file(signatureAssetName) match {
-        case None => Seq(s"$signatureAssetName: missing")
+        case None       => Seq(s"$signatureAssetName: missing")
         case Some(file) =>
           if (file.size == 0L) Seq(s"$signatureAssetName: empty")
           else
             file.text match {
-              case None => Seq(s"$signatureAssetName: could not be read as text")
+              case None       => Seq(s"$signatureAssetName: could not be read as text")
               case Some(text) =>
                 if (text.startsWith(PgpSignatureHeader)) Seq.empty
                 else Seq(s"$signatureAssetName: does not begin with '$PgpSignatureHeader'")
@@ -135,9 +137,8 @@ object DesktopReleaseChecks {
   /**
    * Archive assets start with their format's magic number: `PK\x03\x04` for zip, `\x1f\x8b` for tar.gz.
    *
-   * Scoped to archive extensions only — installer formats (dmg, exe, AppImage, deb) vary and are not worth
-   * encoding here. This is the check that catches a truncated download or an HTML error page standing in for
-   * the real archive.
+   * Scoped to archive extensions only — installer formats (dmg, exe, AppImage, deb) vary and are not worth encoding
+   * here. This is the check that catches a truncated download or an HTML error page standing in for the real archive.
    */
   val archiveMagicNumbers: ReleaseCheck = ReleaseCheck(
     "archive-magic-numbers",
@@ -167,8 +168,8 @@ object DesktopReleaseChecks {
   /**
    * Every platform's archive and each of its declared installers are present under their canonical names.
    *
-   * Reads the expected set from [[DesktopPlatform]] rather than a second, hand-maintained list, so it cannot
-   * drift from what `canonicalize` actually produces.
+   * Reads the expected set from [[DesktopPlatform]] rather than a second, hand-maintained list, so it cannot drift from
+   * what `canonicalize` actually produces.
    */
   val expectedAssetsPresent: ReleaseCheck = ReleaseCheck(
     "expected-assets-present",
@@ -192,9 +193,9 @@ object DesktopReleaseChecks {
   /**
    * The checks to run for a given call site.
    *
-   * `requireSignature = false` drops [[signaturePresent]]: `canonicalize` never writes `checksums.txt.asc` —
-   * a later workflow step signs it — so a local `ci.desktop.all` run (canonicalize immediately followed by
-   * verify, with no signing step in between) has no signature to check yet.
+   * `requireSignature = false` drops [[signaturePresent]]: `canonicalize` never writes `checksums.txt.asc` — a later
+   * workflow step signs it — so a local `ci.desktop.all` run (canonicalize immediately followed by verify, with no
+   * signing step in between) has no signature to check yet.
    */
   def defaults(requireSignature: Boolean): Seq[ReleaseCheck] =
     if (requireSignature) all else all.filterNot(_.name == signaturePresent.name)

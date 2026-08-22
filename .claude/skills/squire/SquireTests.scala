@@ -306,6 +306,10 @@ object SquireCiPolicy:
       "ci.lint must run checkFormatAll so modules without ScalafmtModule stay covered"
     )
     expect(
+      script.contains("format.checkBuildAndElm"),
+      "ci.lint must check build .mill files and Elm sources via format.checkBuildAndElm"
+    )
+    expect(
       script.contains("exclusive = true"),
       "ci commands that use Evaluator must be exclusive"
     )
@@ -1624,10 +1628,16 @@ class SquireCiPolicySpec extends Test[Any]:
         "mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll",
         "morphir.__.checkFormat"
       )
+      val withoutBuildAndElm = replaceOnce(
+        sonatypePublishTask,
+        "format.checkBuildAndElm",
+        "format.checkAll"
+      )
       assert(rejects(assertLintJobPolicy, miseLint))
       assert(rejects(assertCiLintPolicy, withoutExclude))
       assert(rejects(assertCiLintPolicy, withoutSources))
       assert(rejects(assertCiLintPolicy, withoutCheckFormatAll))
+      assert(rejects(assertCiLintPolicy, withoutBuildAndElm))
       assert(true)
     }
 

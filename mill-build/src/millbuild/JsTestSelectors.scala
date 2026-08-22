@@ -1,25 +1,23 @@
 package millbuild
 
 /**
- * Pure partitioning of resolved JS/Wasm task selectors between the desktop/UI CI job and the
- * platform CI job, for `ci/MorphirCi.mill`'s `testJs` and `testJsWasmLink`.
+ * Pure partitioning of resolved JS/Wasm task selectors between the desktop/UI CI job and the platform CI job, for
+ * `ci/MorphirCi.mill`'s `testJs` and `testJsWasmLink`.
  *
- * The `test-js` job used to link every JS and Wasm module in one Mill daemon. `morphir.ui`,
- * `morphir.desktop` and `morphir.appkit.electron` together with the rest of the tree pushed the
- * Scala.js linker past an 8 GB heap and it died with `OutOfMemoryError` inside the source-map
- * printer (morphir-oyn). Splitting the desktop/UI link load into its own CI job spreads the two
- * peaks across two runners with two daemons.
+ * The `test-js` job used to link every JS and Wasm module in one Mill daemon. `morphir.ui`, `morphir.desktop` and
+ * `morphir.appkit.electron` together with the rest of the tree pushed the Scala.js linker past an 8 GB heap and it died
+ * with `OutOfMemoryError` inside the source-map printer (morphir-oyn). Splitting the desktop/UI link load into its own
+ * CI job spreads the two peaks across two runners with two daemons.
  *
- * Mill wildcards cannot subtract a subset, so `ci/MorphirCi.mill` resolves the full wildcard first,
- * the same way `ci.lint` does, and this object partitions the *resolved* selector strings by which
- * module they belong to — mirroring how [[LintSelectors]] filters `ci.lint`'s resolved module list.
+ * Mill wildcards cannot subtract a subset, so `ci/MorphirCi.mill` resolves the full wildcard first, the same way
+ * `ci.lint` does, and this object partitions the *resolved* selector strings by which module they belong to — mirroring
+ * how [[LintSelectors]] filters `ci.lint`'s resolved module list.
  *
- * `Seq.partition` makes the split exhaustive and disjoint by construction: every resolved selector
- * lands in exactly one of the two buckets, and the buckets' union is the input, unchanged. What
- * still needs checking is that [[desktopModuleRoots]] — a fixed list — actually matches something
- * real: a stale or misspelled root would silently starve the desktop job of every target, and an
- * empty test job that does nothing looks exactly like one that passed. `selectGroup` fails loudly
- * on an empty bucket rather than let that happen.
+ * `Seq.partition` makes the split exhaustive and disjoint by construction: every resolved selector lands in exactly one
+ * of the two buckets, and the buckets' union is the input, unchanged. What still needs checking is that
+ * [[desktopModuleRoots]] — a fixed list — actually matches something real: a stale or misspelled root would silently
+ * starve the desktop job of every target, and an empty test job that does nothing looks exactly like one that passed.
+ * `selectGroup` fails loudly on an empty bucket rather than let that happen.
  */
 object JsTestSelectors {
 
@@ -42,10 +40,9 @@ object JsTestSelectors {
   private def segments(path: String): Seq[String] = path.split('.').toIndexedSeq
 
   /**
-   * True when `resolved` names a task under one of [[desktopModuleRoots]] — a dotted-segment
-   * prefix match, not a plain substring one, so `morphir.appkit.js.compile` does not match the
-   * `morphir.appkit.electron` root and a hypothetical `morphir.uiThing` module would not match
-   * `morphir.ui`.
+   * True when `resolved` names a task under one of [[desktopModuleRoots]] — a dotted-segment prefix match, not a plain
+   * substring one, so `morphir.appkit.js.compile` does not match the `morphir.appkit.electron` root and a hypothetical
+   * `morphir.uiThing` module would not match `morphir.ui`.
    */
   def isDesktopTask(resolved: String): Boolean = {
     val resolvedSegments = segments(resolved)
@@ -62,13 +59,12 @@ object JsTestSelectors {
   }
 
   /**
-   * The selectors belonging to `group` (`"desktop"` or `"platform"`), or an error — an unknown
-   * group name, or a bucket that came back empty (which would otherwise let a CI job run zero
-   * targets and still report success).
+   * The selectors belonging to `group` (`"desktop"` or `"platform"`), or an error — an unknown group name, or a bucket
+   * that came back empty (which would otherwise let a CI job run zero targets and still report success).
    */
   def selectGroup(resolved: Seq[String], group: String, what: String): Either[String, Seq[String]] = {
     val split = partition(resolved)
-    val kept = group match {
+    val kept  = group match {
       case "desktop"  => Right(split.desktop)
       case "platform" => Right(split.platform)
       case other      => Left(s"$what: unknown group '$other' (expected 'platform' or 'desktop')")
