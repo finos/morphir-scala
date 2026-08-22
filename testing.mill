@@ -9,8 +9,8 @@ import mill.scalajslib.ScalaJSModule
  * Turns a CommonMark-family `spec.txt` into the `spec.json` fixture shape.
  *
  * CommonMark publishes `spec.json` beside its `spec.txt`; GitHub Flavored Markdown publishes only the text, so its
- * fixtures have to be derived. The extraction rules are cmark's own `makespec.py`: an example is the text between a
- * run of at least twenty backticks introducing `example` and the matching closing run, with a lone `.` separating the
+ * fixtures have to be derived. The extraction rules are cmark's own `makespec.py`: an example is the text between a run
+ * of at least twenty backticks introducing `example` and the matching closing run, with a lone `.` separating the
  * Markdown source from the expected HTML, and `→` standing for a tab throughout.
  */
 object SpecText {
@@ -34,8 +34,8 @@ object SpecText {
   /**
    * Everything one line's reading carries to the next.
    *
-   * A record rather than seven parameters. The reader is a state machine, and threading its state individually
-   * would bury the three transitions that matter under a parameter list nobody can follow.
+   * A record rather than seven parameters. The reader is a state machine, and threading its state individually would
+   * bury the three transitions that matter under a parameter list nobody can follow.
    */
   private case class State(
       phase: Phase = Phase.Outside,
@@ -112,26 +112,27 @@ object SpecText {
 /**
  * The directory the Markdown conformance harness reads, opted into by any module running the conformance suite.
  *
- * The vendored CommonMark fixture is copied through unchanged; the GFM one is derived here, because GitHub publishes
- * no JSON form. The converter proves itself first: run over CommonMark's own specification text it must reproduce the
+ * The vendored CommonMark fixture is copied through unchanged; the GFM one is derived here, because GitHub publishes no
+ * JSON form. The converter proves itself first: run over CommonMark's own specification text it must reproduce the
  * vendored CommonMark fixture entry for entry, so fixtures cannot be produced by a converter that has drifted.
  *
  * A bare top-level `def` cannot host a `Task {}` in a helper `*.mill` file like this one — only `build.mill` and
  * `package.mill` get the codegen that supplies a `Task {}` block's `ModuleCtx`. Nesting the task inside this trait
  * sidesteps that: the `ModuleCtx` comes from whichever concrete module mixes the trait in, which always happens in
- * `build.mill`/`package.mill` YAML. The accepted cost is that the converter runs once per module that mixes this
- * in rather than once per repository; it is a pure transform over a few hundred kilobytes of text, and Mill caches
- * each module's result independently.
+ * `build.mill`/`package.mill` YAML. The accepted cost is that the converter runs once per module that mixes this in
+ * rather than once per repository; it is a pure transform over a few hundred kilobytes of text, and Mill caches each
+ * module's result independently.
  */
 trait MorphirMarkdownConformanceFixtures extends ScalaModule {
-  private def specsDir = mill.api.BuildCtx.workspaceRoot / "morphir" / "langkit" / "markdown" / "scalatags" / "test" / "specs"
+  private def specsDir = mill.api.BuildCtx.workspaceRoot / "morphir" / "langkit" / "markdown" / "scalatags" / "test" /
+    "specs"
 
   // `Task {}` bodies may only read files declared as a `Task.Source`/`Task.Sources` input; an `os.read` on a bare
   // path fails at execution time otherwise. Declaring each vendored file this way is also what lets Mill invalidate
   // `markdownConformanceFixtures` when the vendored text or the published CommonMark fixture is re-vendored.
-  def commonmarkSpecTextSource: T[PathRef] = Task.Source(specsDir / "commonmark-0.31.2-spec.txt")
-  def commonmarkSpecJsonSource: T[PathRef] = Task.Source(specsDir / "commonmark-0.31.2-spec.json")
-  def gfmSpecTextSource: T[PathRef]        = Task.Source(specsDir / "gfm-0.29-spec.txt")
+  def commonmarkSpecTextSource: T[PathRef]   = Task.Source(specsDir / "commonmark-0.31.2-spec.txt")
+  def commonmarkSpecJsonSource: T[PathRef]   = Task.Source(specsDir / "commonmark-0.31.2-spec.json")
+  def gfmSpecTextSource: T[PathRef]          = Task.Source(specsDir / "gfm-0.29-spec.txt")
   def conformanceBaselinesSource: T[PathRef] = Task.Source(specsDir / "conformance-baselines.json")
 
   def markdownConformanceFixtures: T[PathRef] = Task {

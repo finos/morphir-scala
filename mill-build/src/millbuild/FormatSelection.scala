@@ -16,9 +16,23 @@ object FormatSelection {
       ignored: Seq[os.RelPath]
   )
 
-  /** Roots under the workspace that contribute `*.mill` build files to the full scala sweep. */
-  val buildMillRoots: Seq[os.RelPath] =
-    Seq(os.RelPath("ci"), os.RelPath("mill-plugins"), os.RelPath("mill-build"))
+  /**
+   * Directory names skipped when walking the workspace for `*.mill` build files. Generated caches, VCS, and tool
+   * scratch trees never contribute tracked format targets.
+   */
+  val buildMillSkipDirNames: Set[String] = Set(
+    "out",
+    ".git",
+    "node_modules",
+    "elm-stuff",
+    ".bloop",
+    ".metals",
+    ".idea",
+    "target",
+    ".dev",
+    ".ref",
+    "ref"
+  )
 
   def scalaExtensions(kind: FormatKind): Boolean =
     kind match {
@@ -54,12 +68,17 @@ object FormatSelection {
   }
 
   /**
-   * Keep paths whose extensions belong to `kind`. Non-format paths (e.g. `.md`) are dropped for every kind — including
-   * [[FormatKind.All]].
+   * Keep paths whose extensions belong to `kind`, plus extensionless paths (directory arguments / bare names).
+   *
+   * Callers must expand directories after this filter and before [[routeByExtension]]; otherwise a directory such as
+   * `examples/.../src` would be dropped here and never reach `expandScalaFiles` / `expandElmFiles`. Non-format files
+   * (e.g. `.md`) are dropped for every kind — including [[FormatKind.All]].
    */
   def filterChanged(paths: Seq[os.RelPath], kind: FormatKind): Seq[os.RelPath] =
     paths.filter { path =>
-      (isScalaPath(path) && scalaExtensions(kind)) || (isElmPath(path) && elmExtensions(kind))
+      if path.ext.isEmpty then true
+      else
+        (isScalaPath(path) && scalaExtensions(kind)) || (isElmPath(path) && elmExtensions(kind))
     }
 
   /**
@@ -78,24 +97,20 @@ object FormatSelection {
       .distinct
 
   /**
-   * Discover `*.mill` build files for the full scala format / lint surface: root `build.mill` plus every `*.mill` under
-   * [[buildMillRoots]] (`ci/`, `mill-plugins/`, `mill-build/`).
+   * Discover every `*.mill` build file under the workspace for the full scala format / lint surface, skipping
+   * generated and tool-cache directories listed in [[buildMillSkipDirNames]] (and other hidden directories).
    */
   def discoverBuildMillFiles(workspace: os.Path): Seq[os.RelPath] = {
-    val rootBuild = workspace / "build.mill"
-    val fromRoot  =
-      if os.isFile(rootBuild) then Seq(os.RelPath("build.mill")) else Seq.empty
-
-    val fromRoots = buildMillRoots.flatMap { root =>
-      val abs = workspace / root
-      if !os.isDir(abs) then Seq.empty
-      else
-        os.walk(abs)
-          .filter(p => os.isFile(p) && p.ext == "mill")
-          .map(_.relativeTo(workspace))
-    }
-
-    (fromRoot ++ fromRoots).distinct.sorted
+    if !os.isDir(workspace) then Seq.empty
+    else
+      os.walk(
+        workspace,
+        skip = p =>
+          os.isDir(p) && (buildMillSkipDirNames.contains(p.last) || p.last.startsWith("."))
+      ).filter(p => os.isFile(p) && p.ext == "mill")
+        .map(_.relativeTo(workspace))
+        .distinct
+        .sorted
   }
 
   private def parsePorcelainLine(line: String): Option[os.RelPath] = {

@@ -45,12 +45,11 @@ trait DesktopDistModule extends Cross.Module[String] with JavaModule with Morphi
   }
 
   /**
-   * Digest of every file currently staged in the release directory, keyed by file name; empty when
-   * the directory does not exist. A `Task.Input` reading `Task.env` and the filesystem directly (no
-   * other task calls, since `Task.Input` forbids `Task#apply()`), so it re-evaluates on every run.
-   * [[archive]] depends on this rather than checking the filesystem itself, so a re-canonicalized
-   * archive — same name, different bytes — is honestly reported as changed instead of being served
-   * from a stale cached `PathRef`.
+   * Digest of every file currently staged in the release directory, keyed by file name; empty when the directory does
+   * not exist. A `Task.Input` reading `Task.env` and the filesystem directly (no other task calls, since `Task.Input`
+   * forbids `Task#apply()`), so it re-evaluates on every run. [[archive]] depends on this rather than checking the
+   * filesystem itself, so a re-canonicalized archive — same name, different bytes — is honestly reported as changed
+   * instead of being served from a stale cached `PathRef`.
    */
   def releaseDirDigest = Task.Input {
     val dir = resolveReleaseDir(Task.env)

@@ -244,12 +244,16 @@ trait MorphirRootFormatModule extends Module, DefaultTaskModule {
         FormatSelection.gitStatusPaths(porcelain)
       }
     val selected = FormatSelection.filterChanged((fromArgs ++ fromGit).distinct, kind)
-    val routed   = FormatSelection.routeByExtension(selected)
+    // Directories survive filterChanged (empty extension) and must expand before routeByExtension.
+    val (dirRels, fileRels) = selected.partition(rel => os.isDir(workspace / rel))
+    val routed              = FormatSelection.routeByExtension(fileRels)
     if routed.ignored.nonEmpty then
       Task.log.info(s"format: ignoring ${routed.ignored.size} non-format path(s)")
+    val scalaDirs = if FormatSelection.scalaExtensions(kind) then dirRels else Seq.empty
+    val elmDirs   = if FormatSelection.elmExtensions(kind) then dirRels else Seq.empty
     (
-      expandScalaFiles(workspace, routed.scalaPaths),
-      expandElmFiles(workspace, routed.elmPaths)
+      expandScalaFiles(workspace, routed.scalaPaths ++ scalaDirs),
+      expandElmFiles(workspace, routed.elmPaths ++ elmDirs)
     )
   }
 

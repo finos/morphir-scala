@@ -42,19 +42,20 @@ object FormatSelectionTests extends TestSuite {
         os.RelPath("a.scala"),
         os.RelPath("b.mill"),
         os.RelPath("c.elm"),
-        os.RelPath("d.md")
+        os.RelPath("d.md"),
+        os.RelPath("examples") / "src"
       )
       assert(
         FormatSelection.filterChanged(paths, FormatKind.All).map(_.toString) ==
-          Seq("a.scala", "b.mill", "c.elm")
+          Seq("a.scala", "b.mill", "c.elm", "examples/src")
       )
       assert(
         FormatSelection.filterChanged(paths, FormatKind.Scala).map(_.toString) ==
-          Seq("a.scala", "b.mill")
+          Seq("a.scala", "b.mill", "examples/src")
       )
       assert(
         FormatSelection.filterChanged(paths, FormatKind.Elm).map(_.toString) ==
-          Seq("c.elm")
+          Seq("c.elm", "examples/src")
       )
     }
 
@@ -84,10 +85,11 @@ object FormatSelectionTests extends TestSuite {
       assert(!paths.contains("ignored.scala"))
     }
 
-    test("build mill discovery includes build.mill, ci/, mill-plugins/, mill-build/") {
+    test("build mill discovery walks the workspace and skips generated roots") {
       val workspace = os.temp.dir(prefix = "format-selection-mills-")
       try
         os.write(workspace / "build.mill", "// root\n", createFolders = true)
+        os.write(workspace / "testing.mill", "// testing\n", createFolders = true)
         os.write(workspace / "ci" / "MorphirCi.mill", "// ci\n", createFolders = true)
         os.write(
           workspace / "mill-plugins" / "morphir" / "package.mill",
@@ -95,15 +97,32 @@ object FormatSelectionTests extends TestSuite {
           createFolders = true
         )
         os.write(workspace / "mill-build" / "build.mill", "// metabuild\n", createFolders = true)
-        os.write(workspace / "other" / "skip.mill", "// skip\n", createFolders = true)
+        os.write(workspace / "format" / "MorphirFormat.mill", "// format\n", createFolders = true)
+        os.write(
+          workspace / "millbuildHelpers" / "package.mill",
+          "// helpers\n",
+          createFolders = true
+        )
+        os.write(
+          workspace / "morphir" / "desktop" / "dist" / "package.mill",
+          "// desktop\n",
+          createFolders = true
+        )
+        os.write(workspace / "out" / "generated.mill", "// out\n", createFolders = true)
+        os.write(workspace / ".git" / "hooks.mill", "// git\n", createFolders = true)
         os.write(workspace / "README.md", "docs\n", createFolders = true)
 
         val mills = FormatSelection.discoverBuildMillFiles(workspace).map(_.toString).toSet
         assert(mills.contains("build.mill"))
+        assert(mills.contains("testing.mill"))
+        assert(mills.contains("format/MorphirFormat.mill"))
+        assert(mills.contains("millbuildHelpers/package.mill"))
+        assert(mills.contains("morphir/desktop/dist/package.mill"))
         assert(mills.exists(_.startsWith("ci/")))
         assert(mills.exists(_.startsWith("mill-plugins/")))
         assert(mills.exists(_.startsWith("mill-build/")))
-        assert(!mills.contains("other/skip.mill"))
+        assert(!mills.contains("out/generated.mill"))
+        assert(!mills.contains(".git/hooks.mill"))
       finally os.remove.all(workspace)
     }
   }
