@@ -1,14 +1,14 @@
-package morphir.langkit.markdown
+package morphir.langkit.markdown.internal
 
 import kyo.*
 import scala.annotation.tailrec
 import morphir.langkit.core.Span
+import morphir.langkit.core.scanner.*
+import morphir.langkit.markdown.*
 import morphir.langkit.markdown.cst.CstCollector
 import morphir.langkit.markdown.cst.CstFragment
 import morphir.langkit.markdown.cst.InlineNotes
 import morphir.langkit.markdown.cst.InlineSlot
-import morphir.langkit.core.scanner.*
-import morphir.langkit.markdown.internal.{ContainerCursor, ContainerPrefix, HtmlTag, InlineParser, Line, LinkDefinition}
 
 /**
  * A CommonMark parser, complete against the 0.31.2 specification.
@@ -20,11 +20,11 @@ import morphir.langkit.markdown.internal.{ContainerCursor, ContainerPrefix, Html
  * GitHub Flavored Markdown is a separate profile and is not implemented here. Tables, strikethrough, task lists and
  * autolink literals are all extensions to CommonMark rather than parts of it.
  */
-object Parser:
+private[markdown] object Parser:
 
   private val BlocksPhase = ScanPhase("markdown.blocks")
 
-  def parse(source: String)(using MdProfile): Result[ParseError, MdNode.Root] =
+  def parse(source: String)(using MdProfile): Result[MdParseError, MdNode.Root] =
     parse(source, ScanBudget.default)
 
   /**
@@ -35,7 +35,7 @@ object Parser:
    * The [[MdProfile]] in scope says what is recognized beyond CommonMark. Its given default recognizes nothing, so a
    * call site that names no profile parses exactly the CommonMark it always did.
    */
-  def parse(source: String, budget: ScanBudget)(using profile: MdProfile): Result[ParseError, MdNode.Root] =
+  def parse(source: String, budget: ScanBudget)(using profile: MdProfile): Result[MdParseError, MdNode.Root] =
     parseFragments(source, budget, profile).map(fragments =>
       cst.Lower.lower(cst.CstParser.assembleDocument(source, fragments))
     )
@@ -44,7 +44,7 @@ object Parser:
       source: String,
       budget: ScanBudget,
       profile: MdProfile
-  ): Result[ParseError, (MdNode.Root, ScanMetrics)] =
+  ): Result[MdParseError, (MdNode.Root, ScanMetrics)] =
     SourceScanner.scan(source, budget, phase = Present(BlocksPhase)) { scanner =>
       scanner.chargeOutputNodes(NodeCount.one)
       val definitions = scala.collection.mutable.Map.empty[String, LinkDefinition]
@@ -57,7 +57,7 @@ object Parser:
       (document, scanner.metrics)
     } match
       case ScanResult.Success(value) => Result.succeed(value)
-      case ScanResult.Failure(error) => Result.fail(ParseError.Scan(error))
+      case ScanResult.Failure(error) => Result.fail(MdParseError.Scan(error))
 
   /**
    * The block phase again, reporting what it read as [[CstFragment]]s rather than as a document.
@@ -70,7 +70,7 @@ object Parser:
       source: String,
       budget: ScanBudget,
       profile: MdProfile
-  ): Result[ParseError, Chunk[CstFragment]] =
+  ): Result[MdParseError, Chunk[CstFragment]] =
     SourceScanner.scan(source, budget, phase = Present(BlocksPhase)) { scanner =>
       scanner.chargeOutputNodes(NodeCount.one)
       val definitions = scala.collection.mutable.Map.empty[String, LinkDefinition]
@@ -84,7 +84,7 @@ object Parser:
       collector.fragments
     } match
       case ScanResult.Success(value) => Result.succeed(value)
-      case ScanResult.Failure(error) => Result.fail(ParseError.Scan(error))
+      case ScanResult.Failure(error) => Result.fail(MdParseError.Scan(error))
 
   /**
    * The geometry of a recognized frontmatter block: which kind claimed it, what it spans, and where its value sits.

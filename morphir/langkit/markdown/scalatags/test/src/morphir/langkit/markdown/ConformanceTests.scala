@@ -2,6 +2,7 @@ package morphir.langkit.markdown
 
 import kyo.*
 import kyo.test.*
+import morphir.langkit.markdown.internal.Parser
 
 /**
  * Measures the parse-and-compile path against a vendored conformance suite, profile by profile.

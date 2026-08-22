@@ -7,7 +7,7 @@ import morphir.langkit.markdown.HeadingLevel
 import morphir.langkit.markdown.MdProfile
 import morphir.langkit.markdown.MdMeta
 import morphir.langkit.markdown.MdNode
-import morphir.langkit.markdown.Parser
+import morphir.langkit.markdown.internal.Parser
 
 /**
  * A concrete syntax tree over a Markdown source, under one invariant: **leaf tiling**.

@@ -2,7 +2,8 @@ package morphir.langkit.markdown.trees
 
 import kyo.*
 import kyo.test.*
-import morphir.langkit.markdown.{MdNode, MdProfile, Parser}
+import morphir.langkit.markdown.{MdNode, MdProfile}
+import morphir.langkit.markdown.internal.Parser
 import morphir.langkit.markdown.cst.{Cst, MdCstNode, CstParser}
 import morphir.langkit.trees.{NodeTypeName, QueryableTree}
 import morphir.langkit.trees.unist.UnistProjection

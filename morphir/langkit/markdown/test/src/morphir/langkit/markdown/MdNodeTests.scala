@@ -3,6 +3,7 @@ package morphir.langkit.markdown
 import kyo.*
 import kyo.test.*
 import morphir.langkit.core.Span
+import morphir.langkit.markdown.internal.Parser
 
 class MdNodeTests extends Test[Any]:
 

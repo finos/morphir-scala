@@ -2,7 +2,7 @@ package morphir.ui
 
 import kyo.*
 import kyo.UI.*
-import morphir.langkit.markdown.{KyoUiCompiler, Parser}
+import morphir.langkit.markdown.{KyoUiCompiler, MD}
 import morphir.ui.services.*
 
 object KnowledgeBrowserView:
@@ -24,7 +24,7 @@ object KnowledgeBrowserView:
    * browser, and the reader is better served seeing that something is wrong than seeing nothing.
    */
   private def conceptBody(body: String): UI =
-    Parser.parse(body) match
+    MD.parser.parse(body) match
       case Result.Success(document) => KyoUiCompiler.compile(document)
       case failure                  => p(s"This concept body could not be parsed: $failure")
 

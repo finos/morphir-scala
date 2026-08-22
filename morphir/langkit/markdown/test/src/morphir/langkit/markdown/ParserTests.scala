@@ -5,6 +5,7 @@ import kyo.test.*
 import morphir.MorphirException
 import morphir.langkit.core.Span
 import morphir.langkit.core.scanner.*
+import morphir.langkit.markdown.internal.Parser
 
 class ParserTests extends Test[Any]:
 
@@ -78,8 +79,8 @@ class ParserTests extends Test[Any]:
   private def assertWorkExhausted(source: String)(using AssertScope): Unit =
     val result    = Parser.parse(source, tightWorkBudget(source.length))
     val exhausted = result match
-      case Result.Failure(ParseError.Scan(ScanFailure(ScanLimitExceeded.Work(_, _), _, _))) => true
-      case _                                                                                => false
+      case Result.Failure(MdParseError.Scan(ScanFailure(ScanLimitExceeded.Work(_, _), _, _))) => true
+      case _                                                                                  => false
     assert(exhausted, s"expected typed work exhaustion, got $result")
 
   "Parser.parse" - {
@@ -189,7 +190,7 @@ class ParserTests extends Test[Any]:
       )
 
       Parser.parse("hello", budget) match
-        case Result.Failure(ParseError.Scan(error)) =>
+        case Result.Failure(MdParseError.Scan(error)) =>
           assert(
             error == ScanFailure(
               exceeded = ScanLimitExceeded.InputLength(
@@ -211,7 +212,7 @@ class ParserTests extends Test[Any]:
       )
 
       Parser.parse("# Title", budget) match
-        case Result.Failure(ParseError.Scan(error)) =>
+        case Result.Failure(MdParseError.Scan(error)) =>
           assert(
             error == ScanFailure(
               exceeded = ScanLimitExceeded.OutputNodes(limit = NodeCount.one, attempted = NodeCount(2L)),
@@ -230,7 +231,7 @@ class ParserTests extends Test[Any]:
       )
 
       Parser.parse("x", budget) match
-        case Result.Failure(ParseError.Scan(error)) =>
+        case Result.Failure(MdParseError.Scan(error)) =>
           assert(
             error == ScanFailure(
               // Classifying a line once rather than asking it six to ten separate questions cut this from 9 work
@@ -264,7 +265,7 @@ class ParserTests extends Test[Any]:
       )
 
       Parser.parse("x\n# h", budget) match
-        case Result.Failure(ParseError.Scan(error)) =>
+        case Result.Failure(MdParseError.Scan(error)) =>
           assert(
             error == ScanFailure(
               exceeded = ScanLimitExceeded.Work(limit = WorkUnits(20L), attempted = WorkUnits(22L)),
@@ -325,7 +326,7 @@ class ParserTests extends Test[Any]:
         )
 
         Parser.parse(source, budget) match
-          case Result.Failure(ParseError.Scan(ScanFailure(ScanLimitExceeded.OutputNodes(limit, attempted), _, _))) =>
+          case Result.Failure(MdParseError.Scan(ScanFailure(ScanLimitExceeded.OutputNodes(limit, attempted), _, _))) =>
             assert(limit == NodeCount(10L))
             assert(attempted == NodeCount(17L))
           case other => throw new AssertionError(s"expected typed metadata output exhaustion, got $other")
@@ -1006,24 +1007,24 @@ class ParserTests extends Test[Any]:
     }
   }
 
-  "ParseError" - {
+  "MdParseError" - {
     "exposes the root message and returns Syntax from its compatibility constructor" in {
-      val syntax: ParseError.Syntax = ParseError("expected closing fence")
-      val root: ParseError          = syntax
+      val syntax: MdParseError.Syntax = MdParseError("expected closing fence")
+      val root: MdParseError          = syntax
 
       assert(root.message == "expected closing fence")
       assert(root.getMessage == root.message)
-      assert(ParseError.unapply(root).contains(root.message))
+      assert(MdParseError.unapply(root).contains(root.message))
     }
     "keeps Syntax apply and unapply compatibility" in {
-      val error = ParseError("expected closing fence")
+      val error = MdParseError("expected closing fence")
       error match
-        case ParseError(message) =>
-          assert(error == ParseError.Syntax("expected closing fence"))
+        case MdParseError(message) =>
+          assert(error == MdParseError.Syntax("expected closing fence"))
           assert(message == "expected closing fence")
     }
     "keeps typed scanner failures exception-compatible with a stable informative message" in {
-      val error = ParseError.Scan(
+      val error = MdParseError.Scan(
         ScanFailure(
           exceeded = ScanLimitExceeded.InputLength(
             limit = InputSize.codeUnits(4L),
@@ -1036,11 +1037,11 @@ class ParserTests extends Test[Any]:
 
       assert(error.isInstanceOf[Exception])
       assert(error.getMessage == "Markdown scan failed at offset 0 during markdown.blocks: InputLength(4,5)")
-      assert(ParseError.unapply(error).contains(error.getMessage))
+      assert(MdParseError.unapply(error).contains(error.getMessage))
     }
     "unifies syntax and scanner failures as MorphirException values while retaining their messages" in {
-      val syntax: MorphirException = ParseError.Syntax("expected closing fence")
-      val scan: MorphirException   = ParseError.Scan(
+      val syntax: MorphirException = MdParseError.Syntax("expected closing fence")
+      val scan: MorphirException   = MdParseError.Scan(
         ScanFailure(
           exceeded = ScanLimitExceeded.Work(limit = WorkUnits(0L), attempted = WorkUnits(1L)),
           offset = SourceOffset.start,

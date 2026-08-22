@@ -6,6 +6,7 @@ import morphir.langkit.markdown.cst.CstParser
 import morphir.langkit.markdown.cst.Lower
 import morphir.langkit.markdown.dsl.*
 import morphir.langkit.markdown.dsl.given
+import morphir.langkit.markdown.internal.MdWriter
 
 /**
  * Fidelity between [[MdWriter]] and [[ScalatagsCompiler]], the byte-exact conformance oracle: writing a tree and

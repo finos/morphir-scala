@@ -1,7 +1,7 @@
 package morphir.knowledge.okf
 
 import kyo.*
-import morphir.langkit.markdown.{MdNode, MdProfile, Parser}
+import morphir.langkit.markdown.{MD, MdNode, MdProfile}
 
 /** One markdown file inside an OKF bundle: frontmatter plus a parsed body. */
 final case class Concept(
@@ -34,7 +34,7 @@ object Concept:
     }
 
   private def markdown(source: String): Result[OkfError, MdNode.Root] =
-    Parser.parse(source)(using profile) match
+    MD.parser.parse(source)(using profile) match
       case Result.Success(doc) => Result.succeed(doc)
       case Result.Failure(err) => Result.fail(OkfError.Markdown(err))
       case Result.Panic(err)   => Result.Panic(err)

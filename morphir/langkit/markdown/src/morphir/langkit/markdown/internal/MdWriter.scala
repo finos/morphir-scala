@@ -1,6 +1,7 @@
-package morphir.langkit.markdown
+package morphir.langkit.markdown.internal
 
 import kyo.*
+import morphir.langkit.markdown.*
 import morphir.langkit.markdown.cst.CstParser
 import morphir.langkit.markdown.cst.MdCstNode
 
@@ -49,7 +50,7 @@ import morphir.langkit.markdown.cst.MdCstNode
  * then applied line by line to what a container holds. Writing a prefix stack down through a streaming emitter would
  * save the intermediate strings and cost the clarity, and a Markdown document is not large enough for that trade.
  */
-object MdWriter:
+private[markdown] object MdWriter:
 
   /**
    * The document as Markdown text, ending in exactly one newline; the empty document — no frontmatter, no children —

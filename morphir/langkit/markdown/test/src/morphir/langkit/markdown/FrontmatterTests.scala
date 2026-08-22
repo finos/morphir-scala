@@ -6,6 +6,7 @@ import morphir.langkit.core.Span
 import morphir.langkit.markdown.cst.Cst
 import morphir.langkit.markdown.cst.CstParser
 import morphir.langkit.markdown.cst.MdCstNode
+import morphir.langkit.markdown.internal.Parser
 
 /**
  * Frontmatter recognition, which is opt-in: what an [[MdProfile]] carrying [[FrontMatterKind.Yaml]] claims, and what

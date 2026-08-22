@@ -4,6 +4,7 @@ import kyo.*
 import kyo.test.*
 import morphir.langkit.core.Span
 import morphir.langkit.markdown.internal.NamedEntityTable
+import morphir.langkit.markdown.internal.Parser
 
 /**
  * Inline content is the AST's second level: a block that can hold prose holds a sequence of [[MdNode.PhrasingContent]]
