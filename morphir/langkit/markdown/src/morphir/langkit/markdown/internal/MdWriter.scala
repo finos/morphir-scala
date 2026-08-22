@@ -488,89 +488,92 @@ private[markdown] object MdWriter:
    * dialect that might read it. It is the noisiest thing this escaper does — `~` and `|` cost a byte each, while this
    * puts five in the middle of a URL — and it is the price of a bare destination surviving a round trip at all.
    *
-   * **Every branch that writes a character reference or a backslash escape sets `nodeStart`, and the recognition above
-   * depends on it.** A parse makes each of those a node of its own, so what follows one opens a node, and a node's
-   * first character is a boundary a destination may begin at whatever precedes it here. `InlineParser`'s scanner has
-   * the mirror of this rule — it flushes the run around an escape for the same reason — and if one side stops, the
-   * other stops being right: `\#www.example.com` would go out unbroken and read back as a link.
+   * **Every branch that writes a character reference or a backslash escape hands `nodeStart = true` forward, and the
+   * recognition above depends on it.** A parse makes each of those a node of its own, so what follows one opens a node,
+   * and a node's first character is a boundary a destination may begin at whatever precedes it here. `InlineParser`'s
+   * scanner has the mirror of this rule — it flushes the run around an escape for the same reason — and if one side
+   * stops, the other stops being right: `\#www.example.com` would go out unbroken and read back as a link.
    */
   private[markdown] def escapeText(value: String, atLineStart: Boolean, oneLine: Boolean = false): String =
-    val out       = new StringBuilder
-    var lineStart = atLineStart
-    var index     = 0
-    // Whether the character about to be written opens a text node of its own, as a reparse would see it: true at the
-    // start of the value, and again after every character reference written below, because a reference is its own
-    // node in a parse. It is a boundary an extended autolink may begin at, whatever precedes it in this value.
-    var nodeStart = true
-    // Where the character that has to be spelled as a reference to break a bare destination sits, or -1 for none.
-    var breakAt = -1
-    while index < value.length do
-      val character = value.charAt(index)
-      val fresh     = nodeStart
-      nodeStart = false
-      // A pending break is written before another is looked for, and the character that carries one is always past
-      // the position the match began at, so the two never collide on one index.
-      if breakAt < index then
-        InlineParser.extendedAutolinkAt(value, index, fresh).foreach(matched => breakAt = matched.anchor)
-      if index == breakAt then
-        // The one character that makes the run a link -- the `.` of a `www.` host, a scheme's `:`, an address's `@`
-        // -- written as the reference for itself. It carries the same character back through a parse, and a
-        // reference is a node boundary there, so neither half of what it split can be read as a bare destination.
-        out.append("&#").append(character.toInt).append(';')
-        lineStart = false
-        nodeStart = true
-        index += 1
-      else if character == '\n' then
-        if oneLine || lineStart then
-          // Either this line already holds nothing and another bare newline would leave it blank, or no line break
-          // is allowed here at all: either way the newline's content survives, but not as a physical line ending.
-          out.append("&#10;")
-          lineStart = false
-          nodeStart = true
-        else
-          out.append('\n')
-          lineStart = true
-        index += 1
-      else if character == ' ' then
-        val end = runEnd(value, index, ' ')
-        // A space survives literally only in the middle of a line: at either end of one it is stripped, and two of
-        // them at the end are a hard break. The end of the value counts as the end of a line, because whatever
-        // follows may be nothing at all.
-        val vulnerable = lineStart || end >= value.length || value.charAt(end) == '\n'
-        out.append(if vulnerable then "&#32;" * (end - index) else " " * (end - index))
-        lineStart = false
-        nodeStart = vulnerable
-        index = end
-      else if character == '\t' then
-        out.append("&#9;")
-        lineStart = false
-        nodeStart = true
-        index += 1
-      else if AlwaysEscaped.contains(character) || (lineStart && LineLeadEscaped.contains(character)) then
-        out.append('\\').append(character)
-        lineStart = false
-        // A parse makes an escape a node of its own, so what follows one opens a node too. Without this,
-        // `#www.example.com` would write as `\#www.example.com` and read back as a link the tree never held.
-        nodeStart = true
-        index += 1
-      else if lineStart && character.isDigit then
-        // A digit run at the head of a line is an ordered-list marker only when a delimiter closes it, so the escape
-        // goes on the delimiter rather than on the digits: `1\.` rather than `\1.`, which is not an escape at all.
-        val end = digitsEnd(value, index)
-        out.append(value.substring(index, end))
-        val delimited = end < value.length && (value.charAt(end) == '.' || value.charAt(end) == ')')
-        if delimited then
-          out.append('\\').append(value.charAt(end))
-          index = end + 1
-          // The delimiter went out as an escape, so what follows it opens a node, exactly as above.
-          nodeStart = true
-        else index = end
-        lineStart = false
+    // The one piece of mutable state, and the sanctioned kind: an accumulator that is private and never escapes.
+    // Everything the branches disagree about travels in the parameter list instead, where each call says what it
+    // hands the next character.
+    val out = new StringBuilder
+
+    /**
+     * @param lineStart
+     *   whether the line about to be written is still empty
+     * @param nodeStart
+     *   whether the character at `index` opens a text node of its own, as a reparse would see it: true at the start of
+     *   the value, and again after every character reference and every backslash escape below, because a parse makes
+     *   each of those a node of its own. It is a boundary an extended autolink may begin at, whatever precedes it in
+     *   this value — which is why every branch that writes one hands `true` forward.
+     * @param breakAt
+     *   where the character that has to be spelled as a reference to break a bare destination sits, or -1 for none
+     */
+    @annotation.tailrec
+    def loop(index: Int, lineStart: Boolean, nodeStart: Boolean, breakAt: Int): String =
+      if index >= value.length then out.result()
       else
-        out.append(character)
-        lineStart = false
-        index += 1
-    out.toString
+        val character = value.charAt(index)
+        // A pending break is looked for only when none is outstanding, and the character that carries one is always
+        // past the position the match began at, so the two never collide on one index.
+        val pending =
+          if breakAt >= index then breakAt
+          else
+            InlineParser.extendedAutolinkAt(value, index, nodeStart) match
+              case Present(matched) => matched.anchor
+              case Absent           => breakAt
+
+        if index == pending then
+          // The one character that makes the run a link -- the `.` of a `www.` host, a scheme's `:`, an address's
+          // `@` -- written as the reference for itself. It carries the same character back through a parse, and a
+          // reference is a node boundary there, so neither half of what it split can be read as a bare destination.
+          out.append("&#").append(character.toInt).append(';')
+          loop(index + 1, lineStart = false, nodeStart = true, pending)
+        else if character == '\n' then
+          if oneLine || lineStart then
+            // Either this line already holds nothing and another bare newline would leave it blank, or no line break
+            // is allowed here at all: either way the newline's content survives, but not as a physical line ending.
+            out.append("&#10;")
+            loop(index + 1, lineStart = false, nodeStart = true, pending)
+          else
+            out.append('\n')
+            loop(index + 1, lineStart = true, nodeStart = false, pending)
+        else if character == ' ' then
+          val end = runEnd(value, index, ' ')
+          // A space survives literally only in the middle of a line: at either end of one it is stripped, and two of
+          // them at the end are a hard break. The end of the value counts as the end of a line, because whatever
+          // follows may be nothing at all.
+          val vulnerable = lineStart || end >= value.length || value.charAt(end) == '\n'
+          out.append(if vulnerable then "&#32;" * (end - index) else " " * (end - index))
+          loop(end, lineStart = false, nodeStart = vulnerable, pending)
+        else if character == '\t' then
+          out.append("&#9;")
+          loop(index + 1, lineStart = false, nodeStart = true, pending)
+        else if AlwaysEscaped.contains(character) || (lineStart && LineLeadEscaped.contains(character)) then
+          out.append('\\').append(character)
+          // A parse makes an escape a node of its own, so what follows one opens a node too. Without the `true`,
+          // `#www.example.com` would write as `\#www.example.com` and read back as a link the tree never held.
+          loop(index + 1, lineStart = false, nodeStart = true, pending)
+        else if lineStart && character.isDigit then
+          // A digit run at the head of a line is an ordered-list marker only when a delimiter closes it, so the
+          // escape goes on the delimiter rather than on the digits: `1\.` rather than `\1.`, which is not an escape
+          // at all.
+          val end = digitsEnd(value, index)
+          out.append(value.substring(index, end))
+          val delimited = end < value.length && (value.charAt(end) == '.' || value.charAt(end) == ')')
+          if delimited then
+            out.append('\\').append(value.charAt(end))
+            // The delimiter went out as an escape, so what follows it opens a node, exactly as above.
+            loop(end + 1, lineStart = false, nodeStart = true, pending)
+          else loop(end, lineStart = false, nodeStart = false, pending)
+        else
+          out.append(character)
+          loop(index + 1, lineStart = false, nodeStart = false, pending)
+    end loop
+
+    loop(0, atLineStart, nodeStart = true, breakAt = -1)
   end escapeText
 
   /** `children`'s sole member, when there is exactly one and it is an [[MdNode.Emphasis]]. */
