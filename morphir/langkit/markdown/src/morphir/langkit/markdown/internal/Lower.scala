@@ -39,7 +39,7 @@ private[markdown] object Lower:
    * Each one changes how the HTML inside it is interpreted, which is why the specification singles them out: a
    * `<script>` a document author did not intend is not a formatting difference. Every other tag is untouched.
    */
-  private val disallowedTags: Set[String] =
+  private[markdown] val disallowedTags: Set[String] =
     Set("title", "textarea", "style", "xmp", "iframe", "noembed", "noframes", "script", "plaintext")
 
   /**
@@ -74,6 +74,49 @@ private[markdown] object Lower:
           (value.charAt(end) == '/' && end + 1 < value.length && value.charAt(end + 1) == '>')
         out ++= (if disallowedTags.contains(name) && delimited then "&lt;" else "<")
         loop(index + 1)
+
+    loop(0)
+
+  /**
+   * The inverse of [[filterTags]]: `&lt;` immediately in front of one of the nine disallowed tag names, in a delimited
+   * position, is turned back into a literal `<`. Every other `&lt;` — one that does not lead a disallowed name, or one
+   * that does but is not delimited — is left exactly as written.
+   *
+   * `filterTags` never produces `&lt;` any other way, so recognizing this one shape and reversing it is safe: it is
+   * what lets [[MdWriter]] round-trip a filtered node at all. Reconstructing the pre-filter `<` and writing it out as
+   * ordinary raw HTML gives the parser a real tag to recognize again; lowering the result under a profile that enables
+   * [[MdExtension.TagFilter]] then reapplies `filterTags` and arrives back at the same value. The writer itself has no
+   * way to represent "this is what a filtered tag renders as" any other way, since GFM's own markup has no syntax for a
+   * raw `<` that must survive as `&lt;` — only [[MdExtension.TagFilter]], applied again at lowering, can produce that
+   * byte.
+   */
+  private[markdown] def unfilterTags(value: String): String =
+    val out = StringBuilder()
+
+    @annotation.tailrec
+    def nameEnd(index: Int): Int =
+      if index < value.length && value.charAt(index).isLetterOrDigit then nameEnd(index + 1) else index
+
+    @annotation.tailrec
+    def loop(index: Int): String =
+      if index >= value.length then out.result()
+      else if !value.startsWith("&lt;", index) then
+        out += value.charAt(index)
+        loop(index + 1)
+      else
+        val afterEntity  = index + 4
+        val afterBracket =
+          if afterEntity < value.length && value.charAt(afterEntity) == '/' then afterEntity + 1 else afterEntity
+        val end       = nameEnd(afterBracket)
+        val name      = value.substring(afterBracket, end).toLowerCase
+        val delimited = end >= value.length || value.charAt(end) == '>' || value.charAt(end).isWhitespace ||
+          (value.charAt(end) == '/' && end + 1 < value.length && value.charAt(end + 1) == '>')
+        if disallowedTags.contains(name) && delimited then
+          out += '<'
+          loop(afterEntity)
+        else
+          out += '&'
+          loop(index + 1)
 
     loop(0)
 

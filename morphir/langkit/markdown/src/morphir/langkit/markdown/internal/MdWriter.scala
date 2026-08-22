@@ -74,13 +74,15 @@ private[markdown] object MdWriter:
   /**
    * The document's CST, obtained by writing it and parsing what was written.
    *
-   * Read back under the YAML-frontmatter profile always, and one profile serves every tree because the profile is inert
-   * on text that does not open with `---`. Nothing this writer spells opens that way by accident: a thematic break
-   * writes as `***` or `___`, and text is escaped. So a document with no frontmatter raises to exactly the CST plain
-   * CommonMark gives it, and a document with frontmatter raises to one that spells what was written.
+   * Read back under the GFM-plus-YAML-frontmatter profile always, and one profile serves every tree because the profile
+   * is inert on text a plainer document never spells: a thematic break writes as `***` or `___`, and text is escaped so
+   * that nothing this writer emits accidentally opens a GFM construct it did not mean — `escapeText` spells for the
+   * widest dialect that might read it back for exactly this reason. A tree with no GFM node writes no GFM syntax and so
+   * raises to the CST plain CommonMark would have given it anyway; a tree holding a table, a task list item,
+   * strikethrough or a filtered tag needs every extension turned on to read back as itself.
    */
   def raise(root: MdNode.Root)(using MdStyle): MdCstNode.Document =
-    CstParser.parse(write(root))(using MdProfile.commonmark.withYamlFrontmatter)
+    CstParser.parse(write(root))(using MdProfile.gfm.withYamlFrontmatter)
 
   /**
    * A frontmatter block: its kind's delimiter, its value, and the delimiter again, each ending its own line.
@@ -110,8 +112,19 @@ private[markdown] object MdWriter:
    * proving: `<` is an autolink or a tag, `&` is a character reference, `#` at the head of a line is a heading, and a
    * lone `_` between two letters is nothing at all until the word moves. Escaping unconditionally keeps the escaper a
    * function of the character rather than of the surrounding grammar.
+   *
+   * `@` joins the set for a narrower reason than the rest: [[InlineParser.extendedAutolinkAt]]'s email form is the one
+   * shape [[escapeText]] cannot always see coming. The other two extended forms anchor on a `.` or a scheme's `:`, both
+   * too common to escape unconditionally, so those stay defended dynamically — matched against the whole value and
+   * broken only at the one character that makes the match, the way [[escapeText]]'s own doc comment describes. The
+   * email form anchors on `@` alone, which is rare enough in ordinary prose that escaping it always costs nothing, and
+   * doing so sidesteps a real bug: escaping some *other* always-escaped character earlier in the same value — the run's
+   * own trailing `_`, say — can split the text into a fresh node right where a domain's invalidating tail character
+   * used to sit, turning a value the dynamic check correctly saw as no match into one that reads as a match anyway once
+   * the split lands. `@` is rare enough that removing it from consideration entirely is simpler than teaching the
+   * dynamic check about escapes not yet decided.
    */
-  private val AlwaysEscaped: Set[Char] = Set('\\', '`', '*', '_', '[', ']', '<', '>', '&', '#', '!', '~', '|')
+  private val AlwaysEscaped: Set[Char] = Set('\\', '`', '*', '_', '[', ']', '<', '>', '&', '#', '!', '~', '|', '@')
 
   /** Punctuation that means something only at the head of a line: two list markers and a setext underline. */
   private val LineLeadEscaped: Set[Char] = Set('-', '+', '=')
@@ -149,7 +162,7 @@ private[markdown] object MdWriter:
     case MdNode.Paragraph(children, _)  => inlines(children, atLineStart = true)
     case heading: MdNode.Heading        => writeHeading(heading)
     case code: MdNode.Code              => writeCode(code)
-    case MdNode.Html(value, _)          => value
+    case MdNode.Html(value, _)          => Lower.unfilterTags(value)
     case MdNode.Blockquote(children, _) => prefixed(blocks(children, BlankSeparated), "> ", ">")
     case list: MdNode.List              => writeList(list)._1
     case table: MdNode.Table            => writeTable(table)
@@ -369,7 +382,13 @@ private[markdown] object MdWriter:
         // Raw HTML is emitted verbatim everywhere else — escaping it would show the author their own markup — but a
         // `oneLine` context has nowhere to put a literal line ending at all, so it is downgraded to a space here, the
         // one substitution HTML's own whitespace handling treats as equivalent inside a tag.
-        if oneLine then value.replace('\n', ' ') else value
+        //
+        // `unfilterTags` runs first because a value GFM's disallowed-tag filter produced no longer opens with a
+        // literal `<` — writing it as given would hand the parser `&lt;title>`, which reads back as text rather
+        // than as a tag at all. Reconstructing the `<` gives the parser a real tag to see again, and lowering under
+        // a profile with the tag filter on reapplies it, arriving back at the same value. See [[Lower.unfilterTags]].
+        val unfiltered = Lower.unfilterTags(value)
+        if oneLine then unfiltered.replace('\n', ' ') else unfiltered
       case link: MdNode.Link =>
         s"[${inlines(link.children, atLineStart = false, oneLine)}](${target(link.url, link.title)})"
       case image: MdNode.Image =>
@@ -479,14 +498,22 @@ private[markdown] object MdWriter:
    * for the same treatment unconditionally, because its context — an ATX heading — has no second physical line to spend
    * even a single newline on.
    *
-   * A run that GFM would read as an extended autolink — a bare `www.` host, a `http://`, `https://` or `ftp://` URL, an
-   * email address — is broken the same way, by writing the one character that makes it a link as the reference for
-   * itself: `www&#46;example.com`. A backslash cannot do this job, since `\w` is a backslash and a `w` rather than an
-   * escape; a reference can, because it carries the character back through a parse and is a node of its own there, so
-   * neither half of what it split reads as a destination. It runs whatever profile the text will be read under, for the
-   * reason `~` and `|` sit in [[AlwaysEscaped]]: the writer spells one document, and it has to survive the widest
-   * dialect that might read it. It is the noisiest thing this escaper does — `~` and `|` cost a byte each, while this
-   * puts five in the middle of a URL — and it is the price of a bare destination surviving a round trip at all.
+   * A run that GFM would read as a `www.` host or a `http://`, `https://` or `ftp://` URL is broken the same way, by
+   * writing the one character that makes it a link as the reference for itself: `www&#46;example.com`. A backslash
+   * cannot do this job, since `\w` is a backslash and a `w` rather than an escape; a reference can, because it carries
+   * the character back through a parse and is a node of its own there, so neither half of what it split reads as a
+   * destination. It runs whatever profile the text will be read under, for the reason `~` and `|` sit in
+   * [[AlwaysEscaped]]: the writer spells one document, and it has to survive the widest dialect that might read it. It
+   * is the noisiest thing this escaper does — `~` and `|` cost a byte each, while this puts five in the middle of a URL
+   * — and it is the price of a bare destination surviving a round trip at all.
+   *
+   * The extended email form anchors on `@` instead of a `.` or a scheme's `:`. When this loop finds a genuine email
+   * match ahead, its anchor is still broken the dynamic way, as a character reference, exactly like the other two
+   * forms. `@` sits in [[AlwaysEscaped]] besides, for a match this loop cannot see: escaping some *other*
+   * always-escaped character earlier in the same value can split the text at reparse time in a way that turns a value
+   * with no valid match into one that reads as one anyway, right where an invalidating tail character used to sit. `@`
+   * is rare enough in ordinary prose that closing that gap by escaping it unconditionally costs nothing — see
+   * [[AlwaysEscaped]]'s own doc comment.
    *
    * **Every branch that writes a character reference or a backslash escape hands `nodeStart = true` forward, and the
    * recognition above depends on it.** A parse makes each of those a node of its own, so what follows one opens a node,
