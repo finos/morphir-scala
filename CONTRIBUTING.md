@@ -121,7 +121,7 @@ Mill owns formatting for Scala (scalafmt, including `.mill` build files) and Elm
 | Everything | `./mill format` |
 | Scala + `.mill` | `./mill format --kind scala` |
 | Elm | `./mill format --kind elm` or `./mill format.elm` |
-| Known paths | `./mill format --paths a.scala b.mill c.elm` |
+| Known paths | `./mill format --paths a.scala --paths b.mill --paths c.elm` |
 | Git-touched | `./mill format --changed` |
 | Mill sources selector | `./mill format --sources 'morphir.langkit.jvm.sources'` |
 | Check only | `./mill format --check …` |
