@@ -79,8 +79,8 @@ cached between calls.
 
 ## `scripts/lib/mill-flags.sh`
 
-A tiny POSIX-`sh` helper, sourced by `morphir-local` and the `fmt`/`lint` mise
-tasks, that turns the `jvm-network` check into the flag mill actually wants:
+A tiny POSIX-`sh` helper, sourced by `morphir-local` and the `lint` mise
+task, that turns the `jvm-network` check into the flag mill actually wants:
 
 ```sh
 . scripts/lib/mill-flags.sh

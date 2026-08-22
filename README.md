@@ -155,41 +155,42 @@ The report will be generated at this location `out/scoverage/xmlReportAll.dest/s
 
 #### Formatting Scala Code
 
-Code needs to be formatted according to `scalafmt` rules. To run `scalafmt` on all the source code using:
+Code needs to be formatted according to `scalafmt` rules. Mill owns the entrypoint:
 
 ```bash
-./mill mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
+./mill format --kind scala
 ```
 
-or the much shorter:
+For a few known files (preferred during iteration):
 
 ```bash
-./mill reformatAll __.sources
+./mill format --paths path/to/File.scala
 ```
 
-
-
-or in watch mode to reformat changed files:
+or git-touched paths:
 
 ```bash
-./mill -w mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
+./mill format --changed
 ```
+
+See [CONTRIBUTING.md — Formatting](./CONTRIBUTING.md#formatting) for the full command table (`--sources`, `--check`, etc.).
 
 #### Formatting Elm Code
 
-The evaluator tests utilize elm code. To reformat the elm code for those tests:
+Elm sources under `examples/morphir-elm-projects` and `morphir-elm` are formatted with the repo-pinned elm-format binary via Mill (no global `npm install -g elm-format`):
 
 ```bash
-elm-format --elm-version=0.19 examples/morphir-elm-projects/evaluator-tests/src/Morphir/Examples/App/*.elm
+./mill format --kind elm
 ```
 
-If you don't have elm-format installed, you can either install it through npm or a different package manager like brew:
+or a single project / path:
 
 ```bash
-npm install -g elm-format
+./mill format --kind elm --paths examples/morphir-elm-projects/evaluator-tests/src
 ```
 
-Alternatively, this can be done via `mise run fmt`, which is documented [here](https://github.com/finos/morphir-scala/blob/main/examples/morphir-elm-projects/evaluator-tests/ReadMe.md)
+More detail for the evaluator-tests Elm tree:
+[examples/morphir-elm-projects/evaluator-tests/ReadMe.md](./examples/morphir-elm-projects/evaluator-tests/ReadMe.md)
 
 #### IntelliJ Setup for Windows
 
@@ -234,17 +235,20 @@ Documentation for the elm tests are located at [examples/morphir-elm-projects/ev
 
 #### Formatting Code
 
-Code needs to be formatted according to `scalafmt` rules. To run `scalafmt` on all the source code using:
+Code needs to be formatted according to `scalafmt` / elm-format rules. Prefer the Mill entrypoint:
 
 ```
-.\mill -i mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
+.\mill -i format
 ```
 
-or in watch mode to reformat changed files:
+Narrow selection during iteration:
 
 ```
-.\mill -i -w mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
+.\mill -i format --changed
+.\mill -i format --paths path\to\File.scala
 ```
+
+See [CONTRIBUTING.md — Formatting](./CONTRIBUTING.md#formatting).
 
 ### Roadmap
 

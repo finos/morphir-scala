@@ -1,29 +1,29 @@
 #!/bin/bash
 # Legacy build.sh wrapper for backward compatibility
-# All functionality has been moved to mise tasks
+# All functionality has been moved to mise tasks / Mill
 # Usage: mise run <task-name>
 #
-# This script is deprecated. Please use mise directly:
+# This script is deprecated. Please use mise or Mill directly:
 #   mise run setup       - Install dependencies
 #   mise run lint        - Lint code
-#   mise run fmt         - Format code
+#   ./mill format        - Format code (Scala + Elm)
 #   mise run clean       - Clean build artifacts
 #   mise run test:jvm    - Run JVM tests
 #   mise run setup:idea  - Setup IntelliJ IDEA
 
-echo "⚠️  Warning: build.sh is deprecated. Please use 'mise run <task>' instead."
+echo "⚠️  Warning: build.sh is deprecated. Please use 'mise run <task>' or './mill format' instead."
 echo ""
 echo "Available tasks:"
 echo "  mise run setup          - Install dependencies"
 echo "  mise run lint           - Lint code"
-echo "  mise run fmt            - Format code"
+echo "  ./mill format           - Format code (Scala + Elm)"
 echo "  mise run clean          - Clean build artifacts"
 echo "  mise run build:elm      - Build Elm projects"
 echo "  mise run test:jvm       - Run JVM tests"
 echo "  mise run setup:idea     - Setup IntelliJ IDEA"
 echo ""
 
-# Parse command and delegate to mise
+# Parse command and delegate to mise / Mill
 COMMAND="${1:-help}"
 
 case "$COMMAND" in
@@ -34,7 +34,7 @@ case "$COMMAND" in
     mise run lint
     ;;
   "fmt"|"format")
-    mise run fmt
+    ./mill format
     ;;
   "clean")
     mise run clean

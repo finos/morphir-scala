@@ -3,13 +3,21 @@
 We use `elm-format` to auto-format code.  This has numerous benefits that are explained all over the web, please see,
 for instance, the explanation in the README for [elm-format](https://github.com/avh4/elm-format).
 
-For now, formatting is not enforced by anything in the build or CICD pipeline, but please remember to run elm-format
-before submitting a PR.
+Format Elm (and Scala / `.mill`) through the repo Mill entrypoint — the build pins elm-format; you do not need a
+global install:
 
-Auto-formatting has been made available through this command.
 ```
-mise run fmt
+./mill format --kind elm --paths examples/morphir-elm-projects/evaluator-tests/src
 ```
+
+or the project module command when available:
+
+```
+./mill examples.morphir-elm-projects.evaluator-tests.format
+```
+
+CI checks Elm formatting as part of `./mill --ticker false -i ci.lint`. See the root
+[CONTRIBUTING.md — Formatting](../../../CONTRIBUTING.md#formatting) for the full command table.
 
 ### Documentation formatting:
 

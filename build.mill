@@ -958,8 +958,9 @@ trait MorphirMillbuildHelpersModule extends ScalaModule with ScalafmtModule {
 // The following section contains aliases used to simplify build tasks
 
 object MyAliases extends Aliases {
-  def fmt      = alias("mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources")
-  def checkfmt = alias("mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll __.sources")
+  def fmt      = alias("format")
+  // Mill aliases expand to task selectors only (no flag forwarding); use format.checkAll.
+  def checkfmt = alias("format.checkAll")
   def deps     = alias("mill.scalalib.Dependency/showUpdates")
   def testall  = alias("__.test")
   def testJVM  = alias("morphir.__.jvm.__.test")
