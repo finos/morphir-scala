@@ -4,7 +4,6 @@ import kyo.*
 import scala.annotation.tailrec
 import morphir.langkit.core.Span
 import morphir.langkit.markdown.*
-import morphir.langkit.markdown.cst.{InlineNotes, LinkForm, LinkNote}
 
 /**
  * Splits a block's raw prose into [[MdNode.PhrasingContent]] nodes.

@@ -63,7 +63,7 @@ object MD:
    * qualified, as `MdCstNode.Document`; flattening them would make `Paragraph` ambiguous in every file that imports
    * this object.
    */
-  export morphir.langkit.markdown.cst.MdCstNode
+  export morphir.langkit.markdown.MdCstNode
 
   // ── Authoring ──────────────────────────────────────────────────────────────────────────────────────────────
   // The combinators, and the String-to-Text conversion that lets a literal stand in for a text node. The given
@@ -114,7 +114,7 @@ object MD:
   }
 
   /** Which of CommonMark's four link spellings an [[MdCstNode.Link]] or [[MdCstNode.Image]] used. */
-  export morphir.langkit.markdown.cst.LinkForm
+  export morphir.langkit.markdown.LinkForm
 
   /**
    * The two opaque types, aliased by hand rather than exported.
@@ -137,10 +137,9 @@ object MD:
   /**
    * The verbs over the concrete syntax tree: what the source said, not what it meant.
    *
-   * Four methods, which is the whole public surface of the `cst` package. They arrive here as verbs rather than as the
-   * objects that hold them because `Cst`, `CstParser` and `Lower` are each a single-purpose object of one or two
-   * methods, and a namespace per method buys nothing. [[MdCstNode]] itself is flat on [[MD]], with the rest of the
-   * types.
+   * Four methods, which is every verb the CST has. They arrive here as verbs rather than as the objects that hold them
+   * because [[Cst]], [[CstParser]] and [[Lower]] are each a single-purpose object of one or two methods, and a
+   * namespace per method buys nothing. [[MdCstNode]] itself is flat on [[MD]], with the rest of the types.
    *
    * `cst.parse` and [[parser.parse]] are both here on purpose, and are not two spellings of one thing: each is named
    * for what it produces. `cst.parse` yields an [[MdCstNode.Document]] — every byte of the source, tokens and all — and
@@ -150,12 +149,12 @@ object MD:
   object cst:
 
     /** Source to CST. Total: a source the parser rejects degrades to one verbatim leaf. */
-    export morphir.langkit.markdown.cst.CstParser.parse
+    export morphir.langkit.markdown.CstParser.parse
 
     /** A tree back to source, byte for byte, and the leaf-tiling invariant that makes that exact. */
-    export morphir.langkit.markdown.cst.Cst.{print, tilingErrors}
+    export morphir.langkit.markdown.Cst.{print, tilingErrors}
 
     /** CST to AST — `MdCstNode.Document => MdNode.Root`, total. */
-    export morphir.langkit.markdown.cst.Lower.lower
+    export morphir.langkit.markdown.Lower.lower
   end cst
 end MD

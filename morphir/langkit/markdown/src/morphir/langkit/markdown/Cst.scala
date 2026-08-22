@@ -1,12 +1,13 @@
-package morphir.langkit.markdown.cst
+package morphir.langkit.markdown
 
 import kyo.*
 import morphir.langkit.core.Span
 import morphir.langkit.core.scanner.ScanBudget
-import morphir.langkit.markdown.HeadingLevel
-import morphir.langkit.markdown.MdProfile
-import morphir.langkit.markdown.MdMeta
-import morphir.langkit.markdown.MdNode
+import morphir.langkit.markdown.internal.CstFragment
+import morphir.langkit.markdown.internal.InlineNotes
+import morphir.langkit.markdown.internal.InlineSlot
+import morphir.langkit.markdown.internal.LinkNote
+import morphir.langkit.markdown.internal.Marker
 import morphir.langkit.markdown.internal.Parser
 
 /**

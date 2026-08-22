@@ -4,7 +4,6 @@ import kyo.*
 import scala.annotation.tailrec
 import morphir.langkit.core.Span
 import morphir.langkit.core.scanner.*
-import morphir.langkit.markdown.cst.CstCollector
 
 /**
  * One line of source, carrying the span it was read from.

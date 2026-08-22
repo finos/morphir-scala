@@ -1,7 +1,7 @@
 package morphir.langkit.markdown.trees
 
 import kyo.*
-import morphir.langkit.markdown.cst.MdCstNode
+import morphir.langkit.markdown.MdCstNode
 import morphir.langkit.trees.{FieldName, NodeTypeName, QueryableTree}
 import morphir.langkit.trees.unist.{UnistProjection, UnistSpan}
 

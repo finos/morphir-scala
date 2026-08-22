@@ -1,9 +1,8 @@
-package morphir.langkit.markdown.cst
+package morphir.langkit.markdown
 
 import kyo.*
 import scala.annotation.tailrec
 import morphir.langkit.core.Span
-import morphir.langkit.markdown.*
 import morphir.langkit.markdown.internal.{InlineParser, LinkDefinition}
 
 /**

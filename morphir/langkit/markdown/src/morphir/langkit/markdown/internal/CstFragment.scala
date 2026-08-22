@@ -1,4 +1,4 @@
-package morphir.langkit.markdown.cst
+package morphir.langkit.markdown.internal
 
 import kyo.*
 import morphir.langkit.core.Span

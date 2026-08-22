@@ -1,17 +1,9 @@
-package morphir.langkit.markdown.cst
+package morphir.langkit.markdown.internal
 
 import kyo.*
 import morphir.langkit.core.Span
+import morphir.langkit.markdown.LinkForm
 import morphir.langkit.markdown.MdNode
-
-/**
- * Which of CommonMark's four link forms the author wrote.
- *
- * The AST does not care — every form resolves to a destination and a title — but a CST must say which was written,
- * because the four spell differently: `[t](/u)`, `[t][label]`, `[t][]` and `[t]`.
- */
-enum LinkForm derives CanEqual:
-  case Inline, ReferenceFull, ReferenceCollapsed, ReferenceShortcut
 
 /**
  * What the inline parser knew about one link or image at the moment it succeeded, beyond what the AST keeps.

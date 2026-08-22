@@ -2,8 +2,6 @@ package morphir.langkit.markdown.internal
 
 import kyo.*
 import morphir.langkit.markdown.*
-import morphir.langkit.markdown.cst.CstParser
-import morphir.langkit.markdown.cst.MdCstNode
 
 /**
  * Markdown text from an [[MdNode]] tree, and the CST that text parses to.

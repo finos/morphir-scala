@@ -1,4 +1,4 @@
-package morphir.langkit.markdown.cst
+package morphir.langkit.markdown
 
 import kyo.*
 import kyo.test.*

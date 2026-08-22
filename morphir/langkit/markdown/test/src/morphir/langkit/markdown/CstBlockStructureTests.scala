@@ -1,8 +1,7 @@
-package morphir.langkit.markdown.cst
+package morphir.langkit.markdown
 
 import kyo.*
 import kyo.test.*
-import morphir.langkit.markdown.HeadingLevel
 
 /**
  * That graduated blocks come back typed, and ungraduated regions stay verbatim.

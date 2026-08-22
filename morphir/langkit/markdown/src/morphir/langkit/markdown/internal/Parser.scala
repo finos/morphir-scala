@@ -5,10 +5,6 @@ import scala.annotation.tailrec
 import morphir.langkit.core.Span
 import morphir.langkit.core.scanner.*
 import morphir.langkit.markdown.*
-import morphir.langkit.markdown.cst.CstCollector
-import morphir.langkit.markdown.cst.CstFragment
-import morphir.langkit.markdown.cst.InlineNotes
-import morphir.langkit.markdown.cst.InlineSlot
 
 /**
  * A CommonMark parser, complete against the 0.31.2 specification.
@@ -29,15 +25,15 @@ private[markdown] object Parser:
 
   /**
    * The AST is produced only by lowering: one block-phase pass records the CST's fragments and fills its inline slots,
-   * the CST assembles from them, and [[morphir.langkit.markdown.cst.Lower]] walks it down to the [[MdNode.Root]]. The
-   * CST is the parse; the AST is its meaning.
+   * the CST assembles from them, and [[morphir.langkit.markdown.Lower]] walks it down to the [[MdNode.Root]]. The CST
+   * is the parse; the AST is its meaning.
    *
    * The [[MdProfile]] in scope says what is recognized beyond CommonMark. Its given default recognizes nothing, so a
    * call site that names no profile parses exactly the CommonMark it always did.
    */
   def parse(source: String, budget: ScanBudget)(using profile: MdProfile): Result[MdParseError, MdNode.Root] =
     parseFragments(source, budget, profile).map(fragments =>
-      cst.Lower.lower(cst.CstParser.assembleDocument(source, fragments))
+      Lower.lower(CstParser.assembleDocument(source, fragments))
     )
 
   private[markdown] def parseWithMetrics(
@@ -63,8 +59,8 @@ private[markdown] object Parser:
    * The block phase again, reporting what it read as [[CstFragment]]s rather than as a document.
    *
    * Same loop, same budget discipline; the collector rides along the way `definitions` does. Container readers open a
-   * child collector per container, so the fragments nest the way the blocks do.
-   * [[morphir.langkit.markdown.cst.CstParser]] is the one caller.
+   * child collector per container, so the fragments nest the way the blocks do. [[morphir.langkit.markdown.CstParser]]
+   * is the one caller.
    */
   private[markdown] def parseFragments(
       source: String,
@@ -145,8 +141,8 @@ private[markdown] object Parser:
    * The AST node one recognized block lowers to, its raw value sliced straight out of the source.
    *
    * For [[parseWithMetrics]], which builds its root from the block loop rather than from the CST. It agrees with
-   * [[morphir.langkit.markdown.cst.Lower]] by construction: the value region is `[openEnd, closeStart)` there too, held
-   * as the block's one text leaf.
+   * [[morphir.langkit.markdown.Lower]] by construction: the value region is `[openEnd, closeStart)` there too, held as
+   * the block's one text leaf.
    */
   private def frontMatterNode(source: String, slice: FrontMatterSlice): MdNode.FrontMatter =
     val raw = source.substring(slice.openEnd, slice.closeStart)
