@@ -70,7 +70,13 @@ object VersionCorpus {
 
     Corpus(
       parseCases = json("semverParse").arr.map { row =>
-        ParseCase(row("text").str, row("major").num.toInt, row("minor").num.toInt, row("patch").num.toInt, optional(row("prerelease")))
+        ParseCase(
+          row("text").str,
+          row("major").num.toInt,
+          row("minor").num.toInt,
+          row("patch").num.toInt,
+          optional(row("prerelease"))
+        )
       }.toList,
       rejectCases = json("semverRejects").arr.map(row => RejectCase(row("text").str, row("why").str)).toList,
       compareCases = json("semverCompare").arr.map { row =>

@@ -30,21 +30,20 @@ object ReleaseAreaRow {
 }
 
 /**
- * CI commands that YAML cannot express. Morphir inventory knobs for libraries live in
- * `ci/package.mill.yaml`; publishable Mill plugins are [[pluginModules]] ModuleRefs.
+ * CI commands that YAML cannot express. Morphir inventory knobs for libraries live in `ci/package.mill.yaml`;
+ * publishable Mill plugins are [[pluginModules]] ModuleRefs.
  *
- * Slice 1: [[sonatype]] plus [[lint]]. Slice 2: [[desktop]] — the Morphir desktop application, published
- * to a GitHub Release (archives, installers, checksums) and to Maven Central (archives only, one
- * artifactId per platform, mirroring `mill-dist-native-<os>-<arch>`).
+ * Slice 1: [[sonatype]] plus [[lint]]. Slice 2: [[desktop]] — the Morphir desktop application, published to a GitHub
+ * Release (archives, installers, checksums) and to Maven Central (archives only, one artifactId per platform, mirroring
+ * `mill-dist-native-<os>-<arch>`).
  *
- * Dynamic task selection uses Mill's exclusive [[Evaluator]] commands (same mechanism as builtin
- * `resolve` / `show`). Nested `./mill` is intentionally avoided — under `mill -i` it deadlocks on
- * the workspace write lock.
+ * Dynamic task selection uses Mill's exclusive [[Evaluator]] commands (same mechanism as builtin `resolve` / `show`).
+ * Nested `./mill` is intentionally avoided — under `mill -i` it deadlocks on the workspace write lock.
  *
- * Upload expects `MILL_PGP_*` / `MILL_SONATYPE_*` (or `SONATYPE_*`) already in the Mill process
- * environment. The Release workflow runs `ci.sonatype.writeMillEnv` (GPG_* in that mill's
- * `Task.env`), sources the file, then starts `./mill -i ci.publish` so `Task.env` sees `MILL_*`.
- * Conversion lives in mill-morphir-core (`org.finos.morphir.mill.publish`).
+ * Upload expects `MILL_PGP_*` / `MILL_SONATYPE_*` (or `SONATYPE_*`) already in the Mill process environment. The
+ * Release workflow runs `ci.sonatype.writeMillEnv` (GPG_* in that mill's `Task.env`), sources the file, then starts
+ * `./mill -i ci.publish` so `Task.env` sees `MILL_*`. Conversion lives in mill-morphir-core
+ * (`org.finos.morphir.mill.publish`).
  */
 trait MorphirCiModule extends Module {
 
@@ -58,8 +57,8 @@ trait MorphirCiModule extends Module {
   def excludedModuleSubstrings = Task { Seq.empty[String] }
 
   /**
-   * Parallelism for `publishSonatypeCentral`. `1` means serial `evaluator.evaluate` calls
-   * (SLF4J / #957). Values greater than 1 evaluate the batch under the outer `--jobs` setting.
+   * Parallelism for `publishSonatypeCentral`. `1` means serial `evaluator.evaluate` calls (SLF4J / #957). Values
+   * greater than 1 evaluate the batch under the outer `--jobs` setting.
    */
   def uploadJobs = Task { 1 }
 
@@ -67,10 +66,10 @@ trait MorphirCiModule extends Module {
    * The independently versioned areas as the build sees them, read from the modules that declare them rather than
    * restated here.
    *
-   * `squire changelog check` keeps its own copy of this table, in `SquireChangelog.Areas`, because a Mill script
-   * cannot depend on the build. `.config/version-rules/corpus.json` is where the two are pinned together, and this
-   * task is what lets a test read the build's side of it without parsing `package.mill`. Raising a floor here and
-   * forgetting the port would otherwise leave the CI policy gate validating the old one.
+   * `squire changelog check` keeps its own copy of this table, in `SquireChangelog.Areas`, because a Mill script cannot
+   * depend on the build. `.config/version-rules/corpus.json` is where the two are pinned together, and this task is
+   * what lets a test read the build's side of it without parsing `package.mill`. Raising a floor here and forgetting
+   * the port would otherwise leave the CI policy gate validating the old one.
    *
    * Useful on its own: `./mill show ci.releaseAreas` answers "what does the build think it releases, and from which
    * changelog" without reading three files.
@@ -97,8 +96,8 @@ trait MorphirCiModule extends Module {
   }
 
   /**
-   * Publishable mill-morphir plugin Cross roots. `integration` is omitted (test-only).
-   * ModuleRefs keep the inventory type-safe; expand via Evaluator under each root.
+   * Publishable mill-morphir plugin Cross roots. `integration` is omitted (test-only). ModuleRefs keep the inventory
+   * type-safe; expand via Evaluator under each root.
    */
   def pluginModules: Seq[ModuleRef[Module]] = Seq(
     ModuleRef(millPlugins.morphir.toolchain),
@@ -145,12 +144,12 @@ trait MorphirCiModule extends Module {
     /**
      * Write `MILL_*` publish env for a later mill process. Values are not logged.
      *
-     * GHA: `./mill -i ci.sonatype.writeMillEnv --path "$envfile"` then `source` the file
-     * before `./mill -i ci.publish`. `Task.env` is snapshotted at mill start, so conversion
-     * inside the publish mill cannot feed `publishSonatypeCentral`.
+     * GHA: `./mill -i ci.sonatype.writeMillEnv --path "$envfile"` then `source` the file before `./mill -i ci.publish`.
+     * `Task.env` is snapshotted at mill start, so conversion inside the publish mill cannot feed
+     * `publishSonatypeCentral`.
      */
     def writeMillEnv(path: os.Path) = Task.Command {
-      val dest = MillPublishEnvFile.requireWritableDest(path, BuildCtx.workspaceRoot)
+      val dest    = MillPublishEnvFile.requireWritableDest(path, BuildCtx.workspaceRoot)
       val millEnv = MillSonatypeEnv.fromEnvOrThrow(
         sys.env ++ Task.env,
         msg => Task.log.info(msg)
@@ -171,9 +170,9 @@ trait MorphirCiModule extends Module {
   /**
    * Desktop application destination.
    *
-   * Packaging runs on native runners and uploads raw electron-builder output; this destination
-   * canonicalizes it once, then feeds both hosts. The dist modules are excluded from `ci.publish`
-   * (see `excludedModuleSubstrings`) because there is no archive to publish on a snapshot run.
+   * Packaging runs on native runners and uploads raw electron-builder output; this destination canonicalizes it once,
+   * then feeds both hosts. The dist modules are excluded from `ci.publish` (see `excludedModuleSubstrings`) because
+   * there is no archive to publish on a snapshot run.
    */
   object desktop extends Module {
 
@@ -196,12 +195,11 @@ trait MorphirCiModule extends Module {
     }
 
     /**
-     * The desktop area's own stream version — read straight from a `platform[<token>]` dist module
-     * rather than recomposed here, so the packaging jobs and the dist modules cannot disagree
-     * about what is being built. Every `platform[<token>]` module shares the same
-     * [[MorphirVersionedModule]] namespace (`versionNamespace = Some("desktop")`), changelog and tag
-     * stream, so the token picked to read it from is arbitrary; `linux-amd64` is used elsewhere in
-     * this object as the canonical single-platform default.
+     * The desktop area's own stream version — read straight from a `platform[<token>]` dist module rather than
+     * recomposed here, so the packaging jobs and the dist modules cannot disagree about what is being built. Every
+     * `platform[<token>]` module shares the same [[MorphirVersionedModule]] namespace (`versionNamespace =
+     * Some("desktop")`), changelog and tag stream, so the token picked to read it from is arbitrary; `linux-amd64` is
+     * used elsewhere in this object as the canonical single-platform default.
      */
     def version = Task {
       desktopArea.dist.platform(DesktopPlatform.LinuxAmd64.token).streamVersion()
@@ -210,13 +208,12 @@ trait MorphirCiModule extends Module {
     /**
      * Rename staged output to canonical names, write `.sha256` sidecars and `checksums.txt`.
      *
-     * Empties the release directory first, so a second run at a different version in the same
-     * workspace does not leave the previous version's assets and sidecars behind for
-     * `githubRelease` to upload alongside the current ones.
+     * Empties the release directory first, so a second run at a different version in the same workspace does not leave
+     * the previous version's assets and sidecars behind for `githubRelease` to upload alongside the current ones.
      *
-     * `platforms` is a comma-separated token list (`DesktopPlatform.token`), defaulting to all five —
-     * the release path. CI packaging a pull request stages only `linux-amd64`, so it passes that one
-     * token; `DesktopRelease.canonicalize` would otherwise fail demanding the other four.
+     * `platforms` is a comma-separated token list (`DesktopPlatform.token`), defaulting to all five — the release path.
+     * CI packaging a pull request stages only `linux-amd64`, so it passes that one token; `DesktopRelease.canonicalize`
+     * would otherwise fail demanding the other four.
      */
     def canonicalize(platforms: String = DesktopPlatform.AllTokens) = Task.Command(exclusive = true) {
       val selected = parsePlatforms(platforms)
@@ -227,15 +224,15 @@ trait MorphirCiModule extends Module {
      * Pre-publish check phase: read the release directory back into a [[ReleaseSnapshot]] and run every
      * [[DesktopReleaseChecks]] check against it, logging each check's name and outcome.
      *
-     * `--require-signature` defaults to `true` — the workflow's real use, run after the signing step and
-     * before either upload. `ci.desktop.all` passes `false`: it runs canonicalize immediately followed by
-     * verify with no signing step in between, so `checksums.txt.asc` does not exist yet there.
+     * `--require-signature` defaults to `true` — the workflow's real use, run after the signing step and before either
+     * upload. `ci.desktop.all` passes `false`: it runs canonicalize immediately followed by verify with no signing step
+     * in between, so `checksums.txt.asc` does not exist yet there.
      *
-     * `platforms` mirrors [[canonicalize]]'s option: a comma-separated token list, defaulting to all five,
-     * so CI verifying a pull request's packaging checks exactly the subset it packaged.
+     * `platforms` mirrors [[canonicalize]]'s option: a comma-separated token list, defaulting to all five, so CI
+     * verifying a pull request's packaging checks exactly the subset it packaged.
      *
-     * Throws with every collected problem (across every failing check) when any check fails, so a reader
-     * sees the whole picture rather than the first line.
+     * Throws with every collected problem (across every failing check) when any check fails, so a reader sees the whole
+     * picture rather than the first line.
      */
     def verify(requireSignature: Boolean = true, platforms: String = DesktopPlatform.AllTokens) =
       Task.Command(exclusive = true) {
@@ -280,7 +277,8 @@ trait MorphirCiModule extends Module {
       val problems = outcomes.flatMap(_.problems)
       if (problems.nonEmpty)
         throw new Exception(
-          s"ci.desktop.verify: ${problems.size} problem(s) found in $release:\n" + problems.map(p => s"  - $p").mkString("\n")
+          s"ci.desktop.verify: ${problems.size} problem(s) found in $release:\n" +
+            problems.map(p => s"  - $p").mkString("\n")
         )
       Task.log.info(s"ci.desktop.verify: ${outcomes.size} checks passed (requireSignature=$requireSignature)")
     }
@@ -288,9 +286,9 @@ trait MorphirCiModule extends Module {
     /**
      * Upload every canonicalized asset to the release for `tag`.
      *
-     * If no release exists for the tag, one is created as a **draft**. Publishing a release is a human
-     * action, and the workflow only reaches this task on `release: published` — it has no `push: tags:`
-     * trigger, so a bare tag push never runs it.
+     * If no release exists for the tag, one is created as a **draft**. Publishing a release is a human action, and the
+     * workflow only reaches this task on `release: published` — it has no `push: tags:` trigger, so a bare tag push
+     * never runs it.
      */
     def githubRelease(tag: String) = Task.Command(exclusive = true) {
       runGithubRelease(os.Path(releaseDirPath()), tag)
@@ -298,7 +296,7 @@ trait MorphirCiModule extends Module {
 
     private def runGithubRelease(release: os.Path, tag: String)(using TaskCtx): Unit = {
       require(tag.nonEmpty, "ci.desktop.githubRelease: --tag is required")
-      val assets  = os.list(release).filter(os.isFile).sortBy(_.last)
+      val assets = os.list(release).filter(os.isFile).sortBy(_.last)
       if (assets.isEmpty) throw new Exception(s"ci.desktop.githubRelease: no assets in $release")
 
       val checksums = release / DesktopReleaseLayout.ChecksumsFileName
@@ -330,29 +328,27 @@ trait MorphirCiModule extends Module {
     /**
      * Upload the five desktop archives to Sonatype Central as a single deployment.
      *
-     * The per-module `publishSonatypeCentral` (used by libraries and plugins) hardcodes
-     * `bundleName = None`, so five archives means five separate Central deployments. Each one
-     * defaults to `PublishingType.AUTOMATIC`, so it is released — made public — irrevocably the
-     * moment it succeeds. If, say, the third of five failed, the first two would already be public,
-     * and a retry would fail outright: Central rejects re-uploading a version that already exists.
+     * The per-module `publishSonatypeCentral` (used by libraries and plugins) hardcodes `bundleName = None`, so five
+     * archives means five separate Central deployments. Each one defaults to `PublishingType.AUTOMATIC`, so it is
+     * released — made public — irrevocably the moment it succeeds. If, say, the third of five failed, the first two
+     * would already be public, and a retry would fail outright: Central rejects re-uploading a version that already
+     * exists.
      *
-     * `publishAll` accepts a `bundleName` and folds every artifact into one deployment, so nothing is
-     * released until all five upload and validate together — a failed run publishes nothing, and the
-     * step is safely retriable.
+     * `publishAll` accepts a `bundleName` and folds every artifact into one deployment, so nothing is released until
+     * all five upload and validate together — a failed run publishes nothing, and the step is safely retriable.
      *
-     * The `platform[_]` cross wildcard selects exactly the five `DesktopPlatform` modules under
-     * `morphir.desktop.dist` — nothing else in the build is swept in.
+     * The `platform[_]` cross wildcard selects exactly the five `DesktopPlatform` modules under `morphir.desktop.dist`
+     * — nothing else in the build is swept in.
      *
-     * The bundle name embeds `desktopVersion` (the same `version()`, the dist modules publish under).
-     * That value is always a released, non-SNAPSHOT version here: this task only runs from the
-     * `desktop-release` workflow job (tags and published releases), which never sets
-     * `MORPHIR_PUBLISH_MODE=snapshot`. That matters because `publishAll` refuses a `bundleName`
-     * outright when any selected artifact resolves to a SNAPSHOT version.
+     * The bundle name embeds `desktopVersion` (the same `version()`, the dist modules publish under). That value is
+     * always a released, non-SNAPSHOT version here: this task only runs from the `desktop-release` workflow job (tags
+     * and published releases), which never sets `MORPHIR_PUBLISH_MODE=snapshot`. That matters because `publishAll`
+     * refuses a `bundleName` outright when any selected artifact resolves to a SNAPSHOT version.
      */
     private def runSonatype(evaluator: Evaluator, desktopVersion: String)(using TaskCtx): Unit = {
       val artifactsSelector = "morphir.desktop.dist.platform[_].publishArtifacts"
       val bundleName        = s"morphir-desktop-$desktopVersion"
-      val tokens = Seq(
+      val tokens            = Seq(
         "mill.javalib.SonatypeCentralPublishModule/publishAll",
         "--publishArtifacts",
         artifactsSelector,
@@ -375,16 +371,15 @@ trait MorphirCiModule extends Module {
     /**
      * Canonicalize, verify, then both destinations.
      *
-     * Verifies with `requireSignature = false`: this command runs canonicalize immediately followed by
-     * verify, with no signing step in between (signing is a workflow step, not something `canonicalize`
-     * does), so `checksums.txt.asc` does not exist yet at this point in a local `ci.desktop.all` run. The
-     * workflow itself runs `ci.desktop.verify` separately — with the default `requireSignature = true` —
-     * after its own signing step and before either upload.
+     * Verifies with `requireSignature = false`: this command runs canonicalize immediately followed by verify, with no
+     * signing step in between (signing is a workflow step, not something `canonicalize` does), so `checksums.txt.asc`
+     * does not exist yet at this point in a local `ci.desktop.all` run. The workflow itself runs `ci.desktop.verify`
+     * separately — with the default `requireSignature = true` — after its own signing step and before either upload.
      */
     def all(evaluator: Evaluator, tag: String) = Task.Command(exclusive = true) {
-      val release = os.Path(releaseDirPath())
+      val release        = os.Path(releaseDirPath())
       val desktopVersion = version()
-      val allPlatforms = DesktopPlatform.values.toSeq
+      val allPlatforms   = DesktopPlatform.values.toSeq
       runCanonicalize(os.Path(stagingRootPath()), release, desktopVersion, allPlatforms)
       runVerify(release, desktopVersion, requireSignature = false, allPlatforms)
       runGithubRelease(release, tag)
@@ -393,11 +388,11 @@ trait MorphirCiModule extends Module {
   }
 
   /**
-   * Scalafmt check over resolved `morphir.__.sources` tasks, including modules that do not mix in
-   * `ScalafmtModule`.
+   * Format check over resolved `morphir.__.sources` (scalafmt), build `.mill` files, and Morphir Elm sources.
    *
-   * `--exclude` is a regex matched against each module path. A match drops that module from the
-   * check set. A blank exclude keeps every resolved module and runs one `checkFormatAll`.
+   * `--exclude` is a regex matched against each Scala module path only. A match drops that module from the scala check
+   * set. Build `.mill` and Elm checks always run via one evaluate of the format module's build-and-Elm check command. A
+   * blank exclude keeps every resolved module and runs one `checkFormatAll` for scala.
    */
   def lint(evaluator: Evaluator, exclude: String = "") = Task.Command(exclusive = true) {
     val resolved = unwrap(
@@ -405,7 +400,7 @@ trait MorphirCiModule extends Module {
       s"resolve ${LintSelectors.sourcesSelector}"
     ).map(_.render)
     val modules = LintSelectors.modulesFromResolved(resolved)
-    val kept = LintSelectors.excludeMatching(modules, exclude) match {
+    val kept    = LintSelectors.excludeMatching(modules, exclude) match {
       case Right(selected) => selected
       case Left(message)   => throw new Exception(message)
     }
@@ -419,6 +414,8 @@ trait MorphirCiModule extends Module {
       else kept.map(module => s"$module${LintSelectors.sourcesSuffix}")
     Task.log.info(s"ci.lint: checking ${kept.size} source modules")
     sourceSelectors.foreach(selector => evaluateLint(evaluator, selector))
+    Task.log.info("ci.lint: checking build .mill files and Elm sources")
+    evaluateBuildAndElm(evaluator)
   }
 
   private def evaluateLint(evaluator: Evaluator, sourcesSelector: String): Unit = {
@@ -435,26 +432,36 @@ trait MorphirCiModule extends Module {
     }
   }
 
+  private def evaluateBuildAndElm(evaluator: Evaluator): Unit = {
+    val evalResult = unwrap(
+      evaluator.evaluate(Seq("format.checkBuildAndElm"), SelectMode.Separated),
+      "ci.lint build .mill and Elm check"
+    )
+    evalResult.values.toEither match {
+      case Left(msg) => throw new Exception(s"ci.lint build .mill and Elm check failed: $msg")
+      case Right(_)  => ()
+    }
+  }
+
   /**
-   * The "Run JS tests" phase of the `test-js` / `test-js-desktop` CI jobs — compile, publish, and
-   * both JS and Wasm test runs — scoped to `group` (`"platform"` or `"desktop"`).
+   * The "Run JS tests" phase of the `test-js` / `test-js-desktop` CI jobs — compile, publish, and both JS and Wasm test
+   * runs — scoped to `group` (`"platform"` or `"desktop"`).
    *
-   * `morphir.ui`, `morphir.desktop` and `morphir.appkit.electron` link a big enough working set that
-   * running them alongside the rest of the JS tree OOM'd the Scala.js linker inside its source-map
-   * printer (morphir-oyn). Splitting the load across two CI jobs — two runners, two daemons — needs
-   * two disjoint, exhaustive subsets of the same wildcard, which a Mill selector cannot express by
-   * itself, so this resolves the full wildcard and hands it to [[JsTestSelectors]] to partition. See
-   * that object for why the split is exhaustive and disjoint by construction, and why an empty
-   * bucket is a hard failure rather than a silently-passing no-op.
+   * `morphir.ui`, `morphir.desktop` and `morphir.appkit.electron` link a big enough working set that running them
+   * alongside the rest of the JS tree OOM'd the Scala.js linker inside its source-map printer (morphir-oyn). Splitting
+   * the load across two CI jobs — two runners, two daemons — needs two disjoint, exhaustive subsets of the same
+   * wildcard, which a Mill selector cannot express by itself, so this resolves the full wildcard and hands it to
+   * [[JsTestSelectors]] to partition. See that object for why the split is exhaustive and disjoint by construction, and
+   * why an empty bucket is a hard failure rather than a silently-passing no-op.
    */
   def testJs(evaluator: Evaluator, group: String) = Task.Command(exclusive = true) {
     runJsGroup(evaluator, JsTestSelectors.mainPhaseSelectors, group, "ci.testJs")
   }
 
   /**
-   * The "Link the WebAssembly variants" phase of [[testJs]] — kept a separate command so CI can run
-   * it at `-j 1` while the rest of the phase runs at higher concurrency; see
-   * `.config/mise/tasks/test/js` for why Wasm links are serialized.
+   * The "Link the WebAssembly variants" phase of [[testJs]] — kept a separate command so CI can run it at `-j 1` while
+   * the rest of the phase runs at higher concurrency; see `.config/mise/tasks/test/js` for why Wasm links are
+   * serialized.
    */
   def testJsWasmLink(evaluator: Evaluator, group: String) = Task.Command(exclusive = true) {
     runJsGroup(evaluator, Seq(JsTestSelectors.wasmLinkSelector), group, "ci.testJsWasmLink")
@@ -478,8 +485,8 @@ trait MorphirCiModule extends Module {
   }
 
   /**
-   * Cross-destination aggregator. CI calls `ci.publish`. Today that is Sonatype only; the desktop
-   * destination is `ci.desktop`, invoked by its own release job.
+   * Cross-destination aggregator. CI calls `ci.publish`. Today that is Sonatype only; the desktop destination is
+   * `ci.desktop`, invoked by its own release job.
    */
   def publish(evaluator: Evaluator) = Task.Command(exclusive = true) {
     Task.log.info("ci.publish: running destination fan-out (sonatype)")
@@ -620,14 +627,14 @@ trait MorphirCiModule extends Module {
     }
 
   /**
-   * Mill Morphir plugins compile against `com.lihaoyi::mill-libs-scalalib`, which is on Maven Central
-   * for Mill 1.x — the older mill-scalalib Central exclusion is retired; plugins are in the publish set.
+   * Mill Morphir plugins compile against `com.lihaoyi::mill-libs-scalalib`, which is on Maven Central for Mill 1.x —
+   * the older mill-scalalib Central exclusion is retired; plugins are in the publish set.
    *
-   * `publishSonatypeCentral` reads `MILL_PGP_*` from `Task.env` (process env at Mill start).
-   * `ci.sonatype.writeMillEnv` converts Morphir CI `GPG_*` names; GHA sources that file first.
+   * `publishSonatypeCentral` reads `MILL_PGP_*` from `Task.env` (process env at Mill start). `ci.sonatype.writeMillEnv`
+   * converts Morphir CI `GPG_*` names; GHA sources that file first.
    */
   private def ensureMillPublishEnv()(using TaskCtx): Unit = {
-    val env = Task.env
+    val env                            = Task.env
     def present(name: String): Boolean = env.get(name).exists(v => !v.isBlank)
 
     val missing = Seq.newBuilder[String]

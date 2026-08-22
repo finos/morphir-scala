@@ -13,7 +13,7 @@ import org.finos.millmorphir.elm.ElmFormatToolModule
  * Repo wiring: `format/` extends this via `build.format.MorphirFormatModule` and sets [[elmFormatTool]].
  *
  * Mill requires `Task#apply` lexically inside `Task` / `Command` braces — `ScalafmtWorkerModule.worker()` and
- * `elmFormatExecutable()` therefore appear only in the four command method bodies below (not in private helpers; even
+ * `elmFormatExecutable()` therefore appear only in the command method bodies below (not in private helpers; even
  * `inline def` is typechecked at the definition site).
  */
 trait MorphirRootFormatModule extends Module, DefaultTaskModule {
@@ -173,12 +173,40 @@ trait MorphirRootFormatModule extends Module, DefaultTaskModule {
   }
 
   /**
-   * Full-repo check (scala sources + build `.mill` + Elm). Intended for `ci.lint` reuse — one exclusive command, no
-   * nested mill.
+   * Full-repo check (scala sources + build `.mill` + Elm). Prefer [[checkBuildAndElm]] from `ci.lint` when scala
+   * modules are already checked with `--exclude`.
    */
   def checkAll(evaluator: Evaluator) = Task.Command(exclusive = true) {
     val workspace = BuildCtx.workspaceRoot
     evaluateScalafmtSelector(evaluator, "__.sources", checkMode = true)
+    val millFiles =
+      FormatSelection.discoverBuildMillFiles(workspace).map(workspace / _).filter(os.isFile)
+    if millFiles.nonEmpty then {
+      val refs = millFiles.map(PathRef(_))
+      val cfg  = scalafmtConfigPathRef()
+      Task.log.info(s"format: checking ${refs.size} build .mill file(s) via ScalafmtWorker")
+      ScalafmtWorkerModule.worker().checkFormat(refs, cfg).toEither match {
+        case Right(_)    => ()
+        case Left(error) => throw new Exception(error)
+      }
+    }
+    val elmFiles = discoverElmSourceFiles(workspace)
+    if elmFiles.nonEmpty then {
+      Task.log.info(s"format: checking ${elmFiles.size} Elm file(s)")
+      val command = elmFormatTool.elmFormatExecutable()
+      invokeElmFormat(command.executable.path, command.arguments, elmFiles, checkMode = true)
+    }
+  }
+
+  /**
+   * Check build `.mill` files and Elm sources only (same sets as full `./mill format --check`). Used by `ci.lint`
+   * after the scala `checkFormatAll` loop so `--exclude` stays scala-only and scala is not double-checked.
+   *
+   * Mill requires `ScalafmtWorkerModule.worker()` / `elmFormatExecutable()` lexically inside this command body —
+   * do not factor those calls into a shared helper.
+   */
+  def checkBuildAndElm() = Task.Command(exclusive = true) {
+    val workspace = BuildCtx.workspaceRoot
     val millFiles =
       FormatSelection.discoverBuildMillFiles(workspace).map(workspace / _).filter(os.isFile)
     if millFiles.nonEmpty then {

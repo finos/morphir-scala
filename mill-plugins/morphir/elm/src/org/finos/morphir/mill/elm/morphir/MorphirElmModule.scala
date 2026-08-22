@@ -26,8 +26,7 @@ trait MorphirElmModule extends MorphirModule with MorphirElmProjectInputsModule 
   def morphirElmTool: MorphirElmToolModule
 
   /**
-   * Shared elm-format binary (repo builds point at `toolchains.elmFormat`; unit tests stub a local
-   * [[ElmToolModule]]).
+   * Shared elm-format binary (repo builds point at `toolchains.elmFormat`; unit tests stub a local [[ElmToolModule]]).
    */
   def elmFormatTool: ElmToolModule
 

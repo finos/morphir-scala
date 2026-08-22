@@ -10,8 +10,8 @@ import scala.util.control.NonFatal
  * temporary `gpg --import`.
  *
  * Accepts armored plaintext (`BEGIN PGP PRIVATE KEY`), base64 of that armor, or base64 of a binary
- * `gpg --export-secret-keys` packet — the dual input Morphir CI historically accepted in its publish scripts,
- * plus the common binary-export encoding.
+ * `gpg --export-secret-keys` packet — the dual input Morphir CI historically accepted in its publish scripts, plus the
+ * common binary-export encoding.
  */
 object PgpSecret {
 
@@ -53,8 +53,8 @@ object PgpSecret {
    * Import the Mill-form base64 secret into a throwaway `GNUPGHOME` and fail if GPG rejects it or reports the key as
    * expired.
    *
-   * Decoded key bytes are passed to `gpg` directly — never via a UTF-8 `String` — so binary
-   * `gpg --export-secret-keys` material survives validation.
+   * Decoded key bytes are passed to `gpg` directly — never via a UTF-8 `String` — so binary `gpg --export-secret-keys`
+   * material survives validation.
    */
   def validate(secretBase64: String, log: String => Unit = _ => ()): Unit = {
     log("Validating GPG key via temporary import")

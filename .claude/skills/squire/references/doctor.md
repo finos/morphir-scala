@@ -135,8 +135,10 @@ Elm editor/formatting tooling remains a developer-local concern and is not part 
 **Fix:**
 
 ```bash
-./mill --no-server mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources
+./mill format
 ```
+
+Prefer `./mill format --paths …` or `./mill format --changed` when only a few files drifted. Use `./mill format --kind scala` or `./mill format --kind elm` to narrow the sweep.
 
 ### 6. Mill Morphir plugin workflow
 

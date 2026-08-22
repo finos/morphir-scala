@@ -115,7 +115,7 @@ object DesktopReleaseTests extends TestSuite {
       stage(staging)
       DesktopRelease.canonicalize(staging, output, version, platforms).toOption.get
 
-      val before = os.list(output).map(_.last).toSet
+      val before         = os.list(output).map(_.last).toSet
       val beforeContents = before.map(name => name -> os.read(output / name)).toMap
       assert(before.nonEmpty)
 

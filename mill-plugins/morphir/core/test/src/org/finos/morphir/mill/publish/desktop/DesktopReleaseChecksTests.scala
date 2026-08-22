@@ -6,9 +6,9 @@ import utest.*
 import java.nio.charset.StandardCharsets
 
 /**
- * Unit tests for [[DesktopReleaseChecks]] and [[ReleaseVerifier]]. Every [[ReleaseSnapshot]] here is built
- * in memory — the checks are pure, so no filesystem access belongs in this suite. [[ReleaseSnapshot.read]]
- * (the one IO boundary) is covered separately in `ReleaseSnapshotTests`.
+ * Unit tests for [[DesktopReleaseChecks]] and [[ReleaseVerifier]]. Every [[ReleaseSnapshot]] here is built in memory —
+ * the checks are pure, so no filesystem access belongs in this suite. [[ReleaseSnapshot.read]] (the one IO boundary) is
+ * covered separately in `ReleaseSnapshotTests`.
  */
 object DesktopReleaseChecksTests extends TestSuite {
   private val Version   = "0.4.2"
@@ -17,11 +17,11 @@ object DesktopReleaseChecksTests extends TestSuite {
   private val ZipMagic   = Array[Byte](0x50, 0x4b, 0x03, 0x04)
   private val TarGzMagic = Array[Byte](0x1f.toByte, 0x8b.toByte)
 
-  private val MacZip     = "morphir-desktop-mac-aarch64-0.4.2.zip"
-  private val MacDmg     = "morphir-desktop-mac-aarch64-0.4.2.dmg"
-  private val LinuxTarGz = "morphir-desktop-linux-amd64-0.4.2.tar.gz"
+  private val MacZip        = "morphir-desktop-mac-aarch64-0.4.2.zip"
+  private val MacDmg        = "morphir-desktop-mac-aarch64-0.4.2.dmg"
+  private val LinuxTarGz    = "morphir-desktop-linux-amd64-0.4.2.tar.gz"
   private val LinuxAppImage = "morphir-desktop-linux-amd64-0.4.2.AppImage"
-  private val LinuxDeb   = "morphir-desktop-linux-amd64-0.4.2.deb"
+  private val LinuxDeb      = "morphir-desktop-linux-amd64-0.4.2.deb"
 
   private def bytesOf(content: String): Array[Byte] = content.getBytes(StandardCharsets.UTF_8)
 
@@ -36,7 +36,10 @@ object DesktopReleaseChecksTests extends TestSuite {
   }
 
   private def sidecarFor(asset: ReleaseFile): ReleaseFile =
-    textFile(DesktopReleaseLayout.sidecarName(asset.name), DesktopReleaseLayout.sidecarContent(asset.sha256, asset.name))
+    textFile(
+      DesktopReleaseLayout.sidecarName(asset.name),
+      DesktopReleaseLayout.sidecarContent(asset.sha256, asset.name)
+    )
 
   private def goodAssets: Seq[ReleaseFile] = Seq(
     binaryFile(MacZip, ZipMagic),
@@ -47,7 +50,10 @@ object DesktopReleaseChecksTests extends TestSuite {
   )
 
   private def goodChecksums(assets: Seq[ReleaseFile]): ReleaseFile =
-    textFile(DesktopReleaseLayout.ChecksumsFileName, DesktopReleaseLayout.checksumsContent(assets.map(a => a.name -> a.sha256)))
+    textFile(
+      DesktopReleaseLayout.ChecksumsFileName,
+      DesktopReleaseLayout.checksumsContent(assets.map(a => a.name -> a.sha256))
+    )
 
   private def goodSignature: ReleaseFile =
     textFile(
@@ -94,9 +100,10 @@ object DesktopReleaseChecksTests extends TestSuite {
       test("catches a sidecar that names the wrong asset") {
         val original  = goodSnapshot()
         val realAsset = original.file(MacZip).get
-        val misnamed  = textFile(s"$MacZip.sha256", DesktopReleaseLayout.sidecarContent(realAsset.sha256, "some-other-file.zip"))
-        val tampered  = withFile(original, misnamed)
-        val problems  = DesktopReleaseChecks.sidecarDigestsMatch.find(tampered)
+        val misnamed  =
+          textFile(s"$MacZip.sha256", DesktopReleaseLayout.sidecarContent(realAsset.sha256, "some-other-file.zip"))
+        val tampered = withFile(original, misnamed)
+        val problems = DesktopReleaseChecks.sidecarDigestsMatch.find(tampered)
         assert(problems.exists(_.contains(s"$MacZip.sha256")))
       }
 
@@ -141,7 +148,13 @@ object DesktopReleaseChecksTests extends TestSuite {
       }
 
       test("catches an empty signature file") {
-        val empty    = ReleaseFile(s"${DesktopReleaseLayout.ChecksumsFileName}.asc", 0L, Sha256Digest.hex(Array.emptyByteArray), IndexedSeq.empty, Some(""))
+        val empty = ReleaseFile(
+          s"${DesktopReleaseLayout.ChecksumsFileName}.asc",
+          0L,
+          Sha256Digest.hex(Array.emptyByteArray),
+          IndexedSeq.empty,
+          Some("")
+        )
         val tampered = withFile(goodSnapshot(), empty)
         val problems = DesktopReleaseChecks.signaturePresent.find(tampered)
         assert(problems.nonEmpty)
@@ -194,9 +207,9 @@ object DesktopReleaseChecksTests extends TestSuite {
       }
 
       test("catches a stale asset left over from a previous version") {
-        val stale     = binaryFile("morphir-desktop-mac-aarch64-0.4.1.zip", ZipMagic)
-        val tampered  = withExtraFile(goodSnapshot(), stale)
-        val problems  = DesktopReleaseChecks.versionInAssetNames.find(tampered)
+        val stale    = binaryFile("morphir-desktop-mac-aarch64-0.4.1.zip", ZipMagic)
+        val tampered = withExtraFile(goodSnapshot(), stale)
+        val problems = DesktopReleaseChecks.versionInAssetNames.find(tampered)
         assert(problems.exists(_.contains("morphir-desktop-mac-aarch64-0.4.1.zip")))
       }
     }
@@ -222,12 +235,15 @@ object DesktopReleaseChecksTests extends TestSuite {
     test("defaults excludes the signature check when a signature is not required") {
       val names = DesktopReleaseChecks.defaults(requireSignature = false).map(_.name)
       assert(!names.contains(DesktopReleaseChecks.signaturePresent.name))
-      assert(DesktopReleaseChecks.defaults(requireSignature = true).map(_.name).contains(DesktopReleaseChecks.signaturePresent.name))
+      assert(DesktopReleaseChecks.defaults(requireSignature =
+        true
+      ).map(_.name).contains(DesktopReleaseChecks.signaturePresent.name))
     }
 
     test("ReleaseVerifier collects every problem across every failing check, not just the first") {
-      val brokenAsset  = binaryFile(MacZip, ZipMagic, filler = "corrupted")
-      val brokenSignature = withoutFile(withFile(goodSnapshot(), brokenAsset), s"${DesktopReleaseLayout.ChecksumsFileName}.asc")
+      val brokenAsset     = binaryFile(MacZip, ZipMagic, filler = "corrupted")
+      val brokenSignature =
+        withoutFile(withFile(goodSnapshot(), brokenAsset), s"${DesktopReleaseLayout.ChecksumsFileName}.asc")
       val outcomes = ReleaseVerifier.run(DesktopReleaseChecks.all, brokenSignature)
       val failed   = outcomes.filterNot(_.passed).map(_.name)
       assert(failed.contains(DesktopReleaseChecks.sidecarDigestsMatch.name))

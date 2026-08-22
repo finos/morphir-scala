@@ -6,7 +6,7 @@ import mill.scalalib.scalafmt.MorphirRootFormatModule
 /**
  * Repo root `format` module: wires [[MorphirRootFormatModule]] to [[toolchains.elmFormat]].
  *
- * Commands live on the parent trait (`format`, `scala`, `elm`, `checkAll`).
+ * Commands live on the parent trait (`format`, `scala`, `elm`, `checkAll`, `checkBuildAndElm`).
  */
 trait MorphirFormatModule extends MorphirRootFormatModule {
   def elmFormatTool = toolchains.elmFormat

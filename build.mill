@@ -63,13 +63,13 @@ object scoverage extends ScoverageReport {
 }
 
 /**
- * An independently versioned area: a changelog supplies the release line, git supplies the
- * pre-release markers, and the tag namespace keeps this stream's tags apart from every other's.
+ * An independently versioned area: a changelog supplies the release line, git supplies the pre-release markers, and the
+ * tag namespace keeps this stream's tags apart from every other's.
  *
- * The configuration members are Tasks rather than plain defs so a `package.mill.yaml` can set them
- * with literals, the same way `ci/package.mill.yaml` sets `libraryModulePrefix` and `uploadJobs`.
- * Both are `Option`-typed: the root area genuinely has no namespace and an area may genuinely have
- * no floor, and a `""` sentinel would only create a case someone forgets to handle.
+ * The configuration members are Tasks rather than plain defs so a `package.mill.yaml` can set them with literals, the
+ * same way `ci/package.mill.yaml` sets `libraryModulePrefix` and `uploadJobs`. Both are `Option`-typed: the root area
+ * genuinely has no namespace and an area may genuinely have no floor, and a `""` sentinel would only create a case
+ * someone forgets to handle.
  */
 trait MorphirVersionedModule extends Module {
   import org.finos.morphir.mill.publish.version.*
@@ -80,46 +80,43 @@ trait MorphirVersionedModule extends Module {
   /**
    * Optional floor; the changelog's release line may not regress below it.
    *
-   * The default is the root/library stream's own floor, `0.5.0-M04` — the last version this
-   * repository's shared tag line published before independent streams existed, and the one stream
-   * with real published history (~40 tags) to protect. The plugin family and the desktop
-   * application override this with their own floor; leaving the root stream on `None` left the one
-   * area with anything to lose unprotected, while the two areas that have never published anything
-   * carried one. Mirrored in `SquireChangelog.Areas` (`.claude/skills/squire/SquireChangelog.scala`)
-   * so the CI policy gate validates against the same value.
+   * The default is the root/library stream's own floor, `0.5.0-M04` — the last version this repository's shared tag
+   * line published before independent streams existed, and the one stream with real published history (~40 tags) to
+   * protect. The plugin family and the desktop application override this with their own floor; leaving the root stream
+   * on `None` left the one area with anything to lose unprotected, while the two areas that have never published
+   * anything carried one. Mirrored in `SquireChangelog.Areas` (`.claude/skills/squire/SquireChangelog.scala`) so the CI
+   * policy gate validates against the same value.
    */
   def startingVersion = Task { Some("0.5.0-M04") }
 
   /**
    * The area's changelog.
    *
-   * A `Task.Source` for two reasons: Mill then invalidates the version when someone edits a release
-   * line, and reading the file is legal under Mill's execution-time filesystem checker, which
-   * rejects undeclared reads inside a plain `Task`.
+   * A `Task.Source` for two reasons: Mill then invalidates the version when someone edits a release line, and reading
+   * the file is legal under Mill's execution-time filesystem checker, which rejects undeclared reads inside a plain
+   * `Task`.
    *
-   * The libraries' changelog lives at the repository root, not per-module, so the default reads from
-   * there; the plugin family and the desktop application override this to their own namespaced file.
+   * The libraries' changelog lives at the repository root, not per-module, so the default reads from there; the plugin
+   * family and the desktop application override this to their own namespaced file.
    */
   def changelog = Task.Source(mill.api.BuildCtx.workspaceRoot / "CHANGELOG.md")
 
   /**
-   * A cheap, always-fresh fingerprint of the working copy: HEAD, whether the tree is dirty, the full
-   * tag list, and the current branch.
+   * A cheap, always-fresh fingerprint of the working copy: HEAD, whether the tree is dirty, the full tag list, and the
+   * current branch.
    *
-   * This exists to invalidate [[gitState]]. Git state changes without any file in the module
-   * changing, so something has to be re-read every run — but a `Task.Input` body may not call
-   * another task (`allowTaskReferences = false`), so it cannot know the namespace. HEAD and the
-   * dirty flag are not enough on their own: creating or deleting a tag at the current commit changes
-   * neither, and that is precisely what happens when someone cuts a release. The tag list closes
-   * that hole. It is deliberately unfiltered — namespace-independent, same as the rest of this
-   * fingerprint — and kept as the raw `git tag --list` text rather than a digest of it: this
-   * repository has few tags today, so hashing would only obscure the value for no benefit.
-   * Over-invalidating merely costs a recomputation; under-invalidating would publish the wrong
-   * version. The branch is namespace-independent too, and rides along here for the same reason —
+   * This exists to invalidate [[gitState]]. Git state changes without any file in the module changing, so something has
+   * to be re-read every run — but a `Task.Input` body may not call another task (`allowTaskReferences = false`), so it
+   * cannot know the namespace. HEAD and the dirty flag are not enough on their own: creating or deleting a tag at the
+   * current commit changes neither, and that is precisely what happens when someone cuts a release. The tag list closes
+   * that hole. It is deliberately unfiltered — namespace-independent, same as the rest of this fingerprint — and kept
+   * as the raw `git tag --list` text rather than a digest of it: this repository has few tags today, so hashing would
+   * only obscure the value for no benefit. Over-invalidating merely costs a recomputation; under-invalidating would
+   * publish the wrong version. The branch is namespace-independent too, and rides along here for the same reason —
    * [[streamVersion]] needs it to infer a snapshot when no publish mode is set.
    */
   def gitFingerprint = Task.Input {
-    val root = mill.api.BuildCtx.workspaceRoot
+    val root                       = mill.api.BuildCtx.workspaceRoot
     def git(args: String*): String = {
       val result = os.proc("git" +: args).call(cwd = root, check = false, stdout = os.Pipe, stderr = os.Pipe)
       if (result.exitCode != 0)
@@ -144,9 +141,10 @@ trait MorphirVersionedModule extends Module {
       .fold(message => throw new IllegalStateException(message), identity)
   }
 
-  /** The current branch, e.g. for a snapshot qualifier when no publish mode is set. A detached HEAD
-    * reports the literal `HEAD`, which normalises to a usable qualifier same as any other name.
-    */
+  /**
+   * The current branch, e.g. for a snapshot qualifier when no publish mode is set. A detached HEAD reports the literal
+   * `HEAD`, which normalises to a usable qualifier same as any other name.
+   */
   def gitBranch = Task {
     gitFingerprint()._4
   }
@@ -172,7 +170,7 @@ trait MorphirVersionedModule extends Module {
     // StreamVersion.compose for why that (and a release, tracked separately by `mode`) is the line
     // between a dirty tree that must fail and one that must not block an ordinary local compile.
     val explicitPublish = env.get("MORPHIR_PUBLISH_MODE").contains("snapshot")
-    val result = for {
+    val result          = for {
       line    <- Changelog.releaseLine(text, source.toString)
       mode    <- StreamVersion.resolveMode(env, state, stream, line, gitBranch())
       version <- StreamVersion.compose(line, startingVersion(), state, mode, stream, explicitPublish)
@@ -182,14 +180,14 @@ trait MorphirVersionedModule extends Module {
 }
 
 /**
- * Version and POM policy shared by every Morphir publishable, including the desktop distributions,
- * which are not JVM libraries and must not carry Mima.
+ * Version and POM policy shared by every Morphir publishable, including the desktop distributions, which are not JVM
+ * libraries and must not carry Mima.
  */
 /**
  * A JVM module that carries JMH benchmarks.
  *
- * Not a publish module: benchmarks are a measuring instrument for this repository, not something consumers depend
- * on. `jmhCoreVersion` is a Task, which is why this trait exists rather than the YAML naming JmhModule directly.
+ * Not a publish module: benchmarks are a measuring instrument for this repository, not something consumers depend on.
+ * `jmhCoreVersion` is a Task, which is why this trait exists rather than the YAML naming JmhModule directly.
  */
 trait MorphirBenchmarksModule extends MorphirJVMModule with JmhModule {
   def jmhCoreVersion = Vers.jmh
@@ -257,11 +255,12 @@ trait MorphirJSModule extends MorphirCommonCrossModule with ScalaJSModule {
   def platform       = Platform.JS
   def scalaJSVersion = Task { ScalaVers.scalaJSVersion }
 
-  /** YAML `group::artifact` (no version, one colon-pair) parses as non-platformed. Bind library coords as
-    * platformed so extra suite jars resolve to the Scala.js artifact, not the JVM jar. Compiler and scalac-plugin
-    * coords stay unplatformed: `scala3-compiler_sjs1_3` does not exist. Mill's `resolvedDepsWarnNonPlatform` check
-    * runs on the unbound coords and would false-positive after this bind.
-    */
+  /**
+   * YAML `group::artifact` (no version, one colon-pair) parses as non-platformed. Bind library coords as platformed so
+   * extra suite jars resolve to the Scala.js artifact, not the JVM jar. Compiler and scalac-plugin coords stay
+   * unplatformed: `scala3-compiler_sjs1_3` does not exist. Mill's `resolvedDepsWarnNonPlatform` check runs on the
+   * unbound coords and would false-positive after this bind.
+   */
   override def bindDependency: Task[Dep => BoundDep] = Task.Anon { (dep: Dep) =>
     super.bindDependency()(platformScalaDep(dep))
   }
@@ -270,9 +269,9 @@ trait MorphirJSModule extends MorphirCommonCrossModule with ScalaJSModule {
 
 /**
  * Scala.js linker config for modules whose runtime reaches Node builtins (`node:fs`, `node:net`, `node:tls`).
- * kyo-http's JS backend is Node-only. Mill's default `ModuleKind.NoModule` cannot import those modules; Kyo's own
- * JS build sets CommonJS for the same reason. Mix this in after [[MorphirJSModule]] so the override wins.
- * Mill's `ScalaJSTests` forwards `moduleKind` from the enclosing module.
+ * kyo-http's JS backend is Node-only. Mill's default `ModuleKind.NoModule` cannot import those modules; Kyo's own JS
+ * build sets CommonJS for the same reason. Mix this in after [[MorphirJSModule]] so the override wins. Mill's
+ * `ScalaJSTests` forwards `moduleKind` from the enclosing module.
  */
 trait MorphirJSNodeModule extends ScalaJSModule {
   import mill.scalajslib.api.*
@@ -281,8 +280,8 @@ trait MorphirJSNodeModule extends ScalaJSModule {
 
 /**
  * Opt into `-Yretain-trees`. Off by default: under that flag Kyo's TagMacro MatchErrors on `Maybe`
- * (https://github.com/getkyo/kyo/issues/1883), which breaks `Schema.rename` / `@rename` on `Maybe` fields.
- * Mill's `ScalaTests` forwards `scalacOptions` from the outer module, so test objects inherit this automatically.
+ * (https://github.com/getkyo/kyo/issues/1883), which breaks `Schema.rename` / `@rename` on `Maybe` fields. Mill's
+ * `ScalaTests` forwards `scalacOptions` from the outer module, so test objects inherit this automatically.
  */
 trait MorphirRetainTrees extends ScalaModule {
   override def scalacOptions: T[Seq[String]] = Task {
@@ -306,17 +305,17 @@ trait MorphirNativeModule extends MorphirCommonCrossModule with ScalaNativeModul
  * Links the system OpenSSL into a Scala Native binary.
  *
  * kyo-net compiles its TLS shim (`kyo_tls.c`, `kyo_net_openssl.c`, `kyo_net_boringssl.c`) into the binary and
- * deliberately does not emit Scala Native's `@link`, because no `kyonet_openssl` shared library exists to find a
- * `-l` for. Its own source says so: "the system OpenSSL is linked via the openssl-native-settings link options
- * (-lssl -lcrypto)". Supplying those is therefore the consuming build's job, and any module that reaches kyo-net
- * transitively needs this — `kyo-ui` does, through `kyo-http`.
+ * deliberately does not emit Scala Native's `@link`, because no `kyonet_openssl` shared library exists to find a `-l`
+ * for. Its own source says so: "the system OpenSSL is linked via the openssl-native-settings link options (-lssl
+ * -lcrypto)". Supplying those is therefore the consuming build's job, and any module that reaches kyo-net transitively
+ * needs this — `kyo-ui` does, through `kyo-http`.
  *
- * Only the two `-l` flags are needed. No `-L` is: Scala Native already puts `/opt/homebrew/lib` on the search path
- * for macOS, and `/usr/lib` is searched by default on Linux.
+ * Only the two `-l` flags are needed. No `-L` is: Scala Native already puts `/opt/homebrew/lib` on the search path for
+ * macOS, and `/usr/lib` is searched by default on Linux.
  *
- * **Mix this into the test module as well as the module itself.** A nested `object test` does not inherit the
- * enclosing module's `nativeLinkingOptions`, so a module that links but whose tests do not is the failure mode to
- * expect if it is applied in only one place.
+ * **Mix this into the test module as well as the module itself.** A nested `object test` does not inherit the enclosing
+ * module's `nativeLinkingOptions`, so a module that links but whose tests do not is the failure mode to expect if it is
+ * applied in only one place.
  */
 trait MorphirNativeOpenSsl extends ScalaNativeModule {
   override def nativeLinkingOptions = Task {
@@ -325,21 +324,21 @@ trait MorphirNativeOpenSsl extends ScalaNativeModule {
 }
 
 /**
- * Linker configuration that switches a Scala.js module onto the experimental WebAssembly backend, so it emits a Wasm
- * GC binary plus an ES-module JS loader instead of plain JS.
+ * Linker configuration that switches a Scala.js module onto the experimental WebAssembly backend, so it emits a Wasm GC
+ * binary plus an ES-module JS loader instead of plain JS.
  *
  * The backend requires `ModuleKind.ESModule` and ES2022; both are set here so callers only mix the trait in. Output
  * loads in browsers with Wasm GC (Chrome 119+, Firefox 120+, Safari 18.2+) and on Node 22+.
  *
- * Mix this into a module's *test* object as well as the module itself: Mill's `ScalaJSTests` forwards `moduleKind`
- * and `esFeatures` from the enclosing module but not `scalaJSExperimentalUseWebAssembly`, so without it the tests
- * would silently link as plain JS and duplicate the `js` module's test run.
+ * Mix this into a module's *test* object as well as the module itself: Mill's `ScalaJSTests` forwards `moduleKind` and
+ * `esFeatures` from the enclosing module but not `scalaJSExperimentalUseWebAssembly`, so without it the tests would
+ * silently link as plain JS and duplicate the `js` module's test run.
  *
  * @note
- *   The WebAssembly backend treats `@JSExport*` annotations differently from the JS linker: `@JSExport` on
- *   object/class members is silently dropped, and `@JSExportTopLevel` on an `object` yields an ES-module export with
- *   no members. `@JSExportTopLevel` on a top-level `val` IS honored, so FFI surfaces that need a populated namespace
- *   should be exposed as `@JSExportTopLevel("Name") val foo: js.Object = js.Dynamic.literal(...)`.
+ *   The WebAssembly backend treats `@JSExport*` annotations differently from the JS linker: `@JSExport` on object/class
+ *   members is silently dropped, and `@JSExportTopLevel` on an `object` yields an ES-module export with no members.
+ *   `@JSExportTopLevel` on a top-level `val` IS honored, so FFI surfaces that need a populated namespace should be
+ *   exposed as `@JSExportTopLevel("Name") val foo: js.Object = js.Dynamic.literal(...)`.
  */
 trait MorphirWasmLinker extends ScalaJSModule with mill.scalajslib.config.ScalaJSConfigModule {
   import mill.scalajslib.api.*
@@ -385,18 +384,17 @@ trait MorphirWasmTests extends mill.scalajslib.config.TestScalaJSConfigModule wi
 /**
  * Turns Scala.js source maps off for a test link.
  *
- * Mill's `ScalaJSModule` defaults `scalaJSSourceMap` to `true` (verified against the pinned Mill
- * 1.2.0-RC1-46-16168f sources), and `ScalaJSTests` does not override it — a test object gets its own
- * `true` independent of the module it tests. CI's `test-js` job OOM'd inside the source-map printer
- * itself: `org.scalajs.linker.backend.javascript.Printers$JSTreePrinterWithSourceMap.print`, called
- * from `ByteArrayWriter.ensureCapacity` (morphir-oyn). Nothing in CI reads a test link's source map,
- * so turning it off there removes real linker work rather than trading one failure for another.
+ * Mill's `ScalaJSModule` defaults `scalaJSSourceMap` to `true` (verified against the pinned Mill 1.2.0-RC1-46-16168f
+ * sources), and `ScalaJSTests` does not override it — a test object gets its own `true` independent of the module it
+ * tests. CI's `test-js` job OOM'd inside the source-map printer itself:
+ * `org.scalajs.linker.backend.javascript.Printers$JSTreePrinterWithSourceMap.print`, called from
+ * `ByteArrayWriter.ensureCapacity` (morphir-oyn). Nothing in CI reads a test link's source map, so turning it off there
+ * removes real linker work rather than trading one failure for another.
  *
- * Scoped to test objects only — mix this into `object test:`'s `extends:` list, not the module
- * itself. A published `js`/`wasm` module keeps its source map for downstream debugging; only the
- * `.test` submodule's own link is affected. Mix in after `ScalaJSTests` (and, for a Wasm test
- * object, after [[MorphirWasmTests]] too) so this override wins — the same linearization
- * [[MorphirWasmTests]] already relies on for `scalaJSExperimentalUseWebAssembly`.
+ * Scoped to test objects only — mix this into `object test:`'s `extends:` list, not the module itself. A published
+ * `js`/`wasm` module keeps its source map for downstream debugging; only the `.test` submodule's own link is affected.
+ * Mix in after `ScalaJSTests` (and, for a Wasm test object, after [[MorphirWasmTests]] too) so this override wins — the
+ * same linearization [[MorphirWasmTests]] already relies on for `scalaJSExperimentalUseWebAssembly`.
  *
  * If OOMs return after this is turned back on, this is the frame to look at first.
  */
@@ -404,12 +402,13 @@ trait MorphirJSTestNoSourceMap extends ScalaJSModule {
   override def scalaJSSourceMap: T[Boolean] = Task { false }
 }
 
-/** Shared BuildInfo wiring: version + scalaVersion members. Requires [[PublishModule]] + [[ScalaModule]].
-  *
-  * Extracted to the metabuild because it's mixed in from per-directory `package.mill`/`package.mill.yaml` files —
-  * their own `moduleDir`-relative source computations can't statically see other directories' modules, but a named
-  * trait like this one resolves fine via `extends:` regardless of which file references it.
-  */
+/**
+ * Shared BuildInfo wiring: version + scalaVersion members. Requires [[PublishModule]] + [[ScalaModule]].
+ *
+ * Extracted to the metabuild because it's mixed in from per-directory `package.mill`/`package.mill.yaml` files — their
+ * own `moduleDir`-relative source computations can't statically see other directories' modules, but a named trait like
+ * this one resolves fine via `extends:` regardless of which file references it.
+ */
 trait MorphirVersionBuildInfo extends BuildInfo with PublishModule with ScalaModule {
   def buildInfoMembers = Seq(
     BuildInfo.Value("version", publishVersion()),
@@ -420,40 +419,45 @@ trait MorphirVersionBuildInfo extends BuildInfo with PublishModule with ScalaMod
 /** [[MorphirVersionBuildInfo]] variant that also reports the cross-platform target (jvm/js/native). */
 trait MorphirPlatformBuildInfo extends MorphirVersionBuildInfo {
   def platform: Platform
-  override def buildInfoMembers = Task { super.buildInfoMembers() ++ Seq(
-    BuildInfo.Value("platform", platform.toString)
-  ) }
+  override def buildInfoMembers = Task {
+    super.buildInfoMembers() ++ Seq(
+      BuildInfo.Value("platform", platform.toString)
+    )
+  }
 }
 
-/** [[MorphirPlatformBuildInfo]] for `extensibility` — `buildInfoPackageName` hardcoded here rather than left for
-  * per-leaf YAML override, since overriding plain (non-Task) BuildInfo members via YAML `extends:` chains didn't
-  * take effect in practice (Mill 1.2.0-RC1) — worth re-checking against a later Mill release.
-  */
+/**
+ * [[MorphirPlatformBuildInfo]] for `extensibility` — `buildInfoPackageName` hardcoded here rather than left for
+ * per-leaf YAML override, since overriding plain (non-Task) BuildInfo members via YAML `extends:` chains didn't take
+ * effect in practice (Mill 1.2.0-RC1) — worth re-checking against a later Mill release.
+ */
 trait MorphirExtensibilityBuildInfo extends MorphirPlatformBuildInfo {
   def buildInfoPackageName = "org.finos.morphir.extensibility"
 }
 
-/** [[MorphirVersionBuildInfo]] for `morphir.main` (the CLI) — see [[MorphirExtensibilityBuildInfo]] for why this is
-  * hardcoded rather than YAML-overridden.
-  */
+/**
+ * [[MorphirVersionBuildInfo]] for `morphir.main` (the CLI) — see [[MorphirExtensibilityBuildInfo]] for why this is
+ * hardcoded rather than YAML-overridden.
+ */
 trait MorphirCliBuildInfo extends MorphirVersionBuildInfo {
   def buildInfoPackageName = "org.finos.morphir.cli"
 }
 
-/** BuildInfo wiring for `morphir.intelligence` — its own member set (adds JVM build info, no `platform` member
-  * since this module isn't cross-platform) and package name, both hardcoded per [[MorphirExtensibilityBuildInfo]].
-  *
-  * Intentionally does **not** extend [[PublishModule]]. Intelligence is unpublished (#950); mixing in
-  * `PublishModule` typed `moduleDeps` as `Seq[PublishModule]` and broke Graph/generate once the SDK lost
-  * its publish trait while remaining a module dependency of this CLI.
-  *
-  * [[MorphirVersionedModule]] only needs `Module`, not `PublishModule`, so mixing it in here for
-  * [[intelligenceVersion]] does not reintroduce that problem. It takes the trait's defaults — the root
-  * stream (`versionNamespace = None`), the repository's own `CHANGELOG.md` — the same stream the
-  * libraries publish under, which is what the old env-driven `SnapshotVersion` selection also read.
-  */
+/**
+ * BuildInfo wiring for `morphir.intelligence` — its own member set (adds JVM build info, no `platform` member since
+ * this module isn't cross-platform) and package name, both hardcoded per [[MorphirExtensibilityBuildInfo]].
+ *
+ * Intentionally does **not** extend [[PublishModule]]. Intelligence is unpublished (#950); mixing in `PublishModule`
+ * typed `moduleDeps` as `Seq[PublishModule]` and broke Graph/generate once the SDK lost its publish trait while
+ * remaining a module dependency of this CLI.
+ *
+ * [[MorphirVersionedModule]] only needs `Module`, not `PublishModule`, so mixing it in here for [[intelligenceVersion]]
+ * does not reintroduce that problem. It takes the trait's defaults — the root stream (`versionNamespace = None`), the
+ * repository's own `CHANGELOG.md` — the same stream the libraries publish under, which is what the old env-driven
+ * `SnapshotVersion` selection also read.
+ */
 trait MorphirIntelligenceBuildInfo extends BuildInfo with ScalaModule with MorphirVersionedModule {
-  def buildInfoPackageName = "org.finos.morphir.intelligence.buildinfo"
+  def buildInfoPackageName         = "org.finos.morphir.intelligence.buildinfo"
   override def buildInfoObjectName = "BuildInfo"
 
   def intelligenceVersion = Task { streamVersion() }
@@ -473,19 +477,19 @@ trait AssemblyPublishInfo extends JavaModule with PublishModule {
   }
 }
 
-/** Skips scaladoc generation, publishing an empty docJar instead.
-  *
-  * Scaladoc generation reliably crashes with a NullPointerException in
-  * dotty.tools.scaladoc.translators.SignatureBuilder on JDK 25 - a known upstream dotty bug
-  * (https://github.com/scala/scala3/issues/24183), fixed only in Scala 3.9.0+ (we're on 3.8.4).
-  * See morphir/CONTRIBUTING.md for details.
-  *
-  * The crash follows the sources, not the platform, so every module compiling the affected sources needs this - the
-  * root `morphir` module's `js` variant hit exactly the same NPE as its `jvm` sibling. It surfaced only on a cold
-  * cache, and confusingly: after the scaladoc worker dies, the retry reports the missing output directory
-  * ("...scalaDocGenerated.dest/javadoc does not exist or is not a directory or .jar file") rather than the NPE, which
-  * appears only under `--debug`.
-  */
+/**
+ * Skips scaladoc generation, publishing an empty docJar instead.
+ *
+ * Scaladoc generation reliably crashes with a NullPointerException in dotty.tools.scaladoc.translators.SignatureBuilder
+ * on JDK 25 - a known upstream dotty bug (https://github.com/scala/scala3/issues/24183), fixed only in Scala 3.9.0+
+ * (we're on 3.8.4). See morphir/CONTRIBUTING.md for details.
+ *
+ * The crash follows the sources, not the platform, so every module compiling the affected sources needs this - the root
+ * `morphir` module's `js` variant hit exactly the same NPE as its `jvm` sibling. It surfaced only on a cold cache, and
+ * confusingly: after the scaladoc worker dies, the retry reports the missing output directory
+ * ("...scalaDocGenerated.dest/javadoc does not exist or is not a directory or .jar file") rather than the NPE, which
+ * appears only under `--debug`.
+ */
 trait EmptyDocJar extends JavaModule {
   override def docJar: T[PathRef] = Task {
     PathRef(mill.util.Jvm.createJar(Task.dest / "out.jar", Seq.empty))
@@ -495,10 +499,10 @@ trait EmptyDocJar extends JavaModule {
 /** Generates typed JVM-only paths to the seven Morphir IR fixtures used by the classic runtime tests. */
 trait ClassicRuntimeTestFixtures extends ScalaModule {
   def generatedRuntimeFixtures: T[PathRef] = Task {
-    val evaluator = build.examples.`morphir-elm-projects`.`evaluator-tests`.morphirIR()
-    val defaults  = build.examples.`morphir-elm-projects`.`defaults-tests`.morphirIR()
+    val evaluator         = build.examples.`morphir-elm-projects`.`evaluator-tests`.morphirIR()
+    val defaults          = build.examples.`morphir-elm-projects`.`defaults-tests`.morphirIR()
     val unitTestFramework = build.`morphir-elm`.sdks.`morphir-unit-test`.morphirIR()
-    val unitTestExample =
+    val unitTestExample   =
       build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project`.morphirIR()
     val unitTestFailing =
       build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project-tests`.morphirIR()
@@ -537,13 +541,14 @@ trait ClassicRuntimeTestDiscovery extends mill.javalib.TestModule {
   }
 }
 
-/** `model.lowering`'s differential test (`RealIrCodecRoundTripSpec`) reads its real-IR fixture from the tracked
-  * `evaluator-tests` example output (`examples/morphir-elm-projects/evaluator-tests/morphir-ir2.json`) rather than
-  * keeping a byte-identical duplicate under `test/resources` - two copies would silently drift the next time the
-  * example is regenerated. The fixture is copied (not symlinked, for portability across OSes and IDEs) into a
-  * synthesized resource directory on every build, so the tracked file stays the single source of truth and the rest
-  * of the `evaluator-tests` Elm project isn't exposed as a resource root.
-  */
+/**
+ * `model.lowering`'s differential test (`RealIrCodecRoundTripSpec`) reads its real-IR fixture from the tracked
+ * `evaluator-tests` example output (`examples/morphir-elm-projects/evaluator-tests/morphir-ir2.json`) rather than
+ * keeping a byte-identical duplicate under `test/resources` - two copies would silently drift the next time the example
+ * is regenerated. The fixture is copied (not symlinked, for portability across OSes and IDEs) into a synthesized
+ * resource directory on every build, so the tracked file stays the single source of truth and the rest of the
+ * `evaluator-tests` Elm project isn't exposed as a resource root.
+ */
 trait LoweringRealIrFixture extends JavaModule {
   def realIrFixtureSource: T[PathRef] = Task.Source(
     build.examples.`morphir-elm-projects`.`evaluator-tests`.moduleDir / "morphir-ir2.json"
@@ -565,11 +570,12 @@ trait ToolsJSDocSources extends ScalaJSModule {
   }
 }
 
-/** Bind a Scala binary/full-cross dep as platformed. YAML `group::artifact` (empty version) parses as
-  * `CrossVersion.Binary(platformed = false)`; without this, JS and Native silently resolve the JVM jar.
-  * Java coords (`group:artifact`) are `Constant` and are left alone. Compiler and scalac-plugin artifacts are
-  * not published as platformed jars, so they stay as Mill declared them.
-  */
+/**
+ * Bind a Scala binary/full-cross dep as platformed. YAML `group::artifact` (empty version) parses as
+ * `CrossVersion.Binary(platformed = false)`; without this, JS and Native silently resolve the JVM jar. Java coords
+ * (`group:artifact`) are `Constant` and are left alone. Compiler and scalac-plugin artifacts are not published as
+ * platformed jars, so they stay as Mill declared them.
+ */
 def platformScalaDep(dep: Dep): Dep =
   if isCompilerOrPluginDep(dep) then dep
   else
@@ -588,18 +594,20 @@ def isCompilerOrPluginDep(dep: Dep): Boolean =
   (org == "org.scala-js" && name.contains("compiler")) ||
   (org == "org.scala-native" && (name == "nscplugin" || name.contains("compiler")))
 
-/** Pins every known library suite (kyo, zio, fs2, upickle, borer, metaconfig, scala-java-time) through Mill
-  * `depManagement`. Each suite's version lives once in [[millbuild.Versions]]. Extra suite jars belong in YAML
-  * `mvnDeps: !append` without a version. Do not add a new trait per artifact.
-  */
+/**
+ * Pins every known library suite (kyo, zio, fs2, upickle, borer, metaconfig, scala-java-time) through Mill
+ * `depManagement`. Each suite's version lives once in [[millbuild.Versions]]. Extra suite jars belong in YAML
+ * `mvnDeps: !append` without a version. Do not add a new trait per artifact.
+ */
 trait MorphirSuiteBom extends ScalaModule {
   override def depManagement = super.depManagement() ++ Deps.managedSuites
 }
 
-/** The base kyo effect deps — what a module needs to write `ArrowEffect`s and run them. Used by the `langkit`
-  * modules, whose production code is Kyo-native. The version pin lives on [[MorphirSuiteBom]]; this trait only
-  * *fetches* kyo-core and kyo-prelude. Extra kyo artifacts go in YAML `mvnDeps: !append` with no version.
-  */
+/**
+ * The base kyo effect deps — what a module needs to write `ArrowEffect`s and run them. Used by the `langkit` modules,
+ * whose production code is Kyo-native. The version pin lives on [[MorphirSuiteBom]]; this trait only *fetches* kyo-core
+ * and kyo-prelude. Extra kyo artifacts go in YAML `mvnDeps: !append` with no version.
+ */
 trait MorphirKyoCoreMvnDeps extends ScalaModule {
   override def mvnDeps = super.mvnDeps() ++ Seq(
     Deps.io.getkyo.`kyo-core`,
@@ -629,8 +637,9 @@ trait MorphirKyoMvnDeps extends ScalaModule {
   )
 }
 
-/** kyo-test deps. kyo-test's Mill traits set only the framework class, so each test block
-  * must declare these itself. */
+/**
+ * kyo-test deps. kyo-test's Mill traits set only the framework class, so each test block must declare these itself.
+ */
 trait MorphirKyoTestMvnDeps extends ScalaModule {
   override def mvnDeps = super.mvnDeps() ++ Seq(
     Deps.io.getkyo.`kyo-core`,
@@ -648,16 +657,21 @@ trait MorphirKyoSnapshotTestMvnDeps extends ScalaModule {
   )
 }
 
-/** The `kyo-schema` JSON codec (`kyo.Json`), published as a separate artifact from `kyo-schema` itself. Needed
-  * wherever a derived `Schema` is round-tripped through `encodeString`/`decodeString`, whether that's production
-  * code (e.g. `morphir.model`'s `CodeModelCodecs`) or a test. */
+/**
+ * The `kyo-schema` JSON codec (`kyo.Json`), published as a separate artifact from `kyo-schema` itself. Needed wherever
+ * a derived `Schema` is round-tripped through `encodeString`/`decodeString`, whether that's production code (e.g.
+ * `morphir.model`'s `CodeModelCodecs`) or a test.
+ */
 trait MorphirKyoSchemaJsonMvnDeps extends ScalaModule {
   override def mvnDeps = super.mvnDeps() ++ Seq(
     Deps.io.getkyo.`kyo-schema-json`
   )
 }
 
-/** Absolute kyo-test snapshot directory for the GitHub connector. Mill's test sandbox would otherwise swallow relative paths. */
+/**
+ * Absolute kyo-test snapshot directory for the GitHub connector. Mill's test sandbox would otherwise swallow relative
+ * paths.
+ */
 def githubConnectorSnapshotDir: String =
   (workspaceDir / "morphir" / "connector" / "github" / "test-snapshots").toNIO.toAbsolutePath.normalize.toString
 
@@ -682,9 +696,9 @@ trait MorphirConnectorGithubSnapshotJsEnv extends ScalaJSModule {
  * What the Markdown conformance harness needs beyond the parser: `kyo.Json` from kyo-schema-json to decode the
  * fixtures, and `kyo.Flag` from kyo-config to read the directory the build hands it.
  *
- * Sourced from [[millbuild.Deps]] rather than named as versionless YAML coordinates. A `group::artifact` pair in
- * YAML parses as non-platformed and silently resolves the JVM jar, which the JS and Native test modules cannot use
- * — resolution fails outright there rather than producing anything runnable.
+ * Sourced from [[millbuild.Deps]] rather than named as versionless YAML coordinates. A `group::artifact` pair in YAML
+ * parses as non-platformed and silently resolves the JVM jar, which the JS and Native test modules cannot use —
+ * resolution fails outright there rather than producing anything runnable.
  */
 trait MorphirMarkdownConformanceMvnDeps extends ScalaModule {
   override def mvnDeps = super.mvnDeps() ++ Seq(
@@ -693,16 +707,19 @@ trait MorphirMarkdownConformanceMvnDeps extends ScalaModule {
   )
 }
 
-/** `caliban-client` for typed GraphQL documents. ZIO-free at compile time. Codegen is a Mill script, not a module dep. */
+/**
+ * `caliban-client` for typed GraphQL documents. ZIO-free at compile time. Codegen is a Mill script, not a module dep.
+ */
 trait MorphirCalibanClientMvnDeps extends ScalaModule {
   override def mvnDeps = super.mvnDeps() ++ Seq(
     Deps.com.github.ghostdogpr.`caliban-client`
   )
 }
 
-/** `morphir.jvm`/`morphir.js`'s own mvnDeps — bundled here (rather than copied as YAML literals) so the version
-  * pins stay sourced from the single [[millbuild.Deps]] object.
-  */
+/**
+ * `morphir.jvm`/`morphir.js`'s own mvnDeps — bundled here (rather than copied as YAML literals) so the version pins
+ * stay sourced from the single [[millbuild.Deps]] object.
+ */
 trait MorphirRootMvnDeps extends ScalaModule {
   override def mvnDeps = super.mvnDeps() ++ Seq(
     Deps.org.`scala-lang`.modules.`scala-collection-contrib`,
@@ -743,9 +760,10 @@ trait MorphirTestsMvnDeps extends ScalaModule {
   )
 }
 
-/** `tests.jvm.test`/`runtime.jvm.test`'s mvnDeps — `os-lib`/`sourcecode` are JVM-only (not published for Scala.js),
-  * so this is deliberately jvm-specific; see [[MorphirTestsTestMvnDepsJS]] for the js-side list.
-  */
+/**
+ * `tests.jvm.test`/`runtime.jvm.test`'s mvnDeps — `os-lib`/`sourcecode` are JVM-only (not published for Scala.js), so
+ * this is deliberately jvm-specific; see [[MorphirTestsTestMvnDepsJS]] for the js-side list.
+ */
 trait MorphirTestsTestMvnDepsJVM extends ScalaModule {
   override def mvnDeps = super.mvnDeps() ++ Seq(
     Deps.com.lihaoyi.`os-lib`,
@@ -787,11 +805,12 @@ trait MorphirToolsJVMMvnDeps extends ScalaModule {
   )
 }
 
-/** `tests.jvm.test`'s source override: in addition to the shared `test/src` (+ `test/src-3`) that Mill's own
-  * TestModule default already finds, also pick up `test/jvm-native/src` — files shared only between the jvm and
-  * native targets (native itself is disabled repo-wide, so in practice this is jvm-only test code kept apart from
-  * the plain shared `test/src`).
-  */
+/**
+ * `tests.jvm.test`'s source override: in addition to the shared `test/src` (+ `test/src-3`) that Mill's own TestModule
+ * default already finds, also pick up `test/jvm-native/src` — files shared only between the jvm and native targets
+ * (native itself is disabled repo-wide, so in practice this is jvm-only test code kept apart from the plain shared
+ * `test/src`).
+ */
 trait MorphirTestsJVMTestSources extends JavaModule {
   override def sources: T[Seq[PathRef]] = Task.Sources(
     moduleDir / "src",
@@ -803,18 +822,19 @@ trait MorphirTestsJVMTestSources extends JavaModule {
 /**
  * Scoverage wiring for `contrib.knowledge.jvm`.
  *
- * `scoverageVersion` lives here rather than as a `package.mill.yaml` key: a YAML override only binds against tasks
- * Mill can see on the declared bases, and a plain `scoverageVersion: <v>` entry fails resolution with `key
+ * `scoverageVersion` lives here rather than as a `package.mill.yaml` key: a YAML override only binds against tasks Mill
+ * can see on the declared bases, and a plain `scoverageVersion: <v>` entry fails resolution with `key
  * "scoverageVersion" does not override any task on Module`. That error only surfaces on broad selectors such as
- * `morphir.__.jvm.__` or `morphir.__.sources` — which is what CI and `mise run lint` use — while narrower ones
- * resolve fine, so it is easy to miss locally.
+ * `morphir.__.jvm.__` or `morphir.__.sources` — which is what CI and `mise run lint` use — while narrower ones resolve
+ * fine, so it is easy to miss locally.
  */
 trait MorphirScoverage extends mill.contrib.scoverage.ScoverageModule {
   def scoverageVersion: T[String] = Task { Vers.scoverage }
 
-  /** Mill's scoverage inner module copies `mvnDeps` but not `depManagement`, so versionless suite coords would
-    * resolve as an empty version. Forward the enclosing module's pins.
-    */
+  /**
+   * Mill's scoverage inner module copies `mvnDeps` but not `depManagement`, so versionless suite coords would resolve
+   * as an empty version. Forward the enclosing module's pins.
+   */
   override lazy val scoverage: ScoverageData = new ScoverageData {
     override def depManagement = Task { MorphirScoverage.this.depManagement() }
   }
@@ -833,10 +853,10 @@ trait MorphirTestsJSTestSources extends JavaModule {
  * Injects the linked `langkit.elm.compiler.api.wasm` output directory into `langkit.itest`'s forked JVMs.
  *
  * `ChicoryCompilerWasmCompatibilityTest` reads `main.wasm` straight off disk to assert what the Scala.js Wasm linker
- * emits, so the suite needs the artifact path — and taking a task dependency here is also what makes Mill link the
- * Wasm module before the tests run. Lives in the metabuild because a per-directory `package.mill.yaml` can't express
- * a Task, and a `package.mill` in `morphir/langkit/itest/` can't statically reach another directory module's nested
- * `wasm` object under Mill 1.2.0-RC1.
+ * emits, so the suite needs the artifact path — and taking a task dependency here is also what makes Mill link the Wasm
+ * module before the tests run. Lives in the metabuild because a per-directory `package.mill.yaml` can't express a Task,
+ * and a `package.mill` in `morphir/langkit/itest/` can't statically reach another directory module's nested `wasm`
+ * object under Mill 1.2.0-RC1.
  */
 trait MorphirLangkitItestWasmArtifacts extends JavaModule {
   override def forkArgs: T[Seq[String]] = Task {
@@ -848,15 +868,14 @@ trait MorphirLangkitItestWasmArtifacts extends JavaModule {
 /**
  * Real Elm packages, fetched at build time for the langkit's conformance corpus.
  *
- * The sources are third-party, so they stay out of the repository and arrive as build inputs: `ElmPackages` clones
- * each package at a pinned tag into this task's directory, and the path reaches the suite as a system property. The
- * task is cached on the pinned revisions, so the download happens once per revision bump rather than once per test
- * run.
+ * The sources are third-party, so they stay out of the repository and arrive as build inputs: `ElmPackages` clones each
+ * package at a pinned tag into this task's directory, and the path reaches the suite as a system property. The task is
+ * cached on the pinned revisions, so the download happens once per revision bump rather than once per test run.
  *
- * Fetching needs the network, so `mill --offline` skips it: the task writes a marker instead of cloning, says so in
- * the log, and `RealWorldCorpusTest` reports itself skipped rather than passing on an empty corpus. That is the only
- * way to run without the packages — a missing network without `--offline` fails the task, because a corpus that
- * quietly parses nothing is worse than a build that stops.
+ * Fetching needs the network, so `mill --offline` skips it: the task writes a marker instead of cloning, says so in the
+ * log, and `RealWorldCorpusTest` reports itself skipped rather than passing on an empty corpus. That is the only way to
+ * run without the packages — a missing network without `--offline` fails the task, because a corpus that quietly parses
+ * nothing is worse than a build that stops.
  */
 trait MorphirLangkitItestElmPackages extends JavaModule {
 
@@ -881,7 +900,7 @@ trait MorphirLangkitItestElmPackages extends JavaModule {
 }
 
 object toolchains extends Module {
-  object node extends NodeToolchainModule
+  object node       extends NodeToolchainModule
   object morphirElm extends RepositoryMorphirElmToolModule {
     def nodeToolchain = toolchains.node
   }
@@ -901,12 +920,13 @@ trait RepositoryMorphirElmToolReference extends Module {
   def elmFormatTool  = toolchains.elmFormat
 }
 
-/** Exact local IR inputs shared by the three unit-test example consumers.
-  *
-  * Mill 1.2.0-RC1 cannot override the non-task `morphirModuleDeps` member from YAML, so this deliberately narrow
-  * reference trait carries only those two module references. Project declarations and identity stay colocated in
-  * each project's `package.mill.yaml`.
-  */
+/**
+ * Exact local IR inputs shared by the three unit-test example consumers.
+ *
+ * Mill 1.2.0-RC1 cannot override the non-task `morphirModuleDeps` member from YAML, so this deliberately narrow
+ * reference trait carries only those two module references. Project declarations and identity stay colocated in each
+ * project's `package.mill.yaml`.
+ */
 trait ExampleProjectTestMorphirDependencies extends MorphirModule {
   override def morphirModuleDeps = Seq(
     build.`morphir-elm`.sdks.`morphir-unit-test`,
@@ -915,9 +935,9 @@ trait ExampleProjectTestMorphirDependencies extends MorphirModule {
 }
 
 /**
- * Compiles the pure `millbuild` selection helpers so a normal Mill `TestModule.Utest` target can
- * cover them. The metabuild already compiles these same files for the build itself; this module
- * exists only for unit tests (metabuild is not a regular `ScalaModule`).
+ * Compiles the pure `millbuild` selection helpers so a normal Mill `TestModule.Utest` target can cover them. The
+ * metabuild already compiles these same files for the build itself; this module exists only for unit tests (metabuild
+ * is not a regular `ScalaModule`).
  */
 trait MorphirMillbuildHelpersModule extends ScalaModule with ScalafmtModule {
   def scalaVersion = Task { morphirScalaVersion }
@@ -938,19 +958,21 @@ trait MorphirMillbuildHelpersModule extends ScalaModule with ScalafmtModule {
 // The following section contains aliases used to simplify build tasks
 
 object MyAliases extends Aliases {
-  def fmt           = alias("mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources")
-  def checkfmt      = alias("mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll __.sources")
-  def deps          = alias("mill.scalalib.Dependency/showUpdates")
-  def testall       = alias("__.test")
-  def testJVM       = alias("morphir.__.jvm.__.test")
-  /** Every non-classic JVM target, named rather than globbed; `squire ci policy` checks it against what Mill resolves.
-    *
-    * A curated list, not `morphir.__.jvm.__`, because the classic runtime is gated separately behind its generated
-    * fixtures. The cost of curating is drift: a module the list forgets is a module CI silently never builds, which is
-    * how the CommonMark conformance suite in `langkit.markdown.scalatags` went unrun on a runner. `benchmarks` compiles
-    * only — it has no test or publish target — and `langkit.markdown.trees` compiles and tests but does not publish, so
-    * parsley and neotype stay out of the published artifacts.
-    */
+  def fmt      = alias("mill.scalalib.scalafmt.ScalafmtModule/reformatAll __.sources")
+  def checkfmt = alias("mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll __.sources")
+  def deps     = alias("mill.scalalib.Dependency/showUpdates")
+  def testall  = alias("__.test")
+  def testJVM  = alias("morphir.__.jvm.__.test")
+
+  /**
+   * Every non-classic JVM target, named rather than globbed; `squire ci policy` checks it against what Mill resolves.
+   *
+   * A curated list, not `morphir.__.jvm.__`, because the classic runtime is gated separately behind its generated
+   * fixtures. The cost of curating is drift: a module the list forgets is a module CI silently never builds, which is
+   * how the CommonMark conformance suite in `langkit.markdown.scalatags` went unrun on a runner. `benchmarks` compiles
+   * only — it has no test or publish target — and `langkit.markdown.trees` compiles and tests but does not publish, so
+   * parsley and neotype stay out of the published artifacts.
+   */
   def testJVMPlatform = alias(
     "morphir.jvm.__.compile",
     "morphir.{appkit,benchmarks,buildkit.core,connector.github,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile",
