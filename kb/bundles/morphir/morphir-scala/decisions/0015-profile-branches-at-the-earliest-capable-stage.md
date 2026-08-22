@@ -26,6 +26,19 @@ recorded.
 | CST to AST | producing a different AST node for the same CST | yes |
 | AST to AST | rewriting the AST; the CST is left behind | no |
 
+## Summary
+
+A late branch can repair the abstract tree while leaving the concrete tree unaware of the same construct, and the
+two trees must never disagree. Placing the branch at the earliest stage that can record the decision in its output
+tree is what keeps them in agreement.
+
+| Option | Outcome | Why |
+| --- | --- | --- |
+| Branch at the earliest stage whose output tree can record the decision | Chosen | Keeps the concrete and abstract trees in agreement; absence of the profile parameter elsewhere is the enforcement. |
+| Thread the profile through every stage | Rejected | A profile parameter on a stage that decides nothing invites behaviour to vary there later. |
+| Recognize every extension in one place, after parsing | Rejected | Repairs the abstract tree but leaves the concrete tree unaware, which is wrong for specified syntax. |
+| Let the writers branch on the profile | Rejected | Turns one rule into three implementations, with the conformance oracle covering only one. |
+
 ## Why
 
 The langkit publishes two trees that must agree. The concrete syntax tree records what was written, keeps every
@@ -56,21 +69,25 @@ own copy of one rule.
 
 ## Alternatives rejected
 
-**Thread the profile through every stage.** Cheaper to write and superficially more flexible. Rejected because a
-profile parameter on a stage that decides nothing is a claim that behaviour might vary there, and the next
-contributor will make it vary — which is the late branch this record exists to prevent. Absence of the parameter is
-the enforcement.
+### Thread the profile through every stage
 
-**Recognize every extension in one place, after parsing.** A single rewrite over the abstract tree is the smallest
-possible change and needs no new fragment kinds. It is right for features that are genuinely post-processing and
-wrong for specified syntax, for the reason above: the concrete tree never learns about the construct. The
-distinction that decides it is whether the dialect's specification calls the construct syntax. GitHub's own
-post-rendering features — mentions, issue references, emoji, heading anchors — are not, and the abstract-tree stage
-is the right home for them when they are built.
+Cheaper to write and superficially more flexible. Rejected because a profile parameter on a stage that decides
+nothing is a claim that behaviour might vary there, and the next contributor will make it vary — which is the late
+branch this record exists to prevent. Absence of the parameter is the enforcement.
 
-**Let the writers branch on the profile.** Considered for the raw-HTML filter, since the rule is about output.
-Rejected because it turns one rule into three implementations across `morphir-langkit-markdown-scalatags`,
-`morphir-langkit-markdown-kyo-ui` and the Markdown writer, with the conformance oracle measuring only one of them.
+### Recognize every extension in one place, after parsing
+
+A single rewrite over the abstract tree is the smallest possible change and needs no new fragment kinds. It is right
+for features that are genuinely post-processing and wrong for specified syntax, for the reason above: the concrete
+tree never learns about the construct. The distinction that decides it is whether the dialect's specification calls
+the construct syntax. GitHub's own post-rendering features — mentions, issue references, emoji, heading anchors —
+are not, and the abstract-tree stage is the right home for them when they are built.
+
+### Let the writers branch on the profile
+
+Considered for the raw-HTML filter, since the rule is about output. Rejected because it turns one rule into three
+implementations across `morphir-langkit-markdown-scalatags`, `morphir-langkit-markdown-kyo-ui` and the Markdown
+writer, with the conformance oracle measuring only one of them.
 
 ## Consequences
 

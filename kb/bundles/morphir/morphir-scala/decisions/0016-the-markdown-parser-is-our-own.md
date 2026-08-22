@@ -15,16 +15,28 @@ engine is no longer under consideration, and the standing allowance that one "re
 compiles on all three platforms" is withdrawn. `commonmark-java` must not enter the module, and no other engine
 takes its place.
 
+## Summary
+
+The parser now measures its own conformance and carries tree machinery no third-party engine supplies, so
+replacing it would give up properties the rest of the module depends on. This decision keeps the parser in
+place permanently and withdraws the earlier allowance to swap it out later.
+
+| Option | Outcome | Why |
+| --- | --- | --- |
+| Keep the parser we wrote, permanently | Chosen | It measures full conformance against CommonMark 0.31.2 and 662 of 663 GitHub Flavored Markdown examples, and its tree machinery is what consumers depend on. |
+| Keep the standing allowance to replace it later | Rejected | It framed parser work as a stopgap and misled reviews about its value. |
+| Wrap a different engine per platform | Rejected | Three engines under one facade cost more than one parser and still could not produce the concrete syntax tree. |
+
 ## Why
 
 The allowance made sense when the parser was a subset and the module's value was uncertain. Neither is true any
 more, and three facts settle it.
 
 **Conformance is measured, not hoped for.** The parser scores 652 of 652 against CommonMark 0.31.2 and 662 of
-663 against the GitHub Flavored Markdown suite — measured continuously in this repository by a ratchet that
-fails the build on any regression, with the one open example tracked as work and nine divergences recorded with
-reasons. The original motive for allowing a replacement was doubt that an in-house parser could be trusted;
-the suite now answers that question every build, byte for byte.
+663 against the GitHub Flavored Markdown suite, measured on every build, and a regression fails it, with the
+one open example tracked as work and nine divergences recorded with reasons. The original motive for allowing a
+replacement was doubt that an in-house parser could be trusted; the suite now answers that question every
+build, byte for byte.
 
 **The module's value is no longer the parse alone.** What consumers depend on is the machinery around it: a
 concrete syntax tree whose leaves tile the source exactly and print back byte for byte, an abstract syntax tree
@@ -41,13 +53,16 @@ and still does; an engine that appeared tomorrow on all three platforms would st
 
 ## Alternatives rejected
 
-**Keeping the allowance.** Costless-looking, but it was already misleading readers: it framed the parser as a
-stopgap, inviting effort estimates and reviews to treat parser work as throwaway. A module whose CST invariants
-are load-bearing for consumers cannot honestly advertise that its parse might be swapped out.
+### Keeping the allowance
 
-**Wrapping an engine per platform.** Three engines with three behaviours under one facade, reconciled against a
-byte-exact conformance suite, is strictly more work than one parser — and the facade still could not produce
-the concrete syntax tree.
+Costless-looking, but it was already misleading readers: it framed the parser as a stopgap, inviting effort
+estimates and reviews to treat parser work as throwaway. A module whose CST invariants consumers depend on
+cannot honestly advertise that its parse might be swapped out.
+
+### Wrapping an engine per platform
+
+Three engines with three behaviours under one facade, reconciled against a byte-exact conformance suite, is
+strictly more work than one parser — and the facade still could not produce the concrete syntax tree.
 
 ## Consequences
 
