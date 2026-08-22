@@ -43,7 +43,7 @@ sealed trait MdNode derives CanEqual:
     case MdNode.Heading(_, children, _)        => children
     case MdNode.Blockquote(children, _)        => children
     case MdNode.List(_, _, _, children, _)     => children
-    case MdNode.ListItem(children, _)          => children
+    case MdNode.ListItem(children, _, _)       => children
     case MdNode.Link(_, _, children, _)        => children
     case MdNode.Emphasis(children, _)          => children
     case MdNode.Strong(children, _)            => children
@@ -96,8 +96,12 @@ sealed trait MdNode derives CanEqual:
         children.map(item => item.unpositioned.asInstanceOf[MdNode.ListItem]),
         meta.copy(span = Absent)
       )
-    case MdNode.ListItem(children, meta) =>
-      MdNode.ListItem(children.map(_.unpositioned.asInstanceOf[MdNode.FlowContent]), meta.copy(span = Absent))
+    case MdNode.ListItem(children, checked, meta) =>
+      MdNode.ListItem(
+        children.map(_.unpositioned.asInstanceOf[MdNode.FlowContent]),
+        checked,
+        meta.copy(span = Absent)
+      )
     case MdNode.ThematicBreak(meta)              => MdNode.ThematicBreak(meta.copy(span = Absent))
     case MdNode.Text(value, meta)                => MdNode.Text(value, meta.copy(span = Absent))
     case MdNode.InlineCode(value, meta)          => MdNode.InlineCode(value, meta.copy(span = Absent))
@@ -163,8 +167,18 @@ object MdNode:
       meta: MdMeta = MdMeta.empty
   ) extends MdNode
 
-  final case class ListItem(children: Chunk[FlowContent], meta: MdMeta = MdMeta.empty) extends MdNode
-  final case class ThematicBreak(meta: MdMeta = MdMeta.empty)                          extends MdNode
+  /**
+   * One list item. `checked` is Present only for a GFM task list item, and says whether its box was ticked.
+   *
+   * A field rather than a separate node kind, which is mdast's shape: a task list item is a list item that happens to
+   * carry a checkbox, and every rule about what an item may contain applies to it unchanged.
+   */
+  final case class ListItem(
+      children: Chunk[FlowContent],
+      checked: Maybe[Boolean] = Absent,
+      meta: MdMeta = MdMeta.empty
+  ) extends MdNode
+  final case class ThematicBreak(meta: MdMeta = MdMeta.empty) extends MdNode
 
   // phrasing
   final case class Text(value: String, meta: MdMeta = MdMeta.empty)       extends MdNode

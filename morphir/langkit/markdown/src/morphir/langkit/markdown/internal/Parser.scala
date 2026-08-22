@@ -1041,11 +1041,26 @@ private[markdown] object Parser:
 
     def item(run: BlockRun): (DeferredItem, BlockRun) =
       val span = Span.fromStartEnd(start, run.contentEnd)
+      // Filled when this item's blocks resolve, below -- which is before `CstParser` ever reads it, for the same
+      // reason `InlineSlot` is filled that way rather than here: whether the checkbox stays literal text depends on
+      // every link definition in the document, forward references included, and those are not all known yet.
+      val task = TaskMarkerSlot()
       for
         collector <- cst
         recorded  <- child
-      do collector.record(CstFragment.ListItem(span, recorded.markers, recorded.fragments))
-      (DeferredItem(defs => MdNode.ListItem(Chunk.from(run.blocks.map(_.resolve(defs))), MdMeta.at(span))), run)
+      do collector.record(CstFragment.ListItem(span, recorded.markers, recorded.fragments, task))
+      (
+        DeferredItem(defs =>
+          val resolved = Chunk.from(run.blocks.map(_.resolve(defs)))
+          val marker   = taskMarkerOf(resolved, profile)
+          task.fill(marker)
+          val content = marker match
+            case Absent                                    => resolved
+            case Present((checked = _, span = markerSpan)) => stripTaskMarker(resolved, markerSpan.length)
+          MdNode.ListItem(content, marker.map(_.checked), MdMeta.at(span))
+        ),
+        run
+      )
 
     // An item must consume at least the line that opened it. Guarding that here rather than trusting it: an item that
     // consumed nothing would leave the list gathering the same line for ever, and because nothing was read there is no
@@ -1066,6 +1081,53 @@ private[markdown] object Parser:
       else item(BlockRun(Nil, markerEnd, interiorBlank = false, trailingBlank = false))
 
   private final case class DeferredItem(resolve: Map[String, LinkDefinition] => MdNode.ListItem)
+
+  /**
+   * The checkbox at the head of an item's first paragraph, and the source span of its four characters.
+   *
+   * A marker is `[`, a space or `x` in either case, `]`, and then whitespace, and it counts only as the very first
+   * thing in the item's first paragraph. Absent under a profile that does not recognize task list items, when the first
+   * block is not a paragraph, or when its first inline is not literal text carrying the pattern — an item that opens
+   * with emphasis or a link has no marker to find, and neither does `- foo [ ] bar`, whose first text node is
+   * `foo [ ] bar` rather than the bracket run itself.
+   */
+  private def taskMarkerOf(
+      blocks: Chunk[MdNode.FlowContent],
+      profile: MdProfile
+  ): Maybe[(checked: Boolean, span: Span)] =
+    if !profile.supports(MdExtension.TaskListItems) then Absent
+    else
+      blocks.headOption match
+        case Some(MdNode.Paragraph(content, _)) =>
+          content.headOption match
+            case Some(MdNode.Text(value, meta))
+                if value.length >= 4 && value.charAt(0) == '[' && value.charAt(2) == ']' &&
+                  (value.charAt(3) == ' ' || value.charAt(3) == '\t') =>
+              val ticked = value.charAt(1) match
+                case ' '       => Present(false)
+                case 'x' | 'X' => Present(true)
+                case _         => Absent
+              for
+                checked <- ticked
+                span    <- meta.span
+              yield (checked = checked, span = Span(span.offset, 4))
+            case _ => Absent
+        case _ => Absent
+
+  /**
+   * `blocks` with the task marker's characters removed from the first paragraph's first text node, and that node's span
+   * narrowed to match, so every other span in the item stays true to the source it still owns.
+   */
+  private def stripTaskMarker(blocks: Chunk[MdNode.FlowContent], markerLength: Int): Chunk[MdNode.FlowContent] =
+    blocks.headOption match
+      case Some(paragraph: MdNode.Paragraph) =>
+        paragraph.children.headOption match
+          case Some(text: MdNode.Text) =>
+            val strippedSpan = text.meta.span.map(s => Span(s.offset + markerLength, s.length - markerLength))
+            val stripped     = MdNode.Text(text.value.drop(markerLength), text.meta.copy(span = strippedSpan))
+            blocks.updated(0, paragraph.copy(children = paragraph.children.updated(0, stripped)))
+          case _ => blocks
+      case _ => blocks
 
   /**
    * Where a block's extracted content sits in the source.

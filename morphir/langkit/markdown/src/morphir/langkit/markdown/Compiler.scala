@@ -102,8 +102,13 @@ trait Compiler[Out]:
    */
   def list(ordered: Boolean, start: Maybe[ListStart], children: Chunk[Out]): Out
 
-  /** Compile one list item from its compiled children. Called before [[list]]. */
-  def listItem(children: Chunk[Out]): Out
+  /**
+   * Compile one list item from its compiled children. Called before [[list]].
+   *
+   * `checked` is Present only for a GFM task list item. A target with no checkbox to render should still say something
+   * — the marker was written — rather than silently drop it.
+   */
+  def listItem(checked: Maybe[Boolean], children: Chunk[Out]): Out
 
   /** Compile a thematic break. It has no children and no text, so this is a constant for most formats. */
   def thematicBreak: Out

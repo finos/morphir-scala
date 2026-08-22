@@ -181,9 +181,20 @@ private[markdown] object CstParser:
     case CstFragment.OrderedList(start, delimiter, tight, span, items) =>
       MdCstNode.OrderedList(start, delimiter, tight, assembleRegion(source, span, markers, items), span)
 
-    case CstFragment.ListItem(span, own, children) =>
-      val all = merged(markers, own)
-      MdCstNode.ListItem(assembleRegion(source, span, all, children), span)
+    case CstFragment.ListItem(span, own, children, task) =>
+      // The checkbox's span, when there is one, is filled in only when the item's blocks resolve -- see
+      // [[TaskMarkerSlot]] -- which happens before this runs, so the value is settled by the time it is read here.
+      // Folded into `own` rather than into `markers`, so it punches out of this item's own region, its paragraph's
+      // prose interior included, the same way the item's own indentation does.
+      val ownWithTask = task.marker match
+        case Present((checked = _, span = markerSpan)) =>
+          // `own` arrives offset-sorted from the collector; the checkbox sits inside the first line, ahead of any
+          // continuation line's own indentation marker, so a plain append would not keep that order -- sorting
+          // again is what `merged` itself does for exactly this reason, one line up.
+          Chunk.from((own ++ Chunk((span = markerSpan, phantom = 0))).sortBy(_.span.offset))
+        case Absent => own
+      val all = merged(markers, ownWithTask)
+      MdCstNode.ListItem(assembleRegion(source, span, all, children), task.marker.map(_.checked), span)
 
   /**
    * The enclosing container's markers and this container's, one sorted run. A container's own recorder only sees the

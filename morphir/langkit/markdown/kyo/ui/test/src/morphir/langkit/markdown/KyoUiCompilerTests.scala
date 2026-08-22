@@ -20,7 +20,7 @@ class KyoUiCompilerTests extends Test[Any]:
 
   /** A one-paragraph item, which is what a tight list's items are. */
   private def item(value: String): MdNode.ListItem =
-    MdNode.ListItem(Chunk(MdNode.Paragraph(prose(value), meta)), meta)
+    MdNode.ListItem(Chunk(MdNode.Paragraph(prose(value), meta)), meta = meta)
 
   private def compile(blocks: MdNode.FlowContent*): UI =
     KyoUiCompiler.compile(MdNode.Root(Chunk.from(blocks), meta = meta))

@@ -68,8 +68,11 @@ private[markdown] enum CstFragment:
   /** A run of numbered items sharing one delimiter, starting at `start`. */
   case OrderedList(start: ListStart, delimiter: Char, tight: Boolean, span: Span, items: Chunk[CstFragment])
 
-  /** One item: `markers` cover its marker line's prefix and each continuation line's indentation. */
-  case ListItem(span: Span, markers: Chunk[Marker], children: Chunk[CstFragment])
+  /**
+   * One item: `markers` cover its marker line's prefix and each continuation line's indentation. `task` is filled in
+   * the same deferred way `Paragraph`'s `inlines` is, and for the same reason — see [[TaskMarkerSlot]].
+   */
+  case ListItem(span: Span, markers: Chunk[Marker], children: Chunk[CstFragment], task: TaskMarkerSlot)
 
   def span: Span
 
@@ -92,6 +95,23 @@ private[markdown] final class InlineSlot:
 
   def content: Maybe[Chunk[MdNode.PhrasingContent]] = slot
   def notes: Maybe[InlineNotes]                     = noted
+
+/**
+ * A list item's task-list checkbox, filled in when the item's deferred blocks resolve.
+ *
+ * Recognizing the checkbox reads the item's first paragraph's first text node once inline content has graduated — the
+ * same reason [[InlineSlot]] is deferred rather than read at record time: whether that text node stays literal rather
+ * than becoming a link depends on every link definition in the document, forward references included, and those are not
+ * all known at record time. The slot is created with the fragment, captured by the item's resolve closure, and filled
+ * exactly once when that closure runs — which is before [[CstParser]] reads it, for the same reason [[InlineSlot]]'s
+ * is. Absent once filled means no marker: the profile does not recognize task lists, the item's first block is not a
+ * paragraph, or its first inline is not literal text carrying the pattern.
+ */
+private[markdown] final class TaskMarkerSlot:
+  private var slot: Maybe[(checked: Boolean, span: Span)] = Absent
+
+  def fill(marker: Maybe[(checked: Boolean, span: Span)]): Unit = slot = marker
+  def marker: Maybe[(checked: Boolean, span: Span)]             = slot
 
 /**
  * Collects fragments in source order while the parser runs. Threaded like the `definitions` map.

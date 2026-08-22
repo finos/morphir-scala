@@ -53,7 +53,21 @@ object KyoUiCompiler:
     def list(ordered: Boolean, start: Maybe[ListStart], children: Chunk[UI]): UI =
       if ordered then UI.ol(content(children)) else UI.ul(content(children))
 
-    def listItem(children: Chunk[UI]): UI = UI.li(content(children))
+    /**
+     * A checked box is Present only for a GFM task list item; `checked` says whether it was ticked.
+     *
+     * kyo-ui's own checkbox is a live input a user could toggle, which is not what a rendered task list is: it is a
+     * record of what the author wrote, so it is spelled as raw, disabled markup the way the specification's own
+     * rendering is, rather than through kyo-ui's interactive element.
+     */
+    def listItem(checked: Maybe[Boolean], children: Chunk[UI]): UI =
+      checked match
+        case Absent          => UI.li(content(children))
+        case Present(ticked) =>
+          val box =
+            if ticked then UI.rawHtml("""<input checked="" disabled="" type="checkbox">""")
+            else UI.rawHtml("""<input disabled="" type="checkbox">""")
+          UI.li(UI.fragment(box, UI.Ast.Text(" "), content(children)))
 
     /** kyo-ui escapes a `Text` node when it renders, so the value is handed over raw. */
     def text(value: String): UI = UI.Ast.Text(value)

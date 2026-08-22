@@ -223,7 +223,13 @@ private[markdown] object MdWriter:
     val separator = if list.tight then LineSeparated else BlankSeparated
     val written   = list.children.zipWithIndex.map { case (item, index) =>
       val marker = if list.ordered then s"${first + index}$delimiter " else s"$bullet "
-      val body   = blocks(item.children, separator)
+      // The checkbox is content, not container prefix: it sits after the bullet on the item's own first line, the
+      // same as any other text the item opens with, so continuation lines still indent by the bullet's width alone.
+      val checkbox = item.checked match
+        case Present(true)  => "[x] "
+        case Present(false) => "[ ] "
+        case Absent         => ""
+      val body = checkbox + blocks(item.children, separator)
       // An item that holds nothing spends no space after its marker: a trailing one would be whitespace no line needs.
       if body.isEmpty then marker.stripTrailing else marked(body, marker)
     }.mkString(separator)

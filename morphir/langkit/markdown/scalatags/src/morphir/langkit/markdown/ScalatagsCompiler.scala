@@ -64,7 +64,21 @@ object ScalatagsCompiler:
           case Present(value) if value != ListStart.One => ol(attr("start") := value.toInt.toString)(newline, body)
           case _                                        => ol(newline, body)
 
-    def listItem(children: Chunk[Frag]): Frag = li(frag(children.toSeq*))
+    /**
+     * A checked box is Present only for a GFM task list item; `checked` says whether it was ticked.
+     *
+     * The checkbox is spelled with `raw` rather than the `input` tag: ScalaTags registers `input` as a void element and
+     * self-closes it (`<input ... />`), but the fixtures spell it `<input ... type="checkbox">` with no closing slash —
+     * attribute order and all — so the literal spelling is the one that matches byte for byte.
+     */
+    def listItem(checked: Maybe[Boolean], children: Chunk[Frag]): Frag =
+      checked match
+        case Absent          => li(frag(children.toSeq*))
+        case Present(ticked) =>
+          val box =
+            if ticked then raw("""<input checked="" disabled="" type="checkbox">""")
+            else raw("""<input disabled="" type="checkbox">""")
+          li(box, " ", frag(children.toSeq*))
 
     /** ScalaTags escapes a `String` frag on render, which is exactly the spec's rule, so nothing is done here. */
     def text(value: String): Frag = value

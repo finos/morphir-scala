@@ -108,12 +108,12 @@ class InlineTests extends Test[Any]:
           assert(items(0) ==
             MdNode.ListItem(
               Chunk(MdNode.Paragraph(Chunk(MdNode.Text("one", MdMeta.at(Span(2, 3)))), MdMeta.at(Span(2, 3)))),
-              MdMeta.at(Span(0, 5))
+              meta = MdMeta.at(Span(0, 5))
             ))
           assert(items(1) ==
             MdNode.ListItem(
               Chunk(MdNode.Paragraph(Chunk(MdNode.Text("two", MdMeta.at(Span(8, 3)))), MdMeta.at(Span(8, 3)))),
-              MdMeta.at(Span(6, 5))
+              meta = MdMeta.at(Span(6, 5))
             ))
         case other => assert(false, s"expected a list, got $other")
     }

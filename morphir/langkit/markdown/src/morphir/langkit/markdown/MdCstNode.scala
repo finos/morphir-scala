@@ -50,8 +50,12 @@ enum MdCstNode derives CanEqual:
   /** A run of numbered items sharing `delimiter`, numbered from `start`. */
   case OrderedList(start: ListStart, delimiter: Char, tight: Boolean, children: Chunk[MdCstNode], span: Span)
 
-  /** One item. Its first child is the marker [[Token]]; continuation-line indentation appears as tokens too. */
-  case ListItem(children: Chunk[MdCstNode], span: Span)
+  /**
+   * One item. Its first child is the marker [[Token]]; continuation-line indentation appears as tokens too, and a task
+   * list item's checkbox is a further [[Token]] inside its first paragraph. `checked` is Present only for a GFM task
+   * list item.
+   */
+  case ListItem(children: Chunk[MdCstNode], checked: Maybe[Boolean], span: Span)
 
   /** A raw HTML block. Its interior is [[Text]]: the content is HTML, not Markdown, and is already in final form. */
   case HtmlBlock(children: Chunk[MdCstNode], span: Span)
@@ -152,7 +156,7 @@ enum MdCstNode derives CanEqual:
     case BlockQuote(children, _)              => children
     case BulletList(_, _, children, _)        => children
     case OrderedList(_, _, _, children, _)    => children
-    case ListItem(children, _)                => children
+    case ListItem(children, _, _)             => children
     case HtmlBlock(children, _)               => children
     case LinkReferenceDefinition(children, _) => children
     case CodeSpan(children, _)                => children

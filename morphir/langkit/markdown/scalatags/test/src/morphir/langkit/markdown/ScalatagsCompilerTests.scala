@@ -16,7 +16,7 @@ class ScalatagsCompilerTests extends Test[Any]:
 
   /** A one-paragraph item, which is what a tight list's items are. */
   private def item(value: String): MdNode.ListItem =
-    MdNode.ListItem(Chunk(MdNode.Paragraph(prose(value), meta)), meta)
+    MdNode.ListItem(Chunk(MdNode.Paragraph(prose(value), meta)), meta = meta)
 
   private def render(blocks: MdNode.FlowContent*): String =
     ScalatagsCompiler.render(MdNode.Root(Chunk.from(blocks), meta = meta))

@@ -27,7 +27,7 @@ private[markdown] object MarkdownFold:
       case MdNode.Html(value, _)                           => compiler.html(value)
       case MdNode.Blockquote(children, _)                  => compiler.blockquote(children.map(compileFlow))
       case list @ MdNode.List(ordered, start, _, items, _) =>
-        compiler.list(ordered, start, items.map(item => compiler.listItem(compileItem(item, list.tight))))
+        compiler.list(ordered, start, items.map(item => compiler.listItem(item.checked, compileItem(item, list.tight))))
       case MdNode.ThematicBreak(_) => compiler.thematicBreak
 
   /**

@@ -205,8 +205,8 @@ private[markdown] object Lower:
       definitions: Map[String, LinkDefinition],
       docEnd: Int
   ): Chunk[MdNode.ListItem] =
-    children.collect { case MdCstNode.ListItem(itemChildren, span) =>
-      MdNode.ListItem(blocks(itemChildren, definitions, docEnd), MdMeta.at(span))
+    children.collect { case MdCstNode.ListItem(itemChildren, checked, span) =>
+      MdNode.ListItem(blocks(itemChildren, definitions, docEnd), checked, MdMeta.at(span))
     }
 
   /** Fence metadata from the opening token's info string; content from the text leaves, indentation removed. */

@@ -150,11 +150,11 @@ class ParserTests extends Test[Any]:
             Chunk(
               MdNode.ListItem(
                 Chunk(MdNode.Paragraph(Chunk(MdNode.Text("alpha", MdMeta.at(Span(2, 5)))), MdMeta.at(Span(2, 5)))),
-                MdMeta.at(Span(0, 7))
+                meta = MdMeta.at(Span(0, 7))
               ),
               MdNode.ListItem(
                 Chunk(MdNode.Paragraph(Chunk(MdNode.Text("beta", MdMeta.at(Span(10, 4)))), MdMeta.at(Span(10, 4)))),
-                MdMeta.at(Span(8, 6))
+                meta = MdMeta.at(Span(8, 6))
               )
             ),
             MdMeta.at(Span(0, 14))
