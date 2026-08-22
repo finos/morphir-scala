@@ -199,3 +199,6 @@ Tests do not call `api.github.com`. Flag tests assert `token.name` and `token.en
 
 The named providers, mill paths, and `kyo.Command` process floor have shipped under
 [intent 0020](../../../intent/0020-github-graphql-connector.md).
+
+UI-submitted credentials, writable secret storage, Electron persistence, and the CLI-launched browser host are
+designed in [GitHub connection settings and local web host](./github-connection-settings-and-local-web-host.md).

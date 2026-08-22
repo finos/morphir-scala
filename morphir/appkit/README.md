@@ -21,3 +21,13 @@ Planned leaves are backlog intents. Do not add mill children for them until the 
 
 Appkit is not `kit` (Scala library bridges) and not `connector` (external-system clients). See
 `kb/bundles/morphir/morphir-scala/decisions/0013-published-library-families.md`.
+
+## GitHub connection persistence
+
+`SecretVault` extends `SecretStore` with `put` and `remove`. The local web host uses an operating-system
+credential store for remembered GitHub.com tokens. A session-only connection does not write a vault entry and
+ends when its host process exits. Remembering is always an explicit UI choice.
+
+If writing a remembered credential fails, the connection attempt fails and leaves the active connection unchanged.
+It does not downgrade silently to a session connection. Disconnect removes both the in-memory connection and any
+remembered credential for that host.

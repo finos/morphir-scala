@@ -1,0 +1,12 @@
+extends: Module
+
+object jvm:
+  extends: [build.MorphirJVMModule, build.MorphirKyoCoreMvnDeps, build.MorphirWebServerResources]
+  moduleDeps: [build.morphir.ui.jvm, build.morphir.connector.github.jvm, build.morphir.appkit.jvm]
+  mvnDeps: !append
+  - io.getkyo::kyo-http
+  - io.getkyo::kyo-jsonrpc
+  - io.getkyo::kyo-schema
+  - io.getkyo::kyo-schema-json
+  object test:
+    extends: [ScalaTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps]

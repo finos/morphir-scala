@@ -42,9 +42,9 @@ private[appkit] object PlatformSecurity extends SecurityCli:
   private def commandFailure(exception: CommandException): SecretException =
     exception match
       case _: ProgramNotFoundException | _: PermissionDeniedException =>
-        SecretException.NotAvailable(s"security is not installed or could not be started: ${exception.getMessage}")
-      case other =>
-        SecretException.LookupFailed(other.getMessage)
+        SecretException.NotAvailable("security is not installed or could not be started")
+      case _ =>
+        SecretException.LookupFailed("security command could not be started")
 
   private[appkit] def stripTrailingLineEnding(value: String): String =
     if value.endsWith("\r\n") then value.dropRight(2)

@@ -1,7 +1,12 @@
 package morphir.appkit.electron.internal
 
+import kyo.*
+import scala.concurrent.ExecutionContext
 import scala.scalajs.js
 import scala.scalajs.js.annotation.*
+import scala.scalajs.js.Thenable.Implicits.*
+import scala.scalajs.js.typedarray.Uint8Array
+import scala.util.{Failure, Success}
 
 /**
  * Minimal `js.native` declarations over the Electron main-process APIs this leaf touches. Glue only — nothing here is
@@ -9,7 +14,7 @@ import scala.scalajs.js.annotation.*
  */
 private[electron] object facades:
 
-  /** Node Buffer, as returned by `safeStorage.encryptString`. */
+  /** Node Buffer, as returned by `safeStorage.encryptStringAsync`. */
   @js.native
   trait Buffer extends js.typedarray.Uint8Array
 
@@ -19,12 +24,61 @@ private[electron] object facades:
     def from(array: js.typedarray.Uint8Array): Buffer = js.native
 
   def toBuffer(bytes: Array[Byte]): Buffer =
-    val arr = new js.typedarray.Uint8Array(bytes.length)
+    BufferModule.from(toUint8Array(bytes))
+
+  def toUint8Array(bytes: Array[Byte]): Uint8Array =
+    val arr = new Uint8Array(bytes.length)
     var i   = 0
     while i < bytes.length do
       arr(i) = (bytes(i) & 0xff).toShort
       i += 1
-    BufferModule.from(arr)
+    arr
+
+  def toSpan(bytes: Uint8Array): Span[Byte] =
+    val arr = new Array[Byte](bytes.length)
+    var i   = 0
+    while i < bytes.length do
+      arr(i) = bytes(i).toByte
+      i += 1
+    Span.from(arr)
+
+  def awaitPromise[A](promise: => js.Promise[A]): Result[Throwable, A] < Async =
+    try
+      given ExecutionContext = scala.scalajs.concurrent.JSExecutionContext.queue
+      val completed          = promise.toFuture.transform {
+        case Success(value) => Success(Result.succeed(value))
+        case Failure(error) => Success(Result.fail(error))
+      }
+      Async.fromFuture(completed)
+    catch case error: Throwable => Result.fail(error)
+
+  def isLinux: Boolean =
+    js.Dynamic.global.process.platform.asInstanceOf[String] == "linux"
+
+  val recursiveDirectoryOptions: js.Object = js.Dynamic.literal(recursive = true)
+
+  @js.native
+  @JSImport("node:fs", JSImport.Namespace)
+  object nodeFs extends js.Object:
+    def existsSync(path: String): Boolean                   = js.native
+    def readFileSync(path: String): Uint8Array              = js.native
+    def mkdirSync(path: String, options: js.Object): Unit   = js.native
+    def openSync(path: String, flags: String): Int          = js.native
+    def writeFileSync(handle: Int, bytes: Uint8Array): Unit = js.native
+    def fsyncSync(handle: Int): Unit                        = js.native
+    def closeSync(handle: Int): Unit                        = js.native
+    def renameSync(from: String, to: String): Unit          = js.native
+    def unlinkSync(path: String): Unit                      = js.native
+
+  @js.native
+  @JSImport("node:path", JSImport.Namespace)
+  object nodePath extends js.Object:
+    def dirname(path: String): String = js.native
+
+  @js.native
+  @JSImport("node:crypto", JSImport.Namespace)
+  object nodeCrypto extends js.Object:
+    def randomUUID(): String = js.native
 
   @js.native
   trait WebContents extends js.Object:
@@ -65,6 +119,12 @@ private[electron] object facades:
   @js.native
   @JSImport("electron", "safeStorage")
   object safeStorage extends js.Object:
-    def isEncryptionAvailable(): Boolean         = js.native
-    def encryptString(plain: String): Buffer     = js.native
-    def decryptString(encrypted: Buffer): String = js.native
+    def isAsyncEncryptionAvailable(): js.Promise[Boolean]                = js.native
+    def encryptStringAsync(plain: String): js.Promise[Buffer]            = js.native
+    def decryptStringAsync(encrypted: Buffer): js.Promise[DecryptResult] = js.native
+    def getSelectedStorageBackend(): String                              = js.native
+
+  @js.native
+  trait DecryptResult extends js.Object:
+    def result: String           = js.native
+    def shouldReEncrypt: Boolean = js.native
