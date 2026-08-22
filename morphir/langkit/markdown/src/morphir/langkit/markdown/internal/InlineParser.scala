@@ -900,7 +900,7 @@ private[markdown] object InlineParser:
    * whitespace. The spec disagrees, and example 353 is the difference: `*\u00a0a\u00a0*` is not emphasis, because the
    * runs are surrounded by whitespace and so flank neither way.
    */
-  private def isUnicodeWhitespace(char: Char): Boolean =
+  private[markdown] def isUnicodeWhitespace(char: Char): Boolean =
     char == ' ' || char == '\t' || char == '\n' || char == '\r' || char == '\f' ||
       Character.getType(char) == Character.SPACE_SEPARATOR.toInt
 
@@ -1221,16 +1221,28 @@ private[markdown] object InlineParser:
    * `nodeStart` says the character at `at` opens a text node of its own, which is a boundary whatever precedes it in
    * this string. The scan needs it only at `at == 0`, where the test is free; [[MdWriter]] passes it after writing a
    * character reference, because a reference is its own node in a parse and so opens one.
+   *
+   * `end` bounds how far a match may reach; `-1` (the default) means the whole string. [[MdWriter]]'s escaper passes a
+   * narrower one: a segment it is about to close with an escape of its own — for a reason that has nothing to do with
+   * autolinks — becomes its own node in a reparse, so a match has to be complete *within* that segment to be one a
+   * reparse will actually see. Checking the unbounded string would find matches a reparse never will, and miss the
+   * mirror case: a prefix invalid over the whole string only because of what comes after the cut.
    */
-  private[markdown] def extendedAutolinkAt(value: String, at: Int, nodeStart: Boolean): Maybe[ExtendedMatch] =
+  private[markdown] def extendedAutolinkAt(
+      value: String,
+      at: Int,
+      nodeStart: Boolean,
+      end: Int = -1
+  ): Maybe[ExtendedMatch] =
     if at > 0 && !nodeStart && !isExtendedBoundary(value.charAt(at - 1)) then Absent
     else
-      wwwAutolinkAt(value, at) match
+      val bounded = if end < 0 || end == value.length then value else value.substring(0, end)
+      wwwAutolinkAt(bounded, at) match
         case found @ Present(_) => found
         case Absent             =>
-          urlAutolinkAt(value, at) match
+          urlAutolinkAt(bounded, at) match
             case found @ Present(_) => found
-            case Absent             => emailAutolinkAt(value, at)
+            case Absent             => emailAutolinkAt(bounded, at)
 
   private def isExtendedBoundary(char: Char): Boolean =
     isUnicodeWhitespace(char) || char == '*' || char == '_' || char == '~' || char == '('

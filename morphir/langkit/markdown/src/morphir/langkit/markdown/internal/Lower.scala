@@ -39,8 +39,20 @@ private[markdown] object Lower:
    * Each one changes how the HTML inside it is interpreted, which is why the specification singles them out: a
    * `<script>` a document author did not intend is not a formatting difference. Every other tag is untouched.
    */
-  private[markdown] val disallowedTags: Set[String] =
+  private val disallowedTags: Set[String] =
     Set("title", "textarea", "style", "xmp", "iframe", "noembed", "noframes", "script", "plaintext")
+
+  /**
+   * The unfiltered source text of a tag-filtered `Html` or `InlineHtml` node, present in [[MdMeta.data]] exactly when
+   * filtering changed the value.
+   *
+   * The decision "this value was filtered" has to be recorded in the tree, the same as every other profile-dependent
+   * decision this module makes — a string-shape guess at lowering's output cannot tell a filtered `<script>` apart from
+   * an author who typed `&lt;script>` outright, since both filter and plain authorship produce the identical `&lt;`
+   * text. Recording the pre-filter original beside it is what [[MdWriter]] reads back to write the node faithfully
+   * without guessing: emit the recorded original when the key is present, the value itself otherwise.
+   */
+  private[markdown] val unfilteredHtml: MetaKey[String] = MetaKey[String]("md.internal.unfilteredHtml")
 
   /**
    * Raw HTML with the leading `<` of every disallowed tag replaced by `&lt;`.
@@ -77,52 +89,22 @@ private[markdown] object Lower:
 
     loop(0)
 
-  /**
-   * The inverse of [[filterTags]]: `&lt;` immediately in front of one of the nine disallowed tag names, in a delimited
-   * position, is turned back into a literal `<`. Every other `&lt;` — one that does not lead a disallowed name, or one
-   * that does but is not delimited — is left exactly as written.
-   *
-   * `filterTags` never produces `&lt;` any other way, so recognizing this one shape and reversing it is safe: it is
-   * what lets [[MdWriter]] round-trip a filtered node at all. Reconstructing the pre-filter `<` and writing it out as
-   * ordinary raw HTML gives the parser a real tag to recognize again; lowering the result under a profile that enables
-   * [[MdExtension.TagFilter]] then reapplies `filterTags` and arrives back at the same value. The writer itself has no
-   * way to represent "this is what a filtered tag renders as" any other way, since GFM's own markup has no syntax for a
-   * raw `<` that must survive as `&lt;` — only [[MdExtension.TagFilter]], applied again at lowering, can produce that
-   * byte.
-   */
-  private[markdown] def unfilterTags(value: String): String =
-    val out = StringBuilder()
-
-    @annotation.tailrec
-    def nameEnd(index: Int): Int =
-      if index < value.length && value.charAt(index).isLetterOrDigit then nameEnd(index + 1) else index
-
-    @annotation.tailrec
-    def loop(index: Int): String =
-      if index >= value.length then out.result()
-      else if !value.startsWith("&lt;", index) then
-        out += value.charAt(index)
-        loop(index + 1)
-      else
-        val afterEntity  = index + 4
-        val afterBracket =
-          if afterEntity < value.length && value.charAt(afterEntity) == '/' then afterEntity + 1 else afterEntity
-        val end       = nameEnd(afterBracket)
-        val name      = value.substring(afterBracket, end).toLowerCase
-        val delimited = end >= value.length || value.charAt(end) == '>' || value.charAt(end).isWhitespace ||
-          (value.charAt(end) == '/' && end + 1 < value.length && value.charAt(end + 1) == '>')
-        if disallowedTags.contains(name) && delimited then
-          out += '<'
-          loop(afterEntity)
-        else
-          out += '&'
-          loop(index + 1)
-
-    loop(0)
-
   /** `filterTags` when the profile enables it, and the value unchanged otherwise. */
   private def rawHtml(value: String)(using profile: MdProfile): String =
     if profile.supports(MdExtension.TagFilter) then filterTags(value) else value
+
+  /**
+   * The meta a tag-filtered `Html` or `InlineHtml` node carries: its span, and — only when filtering actually changed
+   * `original` — the original under [[unfilteredHtml]].
+   *
+   * `filtered` is always what `rawHtml` already produced from `original`; comparing the two here is what tells apart
+   * "nothing to record" (no filtering happened, or the profile does not filter at all) from "the original is worth
+   * keeping" (filtering changed the value), which is the one distinction [[MdWriter]] needs and a bare string cannot
+   * answer honestly.
+   */
+  private def rawHtmlMeta(span: Span, original: String, filtered: String): MdMeta =
+    val base = MdMeta.at(span)
+    if filtered == original then base else base.updated(unfilteredHtml, original)
 
   /**
    * The frontmatter node one CST block means: its raw value, undecoded.
@@ -257,7 +239,9 @@ private[markdown] object Lower:
             MdMeta.at(span)
           ))
         case MdCstNode.HtmlBlock(children, span) =>
-          out.addOne(MdNode.Html(rawHtml(contentText(children)), MdMeta.at(span)))
+          val original = contentText(children)
+          val filtered = rawHtml(original)
+          out.addOne(MdNode.Html(filtered, rawHtmlMeta(span, original, filtered)))
         case MdCstNode.BlockQuote(children, span) =>
           out.addOne(MdNode.Blockquote(blocks(children, definitions, docEnd), MdMeta.at(span)))
         case MdCstNode.BulletList(_, tight, children, span) =>
@@ -486,7 +470,9 @@ private[markdown] object Lower:
         ))
 
       case MdCstNode.RawHtml(children, span) =>
-        Chunk(MdNode.InlineHtml(rawHtml(contentText(children)), MdMeta.at(span)))
+        val original = contentText(children)
+        val filtered = rawHtml(original)
+        Chunk(MdNode.InlineHtml(filtered, rawHtmlMeta(span, original, filtered)))
 
       case MdCstNode.Emphasis(_, strong, children, span) =>
         // Leftover delimiters of a partially consumed run sit verbatim outside the tokens; they are prose siblings,

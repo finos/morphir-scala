@@ -113,21 +113,41 @@ private[markdown] object MdWriter:
    * lone `_` between two letters is nothing at all until the word moves. Escaping unconditionally keeps the escaper a
    * function of the character rather than of the surrounding grammar.
    *
-   * `@` joins the set for a narrower reason than the rest: [[InlineParser.extendedAutolinkAt]]'s email form is the one
-   * shape [[escapeText]] cannot always see coming. The other two extended forms anchor on a `.` or a scheme's `:`, both
-   * too common to escape unconditionally, so those stay defended dynamically — matched against the whole value and
-   * broken only at the one character that makes the match, the way [[escapeText]]'s own doc comment describes. The
-   * email form anchors on `@` alone, which is rare enough in ordinary prose that escaping it always costs nothing, and
-   * doing so sidesteps a real bug: escaping some *other* always-escaped character earlier in the same value — the run's
-   * own trailing `_`, say — can split the text into a fresh node right where a domain's invalidating tail character
-   * used to sit, turning a value the dynamic check correctly saw as no match into one that reads as a match anyway once
-   * the split lands. `@` is rare enough that removing it from consideration entirely is simpler than teaching the
-   * dynamic check about escapes not yet decided.
+   * `@` joins the set for a narrower reason than the rest: an email address is the one extended form GFM recognises
+   * that [[escapeText]] can defend statically rather than dynamically. `.` and a scheme's `:`, the other two forms'
+   * anchors, are too common in ordinary prose to escape unconditionally, so those stay defended the dynamic way —
+   * matched against the value and broken only at the one character that makes the match, the way [[escapeText]]'s own
+   * doc comment describes. `@` is rare enough that escaping it always, whether or not this position would ever complete
+   * a match, costs nothing.
    */
   private val AlwaysEscaped: Set[Char] = Set('\\', '`', '*', '_', '[', ']', '<', '>', '&', '#', '!', '~', '|', '@')
 
   /** Punctuation that means something only at the head of a line: two list markers and a setext underline. */
   private val LineLeadEscaped: Set[Char] = Set('-', '+', '=')
+
+  /**
+   * How far ahead of `from` an extended-autolink match may be checked, bounded by the next character this writer is
+   * going to turn into its own node regardless of what any autolink scan decides.
+   *
+   * A match's own span never crosses whitespace — `domainEnd`, `emailDomainEnd` and `extendedRunEnd` all stop there
+   * unconditionally — so bounding at the next whitespace character never shortens a genuine match. Bounding at the next
+   * [[AlwaysEscaped]] character (`@` excepted — see its own doc comment) is the same fact applied one level further:
+   * that character is always going to be escaped, which always splits the text into two nodes at reparse time, so no
+   * match can genuinely reach past it either. Passing this bound to [[InlineParser.extendedAutolinkAt]] is what lets a
+   * single forward pass catch a match that a truncated *prefix* would complete — `www.a.exam` out of
+   * `www.a.exam_ple.com`, whole only because the trailing `_` invalidates its domain and only visible once the
+   * always-escaped `_` ahead is accounted for — the same way the existing mechanism already catches a match starting
+   * exactly where it is checked.
+   */
+  private def autolinkBound(value: String, from: Int): Int =
+    @annotation.tailrec
+    def loop(index: Int): Int =
+      if index >= value.length then index
+      else
+        val char = value.charAt(index)
+        if char != '@' && (InlineParser.isUnicodeWhitespace(char) || AlwaysEscaped.contains(char)) then index
+        else loop(index + 1)
+    loop(from)
 
   /**
    * A run of blocks, joined by whatever the run that holds them keeps between siblings.
@@ -162,7 +182,7 @@ private[markdown] object MdWriter:
     case MdNode.Paragraph(children, _)  => inlines(children, atLineStart = true)
     case heading: MdNode.Heading        => writeHeading(heading)
     case code: MdNode.Code              => writeCode(code)
-    case MdNode.Html(value, _)          => Lower.unfilterTags(value)
+    case MdNode.Html(value, meta)       => meta.get(Lower.unfilteredHtml).getOrElse(value)
     case MdNode.Blockquote(children, _) => prefixed(blocks(children, BlankSeparated), "> ", ">")
     case list: MdNode.List              => writeList(list)._1
     case table: MdNode.Table            => writeTable(table)
@@ -378,17 +398,20 @@ private[markdown] object MdWriter:
         // of the value's own embedded newline surviving as a space rather than as itself. A code span holding a raw
         // newline is a node no parse of a `oneLine` context produces, so this only fires for a hand-built tree.
         writeInlineCode(if oneLine then value.replace('\n', ' ') else value)
-      case MdNode.InlineHtml(value, _) =>
+      case MdNode.InlineHtml(value, meta) =>
         // Raw HTML is emitted verbatim everywhere else — escaping it would show the author their own markup — but a
         // `oneLine` context has nowhere to put a literal line ending at all, so it is downgraded to a space here, the
         // one substitution HTML's own whitespace handling treats as equivalent inside a tag.
         //
-        // `unfilterTags` runs first because a value GFM's disallowed-tag filter produced no longer opens with a
-        // literal `<` — writing it as given would hand the parser `&lt;title>`, which reads back as text rather
-        // than as a tag at all. Reconstructing the `<` gives the parser a real tag to see again, and lowering under
-        // a profile with the tag filter on reapplies it, arriving back at the same value. See [[Lower.unfilterTags]].
-        val unfiltered = Lower.unfilterTags(value)
-        if oneLine then unfiltered.replace('\n', ' ') else unfiltered
+        // A node the tag filter changed carries its pre-filter text under `Lower.unfilteredHtml`; that recorded
+        // original is what gets written, not `value` — `value` no longer opens with a literal `<` once filtered, so
+        // writing it as given would hand the parser `&lt;title>`, which reads back as text rather than as a tag at
+        // all. Writing the recorded original instead gives the parser a real tag to see again, and lowering under a
+        // profile with the tag filter on reapplies the same filter, arriving back at the same value. A node the
+        // filter never touched carries no such key, and `value` is written as given, exactly as before this profile
+        // existed.
+        val original = meta.get(Lower.unfilteredHtml).getOrElse(value)
+        if oneLine then original.replace('\n', ' ') else original
       case link: MdNode.Link =>
         s"[${inlines(link.children, atLineStart = false, oneLine)}](${target(link.url, link.title)})"
       case image: MdNode.Image =>
@@ -509,11 +532,19 @@ private[markdown] object MdWriter:
    *
    * The extended email form anchors on `@` instead of a `.` or a scheme's `:`. When this loop finds a genuine email
    * match ahead, its anchor is still broken the dynamic way, as a character reference, exactly like the other two
-   * forms. `@` sits in [[AlwaysEscaped]] besides, for a match this loop cannot see: escaping some *other*
-   * always-escaped character earlier in the same value can split the text at reparse time in a way that turns a value
-   * with no valid match into one that reads as one anyway, right where an invalidating tail character used to sit. `@`
-   * is rare enough in ordinary prose that closing that gap by escaping it unconditionally costs nothing — see
-   * [[AlwaysEscaped]]'s own doc comment.
+   * forms; `@` also sits in [[AlwaysEscaped]], which costs nothing since ordinary prose rarely holds one — see its own
+   * doc comment for why.
+   *
+   * `pending`'s lookup is bounded by [[autolinkBound]], not by the whole of `value`. Escaping some character ahead of
+   * the checked position — for a reason that has nothing to do with autolinks, such as a domain's own trailing `_` —
+   * closes off a node at reparse time exactly where that character sits, so a match has to complete *before* it to be
+   * one a reparse will still see. Checked unbounded, `wwwAutolinkAt` correctly finds no match over the whole of
+   * `www.a.exam_ple.com`, since a domain's last two labels may not hold `_`; checked against the same string cut off at
+   * the `_` this loop is about to escape anyway, `www.a.exam` is a complete match on its own, and one a reparse — which
+   * will see exactly that prefix as its own node — reads the same way. `autolinkBound` is what makes the checked string
+   * agree with what reparsing will actually see, in both directions: it neither hides a match a reparse will find,
+   * since none of the three forms ever scans across whitespace or an always-escaped character regardless, nor misses
+   * one only a truncated prefix completes.
    *
    * **Every branch that writes a character reference or a backslash escape hands `nodeStart = true` forward, and the
    * recognition above depends on it.** A parse makes each of those a node of its own, so what follows one opens a node,
@@ -547,7 +578,7 @@ private[markdown] object MdWriter:
         val pending =
           if breakAt >= index then breakAt
           else
-            InlineParser.extendedAutolinkAt(value, index, nodeStart) match
+            InlineParser.extendedAutolinkAt(value, index, nodeStart, autolinkBound(value, index)) match
               case Present(matched) => matched.anchor
               case Absent           => breakAt
 

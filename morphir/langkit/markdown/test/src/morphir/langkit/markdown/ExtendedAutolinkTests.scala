@@ -432,4 +432,30 @@ class ExtendedAutolinkTests extends Test[Any]:
       assert(Cst.tilingErrors(raised, written.length).isEmpty, Cst.tilingErrors(raised, written.length).mkString("; "))
       assert(Cst.print(raised) == written)
     }
+
+    /**
+     * `www.a.exam_ple.com` holds no match over the whole string — a domain's last two labels may not carry an
+     * underscore — but the writer always escapes `_` regardless, for reasons that have nothing to do with autolinks.
+     * That escape closes off a node in a reparse exactly where the underscore sits, and the prefix it leaves behind,
+     * `www.a.exam`, is a complete match on its own: checked unbounded, as the escaper's very first pass over this
+     * string does, `wwwAutolinkAt` correctly finds nothing, but a reparse of what an escaper blind to its own later
+     * escapes would have written sees exactly that prefix as its own text node and reads a link there. `autolinkBound`
+     * is what keeps the check in step with what a reparse will actually see.
+     */
+    "does not invent a link when escaping a domain's own trailing invalid character truncates a longer one into a match" in {
+      given MdProfile = MdProfile.gfm
+      given MdStyle   = MdStyle()
+      val tree        = MdNode.Root(Chunk(MdNode.Paragraph(Chunk(MdNode.Text("www.a.exam_ple.com")))))
+      val written     = MdWriter.write(tree)
+      assert(!written.contains("href"), written)
+      val reparsed = Parser.parse(written).getOrThrow
+      val found    = reparsed.children.head match
+        case MdNode.Paragraph(content, _) => walk(content)
+        case other                        => throw new AssertionError(s"expected a paragraph, got $other")
+      assert(found.isEmpty, s"invented a link: $written")
+      assert(
+        normalize(reparsed.unpositioned) == normalize(tree.unpositioned),
+        s"round trip changed: $written"
+      )
+    }
   }

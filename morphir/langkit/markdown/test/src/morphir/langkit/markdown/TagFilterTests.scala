@@ -2,7 +2,7 @@ package morphir.langkit.markdown
 
 import kyo.*
 import kyo.test.*
-import morphir.langkit.markdown.internal.{Cst, CstParser, Parser}
+import morphir.langkit.markdown.internal.{Cst, CstParser, Lower, MdWriter, Parser}
 
 /**
  * GFM's disallowed-raw-HTML filter.
@@ -59,5 +59,68 @@ class TagFilterTests extends Test[Any]:
       given MdProfile = MdProfile.gfm
       val source      = "<strong> <title>\n"
       assert(Cst.print(CstParser.parse(source)) == source)
+    }
+  }
+
+  /**
+   * The writer cannot tell a filtered `<title>` apart from an author who typed `&lt;title>` outright by looking at the
+   * value alone — both are the identical string once filtering runs. [[Lower.rawHtmlMeta]] records the pre-filter
+   * original under [[Lower.unfilteredHtml]] exactly when filtering changed the value, and [[MdWriter]] writes that
+   * recorded original back rather than guessing one from the string's shape. This roster is what a string-shape
+   * inversion could not pass: in particular "a node holding both forms" below, where the same value carries a filtered
+   * tag and an author-written look-alike side by side.
+   */
+  "round-trips through the Markdown writer" - {
+
+    "a filtered inline tag writes as its recorded original and reparses to the same tree" in {
+      given MdProfile = MdProfile.gfm
+      val original    = Parser.parse("<em><title>x</title></em>\n").getOrThrow
+      val written     = MdWriter.write(original)
+      assert(written.contains("<title>x</title>"), written)
+      assert(!written.contains("&lt;"), written)
+      assert(Parser.parse(written).getOrThrow.unpositioned == original.unpositioned, written)
+    }
+
+    "a filtered closing tag writes as its recorded original and reparses to the same tree" in {
+      given MdProfile = MdProfile.gfm
+      val original    = Parser.parse("<em></script></em>\n").getOrThrow
+      val written     = MdWriter.write(original)
+      assert(written.contains("</script>"), written)
+      assert(!written.contains("&lt;"), written)
+      assert(Parser.parse(written).getOrThrow.unpositioned == original.unpositioned, written)
+    }
+
+    "case-insensitive filtering round-trips through the writer" in {
+      given MdProfile = MdProfile.gfm
+      val original    = Parser.parse("<blockquote>\n  <XMP>x</XMP>\n</blockquote>\n").getOrThrow
+      val written     = MdWriter.write(original)
+      assert(written.contains("<XMP>x</XMP>"), written)
+      assert(!written.contains("&lt;"), written)
+      assert(Parser.parse(written).getOrThrow.unpositioned == original.unpositioned, written)
+    }
+
+    "an author-written &lt;script> under the CommonMark profile survives the writer verbatim" in {
+      given MdProfile = MdProfile.commonmark
+      val source      = "<div>Use &lt;script> here</div>\n"
+      val original    = Parser.parse(source).getOrThrow
+      val written     = MdWriter.write(original)
+      assert(written.contains("&lt;script>"), written)
+      assert(!written.contains("<script>"), written)
+    }
+
+    "a node holding both a filtered tag and an author-written look-alike writes each correctly" in {
+      given MdProfile = MdProfile.gfm
+      val source      = "<div>Use &lt;script> here, <title>x</title></div>\n"
+      val original    = Parser.parse(source).getOrThrow
+      val html        = original.children.collect { case h: MdNode.Html => h }.head
+      // The author's text was never a real `<`, so filtering never touched it: it is the identical substring before
+      // and after. The real `<title>` tag is what changed, which is what makes the recorded original non-trivial
+      // here rather than merely equal to the filtered value.
+      assert(html.value.contains("&lt;script>"), html.value)
+      assert(html.value.contains("&lt;title>x&lt;/title>"), html.value)
+      val written = MdWriter.write(original)
+      assert(written.contains("&lt;script>"), written)
+      assert(written.contains("<title>x</title>"), written)
+      assert(Parser.parse(written).getOrThrow.unpositioned == original.unpositioned, written)
     }
   }

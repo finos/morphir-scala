@@ -176,9 +176,10 @@ class ConformanceTests extends Test[Any]:
    *
    * Computed by comparing source-and-expected-HTML pairs rather than stored, because the duplication is a property of
    * the published suites and not something we should have to maintain a second copy of. A dialect that is a superset of
-   * another shares most of its examples — GFM shares 622 of its measured examples with CommonMark 0.31.2, and 636 with
-   * CommonMark 0.29, which is the release its base was drawn from — and a score that does not separate the two reads as
-   * if every example were about the extension under construction.
+   * another shares most of its examples — GFM shares 622 of its measured examples with CommonMark 0.31.2, and,
+   * historically, 636 with CommonMark 0.29, which is the release its base was drawn from (this method only computes
+   * against loaded baselines, so the 0.29 figure is not itself a live measurement) — and a score that does not separate
+   * the two reads as if every example were about the extension under construction.
    */
   private def sharedWith(baseline: Baseline): Chunk[(String, Int, Int)] =
     val measured = examplesOf(baseline).filterNot(example => baseline.divergedExamples.contains(example.example))
