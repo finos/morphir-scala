@@ -26,6 +26,7 @@ Draft Design Notes and research are provisional.
 
 ## Orientation
 
+* [Markdown GFM Profile](/markdown-gfm-profile.md) - morphir-langkit-markdown parses CommonMark 0.31.2 and, behind MdProfile.gfm, GitHub Flavored Markdown's five extensions, with a conformance-measured writer.
 * [Knowledge Base Tooling](/knowledge-base-tooling.md) - The kb skill manages the OKF knowledge base and the intent recorded in it, from the command line.
 * [Continuous Integration](/continuous-integration.md) - GitHub Actions runs linting, cross-platform tests and knowledge base checks on pull requests targeting supported branches.
 * [Build System](/build-system.md) - Mill drives the build from per-directory package.mill.yaml files, with mise as the task runner.

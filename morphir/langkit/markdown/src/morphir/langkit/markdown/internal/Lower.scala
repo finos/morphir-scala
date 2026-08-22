@@ -21,7 +21,7 @@ import morphir.langkit.markdown.*
  */
 private[markdown] object Lower:
 
-  def lower(document: MdCstNode.Document): MdNode.Root =
+  def lower(document: MdCstNode.Document)(using profile: MdProfile): MdNode.Root =
     val definitions = collectDefinitions(document)
     // Frontmatter is a field on the root rather than a block, and it is only ever the first child — the parser
     // recognizes it at offset zero or not at all — so the head is the only place worth looking.
@@ -32,6 +32,79 @@ private[markdown] object Lower:
       Maybe.fromOption(frontmatter.map(loweredFrontMatter)),
       meta = MdMeta.at(document.span)
     )
+
+  /**
+   * The nine tag names GFM refuses to pass through.
+   *
+   * Each one changes how the HTML inside it is interpreted, which is why the specification singles them out: a
+   * `<script>` a document author did not intend is not a formatting difference. Every other tag is untouched.
+   */
+  private val disallowedTags: Set[String] =
+    Set("title", "textarea", "style", "xmp", "iframe", "noembed", "noframes", "script", "plaintext")
+
+  /**
+   * The unfiltered source text of a tag-filtered `Html` or `InlineHtml` node, present in [[MdMeta.data]] exactly when
+   * filtering changed the value.
+   *
+   * The decision "this value was filtered" has to be recorded in the tree, the same as every other profile-dependent
+   * decision this module makes — a string-shape guess at lowering's output cannot tell a filtered `<script>` apart from
+   * an author who typed `&lt;script>` outright, since both filter and plain authorship produce the identical `&lt;`
+   * text. Recording the pre-filter original beside it is what [[MdWriter]] reads back to write the node faithfully
+   * without guessing: emit the recorded original when the key is present, the value itself otherwise.
+   */
+  private[markdown] val unfilteredHtml: MetaKey[String] = MetaKey[String]("md.internal.unfilteredHtml")
+
+  /**
+   * Raw HTML with the leading `<` of every disallowed tag replaced by `&lt;`.
+   *
+   * Only the `<` is replaced — the closing `>` stays as written, which is what the specification's expected output
+   * shows. Matching is case-insensitive and covers the closing form, and a name is only a match when what follows it is
+   * whitespace, `>` or `/>`, so `<scriptable>` is left alone.
+   */
+  private def filterTags(value: String): String =
+    // The StringBuilder is an accumulator, which is the one mutability this module's CONTRIBUTING sanctions
+    // alongside a tail-recursive loop: it is private, it never escapes, and threading it as a parameter would say
+    // nothing the name does not already.
+    val out = StringBuilder()
+
+    /** Past the tag name beginning at `index`. A name is letters and digits, and nothing else. */
+    @annotation.tailrec
+    def nameEnd(index: Int): Int =
+      if index < value.length && value.charAt(index).isLetterOrDigit then nameEnd(index + 1) else index
+
+    @annotation.tailrec
+    def loop(index: Int): String =
+      if index >= value.length then out.result()
+      else if value.charAt(index) != '<' then
+        out += value.charAt(index)
+        loop(index + 1)
+      else
+        val afterBracket = if index + 1 < value.length && value.charAt(index + 1) == '/' then index + 2 else index + 1
+        val end          = nameEnd(afterBracket)
+        val name         = HtmlTag.asciiLower(value.substring(afterBracket, end))
+        val delimited    = end >= value.length || value.charAt(end) == '>' || value.charAt(end).isWhitespace ||
+          (value.charAt(end) == '/' && end + 1 < value.length && value.charAt(end + 1) == '>')
+        out ++= (if disallowedTags.contains(name) && delimited then "&lt;" else "<")
+        loop(index + 1)
+
+    loop(0)
+
+  /** `filterTags` when the profile enables it, and the value unchanged otherwise. */
+  private def rawHtml(value: String)(using profile: MdProfile): String =
+    if profile.supports(MdExtension.TagFilter) then filterTags(value) else value
+
+  /**
+   * The meta a tag-filtered `Html` or `InlineHtml` node carries: its span, and — only when filtering actually changed
+   * `original` — the original under [[unfilteredHtml]].
+   *
+   * `filtered` is always what `rawHtml` already produced from `original`; comparing the two here is what tells apart
+   * "nothing to record" (no filtering happened, or the profile does not filter at all) from "the original is worth
+   * keeping" (filtering changed the value), which is the one distinction [[MdWriter]] needs and a bare string cannot
+   * answer honestly.
+   */
+  private def rawHtmlMeta(span: Span, original: String, filtered: String): MdMeta =
+    val base = MdMeta.at(span)
+    if filtered == original then base else base.updated(unfilteredHtml, original)
 
   /**
    * The frontmatter node one CST block means: its raw value, undecoded.
@@ -130,7 +203,7 @@ private[markdown] object Lower:
       children: Chunk[MdCstNode],
       definitions: Map[String, LinkDefinition],
       docEnd: Int
-  ): Chunk[MdNode.FlowContent] =
+  )(using MdProfile): Chunk[MdNode.FlowContent] =
     // A block's first line began after whatever markers its container spent on it, and those leaves sit in the gap
     // before the block, not inside it. The running line state — column reached, phantom columns owed — is what an
     // indented code block needs to reconstruct its first line's indentation.
@@ -166,7 +239,9 @@ private[markdown] object Lower:
             MdMeta.at(span)
           ))
         case MdCstNode.HtmlBlock(children, span) =>
-          out.addOne(MdNode.Html(contentText(children), MdMeta.at(span)))
+          val original = contentText(children)
+          val filtered = rawHtml(original)
+          out.addOne(MdNode.Html(filtered, rawHtmlMeta(span, original, filtered)))
         case MdCstNode.BlockQuote(children, span) =>
           out.addOne(MdNode.Blockquote(blocks(children, definitions, docEnd), MdMeta.at(span)))
         case MdCstNode.BulletList(_, tight, children, span) =>
@@ -185,6 +260,8 @@ private[markdown] object Lower:
             items(children, definitions, docEnd),
             MdMeta.at(span)
           ))
+        case MdCstNode.Table(children, span) =>
+          loweredTable(children, definitions, span).foreach(out.addOne)
         case MdCstNode.Frontmatter(_, _) =>
           // Already lifted onto the root by `lower`; a frontmatter block is metadata, not flow content.
           ()
@@ -204,10 +281,44 @@ private[markdown] object Lower:
       children: Chunk[MdCstNode],
       definitions: Map[String, LinkDefinition],
       docEnd: Int
-  ): Chunk[MdNode.ListItem] =
-    children.collect { case MdCstNode.ListItem(itemChildren, span) =>
-      MdNode.ListItem(blocks(itemChildren, definitions, docEnd), MdMeta.at(span))
+  )(using MdProfile): Chunk[MdNode.ListItem] =
+    children.collect { case MdCstNode.ListItem(itemChildren, checked, span) =>
+      MdNode.ListItem(blocks(itemChildren, definitions, docEnd), checked, MdMeta.at(span))
     }
+
+  /**
+   * The table one CST block means, or [[kyo.Absent]] for a tree carrying no header row to build one from.
+   *
+   * The alignment is read back off the delimiter row rather than out of a field, which is what keeps the CST holding
+   * only what was written: `:-:` is the alignment, and reading it here is the same reading the block phase did.
+   * `align`'s length is the column count, so every row is fitted to it — a rule the block phase applies to the same
+   * rows, through the same [[fittedCells]].
+   */
+  private def loweredTable(
+      children: Chunk[MdCstNode],
+      definitions: Map[String, LinkDefinition],
+      span: Span
+  )(using MdProfile): Maybe[MdNode.Table] =
+    val rows      = children.collect { case row: MdCstNode.TableRow => row }
+    val delimiter = children.collect { case row: MdCstNode.TableDelimiterRow => row }
+    if rows.isEmpty then Absent
+    else
+      val align = if delimiter.isEmpty then Chunk.empty else alignmentsOf(delimiter.head)
+      def loweredRow(row: MdCstNode.TableRow): MdNode.TableRow =
+        val cells = row.children.collect { case cell: MdCstNode.TableCell =>
+          MdNode.TableCell(inlines(cell.children, definitions), MdMeta.at(cell.span))
+        }
+        MdNode.TableRow(fittedCells(cells, align.size, MdNode.TableCell(Chunk.empty)), MdMeta.at(row.span))
+      Present(MdNode.Table(align, loweredRow(rows.head), rows.drop(1).map(loweredRow), MdMeta.at(span)))
+
+  /**
+   * What each delimiter cell spells, in column order.
+   *
+   * The cell's leaves are tokens, so [[Cst.print]] rather than [[contentText]] is what reads them: a delimiter cell is
+   * syntax, and its text is exactly the syntax it spent.
+   */
+  private def alignmentsOf(delimiter: MdCstNode.TableDelimiterRow): Chunk[Maybe[ColumnAlignment]] =
+    delimiter.children.collect { case cell: MdCstNode.TableCell => ColumnAlignment.of(Cst.print(cell)) }
 
   /** Fence metadata from the opening token's info string; content from the text leaves, indentation removed. */
   private def loweredFence(children: Chunk[MdCstNode], span: Span, docEnd: Int): MdNode.Code =
@@ -282,7 +393,7 @@ private[markdown] object Lower:
   private def inlines(
       children: Chunk[MdCstNode],
       definitions: Map[String, LinkDefinition]
-  ): Chunk[MdNode.PhrasingContent] =
+  )(using MdProfile): Chunk[MdNode.PhrasingContent] =
     Chunk.from(trimVerbatimEnds(children).flatMap(loweredInline(_, definitions)))
 
   private def trimVerbatimEnds(children: Chunk[MdCstNode]): Chunk[MdCstNode] =
@@ -320,7 +431,7 @@ private[markdown] object Lower:
   private def loweredInline(
       node: MdCstNode,
       definitions: Map[String, LinkDefinition]
-  ): Chunk[MdNode.PhrasingContent] =
+  )(using MdProfile): Chunk[MdNode.PhrasingContent] =
     node match
       case MdCstNode.Token(_, _) =>
         Chunk.empty
@@ -347,8 +458,21 @@ private[markdown] object Lower:
         val destination = InlineParser.autolinkDestinationOf(inner).getOrElse(InlineParser.normalizeUriOf(inner))
         Chunk(MdNode.Link(destination, Absent, Chunk(MdNode.Text(inner, MdMeta.at(span))), MdMeta.at(span)))
 
+      // The bare form names no destination of its own, so the text is read for one: `http://` in front of a `www.`
+      // host, `mailto:` in front of an address, and the text itself when it already names a scheme.
+      case MdCstNode.ExtendedAutolink(children, span) =>
+        val inner = contentText(children)
+        Chunk(MdNode.Link(
+          InlineParser.extendedDestinationOf(inner),
+          Absent,
+          Chunk(MdNode.Text(inner, MdMeta.at(span))),
+          MdMeta.at(span)
+        ))
+
       case MdCstNode.RawHtml(children, span) =>
-        Chunk(MdNode.InlineHtml(contentText(children), MdMeta.at(span)))
+        val original = contentText(children)
+        val filtered = rawHtml(original)
+        Chunk(MdNode.InlineHtml(filtered, rawHtmlMeta(span, original, filtered)))
 
       case MdCstNode.Emphasis(_, strong, children, span) =>
         // Leftover delimiters of a partially consumed run sit verbatim outside the tokens; they are prose siblings,
@@ -363,6 +487,9 @@ private[markdown] object Lower:
           val node: MdNode.PhrasingContent =
             if strong then MdNode.Strong(interior, MdMeta.at(span)) else MdNode.Emphasis(interior, MdMeta.at(span))
           Chunk.from(before) ++ Chunk(node) ++ Chunk.from(after)
+
+      case MdCstNode.Strikethrough(children, span) =>
+        Chunk(MdNode.Delete(inlines(children, definitions), MdMeta.at(span)))
 
       case MdCstNode.Link(form, destination, title, reference, children, span) =>
         val content             = inlines(linkContent(children), definitions)

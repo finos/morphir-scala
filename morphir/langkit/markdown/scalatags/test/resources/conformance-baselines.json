@@ -1,9 +1,0 @@
-[
-  {
-    "profile": "CommonMark",
-    "version": "0.31.2",
-    "fixtures": "commonmark-0.31.2-spec.json",
-    "passing": 652,
-    "total": 652
-  }
-]

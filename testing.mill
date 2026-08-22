@@ -1,0 +1,182 @@
+package build
+
+import mill.*
+import mill.api.PathRef
+import mill.scalalib.ScalaModule
+import mill.scalajslib.ScalaJSModule
+
+/**
+ * Turns a CommonMark-family `spec.txt` into the `spec.json` fixture shape.
+ *
+ * CommonMark publishes `spec.json` beside its `spec.txt`; GitHub Flavored Markdown publishes only the text, so its
+ * fixtures have to be derived. The extraction rules are cmark's own `makespec.py`: an example is the text between a
+ * run of at least twenty backticks introducing `example` and the matching closing run, with a lone `.` separating the
+ * Markdown source from the expected HTML, and `→` standing for a tab throughout.
+ */
+object SpecText {
+
+  /** One example, in the shape the conformance harness decodes. */
+  case class Example(
+      markdown: String,
+      html: String,
+      example: Int,
+      section: String,
+      extension: Option[String]
+  )
+
+  private val FenceStart = """^`{20,}\s*example([^\n]*)$""".r
+  private val FenceEnd   = """^`{20,}\s*$""".r
+  private val Heading    = """^#{1,2} (.+?)\s*$""".r
+
+  /** Which part of the file the reader is in: outside an example, in its source, or in its expected HTML. */
+  private enum Phase { case Outside, Markdown, Html }
+
+  /**
+   * Everything one line's reading carries to the next.
+   *
+   * A record rather than seven parameters. The reader is a state machine, and threading its state individually
+   * would bury the three transitions that matter under a parameter list nobody can follow.
+   */
+  private case class State(
+      phase: Phase = Phase.Outside,
+      section: String = "",
+      info: String = "",
+      openedAt: Int = 0,
+      markdown: Vector[String] = Vector.empty,
+      html: Vector[String] = Vector.empty,
+      done: Vector[Example] = Vector.empty
+  )
+
+  def parse(text: String): Seq[Example] = {
+    val lines = text.split("\n", -1).toVector
+
+    @annotation.tailrec
+    def loop(index: Int, state: State): Vector[Example] =
+      if (index >= lines.length) {
+        require(state.phase == Phase.Outside, s"unterminated example opened at line ${state.openedAt}")
+        state.done
+      } else {
+        val line = lines(index)
+        val next = state.phase match {
+          case Phase.Outside =>
+            line match {
+              case FenceStart(rest) =>
+                state.copy(
+                  phase = Phase.Markdown,
+                  info = rest.trim,
+                  openedAt = index + 1,
+                  markdown = Vector.empty,
+                  html = Vector.empty
+                )
+              case Heading(title) => state.copy(section = title)
+              case _              => state
+            }
+          case Phase.Markdown =>
+            if (line == ".") state.copy(phase = Phase.Html)
+            else state.copy(markdown = state.markdown :+ line)
+          case Phase.Html =>
+            line match {
+              case FenceEnd() =>
+                val example = Example(
+                  markdown = state.markdown.map(_ + "\n").mkString.replace('→', '\t'),
+                  html = state.html.map(_ + "\n").mkString.replace('→', '\t'),
+                  example = state.done.length + 1,
+                  section = state.section,
+                  extension = Option(state.info).filter(_.nonEmpty)
+                )
+                state.copy(phase = Phase.Outside, info = "", done = state.done :+ example)
+              case _ => state.copy(html = state.html :+ line)
+            }
+        }
+        loop(index + 1, next)
+      }
+
+    loop(0, State())
+  }
+
+  /** The fixture JSON, with `extension` omitted rather than null when the fence named none. */
+  def toJson(examples: Seq[Example]): String = {
+    val entries = examples.map { e =>
+      val fields = Seq(
+        "markdown" -> ujson.Str(e.markdown),
+        "html"     -> ujson.Str(e.html),
+        "example"  -> ujson.Num(e.example.toDouble),
+        "section"  -> ujson.Str(e.section)
+      ) ++ e.extension.map(tag => "extension" -> ujson.Str(tag))
+      ujson.Obj.from(fields)
+    }
+    ujson.write(ujson.Arr.from(entries), indent = 2) + "\n"
+  }
+}
+
+/**
+ * The directory the Markdown conformance harness reads, opted into by any module running the conformance suite.
+ *
+ * The vendored CommonMark fixture is copied through unchanged; the GFM one is derived here, because GitHub publishes
+ * no JSON form. The converter proves itself first: run over CommonMark's own specification text it must reproduce the
+ * vendored CommonMark fixture entry for entry, so fixtures cannot be produced by a converter that has drifted.
+ *
+ * A bare top-level `def` cannot host a `Task {}` in a helper `*.mill` file like this one — only `build.mill` and
+ * `package.mill` get the codegen that supplies a `Task {}` block's `ModuleCtx`. Nesting the task inside this trait
+ * sidesteps that: the `ModuleCtx` comes from whichever concrete module mixes the trait in, which always happens in
+ * `build.mill`/`package.mill` YAML. The accepted cost is that the converter runs once per module that mixes this
+ * in rather than once per repository; it is a pure transform over a few hundred kilobytes of text, and Mill caches
+ * each module's result independently.
+ */
+trait MorphirMarkdownConformanceFixtures extends ScalaModule {
+  private def specsDir = mill.api.BuildCtx.workspaceRoot / "morphir" / "langkit" / "markdown" / "scalatags" / "test" / "specs"
+
+  // `Task {}` bodies may only read files declared as a `Task.Source`/`Task.Sources` input; an `os.read` on a bare
+  // path fails at execution time otherwise. Declaring each vendored file this way is also what lets Mill invalidate
+  // `markdownConformanceFixtures` when the vendored text or the published CommonMark fixture is re-vendored.
+  def commonmarkSpecTextSource: T[PathRef] = Task.Source(specsDir / "commonmark-0.31.2-spec.txt")
+  def commonmarkSpecJsonSource: T[PathRef] = Task.Source(specsDir / "commonmark-0.31.2-spec.json")
+  def gfmSpecTextSource: T[PathRef]        = Task.Source(specsDir / "gfm-0.29-spec.txt")
+  def conformanceBaselinesSource: T[PathRef] = Task.Source(specsDir / "conformance-baselines.json")
+
+  def markdownConformanceFixtures: T[PathRef] = Task {
+    val commonmarkText = os.read(commonmarkSpecTextSource().path)
+    val commonmarkJson = os.read(commonmarkSpecJsonSource().path)
+    val derived        = SpecText.parse(commonmarkText)
+    val published      = ujson.read(commonmarkJson).arr
+
+    require(
+      derived.length == published.length,
+      s"converter produced ${derived.length} CommonMark examples; the published fixture holds ${published.length}"
+    )
+    derived.zip(published).foreach { case (ours, theirs) =>
+      require(
+        ours.markdown == theirs("markdown").str && ours.html == theirs("html").str &&
+          ours.example == theirs("example").num.toInt && ours.section == theirs("section").str,
+        s"converter disagrees with the published CommonMark fixture at example ${ours.example}"
+      )
+    }
+
+    os.copy(commonmarkSpecJsonSource().path, Task.dest / "commonmark-0.31.2-spec.json")
+    os.copy(conformanceBaselinesSource().path, Task.dest / "conformance-baselines.json")
+    os.write(
+      Task.dest / "gfm-0.29-spec.json",
+      SpecText.toJson(SpecText.parse(os.read(gfmSpecTextSource().path)))
+    )
+    PathRef(Task.dest)
+  }
+}
+
+/** Passes the fixture directory to the JVM and Native conformance runs. */
+trait MorphirMarkdownConformanceEnv extends MorphirMarkdownConformanceFixtures {
+  override def forkEnv: T[Map[String, String]] = Task {
+    super.forkEnv() ++ Map("MORPHIR_CONFORMANCE_FIXTURES" -> markdownConformanceFixtures().path.toString)
+  }
+}
+
+/** Same directory into Node, which does not inherit `TestModule.forkEnv`. */
+trait MorphirMarkdownConformanceJsEnv extends ScalaJSModule with MorphirMarkdownConformanceFixtures {
+  import mill.scalajslib.api.JsEnvConfig
+  override def jsEnvConfig: T[JsEnvConfig] = Task {
+    val extra = Map("MORPHIR_CONFORMANCE_FIXTURES" -> markdownConformanceFixtures().path.toString)
+    super.jsEnvConfig() match {
+      case node: JsEnvConfig.NodeJs => node.copy(env = node.env ++ extra)
+      case other                    => other
+    }
+  }
+}

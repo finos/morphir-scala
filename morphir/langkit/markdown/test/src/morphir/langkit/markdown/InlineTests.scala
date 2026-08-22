@@ -44,6 +44,7 @@ class InlineTests extends Test[Any]:
       case MdNode.Image(_, _, alt, _)  => alt
       case MdNode.Emphasis(inner, _)   => textOf(inner)
       case MdNode.Strong(inner, _)     => textOf(inner)
+      case MdNode.Delete(inner, _)     => textOf(inner)
       // Raw HTML is markup rather than text, and contributes none: a test asserting on it matches the node itself.
       case MdNode.InlineHtml(_, _) => ""
       // A hard break reads as the line ending it stands for, so a test that only cares what the prose says need not
@@ -107,12 +108,12 @@ class InlineTests extends Test[Any]:
           assert(items(0) ==
             MdNode.ListItem(
               Chunk(MdNode.Paragraph(Chunk(MdNode.Text("one", MdMeta.at(Span(2, 3)))), MdMeta.at(Span(2, 3)))),
-              MdMeta.at(Span(0, 5))
+              meta = MdMeta.at(Span(0, 5))
             ))
           assert(items(1) ==
             MdNode.ListItem(
               Chunk(MdNode.Paragraph(Chunk(MdNode.Text("two", MdMeta.at(Span(8, 3)))), MdMeta.at(Span(8, 3)))),
-              MdMeta.at(Span(6, 5))
+              meta = MdMeta.at(Span(6, 5))
             ))
         case other => assert(false, s"expected a list, got $other")
     }

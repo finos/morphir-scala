@@ -9,9 +9,11 @@ rejected, and under what condition it should be revisited. It is the knowledge b
 | Capability | present | no | what does the system do |
 | **Decision Record** | past | terminal only | why is it shaped this way |
 
-**Records are immutable.** Once accepted, a record is superseded by a later one rather than edited. That is the whole
-point: its value is the reasoning that was available at the time, which an edit destroys. It is also what separates a
-Decision Record from a **Design Note** — a Design Note is *meant* to be updated as understanding improves.
+**Records are immutable once published.** After a record reaches the trunk, it is superseded by a later record
+rather than edited. That is the whole point: its value is the reasoning that was available at the time, which an
+edit destroys. A record still on its authoring branch is a draft, and amending it there is ordinary drafting, not a
+violation. Immutability is also what separates a Decision Record from a **Design Note** — a Design Note is *meant*
+to be updated as understanding improves.
 
 See [0004](../../../../kb/bundles/morphir/morphir-scala/decisions/0004-decision-records-are-a-third-register.md) for
 why this register exists.
@@ -82,6 +84,32 @@ entry:
 ```
 
 Then add `state`, `decided` and any supersession links by hand — `add-concept` writes OKF fields only.
+
+## Shape of a record
+
+A record opens with the title and the decision statement itself, stated plainly. If the decision is a table (which
+stage takes a parameter, which option a policy picks), the table belongs in that opening, because the table *is*
+the decision.
+
+Right after the opening, before `## Why`, add a `## Summary` section:
+
+1. One short paragraph giving the reasoning in brief.
+2. A table with columns `Option`, `Outcome`, `Why`. `Outcome` is `Chosen` or `Rejected`. `Why` is one clause, not a
+   restatement of the full argument. Every option named anywhere in the record's prose gets a row, including the
+   chosen one.
+
+The rest of the record follows as before: `## Why` argues the decision at full length, `## Consequences` states
+what changed, `## Revisit when` gives the condition that reopens it.
+
+`## Alternatives rejected` keeps its prose but gets one heading per alternative, `### <alternative>`, so a reader
+can jump to one directly. The summary table already gives the one-line view, so the section itself needs no lead-in
+paragraph before the first heading.
+
+[0016](../../../../kb/bundles/morphir/morphir-scala/decisions/0016-the-markdown-parser-is-our-own.md) is the
+worked example: a short decision statement, a `## Summary` with a three-row options table, then `## Why`, an
+`## Alternatives rejected` section with one `###` heading per alternative, `## Consequences`, and `## Revisit
+when`. [0015](../../../../kb/bundles/morphir/morphir-scala/decisions/0015-profile-branches-at-the-earliest-capable-stage.md)
+shows the same shape where the opening decision statement is itself a table.
 
 ## Checks
 

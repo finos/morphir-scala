@@ -22,20 +22,26 @@ import morphir.langkit.markdown.internal.Parser
  *
  * Runs on JVM, JS and Native. The fixtures are read as ordinary files through [[kyo.Path]], whose JS backend is
  * `node:fs` and whose Native backend is the javalib's `java.nio`; the directory holding them arrives from the build
- * (see `MorphirMarkdownConformanceEnv`), because neither Mill's test sandbox nor Node's working directory is
- * dependable. An earlier version read them through the classloader, which is what confined it to the JVM.
+ * (see `MorphirMarkdownConformanceEnv` and `MorphirMarkdownConformanceJsEnv` in `testing.mill`), because neither Mill's
+ * test sandbox nor Node's working directory is dependable. An earlier version read them through the classloader, which
+ * is what confined it to the JVM.
  */
 class ConformanceTests extends Test[Any]:
 
   private val BaselineFile = "conformance-baselines.json"
 
   /**
-   * Absolute directory holding the vendored fixture files, supplied by the build.
+   * Absolute directory holding the fixture files, supplied by the build.
+   *
+   * Produced by the `markdownConformanceFixtures` task in `testing.mill`: the CommonMark fixture and the conformance
+   * baselines are vendored and copied through unchanged, and the GFM fixture is derived from GitHub's specification
+   * text, since GitHub publishes no JSON form of its own. `MorphirMarkdownConformanceEnv` (JVM and Native) and
+   * `MorphirMarkdownConformanceJsEnv` (JS) — both also in `testing.mill` — pass that task's output directory to this
+   * test through `MORPHIR_CONFORMANCE_FIXTURES`.
    *
    * Resolved through [[kyo.Flag]] for the same reason [[reportFailuresIn]] is: it is the one env-and-property reader
    * that works the same on all three platforms, reading Node's `process.env` under Scala.js rather than
-   * `System.getenv`, which always returns null there. The build sets `MORPHIR_CONFORMANCE_FIXTURES` on all three test
-   * modules; the property form is for anyone running this suite outside Mill.
+   * `System.getenv`, which always returns null there. The property form is for anyone running this suite outside Mill.
    */
   private val fixturesDir: String =
     val configured = Flag[String]("morphir.conformance.fixtures", "")
@@ -44,8 +50,18 @@ class ConformanceTests extends Test[Any]:
       throw new IllegalStateException(
         "morphir.conformance.fixtures is unset, so the harness cannot find its fixtures. Mill sets it from " +
           "MorphirMarkdownConformanceEnv (JVM and Native) and MorphirMarkdownConformanceJsEnv (JS); outside Mill, " +
-          "pass the absolute path to morphir/langkit/markdown/scalatags/test/resources."
+          "pass the absolute path to a directory holding commonmark-0.31.2-spec.json, gfm-0.29-spec.json and " +
+          "conformance-baselines.json — the same three files markdownConformanceFixtures produces."
       )
+
+  /**
+   * One example a profile records rather than targets, with why.
+   *
+   * A conformance suite can be wrong about its own dialect. Deleting the example would hide that; counting it as a
+   * failure forever says we have work left that we do not. Recording it keeps the example, subtracts it from the
+   * measured set, and makes the reason travel with the score.
+   */
+  private final case class Divergence(example: Int, reason: String) derives Schema
 
   /**
    * One profile's recorded conformance.
@@ -59,15 +75,29 @@ class ConformanceTests extends Test[Any]:
       version: String,
       fixtures: String,
       passing: Int,
-      total: Int
+      total: Int,
+      divergences: Chunk[Divergence] = Chunk.empty
   ) derives Schema:
     def name: String = s"$profile $version"
+
+    /** Example numbers this profile does not target. */
+    def divergedExamples: Set[Int] = divergences.map(_.example).toSet
 
   /**
    * The part of a fixture entry this harness reads. The published JSON also carries `start_line` and `end_line`, which
    * decoding ignores.
+   *
+   * `extension` is present only on an example whose own fence names one — GitHub's spec runner enables exactly the
+   * extension an example's own fence claims, not the full GFM profile, and `profileOf(example: Example)` below mirrors
+   * that.
    */
-  private final case class Example(markdown: String, html: String, example: Int, section: String) derives Schema
+  private final case class Example(
+      markdown: String,
+      html: String,
+      example: Int,
+      section: String,
+      extension: Maybe[String] = Absent
+  ) derives Schema
 
   /**
    * Reads one fixture file eagerly, outside the effect system.
@@ -91,10 +121,82 @@ class ConformanceTests extends Test[Any]:
 
   private lazy val baselines: Chunk[Baseline] = decode[Chunk[Baseline]](BaselineFile)
 
+  /**
+   * The parse profile a recorded profile is measured under.
+   *
+   * A conformance suite measures a dialect, and a dialect here is an [[MdProfile]] — so the mapping has to be explicit
+   * rather than defaulted, otherwise a GFM suite would be scored against a CommonMark parse and the extensions would
+   * read as unimplemented forever. An unrecognised name fails loudly for the same reason: a typo in the baselines file
+   * must not silently fall back to the base grammar.
+   */
+  private def profileOf(baseline: Baseline): MdProfile = baseline.profile match
+    case "CommonMark"               => MdProfile.commonmark
+    case "GitHub Flavored Markdown" => MdProfile.gfm
+    case other                      =>
+      throw new IllegalStateException(
+        s"$BaselineFile names profile '$other', which this harness cannot map to an MdProfile. " +
+          "Add it to profileOf alongside the profile's fixtures."
+      )
+
   private def examplesOf(baseline: Baseline): Chunk[Example] = decode[Chunk[Example]](baseline.fixtures)
 
-  /** True when our parse-and-compile reproduces the fixture's expected HTML byte for byte. */
+  /**
+   * The parse profile one example is measured under.
+   *
+   * A conformance suite for a dialect of extensions measures each extension against the base grammar, not against every
+   * other extension turned on at once. cmark-gfm's own spec runner enables exactly the one extension an example's fence
+   * names — an example fenced ` ```` example table ```` ` is a claim about tables and says nothing about strikethrough,
+   * autolinks or the tag filter — so scoring it under every extension at once asks an example that makes no claim
+   * about, say, the tag filter to behave as though GitHub's own runner had turned the tag filter on for it anyway. That
+   * is exactly backwards, and it is what made five `HTML blocks` examples holding `<script>`/`<style>` read as
+   * tag-filter failures even though neither their fence nor the published fixture ever claims the tag filter for them:
+   * their own extension field is absent, so [[MdExtension.TagFilter]] must be off when they are measured, regardless of
+   * which baseline's fixture they came from.
+   *
+   * `disabled` stands for [[MdExtension.TaskListItems]] rather than being its own extension: the two examples carrying
+   * it are both in the *Task list items (extension)* section, and cmark-gfm's own runner marks them `disabled` because
+   * its rendering of the checkbox input differs from what the prose shows — the same reason [[MdExtension.specTag]]
+   * documents for why the tag stays `tasklist` there instead of splitting into a second name.
+   */
+  private def profileOf(example: Example): MdProfile = example.extension match
+    case Absent              => MdProfile.commonmark
+    case Present("disabled") => MdProfile.commonmark.withExtension(MdExtension.TaskListItems)
+    case Present(tag)        =>
+      MdExtension.values.find(_.specTag == tag) match
+        case Some(extension) => MdProfile.commonmark.withExtension(extension)
+        case None            =>
+          throw new IllegalStateException(
+            s"example ${example.example} in section '${example.section}' names extension '$tag', which this " +
+              "harness cannot map to an MdExtension. Add it to profileOf(example: Example) alongside the extension " +
+              "it identifies."
+          )
+
+  /**
+   * How much of this profile's measured set another loaded profile also carries, and how much of it passes.
+   *
+   * Computed by comparing source-and-expected-HTML pairs rather than stored, because the duplication is a property of
+   * the published suites and not something we should have to maintain a second copy of. A dialect that is a superset of
+   * another shares most of its examples — GFM shares 622 of its measured examples with CommonMark 0.31.2, and,
+   * historically, 636 with CommonMark 0.29, which is the release its base was drawn from (this method only computes
+   * against loaded baselines, so the 0.29 figure is not itself a live measurement) — and a score that does not separate
+   * the two reads as if every example were about the extension under construction.
+   */
+  private def sharedWith(baseline: Baseline): Chunk[(String, Int, Int)] =
+    val measured = examplesOf(baseline).filterNot(example => baseline.divergedExamples.contains(example.example))
+    Chunk.from(
+      baselines.filterNot(_.profile == baseline.profile).map { other =>
+        val theirs = examplesOf(other).map(example => (example.markdown, example.html)).toSet
+        val shared = measured.filter(example => theirs.contains((example.markdown, example.html)))
+        (other.name, shared.size, shared.count(conforms))
+      }
+    )
+
+  /**
+   * True when our parse-and-compile reproduces the fixture's expected HTML byte for byte, under the one profile
+   * `profileOf(example)` says this example is measured against.
+   */
   private def conforms(example: Example): Boolean =
+    given MdProfile = profileOf(example)
     Parser.parse(example.markdown) match
       case Result.Success(document) => ScalatagsCompiler.render(document) == example.html
       case _                        => false
@@ -134,7 +236,8 @@ class ConformanceTests extends Test[Any]:
   private def oneLine(text: String): String = text.replace("\n", "\\n")
 
   private def reportFailure(example: Example) =
-    val produced = Parser.parse(example.markdown) match
+    given MdProfile = profileOf(example)
+    val produced    = Parser.parse(example.markdown) match
       case Result.Success(document) => oneLine(ScalatagsCompiler.render(document))
       case other                    => s"<parse failed: $other>"
     Console.printLine(
@@ -149,21 +252,61 @@ class ConformanceTests extends Test[Any]:
     "records at least one profile" in
       assert(baselines.nonEmpty, s"$BaselineFile lists no profiles, so nothing is being measured")
 
+    "every recorded divergence names an example the fixture holds" in {
+      baselines.foreach { baseline =>
+        val numbers = examplesOf(baseline).map(_.example).toSet
+        baseline.divergences.foreach { divergence =>
+          assert(
+            numbers.contains(divergence.example),
+            s"${baseline.name} records a divergence for example ${divergence.example}, which ${baseline.fixtures} " +
+              "does not hold. A divergence has to point at a real example or it is unfalsifiable."
+          )
+          assert(
+            divergence.reason.trim.nonEmpty,
+            s"${baseline.name} records a divergence for example ${divergence.example} with no reason. " +
+              "A divergence without a reason is indistinguishable from a bug we stopped counting."
+          )
+        }
+      }
+      succeed("an empty divergence list has nothing to check, and should not read as unevaluated")
+    }
+
     baselines.foreach { baseline =>
-      s"${baseline.name} vendors the ${baseline.total} examples it claims, numbered with no gaps" in {
+      // Guards `baseline.profile` against a typo in the baselines file — an unrecognised name still fails loudly
+      // here, exactly as it always has. Scoring itself no longer goes through this: each example resolves its own
+      // profile through `profileOf(example)` below, because a baseline-wide profile would turn every extension on
+      // for every example regardless of what that example's own fence claims. Kept in particular for the CommonMark
+      // baseline, whose examples carry no extension tag at all and so must all resolve to what this call already
+      // asserts for it: MdProfile.commonmark.
+      val _ = profileOf(baseline)
+
+      s"${baseline.name} vendors the ${baseline.total + baseline.divergences.size} examples it claims, numbered with no gaps" in {
         val examples = examplesOf(baseline)
+        val vendored = baseline.total + baseline.divergences.size
         assert(
-          examples.size == baseline.total,
-          s"${baseline.fixtures} holds ${examples.size} examples and $BaselineFile claims ${baseline.total}. " +
+          examples.size == vendored,
+          s"${baseline.fixtures} holds ${examples.size} examples and $BaselineFile claims $vendored " +
+            s"(${baseline.total} measured plus ${baseline.divergences.size} recorded as divergent). " +
             "Vendoring a different version means updating the profile's version, total and passing count together."
         )
         // Guards the vendored file against truncation or reordering: our own unit tests cite examples by number, so a
         // shifted numbering would silently repoint every one of those citations.
-        assert(examples.map(_.example).toSeq == (1 to baseline.total).toSeq)
+        assert(examples.map(_.example).toSeq == (1 to vendored).toSeq)
+      }
+
+      s"${baseline.name} measures the suite minus its recorded divergences" in {
+        val examples = examplesOf(baseline)
+        val measured = examples.filterNot(example => baseline.divergedExamples.contains(example.example))
+        assert(
+          measured.size == baseline.total,
+          s"${baseline.name} claims a total of ${baseline.total} and measures ${measured.size} " +
+            s"(${examples.size} in the fixture, ${baseline.divergences.size} recorded as divergent). " +
+            "The recorded total is the size of the measured set, not the size of the file."
+        )
       }
 
       s"${baseline.name} does not fall below ${baseline.passing}/${baseline.total}" in {
-        val examples = examplesOf(baseline)
+        val examples = examplesOf(baseline).filterNot(example => baseline.divergedExamples.contains(example.example))
         val passing  = examples.count(conforms)
         val total    = examples.size
 
@@ -191,6 +334,17 @@ class ConformanceTests extends Test[Any]:
               Console.printLine(s"failing examples in the selected sections (${reported.size}):")
                 .andThen(Kyo.foreachDiscard(reported)(reportFailure))
             else Kyo.unit
+          _ <-
+            if baseline.divergences.isEmpty then Kyo.unit
+            else
+              Console.printLine(s"    ${baseline.divergences.size} divergence(s) recorded, not measured:")
+                .andThen(Kyo.foreachDiscard(baseline.divergences) { divergence =>
+                  Console.printLine(f"      example ${divergence.example}%4d  ${divergence.reason}")
+                })
+          _ <- Kyo.foreachDiscard(sharedWith(baseline)) { (other, shared, passed) =>
+            Console.printLine(f"    shared with $other: $passed/$shared; specific to ${baseline.profile}: " +
+              f"${passing - passed}/${total - shared}")
+          }
           _ = assert(
             passing >= baseline.passing,
             s"${baseline.name} conformance regressed: $passing passing, ${baseline.passing} recorded. " +

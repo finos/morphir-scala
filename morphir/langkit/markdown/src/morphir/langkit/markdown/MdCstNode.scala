@@ -50,11 +50,37 @@ enum MdCstNode derives CanEqual:
   /** A run of numbered items sharing `delimiter`, numbered from `start`. */
   case OrderedList(start: ListStart, delimiter: Char, tight: Boolean, children: Chunk[MdCstNode], span: Span)
 
-  /** One item. Its first child is the marker [[Token]]; continuation-line indentation appears as tokens too. */
-  case ListItem(children: Chunk[MdCstNode], span: Span)
+  /**
+   * One item. Its first child is the marker [[Token]]; continuation-line indentation appears as tokens too, and a task
+   * list item's checkbox is a further [[Token]] inside its first paragraph. `checked` is Present only for a GFM task
+   * list item.
+   */
+  case ListItem(children: Chunk[MdCstNode], checked: Maybe[Boolean], span: Span)
 
   /** A raw HTML block. Its interior is [[Text]]: the content is HTML, not Markdown, and is already in final form. */
   case HtmlBlock(children: Chunk[MdCstNode], span: Span)
+
+  /**
+   * A GFM pipe table. Its children are the header [[TableRow]], the [[TableDelimiterRow]] under it, and one
+   * [[TableRow]] per body row, with the line endings between them as [[Token]] leaves.
+   *
+   * Alignment is not a field here, unlike on [[MdNode.Table]]. The delimiter row is what the author wrote the alignment
+   * as, and it is present in this tree; storing the reading of it beside it would let the two disagree.
+   */
+  case Table(children: Chunk[MdCstNode], span: Span)
+
+  /** One row's cells, with every pipe and every run of padding whitespace between them as a [[Token]] leaf. */
+  case TableRow(children: Chunk[MdCstNode], span: Span)
+
+  /** One cell. Its interior is inline content, tiled the way a paragraph's is. */
+  case TableCell(children: Chunk[MdCstNode], span: Span)
+
+  /**
+   * The `| --- | :-: |` line. Its own case so that printing and querying can find it; it lowers to no AST node of its
+   * own, and instead is read for the alignment [[MdNode.Table]] carries. Its cells are [[TableCell]] children whose
+   * interiors are [[Token]] leaves, because a delimiter cell is syntax rather than content.
+   */
+  case TableDelimiterRow(children: Chunk[MdCstNode], span: Span)
 
   /** A `[label]: destination "title"` definition, unresolved. Its interior stays verbatim until inlines graduate. */
   case LinkReferenceDefinition(children: Chunk[MdCstNode], span: Span)
@@ -64,6 +90,15 @@ enum MdCstNode derives CanEqual:
 
   /** An autolink, kept in its angle-bracket form: `<`, the literal destination, `>`. */
   case Autolink(children: Chunk[MdCstNode], span: Span)
+
+  /**
+   * A GFM extended autolink: a destination the author wrote bare, with no `<>` around it. Its interior is the
+   * destination as written, one [[Text]] leaf, because the author spent no syntax on it at all.
+   *
+   * Its own case rather than a field on [[Autolink]], so that `Autolink` keeps meaning CommonMark's bracketed form
+   * exactly and a consumer can tell the two apart without inspecting spans.
+   */
+  case ExtendedAutolink(children: Chunk[MdCstNode], span: Span)
 
   /** Inline raw HTML, taken whole as [[Text]]: its interior is HTML the inline grammar never re-reads. */
   case RawHtml(children: Chunk[MdCstNode], span: Span)
@@ -101,6 +136,9 @@ enum MdCstNode derives CanEqual:
    * surrounding gaps.
    */
   case Emphasis(delimiter: Char, strong: Boolean, children: Chunk[MdCstNode], span: Span)
+
+  /** A `~~`-delimited run. The delimiters are `Token` children, as they are for [[Emphasis]]. */
+  case Strikethrough(children: Chunk[MdCstNode], span: Span)
 
   /** A hard line break, spelled as the author wrote it: trailing spaces or a backslash, then the line ending. */
   case HardBreak(children: Chunk[MdCstNode], span: Span)
@@ -149,15 +187,21 @@ enum MdCstNode derives CanEqual:
     case BlockQuote(children, _)              => children
     case BulletList(_, _, children, _)        => children
     case OrderedList(_, _, _, children, _)    => children
-    case ListItem(children, _)                => children
+    case ListItem(children, _, _)             => children
     case HtmlBlock(children, _)               => children
+    case Table(children, _)                   => children
+    case TableRow(children, _)                => children
+    case TableCell(children, _)               => children
+    case TableDelimiterRow(children, _)       => children
     case LinkReferenceDefinition(children, _) => children
     case CodeSpan(children, _)                => children
     case Autolink(children, _)                => children
+    case ExtendedAutolink(children, _)        => children
     case RawHtml(children, _)                 => children
     case Link(_, _, _, _, children, _)        => children
     case Image(_, _, _, _, children, _)       => children
     case Emphasis(_, _, children, _)          => children
+    case Strikethrough(children, _)           => children
     case HardBreak(children, _)               => children
     case Escape(children, _)                  => children
     case Entity(children, _)                  => children

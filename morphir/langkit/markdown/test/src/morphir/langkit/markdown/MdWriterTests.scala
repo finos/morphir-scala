@@ -4,7 +4,7 @@ import kyo.*
 import kyo.test.*
 import morphir.langkit.markdown.dsl.*
 import morphir.langkit.markdown.dsl.given
-import morphir.langkit.markdown.internal.{Cst, MdWriter, Parser}
+import morphir.langkit.markdown.internal.{Cst, Lower, MdWriter, Parser}
 
 /**
  * The writer's contract is structural fidelity, not byte fidelity: `Parser.parse(MdWriter.write(tree))` succeeds and
@@ -59,11 +59,22 @@ class MdWriterTests extends Test[Any]:
     case MdNode.Blockquote(children, meta)                   => MdNode.Blockquote(flowOf(children), meta)
     case MdNode.List(ordered, start, spread, children, meta) =>
       MdNode.List(ordered, start, spread, children.map(item => normalize(item).asInstanceOf[MdNode.ListItem]), meta)
-    case MdNode.ListItem(children, meta)         => MdNode.ListItem(flowOf(children), meta)
-    case MdNode.Link(url, title, children, meta) => MdNode.Link(url, title, phrasingOf(children), meta)
-    case MdNode.Emphasis(children, meta)         => MdNode.Emphasis(phrasingOf(children), meta)
-    case MdNode.Strong(children, meta)           => MdNode.Strong(phrasingOf(children), meta)
-    case leaf                                    => leaf
+    case MdNode.ListItem(children, checked, meta) => MdNode.ListItem(flowOf(children), checked, meta)
+    case MdNode.Link(url, title, children, meta)  => MdNode.Link(url, title, phrasingOf(children), meta)
+    case MdNode.Emphasis(children, meta)          => MdNode.Emphasis(phrasingOf(children), meta)
+    case MdNode.Strong(children, meta)            => MdNode.Strong(phrasingOf(children), meta)
+    case MdNode.Delete(children, meta)            => MdNode.Delete(phrasingOf(children), meta)
+    case MdNode.Table(align, header, rows, meta)  =>
+      MdNode.Table(
+        align,
+        normalize(header).asInstanceOf[MdNode.TableRow],
+        rows.map(row => normalize(row).asInstanceOf[MdNode.TableRow]),
+        meta
+      )
+    case MdNode.TableRow(children, meta) =>
+      MdNode.TableRow(children.map(cell => normalize(cell).asInstanceOf[MdNode.TableCell]), meta)
+    case MdNode.TableCell(children, meta) => MdNode.TableCell(phrasingOf(children), meta)
+    case leaf                             => leaf
 
   private def normalized(root: MdNode.Root): MdNode = normalize(root.unpositioned)
 
@@ -428,6 +439,18 @@ class MdWriterTests extends Test[Any]:
 
     "leaves an empty value alone" in
       assert(MdWriter.escapeText("", atLineStart = true) == "")
+
+    /**
+     * A single long unbroken run of alphanumerics, with no whitespace and no `AlwaysEscaped` character to stop an
+     * unbounded scan early. This does not time anything; it exists so the shape stays exercised. `escapeText` was once
+     * quadratic in a text node's length: the autolink lookahead it runs at every index scanned to the end of the value
+     * each time, because the `end` argument was evaluated eagerly even where the guard ahead of it never needed it. A
+     * regression here would not fail this assertion, only reappear as the slowdown the ledger measured.
+     */
+    "writes a long unbroken run of text without incident" in {
+      val text = "a1" * 16000
+      assert(MdWriter.escapeText(text, atLineStart = false) == text)
+    }
   }
 
   "MdWriter.raise" - {
@@ -442,6 +465,21 @@ class MdWriterTests extends Test[Any]:
 
     "an empty document raises an empty CST" in
       assert(Cst.print(MdWriter.raise(doc())) == "")
+
+    /**
+     * `raise` reparses under [[MdProfile.gfm]] regardless of what profile produced the tree, which is what a table, a
+     * task list item and strikethrough all need to read back as themselves — none of their written syntax means
+     * anything under plain CommonMark. Fixed alongside the GFM corpus sweep in `WriterFidelityTests`, which caught it
+     * first; pinned here directly, against `Lower.lower`, so a regression shows up without the scalatags module.
+     */
+    "raises a table, a task list item and strikethrough back to the tree that produced them" in {
+      given MdProfile = MdProfile.gfm
+      val source      =
+        "| a | b |\n| --- | --- |\n| c | d |\n\n- [x] done\n- [ ] todo\n\n~~gone~~\n"
+      val original = Parser.parse(source).getOrThrow
+      val raised   = Lower.lower(MdWriter.raise(original))
+      assert(raised.unpositioned == original.unpositioned, s"$raised")
+    }
   }
 
   /**

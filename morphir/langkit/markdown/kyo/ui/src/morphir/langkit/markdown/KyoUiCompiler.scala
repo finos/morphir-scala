@@ -53,7 +53,21 @@ object KyoUiCompiler:
     def list(ordered: Boolean, start: Maybe[ListStart], children: Chunk[UI]): UI =
       if ordered then UI.ol(content(children)) else UI.ul(content(children))
 
-    def listItem(children: Chunk[UI]): UI = UI.li(content(children))
+    /**
+     * A checked box is Present only for a GFM task list item; `checked` says whether it was ticked.
+     *
+     * kyo-ui's own checkbox is a live input a user could toggle, which is not what a rendered task list is: it is a
+     * record of what the author wrote, so it is spelled as raw, disabled markup the way the specification's own
+     * rendering is, rather than through kyo-ui's interactive element.
+     */
+    def listItem(checked: Maybe[Boolean], children: Chunk[UI]): UI =
+      checked match
+        case Absent          => UI.li(content(children))
+        case Present(ticked) =>
+          val box =
+            if ticked then UI.rawHtml("""<input checked="" disabled="" type="checkbox">""")
+            else UI.rawHtml("""<input disabled="" type="checkbox">""")
+          UI.li(UI.fragment(box, UI.Ast.Text(" "), content(children)))
 
     /** kyo-ui escapes a `Text` node when it renders, so the value is handed over raw. */
     def text(value: String): UI = UI.Ast.Text(value)
@@ -67,6 +81,9 @@ object KyoUiCompiler:
     def emphasis(children: Chunk[UI]): UI = UI.span(content(children)).cssClass("md-em")
 
     def strong(children: Chunk[UI]): UI = UI.span(content(children)).cssClass("md-strong")
+
+    /** kyo-ui has no `del` element, so strikethrough is carried by a `span` with a class, as emphasis is. */
+    def delete(children: Chunk[UI]): UI = UI.span(content(children)).cssClass("md-del")
 
     /**
      * `Href.Path` and `ImgSrc.Path` render their value verbatim, which is what a Markdown destination needs: it is an
@@ -95,6 +112,48 @@ object KyoUiCompiler:
     def blockSeparator: UI = UI.Ast.Text("\n")
 
     def thematicBreak: UI = UI.hr
+
+    /** kyo-ui carries alignment as a class, since its attribute set is closed and holds no `align`. */
+    private def alignClass(alignment: Maybe[ColumnAlignment]): String = alignment match
+      case Absent                          => ""
+      case Present(ColumnAlignment.Left)   => "md-align-left"
+      case Present(ColumnAlignment.Right)  => "md-align-right"
+      case Present(ColumnAlignment.Center) => "md-align-center"
+
+    /**
+     * kyo-ui has `table`, `tbody`, `tr`, `th` and `td`, but no `thead`, so the header row goes in a `tbody` of its own
+     * marked `md-thead`, and the body rows go in a second one.
+     *
+     * Two shapes were rejected for the missing element. A `div` between `table` and `tr` is not a legal table child,
+     * and every browser hoists it out of the table, which visibly breaks the rendering. A bare `tr` directly under the
+     * `table` is legal, but kyo-ui advises against it in exactly the case this writer is for: [[kyo.UI.Ast.Tbody]]
+     * records that a browser synthesizes an implicit `tbody` only while *parsing* row content, and that rows patched
+     * into a live table -- which is what a reactive mount does -- become direct `table` children instead, which
+     * "renders fine but breaks `tbody`-scoped selectors and semantics". A real row group is what it asks for, so that
+     * is what both halves get.
+     *
+     * What is lost is the head-versus-body distinction itself. `md-thead` names the header group for a stylesheet, but
+     * a `tbody` is not a `thead`, so the semantics assistive technology reads off the real element are gone. This is
+     * the same class of gap as the missing `em` and the dropped list `start`, and it is recorded here for the same
+     * reason.
+     *
+     * A table with no body rows gets no second group at all, matching what the specification's own rendering does with
+     * `tbody` there.
+     */
+    def table(align: Chunk[Maybe[ColumnAlignment]], header: UI, rows: Chunk[UI]): UI =
+      val head = UI.tbody(header).cssClass("md-thead")
+      if rows.isEmpty then UI.table(head) else UI.table(head, UI.tbody(content(rows)))
+
+    /**
+     * A row is a `tr` in either half of the table, so `header` says nothing here: which of `th` and `td` the cells take
+     * is [[tableCell]]'s decision, and which row group the row lands in is [[table]]'s.
+     */
+    def tableRow(header: Boolean, children: Chunk[UI]): UI = UI.tr(content(children))
+
+    def tableCell(alignment: Maybe[ColumnAlignment], header: Boolean, children: Chunk[UI]): UI =
+      val cell = if header then UI.th(content(children)) else UI.td(content(children))
+      val name = alignClass(alignment)
+      if name.isEmpty then cell else cell.cssClass(name)
   end instance
 
   /**

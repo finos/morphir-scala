@@ -1,0 +1,27 @@
+[
+  {
+    "profile": "CommonMark",
+    "version": "0.31.2",
+    "fixtures": "commonmark-0.31.2-spec.json",
+    "passing": 652,
+    "total": 652
+  },
+  {
+    "profile": "GitHub Flavored Markdown",
+    "version": "0.29-gfm",
+    "fixtures": "gfm-0.29-spec.json",
+    "passing": 662,
+    "total": 663,
+    "divergences": [
+      { "example": 398, "reason": "nested strong emphasis: matches no published CommonMark version" },
+      { "example": 426, "reason": "nested strong emphasis: matches no published CommonMark version" },
+      { "example": 434, "reason": "nested strong emphasis: matches no published CommonMark version" },
+      { "example": 435, "reason": "nested strong emphasis: matches no published CommonMark version" },
+      { "example": 436, "reason": "nested strong emphasis: matches no published CommonMark version" },
+      { "example": 473, "reason": "nested strong emphasis: matches no published CommonMark version" },
+      { "example": 474, "reason": "nested strong emphasis: matches no published CommonMark version" },
+      { "example": 475, "reason": "nested strong emphasis: matches no published CommonMark version" },
+      { "example": 477, "reason": "nested strong emphasis: matches no published CommonMark version" }
+    ]
+  }
+]

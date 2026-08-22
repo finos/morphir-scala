@@ -145,6 +145,7 @@ class DslTests extends Test[Any]:
         img("/u", "alt", "title"),
         em("t"),
         strong("t"),
+        del("t"),
         inlineHtml("<b>"),
         br
       )

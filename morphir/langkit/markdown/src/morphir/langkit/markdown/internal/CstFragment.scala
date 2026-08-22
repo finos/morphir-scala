@@ -68,10 +68,47 @@ private[markdown] enum CstFragment:
   /** A run of numbered items sharing one delimiter, starting at `start`. */
   case OrderedList(start: ListStart, delimiter: Char, tight: Boolean, span: Span, items: Chunk[CstFragment])
 
-  /** One item: `markers` cover its marker line's prefix and each continuation line's indentation. */
-  case ListItem(span: Span, markers: Chunk[Marker], children: Chunk[CstFragment])
+  /**
+   * One item: `markers` cover its marker line's prefix and each continuation line's indentation. `task` is filled in
+   * the same deferred way `Paragraph`'s `inlines` is, and for the same reason — see [[TaskMarkerSlot]].
+   */
+  case ListItem(span: Span, markers: Chunk[Marker], children: Chunk[CstFragment], task: TaskMarkerSlot)
+
+  /**
+   * A pipe table: the header row, the delimiter line under it, and the body rows.
+   *
+   * `delimiter` is a span rather than a row of cells because a delimiter cell holds no prose — there is no
+   * [[InlineSlot]] to fill for it — and its cells are re-read off the source when the CST materializes. The alignment
+   * the row spells is not recorded here either: the delimiter row is that alignment, and keeping a second copy beside
+   * it would let the two disagree. The parser reads it once for the AST and once more at lowering, from the same
+   * characters both times.
+   */
+  case Table(span: Span, delimiter: Span, header: CstTableRow, rows: Chunk[CstTableRow])
 
   def span: Span
+
+/** One row of a recorded [[CstFragment.Table]]: the line it occupies, and the cells found on it. */
+private[markdown] final case class CstTableRow(span: Span, cells: Chunk[CstTableCell])
+
+/**
+ * One cell: the span of its content with the pipes and the padding around it removed, and the slot its prose fills.
+ *
+ * A cell is a prose block like a paragraph, so it carries an [[InlineSlot]] for the same reason and fills it under the
+ * same guarantee — the table's own resolve closure runs before [[CstParser]] reads it.
+ */
+private[markdown] final case class CstTableCell(span: Span, inlines: InlineSlot)
+
+/**
+ * `cells` made exactly `columns` long: short rows gain `filler`, long ones lose their excess.
+ *
+ * GFM keeps a table rectangular whatever the source did — spec example 204 pads one row and truncates the next — and
+ * both the block parser and [[Lower]] have to apply the same rule to the same rows, so it lives once, here, beside the
+ * row record it shapes.
+ */
+private[markdown] def fittedCells[A](cells: Chunk[A], columns: Int, filler: => A): Chunk[A] =
+  if cells.size == columns then cells
+  else if cells.size > columns then cells.take(columns)
+  else cells ++ Chunk.from(Seq.fill(columns - cells.size)(filler))
 
 /**
  * The inline content of one prose block, filled in when the block's deferred prose resolves.
@@ -92,6 +129,23 @@ private[markdown] final class InlineSlot:
 
   def content: Maybe[Chunk[MdNode.PhrasingContent]] = slot
   def notes: Maybe[InlineNotes]                     = noted
+
+/**
+ * A list item's task-list checkbox, filled in when the item's deferred blocks resolve.
+ *
+ * Recognizing the checkbox reads the item's first paragraph's first text node once inline content has graduated — the
+ * same reason [[InlineSlot]] is deferred rather than read at record time: whether that text node stays literal rather
+ * than becoming a link depends on every link definition in the document, forward references included, and those are not
+ * all known at record time. The slot is created with the fragment, captured by the item's resolve closure, and filled
+ * exactly once when that closure runs — which is before [[CstParser]] reads it, for the same reason [[InlineSlot]]'s
+ * is. Absent once filled means no marker: the profile does not recognize task lists, the item's first block is not a
+ * paragraph, or its first inline is not literal text carrying the pattern.
+ */
+private[markdown] final class TaskMarkerSlot:
+  private var slot: Maybe[(checked: Boolean, span: Span)] = Absent
+
+  def fill(marker: Maybe[(checked: Boolean, span: Span)]): Unit = slot = marker
+  def marker: Maybe[(checked: Boolean, span: Span)]             = slot
 
 /**
  * Collects fragments in source order while the parser runs. Threaded like the `definitions` map.

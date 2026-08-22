@@ -29,6 +29,7 @@ class ParserTests extends Test[Any]:
       case MdNode.Image(_, _, alt, _)  => alt
       case MdNode.Emphasis(inner, _)   => textOf(inner)
       case MdNode.Strong(inner, _)     => textOf(inner)
+      case MdNode.Delete(inner, _)     => textOf(inner)
       // Raw HTML is markup rather than text, and contributes none: a test asserting on it matches the node itself.
       case MdNode.InlineHtml(_, _) => ""
       // A hard break reads as the line ending it stands for, so a test that only cares what the prose says need not
@@ -149,11 +150,11 @@ class ParserTests extends Test[Any]:
             Chunk(
               MdNode.ListItem(
                 Chunk(MdNode.Paragraph(Chunk(MdNode.Text("alpha", MdMeta.at(Span(2, 5)))), MdMeta.at(Span(2, 5)))),
-                MdMeta.at(Span(0, 7))
+                meta = MdMeta.at(Span(0, 7))
               ),
               MdNode.ListItem(
                 Chunk(MdNode.Paragraph(Chunk(MdNode.Text("beta", MdMeta.at(Span(10, 4)))), MdMeta.at(Span(10, 4)))),
-                MdMeta.at(Span(8, 6))
+                meta = MdMeta.at(Span(8, 6))
               )
             ),
             MdMeta.at(Span(0, 14))

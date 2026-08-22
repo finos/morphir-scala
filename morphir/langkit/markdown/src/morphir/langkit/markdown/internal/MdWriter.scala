@@ -15,7 +15,8 @@ import morphir.langkit.markdown.*
  * [[MdStyleKeys]]: the writer asks the node's own data first and falls back to the style. Nothing here consults the CST
  * — the AST is the input, and a tree the parser never saw writes exactly as well as one it did.
  *
- * Six shapes have no faithful spelling and are documented rather than fixed.
+ * Six shapes have no faithful spelling and are documented rather than fixed. Three more belong to the pipe table alone
+ * and are described on [[writeTable]] rather than here.
  *
  * An [[MdNode.InlineCode]] whose value is empty writes as a single-space code span, because CommonMark cannot express a
  * code span holding nothing. It is a node no parse produces, and the alternative — an unbalanced backtick run, which
@@ -73,13 +74,15 @@ private[markdown] object MdWriter:
   /**
    * The document's CST, obtained by writing it and parsing what was written.
    *
-   * Read back under the YAML-frontmatter profile always, and one profile serves every tree because the profile is inert
-   * on text that does not open with `---`. Nothing this writer spells opens that way by accident: a thematic break
-   * writes as `***` or `___`, and text is escaped. So a document with no frontmatter raises to exactly the CST plain
-   * CommonMark gives it, and a document with frontmatter raises to one that spells what was written.
+   * Read back under the GFM-plus-YAML-frontmatter profile always, and one profile serves every tree because the profile
+   * is inert on text a plainer document never spells: a thematic break writes as `***` or `___`, and text is escaped so
+   * that nothing this writer emits accidentally opens a GFM construct it did not mean — `escapeText` spells for the
+   * widest dialect that might read it back for exactly this reason. A tree with no GFM node writes no GFM syntax and so
+   * raises to the CST plain CommonMark would have given it anyway; a tree holding a table, a task list item,
+   * strikethrough or a filtered tag needs every extension turned on to read back as itself.
    */
   def raise(root: MdNode.Root)(using MdStyle): MdCstNode.Document =
-    CstParser.parse(write(root))(using MdProfile.commonmark.withYamlFrontmatter)
+    CstParser.parse(write(root))(using MdProfile.gfm.withYamlFrontmatter)
 
   /**
    * A frontmatter block: its kind's delimiter, its value, and the delimiter again, each ending its own line.
@@ -109,11 +112,42 @@ private[markdown] object MdWriter:
    * proving: `<` is an autolink or a tag, `&` is a character reference, `#` at the head of a line is a heading, and a
    * lone `_` between two letters is nothing at all until the word moves. Escaping unconditionally keeps the escaper a
    * function of the character rather than of the surrounding grammar.
+   *
+   * `@` joins the set for a narrower reason than the rest: an email address is the one extended form GFM recognises
+   * that [[escapeText]] can defend statically rather than dynamically. `.` and a scheme's `:`, the other two forms'
+   * anchors, are too common in ordinary prose to escape unconditionally, so those stay defended the dynamic way —
+   * matched against the value and broken only at the one character that makes the match, the way [[escapeText]]'s own
+   * doc comment describes. `@` is rare enough that escaping it always, whether or not this position would ever complete
+   * a match, costs nothing.
    */
-  private val AlwaysEscaped: Set[Char] = Set('\\', '`', '*', '_', '[', ']', '<', '>', '&', '#', '!', '~', '|')
+  private val AlwaysEscaped: Set[Char] = Set('\\', '`', '*', '_', '[', ']', '<', '>', '&', '#', '!', '~', '|', '@')
 
   /** Punctuation that means something only at the head of a line: two list markers and a setext underline. */
   private val LineLeadEscaped: Set[Char] = Set('-', '+', '=')
+
+  /**
+   * How far ahead of `from` an extended-autolink match may be checked, bounded by the next character this writer is
+   * going to turn into its own node regardless of what any autolink scan decides.
+   *
+   * A match's own span never crosses whitespace — `domainEnd`, `emailDomainEnd` and `extendedRunEnd` all stop there
+   * unconditionally — so bounding at the next whitespace character never shortens a genuine match. Bounding at the next
+   * [[AlwaysEscaped]] character (`@` excepted — see its own doc comment) is the same fact applied one level further:
+   * that character is always going to be escaped, which always splits the text into two nodes at reparse time, so no
+   * match can genuinely reach past it either. Passing this bound to [[InlineParser.extendedAutolinkAt]] is what lets a
+   * single forward pass catch a match that a truncated *prefix* would complete — `www.a.exam` out of
+   * `www.a.exam_ple.com`, whole only because the trailing `_` invalidates its domain and only visible once the
+   * always-escaped `_` ahead is accounted for — the same way the existing mechanism already catches a match starting
+   * exactly where it is checked.
+   */
+  private def autolinkBound(value: String, from: Int): Int =
+    @annotation.tailrec
+    def loop(index: Int): Int =
+      if index >= value.length then index
+      else
+        val char = value.charAt(index)
+        if char != '@' && (InlineParser.isUnicodeWhitespace(char) || AlwaysEscaped.contains(char)) then index
+        else loop(index + 1)
+    loop(from)
 
   /**
    * A run of blocks, joined by whatever the run that holds them keeps between siblings.
@@ -148,9 +182,10 @@ private[markdown] object MdWriter:
     case MdNode.Paragraph(children, _)  => inlines(children, atLineStart = true)
     case heading: MdNode.Heading        => writeHeading(heading)
     case code: MdNode.Code              => writeCode(code)
-    case MdNode.Html(value, _)          => value
+    case MdNode.Html(value, meta)       => meta.get(Lower.unfilteredHtml).getOrElse(value)
     case MdNode.Blockquote(children, _) => prefixed(blocks(children, BlankSeparated), "> ", ">")
     case list: MdNode.List              => writeList(list)._1
+    case table: MdNode.Table            => writeTable(table)
     // Three spellings mean one break; only what else they could be read as differs. A `-` bullet takes `***`, so a
     // break is never the `- - -` its own list could have written. Every other bullet takes `___`, which is neither a
     // list marker nor a setext underline. `---` is both, and the second is what rules it out: a tight list item
@@ -223,11 +258,77 @@ private[markdown] object MdWriter:
     val separator = if list.tight then LineSeparated else BlankSeparated
     val written   = list.children.zipWithIndex.map { case (item, index) =>
       val marker = if list.ordered then s"${first + index}$delimiter " else s"$bullet "
-      val body   = blocks(item.children, separator)
+      // The checkbox is content, not container prefix: it sits after the bullet on the item's own first line, the
+      // same as any other text the item opens with, so continuation lines still indent by the bullet's width alone.
+      val checkbox = item.checked match
+        case Present(true)  => "[x] "
+        case Present(false) => "[ ] "
+        case Absent         => ""
+      val body = checkbox + blocks(item.children, separator)
       // An item that holds nothing spends no space after its marker: a trailing one would be whitespace no line needs.
       if body.isEmpty then marker.stripTrailing else marked(body, marker)
     }.mkString(separator)
     (written, if list.ordered then delimiter else bullet)
+
+  /**
+   * A pipe table: the header row, a delimiter row built from the alignment, and the body rows.
+   *
+   * Every row is written with both outer pipes, whatever the source had, because they are the spelling that cannot be
+   * misread. A cell's content goes through [[inlines]] with `oneLine` set, since a cell has nowhere to put a line
+   * ending; a literal `|` inside one is escaped by [[escapeText]], which already treats the pipe as always-escaped.
+   *
+   * Two shapes have no faithful spelling here, both for the same reason -- a table's structure is decided by characters
+   * that no escape reaches.
+   *
+   * A [[MdNode.InlineCode]] whose value holds a `|` writes as a code span with a bare pipe in it, which the row
+   * splitter reads as a cell boundary. Escaping it instead would spell `\|`, which a code span reads literally (a
+   * backslash escapes nothing inside one), so the value would come back with the backslash still in it. The pipe splits
+   * the cell rather than corrupting the value, which is the smaller of the two losses and the one a reader can see.
+   *
+   * A table written as a non-first block of a *tight* list item is separated from the block before it by a single
+   * newline rather than a blank line, so a paragraph directly above it becomes the table's header line -- or, when the
+   * table comes first, the paragraph below it becomes another of its rows. Loose items and every other position write
+   * the blank line that keeps the two apart.
+   *
+   * A table of no columns at all -- `align` empty, which no parse produces and only a hand-built tree can hold -- has
+   * no spelling either: a row of no cells writes as `|  |`, whose delimiter row holds one empty cell and so is not a
+   * delimiter row, and the whole thing reads back as a paragraph. GFM has no syntax for a table with no columns, so
+   * there is nothing to write it as.
+   */
+  private def writeTable(table: MdNode.Table)(using style: MdStyle): String =
+    val padded  = table.meta.get(MdStyleKeys.padTableColumns).getOrElse(style.padTableColumns)
+    val minimum = math.max(1, table.meta.get(MdStyleKeys.tableDelimiterWidth).getOrElse(style.tableDelimiterWidth))
+    val columns = table.align.size
+    val written = (Chunk(table.header) ++ table.rows).map(row =>
+      fittedCells(row.children.map(cell => inlines(cell.children, atLineStart = false, oneLine = true)), columns, "")
+    )
+    // The delimiter cell at its narrowest sets a floor on its column's width, so padding never shortens one below
+    // what its own colons and minimum run of dashes need.
+    val narrowest = table.align.map(delimiterCell(_, minimum, width = 0))
+    val widths    =
+      if !padded then Chunk.from(Seq.fill(columns)(0))
+      else
+        Chunk.from((0 until columns).map(column =>
+          (narrowest(column).length +: written.map(_(column).length).toSeq).max
+        ))
+    val lines =
+      Chunk(rowLine(written.head, widths)) ++
+        Chunk(rowLine(table.align.zipWithIndex.map((a, c) => delimiterCell(a, minimum, widths(c))), widths)) ++
+        written.drop(1).map(rowLine(_, widths))
+    lines.mkString("\n")
+
+  /** One row's cells between pipes, each padded out to its column's width. */
+  private def rowLine(cells: Chunk[String], widths: Chunk[Int]): String =
+    cells.zipWithIndex.map((cell, column) => cell.padTo(widths(column), ' ')).mkString("| ", " | ", " |")
+
+  /** A delimiter cell: the colons the alignment asks for, and enough dashes to reach `width`. */
+  private def delimiterCell(alignment: Maybe[ColumnAlignment], minimum: Int, width: Int): String =
+    val (open, close) = alignment match
+      case Absent                          => ("", "")
+      case Present(ColumnAlignment.Left)   => (":", "")
+      case Present(ColumnAlignment.Right)  => ("", ":")
+      case Present(ColumnAlignment.Center) => (":", ":")
+    s"$open${"-" * math.max(minimum, width - open.length - close.length)}$close"
 
   /** Every line of `text` behind `prefix`; a blank line takes `blankPrefix`, so no line ends in dead whitespace. */
   private def prefixed(text: String, prefix: String, blankPrefix: String): String =
@@ -297,11 +398,20 @@ private[markdown] object MdWriter:
         // of the value's own embedded newline surviving as a space rather than as itself. A code span holding a raw
         // newline is a node no parse of a `oneLine` context produces, so this only fires for a hand-built tree.
         writeInlineCode(if oneLine then value.replace('\n', ' ') else value)
-      case MdNode.InlineHtml(value, _) =>
+      case MdNode.InlineHtml(value, meta) =>
         // Raw HTML is emitted verbatim everywhere else — escaping it would show the author their own markup — but a
         // `oneLine` context has nowhere to put a literal line ending at all, so it is downgraded to a space here, the
         // one substitution HTML's own whitespace handling treats as equivalent inside a tag.
-        if oneLine then value.replace('\n', ' ') else value
+        //
+        // A node the tag filter changed carries its pre-filter text under `Lower.unfilteredHtml`; that recorded
+        // original is what gets written, not `value` — `value` no longer opens with a literal `<` once filtered, so
+        // writing it as given would hand the parser `&lt;title>`, which reads back as text rather than as a tag at
+        // all. Writing the recorded original instead gives the parser a real tag to see again, and lowering under a
+        // profile with the tag filter on reapplies the same filter, arriving back at the same value. A node the
+        // filter never touched carries no such key, and `value` is written as given, exactly as before this profile
+        // existed.
+        val original = meta.get(Lower.unfilteredHtml).getOrElse(value)
+        if oneLine then original.replace('\n', ' ') else original
       case link: MdNode.Link =>
         s"[${inlines(link.children, atLineStart = false, oneLine)}](${target(link.url, link.title)})"
       case image: MdNode.Image =>
@@ -325,6 +435,10 @@ private[markdown] object MdWriter:
         val (outerMarker, childStyle) = resolveEmphasisClash(marker, soleInnerEmphasis)
         val delimiter                 = outerMarker.toString * 2
         s"$delimiter${inlines(strong.children, atLineStart = false, oneLine)(using childStyle)}$delimiter"
+      // Two tildes, always. Unlike emphasis, which `MdStyle` lets a caller spell with `*` or `_`, strikethrough has
+      // exactly one spelling in GFM 0.29-gfm — so a style key here would have one legal value and no purpose.
+      case strikethrough: MdNode.Delete =>
+        s"~~${inlines(strikethrough.children, atLineStart = false, oneLine)}~~"
       case MdNode.Break(meta) =>
         if oneLine then "&#10;"
         else
@@ -406,56 +520,131 @@ private[markdown] object MdWriter:
    * `&#10;` instead, content the block scanner sees and the parser resolves back to the same character. `oneLine` asks
    * for the same treatment unconditionally, because its context — an ATX heading — has no second physical line to spend
    * even a single newline on.
+   *
+   * A run that GFM would read as a `www.` host or a `http://`, `https://` or `ftp://` URL is broken the same way, by
+   * writing the one character that makes it a link as the reference for itself: `www&#46;example.com`. A backslash
+   * cannot do this job, since `\w` is a backslash and a `w` rather than an escape; a reference can, because it carries
+   * the character back through a parse and is a node of its own there, so neither half of what it split reads as a
+   * destination. It runs whatever profile the text will be read under, for the reason `~` and `|` sit in
+   * [[AlwaysEscaped]]: the writer spells one document, and it has to survive the widest dialect that might read it. It
+   * is the noisiest thing this escaper does — `~` and `|` cost a byte each, while this puts five in the middle of a URL
+   * — and it is the price of a bare destination surviving a round trip at all.
+   *
+   * The extended email form anchors on `@` instead of a `.` or a scheme's `:`. When this loop finds a genuine email
+   * match ahead, its anchor is still broken the dynamic way, as a character reference, exactly like the other two
+   * forms; `@` also sits in [[AlwaysEscaped]], which costs nothing since ordinary prose rarely holds one — see its own
+   * doc comment for why.
+   *
+   * `pending`'s lookup is bounded by [[autolinkBound]], not by the whole of `value`. Escaping some character ahead of
+   * the checked position — for a reason that has nothing to do with autolinks, such as a domain's own trailing `_` —
+   * closes off a node at reparse time exactly where that character sits, so a match has to complete *before* it to be
+   * one a reparse will still see. Checked unbounded, `wwwAutolinkAt` correctly finds no match over the whole of
+   * `www.a.exam_ple.com`, since a domain's last two labels may not hold `_`; checked against the same string cut off at
+   * the `_` this loop is about to escape anyway, `www.a.exam` is a complete match on its own, and one a reparse — which
+   * will see exactly that prefix as its own node — reads the same way. `autolinkBound` is what makes the checked string
+   * agree with what reparsing will actually see, in both directions: it neither hides a match a reparse will find,
+   * since none of the three forms ever scans across whitespace or an always-escaped character regardless, nor misses
+   * one only a truncated prefix completes.
+   *
+   * **Every branch that writes a character reference or a backslash escape hands `nodeStart = true` forward, and the
+   * recognition above depends on it.** A parse makes each of those a node of its own, so what follows one opens a node,
+   * and a node's first character is a boundary a destination may begin at whatever precedes it here. `InlineParser`'s
+   * scanner has the mirror of this rule — it flushes the run around an escape for the same reason — and if one side
+   * stops, the other stops being right: `\#www.example.com` would go out unbroken and read back as a link.
    */
   private[markdown] def escapeText(value: String, atLineStart: Boolean, oneLine: Boolean = false): String =
-    val out       = new StringBuilder
-    var lineStart = atLineStart
-    var index     = 0
-    while index < value.length do
-      val character = value.charAt(index)
-      if character == '\n' then
-        if oneLine || lineStart then
-          // Either this line already holds nothing and another bare newline would leave it blank, or no line break
-          // is allowed here at all: either way the newline's content survives, but not as a physical line ending.
-          out.append("&#10;")
-          lineStart = false
-        else
-          out.append('\n')
-          lineStart = true
-        index += 1
-      else if character == ' ' then
-        val end = runEnd(value, index, ' ')
-        // A space survives literally only in the middle of a line: at either end of one it is stripped, and two of
-        // them at the end are a hard break. The end of the value counts as the end of a line, because whatever
-        // follows may be nothing at all.
-        val vulnerable = lineStart || end >= value.length || value.charAt(end) == '\n'
-        out.append(if vulnerable then "&#32;" * (end - index) else " " * (end - index))
-        lineStart = false
-        index = end
-      else if character == '\t' then
-        out.append("&#9;")
-        lineStart = false
-        index += 1
-      else if AlwaysEscaped.contains(character) || (lineStart && LineLeadEscaped.contains(character)) then
-        out.append('\\').append(character)
-        lineStart = false
-        index += 1
-      else if lineStart && character.isDigit then
-        // A digit run at the head of a line is an ordered-list marker only when a delimiter closes it, so the escape
-        // goes on the delimiter rather than on the digits: `1\.` rather than `\1.`, which is not an escape at all.
-        val end = digitsEnd(value, index)
-        out.append(value.substring(index, end))
-        val delimited = end < value.length && (value.charAt(end) == '.' || value.charAt(end) == ')')
-        if delimited then
-          out.append('\\').append(value.charAt(end))
-          index = end + 1
-        else index = end
-        lineStart = false
+    // The one piece of mutable state, and the sanctioned kind: an accumulator that is private and never escapes.
+    // Everything the branches disagree about travels in the parameter list instead, where each call says what it
+    // hands the next character.
+    val out = new StringBuilder
+
+    /**
+     * @param lineStart
+     *   whether the line about to be written is still empty
+     * @param nodeStart
+     *   whether the character at `index` opens a text node of its own, as a reparse would see it: true at the start of
+     *   the value, and again after every character reference and every backslash escape below, because a parse makes
+     *   each of those a node of its own. It is a boundary an extended autolink may begin at, whatever precedes it in
+     *   this value — which is why every branch that writes one hands `true` forward.
+     * @param breakAt
+     *   where the character that has to be spelled as a reference to break a bare destination sits, or -1 for none
+     */
+    @annotation.tailrec
+    def loop(index: Int, lineStart: Boolean, nodeStart: Boolean, breakAt: Int): String =
+      if index >= value.length then out.result()
       else
-        out.append(character)
-        lineStart = false
-        index += 1
-    out.toString
+        // A pending break is looked for only when none is outstanding, and the character that carries one is always
+        // past the position the match began at, so the two never collide on one index.
+        val pending =
+          if breakAt >= index then breakAt
+          else
+            InlineParser.extendedAutolinkAt(value, index, nodeStart, autolinkBound(value, index)) match
+              case Present(matched) => matched.anchor
+              case Absent           => breakAt
+
+        // A break is a *position*, not a character class -- the character it lands on is whatever the destination
+        // spelled there -- so it is decided ahead of the dispatch rather than as a guard pretending to be about the
+        // character.
+        if index == pending then
+          // The one character that makes the run a link -- the `.` of a `www.` host, a scheme's `:`, an address's
+          // `@` -- written as the reference for itself. It carries the same character back through a parse, and a
+          // reference is a node boundary there, so neither half of what it split can be read as a bare destination.
+          out.append("&#").append(value.charAt(index).toInt).append(';')
+          loop(index + 1, lineStart = false, nodeStart = true, pending)
+        else
+          value.charAt(index) match
+            // A line ending whose line holds nothing yet would leave a blank line, which ends the block this text
+            // belongs to; an ATX heading has no second physical line at all. Either way the content survives, but
+            // not as a break.
+            case '\n' if oneLine || lineStart =>
+              out.append("&#10;")
+              loop(index + 1, lineStart = false, nodeStart = true, pending)
+
+            case '\n' =>
+              out.append('\n')
+              loop(index + 1, lineStart = true, nodeStart = false, pending)
+
+            case ' ' =>
+              val end = runEnd(value, index, ' ')
+              // A space survives literally only in the middle of a line: at either end of one it is stripped, and
+              // two of them at the end are a hard break. The end of the value counts as the end of a line, because
+              // whatever follows may be nothing at all.
+              val vulnerable = lineStart || end >= value.length || value.charAt(end) == '\n'
+              out.append(if vulnerable then "&#32;" * (end - index) else " " * (end - index))
+              loop(end, lineStart = false, nodeStart = vulnerable, pending)
+
+            case '\t' =>
+              out.append("&#9;")
+              loop(index + 1, lineStart = false, nodeStart = true, pending)
+
+            case character
+                if AlwaysEscaped.contains(character) ||
+                  (lineStart && LineLeadEscaped.contains(character)) =>
+              out.append('\\').append(character)
+              // A parse makes an escape a node of its own, so what follows one opens a node too. Without the `true`,
+              // `#www.example.com` would write as `\#www.example.com` and read back as a link the tree never held.
+              loop(index + 1, lineStart = false, nodeStart = true, pending)
+
+            case character if lineStart && character.isDigit =>
+              // A digit run at the head of a line is an ordered-list marker only when a delimiter closes it, so the
+              // escape goes on the delimiter rather than on the digits: `1\.` rather than `\1.`, which is not an
+              // escape at all.
+              val end = digitsEnd(value, index)
+              out.append(value.substring(index, end))
+              val delimited = end < value.length && (value.charAt(end) == '.' || value.charAt(end) == ')')
+              if delimited then
+                out.append('\\').append(value.charAt(end))
+                // The delimiter went out as an escape, so what follows it opens a node, exactly as above: without
+                // the `true`, `1.www.example.com` would read back as a link this text never held.
+                loop(end + 1, lineStart = false, nodeStart = true, pending)
+              else loop(end, lineStart = false, nodeStart = false, pending)
+
+            case character =>
+              out.append(character)
+              loop(index + 1, lineStart = false, nodeStart = false, pending)
+    end loop
+
+    loop(0, atLineStart, nodeStart = true, breakAt = -1)
   end escapeText
 
   /** `children`'s sole member, when there is exactly one and it is an [[MdNode.Emphasis]]. */

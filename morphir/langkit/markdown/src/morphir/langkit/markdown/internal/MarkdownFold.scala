@@ -27,8 +27,28 @@ private[markdown] object MarkdownFold:
       case MdNode.Html(value, _)                           => compiler.html(value)
       case MdNode.Blockquote(children, _)                  => compiler.blockquote(children.map(compileFlow))
       case list @ MdNode.List(ordered, start, _, items, _) =>
-        compiler.list(ordered, start, items.map(item => compiler.listItem(compileItem(item, list.tight))))
-      case MdNode.ThematicBreak(_) => compiler.thematicBreak
+        compiler.list(ordered, start, items.map(item => compiler.listItem(item.checked, compileItem(item, list.tight))))
+      case MdNode.ThematicBreak(_)              => compiler.thematicBreak
+      case MdNode.Table(align, header, rows, _) =>
+        compiler.table(
+          align,
+          compileRow(header, align, isHeader = true),
+          rows.map(row => compileRow(row, align, isHeader = false))
+        )
+
+  /** One row's cells, each told its column's alignment and which half of the table it is in. */
+  private def compileRow[Out](row: MdNode.TableRow, align: Chunk[Maybe[ColumnAlignment]], isHeader: Boolean)(using
+      compiler: Compiler[Out]
+  ): Out =
+    compiler.tableRow(
+      isHeader,
+      row.children.zipWithIndex.map { (cell, column) =>
+        // The parser pads and truncates every row to the column count, so the index is always in range. The guard is
+        // here because a hand-built tree need not have obeyed that, and a writer should not throw on one.
+        val alignment = if column < align.size then align(column) else Absent
+        compiler.tableCell(alignment, isHeader, cell.children.map(compilePhrasing))
+      }
+    )
 
   /**
    * One list item's children, with the newlines CommonMark writes around block-level siblings.
@@ -62,6 +82,7 @@ private[markdown] object MarkdownFold:
       case MdNode.Image(url, title, alt, _)     => compiler.image(url, title, alt)
       case MdNode.Emphasis(children, _)         => compiler.emphasis(children.map(compilePhrasing))
       case MdNode.Strong(children, _)           => compiler.strong(children.map(compilePhrasing))
+      case MdNode.Delete(children, _)           => compiler.delete(children.map(compilePhrasing))
       case MdNode.InlineHtml(value, _)          => compiler.inlineHtml(value)
       case MdNode.Break(_)                      => compiler.break
 end MarkdownFold

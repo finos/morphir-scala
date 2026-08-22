@@ -18,6 +18,18 @@ import scala.annotation.tailrec
 private[markdown] object HtmlTag:
 
   /**
+   * `text` with `A`-`Z` folded to `a`-`z`, and every other character left exactly as it is.
+   *
+   * Tag names are matched case-insensitively, and that comparison must not depend on the host's default locale.
+   * `"TITLE".toLowerCase` is `"tıtle"` under a Turkish one — a dotless `ı` — so `<TITLE>` would go unrecognised on a
+   * machine configured that way and be passed through unescaped. Folding the ASCII range by hand rather than asking for
+   * `Locale.ROOT` also keeps the three platforms honest: this module compiles for the JVM, Scala.js and Scala Native,
+   * and an explicit fold behaves identically on all three with no locale machinery behind it.
+   */
+  def asciiLower(text: String): String =
+    text.map(char => if char >= 'A' && char <= 'Z' then (char + 32).toChar else char)
+
+  /**
    * Where an open or closing tag beginning at `from` ends.
    *
    * The block parser's condition seven, which recognises tags and nothing else: a comment or a declaration alone on a

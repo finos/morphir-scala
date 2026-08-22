@@ -133,7 +133,7 @@ class CstBlockStructureTests extends Test[Any]:
         case MdCstNode.BulletList('-', tight, children, _) =>
           assert(tight)
           children.head match
-            case MdCstNode.ListItem(itemChildren, _) =>
+            case MdCstNode.ListItem(itemChildren, _, _) =>
               assert(itemChildren.headOption.exists {
                 case MdCstNode.Token("- ", _) => true
                 case _                        => false
@@ -188,7 +188,7 @@ class CstBlockStructureTests extends Test[Any]:
       blocks("-\n").head match
         case MdCstNode.BulletList(_, _, children, _) =>
           children.head match
-            case MdCstNode.ListItem(itemChildren, _) =>
+            case MdCstNode.ListItem(itemChildren, _, _) =>
               assert(itemChildren.forall {
                 case _: MdCstNode.Token => true
                 case _                  => false

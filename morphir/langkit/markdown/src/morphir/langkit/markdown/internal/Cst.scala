@@ -181,9 +181,86 @@ private[markdown] object CstParser:
     case CstFragment.OrderedList(start, delimiter, tight, span, items) =>
       MdCstNode.OrderedList(start, delimiter, tight, assembleRegion(source, span, markers, items), span)
 
-    case CstFragment.ListItem(span, own, children) =>
-      val all = merged(markers, own)
-      MdCstNode.ListItem(assembleRegion(source, span, all, children), span)
+    case CstFragment.Table(span, delimiter, header, rows) =>
+      val out    = Chunk.newBuilder[MdCstNode]
+      var cursor = span.offset
+      // Everything between rows -- the line endings, and any container marker on the next line -- is syntax the table
+      // spent, so a gap inside one tiles as tokens rather than as verbatim prose.
+      def gap(until: Int): Unit =
+        if until > cursor then
+          out.addAll(tile(source, cursor, until, markers)(MdCstNode.Token(_, _)))
+          cursor = until
+      def emit(node: MdCstNode): Unit =
+        if node.span.offset >= cursor && node.span.end <= span.end then
+          gap(node.span.offset)
+          out.addOne(node)
+          cursor = node.span.end
+      emit(tableRowNode(source, header, markers))
+      emit(tableDelimiterNode(source, delimiter, markers))
+      rows.foreach(row => emit(tableRowNode(source, row, markers)))
+      gap(span.end)
+      MdCstNode.Table(out.result(), span)
+
+    case CstFragment.ListItem(span, own, children, task) =>
+      // The checkbox's span, when there is one, is filled in only when the item's blocks resolve -- see
+      // [[TaskMarkerSlot]] -- which happens before this runs, so the value is settled by the time it is read here.
+      // Folded into `own` rather than into `markers`, so it punches out of this item's own region, its paragraph's
+      // prose interior included, the same way the item's own indentation does.
+      val ownWithTask = task.marker match
+        case Present((checked = _, span = markerSpan)) =>
+          // `own` arrives offset-sorted from the collector; the checkbox sits inside the first line, ahead of any
+          // continuation line's own indentation marker, so a plain append would not keep that order -- sorting
+          // again is what `merged` itself does for exactly this reason, one line up.
+          Chunk.from((own ++ Chunk((span = markerSpan, phantom = 0))).sortBy(_.span.offset))
+        case Absent => own
+      val all = merged(markers, ownWithTask)
+      MdCstNode.ListItem(assembleRegion(source, span, all, children), task.marker.map(_.checked), span)
+
+  /**
+   * One table row: its cells at their own spans, and every pipe and run of padding between them as a [[Token]].
+   *
+   * The cells the parser recorded are the trimmed content regions, so the padding whitespace and the pipes fall in the
+   * gaps and are claimed here. That is the whole of the row's tiling duty: the leaves in order are exactly the line.
+   */
+  private def tableRowNode(source: String, row: CstTableRow, markers: Chunk[Marker]): MdCstNode =
+    val out    = Chunk.newBuilder[MdCstNode]
+    var cursor = row.span.offset
+    row.cells.foreach { cell =>
+      if cell.span.offset >= cursor && cell.span.end <= row.span.end then
+        out.addAll(tile(source, cursor, cell.span.offset, markers)(MdCstNode.Token(_, _)))
+        out.addOne(MdCstNode.TableCell(
+          prose(source, cell.span.offset, cell.span.end, markers, cell.inlines),
+          cell.span
+        ))
+        cursor = cell.span.end
+    }
+    out.addAll(tile(source, cursor, row.span.end, markers)(MdCstNode.Token(_, _)))
+    MdCstNode.TableRow(out.result(), row.span)
+
+  /**
+   * The delimiter row, laid out like any other row but with every leaf a [[MdCstNode.Token]].
+   *
+   * Its cells are re-read off the source rather than recorded by the parser: a delimiter cell carries no prose, so
+   * there is nothing about it the parse knows that the characters do not say. Splitting is the same function the block
+   * phase used, so the two readings cannot drift.
+   */
+  private def tableDelimiterNode(source: String, span: Span, markers: Chunk[Marker]): MdCstNode =
+    val raw    = source.substring(span.offset, span.end)
+    val out    = Chunk.newBuilder[MdCstNode]
+    var cursor = span.offset
+    Parser.tableCellSpans(raw).foreach { cell =>
+      val from  = span.offset + cell.start
+      val until = span.offset + cell.end
+      if from >= cursor && until <= span.end then
+        out.addAll(tile(source, cursor, from, markers)(MdCstNode.Token(_, _)))
+        out.addOne(MdCstNode.TableCell(
+          leaf(source, from, until)(MdCstNode.Token(_, _)),
+          Span.fromStartEnd(from, until)
+        ))
+        cursor = until
+    }
+    out.addAll(tile(source, cursor, span.end, markers)(MdCstNode.Token(_, _)))
+    MdCstNode.TableDelimiterRow(out.result(), span)
 
   /**
    * The enclosing container's markers and this container's, one sorted run. A container's own recorder only sees the
@@ -235,6 +312,7 @@ private[markdown] object CstParser:
           inline match
             case MdNode.Emphasis(content, _)   => content.foreach(emit)
             case MdNode.Strong(content, _)     => content.foreach(emit)
+            case MdNode.Delete(content, _)     => content.foreach(emit)
             case MdNode.Link(_, _, content, _) => content.foreach(emit)
             case _                             => ()
     items.foreach(emit)
@@ -319,6 +397,12 @@ private[markdown] object CstParser:
           ++ leaf(source, span.end - 1, span.end)(MdCstNode.Token(_, _))
       Present(MdCstNode.Autolink(children, span))
 
+    // An extended autolink is a Link the author spent no syntax on: the source under its span is the destination
+    // itself, which is exactly the check — its sole text child says what the parse read there, and the two agreeing
+    // is what separates it from a bracketed link that happens to be positioned oddly.
+    case MdNode.Link(_, _, content, MdMeta(Present(span), _)) if isExtendedAutolink(source, span, content) =>
+      Present(MdCstNode.ExtendedAutolink(tile(source, span.offset, span.end, markers)(MdCstNode.Text(_, _)), span))
+
     case MdNode.Link(_, _, content, MdMeta(Present(span), _))
         if span.offset < source.length && source.charAt(span.offset) == '[' =>
       for
@@ -341,6 +425,9 @@ private[markdown] object CstParser:
     case MdNode.Strong(content, MdMeta(Present(span), _)) =>
       emphasisNode(source, span, content, markers, notes, used = 2, strong = true)
 
+    case MdNode.Delete(content, MdMeta(Present(span), _)) =>
+      strikethroughNode(source, span, content, markers, notes)
+
     // A hard break's span runs to the next line's content, so it may cover a container marker; tiling with the
     // markers keeps the break's own characters and the marker as separate tokens.
     case MdNode.Break(MdMeta(Present(span), _))
@@ -351,32 +438,46 @@ private[markdown] object CstParser:
     case _ => Absent
 
   /**
-   * An emphasis node, its extent found from the content rather than from the AST span.
+   * Whether a link is one the extended-autolink pass made, rather than one the author bracketed.
+   *
+   * A bare autolink's text *is* its source: one child, holding exactly the characters under the span. A bracketed link
+   * never satisfies that — its span opens with `[` or `<` and covers delimiters its text does not — so the arms may
+   * match in any order, and a span the parse and the source disagree on falls through to verbatim the way every other
+   * graduation does.
+   */
+  private def isExtendedAutolink(source: String, span: Span, content: Chunk[MdNode.PhrasingContent]): Boolean =
+    span.offset >= 0 && span.end <= source.length && content.size == 1 &&
+      (content.head match
+        case MdNode.Text(value, _) => source.substring(span.offset, span.end) == value
+        case _                     => false)
+
+  /**
+   * Where an emphasis-shaped construct's delimiters actually start and end, measured from its content rather than from
+   * the AST span. Shared by [[emphasisNode]] and [[strikethroughNode]], which differ only in which delimiter character
+   * they accept and which CST node they build from the result.
    *
    * The AST span covers the whole delimiter runs, but a run consumed a pair at a time shares its bytes: in
-   * `__foo_ bar_` the inner emphasis's AST span starts at the run the outer also draws from. What an emphasis actually
-   * owns is `used` delimiters each side of its content, where nested emphasis content is measured by the same rule
-   * recursively — so the CST node's span is that narrowed claim, leftover delimiters fall outside it into the
-   * surrounding gaps, and nesting tiles cleanly. Content that is empty or delimiters that fail the character check
-   * degrade to [[kyo.Absent]].
+   * `__foo_ bar_` the inner emphasis's AST span starts at the run the outer also draws from. What a construct actually
+   * owns is `used` delimiters each side of its content, where nested emphasis, strong or strikethrough content is
+   * measured by the same rule recursively — so the claimed extent is that narrowed claim, leftover delimiters fall
+   * outside it into the surrounding gaps, and nesting tiles cleanly. Empty content, or an extent that does not fit
+   * inside `span`, degrades to [[kyo.Absent]] rather than tile against a claim it does not have.
    */
-  private def emphasisNode(
+  private def delimitedExtent(
       source: String,
       span: Span,
       content: Chunk[MdNode.PhrasingContent],
-      markers: Chunk[Marker],
-      notes: Maybe[InlineNotes],
-      used: Int,
-      strong: Boolean
-  ): Maybe[MdCstNode] =
+      used: Int
+  ): Maybe[(openStart: Int, contentStart: Int, contentEnd: Int, closeEnd: Int)] =
     def claimOf(item: MdNode.PhrasingContent): (start: Int, end: Int) = item match
       case MdNode.Emphasis(inner, MdMeta(Present(s), _)) => narrowed(inner, 1, s)
       case MdNode.Strong(inner, MdMeta(Present(s), _))   => narrowed(inner, 2, s)
+      case MdNode.Delete(inner, MdMeta(Present(s), _))   => narrowed(inner, 2, s)
       case other                                         =>
         other.span match
           case Present(s) => (start = s.offset, end = s.end)
           // A node the parse did not position claims nothing this can measure. A negative start propagates through
-          // every enclosing `narrowed` and trips the `openStart < 0` check below, so the emphasis degrades to
+          // every enclosing `narrowed` and trips the `openStart < 0` check below, so the construct degrades to
           // verbatim rather than tile against a span it does not have.
           case Absent => (start = -1, end = -1)
     def narrowed(inner: Chunk[MdNode.PhrasingContent], innerUsed: Int, s: Span): (start: Int, end: Int) =
@@ -387,19 +488,38 @@ private[markdown] object CstParser:
 
     if content.isEmpty then Absent
     else
-      val claims                                            = content.map(claimOf)
-      val contentStart                                      = claims.map(_.start).min
-      val contentEnd                                        = claims.map(_.end).max
-      val openStart                                         = contentStart - used
-      val closeEnd                                          = contentEnd + used
-      def isRun(from: Int, until: Int, char: Char): Boolean = (from until until).forall(i =>
-        i >= 0 && i < source.length && source.charAt(i) == char
-      )
+      val claims       = content.map(claimOf)
+      val contentStart = claims.map(_.start).min
+      val contentEnd   = claims.map(_.end).max
+      val openStart    = contentStart - used
+      val closeEnd     = contentEnd + used
       if openStart < span.offset || closeEnd > span.end || openStart < 0 then Absent
       else
+        Present((openStart = openStart, contentStart = contentStart, contentEnd = contentEnd, closeEnd = closeEnd))
+
+  /** Whether every character in `[from, until)` is `char`, in bounds. */
+  private def isRun(source: String, from: Int, until: Int, char: Char): Boolean = (from until until).forall(i =>
+    i >= 0 && i < source.length && source.charAt(i) == char
+  )
+
+  /**
+   * An emphasis node, its extent found from the content via [[delimitedExtent]]. Content that is empty or delimiters
+   * that fail the character check degrade to [[kyo.Absent]].
+   */
+  private def emphasisNode(
+      source: String,
+      span: Span,
+      content: Chunk[MdNode.PhrasingContent],
+      markers: Chunk[Marker],
+      notes: Maybe[InlineNotes],
+      used: Int,
+      strong: Boolean
+  ): Maybe[MdCstNode] =
+    delimitedExtent(source, span, content, used).flatMap {
+      case (openStart = openStart, contentStart = contentStart, contentEnd = contentEnd, closeEnd = closeEnd) =>
         val delimiter = source.charAt(openStart)
         if (delimiter != '*' && delimiter != '_')
-          || !isRun(openStart, contentStart, delimiter) || !isRun(contentEnd, closeEnd, delimiter)
+          || !isRun(source, openStart, contentStart, delimiter) || !isRun(source, contentEnd, closeEnd, delimiter)
         then Absent
         else
           val children =
@@ -407,6 +527,33 @@ private[markdown] object CstParser:
               ++ inlineRegion(source, contentStart, contentEnd, markers, content, notes)
               ++ leaf(source, contentEnd, closeEnd)(MdCstNode.Token(_, _))
           Present(MdCstNode.Emphasis(delimiter, strong, children, Span.fromStartEnd(openStart, closeEnd)))
+    }
+
+  /**
+   * A strikethrough node, its extent found from the content via [[delimitedExtent]] the same way [[emphasisNode]] finds
+   * an emphasis's.
+   *
+   * A `~~` run is always exactly two, and `processEmphasis` always consumes it whole, so this narrowing never actually
+   * splits a run the way a partially-consumed `*`/`_` run can — but nested content still measures through the same
+   * recursive claim, so a `~~` nested inside a partially-consumed emphasis run tiles correctly either way.
+   */
+  private def strikethroughNode(
+      source: String,
+      span: Span,
+      content: Chunk[MdNode.PhrasingContent],
+      markers: Chunk[Marker],
+      notes: Maybe[InlineNotes]
+  ): Maybe[MdCstNode] =
+    delimitedExtent(source, span, content, used = 2).flatMap {
+      case (openStart = openStart, contentStart = contentStart, contentEnd = contentEnd, closeEnd = closeEnd) =>
+        if !isRun(source, openStart, contentStart, '~') || !isRun(source, contentEnd, closeEnd, '~') then Absent
+        else
+          val children =
+            leaf(source, openStart, contentStart)(MdCstNode.Token(_, _))
+              ++ inlineRegion(source, contentStart, contentEnd, markers, content, notes)
+              ++ leaf(source, contentEnd, closeEnd)(MdCstNode.Token(_, _))
+          Present(MdCstNode.Strikethrough(children, Span.fromStartEnd(openStart, closeEnd)))
+    }
 
   /**
    * A link or image node from its note, or [[kyo.Absent]] when the note's geometry does not fit the span.

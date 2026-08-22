@@ -18,9 +18,11 @@ class KyoUiCompilerTests extends Test[Any]:
 
   private def prose(value: String): Chunk[MdNode.PhrasingContent] = Chunk(MdNode.Text(value, meta))
 
+  private def cell(value: String): MdNode.TableCell = MdNode.TableCell(prose(value), meta)
+
   /** A one-paragraph item, which is what a tight list's items are. */
   private def item(value: String): MdNode.ListItem =
-    MdNode.ListItem(Chunk(MdNode.Paragraph(prose(value), meta)), meta)
+    MdNode.ListItem(Chunk(MdNode.Paragraph(prose(value), meta)), meta = meta)
 
   private def compile(blocks: MdNode.FlowContent*): UI =
     KyoUiCompiler.compile(MdNode.Root(Chunk.from(blocks), meta = meta))
@@ -100,6 +102,40 @@ class KyoUiCompilerTests extends Test[Any]:
         assert(html.contains("language-scala"))
         assert(html.contains("<pre"))
         assert(html.contains("<code"))
+      }
+
+    /**
+     * kyo-ui has no `thead`, so the header row goes in a `tbody` marked `md-thead`, and alignment is a class rather
+     * than the `align` attribute the ScalaTags oracle writes. Both are recorded gaps, not accidents.
+     */
+    "renders a table as th and td cells, with alignment as a class" in
+      render(MdNode.Table(
+        Chunk(Present(ColumnAlignment.Center), Absent),
+        MdNode.TableRow(Chunk(cell("h1"), cell("h2")), meta),
+        Chunk(MdNode.TableRow(Chunk(cell("a"), cell("b")), meta)),
+        meta
+      )).map { html =>
+        assert(html.contains("<table"))
+        assert(html.contains("<th"))
+        assert(html.contains("<td"))
+        assert(html.contains("md-thead"))
+        assert(html.contains("md-align-center"))
+        // The header row group is a real `tbody`, not a bare `tr` under the table: kyo-ui's own guidance is that a
+        // row patched into a live table outside a group breaks `tbody`-scoped selectors and semantics.
+        assert(html.contains("<tbody"))
+        assert(!html.contains("<thead"))
+      }
+
+    /** One row group, the header's; a table with no body rows gets no second one. */
+    "gives a table with no body rows only its header row group" in
+      render(MdNode.Table(
+        Chunk(Absent),
+        MdNode.TableRow(Chunk(cell("only")), meta),
+        Chunk.empty,
+        meta
+      )).map { html =>
+        assert(html.split("<tbody", -1).length - 1 == 1, html)
+        assert(html.contains("md-thead"))
       }
 
     "renders an empty document without raising" in

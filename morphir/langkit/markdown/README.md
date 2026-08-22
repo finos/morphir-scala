@@ -1,10 +1,39 @@
 # morphir-langkit-markdown
 
-Markdown as a langkit: source text to a CST, on the JVM, Scala.js, and Scala Native.
+Markdown as a langkit: source text to a CST and an AST, on the JVM, Scala.js, and Scala Native.
 
-The module owns a CommonMark subset parser: ATX headings, paragraphs, fenced code, unordered lists, and thematic
-breaks. Inlines stay raw text. `commonmark-java` must not enter this module. A third-party engine remains allowed
-later if one compiles on JVM, JS, and Native.
+The module owns its own CommonMark parser rather than wrapping one — a settled decision, not a stopgap: with full
+CommonMark and GFM conformance measured in this repository, a third-party engine is no longer under consideration.
+`commonmark-java` must not enter this module. See
+[decision 0016](../../../kb/bundles/morphir/morphir-scala/decisions/0016-the-markdown-parser-is-our-own.md) for why.
+
+## Dialects and conformance
+
+A parse recognizes plain CommonMark under `MdProfile.commonmark`, or CommonMark plus GitHub Flavored Markdown's five
+extensions under `MdProfile.gfm`:
+
+| Extension | Recognizes |
+| --- | --- |
+| `Tables` | Pipe tables: a header row, a delimiter row fixing per-column alignment, and body rows |
+| `TaskListItems` | `[ ]` and `[x]` at the start of a list item's first paragraph, rendered as a disabled checkbox |
+| `Strikethrough` | `~~struck~~`, rendered as `del` |
+| `Autolinks` | Bare URLs, `www.` hostnames and email addresses linked without `<>` around them |
+| `TagFilter` | Escaping of a fixed list of raw HTML tags (`script`, `style`, `iframe` and kin) rather than passing them through |
+
+Each extension branches at the earliest pipeline stage whose output tree can record the decision — see
+[CONTRIBUTING.md](./CONTRIBUTING.md#where-a-profile-dependent-construct-branches) and
+[decision 0015](../../../kb/bundles/morphir/morphir-scala/decisions/0015-profile-branches-at-the-earliest-capable-stage.md).
+
+Conformance is measured against each dialect's own published example set, byte-exact through the ScalaTags oracle:
+
+- **CommonMark 0.31.2**: 652 of 652.
+- **GitHub Flavored Markdown 0.29-gfm**: 662 of 663 measured examples, plus nine recorded divergences — nested
+  strong-emphasis examples that match no published CommonMark release — and one open gap (`morphir-t3p.8`, an
+  escaped pipe inside a code span inside a table cell).
+
+The Markdown writer carries the same guarantee: every measured GFM example, scoped to the one extension its own
+fence claims, survives a write/read round trip with an identical render, exactly as the CommonMark corpus already
+did.
 
 ## Artifact
 

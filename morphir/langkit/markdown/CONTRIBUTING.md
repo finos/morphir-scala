@@ -91,6 +91,28 @@ A `Monoid[Out]` was considered and does not fit: a monoid concatenates siblings,
 rather than sitting beside them. A visitor was also rejected, because traversal would then live in every output format
 instead of in one driver.
 
+## Where a profile-dependent construct branches
+
+**Branch at the earliest stage whose output tree can record the decision, and no later.**
+
+The module publishes two trees that must agree, and the concrete one is materialized from inline nodes' spans. A
+decision made at an earlier stage is recorded in the tree it emits, so later stages need no profile — which is why
+`Lower` handles frontmatter without knowing whether frontmatter was enabled.
+
+| Stage | Records a decision by | Profile |
+| --- | --- | --- |
+| Block parse | emitting a `CstFragment` kind | yes |
+| Inline parse | emitting a `PhrasingContent` node with a span | yes |
+| CST to CST | rewriting nodes; source spans go stale | no |
+| CST to AST (`Lower`) | producing a different `MdNode` for the same CST | yes |
+| AST to AST | rewriting the AST; the CST is left behind | no |
+
+A new extension states which stage it branches at and why that stage is the earliest capable one. A construct that
+seems to want a later stage is usually not syntax — GitHub's mentions, issue references and emoji are post-rendering
+features, and the AST-to-AST stage is their home.
+
+Full reasoning: [decision 0015](../../../kb/bundles/morphir/morphir-scala/decisions/0015-profile-branches-at-the-earliest-capable-stage.md).
+
 ## Writers live in their own artifacts
 
 Output targets are **not** in this module, though they share its package. Each writer is its own published

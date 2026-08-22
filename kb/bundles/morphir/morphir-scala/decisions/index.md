@@ -36,6 +36,11 @@ past-tense and answers *why is it shaped this way*. See
 * [Keep compiling Mill Morphir plugins into the metabuild](/decisions/0012-keep-source-metabuild-for-mill-morphir-plugins.md) - Normal builds continue to compile mill-plugins/morphir sources into the metabuild; pinned Central artifacts are deferred until bootstrap experience is measured.
 * [Trunk-based development on main; the develop branch is retired](/decisions/0014-trunk-based-development-on-main.md) - Pull requests target main and merge into it. The develop integration branch and its promotion ritual are removed, because the second branch cost more than it returned.
 
+## Language toolkits
+
+* [Profile-dependent syntax branches at the earliest stage whose tree can record it](/decisions/0015-profile-branches-at-the-earliest-capable-stage.md) - A parse profile changes behaviour at the earliest pipeline stage whose output tree can record the decision, and no later, so the concrete and abstract syntax trees never disagree.
+* [The Markdown parser is our own, permanently](/decisions/0016-the-markdown-parser-is-our-own.md) - morphir-langkit-markdown implements and keeps its own CommonMark and GFM parser; replacing it with a third-party engine is no longer under consideration.
+
 ## Published libraries
 
 * [Published library families are kit, connector, appkit, langkit, and knowledge](/decisions/0013-published-library-families.md) - Kit wraps Scala libraries, connector wraps external systems, appkit hosts Morphir in an application, and knowledge holds OKF; kit and connector both compile for JVM, JS, and Native.

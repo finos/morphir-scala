@@ -102,11 +102,36 @@ trait Compiler[Out]:
    */
   def list(ordered: Boolean, start: Maybe[ListStart], children: Chunk[Out]): Out
 
-  /** Compile one list item from its compiled children. Called before [[list]]. */
-  def listItem(children: Chunk[Out]): Out
+  /**
+   * Compile one list item from its compiled children. Called before [[list]].
+   *
+   * `checked` is Present only for a GFM task list item. A target with no checkbox to render should still say something
+   * — the marker was written — rather than silently drop it.
+   */
+  def listItem(checked: Maybe[Boolean], children: Chunk[Out]): Out
 
   /** Compile a thematic break. It has no children and no text, so this is a constant for most formats. */
   def thematicBreak: Out
+
+  /**
+   * Combine a table's compiled header row and body rows.
+   *
+   * The header arrives separately rather than as the first entry of `rows`, matching the AST: GFM requires a header,
+   * and a writer should not have to trust that a list is non-empty to find it. `align` has one entry per column, and
+   * every row has exactly that many cells.
+   */
+  def table(align: Chunk[Maybe[ColumnAlignment]], header: Out, rows: Chunk[Out]): Out
+
+  /**
+   * Compile one table row from its compiled cells.
+   *
+   * `header` says which half of the table the row is in. The fold hands [[table]] rows that are already compiled, so a
+   * row that had to be a `th` rather than a `td` must know it here rather than there.
+   */
+  def tableRow(header: Boolean, children: Chunk[Out]): Out
+
+  /** Compile one table cell. `alignment` is Absent for a column whose delimiter set none. */
+  def tableCell(alignment: Maybe[ColumnAlignment], header: Boolean, children: Chunk[Out]): Out
 
   /**
    * Compile a run of literal text.
@@ -138,6 +163,14 @@ trait Compiler[Out]:
 
   /** Compile strong emphasis from its compiled content. */
   def strong(children: Chunk[Out]): Out
+
+  /**
+   * Compile strikethrough from its compiled content.
+   *
+   * Present on the algebra unconditionally, even though only a GFM-profile parse produces the node. A writer that
+   * cannot express it should render its children unchanged rather than drop them: the text was written to be read.
+   */
+  def delete(children: Chunk[Out]): Out
 
   /**
    * Compile raw HTML written inside prose.

@@ -64,7 +64,21 @@ object ScalatagsCompiler:
           case Present(value) if value != ListStart.One => ol(attr("start") := value.toInt.toString)(newline, body)
           case _                                        => ol(newline, body)
 
-    def listItem(children: Chunk[Frag]): Frag = li(frag(children.toSeq*))
+    /**
+     * A checked box is Present only for a GFM task list item; `checked` says whether it was ticked.
+     *
+     * The checkbox is spelled with `raw` rather than the `input` tag: ScalaTags registers `input` as a void element and
+     * self-closes it (`<input ... />`), but the fixtures spell it `<input ... type="checkbox">` with no closing slash —
+     * attribute order and all — so the literal spelling is the one that matches byte for byte.
+     */
+    def listItem(checked: Maybe[Boolean], children: Chunk[Frag]): Frag =
+      checked match
+        case Absent          => li(frag(children.toSeq*))
+        case Present(ticked) =>
+          val box =
+            if ticked then raw("""<input checked="" disabled="" type="checkbox">""")
+            else raw("""<input disabled="" type="checkbox">""")
+          li(box, " ", frag(children.toSeq*))
 
     /** ScalaTags escapes a `String` frag on render, which is exactly the spec's rule, so nothing is done here. */
     def text(value: String): Frag = value
@@ -74,6 +88,8 @@ object ScalatagsCompiler:
     def emphasis(children: Chunk[Frag]): Frag = em(frag(children.toSeq*))
 
     def strong(children: Chunk[Frag]): Frag = _root_.scalatags.Text.all.strong(frag(children.toSeq*))
+
+    def delete(children: Chunk[Frag]): Frag = del(frag(children.toSeq*))
 
     /** Attribute order follows the fixtures: `href` then `title`, and no `title` attribute at all when absent. */
     def link(url: String, title: Maybe[String], children: Chunk[Frag]): Frag =
@@ -108,6 +124,38 @@ object ScalatagsCompiler:
     def blockSeparator: Frag = newline
 
     def thematicBreak: Frag = hr
+
+    /** The attribute name the fixtures use, as a value the cell element can be applied to. Absent adds nothing. */
+    private def alignName(alignment: Maybe[ColumnAlignment]): Maybe[String] = alignment match
+      case Absent                          => Absent
+      case Present(ColumnAlignment.Left)   => Present("left")
+      case Present(ColumnAlignment.Right)  => Present("right")
+      case Present(ColumnAlignment.Center) => Present("center")
+
+    /**
+     * `thead` always; `tbody` only when there are body rows — spec example 205 renders a header-only table with no
+     * `tbody` element at all, which is the one place a table's structure depends on its content.
+     */
+    def table(align: Chunk[Maybe[ColumnAlignment]], header: Frag, rows: Chunk[Frag]): Frag =
+      val head = thead(newline, header, newline)
+      if rows.isEmpty then _root_.scalatags.Text.all.table(newline, head, newline)
+      else
+        val body = tbody(newline, frag(rows.toSeq.flatMap(row => Seq(row, newline))*))
+        _root_.scalatags.Text.all.table(newline, head, newline, body, newline)
+
+    /**
+     * A row is a `tr` in either half of the table, so `header` says nothing here: which of `th` and `td` the cells take
+     * is [[tableCell]]'s decision, and it is told the same flag.
+     */
+    def tableRow(header: Boolean, children: Chunk[Frag]): Frag =
+      tr(newline, frag(children.toSeq.flatMap(cell => Seq(cell, newline))*))
+
+    /** Alignment is an `align` attribute, which is what the fixtures spell; no `style` declaration is written. */
+    def tableCell(alignment: Maybe[ColumnAlignment], header: Boolean, children: Chunk[Frag]): Frag =
+      val element = if header then th else td
+      alignName(alignment) match
+        case Present(name) => element(attr("align") := name)(frag(children.toSeq*))
+        case Absent        => element(frag(children.toSeq*))
   end instance
 
   /** Compile a document to the HTML the CommonMark fixtures expect. */
