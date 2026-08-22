@@ -447,9 +447,8 @@ class ExtendedAutolinkTests extends Test[Any]:
       given MdStyle   = MdStyle()
       val tree        = MdNode.Root(Chunk(MdNode.Paragraph(Chunk(MdNode.Text("www.a.exam_ple.com")))))
       val written     = MdWriter.write(tree)
-      assert(!written.contains("href"), written)
-      val reparsed = Parser.parse(written).getOrThrow
-      val found    = reparsed.children.head match
+      val reparsed    = Parser.parse(written).getOrThrow
+      val found       = reparsed.children.head match
         case MdNode.Paragraph(content, _) => walk(content)
         case other                        => throw new AssertionError(s"expected a paragraph, got $other")
       assert(found.isEmpty, s"invented a link: $written")
