@@ -64,7 +64,17 @@ class MdWriterTests extends Test[Any]:
     case MdNode.Emphasis(children, meta)          => MdNode.Emphasis(phrasingOf(children), meta)
     case MdNode.Strong(children, meta)            => MdNode.Strong(phrasingOf(children), meta)
     case MdNode.Delete(children, meta)            => MdNode.Delete(phrasingOf(children), meta)
-    case leaf                                     => leaf
+    case MdNode.Table(align, header, rows, meta)  =>
+      MdNode.Table(
+        align,
+        normalize(header).asInstanceOf[MdNode.TableRow],
+        rows.map(row => normalize(row).asInstanceOf[MdNode.TableRow]),
+        meta
+      )
+    case MdNode.TableRow(children, meta) =>
+      MdNode.TableRow(children.map(cell => normalize(cell).asInstanceOf[MdNode.TableCell]), meta)
+    case MdNode.TableCell(children, meta) => MdNode.TableCell(phrasingOf(children), meta)
+    case leaf                             => leaf
 
   private def normalized(root: MdNode.Root): MdNode = normalize(root.unpositioned)
 

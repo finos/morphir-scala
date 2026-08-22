@@ -233,6 +233,8 @@ private[markdown] object Lower:
             items(children, definitions, docEnd),
             MdMeta.at(span)
           ))
+        case MdCstNode.Table(children, span) =>
+          loweredTable(children, definitions, span).foreach(out.addOne)
         case MdCstNode.Frontmatter(_, _) =>
           // Already lifted onto the root by `lower`; a frontmatter block is metadata, not flow content.
           ()
@@ -256,6 +258,40 @@ private[markdown] object Lower:
     children.collect { case MdCstNode.ListItem(itemChildren, checked, span) =>
       MdNode.ListItem(blocks(itemChildren, definitions, docEnd), checked, MdMeta.at(span))
     }
+
+  /**
+   * The table one CST block means, or [[kyo.Absent]] for a tree carrying no header row to build one from.
+   *
+   * The alignment is read back off the delimiter row rather than out of a field, which is what keeps the CST holding
+   * only what was written: `:-:` is the alignment, and reading it here is the same reading the block phase did.
+   * `align`'s length is the column count, so every row is fitted to it — a rule the block phase applies to the same
+   * rows, through the same [[fittedCells]].
+   */
+  private def loweredTable(
+      children: Chunk[MdCstNode],
+      definitions: Map[String, LinkDefinition],
+      span: Span
+  )(using MdProfile): Maybe[MdNode.Table] =
+    val rows      = children.collect { case row: MdCstNode.TableRow => row }
+    val delimiter = children.collect { case row: MdCstNode.TableDelimiterRow => row }
+    if rows.isEmpty then Absent
+    else
+      val align = if delimiter.isEmpty then Chunk.empty else alignmentsOf(delimiter.head)
+      def loweredRow(row: MdCstNode.TableRow): MdNode.TableRow =
+        val cells = row.children.collect { case cell: MdCstNode.TableCell =>
+          MdNode.TableCell(inlines(cell.children, definitions), MdMeta.at(cell.span))
+        }
+        MdNode.TableRow(fittedCells(cells, align.size, MdNode.TableCell(Chunk.empty)), MdMeta.at(row.span))
+      Present(MdNode.Table(align, loweredRow(rows.head), rows.drop(1).map(loweredRow), MdMeta.at(span)))
+
+  /**
+   * What each delimiter cell spells, in column order.
+   *
+   * The cell's leaves are tokens, so [[Cst.print]] rather than [[contentText]] is what reads them: a delimiter cell is
+   * syntax, and its text is exactly the syntax it spent.
+   */
+  private def alignmentsOf(delimiter: MdCstNode.TableDelimiterRow): Chunk[Maybe[ColumnAlignment]] =
+    delimiter.children.collect { case cell: MdCstNode.TableCell => ColumnAlignment.of(Cst.print(cell)) }
 
   /** Fence metadata from the opening token's info string; content from the text leaves, indentation removed. */
   private def loweredFence(children: Chunk[MdCstNode], span: Span, docEnd: Int): MdNode.Code =

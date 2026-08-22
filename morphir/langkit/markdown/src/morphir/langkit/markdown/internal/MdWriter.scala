@@ -15,7 +15,8 @@ import morphir.langkit.markdown.*
  * [[MdStyleKeys]]: the writer asks the node's own data first and falls back to the style. Nothing here consults the CST
  * — the AST is the input, and a tree the parser never saw writes exactly as well as one it did.
  *
- * Six shapes have no faithful spelling and are documented rather than fixed.
+ * Six shapes have no faithful spelling and are documented rather than fixed. Three more belong to the pipe table alone
+ * and are described on [[writeTable]] rather than here.
  *
  * An [[MdNode.InlineCode]] whose value is empty writes as a single-space code span, because CommonMark cannot express a
  * code span holding nothing. It is a node no parse produces, and the alternative — an unbalanced backtick run, which
@@ -151,6 +152,7 @@ private[markdown] object MdWriter:
     case MdNode.Html(value, _)          => value
     case MdNode.Blockquote(children, _) => prefixed(blocks(children, BlankSeparated), "> ", ">")
     case list: MdNode.List              => writeList(list)._1
+    case table: MdNode.Table            => writeTable(table)
     // Three spellings mean one break; only what else they could be read as differs. A `-` bullet takes `***`, so a
     // break is never the `- - -` its own list could have written. Every other bullet takes `___`, which is neither a
     // list marker nor a setext underline. `---` is both, and the second is what rules it out: a tight list item
@@ -234,6 +236,66 @@ private[markdown] object MdWriter:
       if body.isEmpty then marker.stripTrailing else marked(body, marker)
     }.mkString(separator)
     (written, if list.ordered then delimiter else bullet)
+
+  /**
+   * A pipe table: the header row, a delimiter row built from the alignment, and the body rows.
+   *
+   * Every row is written with both outer pipes, whatever the source had, because they are the spelling that cannot be
+   * misread. A cell's content goes through [[inlines]] with `oneLine` set, since a cell has nowhere to put a line
+   * ending; a literal `|` inside one is escaped by [[escapeText]], which already treats the pipe as always-escaped.
+   *
+   * Two shapes have no faithful spelling here, both for the same reason -- a table's structure is decided by characters
+   * that no escape reaches.
+   *
+   * A [[MdNode.InlineCode]] whose value holds a `|` writes as a code span with a bare pipe in it, which the row
+   * splitter reads as a cell boundary. Escaping it instead would spell `\|`, which a code span reads literally (a
+   * backslash escapes nothing inside one), so the value would come back with the backslash still in it. The pipe splits
+   * the cell rather than corrupting the value, which is the smaller of the two losses and the one a reader can see.
+   *
+   * A table written as a non-first block of a *tight* list item is separated from the block before it by a single
+   * newline rather than a blank line, so a paragraph directly above it becomes the table's header line -- or, when the
+   * table comes first, the paragraph below it becomes another of its rows. Loose items and every other position write
+   * the blank line that keeps the two apart.
+   *
+   * A table of no columns at all -- `align` empty, which no parse produces and only a hand-built tree can hold -- has
+   * no spelling either: a row of no cells writes as `|  |`, whose delimiter row holds one empty cell and so is not a
+   * delimiter row, and the whole thing reads back as a paragraph. GFM has no syntax for a table with no columns, so
+   * there is nothing to write it as.
+   */
+  private def writeTable(table: MdNode.Table)(using style: MdStyle): String =
+    val padded  = table.meta.get(MdStyleKeys.padTableColumns).getOrElse(style.padTableColumns)
+    val minimum = math.max(1, table.meta.get(MdStyleKeys.tableDelimiterWidth).getOrElse(style.tableDelimiterWidth))
+    val columns = table.align.size
+    val written = (Chunk(table.header) ++ table.rows).map(row =>
+      fittedCells(row.children.map(cell => inlines(cell.children, atLineStart = false, oneLine = true)), columns, "")
+    )
+    // The delimiter cell at its narrowest sets a floor on its column's width, so padding never shortens one below
+    // what its own colons and minimum run of dashes need.
+    val narrowest = table.align.map(delimiterCell(_, minimum, width = 0))
+    val widths    =
+      if !padded then Chunk.from(Seq.fill(columns)(0))
+      else
+        Chunk.from((0 until columns).map(column =>
+          (narrowest(column).length +: written.map(_(column).length).toSeq).max
+        ))
+    val lines =
+      Chunk(rowLine(written.head, widths)) ++
+        Chunk(rowLine(table.align.zipWithIndex.map((a, c) => delimiterCell(a, minimum, widths(c))), widths)) ++
+        written.drop(1).map(rowLine(_, widths))
+    lines.mkString("\n")
+
+  /** One row's cells between pipes, each padded out to its column's width. */
+  private def rowLine(cells: Chunk[String], widths: Chunk[Int]): String =
+    cells.zipWithIndex.map((cell, column) => cell.padTo(widths(column), ' ')).mkString("| ", " | ", " |")
+
+  /** A delimiter cell: the colons the alignment asks for, and enough dashes to reach `width`. */
+  private def delimiterCell(alignment: Maybe[ColumnAlignment], minimum: Int, width: Int): String =
+    val (open, close) = alignment match
+      case Absent                          => ("", "")
+      case Present(ColumnAlignment.Left)   => (":", "")
+      case Present(ColumnAlignment.Right)  => ("", ":")
+      case Present(ColumnAlignment.Center) => (":", ":")
+    s"$open${"-" * math.max(minimum, width - open.length - close.length)}$close"
 
   /** Every line of `text` behind `prefix`; a blank line takes `blankPrefix`, so no line ends in dead whitespace. */
   private def prefixed(text: String, prefix: String, blankPrefix: String): String =

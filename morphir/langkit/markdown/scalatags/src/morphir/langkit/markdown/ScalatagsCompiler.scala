@@ -124,6 +124,38 @@ object ScalatagsCompiler:
     def blockSeparator: Frag = newline
 
     def thematicBreak: Frag = hr
+
+    /** The attribute name the fixtures use, as a value the cell element can be applied to. Absent adds nothing. */
+    private def alignName(alignment: Maybe[ColumnAlignment]): Maybe[String] = alignment match
+      case Absent                          => Absent
+      case Present(ColumnAlignment.Left)   => Present("left")
+      case Present(ColumnAlignment.Right)  => Present("right")
+      case Present(ColumnAlignment.Center) => Present("center")
+
+    /**
+     * `thead` always; `tbody` only when there are body rows — spec example 205 renders a header-only table with no
+     * `tbody` element at all, which is the one place a table's structure depends on its content.
+     */
+    def table(align: Chunk[Maybe[ColumnAlignment]], header: Frag, rows: Chunk[Frag]): Frag =
+      val head = thead(newline, header, newline)
+      if rows.isEmpty then _root_.scalatags.Text.all.table(newline, head, newline)
+      else
+        val body = tbody(newline, frag(rows.toSeq.flatMap(row => Seq(row, newline))*))
+        _root_.scalatags.Text.all.table(newline, head, newline, body, newline)
+
+    /**
+     * A row is a `tr` in either half of the table, so `header` says nothing here: which of `th` and `td` the cells take
+     * is [[tableCell]]'s decision, and it is told the same flag.
+     */
+    def tableRow(header: Boolean, children: Chunk[Frag]): Frag =
+      tr(newline, frag(children.toSeq.flatMap(cell => Seq(cell, newline))*))
+
+    /** Alignment is an `align` attribute, which is what the fixtures spell; no `style` declaration is written. */
+    def tableCell(alignment: Maybe[ColumnAlignment], header: Boolean, children: Chunk[Frag]): Frag =
+      val element = if header then th else td
+      alignName(alignment) match
+        case Present(name) => element(attr("align") := name)(frag(children.toSeq*))
+        case Absent        => element(frag(children.toSeq*))
   end instance
 
   /** Compile a document to the HTML the CommonMark fixtures expect. */

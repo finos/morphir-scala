@@ -707,78 +707,278 @@ private[markdown] object Parser:
     // This is the one block that reads lazily -- `readContinued` rather than `readLine` -- because it is the one block
     // a line may continue without repeating its containers' markers. A lazy line is prose and nothing else: it can
     // neither open a block nor close a setext heading, which is what `matchedAll` guards below.
-    @tailrec def gather(last: Line): (last: Line, setext: Maybe[HeadingLevel], beforeUnderline: Maybe[ScanCheckpoint]) =
+    //
+    // A fourth ending arrived with tables: a delimiter row promotes the line above it to a table header, and is
+    // consumed with it the way a setext underline is. `segmentCount` rides the recursion rather than sitting outside
+    // it as a `var`, because it is the state the table check depends on -- cmark-gfm only opens a table under a
+    // paragraph of exactly one line -- and the state a step depends on belongs in that step's signature.
+    @tailrec def gather(last: Line, segmentCount: Int): (
+        last: Line,
+        setext: Maybe[HeadingLevel],
+        beforeUnderline: Maybe[ScanCheckpoint],
+        table: Maybe[Chunk[Maybe[ColumnAlignment]]]
+    ) =
       val checkpoint = cursor.checkpoint()
       cursor.readContinued() match
-        case Absent             => (last = last, setext = Absent, beforeUnderline = Absent)
+        case Absent             => (last = last, setext = Absent, beforeUnderline = Absent, table = Absent)
         case Present(continued) =>
           val line       = continued.line
           val classified = classify(scanner, line)
           classified.setext match
             case Present(level) if continued.matchedAll && classified.kind != LineKind.IndentedCode =>
-              (last = line, setext = Present(level), beforeUnderline = Present(checkpoint))
+              (last = line, setext = Present(level), beforeUnderline = Present(checkpoint), table = Absent)
             case _ =>
-              if (if continued.matchedAll then continues(classified) else continuesLazily(classified)) then
-                segments += segment(line)
-                gather(line)
-              else
-                cursor.restore(checkpoint)
-                (last = last, setext = Absent, beforeUnderline = Absent)
+              tableAlignmentsOf(first, line, continued, classified, segmentCount, profile) match
+                case Present(align) =>
+                  (last = line, setext = Absent, beforeUnderline = Absent, table = Present(align))
+                case Absent =>
+                  if (if continued.matchedAll then continues(classified) else continuesLazily(classified)) then
+                    segments += segment(line)
+                    gather(line, segmentCount + 1)
+                  else
+                    cursor.restore(checkpoint)
+                    (last = last, setext = Absent, beforeUnderline = Absent, table = Absent)
 
-    val gathered = gather(first)
+    val gathered = gather(first, 1)
     val last     = gathered.last
     val setext   = gathered.setext
 
-    val lines   = Chunk.from(segments.result())
-    val raw     = lines.map(_._2).mkString("\n")
-    val trimmed = raw.trim
-    val leading = raw.length - raw.stripLeading.length
-    scanner.chargeWork(WorkUnits.from(raw.length.toLong).getOrThrow)
+    gathered.table match
+      // The delimiter row is consumed, and the header line above it is the one segment gathered: what remains is
+      // reading the body rows off the cursor, which `readTable` does.
+      case Present(align) => Present(readTable(cursor, first, last, align, cst, profile))
+      case Absent         =>
+        val lines   = Chunk.from(segments.result())
+        val raw     = lines.map(_._2).mkString("\n")
+        val trimmed = raw.trim
+        val leading = raw.length - raw.stripLeading.length
+        scanner.chargeWork(WorkUnits.from(raw.length.toLong).getOrThrow)
 
-    // A paragraph may open with link reference definitions. They are not content: they are consumed here and only
-    // what follows them, if anything, becomes a paragraph.
-    val (consumed = consumed, taken = taken) = takeDefinitions(trimmed, definitions)
-    // Each definition is its own CST node, recorded where it was consumed. Indices in the trimmed text map back to
-    // the source through the lines that built it, the same way inline spans do.
-    cst.foreach { collector =>
-      taken.foreach { case (start = defStart, end = defEnd) =>
-        collector.record(CstFragment.LinkReferenceDefinition(Span.fromStartEnd(
-          sourceOffsetOf(lines, defStart + leading),
-          sourceOffsetOf(lines, defEnd + leading)
-        )))
-      }
-    }
-    val body = trimmed.substring(consumed)
-    if body.isBlank then
-      // Definitions and nothing else. A setext underline has no paragraph to close here, so it goes back to be read
-      // on its own: `[foo]: /url` over `===` is a definition and then a paragraph beginning `===`, not a heading.
-      gathered.beforeUnderline.foreach(cursor.restore)
-      Absent
+        // A paragraph may open with link reference definitions. They are not content: they are consumed here and only
+        // what follows them, if anything, becomes a paragraph.
+        val (consumed = consumed, taken = taken) = takeDefinitions(trimmed, definitions)
+        // Each definition is its own CST node, recorded where it was consumed. Indices in the trimmed text map back to
+        // the source through the lines that built it, the same way inline spans do.
+        cst.foreach { collector =>
+          taken.foreach { case (start = defStart, end = defEnd) =>
+            collector.record(CstFragment.LinkReferenceDefinition(Span.fromStartEnd(
+              sourceOffsetOf(lines, defStart + leading),
+              sourceOffsetOf(lines, defEnd + leading)
+            )))
+          }
+        }
+        val body = trimmed.substring(consumed)
+        if body.isBlank then
+          // Definitions and nothing else. A setext underline has no paragraph to close here, so it goes back to be read
+          // on its own: `[foo]: /url` over `===` is a definition and then a paragraph beginning `===`, not a heading.
+          gathered.beforeUnderline.foreach(cursor.restore)
+          Absent
+        else
+          // Where the prose itself begins in the joined text: past the consumed definitions and past any whitespace the
+          // body's own trim will strip, so the inline mapping and the CST fragment agree on the first content character.
+          val contentIndex = leading + consumed + (body.length - body.stripLeading.length)
+          val span         = Span.fromStartEnd(first.offset, last.end)
+          // The CST fragment starts at the body, not at the run: definitions consumed off the front are their own nodes,
+          // and a fragment overlapping them would lose the paragraph to a verbatim gap at materialization.
+          val cstStart = if consumed == 0 then span.offset else sourceOffsetOf(lines, contentIndex)
+          val cstSpan  = Span.fromStartEnd(cstStart, span.end)
+          val slot     = InlineSlot()
+          val notes    = cst.map(_ => InlineNotes())
+          cst.foreach(_.record(setext match
+            case Present(level) => CstFragment.SetextHeading(level, cstSpan, last.offset, slot)
+            case Absent         => CstFragment.Paragraph(cstSpan, slot)))
+          Present(Deferred.prose { defs =>
+            val content =
+              InlineParser.parse(body.trim, index => sourceOffsetOf(lines, index + contentIndex), defs, notes)(using
+                profile
+              )
+            slot.fill(content, notes)
+            setext match
+              case Present(level) => MdNode.Heading(level, content, MdMeta.at(span))
+              case Absent         => MdNode.Paragraph(content, MdMeta.at(span))
+          })
+  end readParagraph
+
+  // --- pipe tables ---------------------------------------------------------------------------------------------
+
+  /**
+   * One table row's cells, as ranges into `line` with the padding around each already trimmed off.
+   *
+   * A backslash before a pipe means the pipe is content — spec example 200 puts one inside a code span — so an escaped
+   * pipe never splits a cell. The backslash itself is left in the range and removed by inline parsing, which already
+   * handles backslash escapes; taking it out here would move every offset after it away from the source and break the
+   * CST's tiling. The cost is that an escaped pipe inside a code span stays escaped, since a backslash means nothing
+   * there: `` `\|` `` renders as `\|` rather than as `|`, which is the one thing spec example 200 asks for that this
+   * parser does not do.
+   *
+   * Outer pipes are optional and each produces an empty cell when present. The first and last cell is dropped when it
+   * is empty and there was a split to produce it, which is what tells `| a |` (one cell) from `a | b` (two) and from
+   * `|| a |` (two, the first genuinely empty) — and, unlike testing the line's own first and last character, from
+   * `| a \|`, whose trailing pipe is content rather than a closing delimiter.
+   */
+  private[internal] def tableCellSpans(line: String): Chunk[(start: Int, end: Int)] =
+    val bounds = List.newBuilder[(start: Int, end: Int)]
+
+    // `escaped` rides the recursion as a parameter rather than sitting outside it as a flag, which is the whole
+    // readability argument for the tail-recursive form: the state a step depends on is visible in its own signature.
+    @tailrec
+    def loop(index: Int, cellStart: Int, escaped: Boolean): Unit =
+      if index >= line.length then bounds += ((start = cellStart, end = index))
+      else
+        val char = line.charAt(index)
+        if escaped then loop(index + 1, cellStart, escaped = false)
+        else if char == '\\' then loop(index + 1, cellStart, escaped = true)
+        else if char == '|' then
+          bounds += ((start = cellStart, end = index))
+          loop(index + 1, index + 1, escaped = false)
+        else loop(index + 1, cellStart, escaped = false)
+
+    loop(0, 0, escaped = false)
+    val all             = Chunk.from(bounds.result()).map(trimmedCell(line, _))
+    val withoutLeading  = if all.size > 1 && isEmptyCell(all.head) then all.drop(1) else all
+    val withoutTrailing =
+      if withoutLeading.size > 1 && isEmptyCell(withoutLeading.last) then withoutLeading.dropRight(1)
+      else withoutLeading
+    withoutTrailing
+
+  private def isEmptyCell(cell: (start: Int, end: Int)): Boolean = cell.end <= cell.start
+
+  /** `cell` with the spaces and tabs at either end taken off; they are padding the author spent, not content. */
+  private def trimmedCell(line: String, cell: (start: Int, end: Int)): (start: Int, end: Int) =
+    @tailrec def left(index: Int): Int =
+      if index < cell.end && isSpaceOrTab(line.charAt(index)) then left(index + 1) else index
+    @tailrec def right(index: Int, floor: Int): Int =
+      if index > floor && isSpaceOrTab(line.charAt(index - 1)) then right(index - 1, floor) else index
+    val start = left(cell.start)
+    (start = start, end = right(cell.end, start))
+
+  private def isSpaceOrTab(char: Char): Boolean = char == ' ' || char == '\t'
+
+  /**
+   * A row's cells as text, for the counting and shape checks the delimiter row is judged by.
+   *
+   * Read off `view.text`, the raw line, rather than off the tab-expanded `text`: a table row's cells are located by
+   * character, and expanding a structural tab to the columns it occupies would move every offset after it.
+   */
+  private def tableCellTexts(line: Line): Chunk[String] =
+    val raw = line.view.text
+    tableCellSpans(raw).map(cell => raw.substring(cell.start, cell.end))
+
+  /**
+   * The alignments a line spells as a delimiter row under `header`, or [[kyo.Absent]] when it is not one.
+   *
+   * A table opens where a setext heading does — on the line below the one it promotes — and for the same reason:
+   * nothing about `| a | b |` says it is a header until the delimiter row underneath says so. cmark-gfm requires the
+   * header to be the paragraph's only line, so a table never interrupts a paragraph that already has content, and it
+   * requires the two rows to agree on how many cells they hold (spec example 203).
+   *
+   * `LineKind.Text` is the whole of "opens nothing else": an indented line is code, and anything the base grammar
+   * claims — a fence, a quote, a list marker — it keeps, since the extension hook in cmark-gfm runs after all of them.
+   * A setext underline is judged before this is even asked, one level up, which is what keeps a bare `---` under a
+   * one-cell header a heading rather than a table.
+   */
+  private def tableAlignmentsOf(
+      header: Line,
+      line: Line,
+      continued: ContinuedLine,
+      classified: Classified,
+      segmentCount: Int,
+      profile: MdProfile
+  ): Maybe[Chunk[Maybe[ColumnAlignment]]] =
+    if !profile.supports(MdExtension.Tables) || segmentCount != 1 || !continued.matchedAll
+      || classified.kind != LineKind.Text
+    then Absent
     else
-      // Where the prose itself begins in the joined text: past the consumed definitions and past any whitespace the
-      // body's own trim will strip, so the inline mapping and the CST fragment agree on the first content character.
-      val contentIndex = leading + consumed + (body.length - body.stripLeading.length)
-      val span         = Span.fromStartEnd(first.offset, last.end)
-      // The CST fragment starts at the body, not at the run: definitions consumed off the front are their own nodes,
-      // and a fragment overlapping them would lose the paragraph to a verbatim gap at materialization.
-      val cstStart = if consumed == 0 then span.offset else sourceOffsetOf(lines, contentIndex)
-      val cstSpan  = Span.fromStartEnd(cstStart, span.end)
-      val slot     = InlineSlot()
-      val notes    = cst.map(_ => InlineNotes())
-      cst.foreach(_.record(setext match
-        case Present(level) => CstFragment.SetextHeading(level, cstSpan, last.offset, slot)
-        case Absent         => CstFragment.Paragraph(cstSpan, slot)))
-      Present(Deferred.prose { defs =>
-        val content =
-          InlineParser.parse(body.trim, index => sourceOffsetOf(lines, index + contentIndex), defs, notes)(using
+      val delimiterCells = tableCellTexts(line)
+      if delimiterCells.nonEmpty && delimiterCells.size == tableCellTexts(header).size &&
+        delimiterCells.forall(ColumnAlignment.isDelimiterCell)
+      then Present(delimiterCells.map(ColumnAlignment.of))
+      else Absent
+
+  /** One cell of a row being read: where its content sits, and the slot its prose will fill. */
+  private final case class CellSite(span: Span, text: String, slot: InlineSlot, notes: Maybe[InlineNotes])
+
+  private def cellSites(line: Line, cst: Maybe[CstCollector]): Chunk[CellSite] =
+    val source = line.view.text
+    tableCellSpans(source).map(cell =>
+      CellSite(
+        span = Span.fromStartEnd(line.offset + cell.start, line.offset + cell.end),
+        text = source.substring(cell.start, cell.end),
+        slot = InlineSlot(),
+        notes = cst.map(_ => InlineNotes())
+      )
+    )
+
+  /**
+   * The body rows under a delimiter row, and the table they and the header make.
+   *
+   * `header` is the line the delimiter row promoted and `delimiter` the delimiter row itself, both already consumed.
+   * Every following line the cursor offers is a row until one of three things happens: the input ends, a blank line
+   * arrives, or a line opens another block — spec example 201's `> bar`. A row that does not spell as many cells as the
+   * header did is padded and one that spells more is truncated, so the table is rectangular however the source was
+   * written.
+   *
+   * Each cell is a prose block of its own with its own [[InlineSlot]], filled in the deferred phase exactly as a
+   * paragraph's is: a cell may hold a link whose definition appears later in the document.
+   */
+  private def readTable(
+      cursor: ContainerCursor,
+      header: Line,
+      delimiter: Line,
+      align: Chunk[Maybe[ColumnAlignment]],
+      cst: Maybe[CstCollector],
+      profile: MdProfile
+  ): Deferred =
+    val scanner = cursor.scanner
+    val body    = List.newBuilder[Line]
+
+    @tailrec def rows(): Unit =
+      val checkpoint = cursor.checkpoint()
+      cursor.readLine() match
+        case Absent        => cursor.restore(checkpoint)
+        case Present(line) =>
+          if classify(scanner, line).kind == LineKind.Text then
+            body += line
+            scanner.chargeOutputNodes(NodeCount.one)
+            rows()
+          else cursor.restore(checkpoint)
+
+    rows()
+    val bodyLines = Chunk.from(body.result())
+    val span      = Span.fromStartEnd(header.offset, cursor.consumedEnd)
+
+    val headerSites                                                = cellSites(header, cst)
+    val bodySites                                                  = bodyLines.map(cellSites(_, cst))
+    def rowRecord(line: Line, sites: Chunk[CellSite]): CstTableRow =
+      CstTableRow(Span.fromStartEnd(line.offset, line.end), sites.map(site => CstTableCell(site.span, site.slot)))
+
+    cst.foreach(_.record(CstFragment.Table(
+      span,
+      Span.fromStartEnd(delimiter.offset, delimiter.end),
+      rowRecord(header, headerSites),
+      Chunk.from(bodyLines.zip(bodySites).map((line, sites) => rowRecord(line, sites)))
+    )))
+
+    Deferred.prose { defs =>
+      def rowNode(line: Line, sites: Chunk[CellSite]): MdNode.TableRow =
+        val cells = sites.map { site =>
+          val content = InlineParser.parse(site.text, index => site.span.offset + index, defs, site.notes)(using
             profile
           )
-        slot.fill(content, notes)
-        setext match
-          case Present(level) => MdNode.Heading(level, content, MdMeta.at(span))
-          case Absent         => MdNode.Paragraph(content, MdMeta.at(span))
-      })
-  end readParagraph
+          site.slot.fill(content, site.notes)
+          MdNode.TableCell(content, MdMeta.at(site.span))
+        }
+        MdNode.TableRow(
+          fittedCells(cells, align.size, MdNode.TableCell(Chunk.empty)),
+          MdMeta.at(Span.fromStartEnd(line.offset, line.end))
+        )
+      MdNode.Table(
+        align,
+        rowNode(header, headerSites),
+        Chunk.from(bodyLines.zip(bodySites).map((line, sites) => rowNode(line, sites))),
+        MdMeta.at(span)
+      )
+    }
 
   /**
    * A paragraph line with its indentation removed, and the offset moved to match.

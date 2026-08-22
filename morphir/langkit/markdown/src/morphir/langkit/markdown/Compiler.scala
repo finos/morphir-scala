@@ -114,6 +114,26 @@ trait Compiler[Out]:
   def thematicBreak: Out
 
   /**
+   * Combine a table's compiled header row and body rows.
+   *
+   * The header arrives separately rather than as the first entry of `rows`, matching the AST: GFM requires a header,
+   * and a writer should not have to trust that a list is non-empty to find it. `align` has one entry per column, and
+   * every row has exactly that many cells.
+   */
+  def table(align: Chunk[Maybe[ColumnAlignment]], header: Out, rows: Chunk[Out]): Out
+
+  /**
+   * Compile one table row from its compiled cells.
+   *
+   * `header` says which half of the table the row is in. The fold hands [[table]] rows that are already compiled, so a
+   * row that had to be a `th` rather than a `td` must know it here rather than there.
+   */
+  def tableRow(header: Boolean, children: Chunk[Out]): Out
+
+  /** Compile one table cell. `alignment` is Absent for a column whose delimiter set none. */
+  def tableCell(alignment: Maybe[ColumnAlignment], header: Boolean, children: Chunk[Out]): Out
+
+  /**
    * Compile a run of literal text.
    *
    * The value is raw source text: never escaped, and never further parsed. **Escaping is the writer's job.**

@@ -35,6 +35,13 @@ class CompilerTests extends Test[Any]:
     def blockquote(children: Chunk[String]): String = children.mkString("(quote ", " ", ")")
     def blockSeparator: String                      = "\\n"
     def thematicBreak: String                       = "(hr)"
+    def table(align: Chunk[Maybe[ColumnAlignment]], header: String, rows: Chunk[String]): String =
+      (Chunk(header) ++ rows).mkString("(table ", " ", ")")
+    def tableRow(header: Boolean, children: Chunk[String]): String =
+      children.mkString(if header then "(thead-row " else "(tr ", " ", ")")
+    def tableCell(alignment: Maybe[ColumnAlignment], header: Boolean, children: Chunk[String]): String =
+      val name = alignment.map(_.toString.toLowerCase).getOrElse("-")
+      s"(${if header then "th" else "td"}:$name ${children.mkString(" ")})"
   end given
 
   private def prose(value: String): Chunk[MdNode.PhrasingContent] = Chunk(MdNode.Text(value))

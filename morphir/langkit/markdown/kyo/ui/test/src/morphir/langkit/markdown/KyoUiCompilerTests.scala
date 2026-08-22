@@ -18,6 +18,8 @@ class KyoUiCompilerTests extends Test[Any]:
 
   private def prose(value: String): Chunk[MdNode.PhrasingContent] = Chunk(MdNode.Text(value, meta))
 
+  private def cell(value: String): MdNode.TableCell = MdNode.TableCell(prose(value), meta)
+
   /** A one-paragraph item, which is what a tight list's items are. */
   private def item(value: String): MdNode.ListItem =
     MdNode.ListItem(Chunk(MdNode.Paragraph(prose(value), meta)), meta = meta)
@@ -101,6 +103,34 @@ class KyoUiCompilerTests extends Test[Any]:
         assert(html.contains("<pre"))
         assert(html.contains("<code"))
       }
+
+    /**
+     * kyo-ui has no `thead`, so the header row is a bare `tr` under the table carrying `md-thead`, and alignment is a
+     * class rather than the `align` attribute the ScalaTags oracle writes. Both are recorded gaps, not accidents.
+     */
+    "renders a table as th and td cells, with alignment as a class" in
+      render(MdNode.Table(
+        Chunk(Present(ColumnAlignment.Center), Absent),
+        MdNode.TableRow(Chunk(cell("h1"), cell("h2")), meta),
+        Chunk(MdNode.TableRow(Chunk(cell("a"), cell("b")), meta)),
+        meta
+      )).map { html =>
+        assert(html.contains("<table"))
+        assert(html.contains("<th"))
+        assert(html.contains("<td"))
+        assert(html.contains("<tbody"))
+        assert(html.contains("md-thead"))
+        assert(html.contains("md-align-center"))
+        assert(!html.contains("<thead"))
+      }
+
+    "omits tbody when a table has no body rows" in
+      render(MdNode.Table(
+        Chunk(Absent),
+        MdNode.TableRow(Chunk(cell("only")), meta),
+        Chunk.empty,
+        meta
+      )).map(html => assert(!html.contains("tbody")))
 
     "renders an empty document without raising" in
       render().map(html => assert(html.isEmpty))

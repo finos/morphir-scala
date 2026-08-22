@@ -181,6 +181,26 @@ private[markdown] object CstParser:
     case CstFragment.OrderedList(start, delimiter, tight, span, items) =>
       MdCstNode.OrderedList(start, delimiter, tight, assembleRegion(source, span, markers, items), span)
 
+    case CstFragment.Table(span, delimiter, header, rows) =>
+      val out    = Chunk.newBuilder[MdCstNode]
+      var cursor = span.offset
+      // Everything between rows -- the line endings, and any container marker on the next line -- is syntax the table
+      // spent, so a gap inside one tiles as tokens rather than as verbatim prose.
+      def gap(until: Int): Unit =
+        if until > cursor then
+          out.addAll(tile(source, cursor, until, markers)(MdCstNode.Token(_, _)))
+          cursor = until
+      def emit(node: MdCstNode): Unit =
+        if node.span.offset >= cursor && node.span.end <= span.end then
+          gap(node.span.offset)
+          out.addOne(node)
+          cursor = node.span.end
+      emit(tableRowNode(source, header, markers))
+      emit(tableDelimiterNode(source, delimiter, markers))
+      rows.foreach(row => emit(tableRowNode(source, row, markers)))
+      gap(span.end)
+      MdCstNode.Table(out.result(), span)
+
     case CstFragment.ListItem(span, own, children, task) =>
       // The checkbox's span, when there is one, is filled in only when the item's blocks resolve -- see
       // [[TaskMarkerSlot]] -- which happens before this runs, so the value is settled by the time it is read here.
@@ -195,6 +215,52 @@ private[markdown] object CstParser:
         case Absent => own
       val all = merged(markers, ownWithTask)
       MdCstNode.ListItem(assembleRegion(source, span, all, children), task.marker.map(_.checked), span)
+
+  /**
+   * One table row: its cells at their own spans, and every pipe and run of padding between them as a [[Token]].
+   *
+   * The cells the parser recorded are the trimmed content regions, so the padding whitespace and the pipes fall in the
+   * gaps and are claimed here. That is the whole of the row's tiling duty: the leaves in order are exactly the line.
+   */
+  private def tableRowNode(source: String, row: CstTableRow, markers: Chunk[Marker]): MdCstNode =
+    val out    = Chunk.newBuilder[MdCstNode]
+    var cursor = row.span.offset
+    row.cells.foreach { cell =>
+      if cell.span.offset >= cursor && cell.span.end <= row.span.end then
+        out.addAll(tile(source, cursor, cell.span.offset, markers)(MdCstNode.Token(_, _)))
+        out.addOne(MdCstNode.TableCell(
+          prose(source, cell.span.offset, cell.span.end, markers, cell.inlines),
+          cell.span
+        ))
+        cursor = cell.span.end
+    }
+    out.addAll(tile(source, cursor, row.span.end, markers)(MdCstNode.Token(_, _)))
+    MdCstNode.TableRow(out.result(), row.span)
+
+  /**
+   * The delimiter row, laid out like any other row but with every leaf a [[MdCstNode.Token]].
+   *
+   * Its cells are re-read off the source rather than recorded by the parser: a delimiter cell carries no prose, so
+   * there is nothing about it the parse knows that the characters do not say. Splitting is the same function the block
+   * phase used, so the two readings cannot drift.
+   */
+  private def tableDelimiterNode(source: String, span: Span, markers: Chunk[Marker]): MdCstNode =
+    val raw    = source.substring(span.offset, span.end)
+    val out    = Chunk.newBuilder[MdCstNode]
+    var cursor = span.offset
+    Parser.tableCellSpans(raw).foreach { cell =>
+      val from  = span.offset + cell.start
+      val until = span.offset + cell.end
+      if from >= cursor && until <= span.end then
+        out.addAll(tile(source, cursor, from, markers)(MdCstNode.Token(_, _)))
+        out.addOne(MdCstNode.TableCell(
+          leaf(source, from, until)(MdCstNode.Token(_, _)),
+          Span.fromStartEnd(from, until)
+        ))
+        cursor = until
+    }
+    out.addAll(tile(source, cursor, span.end, markers)(MdCstNode.Token(_, _)))
+    MdCstNode.TableDelimiterRow(out.result(), span)
 
   /**
    * The enclosing container's markers and this container's, one sorted run. A container's own recorder only sees the

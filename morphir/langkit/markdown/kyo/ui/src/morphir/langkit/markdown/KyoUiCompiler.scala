@@ -112,6 +112,38 @@ object KyoUiCompiler:
     def blockSeparator: UI = UI.Ast.Text("\n")
 
     def thematicBreak: UI = UI.hr
+
+    /** kyo-ui carries alignment as a class, since its attribute set is closed and holds no `align`. */
+    private def alignClass(alignment: Maybe[ColumnAlignment]): String = alignment match
+      case Absent                          => ""
+      case Present(ColumnAlignment.Left)   => "md-align-left"
+      case Present(ColumnAlignment.Right)  => "md-align-right"
+      case Present(ColumnAlignment.Center) => "md-align-center"
+
+    /**
+     * kyo-ui has `table`, `tbody`, `tr`, `th` and `td`, but no `thead`, so the header row is written as a direct child
+     * of the table carrying the class [[tableRow]] puts on it, and only the body rows get a group element.
+     *
+     * A `div` bearing a class was the other candidate for the missing element and is rejected: a `div` between `table`
+     * and `tr` is not a legal table child, and every browser hoists it out of the table, which visibly breaks the
+     * rendering. A bare `tr` under a `table` is legal and is a shape kyo-ui documents on [[kyo.UI.Ast.Tbody]] -- a row
+     * placed directly under a table gets its own row-group host. What is lost is the `thead` element itself, and with
+     * it the semantics assistive technology reads off it: this is the same class of gap as the missing `em` and the
+     * dropped list `start`, and it is recorded here for the same reason.
+     *
+     * `tbody` is omitted entirely for a table with no body rows, matching what the specification's own rendering does.
+     */
+    def table(align: Chunk[Maybe[ColumnAlignment]], header: UI, rows: Chunk[UI]): UI =
+      if rows.isEmpty then UI.table(header) else UI.table(header, UI.tbody(content(rows)))
+
+    def tableRow(header: Boolean, children: Chunk[UI]): UI =
+      val row = UI.tr(content(children))
+      if header then row.cssClass("md-thead") else row
+
+    def tableCell(alignment: Maybe[ColumnAlignment], header: Boolean, children: Chunk[UI]): UI =
+      val cell = if header then UI.th(content(children)) else UI.td(content(children))
+      val name = alignClass(alignment)
+      if name.isEmpty then cell else cell.cssClass(name)
   end instance
 
   /**

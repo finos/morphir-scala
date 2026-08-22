@@ -48,6 +48,11 @@ sealed trait MdNode derives CanEqual:
     case MdNode.Emphasis(children, _)          => children
     case MdNode.Strong(children, _)            => children
     case MdNode.Delete(children, _)            => children
+    // The header is a field rather than the first child, so a generic walk has to put it back in front of the body
+    // rows: `childNodes` is document order, and the header row is written first.
+    case MdNode.Table(_, header, rows, _) => Chunk(header) ++ rows
+    case MdNode.TableRow(children, _)     => children
+    case MdNode.TableCell(children, _)    => children
     case _: (MdNode.Code | MdNode.Html | MdNode.ThematicBreak | MdNode.Text | MdNode.InlineCode |
           MdNode.Image | MdNode.InlineHtml | MdNode.Break | MdNode.FrontMatter.Yaml) =>
       Chunk.empty
@@ -121,12 +126,23 @@ sealed trait MdNode derives CanEqual:
     case MdNode.Break(meta)             => MdNode.Break(meta.copy(span = Absent))
     case MdNode.Delete(children, meta)  =>
       MdNode.Delete(children.map(_.unpositioned.asInstanceOf[MdNode.PhrasingContent]), meta.copy(span = Absent))
-    case MdNode.FrontMatter.Yaml(value, meta) => MdNode.FrontMatter.Yaml(value, meta.copy(span = Absent))
+    case MdNode.FrontMatter.Yaml(value, meta)    => MdNode.FrontMatter.Yaml(value, meta.copy(span = Absent))
+    case MdNode.Table(align, header, rows, meta) =>
+      MdNode.Table(
+        align,
+        header.unpositioned.asInstanceOf[MdNode.TableRow],
+        rows.map(row => row.unpositioned.asInstanceOf[MdNode.TableRow]),
+        meta.copy(span = Absent)
+      )
+    case MdNode.TableRow(children, meta) =>
+      MdNode.TableRow(children.map(_.unpositioned.asInstanceOf[MdNode.TableCell]), meta.copy(span = Absent))
+    case MdNode.TableCell(children, meta) =>
+      MdNode.TableCell(children.map(_.unpositioned.asInstanceOf[MdNode.PhrasingContent]), meta.copy(span = Absent))
 
 object MdNode:
 
   /** What a block position may hold — mdast's flow content. */
-  type FlowContent = Paragraph | Heading | Code | Html | Blockquote | List | ThematicBreak
+  type FlowContent = Paragraph | Heading | Code | Html | Blockquote | List | ThematicBreak | Table
 
   /** What a prose position may hold — mdast's phrasing content. */
   type PhrasingContent = Text | InlineCode | Link | Image | Emphasis | Strong | InlineHtml | Break | Delete
@@ -180,6 +196,29 @@ object MdNode:
   ) extends MdNode
   final case class ThematicBreak(meta: MdMeta = MdMeta.empty) extends MdNode
 
+  /**
+   * A GFM pipe table: a header row, the alignment its delimiter row fixed, and zero or more body rows.
+   *
+   * The header is its own field rather than the first entry of a children list, which is where mdast puts it. GFM
+   * requires a header row — a table without one is not a table, it is a paragraph of pipes — so giving it a field makes
+   * the headerless table unrepresentable instead of merely undocumented.
+   *
+   * `align` has one entry per column, and its length is the table's column count: every row is padded or truncated to
+   * it at parse time, so a consumer may zip the two without checking.
+   */
+  final case class Table(
+      align: Chunk[Maybe[ColumnAlignment]],
+      header: TableRow,
+      rows: Chunk[TableRow],
+      meta: MdMeta = MdMeta.empty
+  ) extends MdNode
+
+  /** One row of a [[Table]]. Which half of the table it is in is its position, not a field it carries. */
+  final case class TableRow(children: Chunk[TableCell], meta: MdMeta = MdMeta.empty) extends MdNode
+
+  /** One cell. Its content is phrasing content: GFM forbids a block-level element inside a table. */
+  final case class TableCell(children: Chunk[PhrasingContent], meta: MdMeta = MdMeta.empty) extends MdNode
+
   // phrasing
   final case class Text(value: String, meta: MdMeta = MdMeta.empty)       extends MdNode
   final case class InlineCode(value: String, meta: MdMeta = MdMeta.empty) extends MdNode
@@ -224,6 +263,9 @@ object MdNode:
         case n: List             => n.copy(meta = updated)
         case n: ListItem         => n.copy(meta = updated)
         case n: ThematicBreak    => n.copy(meta = updated)
+        case n: Table            => n.copy(meta = updated)
+        case n: TableRow         => n.copy(meta = updated)
+        case n: TableCell        => n.copy(meta = updated)
         case n: Text             => n.copy(meta = updated)
         case n: InlineCode       => n.copy(meta = updated)
         case n: Link             => n.copy(meta = updated)

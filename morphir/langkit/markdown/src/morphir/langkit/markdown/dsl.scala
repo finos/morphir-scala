@@ -79,7 +79,7 @@ object dsl:
     def flushPhrasing(): Unit =
       if phrasing.knownSize > 0 then flow.addOne(Paragraph(phrasing.result()))
     children.foreach {
-      case c: (Paragraph | Heading | Code | Html | Blockquote | List | ThematicBreak) =>
+      case c: (Paragraph | Heading | Code | Html | Blockquote | List | ThematicBreak | Table) =>
         flushPhrasing()
         flow.addOne(c)
       case c: (Text | InlineCode | Link | Image | Emphasis | Strong | InlineHtml | Break | Delete) =>

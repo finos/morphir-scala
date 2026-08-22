@@ -3,6 +3,7 @@ package morphir.langkit.markdown
 import kyo.*
 import kyo.test.*
 import morphir.langkit.core.Span
+import morphir.langkit.markdown.internal.Parser
 
 /**
  * Every expectation here is the `html` field of a real CommonMark 0.31.2 example, named by its number, copied
@@ -87,6 +88,31 @@ class ScalatagsCompilerTests extends Test[Any]:
           MdNode.List(ordered = false, Absent, spread = false, Chunk(item("bar")), meta)
         ) == "<ul>\n<li>foo</li>\n</ul>\n<hr />\n<ul>\n<li>bar</li>\n</ul>\n"
       )
+
+    "renders a table with a header and a body (spec example 198)" in {
+      given MdProfile = MdProfile.gfm
+      val rendered    =
+        ScalatagsCompiler.render(Parser.parse("| foo | bar |\n| --- | --- |\n| baz | bim |\n").getOrThrow)
+      assert(rendered ==
+        "<table>\n<thead>\n<tr>\n<th>foo</th>\n<th>bar</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n" +
+        "<td>baz</td>\n<td>bim</td>\n</tr>\n</tbody>\n</table>\n")
+    }
+
+    "puts alignment in an attribute, not a style (spec example 199)" in {
+      given MdProfile = MdProfile.gfm
+      val rendered    =
+        ScalatagsCompiler.render(Parser.parse("| abc | defghi |\n:-: | -----------:\nbar | baz\n").getOrThrow)
+      assert(rendered.contains("""<th align="center">abc</th>"""))
+      assert(rendered.contains("""<td align="right">baz</td>"""))
+      assert(!rendered.contains("text-align"))
+    }
+
+    "omits tbody entirely when there are no body rows (spec example 205)" in {
+      given MdProfile = MdProfile.gfm
+      val rendered    = ScalatagsCompiler.render(Parser.parse("| abc | def |\n| --- | --- |\n").getOrThrow)
+      assert(rendered == "<table>\n<thead>\n<tr>\n<th>abc</th>\n<th>def</th>\n</tr>\n</thead>\n</table>\n")
+      assert(!rendered.contains("tbody"))
+    }
 
     "renders an empty document as the empty string" in
       assert(render() == "")

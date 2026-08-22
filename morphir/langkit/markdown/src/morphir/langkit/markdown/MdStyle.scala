@@ -37,7 +37,11 @@ final case class MdStyle(
     fence: Char = '`',
     orderedDelimiter: Char = '.',
     headingStyle: HeadingStyle = HeadingStyle.Atx,
-    hardBreak: HardBreakStyle = HardBreakStyle.Backslash
+    hardBreak: HardBreakStyle = HardBreakStyle.Backslash,
+    /** Whether table columns are padded to a common width. Off writes the narrowest legal table. */
+    padTableColumns: Boolean = true,
+    /** How many dashes a delimiter cell uses at minimum, before alignment colons. */
+    tableDelimiterWidth: Int = 3
 ) derives CanEqual
 
 object MdStyle:
@@ -52,3 +56,5 @@ object MdStyleKeys:
   val orderedDelimiter: MetaKey[Char]     = MetaKey[Char]("md.orderedDelimiter")
   val headingStyle: MetaKey[HeadingStyle] = MetaKey[HeadingStyle]("md.headingStyle")
   val hardBreak: MetaKey[HardBreakStyle]  = MetaKey[HardBreakStyle]("md.hardBreak")
+  val padTableColumns: MetaKey[Boolean]   = MetaKey[Boolean]("md.padTableColumns")
+  val tableDelimiterWidth: MetaKey[Int]   = MetaKey[Int]("md.tableDelimiterWidth")
