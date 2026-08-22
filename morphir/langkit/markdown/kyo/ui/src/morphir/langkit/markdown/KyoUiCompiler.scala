@@ -50,7 +50,7 @@ object KyoUiCompiler:
      * attribute set is a closed one, and neither holds `start`. A list beginning at three therefore renders beginning
      * at one. The AST keeps the number, so nothing is lost that a writer able to express it could not recover.
      */
-    def list(ordered: Boolean, start: Maybe[Int], children: Chunk[UI]): UI =
+    def list(ordered: Boolean, start: Maybe[ListStart], children: Chunk[UI]): UI =
       if ordered then UI.ol(content(children)) else UI.ul(content(children))
 
     def listItem(children: Chunk[UI]): UI = UI.li(content(children))

@@ -3,6 +3,7 @@ package morphir.langkit.markdown.internal
 import kyo.*
 import morphir.langkit.core.Span
 import morphir.langkit.markdown.HeadingLevel
+import morphir.langkit.markdown.ListStart
 import morphir.langkit.markdown.MdNode
 
 /**
@@ -65,7 +66,7 @@ private[markdown] enum CstFragment:
   case BulletList(bullet: Char, tight: Boolean, span: Span, items: Chunk[CstFragment])
 
   /** A run of numbered items sharing one delimiter, starting at `start`. */
-  case OrderedList(start: Int, delimiter: Char, tight: Boolean, span: Span, items: Chunk[CstFragment])
+  case OrderedList(start: ListStart, delimiter: Char, tight: Boolean, span: Span, items: Chunk[CstFragment])
 
   /** One item: `markers` cover its marker line's prefix and each continuation line's indentation. */
   case ListItem(span: Span, markers: Chunk[Marker], children: Chunk[CstFragment])

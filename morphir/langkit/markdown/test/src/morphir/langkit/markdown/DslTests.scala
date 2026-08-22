@@ -86,19 +86,19 @@ class DslTests extends Test[Any]:
     "ol defaults start to 1" in {
       val list = ol(li("a"))
       assert(list.ordered)
-      assert(list.start == Present(1))
+      assert(list.start == Present(ListStart.One))
       assert(list.tight)
     }
 
     "ol(start) sets the start and defaults spread to tight" in {
-      val list = ol(3)(li("x"))
-      assert(list.start == Present(3))
+      val list = ol(ListStart(3))(li("x"))
+      assert(list.start == Present(ListStart(3)))
       assert(list.tight)
     }
 
     "ol(start, spread) sets both" in {
-      val list = ol(5, spread = true)(li("x"))
-      assert(list.start == Present(5))
+      val list = ol(ListStart(5), spread = true)(li("x"))
+      assert(list.start == Present(ListStart(5)))
       assert(!list.tight)
     }
 
@@ -134,7 +134,7 @@ class DslTests extends Test[Any]:
         quote(p("t")),
         ul(li("a")),
         ol(li("a")),
-        ol(3)(li("a")),
+        ol(ListStart(3))(li("a")),
         li("a"),
         hr,
         text("t"),

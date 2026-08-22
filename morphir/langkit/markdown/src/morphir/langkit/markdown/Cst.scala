@@ -55,7 +55,7 @@ enum MdCstNode derives CanEqual:
   case BulletList(bullet: Char, tight: Boolean, children: Chunk[MdCstNode], span: Span)
 
   /** A run of numbered items sharing `delimiter`, numbered from `start`. */
-  case OrderedList(start: Int, delimiter: Char, tight: Boolean, children: Chunk[MdCstNode], span: Span)
+  case OrderedList(start: ListStart, delimiter: Char, tight: Boolean, children: Chunk[MdCstNode], span: Span)
 
   /** One item. Its first child is the marker [[Token]]; continuation-line indentation appears as tokens too. */
   case ListItem(children: Chunk[MdCstNode], span: Span)

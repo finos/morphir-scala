@@ -154,7 +154,7 @@ object MdNode:
   /** `start` is Present only when `ordered`. `spread` is mdast's field; the renderer reads the derived `tight`. */
   final case class List(
       ordered: Boolean,
-      start: Maybe[Int],
+      start: Maybe[ListStart],
       spread: Boolean,
       children: Chunk[ListItem],
       meta: MdMeta = MdMeta.empty

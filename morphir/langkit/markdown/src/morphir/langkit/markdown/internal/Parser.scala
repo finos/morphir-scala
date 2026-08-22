@@ -241,7 +241,7 @@ private[markdown] object Parser:
       case LineKind.Text | LineKind.IndentedCode => true
       // A list interrupts a paragraph only when it starts at 1 and its first item holds something: `1.` alone under a
       // paragraph is that paragraph's text, and so is `14.` whatever follows it (example 304).
-      case LineKind.OrderedItem(marker)        => marker.number != 1 || marker.empty
+      case LineKind.OrderedItem(marker)        => marker.number != ListStart.One || marker.empty
       case LineKind.BulletItem(marker)         => marker.empty
       case LineKind.Html(HtmlBlockKind.AnyTag) => true
       case _                                   => false
@@ -1070,7 +1070,7 @@ private[markdown] object Parser:
     else Span(line.offset, line.length)
 
   private type BulletMarker  = (bullet: Char, columns: Int, empty: Boolean)
-  private type OrderedMarker = (number: Int, delimiter: Char, columns: Int, empty: Boolean)
+  private type OrderedMarker = (number: ListStart, delimiter: Char, columns: Int, empty: Boolean)
 
   /**
    * How many characters a marker of `width` at `indent` spends before its content begins.
@@ -1099,7 +1099,11 @@ private[markdown] object Parser:
       else if trimmed.length > width && trimmed.charAt(width) != ' ' then Absent
       else
         val (columns = columns, empty = empty) = markerColumns(text, indent, width)
-        Present((number = digits.toInt, delimiter = delimiter, columns = columns, empty = empty))
+        // At most nine digits, so the number is inside [[ListStart]]'s bound by the guard above; the Absent arm is
+        // unreachable, and reads the run as no marker at all rather than inventing a start.
+        ListStart.fromInt(digits.toInt).map(number =>
+          (number = number, delimiter = delimiter, columns = columns, empty = empty)
+        )
 
   /** A bullet marker: `-`, `*` or `+`, then a space or the end of the line. */
   private def unorderedItem(text: String): Maybe[BulletMarker] =

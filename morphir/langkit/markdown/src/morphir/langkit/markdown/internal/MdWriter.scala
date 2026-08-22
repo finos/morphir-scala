@@ -219,7 +219,7 @@ private[markdown] object MdWriter:
     val bullet = if !list.ordered && avoid.contains(wantedBullet) then alternateBullet(wantedBullet) else wantedBullet
     val delimiter =
       if list.ordered && avoid.contains(wantedDelimiter) then alternateDelimiter(wantedDelimiter) else wantedDelimiter
-    val first     = list.start.getOrElse(1)
+    val first     = list.start.getOrElse(ListStart.One).toInt
     val separator = if list.tight then LineSeparated else BlankSeparated
     val written   = list.children.zipWithIndex.map { case (item, index) =>
       val marker = if list.ordered then s"${first + index}$delimiter " else s"$bullet "

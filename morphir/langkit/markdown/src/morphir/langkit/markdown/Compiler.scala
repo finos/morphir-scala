@@ -95,11 +95,12 @@ trait Compiler[Out]:
    * @param ordered
    *   whether the items were written with number markers rather than bullets
    * @param start
-   *   the first marker's number, present only for an ordered list. HTML omits the `start` attribute when it is 1.
+   *   the first marker's number, present only for an ordered list, and bounded by what CommonMark's marker spells. HTML
+   *   omits the `start` attribute when it is 1.
    * @param children
    *   the results of [[listItem]], in source order
    */
-  def list(ordered: Boolean, start: Maybe[Int], children: Chunk[Out]): Out
+  def list(ordered: Boolean, start: Maybe[ListStart], children: Chunk[Out]): Out
 
   /** Compile one list item from its compiled children. Called before [[list]]. */
   def listItem(children: Chunk[Out]): Out

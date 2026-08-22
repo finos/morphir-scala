@@ -56,13 +56,13 @@ object ScalatagsCompiler:
      * Combines `list`'s already-compiled `listItem` children into `ul` when `!ordered`, or `ol` when `ordered`. HTML
      * omits the `start` attribute when it is absent or `1`, exactly as the two former methods this merges did.
      */
-    def list(ordered: Boolean, start: Maybe[Int], children: Chunk[Frag]): Frag =
+    def list(ordered: Boolean, start: Maybe[ListStart], children: Chunk[Frag]): Frag =
       val body = frag(children.toSeq.flatMap(item => Seq(item, newline))*)
       if !ordered then ul(newline, body)
       else
         start match
-          case Present(value) if value != 1 => ol(attr("start") := value.toString)(newline, body)
-          case _                            => ol(newline, body)
+          case Present(value) if value != ListStart.One => ol(attr("start") := value.toInt.toString)(newline, body)
+          case _                                        => ol(newline, body)
 
     def listItem(children: Chunk[Frag]): Frag = li(frag(children.toSeq*))
 

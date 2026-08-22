@@ -148,7 +148,7 @@ class CstBlockStructureTests extends Test[Any]:
     "an ordered list keeps its start number and delimiter" in {
       blocks("3) go\n4) stop\n").head match
         case MdCstNode.OrderedList(start, delimiter, tight, children, _) =>
-          assert(start == 3)
+          assert(start == ListStart(3))
           assert(delimiter == ')')
           assert(tight)
           assert(children.collect { case i: MdCstNode.ListItem => i }.size == 2)

@@ -420,14 +420,14 @@ class InlineTests extends Test[Any]:
     "reads consecutive numbered items as one list" in {
       parse("1. one\n2. two").children.head match
         case MdNode.List(true, start, _, items, _) =>
-          assert(start == Present(1))
+          assert(start == Present(ListStart.One))
           assert(items.map(item => textOf(paragraphOf(item))) == Chunk("one", "two"))
         case other => assert(false, s"expected an ordered list, got $other")
     }
     "keeps the first marker's number as the start" in {
       parse("3. three\n4. four").children.head match
         case MdNode.List(true, start, _, items, _) =>
-          assert(start == Present(3))
+          assert(start == Present(ListStart(3)))
           assert(items.size == 2)
         case other => assert(false, s"expected an ordered list, got $other")
     }

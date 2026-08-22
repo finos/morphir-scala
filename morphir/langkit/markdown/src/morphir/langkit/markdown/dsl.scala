@@ -55,8 +55,14 @@ object dsl:
   def ul(items: ListItem*): List = List(ordered = false, start = Absent, spread = false, Chunk.from(items))
   def ul(spread: Boolean)(items: ListItem*): List =
     List(ordered = false, start = Absent, spread = spread, Chunk.from(items))
-  def ol(items: ListItem*): List = List(ordered = true, start = Present(1), spread = false, Chunk.from(items))
-  def ol(start: Int, spread: Boolean = false)(items: ListItem*): List =
+  def ol(items: ListItem*): List =
+    List(ordered = true, start = Present(ListStart.One), spread = false, Chunk.from(items))
+
+  /**
+   * An ordered list counting from `start`. Write the number as a literal — `ol(ListStart(3))` — and the bound is
+   * checked where it is written; use [[ListStart.fromInt]] when the number is computed.
+   */
+  def ol(start: ListStart, spread: Boolean = false)(items: ListItem*): List =
     List(ordered = true, start = Present(start), spread = spread, Chunk.from(items))
 
   /**

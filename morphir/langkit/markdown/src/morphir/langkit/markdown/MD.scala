@@ -117,7 +117,7 @@ object MD:
   export morphir.langkit.markdown.LinkForm
 
   /**
-   * The two opaque types, aliased by hand rather than exported.
+   * The three opaque types, aliased by hand rather than exported.
    *
    * An `export` of an opaque type's companion re-roots the type of whatever that companion builds at this object, and
    * an extension method defined on the opaque type then falls outside the implicit scope of the result:
@@ -127,6 +127,9 @@ object MD:
    */
   type HeadingLevel = morphir.langkit.markdown.HeadingLevel
   val HeadingLevel: morphir.langkit.markdown.HeadingLevel.type = morphir.langkit.markdown.HeadingLevel
+
+  type ListStart = morphir.langkit.markdown.ListStart
+  val ListStart: morphir.langkit.markdown.ListStart.type = morphir.langkit.markdown.ListStart
 
   type YamlDocText = morphir.langkit.markdown.YamlDocText
   val YamlDocText: morphir.langkit.markdown.YamlDocText.type = morphir.langkit.markdown.YamlDocText

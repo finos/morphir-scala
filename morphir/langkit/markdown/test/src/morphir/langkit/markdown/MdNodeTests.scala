@@ -37,7 +37,7 @@ class MdNodeTests extends Test[Any]:
       val tightList =
         MdNode.List(ordered = false, start = Absent, spread = false, Chunk.empty, meta)
       val looseList =
-        MdNode.List(ordered = true, start = Present(3), spread = true, Chunk.empty, meta)
+        MdNode.List(ordered = true, start = Present(ListStart(3)), spread = true, Chunk.empty, meta)
       assert(tightList.tight)
       assert(!looseList.tight)
     }

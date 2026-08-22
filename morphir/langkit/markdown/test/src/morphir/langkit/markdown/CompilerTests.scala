@@ -16,8 +16,8 @@ class CompilerTests extends Test[Any]:
     def heading(depth: HeadingLevel, children: Chunk[String]) = s"(h${depth.toInt} ${children.mkString(" ")})"
     def paragraph(children: Chunk[String]): String            = s"(p ${children.mkString(" ")})"
     def code(info: FenceInfo, value: String): String          = s"(code:${info.language.getOrElse("-")} $value)"
-    def list(ordered: Boolean, start: Maybe[Int], children: Chunk[String]): String =
-      if ordered then children.mkString(s"(ol:${start.getOrElse(1)} ", " ", ")")
+    def list(ordered: Boolean, start: Maybe[ListStart], children: Chunk[String]): String =
+      if ordered then children.mkString(s"(ol:${start.getOrElse(ListStart.One).toInt} ", " ", ")")
       else children.mkString("(ul ", " ", ")")
     def listItem(children: Chunk[String]): String                        = s"(li ${children.mkString(" ")})"
     def text(value: String): String                                      = value

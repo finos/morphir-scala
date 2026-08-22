@@ -218,7 +218,7 @@ class MdWriterTests extends Test[Any]:
     "an ordered list numbered from one" in roundTrips(doc(ol(li("one"), li("two"))), "ordered list")
 
     "an ordered list numbered from an arbitrary start" in
-      roundTrips(doc(ol(7)(li("seven"), li("eight"), li("nine"), li("ten"))), "ordered list from seven")
+      roundTrips(doc(ol(ListStart(7))(li("seven"), li("eight"), li("nine"), li("ten"))), "ordered list from seven")
 
     "a thematic break" in roundTrips(doc(hr), "thematic break")
 
@@ -443,3 +443,56 @@ class MdWriterTests extends Test[Any]:
     "an empty document raises an empty CST" in
       assert(Cst.print(MdWriter.raise(doc())) == "")
   }
+
+  /**
+   * One ordered list holding one item, written and read back, reported by what came back rather than by equality: the
+   * question here is whether the marker survived as a marker at all.
+   */
+  private def startsAsList(start: ListStart)(using MdStyle)(using MdProfile)(using AssertScope): Unit =
+    val written = MdWriter.write(doc(ol(start)(li("x"))))
+    Parser.parse(written) match
+      case Result.Success(reparsed) =>
+        assert(
+          reparsed.children.headOption.exists(_.isInstanceOf[MdNode.List]),
+          s"a list starting at ${start.toInt} wrote ${oneLine(written)}, which reparsed as " +
+            s"${reparsed.children.headOption.fold("nothing")(_.getClass.getSimpleName)}"
+        )
+      case other =>
+        throw new IllegalStateException(s"a list starting at ${start.toInt} wrote unparseable text: $other")
+
+  /**
+   * The writer's fidelity contract, held by the type rather than by care.
+   *
+   * `MdNode.List.start` was an `Int`, and two of the values it accepted wrote text no reader takes as a list: `-1. x`
+   * has no digits before its delimiter, and `1000000000. x` has one digit more than CommonMark's marker holds. Both
+   * reparsed as a paragraph. [[ListStart]] admits exactly the range the marker spells, so the pair below is the whole
+   * property — nothing outside the range can be built, and everything inside it comes back as a list.
+   */
+  "ListStart holds the writer to its contract" - {
+
+    "the type admits exactly what a one-to-nine-digit marker spells" in {
+      assert(ListStart.fromInt(-1) == Absent)
+      assert(ListStart.fromInt(Int.MinValue) == Absent)
+      assert(ListStart.fromInt(0) == Present(ListStart.Zero))
+      assert(ListStart.fromInt(1) == Present(ListStart.One))
+      assert(ListStart.fromInt(999999999) == Present(ListStart.Max))
+      assert(ListStart.fromInt(1000000000) == Absent)
+      assert(ListStart.fromInt(Int.MaxValue) == Absent)
+    }
+
+    "every start the type admits writes a list that reads back as a list" in {
+      val candidates = Chunk(0, 1, 2, 9, 10, 11, 99, 100, 12345, 99999999, 999999998, 999999999)
+      candidates.foreach { value =>
+        ListStart.fromInt(value) match
+          case Present(start) => startsAsList(start)
+          case Absent         => assert(false, s"$value is inside CommonMark's range and should have been a ListStart")
+      }
+    }
+
+    "the two starts that used to break fidelity are no longer constructible" in {
+      assert(ListStart.fromInt(-1) == Absent)
+      assert(ListStart.fromInt(1000000000) == Absent)
+      // ol(ListStart(-1))(li("x")) and ol(ListStart(1000000000))(li("x")) do not compile.
+    }
+  }
+end MdWriterTests

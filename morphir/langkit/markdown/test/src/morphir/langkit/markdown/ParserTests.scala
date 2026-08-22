@@ -806,7 +806,7 @@ class ParserTests extends Test[Any]:
         case Result.Success(doc) =>
           doc.children(0) match
             case MdNode.List(true, start, _, items, _) =>
-              assert(start == Present(1))
+              assert(start == Present(ListStart.One))
               assert(items.size == 2)
             case other => assert(false, s"expected an ordered list, got $other")
         case _ => assert(false)

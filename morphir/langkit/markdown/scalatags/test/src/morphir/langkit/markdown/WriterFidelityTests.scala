@@ -89,7 +89,7 @@ class WriterFidelityTests extends Test[Any]:
       "an ordered list numbered from one" in rendersSame(doc(ol(li("one"), li("two"))), "ordered list")
 
       "an ordered list numbered from an arbitrary start" in
-        rendersSame(doc(ol(7)(li("seven"), li("eight"), li("nine"), li("ten"))), "ordered list from seven")
+        rendersSame(doc(ol(ListStart(7))(li("seven"), li("eight"), li("nine"), li("ten"))), "ordered list from seven")
 
       "a thematic break" in rendersSame(doc(hr), "thematic break")
 

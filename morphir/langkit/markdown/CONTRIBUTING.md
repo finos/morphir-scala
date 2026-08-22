@@ -22,7 +22,7 @@ Depth is still available — it just goes downward, not sideways:
 
 | Where | What | Visibility |
 | --- | --- | --- |
-| `morphir.langkit.markdown` | the public surface: `MD`, `dsl`, `MdNode`, `MdCstNode`, `Cst`, `CstParser`, `Lower`, `LinkForm`, `HeadingLevel`, `FenceInfo`, `MdProfile`, `MdStyle`, `MdMeta`, `MdParseError`, `YamlDocText`, `Compiler`, and each writer's entry point | public |
+| `morphir.langkit.markdown` | the public surface: `MD`, `dsl`, `MdNode`, `MdCstNode`, `Cst`, `CstParser`, `Lower`, `LinkForm`, `HeadingLevel`, `ListStart`, `FenceInfo`, `MdProfile`, `MdStyle`, `MdMeta`, `MdParseError`, `YamlDocText`, `Compiler`, and each writer's entry point | public |
 | `morphir.langkit.markdown.internal` | machinery no caller should name — `Parser`, `MdWriter`, `InlineParser`, `CstFragment`, `InlineNotes` | `private[markdown]` |
 
 The concrete syntax tree is the case worth spelling out, because it is where the rule is easiest to break. `MdCstNode`
