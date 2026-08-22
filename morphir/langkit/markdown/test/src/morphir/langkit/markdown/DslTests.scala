@@ -198,6 +198,4 @@ class DslTests extends Test[Any]:
       assert(item.children(1) == N.Paragraph(Chunk(N.Text("b"))))
       assert(item.children(2) == N.Paragraph(Chunk(N.Text("c"))))
     }
-
-    }
   }
