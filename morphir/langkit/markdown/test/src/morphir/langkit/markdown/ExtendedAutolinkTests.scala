@@ -248,16 +248,85 @@ class ExtendedAutolinkTests extends Test[Any]:
     }
 
     /**
-     * A run the parse rewrote is left as prose. Every span this pass makes points at real source bytes, and a value
-     * holding a resolved escape or character reference has none to point at — `www\.example.com` is fifteen characters
-     * of text over sixteen of source. cmark-gfm links both of these; here the concrete syntax tree could not tile the
-     * result, so recognition stops where the rewrite begins, and an escape becomes a way to spell a bare URL that stays
-     * text.
+     * A destination *through* a rewrite is left as prose. Every span this pass makes points at real source bytes, and a
+     * run holding a resolved escape or character reference has none to point at — `www\.example.com` is fifteen
+     * characters of text over sixteen of source, and a link over it could not be tiled. cmark-gfm links both of these.
+     *
+     * The scope of that is the rewritten run and no more: an escape is a text node of its own, so the prose on either
+     * side of it is still mapped and still scanned, which the next case pins.
      */
     "leave a destination the source rewrote as prose" in {
       given MdProfile = MdProfile.gfm
       assert(links("www\\.example.com\n").isEmpty)
       assert(links("www.google.com/search?q=a&amp;b\n").head._2 == "www.google.com/search?q=a")
+    }
+
+    /**
+     * An escape elsewhere in the paragraph costs nothing. The parse resolves `\*` to a node one character long over two
+     * of source, which no offset inside can be mapped through — so it is kept as a node of its own, and the run after
+     * it is mapped and scanned as usual.
+     */
+    "link a destination in a paragraph that holds an escape" in {
+      given MdProfile = MdProfile.gfm
+      val source      = "Use \\*args\\* — see www.example.com for details.\n"
+      assert(links(source) == Chunk(("http://www.example.com", "www.example.com")))
+      assert(plainAt(source, 0) == "Use *args* — see www.example.com for details.")
+      val document = CstParser.parse(source)
+      assert(Cst.print(document) == source, s"printed ${Cst.print(document)}")
+      assert(
+        Cst.tilingErrors(document, source.length).isEmpty,
+        Cst.tilingErrors(document, source.length).mkString("; ")
+      )
+    }
+
+    /**
+     * `www.a@b.c` is an address whose local part begins `www.`, not a host: `a` is one label and no domain. The
+     * destination is derived from the form the matcher settled on, so both the direct parse and lowering say `mailto:`
+     * — a prefix test would have said `http://` on both paths and looked consistent while being wrong.
+     */
+    "read a `www.` local part as the address it is" in {
+      given MdProfile = MdProfile.gfm
+      val source      = "www.a@b.c\n"
+      assert(links(source) == Chunk(("mailto:www.a@b.c", "www.a@b.c")))
+      assert(
+        normalize(Lower.lower(CstParser.parse(source)).unpositioned) ==
+          normalize(Parser.parse(source).getOrThrow.unpositioned)
+      )
+    }
+
+    /** Emphasis is transparent to the pass, and what it wraps still tiles. */
+    "link a destination inside emphasis" in {
+      given MdProfile = MdProfile.gfm
+      val source      = "*see www.example.com*\n"
+      assert(links(source) == Chunk(("http://www.example.com", "www.example.com")))
+      val document = CstParser.parse(source)
+      assert(Cst.print(document) == source, s"printed ${Cst.print(document)}")
+      assert(
+        Cst.tilingErrors(document, source.length).isEmpty,
+        Cst.tilingErrors(document, source.length).mkString("; ")
+      )
+    }
+
+    /**
+     * The two tails that make the trimming loop work hardest. The parentheses are counted once and the count carried
+     * through, so a long run of them costs one pass rather than one per character; a `;` that closes no entity
+     * reference stops the loop rather than being trimmed, so a run of them costs nothing at all.
+     */
+    "give back a long tail of parentheses, and keep semicolons that close nothing" in {
+      given MdProfile = MdProfile.gfm
+      assert(links("www.example.com" + ")" * 5 + "\n").head._2 == "www.example.com")
+      assert(links("www.example.com/a(b)" + ")" * 5 + "\n").head._2 == "www.example.com/a(b)")
+      assert(links("www.example.com" + ";" * 5 + "\n").head._2 == "www.example.com" + ";" * 5)
+    }
+
+    /**
+     * A local part longer than RFC 5321's 64 characters is not an address here, and reading it is bounded so that a
+     * long run of `_` — a character that is both a boundary and a local-part one — cannot cost quadratic time.
+     */
+    "stop reading a local part at the length a standard address may have" in {
+      given MdProfile = MdProfile.gfm
+      assert(links("a" * 64 + "@b.example\n").head._2 == "a" * 64 + "@b.example")
+      assert(links("a" * 65 + "@b.example\n").isEmpty)
     }
 
     "are off under the CommonMark profile" in {
@@ -334,6 +403,15 @@ class ExtendedAutolinkTests extends Test[Any]:
       assert(
         normalize(Parser.parse(written).getOrThrow.unpositioned) == normalize(tree.unpositioned),
         s"round trip changed: $written"
+      )
+      // A backslash escape opens a node in a parse, so a destination that follows one has to be broken as well:
+      // `\#www.example.com` would otherwise read back as a link this tree never held.
+      val escaped = MdNode.Root(Chunk(MdNode.Paragraph(Chunk(MdNode.Text("#www.example.com")))))
+      val spelled = MdWriter.write(escaped)
+      assert(spelled == "\\#www&#46;example.com\n", spelled)
+      assert(
+        normalize(Parser.parse(spelled).getOrThrow.unpositioned) == normalize(escaped.unpositioned),
+        s"round trip changed: $spelled"
       )
       // What the writer spells still tiles: the references it spent are entities like any other.
       val raised = MdWriter.raise(tree)

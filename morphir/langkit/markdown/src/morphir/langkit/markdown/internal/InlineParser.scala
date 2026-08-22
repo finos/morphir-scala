@@ -78,18 +78,26 @@ private[markdown] object InlineParser:
     autolink("<" + inner + ">", 0).map(link => normalizeUri(link.destination))
 
   /**
-   * Where an extended autolink points, for lowering and for anyone who has the matched run already.
+   * Where an extended autolink points, for lowering, which has the matched run and nothing else.
    *
-   * A run that names its own scheme points at itself; a `www.` host gets `http://` in front of it, and an address
-   * `mailto:`. The result is normalised as a URI the same way every other destination is.
+   * The form is recovered by matching the run again rather than by testing its prefix, and that distinction is the
+   * whole of this method. `www.a@b.c` is an address whose local part happens to begin `www.` — the host form rejects
+   * it, because `a` is a single-label domain — so a prefix test would answer `http://` where GFM answers `mailto:`.
+   * Deriving it from the same matcher that recognised the run in the first place makes that class of disagreement
+   * unrepresentable. A run that is not an extended autolink at all — only a hand-built tree holds one — keeps its text
+   * and gains no scheme.
    */
   def extendedDestinationOf(text: String): String =
-    val raw =
-      if ExtendedSchemes.exists(scheme => text.regionMatches(true, 0, scheme, 0, scheme.length)) then text
-      else if text.regionMatches(true, 0, "www.", 0, 4) then "http://" + text
-      else if text.indexOf('@') >= 0 then "mailto:" + text
-      else text
-    normalizeUri(raw)
+    extendedAutolinkAt(text, 0, nodeStart = true) match
+      case Present(matched) if matched.end == text.length => destinationOf(matched.form, text)
+      case _                                              => normalizeUri(text)
+
+  /** Where a run of a known form points: itself, `http://` in front of a host, `mailto:` in front of an address. */
+  private def destinationOf(form: ExtendedForm, text: String): String =
+    normalizeUri(form match
+      case ExtendedForm.Scheme => text
+      case ExtendedForm.Www    => "http://" + text
+      case ExtendedForm.Email  => "mailto:" + text)
 
   /** An image's `alt` text: inline content flattened to what an attribute can hold, for lowering. */
   def altTextOf(content: Chunk[MdNode.PhrasingContent]): String = content.map(plainOf).mkString
@@ -179,9 +187,19 @@ private[markdown] object InlineParser:
       if char == '\\' && index + 1 < text.length && isAsciiPunctuation(text.charAt(index + 1)) then
         // A backslash escape makes the next character literal, so it can never open or close anything.
         notes.foreach(_.recordEscape(sourceOffsetAt(index)))
-        if pending.isEmpty then pendingStart = index
-        pending.append(text.charAt(index + 1))
+        // Its own node, rather than a character appended to the run around it. An escape's value is one character
+        // where its source is two, so a node holding one alongside prose cannot be mapped back to source offsets --
+        // and [[extendAutolinks]] needs exactly that of every text node it scans. Kept in one node, a single `\*`
+        // anywhere in a paragraph would cost every bare destination in it; kept apart, only the escape itself is
+        // unmappable, and the prose on either side of it still is. The writer's escaper has the mirror of this
+        // rule: see `nodeStart` in [[MdWriter.escapeText]].
+        flushPending()
+        items += node(MdNode.Text(
+          text.charAt(index + 1).toString,
+          MdMeta.at(spanOf(index, index + 2, sourceOffsetAt))
+        ))
         index += 2
+        pendingStart = index
       else
         constructAt(text, index, sourceOffsetAt, definitions, notes) match
           case Present((constructEnd, inline)) =>
@@ -1019,13 +1037,43 @@ private[markdown] object InlineParser:
 
   // --- extended autolinks ---------------------------------------------------------------------------------------
 
-  /** Where an extended autolink ends in the value it was found in, and which character makes it one. */
-  private[markdown] type ExtendedMatch = (end: Int, anchor: Int)
+  /**
+   * Which of the three shapes a matched run has.
+   *
+   * Carried on the match rather than re-read off the run, because the three are not told apart by their prefixes: see
+   * [[extendedDestinationOf]].
+   */
+  private[markdown] enum ExtendedForm derives CanEqual:
+    /** A `www.` host, which points at itself behind `http://`. */
+    case Www
+
+    /** A destination that names its own scheme, which points at itself. */
+    case Scheme
+
+    /** An address, which points at itself behind `mailto:`. */
+    case Email
+
+  /**
+   * Where an extended autolink ends in the value it was found in, which character makes it one — the one a writer
+   * spells as a reference to break it — and which shape it has.
+   */
+  private[markdown] type ExtendedMatch = (end: Int, anchor: Int, form: ExtendedForm)
 
   /**
    * The three schemes the extension links bare, longest first so `https://` is never read as `http` and a stray `s`.
    */
   private val ExtendedSchemes: Chunk[String] = Chunk("https://", "http://", "ftp://")
+
+  /**
+   * The most a local part may run to, which is RFC 5321's own limit and the same standard the bracketed autolink's
+   * [[isDomainLabel]] takes its 63 from.
+   *
+   * It is also what keeps this scan linear. `_` is both a boundary character and a local-part one, so every index of a
+   * long underscore run is a position an address may begin at; without a bound, each of them would scan the rest of the
+   * run looking for an `@`, and `"_" * 50000 + "."` would take quadratic time. A local part longer than this is not an
+   * address by the standard, and is left as prose here where cmark-gfm would link it.
+   */
+  private val ExtendedLocalLimit = 64
 
   /**
    * Split every text node into the extended autolinks it holds and the text around them.
@@ -1110,13 +1158,13 @@ private[markdown] object InlineParser:
       def spanOfValue(start: Int, end: Int): Span = spanOf(from + start, from + end, sourceOffsetAt)
       def emitText(start: Int, end: Int): Unit    =
         if end > start then out.addOne(MdNode.Text(value.substring(start, end), MdMeta.at(spanOfValue(start, end))))
-      def emitLink(start: Int, end: Int): Unit =
-        val span    = spanOfValue(start, end)
-        val matched = value.substring(start, end)
+      def emitLink(start: Int, end: Int, form: ExtendedForm): Unit =
+        val span = spanOfValue(start, end)
+        val run  = value.substring(start, end)
         out.addOne(MdNode.Link(
-          extendedDestinationOf(matched),
+          destinationOf(form, run),
           Absent,
-          Chunk(MdNode.Text(matched, MdMeta.at(span))),
+          Chunk(MdNode.Text(run, MdMeta.at(span))),
           MdMeta.at(span)
         ))
       @tailrec def loop(index: Int, pending: Int, found: Boolean): Boolean =
@@ -1127,7 +1175,7 @@ private[markdown] object InlineParser:
           extendedAutolinkAt(value, index, nodeStart = false) match
             case Present(matched) =>
               emitText(pending, index)
-              emitLink(index, matched.end)
+              emitLink(index, matched.end, matched.form)
               loop(matched.end, matched.end, true)
             case Absent => loop(index + 1, pending, found)
       if loop(0, 0, false) then Present(out.result()) else Absent
@@ -1193,7 +1241,7 @@ private[markdown] object InlineParser:
     else
       domainEnd(value, at + 4).flatMap { _ =>
         val end = trimmedEnd(value, at, extendedRunEnd(value, at))
-        if end > at + 4 then Present((end = end, anchor = at + 3)) else Absent
+        if end > at + 4 then Present((end = end, anchor = at + 3, form = ExtendedForm.Www)) else Absent
       }
 
   /**
@@ -1208,7 +1256,9 @@ private[markdown] object InlineParser:
       .flatMap { scheme =>
         domainEnd(value, at + scheme.length).flatMap { _ =>
           val end = trimmedEnd(value, at, extendedRunEnd(value, at))
-          if end > at + scheme.length then Present((end = end, anchor = at + scheme.indexOf(':'))) else Absent
+          if end > at + scheme.length then
+            Present((end = end, anchor = at + scheme.indexOf(':'), form = ExtendedForm.Scheme))
+          else Absent
         }
       }
 
@@ -1218,13 +1268,21 @@ private[markdown] object InlineParser:
    * No trailing trim runs over this form, because its own domain rule already says where it ends: a period counts only
    * when something alphanumeric follows it, which leaves the full stop of `a.b-c_d@a.b.` outside the address without
    * any trimming at all.
+   *
+   * The local part is read forwards from a boundary, where cmark-gfm rewinds from the `@` over local characters and
+   * asks nothing of what precedes them. The difference shows in `path/foo@bar.baz`, prose here and a link there: a `/`
+   * is not one of the four characters the specification names, and its blanket sentence — every extended autolink "can
+   * only come at the beginning of a line, after whitespace, or any of the delimiting characters `*`, `_`, `~` and `(`"
+   * — is written for all three forms. The published examples do not decide between the two readings.
    */
   private def emailAutolinkAt(value: String, at: Int): Maybe[ExtendedMatch] =
     @tailrec def loop(index: Int): Int =
-      if index < value.length && isExtendedEmailLocal(value.charAt(index)) then loop(index + 1) else index
+      if index < value.length && index - at < ExtendedLocalLimit && isExtendedEmailLocal(value.charAt(index)) then
+        loop(index + 1)
+      else index
     val sign = loop(at)
     if sign == at || sign >= value.length || value.charAt(sign) != '@' then Absent
-    else emailDomainEnd(value, sign + 1).map(end => (end = end, anchor = sign))
+    else emailDomainEnd(value, sign + 1).map(end => (end = end, anchor = sign, form = ExtendedForm.Email))
 
   private def isExtendedEmailLocal(char: Char): Boolean =
     char.isLetterOrDigit || char == '.' || char == '-' || char == '_' || char == '+'
@@ -1288,29 +1346,34 @@ private[markdown] object InlineParser:
    * The order is what settles the interactions. A run ending `);` stops at the semicolon rule — a `)` is not part of an
    * entity name — and keeps both characters, and a run ending `.)` gives the parenthesis back first and then looks at
    * the full stop the parenthesis was hiding.
+   *
+   * The parentheses are counted once, here, and the count is carried through the loop rather than retaken per step.
+   * Retaking it made a run of trailing `)` quadratic, and the count stays true for free: neither of the other two rules
+   * can remove a parenthesis, since none of the eight punctuation characters is one and an entity reference is an `&`,
+   * alphanumerics and a `;`.
    */
-  @tailrec private def trimmedEnd(value: String, start: Int, end: Int): Int =
+  private def trimmedEnd(value: String, start: Int, end: Int): Int =
+    @tailrec def counted(index: Int, opening: Int, closing: Int): (opening: Int, closing: Int) =
+      if index >= end then (opening = opening, closing = closing)
+      else
+        value.charAt(index) match
+          case '(' => counted(index + 1, opening + 1, closing)
+          case ')' => counted(index + 1, opening, closing + 1)
+          case _   => counted(index + 1, opening, closing)
+    val parentheses = counted(start, 0, 0)
+    trimmedTail(value, start, end, parentheses.opening, parentheses.closing)
+
+  @tailrec private def trimmedTail(value: String, start: Int, end: Int, opening: Int, closing: Int): Int =
     if end <= start then end
     else
       value.charAt(end - 1) match
-        case '?' | '!' | '.' | ',' | ':' | '*' | '_' | '~' => trimmedEnd(value, start, end - 1)
-        case ')' if unmatchedClose(value, start, end)      => trimmedEnd(value, start, end - 1)
+        case '?' | '!' | '.' | ',' | ':' | '*' | '_' | '~' => trimmedTail(value, start, end - 1, opening, closing)
+        case ')' if closing > opening                      => trimmedTail(value, start, end - 1, opening, closing - 1)
         case ';'                                           =>
           entityReferenceStart(value, start, end) match
-            case Present(ampersand) => trimmedEnd(value, start, ampersand)
+            case Present(ampersand) => trimmedTail(value, start, ampersand, opening, closing)
             case Absent             => end
         case _ => end
-
-  /** Whether `[start, end)` closes more parentheses than it opens, which is what makes the last `)` not the link's. */
-  private def unmatchedClose(value: String, start: Int, end: Int): Boolean =
-    @tailrec def loop(index: Int, opening: Int, closing: Int): Boolean =
-      if index >= end then closing > opening
-      else
-        value.charAt(index) match
-          case '(' => loop(index + 1, opening + 1, closing)
-          case ')' => loop(index + 1, opening, closing + 1)
-          case _   => loop(index + 1, opening, closing)
-    loop(start, 0, 0)
 
   /**
    * Where the entity reference ending at `end` begins, when the `;` there closes one.

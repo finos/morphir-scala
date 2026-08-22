@@ -485,7 +485,14 @@ private[markdown] object MdWriter:
    * escape; a reference can, because it carries the character back through a parse and is a node of its own there, so
    * neither half of what it split reads as a destination. It runs whatever profile the text will be read under, for the
    * reason `~` and `|` sit in [[AlwaysEscaped]]: the writer spells one document, and it has to survive the widest
-   * dialect that might read it.
+   * dialect that might read it. It is the noisiest thing this escaper does — `~` and `|` cost a byte each, while this
+   * puts five in the middle of a URL — and it is the price of a bare destination surviving a round trip at all.
+   *
+   * **Every branch that writes a character reference or a backslash escape sets `nodeStart`, and the recognition above
+   * depends on it.** A parse makes each of those a node of its own, so what follows one opens a node, and a node's
+   * first character is a boundary a destination may begin at whatever precedes it here. `InlineParser`'s scanner has
+   * the mirror of this rule — it flushes the run around an escape for the same reason — and if one side stops, the
+   * other stops being right: `\#www.example.com` would go out unbroken and read back as a link.
    */
   private[markdown] def escapeText(value: String, atLineStart: Boolean, oneLine: Boolean = false): String =
     val out       = new StringBuilder
@@ -542,6 +549,9 @@ private[markdown] object MdWriter:
       else if AlwaysEscaped.contains(character) || (lineStart && LineLeadEscaped.contains(character)) then
         out.append('\\').append(character)
         lineStart = false
+        // A parse makes an escape a node of its own, so what follows one opens a node too. Without this,
+        // `#www.example.com` would write as `\#www.example.com` and read back as a link the tree never held.
+        nodeStart = true
         index += 1
       else if lineStart && character.isDigit then
         // A digit run at the head of a line is an ordered-list marker only when a delimiter closes it, so the escape
@@ -552,6 +562,8 @@ private[markdown] object MdWriter:
         if delimited then
           out.append('\\').append(value.charAt(end))
           index = end + 1
+          // The delimiter went out as an escape, so what follows it opens a node, exactly as above.
+          nodeStart = true
         else index = end
         lineStart = false
       else
