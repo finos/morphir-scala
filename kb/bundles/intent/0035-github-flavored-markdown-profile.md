@@ -224,3 +224,11 @@ the writer should more generally take a profile and refuse to emit syntax the ta
 GFM 0.29-gfm. If GitHub republishes, some may disappear and others may appear. Nothing yet says how a
 re-vendoring reconciles a divergence list, beyond the existing rule that changing a fixture file is a deliberate
 act that must move the version, the totals and the recorded score together.
+
+**Where this stands.** All five extensions are implemented and reviewed, each gated on `MdProfile.gfm`, and the
+Markdown writer now carries the same round-trip guarantee against the GFM corpus that it already held against
+CommonMark. Conformance measures 662 of the 663 examples the GFM baseline targets, with the nine emphasis
+divergences above recorded and excluded from that count. The one remaining gap is `morphir-t3p.8`: a
+backslash-escaped pipe inside a code span inside a table cell keeps its backslash instead of losing it. Release
+waits on that gap closing — the acceptance criteria this intent was opened against ask for the full measured set,
+and 662 of 663 is not yet all of it.
