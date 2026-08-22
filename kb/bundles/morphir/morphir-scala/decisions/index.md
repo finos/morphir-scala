@@ -39,6 +39,7 @@ past-tense and answers *why is it shaped this way*. See
 ## Language toolkits
 
 * [Profile-dependent syntax branches at the earliest stage whose tree can record it](/decisions/0015-profile-branches-at-the-earliest-capable-stage.md) - A parse profile changes behaviour at the earliest pipeline stage whose output tree can record the decision, and no later, so the concrete and abstract syntax trees never disagree.
+* [The Markdown parser is our own, permanently](/decisions/0016-the-markdown-parser-is-our-own.md) - morphir-langkit-markdown implements and keeps its own CommonMark and GFM parser; replacing it with a third-party engine is no longer under consideration.
 
 ## Published libraries
 
