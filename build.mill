@@ -947,12 +947,20 @@ object MyAliases extends Aliases {
   def deps          = alias("mill.scalalib.Dependency/showUpdates")
   def testall       = alias("__.test")
   def testJVM       = alias("morphir.__.jvm.__.test")
+  /** Every non-classic JVM target, named rather than globbed; `squire ci policy` checks it against what Mill resolves.
+    *
+    * A curated list, not `morphir.__.jvm.__`, because the classic runtime is gated separately behind its generated
+    * fixtures. The cost of curating is drift: a module the list forgets is a module CI silently never builds, which is
+    * how the CommonMark conformance suite in `langkit.markdown.scalatags` went unrun on a runner. `benchmarks` compiles
+    * only — it has no test or publish target — and `langkit.markdown.trees` compiles and tests but does not publish, so
+    * parsley and neotype stay out of the published artifacts.
+    */
   def testJVMPlatform = alias(
     "morphir.jvm.__.compile",
-    "morphir.{buildkit.core,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile",
+    "morphir.{appkit,benchmarks,buildkit.core,connector.github,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile",
     "morphir.jvm.publishArtifacts",
-    "morphir.{buildkit.core,contrib.knowledge,extensibility,interop.borer,interop.zio.json,lib.interop,model,model.lowering,naming,prelude,tests,tools}.jvm.publishArtifacts",
-    "morphir.{buildkit.core,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.trees,model,model.lowering,prelude,tests}.jvm.test",
+    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,extensibility,interop.borer,interop.zio.json,knowledge.okf,langkit.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,lib.interop,model,model.lowering,naming,prelude,tests,tools}.jvm.publishArtifacts",
+    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,model,model.lowering,prelude,tests}.jvm.test",
     "morphir.langkit.itest.testCached"
   )
   def testJVMCached = alias("morphir.__.jvm.__.testCached")

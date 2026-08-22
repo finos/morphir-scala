@@ -58,6 +58,40 @@ object SquireCiPolicy:
     "github.ref == 'refs/heads/main' || " +
       "github.ref == 'refs/heads/0.4.x' || " +
       "startsWith(github.ref, 'refs/tags/')"
+
+  /**
+   * The non-classic JVM targets, in the order `testJVMPlatform` names them.
+   *
+   * One definition, read two ways, because they used to be two lists that could drift apart in silence — and did.
+   * [[assertJvmPlatformPolicy]] holds `build.mill`'s alias to these strings, and [[assertJvmTargetInventory]] holds
+   * these strings to what Mill actually resolves, so together they say the alias builds every non-classic JVM target
+   * and nothing more. When the two were spelled separately, a module could be absent from the alias while the census
+   * still passed: that is how the CommonMark conformance suite in `langkit.markdown.scalatags` was never once run on a
+   * runner.
+   *
+   * The lists are not identical to each other. `benchmarks` compiles but has no test or publish target, and
+   * `langkit.markdown.trees` compiles and tests but does not publish, so parsley and neotype stay out of the published
+   * artifacts.
+   */
+  val JvmCompileSelectors = List(
+    "morphir.jvm.__.compile",
+    "morphir.{appkit,benchmarks,buildkit.core,connector.github,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile"
+  )
+  val JvmPublishSelectors = List(
+    "morphir.jvm.publishArtifacts",
+    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,extensibility,interop.borer,interop.zio.json,knowledge.okf,langkit.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,lib.interop,model,model.lowering,naming,prelude,tests,tools}.jvm.publishArtifacts"
+  )
+  val JvmTestSelectors = List(
+    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,model,model.lowering,prelude,tests}.jvm.test"
+  )
+
+  /** The Cucumber-style integration suite, which is not a `.jvm` module and so is not in the census. */
+  val JvmItestSelector = "morphir.langkit.itest.testCached"
+
+  /** Exactly what `testJVMPlatform` must name, in order. */
+  val JvmPlatformAliasMembers: List[String] =
+    JvmCompileSelectors ::: JvmPublishSelectors ::: JvmTestSelectors ::: List(JvmItestSelector)
+
   val SnapshotCommands = List(
     "echo \"MORPHIR_PUBLISH_MODE=snapshot\" >> \"$GITHUB_ENV\"",
     "echo \"MORPHIR_PUBLISH_BRANCH=${GITHUB_REF_NAME}\" >> \"$GITHUB_ENV\""
@@ -412,14 +446,6 @@ object SquireCiPolicy:
       task.linesIterator.map(_.trim).contains("./mill --ticker false -i Alias/run testJVMPlatform"),
       "test:jvm-platform must invoke Alias/run testJVMPlatform"
     )
-    val expectedMembers = List(
-      "morphir.jvm.__.compile",
-      "morphir.{buildkit.core,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile",
-      "morphir.jvm.publishArtifacts",
-      "morphir.{buildkit.core,contrib.knowledge,extensibility,interop.borer,interop.zio.json,lib.interop,model,model.lowering,naming,prelude,tests,tools}.jvm.publishArtifacts",
-      "morphir.{buildkit.core,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.trees,model,model.lowering,prelude,tests}.jvm.test",
-      "morphir.langkit.itest.testCached"
-    )
     val definitions = "(?m)^\\s*def testJVMPlatform\\b".r.findAllMatchIn(buildMill).size
     expect(definitions == 1, s"build must provide exactly one testJVMPlatform alias, found $definitions")
     val aliasPattern = "(?ms)^\\s*def testJVMPlatform\\s*=\\s*alias\\(\\s*\\n(.*?)^\\s*\\)\\s*$".r
@@ -435,21 +461,10 @@ object SquireCiPolicy:
           member
         case _ => fail("testJVMPlatform contains a non-literal member")
     }
-    expect(members == expectedMembers, s"unexpected testJVMPlatform members: $members")
+    expect(members == JvmPlatformAliasMembers, s"unexpected testJVMPlatform members: $members")
 
   def assertJvmTargetInventory(inventory: Map[String, Set[String]]): Unit =
     val classicPrefix = "morphir.runtime.classic.jvm"
-    val compileSelectors = List(
-      "morphir.jvm.__.compile",
-      "morphir.{appkit,benchmarks,buildkit.core,connector.github,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile"
-    )
-    val publishSelectors = List(
-      "morphir.jvm.publishArtifacts",
-      "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,extensibility,interop.borer,interop.zio.json,knowledge.okf,langkit.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,lib.interop,model,model.lowering,naming,prelude,tests,tools}.jvm.publishArtifacts"
-    )
-    val testSelectors = List(
-      "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,model,model.lowering,prelude,tests}.jvm.test"
-    )
 
     def targets(selector: String): Set[String] =
       inventory.getOrElse(selector, fail(s"missing resolved JVM selector: $selector"))
@@ -463,9 +478,9 @@ object SquireCiPolicy:
       expect(actual == expected, s"JVM $kind selectors differ from current non-classic targets")
       expect(!actual.exists(_.startsWith(classicPrefix)), s"JVM $kind selectors must exclude classic runtime")
 
-    assertParity("compile", "morphir.__.jvm.__.compile", compileSelectors)
-    assertParity("publish", "morphir.__.jvm.publishArtifacts", publishSelectors)
-    assertParity("test", "morphir.__.jvm.__.test", testSelectors)
+    assertParity("compile", "morphir.__.jvm.__.compile", JvmCompileSelectors)
+    assertParity("publish", "morphir.__.jvm.publishArtifacts", JvmPublishSelectors)
+    assertParity("test", "morphir.__.jvm.__.test", JvmTestSelectors)
     expect(
       targets("morphir.__.jvm.__.test").contains("morphir.runtime.classic.jvm.test"),
       "broad JVM test inventory must include the separately gated classic runtime target"
@@ -1395,16 +1410,11 @@ class SquireCiPolicySpec extends Test[Any]:
     skillDirectory.resolve("../../../ci/package.mill.yaml").normalize,
     StandardCharsets.UTF_8
   )
-  private val jvmTargetSelectors = List(
-    "morphir.__.jvm.__.compile",
-    "morphir.jvm.__.compile",
-    "morphir.{appkit,benchmarks,buildkit.core,connector.github,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile",
-    "morphir.__.jvm.publishArtifacts",
-    "morphir.jvm.publishArtifacts",
-    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,extensibility,interop.borer,interop.zio.json,knowledge.okf,langkit.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,lib.interop,model,model.lowering,naming,prelude,tests,tools}.jvm.publishArtifacts",
-    "morphir.__.jvm.__.test",
-    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,model,model.lowering,prelude,tests}.jvm.test"
-  )
+  /** Each broad selector followed by the curated ones it must equal; resolved against Mill, then compared. */
+  private val jvmTargetSelectors =
+    ("morphir.__.jvm.__.compile" :: JvmCompileSelectors) :::
+      ("morphir.__.jvm.publishArtifacts" :: JvmPublishSelectors) :::
+      ("morphir.__.jvm.__.test" :: JvmTestSelectors)
 
   /**
    * Mill's stderr, appended to a failure message rather than left only in `detail`.
@@ -1705,12 +1715,12 @@ class SquireCiPolicySpec extends Test[Any]:
         "    \"morphir.langkit.itest.testCached\"",
         "    \"morphir.future.jvm.test\",\n    \"morphir.langkit.itest.testCached\""
       )
+      // Built from the shared list rather than spelled out. A stale literal here would abort in `replaceOnce` with
+      // "mutation target not found", which reads as a broken test rather than as the widened alias it actually is.
       val reorderedAliasMutation = replaceOnce(
         buildMill,
-        "    \"morphir.jvm.__.compile\",\n" +
-          "    \"morphir.{buildkit.core,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile\",",
-        "    \"morphir.{buildkit.core,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile\",\n" +
-          "    \"morphir.jvm.__.compile\","
+        s"    \"${JvmCompileSelectors(0)}\",\n    \"${JvmCompileSelectors(1)}\",",
+        s"    \"${JvmCompileSelectors(1)}\",\n    \"${JvmCompileSelectors(0)}\","
       )
       val runtimeAliasMutation = replaceOnce(
         buildMill,
