@@ -441,9 +441,9 @@ private[markdown] object CstParser:
    * Whether a link is one the extended-autolink pass made, rather than one the author bracketed.
    *
    * A bare autolink's text *is* its source: one child, holding exactly the characters under the span. A bracketed link
-   * never satisfies that — its span opens with `[` or `<` and covers delimiters its text does not — so no ordering
-   * between the arms is load-bearing, and a span the parse and the source disagree on falls through to verbatim the way
-   * every other graduation does.
+   * never satisfies that — its span opens with `[` or `<` and covers delimiters its text does not — so the arms may
+   * match in any order, and a span the parse and the source disagree on falls through to verbatim the way every other
+   * graduation does.
    */
   private def isExtendedAutolink(source: String, span: Span, content: Chunk[MdNode.PhrasingContent]): Boolean =
     span.offset >= 0 && span.end <= source.length && content.size == 1 &&

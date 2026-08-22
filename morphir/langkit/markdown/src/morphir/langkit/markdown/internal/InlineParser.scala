@@ -1133,7 +1133,7 @@ private[markdown] object InlineParser:
       if loop(0, 0, false) then Present(out.result()) else Absent
 
   /**
-   * Where a text node's value begins in the block text it was scanned from, when the node is a verbatim slice of it.
+   * The value's start offset in the block text, for a node that is a verbatim slice of it.
    *
    * The node's span is a *source* offset while the scan works in value offsets, and the two are not one subtraction
    * apart: a block whose text was joined from several lines dropped each continuation's container marker, so the source
