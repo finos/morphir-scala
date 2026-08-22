@@ -10,7 +10,7 @@
     "profile": "GitHub Flavored Markdown",
     "version": "0.29-gfm",
     "fixtures": "gfm-0.29-spec.json",
-    "passing": 644,
+    "passing": 645,
     "total": 663,
     "divergences": [
       { "example": 398, "reason": "nested strong emphasis: matches no published CommonMark version" },

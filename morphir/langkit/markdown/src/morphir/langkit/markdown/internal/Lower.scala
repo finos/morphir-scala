@@ -21,7 +21,7 @@ import morphir.langkit.markdown.*
  */
 private[markdown] object Lower:
 
-  def lower(document: MdCstNode.Document)(using MdProfile): MdNode.Root =
+  def lower(document: MdCstNode.Document)(using profile: MdProfile): MdNode.Root =
     val definitions = collectDefinitions(document)
     // Frontmatter is a field on the root rather than a block, and it is only ever the first child — the parser
     // recognizes it at offset zero or not at all — so the head is the only place worth looking.
@@ -32,6 +32,78 @@ private[markdown] object Lower:
       Maybe.fromOption(frontmatter.map(loweredFrontMatter)),
       meta = MdMeta.at(document.span)
     )
+
+  /**
+   * The nine tag names GFM refuses to pass through.
+   *
+   * Each one changes how the HTML inside it is interpreted, which is why the specification singles them out: a
+   * `<script>` a document author did not intend is not a formatting difference. Every other tag is untouched.
+   */
+  private val disallowedTags: Set[String] =
+    Set("title", "textarea", "style", "xmp", "iframe", "noembed", "noframes", "script", "plaintext")
+
+  /**
+   * Raw HTML with the leading `<` of every disallowed tag replaced by `&lt;`.
+   *
+   * Only the `<` is replaced — the closing `>` stays as written, which is what the specification's expected output
+   * shows. Matching is case-insensitive and covers the closing form, and a name is only a match when what follows it is
+   * whitespace, `>` or `/>`, so `<scriptable>` is left alone.
+   */
+  private def filterTags(value: String): String =
+    // The StringBuilder is an accumulator, which is the one mutability this module's CONTRIBUTING sanctions
+    // alongside a tail-recursive loop: it is private, it never escapes, and threading it as a parameter would say
+    // nothing the name does not already.
+    val out = StringBuilder()
+
+    /** Past the tag name beginning at `index`. A name is letters and digits, and nothing else. */
+    @annotation.tailrec
+    def nameEnd(index: Int): Int =
+      if index < value.length && value.charAt(index).isLetterOrDigit then nameEnd(index + 1) else index
+
+    @annotation.tailrec
+    def loop(index: Int): String =
+      if index >= value.length then out.result()
+      else if value.charAt(index) != '<' then
+        out += value.charAt(index)
+        loop(index + 1)
+      else
+        val afterBracket = if index + 1 < value.length && value.charAt(index + 1) == '/' then index + 2 else index + 1
+        val end          = nameEnd(afterBracket)
+        val name         = value.substring(afterBracket, end).toLowerCase
+        val delimited    = end >= value.length || value.charAt(end) == '>' || value.charAt(end).isWhitespace ||
+          (value.charAt(end) == '/' && end + 1 < value.length && value.charAt(end + 1) == '>')
+        out ++= (if disallowedTags.contains(name) && delimited then "&lt;" else "<")
+        loop(index + 1)
+
+    loop(0)
+
+  /** `filterTags` when the profile enables it, and the value unchanged otherwise. */
+  private def rawHtml(value: String)(using profile: MdProfile): String =
+    if profile.supports(MdExtension.TagFilter) then filterTags(value) else value
+
+  /** The four tag names whose HTML block runs to its own closing tag rather than to a blank line. */
+  private val literalBlockTags = Seq("<script", "<pre", "<style", "<textarea")
+
+  /**
+   * Whether an HTML block's content opens one of the four tags read as a literal block rather than as generic HTML —
+   * `script`, `pre`, `style` or `textarea`, CommonMark's condition one.
+   *
+   * The tag filter leaves these alone. A `<script>` or `<style>` block is not raw HTML the filter is guarding against;
+   * it is the one construct CommonMark itself already reads as an opaque literal, the same way a fenced code block's
+   * body is never Markdown, and the GFM specification's own fixtures carry it through unfiltered.
+   */
+  private def isLiteralBlock(content: String): Boolean =
+    val firstLine = content.linesIterator.nextOption().getOrElse("").stripLeading
+    val lower     = firstLine.toLowerCase
+    literalBlockTags.exists(prefix =>
+      lower.startsWith(prefix) &&
+        (lower.length == prefix.length || lower.charAt(prefix.length) == '>' ||
+          lower.charAt(prefix.length).isWhitespace)
+    )
+
+  /** Raw HTML block content, filtered unless it opens a literal block that the filter does not touch. */
+  private def rawHtmlBlock(value: String)(using MdProfile): String =
+    if isLiteralBlock(value) then value else rawHtml(value)
 
   /**
    * The frontmatter node one CST block means: its raw value, undecoded.
@@ -130,7 +202,7 @@ private[markdown] object Lower:
       children: Chunk[MdCstNode],
       definitions: Map[String, LinkDefinition],
       docEnd: Int
-  ): Chunk[MdNode.FlowContent] =
+  )(using MdProfile): Chunk[MdNode.FlowContent] =
     // A block's first line began after whatever markers its container spent on it, and those leaves sit in the gap
     // before the block, not inside it. The running line state — column reached, phantom columns owed — is what an
     // indented code block needs to reconstruct its first line's indentation.
@@ -166,7 +238,7 @@ private[markdown] object Lower:
             MdMeta.at(span)
           ))
         case MdCstNode.HtmlBlock(children, span) =>
-          out.addOne(MdNode.Html(contentText(children), MdMeta.at(span)))
+          out.addOne(MdNode.Html(rawHtmlBlock(contentText(children)), MdMeta.at(span)))
         case MdCstNode.BlockQuote(children, span) =>
           out.addOne(MdNode.Blockquote(blocks(children, definitions, docEnd), MdMeta.at(span)))
         case MdCstNode.BulletList(_, tight, children, span) =>
@@ -204,7 +276,7 @@ private[markdown] object Lower:
       children: Chunk[MdCstNode],
       definitions: Map[String, LinkDefinition],
       docEnd: Int
-  ): Chunk[MdNode.ListItem] =
+  )(using MdProfile): Chunk[MdNode.ListItem] =
     children.collect { case MdCstNode.ListItem(itemChildren, checked, span) =>
       MdNode.ListItem(blocks(itemChildren, definitions, docEnd), checked, MdMeta.at(span))
     }
@@ -282,7 +354,7 @@ private[markdown] object Lower:
   private def inlines(
       children: Chunk[MdCstNode],
       definitions: Map[String, LinkDefinition]
-  ): Chunk[MdNode.PhrasingContent] =
+  )(using MdProfile): Chunk[MdNode.PhrasingContent] =
     Chunk.from(trimVerbatimEnds(children).flatMap(loweredInline(_, definitions)))
 
   private def trimVerbatimEnds(children: Chunk[MdCstNode]): Chunk[MdCstNode] =
@@ -320,7 +392,7 @@ private[markdown] object Lower:
   private def loweredInline(
       node: MdCstNode,
       definitions: Map[String, LinkDefinition]
-  ): Chunk[MdNode.PhrasingContent] =
+  )(using MdProfile): Chunk[MdNode.PhrasingContent] =
     node match
       case MdCstNode.Token(_, _) =>
         Chunk.empty
@@ -348,7 +420,7 @@ private[markdown] object Lower:
         Chunk(MdNode.Link(destination, Absent, Chunk(MdNode.Text(inner, MdMeta.at(span))), MdMeta.at(span)))
 
       case MdCstNode.RawHtml(children, span) =>
-        Chunk(MdNode.InlineHtml(contentText(children), MdMeta.at(span)))
+        Chunk(MdNode.InlineHtml(rawHtml(contentText(children)), MdMeta.at(span)))
 
       case MdCstNode.Emphasis(_, strong, children, span) =>
         // Leftover delimiters of a partially consumed run sit verbatim outside the tokens; they are prose siblings,
