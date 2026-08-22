@@ -1,9 +1,10 @@
-package morphir.langkit.markdown.dsl
+package morphir.langkit.markdown
 
 import kyo.*
 import kyo.test.*
-import morphir.langkit.markdown.*
 import morphir.langkit.markdown.MdNode as N
+import morphir.langkit.markdown.dsl.*
+import morphir.langkit.markdown.dsl.given
 
 class DslTests extends Test[Any]:
 
