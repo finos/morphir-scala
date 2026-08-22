@@ -3,10 +3,10 @@ package morphir.langkit.markdown
 /**
  * A syntax extension a profile may recognize beyond the base CommonMark grammar.
  *
- * The five members are the ones the GitHub Flavored Markdown specification defines, and GFM marks every one of them
- * as an *extension* rather than folding it into the base grammar. Keeping that same seam here is what lets a profile
- * turn one on without the rest: a repository rendering release notes may want tables and strikethrough and nothing
- * else, and a document pipeline that sanitises its own HTML has no use for [[TagFilter]].
+ * The five members are the ones the GitHub Flavored Markdown specification defines, and GFM marks every one of them as
+ * an *extension* rather than folding it into the base grammar. Keeping that same seam here is what lets a profile turn
+ * one on without the rest: a repository rendering release notes may want tables and strikethrough and nothing else, and
+ * a document pipeline that sanitises its own HTML has no use for [[TagFilter]].
  *
  * The name is `MdExtension` rather than `GfmExtension` because the axis is wider than one dialect. GitHub's own
  * non-specified additions — footnotes, alerts, math — and any extension another dialect brings would join this enum
@@ -36,7 +36,9 @@ enum MdExtension(val specTag: String) derives CanEqual:
   /** Bare URLs, `www.` hostnames and email addresses linked without `<>` around them. */
   case Autolinks extends MdExtension("autolink")
 
-  /** Escaping of a fixed list of raw HTML tags — `script`, `style`, `iframe` and kin — rather than passing them through. */
+  /**
+   * Escaping of a fixed list of raw HTML tags — `script`, `style`, `iframe` and kin — rather than passing them through.
+   */
   case TagFilter extends MdExtension("tagfilter")
 
 object MdExtension:

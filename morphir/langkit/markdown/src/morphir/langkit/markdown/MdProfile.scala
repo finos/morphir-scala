@@ -16,9 +16,8 @@ enum FrontMatterKind(val delimiter: String) derives CanEqual:
  *
  * CommonMark itself has neither frontmatter nor any of GFM's additions, so both are opt-in and both are held as a set
  * of what is on. The empty set is off; the parser walks whichever members are enabled. Two sets rather than one because
- * they answer different questions — a frontmatter kind is a delimiter to recognize at document start, a
- * [[MdExtension]] is a grammar rule to switch on — and because GitHub's own dialect enables the second without the
- * first.
+ * they answer different questions — a frontmatter kind is a delimiter to recognize at document start, a [[MdExtension]]
+ * is a grammar rule to switch on — and because GitHub's own dialect enables the second without the first.
  */
 final case class MdProfile(
     frontmatter: Set[FrontMatterKind] = Set.empty,

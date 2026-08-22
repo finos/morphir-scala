@@ -22,20 +22,26 @@ import morphir.langkit.markdown.internal.Parser
  *
  * Runs on JVM, JS and Native. The fixtures are read as ordinary files through [[kyo.Path]], whose JS backend is
  * `node:fs` and whose Native backend is the javalib's `java.nio`; the directory holding them arrives from the build
- * (see `MorphirMarkdownConformanceEnv`), because neither Mill's test sandbox nor Node's working directory is
- * dependable. An earlier version read them through the classloader, which is what confined it to the JVM.
+ * (see `MorphirMarkdownConformanceEnv` and `MorphirMarkdownConformanceJsEnv` in `testing.mill`), because neither Mill's
+ * test sandbox nor Node's working directory is dependable. An earlier version read them through the classloader, which
+ * is what confined it to the JVM.
  */
 class ConformanceTests extends Test[Any]:
 
   private val BaselineFile = "conformance-baselines.json"
 
   /**
-   * Absolute directory holding the vendored fixture files, supplied by the build.
+   * Absolute directory holding the fixture files, supplied by the build.
+   *
+   * Produced by the `markdownConformanceFixtures` task in `testing.mill`: the CommonMark fixture and the conformance
+   * baselines are vendored and copied through unchanged, and the GFM fixture is derived from GitHub's specification
+   * text, since GitHub publishes no JSON form of its own. `MorphirMarkdownConformanceEnv` (JVM and Native) and
+   * `MorphirMarkdownConformanceJsEnv` (JS) — both also in `testing.mill` — pass that task's output directory to this
+   * test through `MORPHIR_CONFORMANCE_FIXTURES`.
    *
    * Resolved through [[kyo.Flag]] for the same reason [[reportFailuresIn]] is: it is the one env-and-property reader
    * that works the same on all three platforms, reading Node's `process.env` under Scala.js rather than
-   * `System.getenv`, which always returns null there. The build sets `MORPHIR_CONFORMANCE_FIXTURES` on all three test
-   * modules; the property form is for anyone running this suite outside Mill.
+   * `System.getenv`, which always returns null there. The property form is for anyone running this suite outside Mill.
    */
   private val fixturesDir: String =
     val configured = Flag[String]("morphir.conformance.fixtures", "")
@@ -44,7 +50,8 @@ class ConformanceTests extends Test[Any]:
       throw new IllegalStateException(
         "morphir.conformance.fixtures is unset, so the harness cannot find its fixtures. Mill sets it from " +
           "MorphirMarkdownConformanceEnv (JVM and Native) and MorphirMarkdownConformanceJsEnv (JS); outside Mill, " +
-          "pass the absolute path to morphir/langkit/markdown/scalatags/test/resources."
+          "pass the absolute path to a directory holding commonmark-0.31.2-spec.json, gfm-0.29-spec.json and " +
+          "conformance-baselines.json — the same three files markdownConformanceFixtures produces."
       )
 
   /**
