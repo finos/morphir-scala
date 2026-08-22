@@ -32,6 +32,7 @@ object packages extends NpmPackageManagerModule with MorphirElmToolModule {
 
 trait PublishedElmToolReference extends MorphirElmModule {
   def morphirElmTool = build.packages
+  def elmFormatTool  = build.packages
 }
 
 trait PublishedElmConsumerDependencies extends MorphirModule {

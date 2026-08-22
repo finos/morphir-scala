@@ -65,6 +65,7 @@ object MorphirElmProjectTests extends TestSuite {
 
     trait TestProject extends MorphirElmModule {
       def morphirElmTool = outer.tool
+      def elmFormatTool  = outer.tool
 
       override def morphirProjectConfigPath = outer.moduleDir / "project" / "morphir.json"
       override def elmProjectConfigPaths    = Seq(outer.moduleDir / "project" / "elm.json")

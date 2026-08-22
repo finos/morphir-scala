@@ -890,9 +890,15 @@ object toolchains extends Module {
   }
 }
 
-/** Repository tool-module reference that declarative Morphir Elm projects cannot express in Mill RC1 YAML. */
+/**
+ * Repository tool-module references that declarative Morphir Elm projects cannot express in Mill RC1 YAML.
+ *
+ * Satisfies [[org.finos.morphir.mill.elm.morphir.MorphirElmModule.morphirElmTool]] and
+ * [[org.finos.morphir.mill.elm.morphir.MorphirElmModule.elmFormatTool]] from the shared toolchains.
+ */
 trait RepositoryMorphirElmToolReference extends Module {
   def morphirElmTool = toolchains.morphirElm
+  def elmFormatTool  = toolchains.elmFormat
 }
 
 /** Exact local IR inputs shared by the three unit-test example consumers.
