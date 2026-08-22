@@ -1,0 +1,10 @@
+{
+  "name": "morphir-scala-elm-format-tool",
+  "private": true,
+  "devDependencies": {
+    "elm-tooling": "^1.15.1"
+  },
+  "scripts": {
+    "postinstall": "elm-tooling install"
+  }
+}

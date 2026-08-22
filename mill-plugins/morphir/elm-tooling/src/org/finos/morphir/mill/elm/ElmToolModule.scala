@@ -8,4 +8,7 @@ trait ElmToolModule extends Module {
 
   def elmCommand(arguments: Seq[String]): Task[JavaScriptCommand] =
     packageManager.packageBinaryCommand(packageBinary"elm", arguments)
+
+  def elmFormatCommand(arguments: Seq[String]): Task[JavaScriptCommand] =
+    packageManager.packageBinaryCommand(packageBinary"elm-format", arguments)
 }

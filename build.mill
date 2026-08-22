@@ -22,7 +22,10 @@ import com.carlosedp.aliases.*
 import millbuild.*
 import millbuild.crossplatform.*
 import millbuild.jsruntime.*
-import org.finos.millmorphir.elm.{MorphirElmToolModule => RepositoryMorphirElmToolModule}
+import org.finos.millmorphir.elm.{
+  ElmFormatToolModule => RepositoryElmFormatToolModule,
+  MorphirElmToolModule => RepositoryMorphirElmToolModule
+}
 import org.finos.millmorphir.toolchain.*
 import org.finos.morphir.mill.*
 import mill.*, mill.scalalib.*, mill.scalajslib.*, mill.scalanativelib.*, scalafmt.*
@@ -882,6 +885,9 @@ object toolchains extends Module {
   object morphirElm extends RepositoryMorphirElmToolModule {
     def nodeToolchain = toolchains.node
   }
+  object elmFormat extends RepositoryElmFormatToolModule {
+    def nodeToolchain = toolchains.node
+  }
 }
 
 /** Repository tool-module reference that declarative Morphir Elm projects cannot express in Mill RC1 YAML. */
@@ -900,6 +906,27 @@ trait ExampleProjectTestMorphirDependencies extends MorphirModule {
     build.`morphir-elm`.sdks.`morphir-unit-test`,
     build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project`
   )
+}
+
+/**
+ * Compiles the pure `millbuild` selection helpers so a normal Mill `TestModule.Utest` target can
+ * cover them. The metabuild already compiles these same files for the build itself; this module
+ * exists only for unit tests (metabuild is not a regular `ScalaModule`).
+ */
+trait MorphirMillbuildHelpersModule extends ScalaModule with ScalafmtModule {
+  def scalaVersion = Task { morphirScalaVersion }
+
+  private def helpersRoot =
+    mill.api.BuildCtx.workspaceRoot / "mill-build" / "src" / "millbuild"
+
+  override def sources: T[Seq[PathRef]] = Task.Sources(
+    helpersRoot / "FormatKind.scala",
+    helpersRoot / "FormatSelection.scala",
+    helpersRoot / "LintSelectors.scala",
+    helpersRoot / "JsTestSelectors.scala"
+  )
+
+  override def mvnDeps = Seq(Deps.com.lihaoyi.`os-lib`)
 }
 
 // The following section contains aliases used to simplify build tasks
