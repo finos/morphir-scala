@@ -472,6 +472,11 @@ jobs:
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
 
+      - name: Setup mise
+        uses: jdx/mise-action@v4
+        with:
+          experimental: true
+
       - name: Install native dependencies
         # Bounded: a stalled Ubuntu mirror otherwise consumes the job budget. The script skips the
         # Azure archive (see actions/runner-images#12949) rather than waiting on it.
@@ -517,14 +522,13 @@ jobs:
           key: ${{ runner.os }}-mill-native-${{ matrix.java }}-${{ github.ref_name }}-${{ github.sha }}
 
       - name: Run Native tests
-        # Kept in step with .config/mise/tasks/test/native for the selectors, but `-j 2` rather than
-        # that task's `-j 4`: every `nativeLink` runs inside the one Mill daemon and holds a full
-        # linker working set, so the constraint is that daemon's `-Xmx8g` (.mill-jvm-opts), and 8 GB
-        # is already half of a 16 GB GitHub-hosted runner. At `-j 4` this job died with
-        # `java.lang.OutOfMemoryError: Java heap space` and then sat until the 30-minute job timeout,
-        # which GitHub reports as *cancelled* rather than failed. Same reasoning as the JS jobs.
-        run: |
-          ./mill --ticker false -i -k -j 2 "morphir.__.native.__.compile" + "morphir.__.native.publishArtifacts" + "morphir.__.native.__.test"
+        # Runs the mise task rather than repeating its Mill invocation here, as test-jvm does with
+        # test:jvm-platform. This step used to carry its own copy, "kept in step with" that task by
+        # hand — and it drifted: the copies disagreed about `-j`, so a fix applied to one of them
+        # did nothing to the other, and the comments each described a setting the other file had.
+        # One command, one place. The task owns the batching and the selectors; see it for why the
+        # links are batched at all.
+        run: mise run test:native
 
   test-jvm:
     runs-on: ubuntu-latest

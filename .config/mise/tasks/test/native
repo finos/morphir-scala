@@ -27,6 +27,11 @@ echo "Running Native tests..."
 # The batch list is resolved from Mill rather than written here, so a new native
 # module joins automatically and cannot drift out of step with the build.
 #
+# CI runs this task rather than repeating the invocation in ci.yml. It used to
+# hold its own copy, synchronised by hand, and the two drifted apart — which is
+# how `-j 4` survived here while ci.yml ran `-j 2` and each file's comments
+# described the other's settings.
+#
 # This is a stopgap. The durable fix is to shard these across runners from a
 # Mill command, which also gives each shard a fresh JVM — see morphir-lc8.38.
 BATCH="${MORPHIR_NATIVE_BATCH:-5}"
