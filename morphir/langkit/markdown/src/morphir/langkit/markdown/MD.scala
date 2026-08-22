@@ -107,6 +107,7 @@ object MD:
     MdMeta as Meta,
     MdStyleKeys as StyleKeys,
     FrontMatterKind,
+    MdExtension,
     HeadingStyle,
     HardBreakStyle,
     MetaKey,

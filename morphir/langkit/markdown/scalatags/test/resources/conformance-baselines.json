@@ -5,5 +5,12 @@
     "fixtures": "commonmark-0.31.2-spec.json",
     "passing": 652,
     "total": 652
+  },
+  {
+    "profile": "GitHub Flavored Markdown",
+    "version": "0.29-gfm",
+    "fixtures": "gfm-0.29-spec.json",
+    "passing": 641,
+    "total": 672
   }
 ]

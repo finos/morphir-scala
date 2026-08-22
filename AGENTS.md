@@ -91,6 +91,23 @@ One exception worth knowing: the Scala.js version is pinned in two places that m
 - Use slugs for folder names so that content/work/spikes are organized and searchable.
 - Place outputs created by agentic tools or their helper scripts in an `out/` sub-folder at an appropriate location in the `.dev/` hierarchy.
 
+#### Automation is Mill and Scala, not a new language runtime
+
+**Work that needs a script belongs in the build, written in Scala.** Mill compiles any `*.mill` file that sits
+beside a `build.mill` or `package.mill`, so a helper trait or task has a home without a new file type: `testing.mill`
+at the repository root and [`ci/MorphirCi.mill`](./ci/MorphirCi.mill) are the pattern. Written that way, the work
+becomes a task — cached, incremental, invalidated by its own inputs, and runnable in CI by name — rather than
+something a contributor has to remember to run by hand.
+
+**Do not reach for Python, Ruby, Node or any other runtime to do it.** Every one of those adds a version to install,
+pin and keep working on three platforms, for a job Scala already does. A generated artifact in particular should be
+a task's output rather than a file committed beside its source: vendor the exact upstream input, transform it in a
+task, and let Mill decide when the transform needs to run again. Committing the derived file instead stores the same
+information twice and gives a reviewer no way to tell whether the two still agree.
+
+Shell stays available for thin launcher glue — [`scripts/lib/mill-flags.sh`](./scripts/lib/mill-flags.sh) is the
+existing example — because a launcher runs before Mill does. Anything with logic in it goes in a task.
+
 #### One-off plans and designs are never committed
 
 A plan or design document written to drive a single piece of work — an implementation plan, a design doc or spec, a
@@ -293,6 +310,52 @@ module is already being touched for another reason** — do not open standalone 
 not expand an unrelated PR to chase them. The conversion is safe and non-breaking for
 published artifacts: `sealed` already made out-of-file subclassing impossible, so removing
 that capability is invisible to downstream consumers.
+
+#### Tail recursion over large imperative loops
+
+**Write a `@tailrec` function rather than a `while` loop over mutable state.** Scala compiles an annotated
+tail-recursive function into the same loop, so there is no runtime cost to pay — what changes is that the exit
+conditions read as cases with names, and the state the loop carries appears in a parameter list instead of as
+`var`s a reader has to track across the body.
+
+```scala
+// Prefer
+@tailrec def skipSpaces(index: Int): Int =
+  if index < text.length && text.charAt(index) == ' ' then skipSpaces(index + 1) else index
+
+// Over
+var index = start
+while index < text.length && text.charAt(index) == ' ' do index += 1
+```
+
+Annotate with `@annotation.tailrec`. It is not decoration: it fails the compile when the call is not in tail
+position, which is the only thing standing between a recursive helper and a stack overflow on a large input.
+
+**Name it `loop`,** which is the convention and, by a wide margin, this codebase's — 12 of its tail-recursive
+helpers are `loop` and one is `go`. Use a descriptive name only where it carries information the enclosing
+function does not already: `nameEnd`, `spacesEnd`, `unquotedEnd`, `skipWhitespace` and `restIsBlank` all name a
+distinct sub-operation whose *return value* means something, and `gather` says what it accumulates. Inside
+`tableCells`, by contrast, the enclosing name already says what the operation is, so a second descriptive name on
+the recursion invites a reader to hunt for a distinction that is not there. Half-descriptive names are the worst
+of both — if the name is not earning its keep, it is `loop`.
+
+**The exception is a measured one.** Internal mutability stays available where the algorithm is genuinely
+imperative *and* the imperative form buys a significant performance or readability gain over the recursive one.
+"Significant performance" means a benchmark you can point at, not an intuition — `InlineParser.processEmphasis`
+consumes a delimiter stack a pair at a time, and rebuilding its buffer per match would turn a linear pass
+quadratic. "Significant readability" means the recursive form would thread so many parameters that the algorithm
+disappears behind them — `InlineParser.scanItems` accumulates into a `StringBuilder` and an `ArrayBuffer` that
+recursion would carry as parameters and improve nothing.
+
+Where you take the exception, keep the mutability *contained*: private, never escaping into a public signature.
+Both of the examples above pass that test, and the module's surface stays pure.
+
+Rewriting a loop this way is also how bugs surface. Converting `closingTagEnd` in the Markdown parser turned up the
+expression `start - 1 + 1 - 1`, an obfuscated `1` that the rewrite had to name.
+
+**For reviewers.** Flag a new large imperative loop as a change request unless the author says which of the two
+exceptions applies and why. For pre-existing loops, convert only when the file is already being touched for another
+reason — do not open standalone sweeps.
 
 ### Dependencies
 

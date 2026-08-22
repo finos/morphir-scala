@@ -91,10 +91,27 @@ class ConformanceTests extends Test[Any]:
 
   private lazy val baselines: Chunk[Baseline] = decode[Chunk[Baseline]](BaselineFile)
 
+  /**
+   * The parse profile a recorded profile is measured under.
+   *
+   * A conformance suite measures a dialect, and a dialect here is an [[MdProfile]] — so the mapping has to be explicit
+   * rather than defaulted, otherwise a GFM suite would be scored against a CommonMark parse and the extensions would
+   * read as unimplemented forever. An unrecognised name fails loudly for the same reason: a typo in the baselines file
+   * must not silently fall back to the base grammar.
+   */
+  private def profileOf(baseline: Baseline): MdProfile = baseline.profile match
+    case "CommonMark"               => MdProfile.commonmark
+    case "GitHub Flavored Markdown" => MdProfile.gfm
+    case other                      =>
+      throw new IllegalStateException(
+        s"$BaselineFile names profile '$other', which this harness cannot map to an MdProfile. " +
+          "Add it to profileOf alongside the profile's fixtures."
+      )
+
   private def examplesOf(baseline: Baseline): Chunk[Example] = decode[Chunk[Example]](baseline.fixtures)
 
   /** True when our parse-and-compile reproduces the fixture's expected HTML byte for byte. */
-  private def conforms(example: Example): Boolean =
+  private def conforms(example: Example)(using MdProfile): Boolean =
     Parser.parse(example.markdown) match
       case Result.Success(document) => ScalatagsCompiler.render(document) == example.html
       case _                        => false
@@ -133,7 +150,7 @@ class ConformanceTests extends Test[Any]:
   /** Newlines shown as `\n`, so one example stays on one line and a missing trailing newline is visible. */
   private def oneLine(text: String): String = text.replace("\n", "\\n")
 
-  private def reportFailure(example: Example) =
+  private def reportFailure(example: Example)(using MdProfile) =
     val produced = Parser.parse(example.markdown) match
       case Result.Success(document) => oneLine(ScalatagsCompiler.render(document))
       case other                    => s"<parse failed: $other>"
@@ -150,6 +167,8 @@ class ConformanceTests extends Test[Any]:
       assert(baselines.nonEmpty, s"$BaselineFile lists no profiles, so nothing is being measured")
 
     baselines.foreach { baseline =>
+      given MdProfile = profileOf(baseline)
+
       s"${baseline.name} vendors the ${baseline.total} examples it claims, numbered with no gaps" in {
         val examples = examplesOf(baseline)
         assert(
