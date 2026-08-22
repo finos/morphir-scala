@@ -10,15 +10,26 @@ echo "Running Native tests..."
 # `morphir.__` — every other module is jvm/js only and would resolve to
 # nothing.
 #
-# `-j 4` for the same reason as test:js: `nativeLink` runs inside the single Mill
+# `-j 2` for the same reason as test:js: `nativeLink` runs inside the single Mill
 # daemon JVM, and each concurrent link holds a full linker working set, so the
 # daemon heap is the constraint rather than the core count. `-j 0` on a many-core
 # developer machine runs one per core and exhausts it, surfacing as
 # `OutOfMemoryError` from the daemon partway through rather than as a test
-# failure. The cap alone was not enough at `-Xmx4g` — this job OOM'd on CI with
-# `-j 4` — so `.mill-jvm-opts` is at `-Xmx8g`. Treat `-j` and `-Xmx` as one
-# setting.
-./mill -i -k -j 4 \
+# failure. Treat `-j` and `-Xmx` as one setting.
+#
+# The history is a ratchet, and each step was a real CI failure: `-j 4` at
+# `-Xmx4g` OOM'd, so `.mill-jvm-opts` went to `-Xmx8g`; `-j 4` at `-Xmx8g` then
+# OOM'd too once `langkit.markdown.trees` made this a thirteenth native link,
+# with the same `OutOfMemoryError` out of `scalanative.codegen.Lower`. Raising
+# the heap again is the wrong lever on a 16 GB runner — clang and ld are
+# separate processes and need what is left — so the concurrency came down
+# instead. Expect roughly 35-40 minutes on a warm cache, which is why
+# `test-native` carries `timeout-minutes: 60`.
+#
+# Note the OOM does not fail the job promptly: the daemon wedges and the run
+# burns the rest of its budget, so this surfaces as a timeout at exactly the
+# limit. A `test-native` that dies on the minute is this, until proven otherwise.
+./mill -i -k -j 2 \
     "morphir.__.native.__.compile" \
     + \
     "morphir.__.native.publishArtifacts" \

@@ -442,12 +442,17 @@ jobs:
   # failure should be legible on its own.
   test-native:
     runs-on: ubuntu-latest
-    # 45 rather than 30, for the same reason test-js carries 45. This job finishes in about fifteen
-    # minutes on a warm cache and exceeded thirty on a coursier cache miss, with no OutOfMemoryError
-    # in the log — lowering the link concurrency to `-j 2` cured the heap exhaustion and left
-    # wall-clock as the binding constraint. A timed-out job is reported as *cancelled*, which reads
-    # like an unrelated infrastructure failure rather than a job that needed more minutes.
-    timeout-minutes: 45
+    # 60 rather than 45, and 45 rather than 30 before that, for the same reason test-js carries 45:
+    # this job links a binary per test module and grows whenever a module gains a native variant.
+    # `test:native` runs at `-j 2` because the Mill daemon heap, not the core count, is the limit —
+    # that file carries the full history and the two settings must move together.
+    #
+    # A timed-out job is reported as *cancelled*, which reads like unrelated infrastructure flake
+    # rather than a job that needed more minutes. Worse, a daemon `OutOfMemoryError` mid-run wedges
+    # the job rather than failing it, so it also lands here as a cancellation on exactly the limit.
+    # Before raising this number again, read the log for `OutOfMemoryError`: more minutes do not fix
+    # a heap that is already exhausted.
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
