@@ -76,7 +76,8 @@ sets out.
 *Settled: whether a third-party engine eventually replaces it.* It does not. The owned parser now measures full
 conformance against CommonMark 0.31.2, and, since [0035](/0035-github-flavored-markdown-profile.md), against
 GitHub Flavored Markdown as well — the case a replacement would have to make against that record only gets
-harder, and nothing here proposes reopening the Approach to make it.
+harder, and nothing here proposes reopening the Approach to make it. Recorded as
+[decision 0016](../morphir/morphir-scala/decisions/0016-the-markdown-parser-is-our-own.md).
 
 *Settled: whether the CST and the AST stay one tree.* Two trees, related by a total lowering, and the lowering
 is the parse. The CST (`MdCstNode`) holds every byte under the leaf-tiling invariant — its leaves partition the

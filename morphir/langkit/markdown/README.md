@@ -4,7 +4,8 @@ Markdown as a langkit: source text to a CST and an AST, on the JVM, Scala.js, an
 
 The module owns its own CommonMark parser rather than wrapping one — a settled decision, not a stopgap: with full
 CommonMark and GFM conformance measured in this repository, a third-party engine is no longer under consideration.
-`commonmark-java` must not enter this module.
+`commonmark-java` must not enter this module. See
+[decision 0016](../../../kb/bundles/morphir/morphir-scala/decisions/0016-the-markdown-parser-is-our-own.md) for why.
 
 ## Dialects and conformance
 
