@@ -55,6 +55,15 @@ class ConformanceTests extends Test[Any]:
       )
 
   /**
+   * One example a profile records rather than targets, with why.
+   *
+   * A conformance suite can be wrong about its own dialect. Deleting the example would hide that; counting it as a
+   * failure forever says we have work left that we do not. Recording it keeps the example, subtracts it from the
+   * measured set, and makes the reason travel with the score.
+   */
+  private final case class Divergence(example: Int, reason: String) derives Schema
+
+  /**
    * One profile's recorded conformance.
    *
    * `total` is not derived from the fixture file on purpose. Holding it here is what turns "we pass 652" into "we pass
@@ -66,9 +75,13 @@ class ConformanceTests extends Test[Any]:
       version: String,
       fixtures: String,
       passing: Int,
-      total: Int
+      total: Int,
+      divergences: Chunk[Divergence] = Chunk.empty
   ) derives Schema:
     def name: String = s"$profile $version"
+
+    /** Example numbers this profile does not target. */
+    def divergedExamples: Set[Int] = divergences.map(_.example).toSet
 
   /**
    * The part of a fixture entry this harness reads. The published JSON also carries `start_line` and `end_line`, which
@@ -116,6 +129,24 @@ class ConformanceTests extends Test[Any]:
       )
 
   private def examplesOf(baseline: Baseline): Chunk[Example] = decode[Chunk[Example]](baseline.fixtures)
+
+  /**
+   * How much of this profile's measured set another loaded profile also carries, and how much of it passes.
+   *
+   * Computed by comparing source-and-expected-HTML pairs rather than stored, because the duplication is a property of
+   * the published suites and not something we should have to maintain a second copy of. A dialect that is a superset of
+   * another shares most of its examples — GFM carries 636 CommonMark entries verbatim — and a score that does not
+   * separate the two reads as if every example were about the extension under construction.
+   */
+  private def sharedWith(baseline: Baseline)(using MdProfile): Chunk[(String, Int, Int)] =
+    val measured = examplesOf(baseline).filterNot(example => baseline.divergedExamples.contains(example.example))
+    Chunk.from(
+      baselines.filterNot(_.profile == baseline.profile).map { other =>
+        val theirs = examplesOf(other).map(example => (example.markdown, example.html)).toSet
+        val shared = measured.filter(example => theirs.contains((example.markdown, example.html)))
+        (other.name, shared.size, shared.count(conforms))
+      }
+    )
 
   /** True when our parse-and-compile reproduces the fixture's expected HTML byte for byte. */
   private def conforms(example: Example)(using MdProfile): Boolean =
@@ -173,23 +204,55 @@ class ConformanceTests extends Test[Any]:
     "records at least one profile" in
       assert(baselines.nonEmpty, s"$BaselineFile lists no profiles, so nothing is being measured")
 
+    "every recorded divergence names an example the fixture holds" in {
+      baselines.foreach { baseline =>
+        val numbers = examplesOf(baseline).map(_.example).toSet
+        baseline.divergences.foreach { divergence =>
+          assert(
+            numbers.contains(divergence.example),
+            s"${baseline.name} records a divergence for example ${divergence.example}, which ${baseline.fixtures} " +
+              "does not hold. A divergence has to point at a real example or it is unfalsifiable."
+          )
+          assert(
+            divergence.reason.trim.nonEmpty,
+            s"${baseline.name} records a divergence for example ${divergence.example} with no reason. " +
+              "A divergence without a reason is indistinguishable from a bug we stopped counting."
+          )
+        }
+      }
+      succeed("an empty divergence list has nothing to check, and should not read as unevaluated")
+    }
+
     baselines.foreach { baseline =>
       given MdProfile = profileOf(baseline)
 
-      s"${baseline.name} vendors the ${baseline.total} examples it claims, numbered with no gaps" in {
+      s"${baseline.name} vendors the ${baseline.total + baseline.divergences.size} examples it claims, numbered with no gaps" in {
         val examples = examplesOf(baseline)
+        val vendored = baseline.total + baseline.divergences.size
         assert(
-          examples.size == baseline.total,
-          s"${baseline.fixtures} holds ${examples.size} examples and $BaselineFile claims ${baseline.total}. " +
+          examples.size == vendored,
+          s"${baseline.fixtures} holds ${examples.size} examples and $BaselineFile claims $vendored " +
+            s"(${baseline.total} measured plus ${baseline.divergences.size} recorded as divergent). " +
             "Vendoring a different version means updating the profile's version, total and passing count together."
         )
         // Guards the vendored file against truncation or reordering: our own unit tests cite examples by number, so a
         // shifted numbering would silently repoint every one of those citations.
-        assert(examples.map(_.example).toSeq == (1 to baseline.total).toSeq)
+        assert(examples.map(_.example).toSeq == (1 to vendored).toSeq)
+      }
+
+      s"${baseline.name} measures the suite minus its recorded divergences" in {
+        val examples = examplesOf(baseline)
+        val measured = examples.filterNot(example => baseline.divergedExamples.contains(example.example))
+        assert(
+          measured.size == baseline.total,
+          s"${baseline.name} claims a total of ${baseline.total} and measures ${measured.size} " +
+            s"(${examples.size} in the fixture, ${baseline.divergences.size} recorded as divergent). " +
+            "The recorded total is the size of the measured set, not the size of the file."
+        )
       }
 
       s"${baseline.name} does not fall below ${baseline.passing}/${baseline.total}" in {
-        val examples = examplesOf(baseline)
+        val examples = examplesOf(baseline).filterNot(example => baseline.divergedExamples.contains(example.example))
         val passing  = examples.count(conforms)
         val total    = examples.size
 
@@ -217,6 +280,17 @@ class ConformanceTests extends Test[Any]:
               Console.printLine(s"failing examples in the selected sections (${reported.size}):")
                 .andThen(Kyo.foreachDiscard(reported)(reportFailure))
             else Kyo.unit
+          _ <-
+            if baseline.divergences.isEmpty then Kyo.unit
+            else
+              Console.printLine(s"    ${baseline.divergences.size} divergence(s) recorded, not measured:")
+                .andThen(Kyo.foreachDiscard(baseline.divergences) { divergence =>
+                  Console.printLine(f"      example ${divergence.example}%4d  ${divergence.reason}")
+                })
+          _ <- Kyo.foreachDiscard(sharedWith(baseline)) { (other, shared, passed) =>
+            Console.printLine(f"    shared with $other: $passed/$shared; specific to ${baseline.profile}: " +
+              f"${passing - passed}/${total - shared}")
+          }
           _ = assert(
             passing >= baseline.passing,
             s"${baseline.name} conformance regressed: $passing passing, ${baseline.passing} recorded. " +
