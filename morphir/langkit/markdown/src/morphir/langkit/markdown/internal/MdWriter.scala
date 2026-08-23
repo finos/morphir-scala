@@ -257,7 +257,11 @@ private[markdown] object MdWriter:
     val first     = list.start.getOrElse(ListStart.One).toInt
     val separator = if list.tight then LineSeparated else BlankSeparated
     val written   = list.children.zipWithIndex.map { case (item, index) =>
-      val marker = if list.ordered then s"${first + index}$delimiter " else s"$bullet "
+      // CommonMark reads a list's start from the first marker alone and ignores the numbers on every marker after
+      // it, so capping the tail at the nine-digit maximum keeps the reparse identical to the uncapped list; leaving
+      // it uncapped would let `first + index` reach ten digits, which is no longer a marker but ordinary prose.
+      val marker =
+        if list.ordered then s"${math.min(first + index, ListStart.Max.toInt)}$delimiter " else s"$bullet "
       // The checkbox is content, not container prefix: it sits after the bullet on the item's own first line, the
       // same as any other text the item opens with, so continuation lines still indent by the bullet's width alone.
       val checkbox = item.checked match

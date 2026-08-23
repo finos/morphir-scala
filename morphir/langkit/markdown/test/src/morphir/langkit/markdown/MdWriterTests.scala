@@ -568,5 +568,30 @@ class MdWriterTests extends Test[Any]:
       assert(ListStart.fromInt(1000000000) == Absent)
       // ol(ListStart(-1))(li("x")) and ol(ListStart(1000000000))(li("x")) do not compile.
     }
+
+    /**
+     * The property above writes one item per list, so `first + index` never moves past the start itself and the
+     * overflow it is meant to catch cannot occur. This is the multi-item companion: a list starting at
+     * [[ListStart.Max]] with more than one item used to number item two `1000000000.`, one digit past what a marker
+     * holds, which reparsed as a paragraph rather than a list item. The writer now caps every marker at the max, so the
+     * written text repeats the same nine digits and the tree comes back whole.
+     */
+    "a list starting at the max with more than one item caps every marker after the first" in {
+      val tree    = doc(ol(ListStart.Max)(li("first"), li("second"), li("third")))
+      val written = MdWriter.write(tree)
+      val lines   = written.linesIterator.toList
+      assert(lines == List("999999999. first", "999999999. second", "999999999. third"))
+      Parser.parse(written) match
+        case Result.Success(reparsed) =>
+          assert(
+            normalized(reparsed) == normalized(tree),
+            s"capped markers did not round-trip." +
+              s"\n  written  ${oneLine(written)}" +
+              s"\n  wrote    ${normalized(tree)}" +
+              s"\n  reparsed ${normalized(reparsed)}"
+          )
+        case other =>
+          throw new IllegalStateException(s"capped markers wrote unparseable text ${oneLine(written)}: $other")
+    }
   }
 end MdWriterTests
