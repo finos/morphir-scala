@@ -330,6 +330,59 @@ class MdWriterTests extends Test[Any]:
 
     "adversarial text as a heading and inside emphasis" in
       roundTrips(doc(h2(text("# not deeper")), p(em(text("[x]")))), "adversarial inline")
+
+    /**
+     * `morphir-t3p.8`'s gap closing: a table extension that strips `\|` at cell-split time, including inside a code
+     * span, lets the writer spell the escape and have it round-trip -- example 200's own shape, an `InlineCode` value
+     * of a single `|`, and the more general `a|b` alongside it. Both hold a pipe preceded by zero backslashes, the
+     * common (even) case [[MdWriter.pipeEscapesCleanly]] tests for.
+     */
+    "a table cell holding inline code with a pipe escapes it and round-trips" in {
+      given MdProfile = MdProfile.gfm
+      given MdStyle   = MdStyle(padTableColumns = false)
+      val tree        =
+        doc(MdNode.Table(Chunk(Absent), MdNode.TableRow(Chunk(MdNode.TableCell(Chunk(code("a|b"))))), Chunk.empty))
+      assert(MdWriter.write(tree) == "| `a\\|b` |\n| --- |\n", oneLine(MdWriter.write(tree)))
+      roundTrips(tree, "table cell code span holding a pipe")
+    }
+
+    "a table cell holding inline code of a bare pipe (spec example 200's shape) escapes it and round-trips" in {
+      given MdProfile = MdProfile.gfm
+      given MdStyle   = MdStyle(padTableColumns = false)
+      val tree        =
+        doc(MdNode.Table(Chunk(Absent), MdNode.TableRow(Chunk(MdNode.TableCell(Chunk(code("|"))))), Chunk.empty))
+      assert(MdWriter.write(tree) == "| `\\|` |\n| --- |\n", oneLine(MdWriter.write(tree)))
+      roundTrips(tree, "table cell code span holding only a pipe")
+    }
+
+    /**
+     * The odd-run residue [[MdWriter.writeTable]]'s doc comment pins: a cell code-span value whose pipe sits behind an
+     * odd run of backslashes has no faithful spelling. `\` is content the writer cannot tell apart from a `\` meant to
+     * escape the pipe next to it -- adding the usual escaping backslash would turn the odd run even and split the cell
+     * (see the doc comment's arithmetic), so the writer leaves the value bare instead, and pays for that with the row
+     * splitter's own escape-stripping consuming the value's own backslash on the way back in. Modeled on how the empty
+     * code span's own no-faithful-spelling case is pinned above: the written text first, then what it reparses to.
+     */
+    "a table cell holding inline code whose pipe sits behind an odd backslash run has no faithful spelling" in {
+      given MdProfile = MdProfile.gfm
+      given MdStyle   = MdStyle(padTableColumns = false)
+      val tree        =
+        doc(MdNode.Table(Chunk(Absent), MdNode.TableRow(Chunk(MdNode.TableCell(Chunk(code("a\\|b"))))), Chunk.empty))
+      val written = MdWriter.write(tree)
+      assert(written == "| `a\\|b` |\n| --- |\n", oneLine(written))
+      Parser.parse(written) match
+        case Result.Success(reparsed) =>
+          val expected =
+            doc(MdNode.Table(Chunk(Absent), MdNode.TableRow(Chunk(MdNode.TableCell(Chunk(code("a|b"))))), Chunk.empty))
+          assert(
+            normalized(reparsed) == normalized(expected),
+            s"$written\n  reparsed ${normalized(reparsed)}"
+          )
+        case other => throw new IllegalStateException(s"odd-run cell wrote unparseable text: $other")
+    }
+
+    "a heading holding inline code with a pipe keeps the pipe bare, since a heading is not a cell" in
+      assert(MdWriter.write(doc(h1(code("a|b")))) == "# `a|b`\n", oneLine(MdWriter.write(doc(h1(code("a|b"))))))
   }
 
   "style" - {

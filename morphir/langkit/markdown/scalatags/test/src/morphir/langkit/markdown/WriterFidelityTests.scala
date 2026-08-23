@@ -41,14 +41,6 @@ class WriterFidelityTests extends Test[Any]:
           s"${ConformanceFixtures.BaselinesFile} holds no 'GitHub Flavored Markdown' baseline"
         )
 
-  /**
-   * GFM example 200 (`Tables (extension)`): a backslash-escaped pipe inside a code span inside a table cell keeps its
-   * backslash instead of losing it. Tracked as a parser gap, not a writer one — beads `morphir-t3p.8` — and it is not a
-   * recorded divergence in `conformance-baselines.json`, so it cannot be read off that file the way the nine emphasis
-   * divergences are; it is named here by number instead, with this comment as its source.
-   */
-  private val KnownGap: Set[Int] = Set(200)
-
   private def oneLine(text: String): String = text.replace("\n", "\\n")
 
   /** `tree` renders the same directly as it does after a round trip through [[MdWriter]] and back. */
@@ -382,19 +374,21 @@ class WriterFidelityTests extends Test[Any]:
      * under the full profile would credit, say, a `strikethrough` example with surviving a round trip under the tag
      * filter too, which is not a claim its fence makes.
      *
-     * The nine recorded divergences and the one known gap (example 200, `morphir-t3p.8`) are excluded from the sweep
-     * rather than exercised and allowed to fail: neither is a claim about the *writer*, so a failure there would test
-     * the parser's gap rather than the writer's fidelity. 672 fixture entries, minus the 9 divergences, minus the known
-     * gap, leaves 662 — the same 662 of 663 measured that `ConformanceTests` currently passes.
+     * The nine recorded divergences are excluded from the sweep rather than exercised and allowed to fail: they are not
+     * a claim about the *writer*, so a failure there would test the parser's own recorded gap rather than the writer's
+     * fidelity. 672 fixture entries, minus the 9 divergences, leaves 663 — the same 663 of 663 measured that
+     * `ConformanceTests` currently passes. The sweep once excluded a tenth example too (200, `morphir-t3p.8`): a table
+     * cell's code span losing an escaped pipe. That gap closed when the table extension started stripping `\|` at
+     * cell-split time, including inside code spans, and [[MdWriter]] learned when spelling the escape round-trips (the
+     * `InlineCode` case of `writeInline`, gated on [[MdWriter.pipeEscapesCleanly]]) — so the sweep now reaches every
+     * measured example rather than excluding one by number.
      */
-    s"GitHub Flavored Markdown 0.29-gfm renders 662/663 identically after a write/read round trip" in {
-      val measured = gfmExamples.filterNot(example => gfmDivergedExamples.contains(example.example))
+    s"GitHub Flavored Markdown 0.29-gfm renders 663/663 identically after a write/read round trip" in {
+      val swept = gfmExamples.filterNot(example => gfmDivergedExamples.contains(example.example))
       assert(
-        measured.size == 663,
-        s"expected 663 GFM examples measured (672 minus 9 divergences), found ${measured.size}"
+        swept.size == 663,
+        s"expected 663 GFM examples measured (672 minus 9 divergences), found ${swept.size}"
       )
-      val swept = measured.filterNot(example => KnownGap.contains(example.example))
-      assert(swept.size == 662, s"expected 662 GFM examples after excluding the known gap, found ${swept.size}")
 
       def rendered(root: MdNode.Root): String = ScalatagsCompiler.render(root)
 

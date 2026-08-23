@@ -15,7 +15,7 @@ import morphir.langkit.markdown.*
  * [[MdStyleKeys]]: the writer asks the node's own data first and falls back to the style. Nothing here consults the CST
  * — the AST is the input, and a tree the parser never saw writes exactly as well as one it did.
  *
- * Six shapes have no faithful spelling and are documented rather than fixed. Three more belong to the pipe table alone
+ * Six shapes have no faithful spelling and are documented rather than fixed. Two more belong to the pipe table alone
  * and are described on [[writeTable]] rather than here.
  *
  * An [[MdNode.InlineCode]] whose value is empty writes as a single-space code span, because CommonMark cannot express a
@@ -278,16 +278,24 @@ private[markdown] object MdWriter:
    * A pipe table: the header row, a delimiter row built from the alignment, and the body rows.
    *
    * Every row is written with both outer pipes, whatever the source had, because they are the spelling that cannot be
-   * misread. A cell's content goes through [[inlines]] with `oneLine` set, since a cell has nowhere to put a line
-   * ending; a literal `|` inside one is escaped by [[escapeText]], which already treats the pipe as always-escaped.
+   * misread. A cell's content goes through [[inlines]] with `oneLine` set and `inCell` set, since a cell has nowhere to
+   * put a line ending and its code spans need the escaping ordinary text already gets: a literal `|` in a cell's own
+   * text is escaped by [[escapeText]], which already treats the pipe as always-escaped, and an [[MdNode.InlineCode]]
+   * value inside a cell is escaped the same way when it safely can be -- see the `InlineCode` case of [[writeInline]]
+   * for the arithmetic that decides "safely".
    *
    * Two shapes have no faithful spelling here, both for the same reason -- a table's structure is decided by characters
    * that no escape reaches.
    *
-   * A [[MdNode.InlineCode]] whose value holds a `|` writes as a code span with a bare pipe in it, which the row
-   * splitter reads as a cell boundary. Escaping it instead would spell `\|`, which a code span reads literally (a
-   * backslash escapes nothing inside one), so the value would come back with the backslash still in it. The pipe splits
-   * the cell rather than corrupting the value, which is the smaller of the two losses and the one a reader can see.
+   * An [[MdNode.InlineCode]] value inside a cell escapes a `|` by writing `\|`, and the row splitter -- which strips
+   * exactly one backslash off an unescaped-position `\|` pair before inline parsing ever sees the span -- hands the
+   * value back unchanged, for every pipe preceded by an even run of backslashes (zero included). A pipe preceded by an
+   * *odd* run has no such spelling: adding the usual escaping backslash would leave an even run in the written text,
+   * which the splitter reads as unescaped and splits the cell on, while leaving the value as given keeps the odd run
+   * unsplit but costs the splitter's own escape-stripping one backslash off the value regardless -- it cannot tell that
+   * backslash apart from one meant to escape the pipe next to it. Either way the value comes back different from the
+   * one written. GFM's cell grammar unescapes `\|` and nothing else, so no spelling reaches this shape; cmark-gfm
+   * shares the limit.
    *
    * A table written as a non-first block of a *tight* list item is separated from the block before it by a single
    * newline rather than a blank line, so a paragraph directly above it becomes the table's header line -- or, when the
@@ -304,7 +312,11 @@ private[markdown] object MdWriter:
     val minimum = math.max(1, table.meta.get(MdStyleKeys.tableDelimiterWidth).getOrElse(style.tableDelimiterWidth))
     val columns = table.align.size
     val written = (Chunk(table.header) ++ table.rows).map(row =>
-      fittedCells(row.children.map(cell => inlines(cell.children, atLineStart = false, oneLine = true)), columns, "")
+      fittedCells(
+        row.children.map(cell => inlines(cell.children, atLineStart = false, oneLine = true, inCell = true)),
+        columns,
+        ""
+      )
     )
     // The delimiter cell at its narrowest sets a floor on its column's width, so padding never shortens one below
     // what its own colons and minimum run of dashes need.
@@ -367,8 +379,19 @@ private[markdown] object MdWriter:
    *   ATX heading, that is exactly one physical line. A soft or hard break spells as `&#10;` instead, which reads back
    *   as the same character without ending the line early; a code span or raw HTML's own embedded newline has no such
    *   escape available to it, so it downgrades to a space, the nearest either can spell one line at a time.
+   * @param inCell
+   *   when true, this run is a table cell's own content, where the row splitter reads a bare `|` as a cell boundary
+   *   before inline parsing ever runs — not merely a fact about the surrounding block the way `oneLine` is, since an
+   *   ATX heading's `oneLine` also reaches an `InlineCode` value that must keep its pipe bare, the split having no
+   *   meaning there at all. Only the `InlineCode` case of [[writeInline]] reads it; ordinary text's pipe already
+   *   escapes unconditionally via [[AlwaysEscaped]] regardless of this flag.
    */
-  private def inlines(nodes: Chunk[MdNode.PhrasingContent], atLineStart: Boolean, oneLine: Boolean = false)(using
+  private def inlines(
+      nodes: Chunk[MdNode.PhrasingContent],
+      atLineStart: Boolean,
+      oneLine: Boolean = false,
+      inCell: Boolean = false
+  )(using
       MdStyle
   ): String =
     val out       = new StringBuilder
@@ -384,13 +407,13 @@ private[markdown] object MdWriter:
           out.append(piece)
           if piece.nonEmpty then lineStart = piece.endsWith("\n")
         case node =>
-          val piece = writeInline(node, lineStart, oneLine)
+          val piece = writeInline(node, lineStart, oneLine, inCell)
           out.append(piece)
           if piece.nonEmpty then lineStart = piece.endsWith("\n")
           index += 1
     out.toString
 
-  private def writeInline(node: MdNode.PhrasingContent, atLineStart: Boolean, oneLine: Boolean)(using
+  private def writeInline(node: MdNode.PhrasingContent, atLineStart: Boolean, oneLine: Boolean, inCell: Boolean)(using
       style: MdStyle
   ): String =
     node match
@@ -401,7 +424,13 @@ private[markdown] object MdWriter:
         // its own — a `oneLine` context — spells the nearest thing CommonMark itself would ever produce, at the cost
         // of the value's own embedded newline surviving as a space rather than as itself. A code span holding a raw
         // newline is a node no parse of a `oneLine` context produces, so this only fires for a hand-built tree.
-        writeInlineCode(if oneLine then value.replace('\n', ' ') else value)
+        val prepared = if oneLine then value.replace('\n', ' ') else value
+        // A cell's own pipe gets the same treatment ordinary text's does — escaped so the row splitter cannot read it
+        // as a cell boundary — but only when every `|` in the value sits behind an even run of backslashes (zero
+        // included): see [[pipeEscapesCleanly]] and [[writeTable]]'s own doc comment for the arithmetic. Anything else
+        // keeps the value's pipe bare, the spelling this writer used before it could tell the two cases apart.
+        val escaped = if inCell && pipeEscapesCleanly(prepared) then prepared.replace("|", "\\|") else prepared
+        writeInlineCode(escaped)
       case MdNode.InlineHtml(value, meta) =>
         // Raw HTML is emitted verbatim everywhere else — escaping it would show the author their own markup — but a
         // `oneLine` context has nowhere to put a literal line ending at all, so it is downgraded to a space here, the
@@ -417,7 +446,7 @@ private[markdown] object MdWriter:
         val original = meta.get(Lower.unfilteredHtml).getOrElse(value)
         if oneLine then original.replace('\n', ' ') else original
       case link: MdNode.Link =>
-        s"[${inlines(link.children, atLineStart = false, oneLine)}](${target(link.url, link.title)})"
+        s"[${inlines(link.children, atLineStart = false, oneLine, inCell)}](${target(link.url, link.title)})"
       case image: MdNode.Image =>
         s"![${escapeText(image.alt, atLineStart = false, oneLine)}](${target(image.url, image.title)})"
       case emphasis: MdNode.Emphasis =>
@@ -428,7 +457,7 @@ private[markdown] object MdWriter:
         // runs allow it, and a run of exactly two never has a leftover single character to spend on the outer level.
         val soleInnerEmphasis         = soleChildEmphasis(emphasis.children)
         val (outerMarker, childStyle) = resolveEmphasisClash(marker, soleInnerEmphasis)
-        s"$outerMarker${inlines(emphasis.children, atLineStart = false, oneLine)(using childStyle)}$outerMarker"
+        s"$outerMarker${inlines(emphasis.children, atLineStart = false, oneLine, inCell)(using childStyle)}$outerMarker"
       case strong: MdNode.Strong =>
         val marker = strong.meta.get(MdStyleKeys.strongMarker).getOrElse(style.strongMarker)
         // A sole child that is an Emphasis resolving to the same marker character touches it on the inside: the
@@ -438,11 +467,11 @@ private[markdown] object MdWriter:
         val soleInnerEmphasis         = soleChildEmphasis(strong.children)
         val (outerMarker, childStyle) = resolveEmphasisClash(marker, soleInnerEmphasis)
         val delimiter                 = outerMarker.toString * 2
-        s"$delimiter${inlines(strong.children, atLineStart = false, oneLine)(using childStyle)}$delimiter"
+        s"$delimiter${inlines(strong.children, atLineStart = false, oneLine, inCell)(using childStyle)}$delimiter"
       // Two tildes, always. Unlike emphasis, which `MdStyle` lets a caller spell with `*` or `_`, strikethrough has
       // exactly one spelling in GFM 0.29-gfm — so a style key here would have one legal value and no purpose.
       case strikethrough: MdNode.Delete =>
-        s"~~${inlines(strikethrough.children, atLineStart = false, oneLine)}~~"
+        s"~~${inlines(strikethrough.children, atLineStart = false, oneLine, inCell)}~~"
       case MdNode.Break(meta) =>
         if oneLine then "&#10;"
         else
@@ -470,6 +499,28 @@ private[markdown] object MdWriter:
       val touches  = value.startsWith("`") || value.endsWith("`")
       val stripped = value.startsWith(" ") && value.endsWith(" ") && !value.forall(_ == ' ')
       if touches || stripped then s"$ticks $value $ticks" else s"$ticks$value$ticks"
+
+  /**
+   * Whether every `|` in a table-cell [[MdNode.InlineCode]] `value` sits behind an even run of consecutive backslashes
+   * — zero included — which is exactly when escaping each one round-trips. See [[writeTable]]'s doc comment for the
+   * arithmetic this decides: the row splitter reads backslashes left to right, pairing them off two at a time, so an
+   * even run pairs off completely and leaves the pipe unescaped -- the escaping backslash this writer is about to add
+   * would be the odd one out, get consumed as the pipe's own escape, and get stripped again on the way back in. An odd
+   * run already has an unpaired backslash of its own; adding one more makes the run even, and it is the *added* one
+   * that pairs off and disappears, leaving the original backslash meant as content sitting right next to a pipe the
+   * splitter now reads as bare. `false` here is what routes that value to the bare spelling instead.
+   */
+  private def pipeEscapesCleanly(value: String): Boolean =
+    @annotation.tailrec
+    def loop(index: Int, precedingBackslashes: Int): Boolean =
+      if index >= value.length then true
+      else
+        value.charAt(index) match
+          case '\\' => loop(index + 1, precedingBackslashes + 1)
+          case '|' if precedingBackslashes % 2 != 0 => false
+          case '|' => loop(index + 1, 0)
+          case _   => loop(index + 1, 0)
+    loop(0, 0)
 
   /** A link or image target: the destination, and the title behind it when there is one. */
   private def target(url: String, title: Maybe[String]): String =
