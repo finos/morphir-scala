@@ -80,6 +80,20 @@ class TaskListTests extends Test[Any]:
       given MdProfile = MdProfile.gfm
       agrees("- [x] foo\n- [ ] bar\n")
     }
+
+    /**
+     * The checkbox's span sits inside the item's first line, ahead of the continuation line's own indentation marker —
+     * see `Cst.graduate`'s `ListItem` case, which sorts the two back into offset order rather than appending the
+     * checkbox after markers a plain append would already have collected. A multi-line item is what exercises that
+     * sort: a one-line item collects no continuation-line marker to sort against, so this is the shape a broken sort
+     * would first miss.
+     */
+    "keeps a checkbox marker sorted ahead of a continuation line's own indentation marker" in {
+      given MdProfile = MdProfile.gfm
+      val source      = "- [x] first line\n  continuation line\n"
+      agrees(source)
+      assert(items(source).head.checked == Present(true))
+    }
   }
 
   /**

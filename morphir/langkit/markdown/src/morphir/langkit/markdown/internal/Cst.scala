@@ -248,7 +248,7 @@ private[markdown] object CstParser:
     val raw    = source.substring(span.offset, span.end)
     val out    = Chunk.newBuilder[MdCstNode]
     var cursor = span.offset
-    Parser.tableCellSpans(raw).foreach { cell =>
+    TableRows.tableCellSpans(raw).foreach { cell =>
       val from  = span.offset + cell.start
       val until = span.offset + cell.end
       if from >= cursor && until <= span.end then
@@ -359,6 +359,40 @@ private[markdown] object CstParser:
         out.result()
 
   /**
+   * A code span's interior: text, with every escape [[InlineNotes.recordEscape]] noted inside `[from, until)` punched
+   * out as its own [[MdCstNode.Escape]], the same shape [[inlineGap]] punches into a verbatim gap.
+   *
+   * The inline grammar never records an escape inside a code span — a backslash between backticks is content, not a
+   * construct, everywhere else in this parser — so a recorded escape landing here can only be the one construct that
+   * does put one there: a table cell's stripped `\|`, punched back in so the CST still tiles the source exactly.
+   * Character references are not punched here, unlike in a gap: GFM does not resolve entities inside a code span, so
+   * there is nothing for [[Lower]] to read differently whether or not this leaves them as plain text.
+   */
+  private def codeSpanInterior(
+      source: String,
+      from: Int,
+      until: Int,
+      markers: Chunk[Marker],
+      notes: Maybe[InlineNotes]
+  ): Chunk[MdCstNode] =
+    val escapes = notes.map(_.escapeOffsets).getOrElse(Chunk.empty).filter(o => o >= from && o + 2 <= until)
+    if escapes.isEmpty then tile(source, from, until, markers)(MdCstNode.Text(_, _))
+    else
+      val out    = Chunk.newBuilder[MdCstNode]
+      var cursor = from
+      escapes.foreach { offset =>
+        if offset >= cursor && offset < source.length && source.charAt(offset) == '\\' then
+          out.addAll(tile(source, cursor, offset, markers)(MdCstNode.Text(_, _)))
+          val children =
+            leaf(source, offset, offset + 1)(MdCstNode.Token(_, _))
+              ++ leaf(source, offset + 1, offset + 2)(MdCstNode.Text(_, _))
+          out.addOne(MdCstNode.Escape(children, Span.fromStartEnd(offset, offset + 2)))
+          cursor = offset + 2
+      }
+      out.addAll(tile(source, cursor, until, markers)(MdCstNode.Text(_, _)))
+      out.result()
+
+  /**
    * The typed CST node for one inline construct, for the kinds this slice has graduated; [[kyo.Absent]] otherwise.
    *
    * Each case checks the source at its span before claiming it — a code span must start with a backtick, an autolink or
@@ -379,7 +413,7 @@ private[markdown] object CstParser:
       val ticks    = run - span.offset
       val children =
         leaf(source, span.offset, run)(MdCstNode.Token(_, _))
-          ++ tile(source, run, span.end - ticks, markers)(MdCstNode.Text(_, _))
+          ++ codeSpanInterior(source, run, span.end - ticks, markers, notes)
           ++ leaf(source, span.end - ticks, span.end)(MdCstNode.Token(_, _))
       Present(MdCstNode.CodeSpan(children, span))
 

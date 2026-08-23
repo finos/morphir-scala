@@ -79,6 +79,34 @@ class KyoUiCompilerTests extends Test[Any]:
       assert(compiled(1).isInstanceOf[UI.Ast.P])
       assert(compiled(2).isInstanceOf[UI.Ast.Hr])
     }
+
+    "compiles a Delete node to a span carrying the md-del class" in {
+      val paragraph = children(compile(MdNode.Paragraph(Chunk(MdNode.Delete(prose("gone"), meta)), meta))).head
+      val span      = paragraph.asInstanceOf[UI.Ast.P].children.flatMap(children).head
+      assert(span.isInstanceOf[UI.Ast.SpanElement])
+      assert(span.asInstanceOf[UI.Ast.SpanElement].attrs.cssClasses.contains("md-del"))
+    }
+
+    "prepends the checked-box markup to a ticked task-list item" in {
+      val taskItem = MdNode.ListItem(Chunk(MdNode.Paragraph(prose("done"), meta)), checked = Present(true), meta = meta)
+      val li       = children(
+        compile(MdNode.List(ordered = false, Absent, spread = false, Chunk(taskItem), meta))
+      ).head.asInstanceOf[UI.Ast.Ul].children.flatMap(children).head
+      val box = li.asInstanceOf[UI.Ast.Li].children.flatMap(children).head
+      assert(box.asInstanceOf[UI.Ast.RawHtml].value == """<input checked="" disabled="" type="checkbox">""")
+    }
+
+    "prepends the unchecked-box markup, with no `checked` attribute, to an unticked task-list item" in {
+      val taskItem =
+        MdNode.ListItem(Chunk(MdNode.Paragraph(prose("todo"), meta)), checked = Present(false), meta = meta)
+      val li = children(
+        compile(MdNode.List(ordered = false, Absent, spread = false, Chunk(taskItem), meta))
+      ).head.asInstanceOf[UI.Ast.Ul].children.flatMap(children).head
+      val box   = li.asInstanceOf[UI.Ast.Li].children.flatMap(children).head
+      val value = box.asInstanceOf[UI.Ast.RawHtml].value
+      assert(value == """<input disabled="" type="checkbox">""")
+      assert(!value.contains("checked"))
+    }
   }
 
   "KyoUiCompiler rendering" - {

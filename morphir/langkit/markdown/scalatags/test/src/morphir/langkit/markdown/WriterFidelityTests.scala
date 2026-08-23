@@ -24,69 +24,22 @@ import morphir.langkit.markdown.internal.{CstParser, Lower, MdWriter}
  */
 class WriterFidelityTests extends Test[Any]:
 
-  private val SpecFixture      = "commonmark-0.31.2-spec.json"
-  private val GfmSpecFixture   = "gfm-0.29-spec.json"
-  private val BaselinesFixture = "conformance-baselines.json"
+  import ConformanceFixtures.{Baseline, Example, decode, profileOf}
 
-  private final case class Example(markdown: String, html: String, example: Int, section: String) derives Schema
+  private val SpecFixture    = "commonmark-0.31.2-spec.json"
+  private val GfmSpecFixture = "gfm-0.29-spec.json"
 
-  /**
-   * A GFM fixture entry, mirroring [[ConformanceTests.Example]]. `extension` names the one extension this example's own
-   * fence claims — present only when the example is about an extension at all — and is what [[profileOf]] uses to
-   * measure it against the base grammar plus that one extension, never the full GFM profile.
-   */
-  private final case class GfmExample(
-      markdown: String,
-      html: String,
-      example: Int,
-      section: String,
-      extension: Maybe[String] = Absent
-  ) derives Schema
-
-  /** One example a baseline records as a divergence, mirroring [[ConformanceTests.Divergence]]. */
-  private final case class Divergence(example: Int, reason: String) derives Schema
-
-  /** One profile's recorded conformance, mirroring [[ConformanceTests.Baseline]]. */
-  private final case class Baseline(
-      profile: String,
-      version: String,
-      fixtures: String,
-      passing: Int,
-      total: Int,
-      divergences: Chunk[Divergence] = Chunk.empty
-  ) derives Schema
-
-  private def readFixture(name: String): String =
-    import AllowUnsafe.embrace.danger
-    val dir = Flag[String]("morphir.conformance.fixtures", "")
-    if dir.isEmpty then
-      throw new IllegalStateException(
-        "morphir.conformance.fixtures is unset; Mill sets it through the MorphirMarkdownConformance* traits."
-      )
-    val file = (Path(dir) / name).unsafe
-    file.read() match
-      case Result.Success(text) => text
-      case other => throw new IllegalStateException(s"missing or unreadable fixture ${file.show}: $other")
-
-  private lazy val examples: Chunk[Example] =
-    Json.decode[Chunk[Example]](readFixture(SpecFixture)) match
-      case Result.Success(parsed) => parsed
-      case other                  => throw new IllegalStateException(s"could not read $SpecFixture: $other")
-
-  private lazy val gfmExamples: Chunk[GfmExample] =
-    Json.decode[Chunk[GfmExample]](readFixture(GfmSpecFixture)) match
-      case Result.Success(parsed) => parsed
-      case other                  => throw new IllegalStateException(s"could not read $GfmSpecFixture: $other")
+  private lazy val examples: Chunk[Example]    = decode[Chunk[Example]](SpecFixture)
+  private lazy val gfmExamples: Chunk[Example] = decode[Chunk[Example]](GfmSpecFixture)
 
   /** The GFM entry's own recorded divergences, read from the same file `ConformanceTests` measures its score from. */
   private lazy val gfmDivergedExamples: Set[Int] =
-    Json.decode[Chunk[Baseline]](readFixture(BaselinesFixture)) match
-      case Result.Success(baselines) =>
-        baselines.find(_.profile == "GitHub Flavored Markdown") match
-          case Some(baseline) => baseline.divergences.map(_.example).toSet
-          case None           =>
-            throw new IllegalStateException(s"$BaselinesFixture holds no 'GitHub Flavored Markdown' baseline")
-      case other => throw new IllegalStateException(s"could not read $BaselinesFixture: $other")
+    decode[Chunk[Baseline]](ConformanceFixtures.BaselinesFile).find(_.profile == "GitHub Flavored Markdown") match
+      case Some(baseline) => baseline.divergences.map(_.example).toSet
+      case None           =>
+        throw new IllegalStateException(
+          s"${ConformanceFixtures.BaselinesFile} holds no 'GitHub Flavored Markdown' baseline"
+        )
 
   /**
    * GFM example 200 (`Tables (extension)`): a backslash-escaped pipe inside a code span inside a table cell keeps its
@@ -95,24 +48,6 @@ class WriterFidelityTests extends Test[Any]:
    * divergences are; it is named here by number instead, with this comment as its source.
    */
   private val KnownGap: Set[Int] = Set(200)
-
-  /**
-   * The parse profile one GFM example is measured under, mirroring [[ConformanceTests.profileOf(example:*)]]. Each
-   * example is scored against the base grammar plus the one extension its own fence names — never the full GFM profile
-   * — for the same reason that harness gives: an example about tables makes no claim about strikethrough or the tag
-   * filter.
-   */
-  private def profileOf(example: GfmExample): MdProfile = example.extension match
-    case Absent              => MdProfile.commonmark
-    case Present("disabled") => MdProfile.commonmark.withExtension(MdExtension.TaskListItems)
-    case Present(tag)        =>
-      MdExtension.values.find(_.specTag == tag) match
-        case Some(extension) => MdProfile.commonmark.withExtension(extension)
-        case None            =>
-          throw new IllegalStateException(
-            s"example ${example.example} in section '${example.section}' names extension '$tag', which this " +
-              "sweep cannot map to an MdExtension."
-          )
 
   private def oneLine(text: String): String = text.replace("\n", "\\n")
 

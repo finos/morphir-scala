@@ -463,7 +463,7 @@ private[markdown] object Lower:
       case MdCstNode.ExtendedAutolink(children, span) =>
         val inner = contentText(children)
         Chunk(MdNode.Link(
-          InlineParser.extendedDestinationOf(inner),
+          ExtendedAutolinks.extendedDestinationOf(inner),
           Absent,
           Chunk(MdNode.Text(inner, MdMeta.at(span))),
           MdMeta.at(span)

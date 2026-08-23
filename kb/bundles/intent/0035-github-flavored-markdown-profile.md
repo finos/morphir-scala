@@ -2,7 +2,7 @@
 type: Intent
 title: GitHub Flavored Markdown profile
 description: "Recognize the five GitHub Flavored Markdown extensions behind an opt-in profile, measured against the GFM specification's own example set."
-state: InProgress
+state: Released
 kind: feature
 breaking: true
 created: 2026-08-22
@@ -30,6 +30,7 @@ sources:
   - id: mdast
     resource: https://github.com/syntax-tree/mdast/blob/main/readme.md
     title: mdast, the Markdown abstract syntax tree vocabulary this AST follows
+capability: morphir/morphir-scala:/markdown-gfm-profile.md
 ---
 
 # 0035 — GitHub Flavored Markdown profile
@@ -226,9 +227,9 @@ re-vendoring reconciles a divergence list, beyond the existing rule that changin
 act that must move the version, the totals and the recorded score together.
 
 **Where this stands.** All five extensions are implemented and reviewed, each gated on `MdProfile.gfm`, and the
-Markdown writer now carries the same round-trip guarantee against the GFM corpus that it already held against
-CommonMark. Conformance measures 662 of the 663 examples the GFM baseline targets, with the nine emphasis
-divergences above recorded and excluded from that count. The one remaining gap is `morphir-t3p.8`: a
-backslash-escaped pipe inside a code span inside a table cell keeps its backslash instead of losing it. Release
-waits on that gap closing — the acceptance criteria this intent was opened against ask for the full measured set,
-and 662 of 663 is not yet all of it.
+Markdown writer carries the same round-trip guarantee against the GFM corpus that it already held against
+CommonMark. Conformance measures all 663 examples the GFM baseline targets, with the nine emphasis divergences
+above recorded and excluded from that count. The last gap — `morphir-t3p.8`, a backslash-escaped pipe inside a
+code span inside a table cell keeping its backslash — closed when the table extension began stripping the escape
+at cell-split time and the concrete syntax tree learned to own the consumed escape inside a code-span interior,
+which is what the acceptance criteria's full measured set asked for.

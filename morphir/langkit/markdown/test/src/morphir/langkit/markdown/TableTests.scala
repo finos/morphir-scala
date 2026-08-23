@@ -48,6 +48,83 @@ class TableTests extends Test[Any]:
       assert(rowText(table.header) == Chunk("f|oo"))
     }
 
+    /**
+     * The rest of spec example 200: the escaped pipe inside the header cell strips through ordinary inline escaping,
+     * but the one inside the body cell's code span is a harder case — GFM strips it before inline parsing so the code
+     * span's value is `|`, not `\|`, and this parser strips it at the same point, in `cellSites`. `Parser.parse` lowers
+     * from the CST rather than reusing the block phase's own parse of the cell (see `Cst.graduate`'s `InlineCode`
+     * case), so the CST has to own the consumed escape too, or the two disagree — which is what the third assertion
+     * here checks, and the tiling assertion after it is what proves the CST still owns every byte of the source having
+     * done so.
+     */
+    "unescape a pipe inside a code span (spec example 200)" in {
+      given MdProfile = MdProfile.gfm
+      val source      = "| f\\|oo |\n| ------ |\n| b `\\|` az |\n"
+
+      val table = tableOf(source)
+      assert(rowText(table.header) == Chunk("f|oo"))
+      assert(rowText(table.rows.head) == Chunk("b | az"))
+      table.rows.head.children.head.children.collectFirst { case code: MdNode.InlineCode => code.value } match
+        case Some(value) => assert(value == "|")
+        case None        => throw new AssertionError(s"expected an InlineCode, got ${table.rows.head}")
+
+      assert(Lower.lower(CstParser.parse(source)).unpositioned == Parser.parse(source).getOrThrow.unpositioned)
+
+      val tree   = CstParser.parse(source)
+      val errors = Cst.tilingErrors(tree, source.length)
+      assert(errors.isEmpty, s"does not tile: ${errors.mkString("; ")}")
+      assert(Cst.print(tree) == source, "does not reprint")
+    }
+
+    /**
+     * A third shape spec example 200 asks for, alongside the header cell and the code-span cell: an escaped pipe
+     * wrapped in strong emphasis. This one never went through `cellSites`' escape-stripping trouble the code span did —
+     * `InlineParser` already turns `\|` into a literal `|` by its own ordinary escape handling, with or without a table
+     * cell around it — but stripping the backslash before that handling ever runs changes what a table cell's escaped
+     * pipe hands the CST: the `|` a stripped cell mints has no backslash of its own for `delimitedExtent` (in
+     * `Cst.scala`) to measure `**`'s two delimiters back from, unless the map `cellSites` builds points the stripped
+     * `|`'s own offset at the backslash rather than at itself. Getting that wrong doesn't corrupt the `|` — it drops
+     * the emphasis around it, which is what this guards.
+     */
+    "unescape a pipe inside strong emphasis (spec example 200)" in {
+      given MdProfile = MdProfile.gfm
+      val source      = "| f\\|oo  |\n| ------ |\n| b `\\|` az |\n| b **\\|** im |\n"
+
+      val table = tableOf(source)
+      assert(rowText(table.rows(1)) == Chunk("b | im"))
+      table.rows(1).children.head.children.collectFirst { case strong: MdNode.Strong => strong.children } match
+        case Some(Chunk(MdNode.Text(value, _))) => assert(value == "|")
+        case other                              => throw new AssertionError(s"expected a Strong wrapping |, got $other")
+
+      assert(Lower.lower(CstParser.parse(source)).unpositioned == Parser.parse(source).getOrThrow.unpositioned)
+
+      val tree   = CstParser.parse(source)
+      val errors = Cst.tilingErrors(tree, source.length)
+      assert(errors.isEmpty, s"does not tile: ${errors.mkString("; ")}")
+      assert(Cst.print(tree) == source, "does not reprint")
+    }
+
+    /**
+     * `||` with nothing between the two pipes is a genuinely empty cell — zero-width, not padded with a placeholder —
+     * which is where a zero-width `TableCell` would first break the CST's tiling invariant: no character of the source
+     * belongs to it, so the pipe on either side has to be the one that owns the boundary. Both the CST and the lowered
+     * tree are checked, not just tiling, because a zero-width cell dropped from the row entirely would also tile
+     * cleanly and reprint the source, and only the cell count and content catch that.
+     */
+    "recognize a genuinely empty cell" in {
+      given MdProfile = MdProfile.gfm
+      val source      = "| a || b |\n| --- | --- | --- |\n"
+
+      val table = tableOf(source)
+      assert(rowText(table.header) == Chunk("a", "", "b"))
+      assert(table.header.children(1).children.isEmpty, s"expected an empty cell, got ${table.header.children(1)}")
+
+      val tree   = CstParser.parse(source)
+      val errors = Cst.tilingErrors(tree, source.length)
+      assert(errors.isEmpty, s"does not tile: ${errors.mkString("; ")}")
+      assert(Cst.print(tree) == source, "does not reprint")
+    }
+
     "treat a trailing escaped pipe as content rather than a closing delimiter" in {
       given MdProfile = MdProfile.gfm
       val table       = tableOf("| a \\| b |\n| --- |\n")

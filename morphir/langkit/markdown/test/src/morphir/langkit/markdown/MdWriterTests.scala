@@ -78,6 +78,10 @@ class MdWriterTests extends Test[Any]:
 
   private def normalized(root: MdNode.Root): MdNode = normalize(root.unpositioned)
 
+  private def cell(value: String): MdNode.TableCell = MdNode.TableCell(Chunk(text(value)))
+
+  private def row(values: String*): MdNode.TableRow = MdNode.TableRow(Chunk.from(values.map(cell)))
+
   private def roundTrips(tree: MdNode.Root, label: String)(using MdStyle)(using MdProfile)(using AssertScope): Unit =
     val written = MdWriter.write(tree)
     Parser.parse(written) match
@@ -403,6 +407,38 @@ class MdWriterTests extends Test[Any]:
       roundTrips(doc(ul(li(p("x"), hr))), "break after a paragraph, `-` bullet")
       roundTrips(doc(ul(li(p("x"), hr))), "break after a paragraph, `*` bullet")(using MdStyle(bullet = '*'))
       roundTrips(doc(ul(li(p("x"), hr))), "break after a paragraph, `+` bullet")(using MdStyle(bullet = '+'))
+    }
+
+    /**
+     * `padTableColumns = false` writes the narrowest legal table: each cell only as wide as its own content, not padded
+     * out to its column's widest cell. The default (padded) style is what every other table case in this file
+     * exercises; this pins the off state, which [[MdStyle.padTableColumns]] has carried since it was added but no case
+     * had exercised off its default.
+     */
+    "a table with padTableColumns = false does not pad its columns to a common width" in {
+      given MdStyle   = MdStyle(padTableColumns = false)
+      given MdProfile = MdProfile.gfm
+      val tree        =
+        doc(MdNode.Table(Chunk(Absent, Absent), row("a", "bbbb"), Chunk(row("cc", "d"))))
+      assert(MdWriter.write(tree) == "| a | bbbb |\n| --- | --- |\n| cc | d |\n", oneLine(MdWriter.write(tree)))
+      roundTrips(tree, "unpadded table")
+    }
+
+    /**
+     * `tableDelimiterWidth` sets the minimum run of dashes a delimiter cell writes, before its alignment colons.
+     * Padding still widens a column beyond that floor when a cell's own content needs more room, which is why the
+     * second column here — two characters wide — writes seven dashes rather than five: the delimiter floor is a
+     * minimum, not a fixed width.
+     */
+    "tableDelimiterWidth sets the minimum run of dashes in the delimiter row" in {
+      given MdStyle   = MdStyle(tableDelimiterWidth = 5)
+      given MdProfile = MdProfile.gfm
+      val tree        = doc(MdNode.Table(Chunk(Absent, Absent), row("a", "bb"), Chunk(row("c", "dddddd"))))
+      assert(
+        MdWriter.write(tree) == "| a     | bb     |\n| ----- | ------ |\n| c     | dddddd |\n",
+        oneLine(MdWriter.write(tree))
+      )
+      roundTrips(tree, "wide delimiter row")
     }
   }
 

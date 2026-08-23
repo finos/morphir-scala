@@ -133,8 +133,8 @@ private[markdown] object MdWriter:
    * unconditionally — so bounding at the next whitespace character never shortens a genuine match. Bounding at the next
    * [[AlwaysEscaped]] character (`@` excepted — see its own doc comment) is the same fact applied one level further:
    * that character is always going to be escaped, which always splits the text into two nodes at reparse time, so no
-   * match can genuinely reach past it either. Passing this bound to [[InlineParser.extendedAutolinkAt]] is what lets a
-   * single forward pass catch a match that a truncated *prefix* would complete — `www.a.exam` out of
+   * match can genuinely reach past it either. Passing this bound to [[ExtendedAutolinks.extendedAutolinkAt]] is what
+   * lets a single forward pass catch a match that a truncated *prefix* would complete — `www.a.exam` out of
    * `www.a.exam_ple.com`, whole only because the trailing `_` invalidates its domain and only visible once the
    * always-escaped `_` ahead is accounted for — the same way the existing mechanism already catches a match starting
    * exactly where it is checked.
@@ -578,7 +578,7 @@ private[markdown] object MdWriter:
         val pending =
           if breakAt >= index then breakAt
           else
-            InlineParser.extendedAutolinkAt(value, index, nodeStart, autolinkBound(value, index)) match
+            ExtendedAutolinks.extendedAutolinkAt(value, index, nodeStart, autolinkBound(value, index)) match
               case Present(matched) => matched.anchor
               case Absent           => breakAt
 
