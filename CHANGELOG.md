@@ -13,6 +13,12 @@ a release.
   integration branch, its promotion pull request and its back-migration are retired. Snapshots publish from `main`
   alone, and `squire branch refresh` now requires `--target`. See decision 0014.
 
+### Removed
+- `Concept.splitFrontmatter` and its `closingFence` helper are gone from the public API of
+  `morphir-knowledge-okf` on JVM, JS and Native, with no deprecation shim. Where a frontmatter fence
+  ends is a syntax question the Markdown parser now answers: parse with a frontmatter-enabled profile
+  (`MdProfile.commonmark.withYamlFrontmatter`) and read `Root.frontmatter` (#1025).
+
 ## [0.5.0-M05]
 
 The first release cut through the independent version streams, and the first since this changelog

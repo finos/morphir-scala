@@ -248,7 +248,7 @@ private[markdown] object CstParser:
     val raw    = source.substring(span.offset, span.end)
     val out    = Chunk.newBuilder[MdCstNode]
     var cursor = span.offset
-    Parser.tableCellSpans(raw).foreach { cell =>
+    TableRows.tableCellSpans(raw).foreach { cell =>
       val from  = span.offset + cell.start
       val until = span.offset + cell.end
       if from >= cursor && until <= span.end then
@@ -359,6 +359,42 @@ private[markdown] object CstParser:
         out.result()
 
   /**
+   * A verbatim-text interior — a code span's, a raw HTML tag's, or an autolink's — with every escape
+   * [[InlineNotes.recordEscape]] noted inside `[from, until)` punched out as its own [[MdCstNode.Escape]], the same
+   * shape [[inlineGap]] punches into a verbatim gap.
+   *
+   * The inline grammar never records an escape inside these constructs — a backslash there is content, not a construct,
+   * everywhere else in this parser — so a recorded escape landing here can only be the one construct that does put one
+   * there: a table cell's stripped `\|`, punched back in so the CST still tiles the source exactly and [[Lower]] reads
+   * it the same way a direct parse does. Character references are not punched here, unlike in a gap: GFM does not
+   * resolve entities inside any of these three constructs, so there is nothing for [[Lower]] to read differently
+   * whether or not this leaves them as plain text.
+   */
+  private def punchedInterior(
+      source: String,
+      from: Int,
+      until: Int,
+      markers: Chunk[Marker],
+      notes: Maybe[InlineNotes]
+  ): Chunk[MdCstNode] =
+    val escapes = notes.map(_.escapeOffsets).getOrElse(Chunk.empty).filter(o => o >= from && o + 2 <= until)
+    if escapes.isEmpty then tile(source, from, until, markers)(MdCstNode.Text(_, _))
+    else
+      val out    = Chunk.newBuilder[MdCstNode]
+      var cursor = from
+      escapes.foreach { offset =>
+        if offset >= cursor && offset < source.length && source.charAt(offset) == '\\' then
+          out.addAll(tile(source, cursor, offset, markers)(MdCstNode.Text(_, _)))
+          val children =
+            leaf(source, offset, offset + 1)(MdCstNode.Token(_, _))
+              ++ leaf(source, offset + 1, offset + 2)(MdCstNode.Text(_, _))
+          out.addOne(MdCstNode.Escape(children, Span.fromStartEnd(offset, offset + 2)))
+          cursor = offset + 2
+      }
+      out.addAll(tile(source, cursor, until, markers)(MdCstNode.Text(_, _)))
+      out.result()
+
+  /**
    * The typed CST node for one inline construct, for the kinds this slice has graduated; [[kyo.Absent]] otherwise.
    *
    * Each case checks the source at its span before claiming it — a code span must start with a backtick, an autolink or
@@ -379,13 +415,13 @@ private[markdown] object CstParser:
       val ticks    = run - span.offset
       val children =
         leaf(source, span.offset, run)(MdCstNode.Token(_, _))
-          ++ tile(source, run, span.end - ticks, markers)(MdCstNode.Text(_, _))
+          ++ punchedInterior(source, run, span.end - ticks, markers, notes)
           ++ leaf(source, span.end - ticks, span.end)(MdCstNode.Token(_, _))
       Present(MdCstNode.CodeSpan(children, span))
 
     case MdNode.InlineHtml(_, MdMeta(Present(span), _))
         if span.offset < source.length && source.charAt(span.offset) == '<' =>
-      Present(MdCstNode.RawHtml(tile(source, span.offset, span.end, markers)(MdCstNode.Text(_, _)), span))
+      Present(MdCstNode.RawHtml(punchedInterior(source, span.offset, span.end, markers, notes), span))
 
     // An autolink is a Link whose source form starts with `<`; a bracketed link or image starts with `[` or `!`.
     case MdNode.Link(_, _, _, MdMeta(Present(span), _))
@@ -393,7 +429,7 @@ private[markdown] object CstParser:
           && span.end <= source.length && span.length >= 2 && source.charAt(span.end - 1) == '>' =>
       val children =
         leaf(source, span.offset, span.offset + 1)(MdCstNode.Token(_, _))
-          ++ tile(source, span.offset + 1, span.end - 1, markers)(MdCstNode.Text(_, _))
+          ++ punchedInterior(source, span.offset + 1, span.end - 1, markers, notes)
           ++ leaf(source, span.end - 1, span.end)(MdCstNode.Token(_, _))
       Present(MdCstNode.Autolink(children, span))
 
@@ -401,7 +437,7 @@ private[markdown] object CstParser:
     // itself, which is exactly the check — its sole text child says what the parse read there, and the two agreeing
     // is what separates it from a bracketed link that happens to be positioned oddly.
     case MdNode.Link(_, _, content, MdMeta(Present(span), _)) if isExtendedAutolink(source, span, content) =>
-      Present(MdCstNode.ExtendedAutolink(tile(source, span.offset, span.end, markers)(MdCstNode.Text(_, _)), span))
+      Present(MdCstNode.ExtendedAutolink(punchedInterior(source, span.offset, span.end, markers, notes), span))
 
     case MdNode.Link(_, _, content, MdMeta(Present(span), _))
         if span.offset < source.length && source.charAt(span.offset) == '[' =>

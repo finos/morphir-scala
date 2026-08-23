@@ -40,7 +40,7 @@ conformance oracle — a comparison with no canonicalization, so an extra or mis
 tree would.
 
 - **CommonMark 0.31.2**: 652 of 652.
-- **GitHub Flavored Markdown 0.29-gfm**: 662 of 663 measured examples.
+- **GitHub Flavored Markdown 0.29-gfm**: 663 of 663 measured examples.
 
 Each GFM example is scored against the base grammar plus the one extension its own fence names, never the full
 GFM profile — an example about tables makes no claim about strikethrough or the tag filter, so measuring it under
@@ -51,15 +51,11 @@ strong emphasis, where GFM 0.29-gfm's text — a snapshot of cmark-gfm from Apri
 released CommonMark version, including the one GFM's own base was drawn from, ever produced. Matching them would
 mean regressing the CommonMark profile to satisfy a stale document.
 
-One further gap is open and tracked, not recorded as a divergence: a backslash-escaped pipe inside a code span
-inside a table cell keeps its backslash instead of losing it (beads `morphir-t3p.8`). It is a parser gap rather
-than a settled divergence, and closing it is what brings the GFM score to its full measured total.
-
 ## The writer's guarantee
 
 The Markdown writer carries the same round-trip guarantee GFM's conformance measurement does. Every measured GFM
-example — scoped extension by extension exactly as conformance scores it, the nine divergences and the one open
-gap excluded — survives being written back out to Markdown text and reparsed with an identical render, the same
+example — scoped extension by extension exactly as conformance scores it, the nine divergences excluded —
+survives being written back out to Markdown text and reparsed with an identical render, the same
 guarantee the CommonMark corpus already held. A table, a task list item and strikethrough all round-trip through
 the writer, reparsed always under the full GFM profile: the writer spells defensively for the widest dialect that
 might read a document back, escaping any punctuation run that dialect could otherwise misread regardless of

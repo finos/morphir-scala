@@ -7,12 +7,6 @@ import scala.language.strictEquality
 
 class ScanBudgetTests extends Test[Any]:
 
-  private def rejects(thunk: => Any): Boolean =
-    try
-      thunk
-      false
-    catch case _: IllegalArgumentException => true
-
   private def input(value: Long): InputSize     = InputSize.fromCodeUnits(value).getOrThrow
   private def work(value: Long): WorkUnits      = WorkUnits.from(value).getOrThrow
   private def nesting(value: Int): NestingDepth = NestingDepth.from(value).getOrThrow
@@ -141,19 +135,19 @@ class ScanBudgetTests extends Test[Any]:
       assert(InputSize.fromMebibytes(-1L) == Result.fail(ScanBudgetError.NegativeInputSize(-1L)))
     "returns a typed failure rather than throwing for a negative megabyte input size" in
       assert(InputSize.fromMegabytes(-1L) == Result.fail(ScanBudgetError.NegativeInputSize(-1L)))
-    "reject negative code-unit counts" in
-      assert(rejects(CodeUnitCount(-1)))
+    "returns a typed failure rather than throwing for a negative code-unit count" in
+      assert(CodeUnitCount.fromInt(-1) == Result.fail(ScanBudgetError.NegativeCodeUnitCount(-1)))
     "returns a typed failure rather than throwing for negative work units" in
       assert(WorkUnits.from(-1L) == Result.fail(ScanBudgetError.NegativeWork(-1L)))
     "returns a typed failure rather than throwing for a negative nesting depth" in
       assert(NestingDepth.from(-1) == Result.fail(ScanBudgetError.NegativeNestingDepth(-1)))
     "returns a typed failure rather than throwing for a negative node count" in
       assert(NodeCount.from(-1L) == Result.fail(ScanBudgetError.NegativeOutputNodes(-1L)))
-    "reject negative source offsets" in
-      assert(rejects(SourceOffset(-1)))
-    "reject empty and blank scan phases" in {
-      assert(rejects(ScanPhase("")))
-      assert(rejects(ScanPhase(" \t\n")))
+    "returns a typed failure rather than throwing for a negative source offset" in
+      assert(SourceOffset.fromInt(-1) == Result.fail(ScanBudgetError.NegativeSourceOffset(-1)))
+    "returns a typed failure rather than throwing for empty and blank scan phases" in {
+      assert(ScanPhase.fromString("") == Result.fail(ScanBudgetError.BlankScanPhase("")))
+      assert(ScanPhase.fromString(" \t\n") == Result.fail(ScanBudgetError.BlankScanPhase(" \t\n")))
     }
     "returns a typed failure rather than throwing for mebibyte overflow" in
       assert(
@@ -194,6 +188,9 @@ class ScanBudgetTests extends Test[Any]:
       assert(WorkUnits(2L * 3L).toLong == 6L)
       assert(NestingDepth(4).toInt == 4)
       assert(NodeCount(8L).toLong == 8L)
+      assert(CodeUnitCount(4).toInt == 4)
+      assert(SourceOffset(4).toInt == 4)
+      assert(ScanPhase("tokenize").value == "tokenize")
     }
 
     "rejects a negative literal input size at compile time" in {
@@ -238,6 +235,32 @@ class ScanBudgetTests extends Test[Any]:
       assert(nodeErrors.exists(_.message.contains("node count must be non-negative")))
     }
 
+    "rejects a negative literal code-unit count and source offset at compile time" in {
+      val codeUnitErrors = scala.compiletime.testing.typeCheckErrors("""
+        import morphir.langkit.core.scanner.*
+        CodeUnitCount(-1)
+      """)
+      val offsetErrors = scala.compiletime.testing.typeCheckErrors("""
+        import morphir.langkit.core.scanner.*
+        SourceOffset(-1)
+      """)
+      assert(codeUnitErrors.exists(_.message.contains("code-unit count must be non-negative")))
+      assert(offsetErrors.exists(_.message.contains("source offset must be non-negative")))
+    }
+
+    "rejects a blank literal scan phase at compile time" in {
+      val emptyErrors = scala.compiletime.testing.typeCheckErrors("""
+        import morphir.langkit.core.scanner.*
+        ScanPhase("")
+      """)
+      val whitespaceErrors = scala.compiletime.testing.typeCheckErrors("""
+        import morphir.langkit.core.scanner.*
+        ScanPhase(" \t\n")
+      """)
+      assert(emptyErrors.exists(_.message.contains("scan phase must be non-empty and non-blank")))
+      assert(whitespaceErrors.exists(_.message.contains("scan phase must be non-empty and non-blank")))
+    }
+
     "rejects a dynamic input size at the compile-time constructor" in {
       val errors = scala.compiletime.testing.typeCheckErrors("""
         import morphir.langkit.core.scanner.*
@@ -245,6 +268,27 @@ class ScanBudgetTests extends Test[Any]:
         InputSize.codeUnits(n)
       """)
       assert(errors.nonEmpty)
+    }
+
+    "rejects a dynamic code-unit count, source offset, and scan phase at the compile-time constructor" in {
+      val codeUnitErrors = scala.compiletime.testing.typeCheckErrors("""
+        import morphir.langkit.core.scanner.*
+        val n = 1
+        CodeUnitCount(n)
+      """)
+      val offsetErrors = scala.compiletime.testing.typeCheckErrors("""
+        import morphir.langkit.core.scanner.*
+        val n = 1
+        SourceOffset(n)
+      """)
+      val phaseErrors = scala.compiletime.testing.typeCheckErrors("""
+        import morphir.langkit.core.scanner.*
+        val s = "tokenize"
+        ScanPhase(s)
+      """)
+      assert(codeUnitErrors.nonEmpty)
+      assert(offsetErrors.nonEmpty)
+      assert(phaseErrors.nonEmpty)
     }
   }
 

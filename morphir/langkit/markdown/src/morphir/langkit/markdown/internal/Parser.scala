@@ -155,9 +155,9 @@ private[markdown] object Parser:
    * Link reference definitions may appear after the text that uses them, so no prose can be parsed until the whole
    * document has been read. A block with no prose resolves to itself.
    */
-  private final case class Deferred(resolve: Map[String, LinkDefinition] => MdNode.FlowContent)
+  private[internal] final case class Deferred(resolve: Map[String, LinkDefinition] => MdNode.FlowContent)
 
-  private object Deferred:
+  private[internal] object Deferred:
     def ready(block: MdNode.FlowContent): Deferred                                = Deferred(_ => block)
     def prose(build: Map[String, LinkDefinition] => MdNode.FlowContent): Deferred = Deferred(build)
 
@@ -168,7 +168,7 @@ private[markdown] object Parser:
    * whole line. Classifying once is the same decision made from one read, and it is the step the open-blocks loop
    * needs: a container has to know what a line is before it can decide whether the line belongs to it.
    */
-  private enum LineKind derives CanEqual:
+  private[internal] enum LineKind derives CanEqual:
     case Blank
     case IndentedCode
     case BlockQuote
@@ -187,10 +187,10 @@ private[markdown] object Parser:
    * by position: `---` starts a thematic break at the top of a block and closes a setext heading under a paragraph.
    * Deciding both here keeps it to one read.
    */
-  private final case class Classified(kind: LineKind, setext: Maybe[HeadingLevel])
+  private[internal] final case class Classified(kind: LineKind, setext: Maybe[HeadingLevel])
 
   /** Precedence follows the spec: indentation first, then the leaf openers, then list markers, then prose. */
-  private def classify(scanner: SourceScanner, line: Line): Classified =
+  private[internal] def classify(scanner: SourceScanner, line: Line): Classified =
     inspectLine(scanner, line) { text =>
       val setext  = setextUnderlineOf(text)
       val trimmed = text.trim
@@ -483,7 +483,7 @@ private[markdown] object Parser:
    * Each condition carries its own end condition, which is why the kind is kept rather than a boolean: conditions one
    * to five end on a closing marker, and six and seven end on a blank line.
    */
-  private enum HtmlBlockKind derives CanEqual:
+  private[internal] enum HtmlBlockKind derives CanEqual:
     case ScriptLike, Comment, ProcessingInstruction, Declaration, CData, KnownTag, AnyTag
 
   private def htmlBlockStart(scanner: SourceScanner, line: Line): Maybe[HtmlBlockKind] =
@@ -728,7 +728,7 @@ private[markdown] object Parser:
             case Present(level) if continued.matchedAll && classified.kind != LineKind.IndentedCode =>
               (last = line, setext = Present(level), beforeUnderline = Present(checkpoint), table = Absent)
             case _ =>
-              tableAlignmentsOf(first, line, continued, classified, segmentCount, profile) match
+              TableRows.tableAlignmentsOf(first, line, continued, classified, segmentCount, profile) match
                 case Present(align) =>
                   (last = line, setext = Absent, beforeUnderline = Absent, table = Present(align))
                 case Absent =>
@@ -745,8 +745,8 @@ private[markdown] object Parser:
 
     gathered.table match
       // The delimiter row is consumed, and the header line above it is the one segment gathered: what remains is
-      // reading the body rows off the cursor, which `readTable` does.
-      case Present(align) => Present(readTable(cursor, first, last, align, cst, profile))
+      // reading the body rows off the cursor, which `TableRows.readTable` does.
+      case Present(align) => Present(TableRows.readTable(cursor, first, last, align, cst, profile))
       case Absent         =>
         val lines   = Chunk.from(segments.result())
         val raw     = lines.map(_._2).mkString("\n")
@@ -798,193 +798,6 @@ private[markdown] object Parser:
               case Absent         => MdNode.Paragraph(content, MdMeta.at(span))
           })
   end readParagraph
-
-  // --- pipe tables ---------------------------------------------------------------------------------------------
-
-  /**
-   * One table row's cells, as ranges into `line` with the padding around each already trimmed off.
-   *
-   * A backslash before a pipe means the pipe is content — spec example 200 puts one inside a code span — so an escaped
-   * pipe never splits a cell. The backslash itself is left in the range and removed by inline parsing, which already
-   * handles backslash escapes.
-   *
-   * GFM removes it here instead, before inline parsing, which is what makes `` `\|` `` mean `` `|` ``. The obstacle is
-   * not the offsets — [[readTable]] hands [[InlineParser]] an `Int => Int` map exactly as [[readParagraph]] does, and
-   * that mechanism already carries a shorter text against a longer source. It is that the AST is produced by lowering
-   * the CST, and the CST holds what was written: a code span's interior would still spell `\|`, so [[Lower]] would read
-   * that value back while the block phase's own tree held `|`, and the two would disagree — which `TableTests`'
-   * agree-between-a-direct-parse-and-a-lowered-CST case exists to catch. Closing it means teaching the CST to own a
-   * consumed escape inside a code-span interior, which is its own piece of work. Until then an escaped pipe inside a
-   * code span stays escaped, and that is the one thing spec example 200 asks for that this parser does not do.
-   *
-   * Outer pipes are optional and each produces an empty cell when present. The first and last cell is dropped when it
-   * is empty and there was a split to produce it, which is what tells `| a |` (one cell) from `a | b` (two) and from
-   * `|| a |` (two, the first genuinely empty) — and, unlike testing the line's own first and last character, from
-   * `| a \|`, whose trailing pipe is content rather than a closing delimiter.
-   */
-  private[internal] def tableCellSpans(line: String): Chunk[(start: Int, end: Int)] =
-    val bounds = List.newBuilder[(start: Int, end: Int)]
-
-    // `escaped` rides the recursion as a parameter rather than sitting outside it as a flag, which is the whole
-    // readability argument for the tail-recursive form: the state a step depends on is visible in its own signature.
-    @tailrec
-    def loop(index: Int, cellStart: Int, escaped: Boolean): Unit =
-      if index >= line.length then bounds += ((start = cellStart, end = index))
-      else
-        val char = line.charAt(index)
-        if escaped then loop(index + 1, cellStart, escaped = false)
-        else if char == '\\' then loop(index + 1, cellStart, escaped = true)
-        else if char == '|' then
-          bounds += ((start = cellStart, end = index))
-          loop(index + 1, index + 1, escaped = false)
-        else loop(index + 1, cellStart, escaped = false)
-
-    loop(0, 0, escaped = false)
-    val all             = Chunk.from(bounds.result()).map(trimmedCell(line, _))
-    val withoutLeading  = if all.size > 1 && isEmptyCell(all.head) then all.drop(1) else all
-    val withoutTrailing =
-      if withoutLeading.size > 1 && isEmptyCell(withoutLeading.last) then withoutLeading.dropRight(1)
-      else withoutLeading
-    withoutTrailing
-
-  private def isEmptyCell(cell: (start: Int, end: Int)): Boolean = cell.end <= cell.start
-
-  /** `cell` with the spaces and tabs at either end taken off; they are padding the author spent, not content. */
-  private def trimmedCell(line: String, cell: (start: Int, end: Int)): (start: Int, end: Int) =
-    @tailrec def left(index: Int): Int =
-      if index < cell.end && isSpaceOrTab(line.charAt(index)) then left(index + 1) else index
-    @tailrec def right(index: Int, floor: Int): Int =
-      if index > floor && isSpaceOrTab(line.charAt(index - 1)) then right(index - 1, floor) else index
-    val start = left(cell.start)
-    (start = start, end = right(cell.end, start))
-
-  private def isSpaceOrTab(char: Char): Boolean = char == ' ' || char == '\t'
-
-  /**
-   * A row's cells as text, for the counting and shape checks the delimiter row is judged by.
-   *
-   * Read off `view.text`, the raw line, rather than off the tab-expanded `text`: a table row's cells are located by
-   * character, and expanding a structural tab to the columns it occupies would move every offset after it.
-   */
-  private def tableCellTexts(line: Line): Chunk[String] =
-    val raw = line.view.text
-    tableCellSpans(raw).map(cell => raw.substring(cell.start, cell.end))
-
-  /**
-   * The alignments a line spells as a delimiter row under `header`, or [[kyo.Absent]] when it is not one.
-   *
-   * A table opens where a setext heading does — on the line below the one it promotes — and for the same reason:
-   * nothing about `| a | b |` says it is a header until the delimiter row underneath says so. cmark-gfm requires the
-   * header to be the paragraph's only line, so a table never interrupts a paragraph that already has content, and it
-   * requires the two rows to agree on how many cells they hold (spec example 203).
-   *
-   * `LineKind.Text` is the whole of "opens nothing else": an indented line is code, and anything the base grammar
-   * claims — a fence, a quote, a list marker — it keeps, since the extension hook in cmark-gfm runs after all of them.
-   * A setext underline is judged before this is even asked, one level up, which is what keeps a bare `---` under a
-   * one-cell header a heading rather than a table.
-   */
-  private def tableAlignmentsOf(
-      header: Line,
-      line: Line,
-      continued: ContinuedLine,
-      classified: Classified,
-      segmentCount: Int,
-      profile: MdProfile
-  ): Maybe[Chunk[Maybe[ColumnAlignment]]] =
-    if !profile.supports(MdExtension.Tables) || segmentCount != 1 || !continued.matchedAll
-      || classified.kind != LineKind.Text
-    then Absent
-    else
-      val delimiterCells = tableCellTexts(line)
-      if delimiterCells.nonEmpty && delimiterCells.size == tableCellTexts(header).size &&
-        delimiterCells.forall(ColumnAlignment.isDelimiterCell)
-      then Present(delimiterCells.map(ColumnAlignment.of))
-      else Absent
-
-  /** One cell of a row being read: where its content sits, and the slot its prose will fill. */
-  private final case class CellSite(span: Span, text: String, slot: InlineSlot, notes: Maybe[InlineNotes])
-
-  private def cellSites(line: Line, cst: Maybe[CstCollector]): Chunk[CellSite] =
-    val source = line.view.text
-    tableCellSpans(source).map(cell =>
-      CellSite(
-        span = Span.fromStartEnd(line.offset + cell.start, line.offset + cell.end),
-        text = source.substring(cell.start, cell.end),
-        slot = InlineSlot(),
-        notes = cst.map(_ => InlineNotes())
-      )
-    )
-
-  /**
-   * The body rows under a delimiter row, and the table they and the header make.
-   *
-   * `header` is the line the delimiter row promoted and `delimiter` the delimiter row itself, both already consumed.
-   * Every following line the cursor offers is a row until one of three things happens: the input ends, a blank line
-   * arrives, or a line opens another block — spec example 201's `> bar`. A row that does not spell as many cells as the
-   * header did is padded and one that spells more is truncated, so the table is rectangular however the source was
-   * written.
-   *
-   * Each cell is a prose block of its own with its own [[InlineSlot]], filled in the deferred phase exactly as a
-   * paragraph's is: a cell may hold a link whose definition appears later in the document.
-   */
-  private def readTable(
-      cursor: ContainerCursor,
-      header: Line,
-      delimiter: Line,
-      align: Chunk[Maybe[ColumnAlignment]],
-      cst: Maybe[CstCollector],
-      profile: MdProfile
-  ): Deferred =
-    val scanner = cursor.scanner
-    val body    = List.newBuilder[Line]
-
-    @tailrec def rows(): Unit =
-      val checkpoint = cursor.checkpoint()
-      cursor.readLine() match
-        case Absent        => cursor.restore(checkpoint)
-        case Present(line) =>
-          if classify(scanner, line).kind == LineKind.Text then
-            body += line
-            scanner.chargeOutputNodes(NodeCount.one)
-            rows()
-          else cursor.restore(checkpoint)
-
-    rows()
-    val bodyLines = Chunk.from(body.result())
-    val span      = Span.fromStartEnd(header.offset, cursor.consumedEnd)
-
-    val headerSites                                                = cellSites(header, cst)
-    val bodySites                                                  = bodyLines.map(cellSites(_, cst))
-    def rowRecord(line: Line, sites: Chunk[CellSite]): CstTableRow =
-      CstTableRow(Span.fromStartEnd(line.offset, line.end), sites.map(site => CstTableCell(site.span, site.slot)))
-
-    cst.foreach(_.record(CstFragment.Table(
-      span,
-      Span.fromStartEnd(delimiter.offset, delimiter.end),
-      rowRecord(header, headerSites),
-      Chunk.from(bodyLines.zip(bodySites).map((line, sites) => rowRecord(line, sites)))
-    )))
-
-    Deferred.prose { defs =>
-      def rowNode(line: Line, sites: Chunk[CellSite]): MdNode.TableRow =
-        val cells = sites.map { site =>
-          val content = InlineParser.parse(site.text, index => site.span.offset + index, defs, site.notes)(using
-            profile
-          )
-          site.slot.fill(content, site.notes)
-          MdNode.TableCell(content, MdMeta.at(site.span))
-        }
-        MdNode.TableRow(
-          fittedCells(cells, align.size, MdNode.TableCell(Chunk.empty)),
-          MdMeta.at(Span.fromStartEnd(line.offset, line.end))
-        )
-      MdNode.Table(
-        align,
-        rowNode(header, headerSites),
-        Chunk.from(bodyLines.zip(bodySites).map((line, sites) => rowNode(line, sites))),
-        MdMeta.at(span)
-      )
-    }
 
   /**
    * A paragraph line with its indentation removed, and the offset moved to match.
