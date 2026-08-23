@@ -77,6 +77,59 @@ class TableTests extends Test[Any]:
     }
 
     /**
+     * The same escape-punching treatment code spans got in t3p.8, extended to raw inline HTML: `Cst.graduate`'s
+     * `RawHtml` case used to tile its interior as plain source text, so a table cell's stripped `\|` reappeared with
+     * its backslash once the CST was lowered back to an `InlineHtml` node, even though the direct parse — which reads
+     * the already-stripped cell text — never saw one. `punchedInterior` (renamed from `codeSpanInterior`, which this
+     * shares with `CodeSpan`, `Autolink` and `ExtendedAutolink` now) closes that gap the same way it did there.
+     */
+    "unescape a pipe inside raw HTML (t3p.10 shape)" in {
+      given MdProfile = MdProfile.gfm
+      val source      = "| <span data-x=\"\\|\">x</span> |\n| --- |\n"
+
+      val table = tableOf(source)
+      table.header.children.head.children.collectFirst { case html: MdNode.InlineHtml => html.value } match
+        case Some(value) => assert(value == "<span data-x=\"|\">")
+        case None        => throw new AssertionError(s"expected an InlineHtml, got ${table.header}")
+
+      assert(Lower.lower(CstParser.parse(source)).unpositioned == Parser.parse(source).getOrThrow.unpositioned)
+
+      val tree   = CstParser.parse(source)
+      val errors = Cst.tilingErrors(tree, source.length)
+      assert(errors.isEmpty, s"does not tile: ${errors.mkString("; ")}")
+      assert(Cst.print(tree) == source, "does not reprint")
+    }
+
+    /**
+     * The bracket autolink shape (`<http://...>`) of the same fix: its interior sits between the `<` and `>` tokens, so
+     * `graduate`'s `Autolink` case punches `[span.offset + 1, span.end - 1)` rather than the whole span the way
+     * `RawHtml` and `ExtendedAutolink` do. An extended (bare) autolink cannot be made to cover this case: an escaped
+     * pipe recorded inside the matched run makes the run's raw source slice disagree in length with the resolved link
+     * text, which is exactly the check `Cst.graduate`'s `isExtendedAutolink` rejects a bracketed link on — so the whole
+     * construct is dropped back to plain text before `punchedInterior` is ever reached, in both the direct parse and
+     * the lowered CST alike. That is a pre-existing gap in `isExtendedAutolink` itself, not one this fix touches, and
+     * this file has nothing to test it with: the direct parse and the lowered CST already agree, on the lossy reading.
+     */
+    "unescape a pipe inside an autolink" in {
+      given MdProfile = MdProfile.gfm
+      val source      = "| <http://example.com/\\|x> |\n| --- |\n"
+
+      val table = tableOf(source)
+      table.header.children.head.children.collectFirst { case link: MdNode.Link => link } match
+        case Some(link) =>
+          assert(link.children == Chunk(MdNode.Text("http://example.com/|x", link.children.head.meta)))
+          assert(link.url == "http://example.com/%7Cx")
+        case None => throw new AssertionError(s"expected a Link, got ${table.header}")
+
+      assert(Lower.lower(CstParser.parse(source)).unpositioned == Parser.parse(source).getOrThrow.unpositioned)
+
+      val tree   = CstParser.parse(source)
+      val errors = Cst.tilingErrors(tree, source.length)
+      assert(errors.isEmpty, s"does not tile: ${errors.mkString("; ")}")
+      assert(Cst.print(tree) == source, "does not reprint")
+    }
+
+    /**
      * A third shape spec example 200 asks for, alongside the header cell and the code-span cell: an escaped pipe
      * wrapped in strong emphasis. This one never went through `cellSites`' escape-stripping trouble the code span did —
      * `InlineParser` already turns `\|` into a literal `|` by its own ordinary escape handling, with or without a table
