@@ -16,6 +16,18 @@ first release: IR explorer and knowledge/intent browser over fixed demo data.
 The renderer never touches Electron APIs: `contextIsolation` stays on, and the only bridge is the
 `morphirIpc` postMessage/onMessage pair exposed by the hand-written preload. See kb intent 0030.
 
+## GitHub connection settings
+
+The desktop Connections panel accepts GitHub.com personal access tokens through the existing JSON-RPC bridge. The
+token stays in the main process after submission. Remember this device is unchecked by default, so ordinary
+connections live only for the running desktop session. Disconnect drops that session token and removes any
+remembered credential.
+
+Electron remembers a token only when `safeStorage` reports encryption is available. On Linux, Morphir refuses
+remembered storage when Electron selects `basic_text` or cannot identify a secure backend. It then continues to
+offer session-only connections. A remembered connection that cannot be written leaves the previous connection in
+place and reports the failure; it does not become a session connection without the user's choice.
+
 ## Downloading a release
 
 Every release asset is published twice, under the same filename:

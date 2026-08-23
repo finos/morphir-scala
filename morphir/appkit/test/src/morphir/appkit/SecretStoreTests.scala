@@ -3,7 +3,7 @@ package morphir.appkit
 import kyo.*
 import kyo.test.*
 import morphir.MorphirException
-import morphir.appkit.internal.KeyringGet
+import morphir.appkit.internal.KeyringAccess
 import morphir.appkit.internal.PlatformSecurity
 import morphir.appkit.internal.SecurityCli
 
@@ -75,14 +75,14 @@ class SecretStoreTests extends Test[Any]:
       assert(true)
     }
     "yields a password from the keyring seam" in {
-      val store = SecretStore.javaKeychain(KeyringGet.succeed("from-keyring"))
+      val store = SecretStore.javaKeychain(KeyringAccess.fake(("gh", "morphir", "from-keyring")))
       run(store.get("gh", "morphir")).map {
         case Result.Success(Present(got)) => assert(got == Secret.fromStored("from-keyring").get)
         case _                            => assert(false)
       }
     }
     "returns Absent when the keyring has no entry" in {
-      val store = SecretStore.javaKeychain(KeyringGet.missing)
+      val store = SecretStore.javaKeychain(KeyringAccess.fake())
       run(store.get("gh", "morphir")).map {
         case Result.Success(Absent) => assert(true)
         case _                      => assert(false)

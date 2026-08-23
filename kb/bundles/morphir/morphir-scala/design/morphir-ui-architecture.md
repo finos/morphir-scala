@@ -102,3 +102,7 @@ The desktop app splits the same way: `morphir/desktop/main` holds testable servi
 types, so its test bundle never links `require("electron")`), `morphir/desktop/boot` holds the
 Electron bootstrap, and `morphir/desktop/renderer` mounts the shell. Hosts adopt the theme by
 injecting `Theme.css`.
+
+The proposed browser host and shared GitHub connection store follow the same boundary. The UI owns a
+transport-blind connection contract and safe status signals. Host processes own submitted tokens, validation, and
+persistence. See [GitHub connection settings and local web host](./github-connection-settings-and-local-web-host.md).

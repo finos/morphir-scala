@@ -562,6 +562,33 @@ trait LoweringRealIrFixture extends JavaModule {
   }
 }
 
+/** Links the browser renderer and exposes only its canonical web assets as JVM classpath resources. */
+trait MorphirWebServerResources extends JavaModule {
+  def webIndexSource = Task.Source(mill.api.BuildCtx.workspaceRoot / "morphir" / "web" / "index.html")
+
+  def webStylesSource = Task.Source(mill.api.BuildCtx.workspaceRoot / "morphir" / "web" / "morphir-web.css")
+
+  def linkedWebResources: T[PathRef] = Task {
+    val resourceRoot = Task.dest / "morphir-web"
+    val assetRoot    = resourceRoot / "assets"
+    val linked       = build.morphir.web.renderer.js.fullLinkJS().dest.path
+    os.makeDir.all(assetRoot)
+    os.copy.over(webIndexSource().path, resourceRoot / "index.html")
+    os.copy.over(webStylesSource().path, assetRoot / "morphir-web.css")
+    os.copy.over(linked / "main.js", assetRoot / "morphir-web-renderer.js")
+    PathRef(Task.dest)
+  }
+
+  override def resources: T[Seq[PathRef]] = Task {
+    super.resources() :+ linkedWebResources()
+  }
+}
+
+/** The served renderer has no source map because the host deliberately exposes no source-map route. */
+trait MorphirWebRendererModule extends ScalaJSModule {
+  override def scalaJSSourceMap: T[Boolean] = Task { false }
+}
+
 /** `tools.js`'s doc-source filtering: scaladoc's JS output ships `.tasty` files needing this narrowing. */
 trait ToolsJSDocSources extends ScalaJSModule {
   override def docSources = Task {
@@ -849,6 +876,15 @@ trait MorphirTestsJSTestSources extends JavaModule {
   )
 }
 
+/** Host-only sources shared by Scala.js and JVM, but excluded from WebAssembly. */
+trait MorphirHostSources extends JavaModule {
+  def hostSources: T[Seq[PathRef]] = Task.Sources(moduleDir / "host" / "src")
+
+  override def sources: T[Seq[PathRef]] = Task {
+    super.sources() ++ hostSources()
+  }
+}
+
 /**
  * Injects the linked `langkit.elm.compiler.api.wasm` output directory into `langkit.itest`'s forked JVMs.
  *
@@ -976,10 +1012,10 @@ object MyAliases extends Aliases {
    */
   def testJVMPlatform = alias(
     "morphir.jvm.__.compile",
-    "morphir.{appkit,benchmarks,buildkit.core,connector.github,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools}.jvm.__.compile",
+    "morphir.{appkit,benchmarks,buildkit.core,connector.github,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools,ui,web.server}.jvm.__.compile",
     "morphir.jvm.publishArtifacts",
-    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,extensibility,interop.borer,interop.zio.json,knowledge.okf,langkit.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,lib.interop,model,model.lowering,naming,prelude,tests,tools}.jvm.publishArtifacts",
-    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,model,model.lowering,prelude,tests}.jvm.test",
+    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,extensibility,interop.borer,interop.zio.json,knowledge.okf,langkit.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,lib.interop,model,model.lowering,naming,prelude,tests,tools,ui}.jvm.publishArtifacts",
+    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,model,model.lowering,prelude,tests,ui,web.server}.jvm.test",
     "morphir.langkit.itest.testCached"
   )
   def testJVMCached = alias("morphir.__.jvm.__.testCached")

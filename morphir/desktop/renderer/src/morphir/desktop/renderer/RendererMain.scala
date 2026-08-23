@@ -4,6 +4,7 @@ import kyo.*
 import kyo.UI.*
 import morphir.appkit.electron.*
 import morphir.ui.{AppShell, IrExplorerView, KnowledgeBrowserView, SchemePicker, SettingsView, Theme, Toggle}
+import morphir.ui.github.{GitHubConnectionStore, GitHubConnectionView}
 import morphir.ui.layout.SettingsKey
 import morphir.ui.services.*
 import scala.scalajs.js
@@ -39,6 +40,8 @@ object RendererMain:
           state   <- AppShell.ShellState.init()
           port    <- ElectronPorts.rendererPort(bridgeFromWindow)
           client  <- JsonRpcHandler.init(ElectronIpcTransport.fromPort(port))
+          github  <- GitHubConnectionStore.init(remoteGitHub(client))
+          _       <- github.load
           version <-
             client.call[AppVersionRequest, AppVersionResponse](ShellRpc.methods.appVersion, AppVersionRequest())
           packages <-
@@ -80,10 +83,9 @@ object RendererMain:
               )
             ),
             state = state,
-            settingsSections = settingsSections(version.version, recents.workspaces, bundles.bundles, state),
+            settingsSections = settingsSections(version.version, recents.workspaces, bundles.bundles, state, github),
             customChrome = true
           )
-          _ <- client.notify[String]("morphir/shell/smokeDone", "done")
           // Attach before mounting: runMount does not return while the app is on screen, and the drag
           // adapter listens on the document, so it needs no mounted element.
           _ <- AppShell.attachShellDom(state)
@@ -95,12 +97,53 @@ object RendererMain:
     import AllowUnsafe.embrace.danger
     val _ = Sync.Unsafe.evalOrThrow(Fiber.initUnscoped(program).unit)
 
+  private def remoteGitHub(client: JsonRpcHandler): GitHubConnectionService = new GitHubConnectionService:
+    def status(): GitHubConnectionStatus < (Async & Abort[GitHubConnectionError]) =
+      call(client.call[StatusRequest, StatusResponse](GitHubConnectionRpc.methods.status, StatusRequest()))
+        .map(_.status)
+
+    def connect(
+        submission: TokenSubmission,
+        remember: Boolean
+    ): GitHubConnectionStatus < (Async & Abort[GitHubConnectionError]) =
+      call(
+        client.call[ConnectRequest, ConnectResponse](
+          GitHubConnectionRpc.methods.connect,
+          ConnectRequest(submission, remember)
+        )
+      ).map(_.status)
+
+    def disconnect(): Unit < (Async & Abort[GitHubConnectionError]) =
+      call(
+        client.call[DisconnectRequest, DisconnectResponse](
+          GitHubConnectionRpc.methods.disconnect,
+          DisconnectRequest()
+        )
+      ).unit
+
+  private def call[A](
+      operation: A < (Async & Abort[JsonRpcError | Closed])
+  ): A < (Async & Abort[GitHubConnectionError]) =
+    Abort.run[JsonRpcError | Closed](operation).map {
+      case Result.Success(value)                                                                           => value
+      case Result.Failure(error: JsonRpcImplementationError) if error.code == GitHubConnectionRpc.wireCode =>
+        error.data match
+          case Present(data) =>
+            Structure.decode[GitHubConnectionError](data) match
+              case Result.Success(githubError) => Abort.fail(githubError)
+              case _                           => Abort.fail(GitHubConnectionError.GitHubUnavailable)
+          case Absent => Abort.fail(GitHubConnectionError.GitHubUnavailable)
+      case Result.Failure(_) | Result.Panic(_) =>
+        Abort.fail(GitHubConnectionError.GitHubUnavailable)
+    }
+
   /** The settings surface's sections. Values come from the same services the workspace uses. */
   private def settingsSections(
       version: String,
       recents: Chunk[WorkspaceRef],
       bundles: Chunk[BundleInfo],
-      state: AppShell.ShellState
+      state: AppShell.ShellState,
+      github: GitHubConnectionStore
   ): Chunk[AppShell.SettingsSection] =
     Chunk(
       AppShell.SettingsSection(
@@ -118,6 +161,17 @@ object RendererMain:
               ),
               SettingsView.Row.value("Reopen on launch", "Restore the last workspace at startup.", "On")
             )
+          )
+        )
+      ),
+      AppShell.SettingsSection(
+        SettingsKey("connections"),
+        "Connections",
+        Chunk(
+          GitHubConnectionView.view(
+            github.state,
+            (submission, remember) => github.connect(submission, remember),
+            github.disconnect
           )
         )
       ),

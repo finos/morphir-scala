@@ -41,6 +41,17 @@ Scala Native spawn that process. `TokenProvider.vault` reads
 
 Tests replay recorded GraphQL JSON envelopes and do not call `api.github.com`.
 
+## GitHub.com token connections
+
+The connection settings flow supports pasted GitHub.com personal access tokens only. Create a token through
+[GitHub's personal access token settings](https://github.com/settings/tokens), then grant only the repository or
+organization access the work needs. Morphir does not prescribe a broad token scope. Authentication confirms the
+GitHub login; it does not establish access to every repository, and repository calls still report their own
+authorization failures.
+
+The live endpoint is fixed to `https://api.github.com/graphql`. GitHub Enterprise Server support, including
+hostname selection and separate remembered credentials, is follow-up `morphir-sx3`.
+
 `kyo-caliban` is a GraphQL server and is not used here.
 
 ## Artifact

@@ -11,6 +11,11 @@ private[github] object GraphQl:
 
   final case class Error(message: String) derives Schema
 
+  final case class Viewer(login: String) derives Schema
+  final case class ViewerData(viewer: Maybe[Viewer]) derives Schema
+  final case class ViewerLoginEnvelope(data: Maybe[ViewerData], errors: Maybe[Chunk[Error]] = Absent) derives Schema
+  final case class ViewerLoginRequest(query: String) derives Schema
+
   final case class PageInfo(hasNextPage: Boolean = false, endCursor: Maybe[String] = Absent) derives Schema
 
   final case class Nodes[A](nodes: Chunk[A], pageInfo: Maybe[PageInfo] = Absent) derives Schema
@@ -229,6 +234,9 @@ private[github] object GraphQl:
   val emptyPullRequest: String = """{"data":{"repository":{"pullRequest":null}}}"""
   val emptyDiscussion: String  = """{"data":{"repository":{"discussion":null}}}"""
 
+  val viewerLoginDocument: String       = "query MorphirViewerLogin { viewer { login } }"
+  private val viewerVerificationFailure = GitHubException.GraphQl("GitHub token verification failed")
+
   def listIssuesDocument(
       repository: RepositoryRef,
       after: Maybe[Cursor] = Absent,
@@ -401,6 +409,12 @@ private[github] object GraphQl:
       envelope.data.flatMap(_.repository).map(repo => page(repo.issues, toIssue)).getOrElse(ConnectionPage())
     }
 
+  def decodeViewerLogin(json: String): Result[GitHubException, GitHubLogin] =
+    summon[Schema[ViewerLoginEnvelope]].decodeString(json) match
+      case Result.Success(envelope) => viewerLoginFrom(envelope)
+      case Result.Failure(_)        => Result.fail(viewerVerificationFailure)
+      case Result.Panic(_)          => Result.fail(viewerVerificationFailure)
+
   def decodePullRequests(json: String): Result[GitHubException, ConnectionPage[PullRequest]] =
     decodeEnvelopeValue(json, summon[Schema[PullRequestsEnvelope]], _.errors) { envelope =>
       envelope.data.flatMap(
@@ -486,6 +500,18 @@ private[github] object GraphQl:
       envelope.errors,
       envelope.data.flatMap(_.repository).map(repo => page(repo.issues, toIssue)).getOrElse(ConnectionPage())
     )
+
+  def viewerLoginFrom(envelope: ViewerLoginEnvelope): Result[GitHubException, GitHubLogin] =
+    envelope.errors match
+      case Present(errs) if errs.nonEmpty =>
+        Result.fail(viewerVerificationFailure)
+      case _ =>
+        envelope.data.flatMap(_.viewer) match
+          case Present(viewer) =>
+            GitHubLogin.parse(viewer.login) match
+              case Present(login) => Result.succeed(login)
+              case Absent         => Result.fail(viewerVerificationFailure)
+          case _ => Result.fail(viewerVerificationFailure)
 
   def pullRequestsFrom(envelope: PullRequestsEnvelope): Result[GitHubException, ConnectionPage[PullRequest]] =
     fromErrors(

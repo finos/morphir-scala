@@ -24,17 +24,16 @@ private[appkit] object PlatformSecurity extends SecurityCli:
           stderrFiber <- Fiber.init(Scope.run(process.stderr.run))
           exitCode    <- process.waitFor
           stdout      <- stdoutFiber.get
-          stderr      <- stderrFiber.get
-          out = String(stdout.toArray, StandardCharsets.UTF_8)
-          err = String(stderr.toArray, StandardCharsets.UTF_8)
-          value <-
+          _           <- stderrFiber.get
+          value       <-
             if exitCode.toInt == 0 then
               Sync.defer {
+                val out   = String(stdout.toArray, StandardCharsets.UTF_8)
                 val value = stripTrailingLineEnding(out)
                 if value.isEmpty then Absent else Present(value)
               }
             else if exitCode.toInt == NotFound then Sync.defer(Absent)
-            else Abort.fail(SecretException.LookupFailed(detail(exitCode.toInt, err, out)))
+            else Abort.fail(SecretException.LookupFailed(s"security exited ${exitCode.toInt}"))
         yield value
       }
     }
@@ -42,18 +41,11 @@ private[appkit] object PlatformSecurity extends SecurityCli:
   private def commandFailure(exception: CommandException): SecretException =
     exception match
       case _: ProgramNotFoundException | _: PermissionDeniedException =>
-        SecretException.NotAvailable(s"security is not installed or could not be started: ${exception.getMessage}")
-      case other =>
-        SecretException.LookupFailed(other.getMessage)
+        SecretException.NotAvailable("security is not installed or could not be started")
+      case _ =>
+        SecretException.LookupFailed("security command could not be started")
 
   private[appkit] def stripTrailingLineEnding(value: String): String =
     if value.endsWith("\r\n") then value.dropRight(2)
     else if value.endsWith("\n") then value.dropRight(1)
     else value
-
-  private def detail(code: Int, err: String, out: String): String =
-    val fromErr = err.trim
-    val fromOut = out.trim
-    if fromErr.nonEmpty then s"security exited $code: $fromErr"
-    else if fromOut.nonEmpty then s"security exited $code: $fromOut"
-    else s"security exited $code"

@@ -39,7 +39,15 @@ object ElectronApp:
     }
 
   def createWindow(options: WindowOptions): Window =
-    val webPreferences = js.Dynamic.literal()
+    val browserWindow = new facades.BrowserWindow(windowOptions(options))
+    Window(browserWindow)
+
+  private[electron] def windowOptions(options: WindowOptions): js.Object =
+    val webPreferences = js.Dynamic.literal(
+      contextIsolation = true,
+      sandbox = true,
+      nodeIntegration = false
+    )
     options.preloadPath match
       case Present(path) => webPreferences.preload = path
       case Absent        => ()
@@ -57,8 +65,7 @@ object ElectronApp:
         windowOptions.titleBarStyle = "hiddenInset"
         windowOptions.trafficLightPosition = js.Dynamic.literal(x = x, y = y)
       case Chrome.Native => ()
-    val browserWindow = new facades.BrowserWindow(windowOptions.asInstanceOf[js.Object])
-    Window(browserWindow)
+    windowOptions.asInstanceOf[js.Object]
 
   def appVersion: String = facades.app.getVersion()
 
