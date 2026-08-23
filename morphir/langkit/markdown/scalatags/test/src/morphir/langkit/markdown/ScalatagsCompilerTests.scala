@@ -3,7 +3,6 @@ package morphir.langkit.markdown
 import kyo.*
 import kyo.test.*
 import morphir.langkit.core.Span
-import morphir.langkit.markdown.internal.Parser
 
 /**
  * Every expectation here is the `html` field of a real CommonMark 0.31.2 example, named by its number, copied
@@ -21,6 +20,10 @@ class ScalatagsCompilerTests extends Test[Any]:
 
   private def render(blocks: MdNode.FlowContent*): String =
     ScalatagsCompiler.render(MdNode.Root(Chunk.from(blocks), meta = meta))
+
+  /** A table row of one-cell-per-value plain-text cells. */
+  private def tableRow(values: String*): MdNode.TableRow =
+    MdNode.TableRow(Chunk.from(values.map(value => MdNode.TableCell(prose(value), meta))), meta)
 
   "ScalatagsCompiler" - {
 
@@ -90,26 +93,38 @@ class ScalatagsCompilerTests extends Test[Any]:
       )
 
     "renders a table with a header and a body (spec example 198)" in {
-      given MdProfile = MdProfile.gfm
-      val rendered    =
-        ScalatagsCompiler.render(Parser.parse("| foo | bar |\n| --- | --- |\n| baz | bim |\n").getOrThrow)
-      assert(rendered ==
+      val table = MdNode.Table(
+        align = Chunk(Absent, Absent),
+        header = tableRow("foo", "bar"),
+        rows = Chunk(tableRow("baz", "bim")),
+        meta = meta
+      )
+      assert(render(table) ==
         "<table>\n<thead>\n<tr>\n<th>foo</th>\n<th>bar</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n" +
         "<td>baz</td>\n<td>bim</td>\n</tr>\n</tbody>\n</table>\n")
     }
 
     "puts alignment in an attribute, not a style (spec example 199)" in {
-      given MdProfile = MdProfile.gfm
-      val rendered    =
-        ScalatagsCompiler.render(Parser.parse("| abc | defghi |\n:-: | -----------:\nbar | baz\n").getOrThrow)
+      val table = MdNode.Table(
+        align = Chunk(Present(ColumnAlignment.Center), Present(ColumnAlignment.Right)),
+        header = tableRow("abc", "defghi"),
+        rows = Chunk(tableRow("bar", "baz")),
+        meta = meta
+      )
+      val rendered = render(table)
       assert(rendered.contains("""<th align="center">abc</th>"""))
       assert(rendered.contains("""<td align="right">baz</td>"""))
       assert(!rendered.contains("text-align"))
     }
 
     "omits tbody entirely when there are no body rows (spec example 205)" in {
-      given MdProfile = MdProfile.gfm
-      val rendered    = ScalatagsCompiler.render(Parser.parse("| abc | def |\n| --- | --- |\n").getOrThrow)
+      val table = MdNode.Table(
+        align = Chunk(Absent, Absent),
+        header = tableRow("abc", "def"),
+        rows = Chunk.empty,
+        meta = meta
+      )
+      val rendered = render(table)
       assert(rendered == "<table>\n<thead>\n<tr>\n<th>abc</th>\n<th>def</th>\n</tr>\n</thead>\n</table>\n")
       assert(!rendered.contains("tbody"))
     }

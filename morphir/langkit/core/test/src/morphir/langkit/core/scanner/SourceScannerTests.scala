@@ -258,11 +258,11 @@ class SourceScannerTests extends Test[Any]:
       val result = SourceScanner.scan(source) { scanner =>
         assert(scanner.peek(CodeUnitCount(4)).exists(_.isHighSurrogate))
         assert(scanner.peek(CodeUnitCount(5)).exists(_.isLowSurrogate))
-        scanner.advance(CodeUnitCount(source.length))
+        scanner.advance(CodeUnitCount.fromInt(source.length).getOrThrow)
         scanner.offset
       }
 
-      assert(result == ScanResult.Success(SourceOffset(source.length)))
+      assert(result == ScanResult.Success(SourceOffset.fromInt(source.length).getOrThrow))
     }
 
     "navigates an empty source without work" in {
