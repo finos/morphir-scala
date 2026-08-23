@@ -36,9 +36,40 @@ object SquireLauncherFixtures:
     val stderr  = new String(process.getErrorStream.readAllBytes(), StandardCharsets.UTF_8)
     LaunchedSquire(process.waitFor(), stdout, stderr)
 
+  /**
+   * Publish an executable atomically. A plain `writeString` + `chmod` + immediate `exec` races on Linux CI with
+   * `ETXTBSY` (`/usr/bin/env: 'bash': Text file busy`) when the kernel still holds the write mapping. Write a sibling
+   * temp, force the bytes out, mark executable, then rename into place.
+   */
   def executable(path: java.nio.file.Path, text: String): Unit =
-    Files.writeString(path, text, StandardCharsets.UTF_8)
-    if !path.toFile.setExecutable(true) then throw new AssertionError(s"could not make $path executable")
+    val parent = Option(path.getParent).getOrElse {
+      throw new AssertionError(s"executable path has no parent: $path")
+    }
+    Files.createDirectories(parent)
+    val temp = Files.createTempFile(parent, path.getFileName.toString + ".", ".tmp")
+    try
+      Files.writeString(temp, text, StandardCharsets.UTF_8)
+      val channel = java.nio.channels.FileChannel.open(temp, java.nio.file.StandardOpenOption.WRITE)
+      try channel.force(true)
+      finally channel.close()
+      if !temp.toFile.setExecutable(true) then
+        throw new AssertionError(s"could not make $temp executable")
+      try
+        Files.move(
+          temp,
+          path,
+          java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+          java.nio.file.StandardCopyOption.ATOMIC_MOVE
+        )
+      catch
+        case _: java.nio.file.AtomicMoveNotSupportedException =>
+          Files.move(temp, path, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+    catch
+      case error: Exception =>
+        Files.deleteIfExists(temp)
+        throw error
+    if !path.toFile.canExecute && !path.toFile.setExecutable(true) then
+      throw new AssertionError(s"could not make $path executable")
 
 object SquireCiPolicy:
   val SupportedBranches = List("main", "0.4.x")
@@ -304,6 +335,10 @@ object SquireCiPolicy:
     expect(
       script.contains("mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll"),
       "ci.lint must run checkFormatAll so modules without ScalafmtModule stay covered"
+    )
+    expect(
+      script.contains("format.checkBuildAndElm"),
+      "ci.lint must check build .mill files and Elm sources via format.checkBuildAndElm"
     )
     expect(
       script.contains("exclusive = true"),
@@ -1624,10 +1659,16 @@ class SquireCiPolicySpec extends Test[Any]:
         "mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll",
         "morphir.__.checkFormat"
       )
+      val withoutBuildAndElm = replaceOnce(
+        sonatypePublishTask,
+        "format.checkBuildAndElm",
+        "format.checkAll"
+      )
       assert(rejects(assertLintJobPolicy, miseLint))
       assert(rejects(assertCiLintPolicy, withoutExclude))
       assert(rejects(assertCiLintPolicy, withoutSources))
       assert(rejects(assertCiLintPolicy, withoutCheckFormatAll))
+      assert(rejects(assertCiLintPolicy, withoutBuildAndElm))
       assert(true)
     }
 
@@ -2172,11 +2213,14 @@ class SquireMisePolicySpec extends Test[Any]:
 
   /**
    * The harness replaces PATH with its own `bin` so a task script can only reach the programs the policy approves, and
-   * that shadows the real `bash` with the recording shim. The shim therefore has to name a real bash by absolute path,
+   * that shadows the real `bash` with a forwarding shim. The shim therefore has to name a real bash by absolute path,
    * and a hardcoded one does not travel: bash is `/bin/bash` on macOS and `/usr/bin/bash` on most Linux distributions.
    * Naming the wrong one fails every test in this suite with exit 126 before any policy verdict is reached, which is
    * how the policy went unverified on macOS. Resolve it from the ambient PATH, which is what a shell outside the
    * sandbox would do, and fall back to the two conventional locations.
+   *
+   * The outer interpreter must be this absolute path — not the just-written PATH `bash` shim. Invoking the shim via
+   * `/usr/bin/env … bash` races on Linux CI with `ETXTBSY` (`Text file busy`) even after an atomic publish.
    */
   private lazy val ambientBash: String =
     val fromPath = Option(java.lang.System.getenv("PATH")).getOrElse("")
@@ -2222,7 +2266,7 @@ class SquireMisePolicySpec extends Test[Any]:
                   s"PATH=${(root / "bin").toString}",
                   s"SQUIRE_TASK_LOG=${log.toString}",
                   s"SQUIRE_APPROVED_TASK_PROGRAMS=${expectedPrograms.toList.sorted.mkString(",")}",
-                  "bash",
+                  ambientBash,
                   (root / "task-script").toString
                 ),
                 Present(root)

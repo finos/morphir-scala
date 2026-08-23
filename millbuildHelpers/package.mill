@@ -1,0 +1,11 @@
+package build.millbuildHelpers
+
+import mill.*, mill.scalalib.*, mill.scalalib.scalafmt.ScalafmtModule
+import millbuild.{Versions => Vers}
+
+/** Unit-test host for pure millbuild selection helpers. See [[build.MorphirMillbuildHelpersModule]]. */
+object `package` extends build.MorphirMillbuildHelpersModule {
+  object test extends ScalaTests with TestModule.Utest with ScalafmtModule {
+    def utestVersion = Vers.utest
+  }
+}

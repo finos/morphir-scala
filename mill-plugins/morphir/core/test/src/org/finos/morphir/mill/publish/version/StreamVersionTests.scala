@@ -59,7 +59,7 @@ object StreamVersionTests extends TestSuite {
 
     test("a dirty tree refuses a release even when not marked as an explicit publish") {
       val messyOnTag = GitState(Some("v0.6.0-M01"), 0, "abc123def", dirty = true)
-      val result      = StreamVersion.compose("0.6.0-M01", None, messyOnTag, PublishMode.Release, stream)
+      val result     = StreamVersion.compose("0.6.0-M01", None, messyOnTag, PublishMode.Release, stream)
       assert(result.isLeft)
       assert(result.left.toOption.exists(_.contains("dirty")))
     }
@@ -95,7 +95,7 @@ object StreamVersionTests extends TestSuite {
 
     test("a revision that is too short fails, naming it") {
       val shortRevision = clean.copy(revision = "abc12")
-      val result = StreamVersion.compose("0.6.0-M01", None, shortRevision, PublishMode.Snapshot("main"), stream)
+      val result        = StreamVersion.compose("0.6.0-M01", None, shortRevision, PublishMode.Snapshot("main"), stream)
       assert(result.isLeft)
       assert(result.left.toOption.exists(_.contains("abc12")))
     }

@@ -112,6 +112,26 @@ request's merge commit to be an ancestor of `origin/main`. It therefore refuses 
 after the matching pull request. The only remote update it can make is protected by `--force-with-lease`; it never
 uses or recommends unconditional force.
 
+## Formatting
+
+Mill owns formatting for Scala (scalafmt, including `.mill` build files) and Elm (elm-format). Prefer a narrow selection when you know what changed; use a full sweep before push or when drift is unknown.
+
+| Intent | Example |
+|--------|---------|
+| Everything | `./mill format` |
+| Scala + `.mill` | `./mill format --kind scala` |
+| Elm | `./mill format --kind elm` or `./mill format.elm` |
+| Known paths | `./mill format --paths a.scala --paths b.mill --paths c.elm` |
+| Git-touched | `./mill format --changed` |
+| Mill sources selector | `./mill format --sources 'morphir.langkit.jvm.sources'` |
+| Check only | `./mill format --check …` |
+
+- **Agents:** prefer `./mill format --paths …` or `./mill format --changed` so a full-repo sweep is not the hot path.
+- **Full write:** `./mill format` (or `--kind scala` / `--kind elm` when only one side changed).
+- **CI gate:** `./mill --ticker false -i ci.lint` (same surface as a full `./mill format --check`: Scala module sources, build `.mill` files, and Elm sources). Local shorthand: `mise run lint`.
+
+Shortcuts (via [mill-aliases](https://github.com/carlosedp/mill-aliases)): `./mill Alias/run fmt` → `format`; `./mill Alias/run checkfmt` → `format.checkAll`. Prefer `./mill format --check …` when you need flags; aliases cannot forward them.
+
 ## Benchmarking
 
 The repository carries a JMH benchmark module, [`morphir/benchmarks`](./morphir/benchmarks), on Mill's JMH contrib.

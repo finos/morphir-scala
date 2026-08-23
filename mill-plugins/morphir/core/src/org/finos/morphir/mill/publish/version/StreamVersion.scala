@@ -70,16 +70,15 @@ object StreamVersion {
 
   /**
    * A dirty tree is only ever a hard error when this build is actually publishing: an explicit
-   * `MORPHIR_PUBLISH_MODE=snapshot` request, or a release (which can only be reached by inference,
-   * sitting on this stream's own tag — see [[resolveMode]]). `explicitPublish` carries the former;
-   * `mode == PublishMode.Release` carries the latter regardless of `explicitPublish`.
+   * `MORPHIR_PUBLISH_MODE=snapshot` request, or a release (which can only be reached by inference, sitting on this
+   * stream's own tag — see [[resolveMode]]). `explicitPublish` carries the former; `mode == PublishMode.Release`
+   * carries the latter regardless of `explicitPublish`.
    *
-   * With no publish mode set at all — the local-development path, where `streamVersion` is read
-   * only to feed BuildInfo during an ordinary compile — a dirty tree must not block that compile.
-   * Refusing there regressed `mise run test:jvm` for anyone with uncommitted or untracked changes,
-   * which the old `VcsVersion`-backed version never did: it stayed on the happy path and appended a
-   * `-DIRTY<hash>` marker instead, so the dirty state was visible without being fatal. This restores
-   * that behaviour for exactly the same case.
+   * With no publish mode set at all — the local-development path, where `streamVersion` is read only to feed BuildInfo
+   * during an ordinary compile — a dirty tree must not block that compile. Refusing there regressed `mise run test:jvm`
+   * for anyone with uncommitted or untracked changes, which the old `VcsVersion`-backed version never did: it stayed on
+   * the happy path and appended a `-DIRTY<hash>` marker instead, so the dirty state was visible without being fatal.
+   * This restores that behaviour for exactly the same case.
    */
   def compose(
       releaseLine: String,

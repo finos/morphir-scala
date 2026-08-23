@@ -14,9 +14,9 @@ final case class ReleaseManifest(version: String, entries: Seq[ManifestEntry])
  * `<outputDir>/morphir-desktop-<token>-<version>.<ext>` with a `.sha256` sidecar, plus one `checksums.txt` covering
  * every asset.
  *
- * `outputDir` is treated as fully owned, derived output: a successful run empties it first, so it ends up
- * containing exactly the current manifest and nothing left over from a previous version. A failed run — one
- * where the staging tree does not validate — never touches a pre-existing `outputDir`.
+ * `outputDir` is treated as fully owned, derived output: a successful run empties it first, so it ends up containing
+ * exactly the current manifest and nothing left over from a previous version. A failed run — one where the staging tree
+ * does not validate — never touches a pre-existing `outputDir`.
  *
  * Only archives are flagged as Maven artifacts; installers are GitHub-Releases-only.
  */

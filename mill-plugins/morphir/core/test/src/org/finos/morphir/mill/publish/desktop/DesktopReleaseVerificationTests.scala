@@ -3,10 +3,10 @@ package org.finos.morphir.mill.publish.desktop
 import utest.*
 
 /**
- * End-to-end: stage raw per-platform output, canonicalize it with [[DesktopRelease]], fabricate a signature,
- * read the result back with [[ReleaseSnapshot.read]], and verify it with [[DesktopReleaseChecks]] — the same
- * pipeline `ci.desktop.verify` runs. This is the check that proves the job-boundary gap (digests computed on
- * one runner, assets crossing to another) is actually closed.
+ * End-to-end: stage raw per-platform output, canonicalize it with [[DesktopRelease]], fabricate a signature, read the
+ * result back with [[ReleaseSnapshot.read]], and verify it with [[DesktopReleaseChecks]] — the same pipeline
+ * `ci.desktop.verify` runs. This is the check that proves the job-boundary gap (digests computed on one runner, assets
+ * crossing to another) is actually closed.
  */
 object DesktopReleaseVerificationTests extends TestSuite {
   private val version   = "0.4.2"
