@@ -4,12 +4,15 @@ import morphir.langkit.core.Span
 
 sealed abstract case class SourceView private (source: String, span: Span) derives CanEqual:
   /** Inclusive start of this half-open source range, measured in UTF-16 code units. */
-  def start: SourceOffset = SourceOffset(span.offset)
+  // unsafe: fromSpan already validated span.offset >= 0.
+  def start: SourceOffset = SourceOffset.unsafe(span.offset)
 
   /** Exclusive end of this half-open source range, measured in UTF-16 code units. */
-  def end: SourceOffset = SourceOffset(span.end)
+  // unsafe: fromSpan already validated span.offset >= 0 and span.length >= 0, so span.end cannot be negative.
+  def end: SourceOffset = SourceOffset.unsafe(span.end)
 
-  def length: CodeUnitCount = CodeUnitCount(span.length)
+  // unsafe: fromSpan already validated span.length >= 0.
+  def length: CodeUnitCount = CodeUnitCount.unsafe(span.length)
 
   def isEmpty: Boolean = span.length == 0
 

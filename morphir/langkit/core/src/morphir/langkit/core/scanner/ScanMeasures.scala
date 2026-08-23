@@ -68,11 +68,22 @@ opaque type CodeUnitCount = Int
 object CodeUnitCount:
   given CanEqual[CodeUnitCount, CodeUnitCount] = CanEqual.derived
 
-  val one: CodeUnitCount = 1
+  val zero: CodeUnitCount = 0
+  val one: CodeUnitCount  = 1
 
-  def apply(value: Int): CodeUnitCount =
-    require(value >= 0, "code-unit count must be non-negative")
-    value
+  /**
+   * Compile-time constructor. The argument must be a constant; a negative literal fails compilation. Dynamic values use
+   * [[fromInt]].
+   */
+  inline def apply(inline value: Int): CodeUnitCount =
+    inline if value < 0 then error("code-unit count must be non-negative: " + codeOf(value))
+    else unsafe(value)
+
+  def fromInt(value: Int): Result[ScanBudgetError, CodeUnitCount] =
+    if value < 0 then Result.fail(ScanBudgetError.NegativeCodeUnitCount(value))
+    else Result.succeed(value)
+
+  private[scanner] def unsafe(value: Int): CodeUnitCount = value
 
   extension (count: CodeUnitCount) def toInt: Int = count
 
@@ -148,9 +159,17 @@ object SourceOffset:
 
   val start: SourceOffset = 0
 
-  def apply(value: Int): SourceOffset =
-    require(value >= 0, "source offset must be non-negative")
-    value
+  /**
+   * Compile-time constructor. The argument must be a constant; a negative literal fails compilation. Dynamic values use
+   * [[fromInt]].
+   */
+  inline def apply(inline value: Int): SourceOffset =
+    inline if value < 0 then error("source offset must be non-negative: " + codeOf(value))
+    else unsafe(value)
+
+  def fromInt(value: Int): Result[ScanBudgetError, SourceOffset] =
+    if value < 0 then Result.fail(ScanBudgetError.NegativeSourceOffset(value))
+    else Result.succeed(value)
 
   private[scanner] def unsafe(value: Int): SourceOffset = value
 
@@ -161,8 +180,16 @@ opaque type ScanPhase = String
 object ScanPhase:
   given CanEqual[ScanPhase, ScanPhase] = CanEqual.derived
 
-  def apply(value: String): ScanPhase =
-    require(!value.isBlank, "scan phase must be non-empty and non-blank")
-    value
+  /**
+   * Compile-time constructor. The argument must be a non-blank constant; [[ScanPhaseMacro]] aborts compilation for a
+   * blank or non-constant argument. Dynamic values use [[fromString]].
+   */
+  inline def apply(inline value: String): ScanPhase = ${ ScanPhaseMacro.applyImpl('value) }
+
+  def fromString(value: String): Result[ScanBudgetError, ScanPhase] =
+    if value.isBlank then Result.fail(ScanBudgetError.BlankScanPhase(value))
+    else Result.succeed(value)
+
+  private[scanner] def unsafe(value: String): ScanPhase = value
 
   extension (phase: ScanPhase) def value: String = phase

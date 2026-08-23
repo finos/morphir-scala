@@ -163,7 +163,7 @@ final class SourceScanner private[scanner] (
         )
       outputNodes = attempted
 
-  def peek(): Maybe[Char] = peek(CodeUnitCount(0))
+  def peek(): Maybe[Char] = peek(CodeUnitCount.zero)
 
   def peek(distance: CodeUnitCount): Maybe[Char] =
     requireActive()
