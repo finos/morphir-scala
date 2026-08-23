@@ -12,7 +12,7 @@ Browser and Electron clients use one `GitHubConnectionService` to establish a Gi
 process validates, stores, and uses the token. The UI receives only redacted connection status. Session-only use is
 the default. A user can choose operating-system-backed persistence.
 
-This Design Note is the narrative home for [intent 0036](../../../intent/0036-local-web-host-and-github-connection-settings.md).
+ This Design Note is the narrative home for [intent 0036](../../../intent/0036-local-web-host-and-github-connection-settings.md).
 It builds on the shipped token-provider and secret-reader design in
 [GitHub token providers and appkit secrets](./github-token-providers-and-appkit-secrets.md). It follows the UI
 store, signal, and view rules in [morphir-ui architecture](./morphir-ui-architecture.md).
