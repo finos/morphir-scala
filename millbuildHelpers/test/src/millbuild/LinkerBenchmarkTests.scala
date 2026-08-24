@@ -197,6 +197,7 @@ object LinkerBenchmarkTests extends TestSuite {
     test("hosted resource bounds accept their limits and reject larger values") {
       assert(maxHostedMemoryGiB == 16)
       assert(maxHostedReserveGiB == 15)
+      assert(maxHostedTimeoutMinutes == 330)
       val atLimits = BenchmarkOverrides(
         trials = Some(maxHostedTrials),
         targetLimit = Some(maxHostedTargetLimit),
@@ -1035,6 +1036,13 @@ object LinkerBenchmarkTests extends TestSuite {
 
       assert(execute(continueOnFailure = false).map(_._1) == Seq("first", "failing"))
       assert(execute(continueOnFailure = true).map(_._1) == scheduled)
+    }
+
+    test("evaluation fails after evidence collection when any scheduled case fails") {
+      assert(!evaluationFailed(Seq(Outcome.Succeeded, Outcome.Succeeded)))
+      assert(evaluationFailed(Seq(Outcome.Succeeded, Outcome.Failed)))
+      assert(evaluationFailed(Seq(Outcome.Succeeded, Outcome.TimedOut)))
+      assert(evaluationFailed(Seq(Outcome.Succeeded, Outcome.Cancelled)))
     }
 
     test("worker identity validation rejects every mismatched identity family") {

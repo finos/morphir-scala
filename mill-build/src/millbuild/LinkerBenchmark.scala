@@ -277,9 +277,9 @@ object LinkerBenchmark {
   ).map(configuration => configuration.preset -> configuration).toMap
 
   /**
-   * Bounds manual hosted dispatches to an ubuntu-latest-sized machine and GitHub's six-hour job envelope while leaving
-   * enough range for diagnostic repetitions. Profile admission applies the stricter cross-field memory constraint after
-   * these individual limits.
+   * Bounds manual hosted dispatches to an ubuntu-latest-sized machine and GitHub's six-hour job envelope. The
+   * per-operation timeout leaves 30 minutes for teardown, report writing, and artifact publication. Profile admission
+   * applies the stricter cross-field memory constraint after these individual limits.
    */
   val maxHostedTrials: Int         = 100
   val maxHostedMemoryGiB: Int      = 16
@@ -287,7 +287,7 @@ object LinkerBenchmark {
   val maxHostedMillJobs: Int       = 64
   val maxHostedChildren: Int       = 16
   val maxHostedBatchSize: Int      = 256
-  val maxHostedTimeoutMinutes: Int = 360
+  val maxHostedTimeoutMinutes: Int = 330
   val maxHostedTargetLimit: Int    = 10_000
 
   def parseOptionalTrimmedString(value: String, field: String): Either[String, Option[String]] =
@@ -958,6 +958,9 @@ object LinkerBenchmark {
 
     loop(scheduled.toList, Vector.empty)
   }
+
+  def evaluationFailed(outcomes: Seq[Outcome]): Boolean =
+    outcomes.exists(_ != Outcome.Succeeded)
 
   def runBatchesUntilInterrupted[A, B](batches: Seq[A])(run: A => B): Seq[B] = {
     @tailrec def loop(remaining: List[A], completed: Vector[B]): Vector[B] =

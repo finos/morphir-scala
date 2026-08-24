@@ -293,7 +293,6 @@ private object LinkerBenchmarkOrchestrator {
     val cases               = Seq.newBuilder[StrategyTrialRecord]
     val inventoryByPlatform = inventory.map(entry => entry.platform -> entry).toMap
     val schedule            = LinkerBenchmark.evaluationSchedule(orders, inventory.map(_.platform))
-    var failed              = skippedCases.nonEmpty
     try
       LinkerBenchmark.runEvaluationSchedule(schedule, configuration.continueOnFailure) { scheduled =>
         val entry       = inventoryByPlatform(scheduled.platform)
@@ -344,7 +343,6 @@ private object LinkerBenchmarkOrchestrator {
             )
             caseOutcome
           }
-        failed ||= outcome != Outcome.Succeeded
         outcome
       }
     finally sampler.stop()
@@ -357,7 +355,7 @@ private object LinkerBenchmarkOrchestrator {
     )
     writeAtomically(outputRoot / "results.json", LinkerBenchmark.renderJson(result))
     writeAtomically(outputRoot / "summary.md", LinkerBenchmark.renderMarkdown(result))
-    if failed && !configuration.continueOnFailure then
+    if LinkerBenchmark.evaluationFailed(result.cases.map(_.outcome)) then
       throw new Exception("one or more linker benchmark cases failed; reports were written")
   }
 
