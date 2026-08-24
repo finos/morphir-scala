@@ -168,6 +168,18 @@ object SquireCiPolicy:
       case _                                         => false
     }
 
+  def yamlKeysAtIndent(block: String, indent: Int): List[String] =
+    block.linesIterator.collect {
+      case line @ YamlKey(doubleQuoted, singleQuoted, bare) if leadingSpaces(line) == indent =>
+        List(doubleQuoted, singleQuoted, bare).find(_ != null).get
+    }.toList
+
+  def unquoteYamlScalar(value: String): String =
+    if value.length >= 2 &&
+      ((value.head == '"' && value.last == '"') || (value.head == '\'' && value.last == '\''))
+    then value.drop(1).dropRight(1)
+    else value
+
   def yamlSequenceEntries(block: String, indent: Int): List[String] =
     block.linesIterator.filter { line =>
       val item = line.drop(indent)
@@ -447,6 +459,268 @@ object SquireCiPolicy:
       "workflow permissions must be exactly contents: read"
     )
 
+  def assertNoForbiddenLinkerBenchmarkTokens(workflow: String): Unit =
+    val forbidden = List(
+      "mise",
+      "ci.test",
+      "ci.publish",
+      "publication",
+      "uses: ./.github/workflows",
+      "secrets."
+    )
+    forbidden.foreach(token =>
+      expect(!workflow.toLowerCase.contains(token), s"workflow contains forbidden token: $token")
+    )
+
+  def assertLinkerBenchmarkWorkflowPolicy(workflow: String): Unit =
+    val hostedOutput = ".dev/.sdlc/mill-jvm-worker-pool/out/hosted"
+    val launcher     = "./mill --ticker false scripts/ci/LinkerBenchmark.scala"
+    val presets      = List(
+      "quick-smoke",
+      "js-strategies",
+      "wasm-strategies",
+      "native-long-lived",
+      "native-fresh-recycled"
+    )
+    val overrides = List(
+      ("platforms", "string", "", "PLATFORMS", "platforms"),
+      ("strategies", "string", "", "STRATEGIES", "strategies"),
+      ("trials", "number", "0", "TRIALS", "trials"),
+      ("order_seed", "string", "", "ORDER_SEED", "order-seed"),
+      ("target_filter", "string", "", "TARGET_FILTER", "target-filter"),
+      ("target_limit", "number", "0", "TARGET_LIMIT", "target-limit"),
+      ("memory_gib", "number", "0", "MEMORY_GIB", "memory-gib"),
+      ("reserve_gib", "number", "0", "RESERVE_GIB", "reserve-gib"),
+      ("mill_jobs", "number", "0", "MILL_JOBS", "mill-jobs"),
+      ("max_children", "number", "0", "MAX_CHILDREN", "max-children"),
+      ("batch_size", "number", "0", "BATCH_SIZE", "batch-size"),
+      ("timeout_minutes", "number", "0", "TIMEOUT_MINUTES", "timeout-minutes")
+    )
+    val inputNames = "preset" :: overrides.map(_._1) ::: List("continue_on_failure")
+
+    expect(
+      workflow.linesIterator.nextOption().contains(
+        "# Manual dispatch appears in the Actions UI only after this file exists on the default branch."
+      ),
+      "workflow header must explain the default-branch dispatch requirement"
+    )
+    val events = indentedBlock(workflow, "on:", 0)
+    expect(
+      yamlKeysAtIndent(events, 2) == List("workflow_dispatch"),
+      "linker benchmark workflow must be workflow_dispatch-only"
+    )
+    List("push", "pull_request", "schedule", "release", "workflow_call").foreach { event =>
+      expect(!hasYamlKey(events, event), s"linker benchmark workflow must not use $event")
+    }
+    assertReadOnlyPermissions(workflow)
+
+    val dispatch = indentedBlock(events, "workflow_dispatch:", 2)
+    val inputs   = indentedBlock(dispatch, "inputs:", 4)
+    expect(
+      yamlKeysAtIndent(inputs, 6) == inputNames,
+      s"unexpected linker benchmark inputs: ${yamlKeysAtIndent(inputs, 6)}"
+    )
+
+    def input(name: String): String                                         = indentedBlock(inputs, s"$name:", 6)
+    def assertInput(name: String, inputType: String, default: String): Unit =
+      val block = input(name)
+      expect(unquoteYamlScalar(scalar(block, "type")) == inputType, s"$name must be a $inputType input")
+      expect(unquoteYamlScalar(scalar(block, "default")) == default, s"$name has an unexpected default")
+
+    assertInput("preset", "choice", "quick-smoke")
+    expect(
+      yamlSequenceEntries(indentedBlock(input("preset"), "options:", 8), 10).map(line =>
+        unquoteYamlScalar(line.trim.drop(2))
+      ) == presets,
+      "preset choices must be the exact hosted preset tokens"
+    )
+    overrides.foreach { case (name, inputType, default, _, _) => assertInput(name, inputType, default) }
+    assertInput("continue_on_failure", "choice", "preset")
+    expect(
+      yamlSequenceEntries(indentedBlock(input("continue_on_failure"), "options:", 8), 10).map(line =>
+        unquoteYamlScalar(line.trim.drop(2))
+      ) ==
+        List("preset", "true", "false"),
+      "continuation choices must be preset, true, false"
+    )
+    expect(
+      !inputNames.contains("profile") && !inputNames.exists(_.contains("heap")),
+      "hosted inputs must not expose profile or heap"
+    )
+
+    val jobs = indentedBlock(workflow, "jobs:", 0)
+    expect(yamlKeysAtIndent(jobs, 2) == List("benchmark"), "workflow must contain exactly one benchmark job")
+    val job = indentedBlock(jobs, "benchmark:", 2)
+    expect(unquoteYamlScalar(scalar(job, "runs-on")) == "ubuntu-latest", "benchmark must run on ubuntu-latest")
+    expect(unquoteYamlScalar(scalar(job, "timeout-minutes")) == "360", "benchmark job timeout must be 360 minutes")
+    val stepNames = job.linesIterator.collect {
+      case line if line.startsWith("      - name: ") => line.stripPrefix("      - name: ")
+    }.toList
+    expect(
+      stepNames == List(
+        "Checkout current branch",
+        "Setup Scala and Java",
+        "Cache scala dependencies",
+        "Generate artifact name",
+        "Run linker benchmark",
+        "Upload benchmark results",
+        "Publish benchmark summary"
+      ),
+      s"unexpected linker benchmark steps: $stepNames"
+    )
+    expect(yamlSequenceEntries(job, 6).size == 7, "benchmark job must contain exactly seven named steps")
+    expect(job.linesIterator.count(_.trim.startsWith("run:")) == 3, "benchmark job must contain exactly three run steps")
+
+    def runLines(step: String, name: String): List[String] =
+      val lines    = step.linesIterator.toList
+      val runIndex = lines.indexWhere(_.trim == "run: |")
+      if runIndex < 0 then fail(s"$name must use a literal run block")
+      val runIndent = leadingSpaces(lines(runIndex))
+      lines.drop(runIndex + 1).takeWhile(line => line.trim.isEmpty || leadingSpaces(line) > runIndent)
+        .map(_.drop(runIndent + 2)).filter(_.nonEmpty)
+
+    val expectedActions = List(
+      "actions/checkout@v7.0.1",
+      "actions/setup-java@v5",
+      "coursier/cache-action@v8",
+      "actions/upload-artifact@v7"
+    )
+    val actualActions = job.linesIterator.map(_.trim).filter(_.startsWith("uses: ")).map(_.drop(6)).toList
+    expect(actualActions == expectedActions, s"unexpected linker benchmark actions: $actualActions")
+    val checkout = indentedBlock(job, "- name: Checkout current branch", 6)
+    expect(unquoteYamlScalar(scalar(checkout, "fetch-depth")) == "0", "checkout must fetch full history")
+    val java = indentedBlock(job, "- name: Setup Scala and Java", 6)
+    expect(unquoteYamlScalar(scalar(java, "distribution")) == "temurin", "setup-java must use Temurin")
+    expect(unquoteYamlScalar(scalar(java, "java-version")) == "25", "setup-java must use Java 25")
+
+    val artifactName = indentedBlock(job, "- name: Generate artifact name", 6)
+    expect(
+      unquoteYamlScalar(scalar(artifactName, "id")) == "artifact-name",
+      "artifact name step must expose its output"
+    )
+    val artifactEnvironment = indentedBlock(artifactName, "env:", 8)
+    expect(yamlKeysAtIndent(artifactEnvironment, 10) == List("PRESET"), "artifact name env must contain only PRESET")
+    expect(
+      scalar(artifactEnvironment, "PRESET") == "${{ inputs.preset }}",
+      "artifact name PRESET must map from inputs.preset"
+    )
+    expect(count(artifactName, launcher) == 1, "artifact name step must invoke the linker benchmark launcher once")
+    List(
+      "--artifact-name-only true",
+      "--artifact-ref \"$GITHUB_REF_NAME\"",
+      "--artifact-run-id \"$GITHUB_RUN_ID\"",
+      "--artifact-run-attempt \"$GITHUB_RUN_ATTEMPT\"",
+      "printf 'name=%s\\n' \"$name\" >> \"$GITHUB_OUTPUT\""
+    ).foreach(required => expect(artifactName.contains(required), s"artifact name step is missing: $required"))
+    expect(
+      runLines(artifactName, "artifact name step") == List(
+        s"name=\"$$($launcher \\",
+        "  --preset \"$PRESET\" \\",
+        "  --artifact-name-only true \\",
+        "  --artifact-ref \"$GITHUB_REF_NAME\" \\",
+        "  --artifact-run-id \"$GITHUB_RUN_ID\" \\",
+        "  --artifact-run-attempt \"$GITHUB_RUN_ATTEMPT\")\"",
+        "printf 'name=%s\\n' \"$name\" >> \"$GITHUB_OUTPUT\""
+      ),
+      "artifact name shell must contain only command substitution and the GITHUB_OUTPUT write"
+    )
+
+    val benchmark = indentedBlock(job, "- name: Run linker benchmark", 6)
+    val benchmarkEnvironment = indentedBlock(benchmark, "env:", 8)
+    val expectedBenchmarkEnvironment = "PRESET" :: overrides.map(_._4) ::: List("CONTINUE_ON_FAILURE")
+    expect(
+      yamlKeysAtIndent(benchmarkEnvironment, 10) == expectedBenchmarkEnvironment,
+      s"unexpected benchmark environment: ${yamlKeysAtIndent(benchmarkEnvironment, 10)}"
+    )
+    expect(
+      scalar(benchmarkEnvironment, "PRESET") == "${{ inputs.preset }}",
+      "benchmark PRESET must map from inputs.preset"
+    )
+    expect(count(benchmark, launcher) == 1, "benchmark step must invoke the linker benchmark launcher once")
+    expect(benchmark.contains("--preset \"$PRESET\""), "benchmark preset must cross the quoted environment boundary")
+    overrides.foreach { case (inputName, _, _, environmentName, flag) =>
+      expect(
+        benchmark.contains(s"$environmentName: $${{ inputs.$inputName }}"),
+        s"benchmark step must map $inputName to $environmentName"
+      )
+      expect(benchmark.contains(s"--$flag \"$$$environmentName\""), s"benchmark step must quote $environmentName")
+    }
+    expect(
+      benchmark.contains("CONTINUE_ON_FAILURE: ${{ inputs.continue_on_failure }}") &&
+        benchmark.contains("--continue-on-failure \"$CONTINUE_ON_FAILURE\""),
+      "continuation must cross the quoted environment boundary"
+    )
+    expect(benchmark.contains(s"--output \"$hostedOutput\""), "benchmark output must use the fixed hosted directory")
+    expect(
+      runLines(benchmark, "benchmark step") == List(
+        s"$launcher \\",
+        "  --preset \"$PRESET\" \\",
+        "  --platforms \"$PLATFORMS\" \\",
+        "  --strategies \"$STRATEGIES\" \\",
+        "  --trials \"$TRIALS\" \\",
+        "  --order-seed \"$ORDER_SEED\" \\",
+        "  --target-filter \"$TARGET_FILTER\" \\",
+        "  --target-limit \"$TARGET_LIMIT\" \\",
+        "  --memory-gib \"$MEMORY_GIB\" \\",
+        "  --reserve-gib \"$RESERVE_GIB\" \\",
+        "  --mill-jobs \"$MILL_JOBS\" \\",
+        "  --max-children \"$MAX_CHILDREN\" \\",
+        "  --batch-size \"$BATCH_SIZE\" \\",
+        "  --timeout-minutes \"$TIMEOUT_MINUTES\" \\",
+        "  --continue-on-failure \"$CONTINUE_ON_FAILURE\" \\",
+        s"  --output \"$hostedOutput\""
+      ),
+      "benchmark shell must contain only the approved direct launcher command"
+    )
+    expect(count(workflow, launcher) == 2, "workflow must contain exactly two approved benchmark launcher invocations")
+    workflow.linesIterator.filter(_.contains("${{ inputs.")).foreach { line =>
+      val trimmed = line.trim
+      expect(
+        trimmed.matches("[A-Z][A-Z0-9_]*: \\$\\{\\{ inputs\\.[a-z0-9_]+ \\}\\}"),
+        s"GitHub input expression may appear only in a step env mapping: $trimmed"
+      )
+    }
+    expect(
+      !workflow.contains("--profile") && !workflow.toLowerCase.contains("--heap"),
+      "hosted workflow must not override profile or heap"
+    )
+
+    val upload = indentedBlock(job, "- name: Upload benchmark results", 6)
+    expect(scalar(upload, "if") == "${{ always() }}", "artifact upload must always run")
+    expect(
+      unquoteYamlScalar(scalar(upload, "name")) ==
+        "${{ steps.artifact-name.outputs.name || format('linker-benchmark-{0}-{1}', github.run_id, github.run_attempt) }}",
+      "artifact upload must use the generated safe name with a run-based fallback"
+    )
+    expect(unquoteYamlScalar(scalar(upload, "path")) == s"$hostedOutput/**", "artifact upload path must be hosted/**")
+    expect(
+      unquoteYamlScalar(scalar(upload, "include-hidden-files")) == "true",
+      "artifact upload must include hidden files within the fixed hosted path"
+    )
+    expect(unquoteYamlScalar(scalar(upload, "retention-days")) == "14", "artifact retention must be 14 days")
+
+    val summary = indentedBlock(job, "- name: Publish benchmark summary", 6)
+    expect(scalar(summary, "if") == "${{ always() }}", "benchmark summary must always run")
+    val summaryEnvironment = indentedBlock(summary, "env:", 8)
+    expect(yamlKeysAtIndent(summaryEnvironment, 10) == List("ARTIFACT_NAME"), "summary env must contain ARTIFACT_NAME")
+    expect(
+      scalar(summaryEnvironment, "ARTIFACT_NAME") ==
+        "${{ steps.artifact-name.outputs.name || format('linker-benchmark-{0}-{1}', github.run_id, github.run_attempt) }}",
+      "summary must use the generated artifact name with its safe fallback"
+    )
+    expect(
+      runLines(summary, "summary step") == List(
+        s"summary=\"$$(find \"$hostedOutput\" -type f -name summary.md -print -quit 2>/dev/null || true)\"",
+        "if [[ -n \"$summary\" ]]; then",
+        "  cat \"$summary\" >> \"$GITHUB_STEP_SUMMARY\"",
+        "else",
+        "  printf 'Linker benchmark results: artifact %s.\\n' \"$ARTIFACT_NAME\" >> \"$GITHUB_STEP_SUMMARY\"",
+        "fi"
+      ),
+      "summary shell must contain only nonfailing find and summary-or-artifact output glue"
+    )
+    assertNoForbiddenLinkerBenchmarkTokens(workflow)
+
   def assertMorphirCapabilityPolicy(workflow: String): Unit =
     val commands = List(
       "mill-morphir-unit:" -> "'mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test'",
@@ -476,10 +750,13 @@ object SquireCiPolicy:
   def assertJvmPlatformPolicy(workflow: String, buildMill: String, task: String): Unit =
     val testJvm = indentedBlock(workflow, "test-jvm:", 2)
     val runJvm  = indentedBlock(testJvm, "- name: Run JVM tests", 6)
-    expect(scalar(runJvm, "run") == "mise run test:jvm-platform", "generic JVM CI must use test:jvm-platform")
     expect(
-      task.linesIterator.map(_.trim).contains("./mill --ticker false -i Alias/run testJVMPlatform"),
-      "test:jvm-platform must invoke Alias/run testJVMPlatform"
+      scalar(runJvm, "run") == "./mill --ticker false -i ci.testJvm",
+      "generic JVM CI must use ci.testJvm"
+    )
+    expect(
+      task.linesIterator.map(_.trim).contains("./mill --ticker false -i ci.testJvm"),
+      "test:jvm-platform must invoke ci.testJvm"
     )
     val definitions = "(?m)^\\s*def testJVMPlatform\\b".r.findAllMatchIn(buildMill).size
     expect(definitions == 1, s"build must provide exactly one testJVMPlatform alias, found $definitions")
@@ -1425,6 +1702,10 @@ class SquireCiPolicySpec extends Test[Any]:
     skillDirectory.resolve("../../../.github/workflows/ci.yml").normalize,
     StandardCharsets.UTF_8
   )
+  private val linkerBenchmarkWorkflow = Files.readString(
+    skillDirectory.resolve("../../../.github/workflows/linker-benchmark.yml").normalize,
+    StandardCharsets.UTF_8
+  )
   private val buildMill = Files.readString(
     skillDirectory.resolve("../../../build.mill").normalize,
     StandardCharsets.UTF_8
@@ -1555,6 +1836,176 @@ class SquireCiPolicySpec extends Test[Any]:
   }
 
   "hosted CI policy" - {
+    "guards the manual hosted linker benchmark workflow" in {
+      assertLinkerBenchmarkWorkflowPolicy(linkerBenchmarkWorkflow)
+
+      val events        = indentedBlock(linkerBenchmarkWorkflow, "on:", 0)
+      val dispatch      = indentedBlock(events, "workflow_dispatch:", 2)
+      val inputs        = indentedBlock(dispatch, "inputs:", 4)
+      val overrideNames = List(
+        "platforms",
+        "strategies",
+        "trials",
+        "order_seed",
+        "target_filter",
+        "target_limit",
+        "memory_gib",
+        "reserve_gib",
+        "mill_jobs",
+        "max_children",
+        "batch_size",
+        "timeout_minutes",
+        "continue_on_failure"
+      )
+      val missingOverrideMutations = overrideNames.map { name =>
+        val declaration = s"      $name:\n" + indentedBlock(inputs, s"$name:", 6)
+        name -> replaceOnce(linkerBenchmarkWorkflow, declaration, "")
+      }
+      missingOverrideMutations.foreach { case (name, mutation) =>
+        assert(rejects(assertLinkerBenchmarkWorkflowPolicy, mutation), s"missing $name input must be rejected")
+      }
+
+      val artifactPresetUnmapped = replaceOnce(
+        linkerBenchmarkWorkflow,
+        "      - name: Generate artifact name\n        id: artifact-name\n        env:\n          PRESET: ${{ inputs.preset }}\n",
+        "      - name: Generate artifact name\n        id: artifact-name\n"
+      )
+      val benchmarkPresetUnmapped = replaceOnce(
+        linkerBenchmarkWorkflow,
+        "      - name: Run linker benchmark\n        env:\n          PRESET: ${{ inputs.preset }}\n",
+        "      - name: Run linker benchmark\n        env:\n"
+      )
+      val bothPresetsUnmapped = replaceOnce(
+        artifactPresetUnmapped,
+        "      - name: Run linker benchmark\n        env:\n          PRESET: ${{ inputs.preset }}\n",
+        "      - name: Run linker benchmark\n        env:\n"
+      )
+      val forbiddenCommandMutation = replaceOnce(
+        linkerBenchmarkWorkflow,
+        "          printf 'name=%s\\n' \"$name\" >> \"$GITHUB_OUTPUT\"",
+        "          printf 'name=%s\\n' \"$name\" >> \"$GITHUB_OUTPUT\"\n          echo ci.publish"
+      )
+      assert(
+        rejects(assertNoForbiddenLinkerBenchmarkTokens, forbiddenCommandMutation),
+        "forbidden command token must be rejected independently"
+      )
+
+      val mutations = List(
+        "artifact preset env mapping removed" -> artifactPresetUnmapped,
+        "benchmark preset env mapping removed" -> benchmarkPresetUnmapped,
+        "both preset env mappings removed" -> bothPresetsUnmapped,
+        "manual trigger replaced" -> replaceOnce(
+          linkerBenchmarkWorkflow,
+          "  workflow_dispatch:\n",
+          "  push:\n"
+        ),
+        "pull request trigger added" -> replaceOnce(
+          linkerBenchmarkWorkflow,
+          "on:\n  workflow_dispatch:\n",
+          "on:\n  pull_request:\n  workflow_dispatch:\n"
+        ),
+        "write permission added" -> replaceOnce(
+          linkerBenchmarkWorkflow,
+          "permissions:\n  contents: read",
+          "permissions:\n  contents: read\n  actions: write"
+        ),
+        "upload always removed" -> replaceOnce(
+          linkerBenchmarkWorkflow,
+          "      - name: Upload benchmark results\n        if: ${{ always() }}\n",
+          "      - name: Upload benchmark results\n"
+        ),
+        "summary always removed" -> replaceOnce(
+          linkerBenchmarkWorkflow,
+          "      - name: Publish benchmark summary\n        if: ${{ always() }}\n",
+          "      - name: Publish benchmark summary\n"
+        ),
+        "default preset changed" -> replaceOnce(
+          linkerBenchmarkWorkflow,
+          "        default: quick-smoke",
+          "        default: js-strategies"
+        ),
+        "ticker re-enabled" -> replaceOnce(
+          linkerBenchmarkWorkflow,
+          "./mill --ticker false scripts/ci/LinkerBenchmark.scala",
+          "./mill scripts/ci/LinkerBenchmark.scala"
+        ),
+        "input interpolated directly in shell" -> replaceOnce(
+          linkerBenchmarkWorkflow,
+          "--platforms \"$PLATFORMS\"",
+          "--platforms \"${{ inputs.platforms }}\""
+        ),
+        "production command added" -> forbiddenCommandMutation,
+        "summary find can fail" -> replaceOnce(
+          linkerBenchmarkWorkflow,
+          " -print -quit 2>/dev/null || true)",
+          " -print -quit 2>/dev/null)"
+        ),
+        "summary fallback removed" -> replaceOnce(
+          linkerBenchmarkWorkflow,
+          "          else\n            printf 'Linker benchmark results: artifact %s.\\n' \"$ARTIFACT_NAME\" >> \"$GITHUB_STEP_SUMMARY\"\n",
+          ""
+        ),
+        "summary fallback loses artifact reference" -> replaceOnce(
+          linkerBenchmarkWorkflow,
+          "\"$ARTIFACT_NAME\" >> \"$GITHUB_STEP_SUMMARY\"",
+          "\"results\" >> \"$GITHUB_STEP_SUMMARY\""
+        ),
+        "case validator injected" -> replaceOnce(
+          linkerBenchmarkWorkflow,
+          "          ./mill --ticker false scripts/ci/LinkerBenchmark.scala \\",
+          "          case \"$PRESET\" in\n            quick-smoke) ;;\n            *) exit 2 ;;\n          esac\n          ./mill --ticker false scripts/ci/LinkerBenchmark.scala \\",
+        ),
+        "scheduling loop injected" -> replaceOnce(
+          linkerBenchmarkWorkflow,
+          "          ./mill --ticker false scripts/ci/LinkerBenchmark.scala \\",
+          "          for attempt in 1; do\n            true\n          done\n          ./mill --ticker false scripts/ci/LinkerBenchmark.scala \\",
+        ),
+        "extra run step injected" -> replaceOnce(
+          linkerBenchmarkWorkflow,
+          "      - name: Upload benchmark results\n",
+          "      - name: Extra shell\n        run: echo extra\n\n      - name: Upload benchmark results\n"
+        ),
+        "checkout pin drifted" -> replaceOnce(
+          linkerBenchmarkWorkflow,
+          "actions/checkout@v7.0.1",
+          "actions/checkout@v7"
+        ),
+        "setup-java pin drifted" -> replaceOnce(
+          linkerBenchmarkWorkflow,
+          "actions/setup-java@v5",
+          "actions/setup-java@v4"
+        ),
+        "Coursier pin drifted" -> replaceOnce(
+          linkerBenchmarkWorkflow,
+          "coursier/cache-action@v8",
+          "coursier/cache-action@v7"
+        ),
+        "upload pin drifted" -> replaceOnce(
+          linkerBenchmarkWorkflow,
+          "actions/upload-artifact@v7",
+          "actions/upload-artifact@v6"
+        ),
+        "retention drifted" -> replaceOnce(
+          linkerBenchmarkWorkflow,
+          "          retention-days: 14",
+          "          retention-days: 30"
+        ),
+        "hidden-file upload removed" -> replaceOnce(
+          linkerBenchmarkWorkflow,
+          "          include-hidden-files: true\n",
+          ""
+        ),
+        "hidden-file upload disabled" -> replaceOnce(
+          linkerBenchmarkWorkflow,
+          "          include-hidden-files: true",
+          "          include-hidden-files: false"
+        )
+      )
+      mutations.foreach { case (name, mutation) =>
+        assert(rejects(assertLinkerBenchmarkWorkflowPolicy, mutation), s"$name must be rejected")
+      }
+    }
+
     "targets the exact supported pull-request and push branches" in {
       assertBranchPolicy(workflow)
       assert(true)
@@ -1724,8 +2175,8 @@ class SquireCiPolicySpec extends Test[Any]:
         ((workflow: String) => assertJvmPlatformPolicy(workflow, buildMill, jvmPlatformTask)) -> replaceInJob(
           workflow,
           "test-jvm:",
-          "mise run test:jvm-platform",
-          "mise run test:jvm"
+          "./mill --ticker false -i ci.testJvm",
+          "mise run test:jvm-platform"
         ),
         assertMorphirCapabilityPolicy -> replaceInJob(
           workflow,
@@ -1743,7 +2194,7 @@ class SquireCiPolicySpec extends Test[Any]:
       assert(capabilityMutations.forall((validator, mutation) => rejects(validator, mutation)))
     }
 
-    "keeps generic JVM CI on the non-classic platform alias" in {
+    "keeps generic JVM CI on ci.testJvm and the non-classic platform alias" in {
       assertJvmPlatformPolicy(workflow, buildMill, jvmPlatformTask)
 
       val missingPublishAliasMutation = replaceOnce(
@@ -1770,8 +2221,8 @@ class SquireCiPolicySpec extends Test[Any]:
       )
       val taskMutation = replaceOnce(
         jvmPlatformTask,
-        "./mill --ticker false -i Alias/run testJVMPlatform",
-        "./mill --ticker false -i Alias/run testJVM"
+        "./mill --ticker false -i ci.testJvm",
+        "./mill --ticker false -i Alias/run testJVMPlatform"
       )
       val aliasMutations = List(
         missingPublishAliasMutation,

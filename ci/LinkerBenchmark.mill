@@ -1,0 +1,231 @@
+package build.ci
+
+import java.nio.charset.StandardCharsets
+import java.nio.file.{AtomicMoveNotSupportedException, Files, StandardCopyOption}
+
+import scala.util.control.NonFatal
+
+import mill.*
+import mill.api.{BuildCtx, Evaluator, Result, SelectMode}
+import millbuild.LinkerBenchmark
+import millbuild.LinkerBenchmark.*
+import upickle.default.write
+
+trait LinkerBenchmarkModule extends Module {
+  private val RequestedHeapBytes = 1024L * 1024L * 1024L
+  private val OneGiBLow          = 768L * 1024L * 1024L
+  private val OneGiBHigh         = 1280L * 1024L * 1024L
+  private val OutputIdentityEnv  = "MORPHIR_LINKER_BENCHMARK_OUTPUT_IDENTITY"
+
+  def linkerBenchmarkWorkerSmoke(marker: String) = Task.Command(exclusive = true) {
+    BuildCtx.withFilesystemCheckerDisabled {
+      val workspace      = BuildCtx.workspaceRoot
+      val markerPath     = os.Path(marker, workspace)
+      val effectiveHeap  = Runtime.getRuntime.maxMemory()
+      val outputIdentity = sys.env.getOrElse(
+        OutputIdentityEnv,
+        throw new Exception("linker benchmark smoke child output identity is missing")
+      )
+      val childPid      = ProcessHandle.current().pid()
+      val proofFilename = s"worker-proof-$childPid.json"
+      val record        = SmokeRecord(
+        childPid = childPid,
+        javaVersion = System.getProperty("java.version", "unknown"),
+        pinnedMillVersion = os.read(workspace / ".mill-version").trim,
+        requestedHeapBytes = RequestedHeapBytes,
+        effectiveMaxHeapBytes = effectiveHeap,
+        requestedHeapHonored = effectiveHeap >= OneGiBLow && effectiveHeap <= OneGiBHigh,
+        outputDirectoryIdentity = outputIdentity,
+        proofFilename = proofFilename
+      )
+      writeAtomically(markerPath, write(record))
+      writeAtomically(Task.dest / proofFilename, write(SmokeProof(childPid, outputIdentity)))
+    }
+  }
+
+  def linkerBenchmarkInventory(
+      evaluator: Evaluator,
+      record: String,
+      platforms: String = "js,wasm,native"
+  ) = Task.Command(exclusive = true) {
+    val requested   = parsePlatforms(platforms)
+    val inventories = requested.map { platform =>
+      val targets = resolveTargets(evaluator, platform.selector)
+      if targets.isEmpty then throw new Exception(s"${platform.token}: no linker targets resolved")
+      PlatformInventory(platform, targets)
+    }
+    writeAtomically(
+      os.Path(record, BuildCtx.workspaceRoot),
+      write(InventoryRecord(Runtime.getRuntime.maxMemory(), inventories))
+    )
+  }
+
+  def linkerBenchmarkWorker(
+      evaluator: Evaluator,
+      record: String,
+      started: String,
+      runId: String,
+      platform: String,
+      strategy: String,
+      profile: String,
+      trials: Int,
+      orderSeed: Long,
+      trial: Int,
+      strategyPosition: Int,
+      lane: Int,
+      batch: Int,
+      targets: String
+  ) = Task.Command(exclusive = true) {
+    val workspace        = BuildCtx.workspaceRoot
+    val recordPath       = os.Path(record, workspace)
+    val startedPath      = os.Path(started, workspace)
+    val selectedPlatform = parsePlatform(platform)
+    val selectedStrategy = parseStrategy(strategy)
+    val selectedProfile  = parseProfile(profile)
+    val settings         = LinkerBenchmark
+      .validate(EvaluationSettings(trials, orderSeed))
+      .fold(message => throw new Exception(message), identity)
+    val selectedTargets = targets.split(',').iterator.map(_.trim).filter(_.nonEmpty).toSeq.distinct.sorted
+    if selectedTargets.isEmpty then throw new Exception("linker benchmark worker targets must not be empty")
+    writeAtomically(startedPath, ProcessHandle.current().pid().toString)
+    val inventory = resolveTargets(evaluator, selectedPlatform.selector).toSet
+    val foreign   = selectedTargets.filterNot(inventory)
+    if foreign.nonEmpty then
+      throw new Exception(s"targets do not belong to ${selectedPlatform.token}: ${foreign.mkString(",")}")
+
+    val phases  = Seq.newBuilder[PhaseMetrics]
+    var outcome = Outcome.Succeeded
+    var detail  = Option.empty[String]
+    try {
+      phases += evaluatePhase(evaluator, selectedTargets, "cold-link")
+      phases += evaluatePhase(evaluator, selectedTargets, "warm-worker-relink")
+    } catch {
+      case NonFatal(error) =>
+        outcome = Outcome.Failed
+        detail = Some(LinkerBenchmark.redact(Option(error.getMessage).getOrElse(error.getClass.getSimpleName)))
+    }
+    val workerRecord = WorkerRecord(
+      runId = runId,
+      trial = trial,
+      strategyPosition = strategyPosition,
+      settings = settings,
+      platform = selectedPlatform,
+      strategy = selectedStrategy,
+      profile = selectedProfile,
+      lane = lane,
+      batch = batch,
+      targets = selectedTargets,
+      startupMillis = 0L,
+      peakRssKiB = 0L,
+      phases = phases.result(),
+      outcome = outcome,
+      detail = detail,
+      runtime = RuntimeMetadata(
+        javaVersion = System.getProperty("java.version", "unknown"),
+        pinnedMillVersion = os.read(workspace / ".mill-version").trim,
+        operatingSystem = System.getProperty("os.name", "unknown"),
+        architecture = System.getProperty("os.arch", "unknown"),
+        availableProcessors = Runtime.getRuntime.availableProcessors(),
+        effectiveMaxHeapBytes = Runtime.getRuntime.maxMemory(),
+        outputDirectoryIdentity = sys.env.getOrElse(
+          OutputIdentityEnv,
+          throw new Exception("linker benchmark worker output identity is missing")
+        )
+      )
+    )
+    writeAtomically(recordPath, write(workerRecord))
+    if outcome != Outcome.Succeeded then throw new Exception(detail.getOrElse("linker benchmark worker failed"))
+  }
+
+  def linkerBenchmarkPrepare(evaluator: Evaluator, platform: String, targets: String) =
+    Task.Command(exclusive = true) {
+      val selectedPlatform = parsePlatform(platform)
+      val selectedTargets  = targets.split(',').iterator.map(_.trim).filter(_.nonEmpty).toSeq.distinct.sorted
+      if selectedTargets.isEmpty then throw new Exception("linker benchmark preparation targets must not be empty")
+      val inventory = resolveTargets(evaluator, selectedPlatform.selector).toSet
+      val foreign   = selectedTargets.filterNot(inventory)
+      if foreign.nonEmpty then
+        throw new Exception(s"targets do not belong to ${selectedPlatform.token}: ${foreign.mkString(",")}")
+      val prepared = unwrap(evaluator.evaluate(selectedTargets, SelectMode.Multi), "linker benchmark preparation")
+      prepared.values.toEither.fold(
+        message => throw new Exception(s"linker benchmark preparation failed: $message"),
+        _ => ()
+      )
+      unwrap(
+        evaluator.evaluate(Seq("clean") ++ selectedTargets, SelectMode.Separated),
+        "clean linker benchmark preparation"
+      ).values.toEither.fold(
+        message => throw new Exception(s"clean linker benchmark preparation failed: $message"),
+        _ => ()
+      )
+    }
+
+  private def evaluatePhase(evaluator: Evaluator, targets: Seq[String], name: String): PhaseMetrics = {
+    unwrap(evaluator.evaluate(Seq("clean") ++ targets, SelectMode.Separated), s"clean $name").values.toEither.fold(
+      message => throw new Exception(s"clean $name failed: $message"),
+      _ => ()
+    )
+    JvmSnapshot.resetPeakUsage()
+    val before    = JvmSnapshot.capture()
+    val startedAt = System.nanoTime()
+    val evaluated = unwrap(evaluator.evaluate(targets, SelectMode.Multi), name)
+    evaluated.values.toEither.fold(message => throw new Exception(s"$name failed: $message"), _ => ())
+    val wallMillis = math.max(0L, (System.nanoTime() - startedAt) / 1000000L)
+    val after      = JvmSnapshot.capture()
+    val uncached   = evaluated.executionResults.uncached.size.toLong
+    val cached     = math.max(0L, evaluated.executionResults.transitiveResults.size.toLong - uncached)
+    JvmSnapshot.phaseDelta(name, wallMillis, before, after, uncached, cached)
+  }
+
+  private def parsePlatforms(value: String): Seq[Platform] = {
+    val parsed = value.split(',').iterator.map(_.trim).filter(_.nonEmpty).map(parsePlatform).toSeq.distinct
+    if parsed.isEmpty then throw new Exception("requested linker platform inventory must not be empty") else parsed
+  }
+
+  private def parsePlatform(value: String): Platform = value match {
+    case "js" | "scala-js" => Platform.ScalaJs
+    case "wasm"            => Platform.Wasm
+    case "native"          => Platform.Native
+    case other             => throw new Exception(s"unknown linker platform: $other")
+  }
+
+  private def parseStrategy(value: String): Strategy =
+    Strategy.values.find(_.token == value).getOrElse(throw new Exception(s"unknown linker strategy: $value"))
+
+  private def parseProfile(value: String): Profile = value match {
+    case "ci"    => LinkerBenchmark.ciProfile
+    case "local" => LinkerBenchmark.detectedLocalProfile().fold(message => throw new Exception(message), identity)
+    case other   => throw new Exception(s"unknown linker benchmark profile: $other")
+  }
+
+  private def resolveTargets(evaluator: Evaluator, selector: String): Seq[String] =
+    unwrap(
+      evaluator.resolveSegments(Seq(selector), SelectMode.Multi),
+      s"resolve $selector"
+    ).map(_.render).distinct.sorted
+
+  private def unwrap[A](result: Result[A], what: String): A =
+    result.toEither.fold(message => throw new Exception(s"$what failed: $message"), identity)
+
+  private def writeAtomically(marker: os.Path, value: String): Unit = {
+    val parent = marker.toNIO.getParent
+    Files.createDirectories(parent)
+    val temporary = parent.resolve(s".${marker.last}.tmp-${ProcessHandle.current().pid()}")
+    try
+      Files.writeString(temporary, value, StandardCharsets.UTF_8)
+      Files.move(
+        temporary,
+        marker.toNIO,
+        StandardCopyOption.ATOMIC_MOVE,
+        StandardCopyOption.REPLACE_EXISTING
+      )
+    catch {
+      case error: AtomicMoveNotSupportedException =>
+        Files.deleteIfExists(temporary)
+        throw new Exception(s"atomic move is not supported for linker benchmark smoke output: ${marker.last}", error)
+      case NonFatal(error) =>
+        Files.deleteIfExists(temporary)
+        throw error
+    }
+  }
+}
