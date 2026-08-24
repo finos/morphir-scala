@@ -985,10 +985,13 @@ trait MorphirMillbuildHelpersModule extends ScalaModule with ScalafmtModule {
     helpersRoot / "FormatKind.scala",
     helpersRoot / "FormatSelection.scala",
     helpersRoot / "LintSelectors.scala",
-    helpersRoot / "JsTestSelectors.scala"
+    helpersRoot / "JsTestSelectors.scala",
+    helpersRoot / "NativeTestSelectors.scala",
+    helpersRoot / "LinkerBenchmark.scala",
+    helpersRoot / "LinkerBenchmarkProcess.scala"
   )
 
-  override def mvnDeps = Seq(Deps.com.lihaoyi.`os-lib`)
+  override def mvnDeps = Seq(Deps.com.lihaoyi.`os-lib`) ++ Deps.com.lihaoyi.upickleManaged
 }
 
 // The following section contains aliases used to simplify build tasks

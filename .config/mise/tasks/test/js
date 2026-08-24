@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
 # MISE description="Run JS compile/publish/test workflow"
 
-set -e
+set -euo pipefail
 
 echo "Running JS tests..."
 
-# The `wasm` link variants are named separately: they sit beside their `js`
-# sibling rather than under it, so the `morphir.__.js.__` glob never matches
-# them. `fullLinkJS` is included so a linker regression fails here rather than
-# at release time — the tests alone only exercise `fastLinkJSTest`.
+# `ci.testJs` owns the compile, publish, JS-test and Wasm-test selectors. Run its platform and desktop/UI groups in
+# separate daemonless Mill JVMs, matching hosted CI's split while releasing each in-process Scala.js linker worker
+# before the next group starts.
 #
 # `-j 4` rather than `-j 0`. Every Scala.js link runs inside the single Mill
 # daemon JVM and holds a full linker working set, so the constraint is that
@@ -24,23 +23,16 @@ echo "Running JS tests..."
 # therefore at `-Xmx8g`, which fits GitHub's 16 GB runners. Treat `-j` and
 # `-Xmx` as one setting: lowering the heap means lowering this too.
 #
-# `-j 4` is this task's own default, tuned for a developer machine with headroom to spare. CI runs
-# at `-j 2` instead — see the `test-js` / `test-js-desktop` steps in .github/workflows/ci.yml — a
-# GitHub-hosted runner is smaller and shares its 8 GB daemon heap with everything else on the box,
-# so CI needs a lower cap even after morphir-oyn split the desktop/UI link load into its own job.
-./mill -i -k -j 4 \
-    "morphir.__.js.__.compile" \
-    + \
-    "morphir.__.js.publishArtifacts" \
-    + \
-    "morphir.__.js.__.test" \
-    + \
-    "morphir.__.wasm.__.test"
+# `-j 4` is this task's own default, tuned for a developer machine with headroom to spare. Hosted CI runs at `-j 2`
+# instead; its runners are smaller, so they need a lower cap even after morphir-oyn split the desktop/UI load.
+./mill -i -k -j 4 ci.testJs --group platform
+./mill -i -k -j 4 ci.testJs --group desktop
 
 # The Wasm `fullLinkJS` tasks link one at a time. Each holds the largest working set in this task,
 # and running several concurrently exhausted the daemon heap inside the linker's BinaryWriter
 # (`OutOfMemoryError` in `WebAssemblyLinkerBackend.writeWasmFile`) once a third Wasm variant joined
 # the build. Serial here costs a few minutes; parallel costs the whole job.
-./mill -i -k -j 1 "morphir.__.wasm.fullLinkJS"
+./mill -i -k -j 1 ci.testJsWasmLink --group platform
+./mill -i -k -j 1 ci.testJsWasmLink --group desktop
 
 echo "JS tests completed successfully"

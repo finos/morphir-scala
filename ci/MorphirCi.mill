@@ -6,7 +6,7 @@ import build.{morphir => morphirArea}
 import build.morphir.{desktop => desktopArea}
 import mill.*
 import mill.api.{BuildCtx, DefaultTaskModule, Evaluator, ModuleRef, Result, SelectMode, TaskCtx}
-import millbuild.{JsTestSelectors, LintSelectors, MillVersions}
+import millbuild.{JsTestSelectors, LintSelectors, MillVersions, NativeTestSelectors}
 import org.finos.morphir.mill.publish.{MillPublishEnvFile, MillSonatypeEnv, PgpSecret, PublishSelectors}
 import org.finos.morphir.mill.publish.desktop.{
   DesktopPlatform,
@@ -45,7 +45,7 @@ object ReleaseAreaRow {
  * `./mill -i ci.publish` so `Task.env` sees `MILL_*`. Conversion lives in mill-morphir-core
  * (`org.finos.morphir.mill.publish`).
  */
-trait MorphirCiModule extends Module {
+trait MorphirCiModule extends Module, LinkerBenchmarkModule {
 
   /** Module-path prefix for library Sonatype publishables. Set in `package.mill.yaml`. */
   def libraryModulePrefix = Task { "" }
@@ -443,6 +443,42 @@ trait MorphirCiModule extends Module {
     }
   }
 
+  /** Runs the curated non-classic JVM platform inventory through the CI command surface. */
+  def testJvm(evaluator: Evaluator) = Task.Command(exclusive = true) {
+    Task.log.info("ci.testJvm: evaluating the non-classic JVM platform inventory")
+    evaluateAll(
+      evaluator,
+      Seq("Alias/run", "testJVMPlatform"),
+      "ci.testJvm",
+      selectMode = SelectMode.Separated
+    )
+  }
+
+  /** Compiles the Scala Native modules and builds their publish artifacts before process-sharded tests run. */
+  def testNativePrepare(evaluator: Evaluator) = Task.Command(exclusive = true) {
+    val resolved = resolveTargets(evaluator, NativeTestSelectors.prepareSelectors)
+    Task.log.info(s"ci.testNativePrepare: evaluating ${resolved.size} targets")
+    evaluateAll(evaluator, resolved, "ci.testNativePrepare")
+  }
+
+  /**
+   * Runs one deterministic Scala Native test shard.
+   *
+   * The shard is deliberately only one command invocation. `.config/mise/tasks/test/native` starts each shard in a
+   * fresh daemonless Mill JVM, which releases the in-process Scala Native linker worker and its retained heap between
+   * shards. Evaluating all shards from this command would keep that worker alive and recreate the OOM this split
+   * avoids.
+   */
+  def testNative(evaluator: Evaluator, shard: Int = 0, shards: Int = 1) = Task.Command(exclusive = true) {
+    val resolved = resolveTargets(evaluator, Seq(NativeTestSelectors.testSelector))
+    val selected = NativeTestSelectors.selectShard(resolved, shard, shards, "ci.testNative") match {
+      case Right(targets) => targets
+      case Left(message)  => throw new Exception(message)
+    }
+    Task.log.info(s"ci.testNative: evaluating ${selected.size} targets (shard=$shard, shards=$shards)")
+    evaluateAll(evaluator, selected, s"ci.testNative (shard=$shard, shards=$shards)")
+  }
+
   /**
    * The "Run JS tests" phase of the `test-js` / `test-js-desktop` CI jobs — compile, publish, and both JS and Wasm test
    * runs — scoped to `group` (`"platform"` or `"desktop"`).
@@ -473,16 +509,19 @@ trait MorphirCiModule extends Module {
       group: String,
       what: String
   )(using TaskCtx): Unit = {
-    val resolved = selectors.flatMap { selector =>
-      unwrap(evaluator.resolveSegments(Seq(selector), SelectMode.Multi), s"resolve $selector").map(_.render)
-    }
-    val kept = JsTestSelectors.selectGroup(resolved, group, what) match {
+    val resolved = resolveTargets(evaluator, selectors)
+    val kept     = JsTestSelectors.selectGroup(resolved, group, what) match {
       case Right(selected) => selected
       case Left(message)   => throw new Exception(message)
     }
     Task.log.info(s"$what: evaluating ${kept.size} targets (group=$group)")
     evaluateAll(evaluator, kept, s"$what (group=$group)")
   }
+
+  private def resolveTargets(evaluator: Evaluator, selectors: Seq[String]): Seq[String] =
+    selectors.flatMap { selector =>
+      unwrap(evaluator.resolveSegments(Seq(selector), SelectMode.Multi), s"resolve $selector").map(_.render)
+    }
 
   /**
    * Cross-destination aggregator. CI calls `ci.publish`. Today that is Sonatype only; the desktop destination is
