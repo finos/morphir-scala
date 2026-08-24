@@ -68,6 +68,13 @@ trait LinkerBenchmarkModule extends Module {
       platform: String,
       strategy: String,
       profile: String,
+      memoryGib: Int,
+      reserveGib: Int,
+      heapGib: Int,
+      millJobs: Int,
+      maxChildren: Int,
+      batchSize: Int,
+      timeoutMinutes: Int,
       trials: Int,
       orderSeed: Long,
       trial: Int,
@@ -81,8 +88,19 @@ trait LinkerBenchmarkModule extends Module {
     val startedPath      = os.Path(started, workspace)
     val selectedPlatform = parsePlatform(platform)
     val selectedStrategy = parseStrategy(strategy)
-    val selectedProfile  = parseProfile(profile)
-    val settings         = LinkerBenchmark
+    val selectedProfile  = LinkerBenchmark
+      .reconstructWorkerProfile(
+        parseProfile(profile),
+        memoryGib,
+        reserveGib,
+        heapGib,
+        millJobs,
+        maxChildren,
+        batchSize,
+        timeoutMinutes
+      )
+      .fold(message => throw new Exception(message), identity)
+    val settings = LinkerBenchmark
       .validate(EvaluationSettings(trials, orderSeed))
       .fold(message => throw new Exception(message), identity)
     val selectedTargets = targets.split(',').iterator.map(_.trim).filter(_.nonEmpty).toSeq.distinct.sorted

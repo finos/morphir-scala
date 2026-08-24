@@ -195,6 +195,8 @@ object LinkerBenchmarkTests extends TestSuite {
     }
 
     test("hosted resource bounds accept their limits and reject larger values") {
+      assert(maxHostedMemoryGiB == 16)
+      assert(maxHostedReserveGiB == 15)
       val atLimits = BenchmarkOverrides(
         trials = Some(maxHostedTrials),
         targetLimit = Some(maxHostedTargetLimit),
@@ -228,6 +230,17 @@ object LinkerBenchmarkTests extends TestSuite {
         BenchmarkOverrides(timeoutMinutes = Some(Int.MaxValue))
       )
       assert((aboveLimits ++ maximumValues).forall(validateHostedOverrideBounds(_).isLeft))
+    }
+
+    test("hosted order seeds are nonnegative while direct mode retains signed seeds") {
+      val local     = Profile("local", 32, 8, 8, 2, 2, 4, 30)
+      val overrides = BenchmarkOverrides(orderSeed = Some(-1L))
+
+      assert(resolveHostedConfiguration("quick-smoke", overrides).isLeft)
+      assert(
+        resolveBenchmarkConfiguration("", "local", local, overrides).toOption.map(_.settings.orderSeed) ==
+          Some(-1L)
+      )
     }
 
     test("configuration JSON is sanitized and matches the configuration embedded in final results") {
@@ -308,10 +321,10 @@ object LinkerBenchmarkTests extends TestSuite {
         orderSeed = Some(7L),
         targetFilter = Some("langkit"),
         targetLimit = Some(3),
-        memoryGiB = Some(32),
+        memoryGiB = Some(16),
         reserveGiB = Some(4),
         millJobs = Some(3),
-        maxChildren = Some(3),
+        maxChildren = Some(1),
         batchSize = Some(2),
         timeoutMinutes = Some(45),
         continueOnFailure = Some(false)
@@ -323,7 +336,7 @@ object LinkerBenchmarkTests extends TestSuite {
       assert(resolved.settings == EvaluationSettings(2, 7L))
       assert(resolved.targetFilter.contains("langkit"))
       assert(resolved.targetLimit.contains(3))
-      assert(resolved.profile == Profile("ci", 32, 4, 8, 3, 3, 2, 45))
+      assert(resolved.profile == Profile("ci", 16, 4, 8, 3, 1, 2, 45))
       assert(!resolved.continueOnFailure)
       assert(resolveHostedConfiguration("native-long-lived", BenchmarkOverrides()).toOption.get ==
         hostedPreset("native-long-lived").toOption.get)
@@ -991,6 +1004,227 @@ object LinkerBenchmarkTests extends TestSuite {
           PreparationDecision(measure = false, Outcome.TimedOut, failRun = false)
       )
       assert(preparationDecision(Seq.empty, continueOnFailure = true).measure == false)
+    }
+
+    test("evaluation schedule is flattened by trial, strategy position, then platform") {
+      val orders = Seq(
+        Seq(Strategy.Fresh, Strategy.Recycled),
+        Seq(Strategy.Recycled, Strategy.Fresh)
+      )
+
+      assert(
+        evaluationSchedule(orders, Seq(Platform.ScalaJs, Platform.Wasm)) == Seq(
+          EvaluationCase(0, 0, Platform.ScalaJs, Strategy.Fresh),
+          EvaluationCase(0, 0, Platform.Wasm, Strategy.Fresh),
+          EvaluationCase(0, 1, Platform.ScalaJs, Strategy.Recycled),
+          EvaluationCase(0, 1, Platform.Wasm, Strategy.Recycled),
+          EvaluationCase(1, 0, Platform.ScalaJs, Strategy.Recycled),
+          EvaluationCase(1, 0, Platform.Wasm, Strategy.Recycled),
+          EvaluationCase(1, 1, Platform.ScalaJs, Strategy.Fresh),
+          EvaluationCase(1, 1, Platform.Wasm, Strategy.Fresh)
+        )
+      )
+    }
+
+    test("evaluation stops scheduling after the first failed case unless continuation is enabled") {
+      val scheduled                                                   = Seq("first", "failing", "never")
+      def execute(continueOnFailure: Boolean): Seq[(String, Outcome)] =
+        runEvaluationSchedule(scheduled, continueOnFailure) { value =>
+          if value == "failing" then Outcome.Failed else Outcome.Succeeded
+        }
+
+      assert(execute(continueOnFailure = false).map(_._1) == Seq("first", "failing"))
+      assert(execute(continueOnFailure = true).map(_._1) == scheduled)
+    }
+
+    test("worker identity validation rejects every mismatched identity family") {
+      val actual = worker(trial = 2, lane = 3).copy(
+        runId = "run-expected",
+        strategyPosition = 4,
+        settings = EvaluationSettings(5, 6L),
+        platform = Platform.Wasm,
+        strategy = Strategy.Fresh,
+        profile = ciProfile.copy(name = "expected-profile"),
+        batch = 7,
+        targets = Seq("one", "two")
+      )
+      val expected  = WorkerIdentity.from(actual)
+      val mutations = Seq(
+        actual.copy(runId = "wrong"),
+        actual.copy(settings = actual.settings.copy(orderSeed = 99L)),
+        actual.copy(platform = Platform.Native),
+        actual.copy(strategy = Strategy.Recycled),
+        actual.copy(profile = actual.profile.copy(timeoutMinutes = 99)),
+        actual.copy(trial = 99),
+        actual.copy(strategyPosition = 99),
+        actual.copy(lane = 99),
+        actual.copy(batch = 99),
+        actual.copy(targets = actual.targets.reverse)
+      )
+
+      assert(validateWorkerRecordIdentity(actual, expected) == Right(actual))
+      assert(mutations.forall(validateWorkerRecordIdentity(_, expected).isLeft))
+    }
+
+    test("worker profile arguments preserve every validated profile field") {
+      val altered = ciProfile.copy(
+        memoryGiB = 16,
+        reserveGiB = 5,
+        heapGiB = 8,
+        millJobs = 3,
+        maxChildren = 1,
+        batchSize = 2,
+        timeoutMinutes = 45
+      )
+
+      assert(
+        workerProfileArguments(altered) == Seq(
+          "--profile",
+          "ci",
+          "--memoryGib",
+          "16",
+          "--reserveGib",
+          "5",
+          "--heapGib",
+          "8",
+          "--millJobs",
+          "3",
+          "--maxChildren",
+          "1",
+          "--batchSize",
+          "2",
+          "--timeoutMinutes",
+          "45"
+        )
+      )
+      val reconstructed = reconstructWorkerProfile(
+        ciProfile,
+        altered.memoryGiB,
+        altered.reserveGiB,
+        altered.heapGiB,
+        altered.millJobs,
+        altered.maxChildren,
+        altered.batchSize,
+        altered.timeoutMinutes
+      )
+      assert(reconstructed == Right(altered))
+      assert(
+        reconstructWorkerProfile(ciProfile, 16, 9, 8, 3, 1, 2, 45).isLeft
+      )
+
+      val actual = worker(trial = 1, profile = reconstructed.toOption.get)
+      assert(validateWorkerRecordIdentity(actual, WorkerIdentity.from(actual)) == Right(actual))
+    }
+
+    test("worker command arguments match the exact Mill Task.Command signature") {
+      val record = worker(trial = 2, lane = 3).copy(
+        runId = "run-exact",
+        strategyPosition = 4,
+        settings = EvaluationSettings(5, 6L),
+        platform = Platform.Wasm,
+        strategy = Strategy.Fresh,
+        profile = ciProfile.copy(reserveGiB = 5, millJobs = 3, batchSize = 2, timeoutMinutes = 45),
+        batch = 7,
+        targets = Seq("one", "two")
+      )
+
+      assert(
+        workerCommandArguments("/output/record.json", "/output/started", WorkerIdentity.from(record)) == Seq(
+          "ci.linkerBenchmarkWorker",
+          "--record",
+          "/output/record.json",
+          "--started",
+          "/output/started",
+          "--runId",
+          "run-exact",
+          "--platform",
+          "wasm",
+          "--strategy",
+          "fresh",
+          "--profile",
+          "ci",
+          "--memoryGib",
+          "16",
+          "--reserveGib",
+          "5",
+          "--heapGib",
+          "8",
+          "--millJobs",
+          "3",
+          "--maxChildren",
+          "1",
+          "--batchSize",
+          "2",
+          "--timeoutMinutes",
+          "45",
+          "--trials",
+          "5",
+          "--orderSeed",
+          "6",
+          "--trial",
+          "2",
+          "--strategyPosition",
+          "4",
+          "--lane",
+          "3",
+          "--batch",
+          "7",
+          "--targets",
+          "one,two"
+        )
+      )
+    }
+
+    test("worker launch cleanup removes stale regular markers and rejects symbolic links") {
+      val directory = os.temp.dir(prefix = "linker-worker-markers-")
+      val external  = os.temp(prefix = "linker-worker-external-", contents = "keep")
+      try {
+        os.write(directory / "record.json", "stale")
+        os.write(directory / "started", "stale")
+        assert(clearWorkerLaunchMarkers(directory).isRight)
+        assert(!os.exists(directory / "record.json"))
+        assert(!os.exists(directory / "started"))
+
+        java.nio.file.Files.createSymbolicLink((directory / "record.json").toNIO, external.toNIO)
+        assert(clearWorkerLaunchMarkers(directory).isLeft)
+        assert(os.read(external) == "keep")
+      } finally {
+        os.remove.all(directory)
+        os.remove(external)
+      }
+    }
+
+    test("worker output preparation rejects a symlink ancestor before external mutation") {
+      val root       = os.temp.dir(prefix = "linker-worker-output-")
+      val outputRoot = root / "output"
+      val external   = root / "external"
+      try {
+        os.makeDir.all(outputRoot)
+        os.makeDir.all(external)
+        java.nio.file.Files.createSymbolicLink((outputRoot / "ci").toNIO, external.toNIO)
+        val requested = outputRoot / "ci" / "trial-0" / "recycled" / "wasm" / "lane-0" / "batch-0"
+
+        assert(prepareWorkerOutputDirectory(outputRoot, requested).isLeft)
+        assert(os.list(external).isEmpty)
+        assert(!os.exists(external / "trial-0"))
+        assert(!os.exists(external / "record.json"))
+        assert(!os.exists(external / "started"))
+      } finally os.remove.all(root)
+    }
+
+    test("interrupted batch execution does not launch later batches") {
+      val invoked = Seq.newBuilder[Int]
+      try {
+        val completed = runBatchesUntilInterrupted(Seq(1, 2, 3)) { batch =>
+          invoked += batch
+          if batch == 1 then Thread.currentThread().interrupt()
+          batch
+        }
+
+        assert(completed == Seq(1))
+        assert(invoked.result() == Seq(1))
+        assert(Thread.currentThread().isInterrupted)
+      } finally Thread.interrupted()
     }
 
     test("concurrent lane failure interrupts and retires sibling work") {

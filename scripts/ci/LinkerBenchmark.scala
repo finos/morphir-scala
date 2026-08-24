@@ -289,54 +289,63 @@ private object LinkerBenchmarkOrchestrator {
       ProcessHandle.current().pid(),
       () => activeRoots.asScala
     )
-    val records = Seq.newBuilder[WorkerRecord]
-    val cases   = Seq.newBuilder[StrategyTrialRecord]
-    var failed  = skippedCases.nonEmpty
+    val records             = Seq.newBuilder[WorkerRecord]
+    val cases               = Seq.newBuilder[StrategyTrialRecord]
+    val inventoryByPlatform = inventory.map(entry => entry.platform -> entry).toMap
+    val schedule            = LinkerBenchmark.evaluationSchedule(orders, inventory.map(_.platform))
+    var failed              = skippedCases.nonEmpty
     try
-      orders.zipWithIndex.foreach { case (order, trial) =>
-        inventory.foreach { entry =>
-          order.zipWithIndex.foreach { case (strategy, position) =>
-            val preparation = preparationDecisionFor(trial, entry.platform, strategy)
-            if !preparation.measure then
-              cases += skippedCase(trial, position, entry.platform, strategy, preparation.outcome)
-            else {
-              sampler.resetStrategyWindow()
-              val startedAt     = System.nanoTime()
-              val plan          = plans(entry.platform -> strategy)
-              val windowRecords = runPlan(
-                workspace,
-                externalRoot,
-                outputRoot,
-                runId,
-                settings,
-                profile,
-                entry.platform,
-                strategy,
-                trial,
-                position,
-                plan
-              )
-              records ++= windowRecords
-              val windowMillis = math.max(0L, (System.nanoTime() - startedAt) / 1000000L)
-              val snapshot     = sampler.snapshot()
-              val outcome      = combineOutcomes(windowRecords.map(_.outcome))
-              val completed    = windowRecords.filter(_.outcome == Outcome.Succeeded).flatMap(_.targets).distinct.size
-              cases += StrategyTrialRecord(
-                runId,
-                trial,
-                position,
-                entry.platform,
-                strategy,
-                profile,
-                windowMillis,
-                snapshot.strategyWindowPeakKiB,
-                completed,
-                outcome
-              )
-              failed ||= outcome != Outcome.Succeeded
-            }
+      LinkerBenchmark.runEvaluationSchedule(schedule, configuration.continueOnFailure) { scheduled =>
+        val entry       = inventoryByPlatform(scheduled.platform)
+        val preparation = preparationDecisionFor(scheduled.trial, entry.platform, scheduled.strategy)
+        val outcome     =
+          if !preparation.measure then {
+            cases += skippedCase(
+              scheduled.trial,
+              scheduled.strategyPosition,
+              entry.platform,
+              scheduled.strategy,
+              preparation.outcome
+            )
+            preparation.outcome
+          } else {
+            sampler.resetStrategyWindow()
+            val startedAt     = System.nanoTime()
+            val plan          = plans(entry.platform -> scheduled.strategy)
+            val windowRecords = runPlan(
+              workspace,
+              externalRoot,
+              outputRoot,
+              runId,
+              settings,
+              profile,
+              entry.platform,
+              scheduled.strategy,
+              scheduled.trial,
+              scheduled.strategyPosition,
+              plan
+            )
+            records ++= windowRecords
+            val windowMillis = math.max(0L, (System.nanoTime() - startedAt) / 1000000L)
+            val snapshot     = sampler.snapshot()
+            val caseOutcome  = combineOutcomes(windowRecords.map(_.outcome))
+            val completed    = windowRecords.filter(_.outcome == Outcome.Succeeded).flatMap(_.targets).distinct.size
+            cases += StrategyTrialRecord(
+              runId,
+              scheduled.trial,
+              scheduled.strategyPosition,
+              entry.platform,
+              scheduled.strategy,
+              profile,
+              windowMillis,
+              snapshot.strategyWindowPeakKiB,
+              completed,
+              caseOutcome
+            )
+            caseOutcome
           }
-        }
+        failed ||= outcome != Outcome.Succeeded
+        outcome
       }
     finally sampler.stop()
     val result = BenchmarkResult(
@@ -433,7 +442,7 @@ private object LinkerBenchmarkOrchestrator {
         val lane = externalRoot / profile.name / s"trial-$trial" / strategy.token / platform.token /
           s"lane-$laneIndex"
         os.makeDir.all(lane)
-        batches.sortBy(_.index).map { batch =>
+        LinkerBenchmark.runBatchesUntilInterrupted(batches.sortBy(_.index)) { batch =>
           runWorker(
             workspace,
             lane,
@@ -468,76 +477,89 @@ private object LinkerBenchmarkOrchestrator {
       position: Int,
       batch: Batch
   ): WorkerRecord = {
-    val directory = outputRoot / profile.name / s"trial-$trial" / strategy.token / platform.token /
-      s"lane-${batch.lane}" / s"batch-${batch.index}"
-    os.makeDir.all(directory)
-    val record  = directory / "record.json"
-    val started = directory / "started"
-    val gcLog   = directory / "gc.log"
-    val result  = runMill(
-      profile,
-      workspace,
-      lane,
-      started,
-      directory / "stdout.log",
-      directory / "stderr.log",
-      profile.timeoutMinutes.minutes,
-      Seq(
-        "ci.linkerBenchmarkWorker",
-        "--record",
-        physicalPath(record).toString,
-        "--started",
-        physicalPath(started).toString,
-        "--run-id",
+    def failedWorkerRecord(detail: String, outcome: Outcome = Outcome.Failed): WorkerRecord =
+      WorkerRecord(
         runId,
-        "--platform",
-        platform.token,
-        "--strategy",
-        strategy.token,
-        "--profile",
-        profile.name,
-        "--trials",
-        settings.trials.toString,
-        "--order-seed",
-        settings.orderSeed.toString,
-        "--trial",
-        trial.toString,
-        "--strategy-position",
-        position.toString,
-        "--lane",
-        batch.lane.toString,
-        "--batch",
-        batch.index.toString,
-        "--targets",
-        batch.targets.mkString(",")
-      ),
-      Map("JDK_JAVA_OPTIONS" -> s"-Xlog:gc:file=${physicalPath(gcLog)}")
-    )
-    val childRecord =
-      if os.isFile(record) then read[WorkerRecord](os.read(record))
-      else
-        WorkerRecord(
+        trial,
+        position,
+        settings,
+        platform,
+        strategy,
+        profile,
+        batch.lane,
+        batch.index,
+        batch.targets,
+        0L,
+        0L,
+        Seq.empty,
+        outcome,
+        Some(detail)
+      )
+
+    val requestedDirectory = outputRoot / profile.name / s"trial-$trial" / strategy.token / platform.token /
+      s"lane-${batch.lane}" / s"batch-${batch.index}"
+    val preparedDirectory = LinkerBenchmark.prepareWorkerOutputDirectory(outputRoot, requestedDirectory)
+
+    preparedDirectory.fold(
+      detail => failedWorkerRecord(detail),
+      directory => {
+        val record           = directory / "record.json"
+        val started          = directory / "started"
+        val gcLog            = directory / "gc.log"
+        val expectedIdentity = WorkerIdentity(
           runId,
-          trial,
-          position,
           settings,
           platform,
           strategy,
           profile,
+          trial,
+          position,
           batch.lane,
           batch.index,
-          batch.targets,
-          result.startupMillis.getOrElse(0L),
-          result.peakRssKiB,
-          Seq.empty,
-          result.outcome,
-          Some(result.detail)
+          batch.targets
         )
-    childRecord.copy(
-      startupMillis = result.startupMillis.getOrElse(childRecord.startupMillis),
-      peakRssKiB = math.max(childRecord.peakRssKiB, result.peakRssKiB),
-      outcome = if result.outcome == Outcome.Succeeded then childRecord.outcome else result.outcome,
-      detail = childRecord.detail.orElse(Some(result.detail))
+        val result = runMill(
+          profile,
+          workspace,
+          lane,
+          started,
+          directory / "stdout.log",
+          directory / "stderr.log",
+          profile.timeoutMinutes.minutes,
+          LinkerBenchmark.workerCommandArguments(
+            physicalPath(record).toString,
+            physicalPath(started).toString,
+            expectedIdentity
+          ),
+          Map("JDK_JAVA_OPTIONS" -> s"-Xlog:gc:file=${physicalPath(gcLog)}")
+        )
+        val loadedRecord =
+          if !Files.isRegularFile(record.toNIO, java.nio.file.LinkOption.NOFOLLOW_LINKS) then
+            Left("worker record is missing or is not a regular file")
+          else
+            try LinkerBenchmark.validateWorkerRecordIdentity(read[WorkerRecord](os.read(record)), expectedIdentity)
+            catch {
+              case NonFatal(_) => Left("worker record is invalid")
+            }
+
+        loadedRecord.fold(
+          detail =>
+            failedWorkerRecord(
+              detail,
+              if result.outcome == Outcome.Succeeded then Outcome.Failed else result.outcome
+            ).copy(
+              startupMillis = result.startupMillis.getOrElse(0L),
+              peakRssKiB = result.peakRssKiB
+            ),
+          childRecord =>
+            childRecord.copy(
+              startupMillis = result.startupMillis.getOrElse(childRecord.startupMillis),
+              peakRssKiB = math.max(childRecord.peakRssKiB, result.peakRssKiB),
+              outcome = if result.outcome == Outcome.Succeeded then childRecord.outcome else result.outcome,
+              detail = childRecord.detail.orElse(Some(result.detail))
+            )
+        )
+      }
     )
   }
 

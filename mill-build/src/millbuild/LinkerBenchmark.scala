@@ -109,6 +109,48 @@ object LinkerBenchmark {
 
   val ciProfile: Profile = Profile("ci", 16, 4, 8, 2, 1, 4, 30)
 
+  def workerProfileArguments(profile: Profile): Seq[String] =
+    Seq(
+      "--profile",
+      profile.name,
+      "--memoryGib",
+      profile.memoryGiB.toString,
+      "--reserveGib",
+      profile.reserveGiB.toString,
+      "--heapGib",
+      profile.heapGiB.toString,
+      "--millJobs",
+      profile.millJobs.toString,
+      "--maxChildren",
+      profile.maxChildren.toString,
+      "--batchSize",
+      profile.batchSize.toString,
+      "--timeoutMinutes",
+      profile.timeoutMinutes.toString
+    )
+
+  def reconstructWorkerProfile(
+      base: Profile,
+      memoryGiB: Int,
+      reserveGiB: Int,
+      heapGiB: Int,
+      millJobs: Int,
+      maxChildren: Int,
+      batchSize: Int,
+      timeoutMinutes: Int
+  ): Either[String, Profile] =
+    validate(
+      base.copy(
+        memoryGiB = memoryGiB,
+        reserveGiB = reserveGiB,
+        heapGiB = heapGiB,
+        millJobs = millJobs,
+        maxChildren = maxChildren,
+        batchSize = batchSize,
+        timeoutMinutes = timeoutMinutes
+      )
+    )
+
   def localProfile(memoryGiB: Int, availableProcessors: Int): Either[String, Profile] =
     if memoryGiB <= 0 then Left("local memory budget must be greater than zero")
     else if availableProcessors <= 0 then Left("local available processors must be greater than zero")
@@ -240,8 +282,8 @@ object LinkerBenchmark {
    * these individual limits.
    */
   val maxHostedTrials: Int         = 100
-  val maxHostedMemoryGiB: Int      = 64
-  val maxHostedReserveGiB: Int     = 63
+  val maxHostedMemoryGiB: Int      = 16
+  val maxHostedReserveGiB: Int     = 15
   val maxHostedMillJobs: Int       = 64
   val maxHostedChildren: Int       = 16
   val maxHostedBatchSize: Int      = 256
@@ -736,6 +778,129 @@ object LinkerBenchmark {
       runtime: RuntimeMetadata = RuntimeMetadata.Unknown
   ) derives ReadWriter
 
+  final case class WorkerIdentity(
+      runId: String,
+      settings: EvaluationSettings,
+      platform: Platform,
+      strategy: Strategy,
+      profile: Profile,
+      trial: Int,
+      strategyPosition: Int,
+      lane: Int,
+      batch: Int,
+      targets: Seq[String]
+  )
+
+  object WorkerIdentity {
+    def from(record: WorkerRecord): WorkerIdentity =
+      WorkerIdentity(
+        record.runId,
+        record.settings,
+        record.platform,
+        record.strategy,
+        record.profile,
+        record.trial,
+        record.strategyPosition,
+        record.lane,
+        record.batch,
+        record.targets
+      )
+  }
+
+  def workerCommandArguments(record: String, started: String, identity: WorkerIdentity): Seq[String] =
+    Seq(
+      "ci.linkerBenchmarkWorker",
+      "--record",
+      record,
+      "--started",
+      started,
+      "--runId",
+      identity.runId,
+      "--platform",
+      identity.platform.token,
+      "--strategy",
+      identity.strategy.token
+    ) ++ workerProfileArguments(identity.profile) ++ Seq(
+      "--trials",
+      identity.settings.trials.toString,
+      "--orderSeed",
+      identity.settings.orderSeed.toString,
+      "--trial",
+      identity.trial.toString,
+      "--strategyPosition",
+      identity.strategyPosition.toString,
+      "--lane",
+      identity.lane.toString,
+      "--batch",
+      identity.batch.toString,
+      "--targets",
+      identity.targets.mkString(",")
+    )
+
+  def validateWorkerRecordIdentity(
+      record: WorkerRecord,
+      expected: WorkerIdentity
+  ): Either[String, WorkerRecord] =
+    Either.cond(
+      WorkerIdentity.from(record) == expected,
+      record,
+      "worker record identity does not match the scheduled worker"
+    )
+
+  def clearWorkerLaunchMarkers(directory: os.Path): Either[String, Unit] = {
+    val lexicalDirectory = directory.toNIO.toAbsolutePath.normalize()
+    val markers          = Seq("record.json", "started").map(lexicalDirectory.resolve)
+
+    def validMarker(path: Path): Boolean =
+      path.getParent == lexicalDirectory &&
+        (!Files.exists(path, LinkOption.NOFOLLOW_LINKS) ||
+          Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS))
+
+    if !Files.isDirectory(lexicalDirectory, LinkOption.NOFOLLOW_LINKS) then
+      Left("worker output directory must be a regular directory")
+    else if !markers.forall(validMarker) then Left("worker launch markers must be regular files")
+    else
+      try {
+        markers.foreach(Files.deleteIfExists)
+        Right(())
+      } catch {
+        case NonFatal(error) => Left(s"cannot clear worker launch markers: ${error.getClass.getSimpleName}")
+      }
+  }
+
+  /**
+   * Validates the existing ancestor chain before creating a worker directory. This assumes a trusted local filesystem
+   * where another process does not replace a validated parent between validation and creation.
+   */
+  def prepareWorkerOutputDirectory(outputRoot: os.Path, requested: os.Path): Either[String, os.Path] = {
+    val message          = "worker output directory escaped benchmark output"
+    val lexicalRoot      = outputRoot.toNIO.toAbsolutePath.normalize()
+    val lexicalRequested = requested.toNIO.toAbsolutePath.normalize()
+    val containsSymlink  =
+      lexicalRequested.startsWith(lexicalRoot) &&
+        lexicalRoot
+          .relativize(lexicalRequested)
+          .iterator()
+          .asScala
+          .scanLeft(lexicalRoot)((current, segment) => current.resolve(segment))
+          .exists(Files.isSymbolicLink)
+
+    if lexicalRequested == lexicalRoot || !lexicalRequested.startsWith(lexicalRoot) then Left(message)
+    else if containsSymlink then Left("worker output directory must not contain symbolic links")
+    else
+      validatePhysicalDescendant(outputRoot, requested, message).flatMap { physicalRequested =>
+        val directory = os.Path(physicalRequested)
+        try {
+          os.makeDir.all(directory)
+          validatePhysicalDescendant(outputRoot, directory, message)
+            .map(os.Path(_))
+            .flatMap(validated => clearWorkerLaunchMarkers(validated).map(_ => validated))
+        } catch {
+          case NonFatal(error) => Left(s"cannot prepare worker output directory: ${error.getClass.getSimpleName}")
+        }
+      }
+  }
+
   final case class StrategyTrialRecord(
       runId: String,
       trial: Int,
@@ -762,6 +927,49 @@ object LinkerBenchmark {
   ) derives ReadWriter
 
   final case class PreparationDecision(measure: Boolean, outcome: Outcome, failRun: Boolean)
+
+  final case class EvaluationCase(
+      trial: Int,
+      strategyPosition: Int,
+      platform: Platform,
+      strategy: Strategy
+  )
+
+  def evaluationSchedule(orders: Seq[Seq[Strategy]], platforms: Seq[Platform]): Seq[EvaluationCase] =
+    orders.zipWithIndex.flatMap { case (order, trial) =>
+      order.zipWithIndex.flatMap { case (strategy, position) =>
+        platforms.map(platform => EvaluationCase(trial, position, platform, strategy))
+      }
+    }
+
+  def runEvaluationSchedule[A](
+      scheduled: Seq[A],
+      continueOnFailure: Boolean
+  )(run: A => Outcome): Seq[(A, Outcome)] = {
+    @tailrec def loop(remaining: List[A], completed: Vector[(A, Outcome)]): Vector[(A, Outcome)] =
+      remaining match {
+        case Nil          => completed
+        case next :: tail =>
+          val outcome = run(next)
+          val updated = completed :+ (next -> outcome)
+          if outcome == Outcome.Succeeded || continueOnFailure then loop(tail, updated)
+          else updated
+      }
+
+    loop(scheduled.toList, Vector.empty)
+  }
+
+  def runBatchesUntilInterrupted[A, B](batches: Seq[A])(run: A => B): Seq[B] = {
+    @tailrec def loop(remaining: List[A], completed: Vector[B]): Vector[B] =
+      if Thread.currentThread().isInterrupted then completed
+      else
+        remaining match {
+          case Nil          => completed
+          case head :: tail => loop(tail, completed :+ run(head))
+        }
+
+    loop(batches.toList, Vector.empty)
+  }
 
   def preparationDecision(outcomes: Seq[Outcome], continueOnFailure: Boolean): PreparationDecision = {
     val outcome =

@@ -71,8 +71,8 @@ The five presets fix the initial comparison matrix:
 | Order seed | 0 | Nonnegative; no hosted cap | Empty string inherits; explicit `0` sets zero |
 | Target filter | None | Substring match; rejects control characters and an empty target result | Empty string inherits |
 | Target limit | One for `quick-smoke`; otherwise all | Positive, at most 10,000; selection is sorted per platform | Number-typed zero inherits |
-| Memory budget | 16 GiB | Positive, at most 64 GiB; must pass resource admission | Number-typed zero inherits |
-| Reserve | 4 GiB | Positive override, at most 63 GiB and less than memory | Number-typed zero inherits |
+| Memory budget | 16 GiB | Positive, at most 16 GiB; must pass resource admission | Number-typed zero inherits |
+| Reserve | 4 GiB | Positive override, at most 15 GiB and less than memory | Number-typed zero inherits |
 | Mill jobs | 2 | Positive, at most 64 | Number-typed zero inherits |
 | Active children | 1 | Positive, at most 16; must pass resource admission | Number-typed zero inherits |
 | Recycled batch size | 4 | Positive, at most 256 | Number-typed zero inherits |
@@ -82,7 +82,9 @@ The five presets fix the initial comparison matrix:
 Resource admission requires the rounded-up observed heap multiplied by active children, plus reserve, to fit within
 the memory budget. Malformed or unknown settings and failed admission stop the run before linker work. Hosted runs
 use the fixed CI profile and expose no profile override. They also expose no heap override and use the fixed 8 GiB
-heap from `.mill-jvm-opts`.
+heap from `.mill-jvm-opts`. The hosted runner budget is 16 GiB. An override may lower that budget or explicitly
+restate 16 GiB, but it cannot claim memory the runner does not have. The reserve cap follows at 15 GiB so it always
+leaves room for a positive admitted workload.
 
 The pinned Mill version, `1.2.0-RC1-46-16168f`, ignores the documented `MILL_JVM_OPTS_PATH`. `_JAVA_OPTIONS` is not
 a safe substitute because it also changes Java descendants. The hosted profile therefore keeps the heap at 8 GiB.
