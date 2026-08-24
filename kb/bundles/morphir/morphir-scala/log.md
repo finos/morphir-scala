@@ -1,5 +1,17 @@
 # Log
 
+## 2026-08-24
+
+* **Update**: [Continuous Integration](/continuous-integration.md) now documents the configurable manual hosted
+  linker profiler. Production grouping stays unchanged pending hosted artifacts, and the local `quick-smoke`
+  acceptance passed all nine cases.
+
+## 2026-08-23
+
+* **Update**: [Continuous Integration](/continuous-integration.md) now records that hosted and local platform tests
+  enter through Mill `ci.*` commands, while Mise supplies fresh process boundaries for retained Scala.js, Wasm and
+  Scala Native linker workers. A direct `./mill __.test` remains a single build JVM and is not an isolation boundary.
+
 ## 2026-08-21
 
 * **Creation**: Added [GitHub connection settings and local web host](/design/github-connection-settings-and-local-web-host.md), covering the shared connection contract, loopback server, Electron host, optional persistence, UI states, and required security audit.
