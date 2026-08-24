@@ -1,5 +1,10 @@
 # Log
 
+## 2026-08-24
+
+* **Update**: Linked the pipeline and workspace narrative to the pinned Morphir Rust configuration reference. The
+  narrative now distinguishes the normative six-source merge from the smaller subset implemented in Rust.
+
 ## 2026-08-21
 
 * **Creation**: Added [GitHub connection settings and local web host](/design/github-connection-settings-and-local-web-host.md), covering the shared connection contract, loopback server, Electron host, optional persistence, UI states, and required security audit.
