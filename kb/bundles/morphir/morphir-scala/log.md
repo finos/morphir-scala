@@ -3,8 +3,9 @@
 ## 2026-08-24
 
 * **Update**: [Continuous Integration](/continuous-integration.md) now documents the configurable manual hosted
-  linker profiler. Production grouping stays unchanged pending hosted artifacts, and the local `quick-smoke`
-  acceptance passed all nine cases.
+  linker profiler. The same Native test inventory now runs as four deterministic fresh-JVM shards instead of
+  batches of five. Long-lived and recycled workers remain profiler-only pending hosted evidence. The local
+  `quick-smoke` acceptance passed all nine cases.
 
 ## 2026-08-23
 

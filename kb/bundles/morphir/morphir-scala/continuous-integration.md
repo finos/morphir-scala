@@ -116,9 +116,11 @@ cancellation. It explicitly includes hidden `.dev` files and retains the artifac
 Markdown redact workspace paths. Raw logs may contain the checkout path. The artifact name safely encodes the
 preset, ref, run id, and run attempt.
 
-The rollout has two stages. First, the profiler lands while production test grouping stays unchanged. After that
-workflow reaches the default branch, `quick-smoke` runs on a hosted runner, followed by the more expensive presets.
-No complete hosted result exists yet.
+This change keeps each platform's resolved test inventory intact. It does change Native execution from batches of
+five to four deterministic shards, with each shard running in a fresh daemonless Mill JVM. Scala.js and Wasm keep
+their existing production grouping. Long-lived and recycled workers remain profiler-only strategies; CI will not
+adopt either one until hosted evidence passes the gates below. After the profiler reaches the default branch,
+`quick-smoke` runs on a hosted runner, followed by the more expensive presets. No complete hosted result exists yet.
 
 ### Local evidence and adoption gates
 
