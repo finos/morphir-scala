@@ -2,12 +2,12 @@
 type: Specification Section
 title: Merge Rules
 description: The six configuration sources, their precedence order, and the deterministic deep-merge algorithm.
-tags: [morphir, configuration, morphir-toml, merge, precedence]
+tags: [morphir, configuration, morphir-toml, morphir-yaml, merge, precedence]
 status: draft
 sources:
   - id: merge-rules
-    resource: https://github.com/finos/morphir/blob/4d5e5c06a7cf269c5f86b050a16a6f82bb5c29bc/docs/spec/morphir-toml/morphir-toml-merge-rules.md
-    title: Morphir TOML Configuration Merge Rules
+    resource: https://github.com/finos/morphir/blob/4d2a6d836da1c3a114241e911f1af0f38b97b453/docs/spec/morphir-toml/morphir-toml-merge-rules.md
+    title: Morphir Configuration Merge Rules
 generated:
   by: process:kb-seed
   at: 2026-07-28T00:00:00Z
@@ -15,7 +15,16 @@ generated:
 
 # Merge Rules
 
-Morphir configuration is **layered**: several sources are loaded and merged into one **effective configuration**.
+Morphir configuration is layered. The normative specification loads six sources and merges them into one effective
+configuration. Each file source may use TOML or YAML. The algorithm starts after parsing, so serialization does not
+change precedence or merge behavior.
+
+## Baseline
+
+This reference uses the merge specification at `finos/morphir` commit
+`4d2a6d836da1c3a114241e911f1af0f38b97b453`. Re-read that pinned document and the TOML and YAML specifications when
+the pin moves. The [Rust implementation reference](/morphir-rust-configuration-cdfa6c63.md) tracks implemented
+coverage separately.
 
 ## Sources and precedence
 
@@ -24,16 +33,16 @@ Lowest to highest:
 | Priority | Source | Typical path |
 | -------- | ------ | ------------ |
 | 1 (lowest) | Built-in defaults | compiled in |
-| 2 | System config | `/etc/morphir/morphir.toml` |
-| 3 | Global user config | `~/.config/morphir/morphir.toml` |
-| 4 | Project config | `morphir.toml` |
-| 5 | User override | `.morphir/morphir.user.toml` |
+| 2 | System config | `/etc/morphir/morphir.toml` or `.yaml` |
+| 3 | Global user config | Platform config directory or home `.morphir` directory |
+| 4 | Project config | `morphir.toml` or `morphir.yaml` |
+| 5 | User override | `.morphir/morphir.user.toml` or `.yaml` |
 | 6 (highest) | Environment variables | `MORPHIR_*` |
 
-A hidden project config (`.morphir/morphir.toml`) may also be used by some commands; its merge semantics are
-identical.
+A hidden project config is an alternate project path, not another layer. The serialization and location ambiguity
+rules are summarized in [Configuration Overview](/overview.md).
 
-The user-override layer sitting *above* the project config is the notable choice — it lets a developer change
+The user-override layer sits above the project config. It lets a developer change
 behavior locally without editing a file that is under version control.
 
 ## The merge algorithm
@@ -58,31 +67,33 @@ Generally: **later maps take precedence over earlier maps.**
 
 | Rule | Behavior |
 | ---- | -------- |
-| 1 — Overlay wins | For a key in both maps, the overlay value takes precedence |
-| 2 — Maps merge recursively | Two maps under the same key are deep-merged |
-| 3 — **Arrays replace** | The overlay array replaces the base entirely; no concatenation |
-| 4 — `nil` overlay ignored | A `nil` overlay value does not override the base |
-| 5 — No mutation | The result is independent; inputs are unmodified |
+| 1. Overlay wins | For a key in both maps, the overlay value takes precedence |
+| 2. Maps merge recursively | Two maps under the same key are deep-merged |
+| 3. **Arrays replace** | The overlay array replaces the base entirely; no concatenation |
+| 4. `nil` overlay ignored | A `nil` overlay value does not override the base |
+| 5. No mutation | The result is independent; inputs are unmodified |
 
 Rule 3 is the one that surprises people: a project-level `codegen.targets` **replaces** the global list rather than
-adding to it. Note the contrast with the v4 design's decoration merge, which concatenates arrays — the two merge
-systems are unrelated and behave differently.
+adding to it. The v4 design's decoration merge concatenates arrays. That merge system is unrelated and behaves
+differently.
 
 Rule 4 means a key cannot be *unset* by a higher layer, only overwritten with another value.
 
-These rules are implemented by `pkg/config/internal/configloader.DeepMerge` and `MergeAll`.
+The specification attributes these rules to `pkg/config/internal/configloader.DeepMerge` and `MergeAll`. The pinned
+Rust implementation has a separate recursive merge with the same map and replacement behavior for the layers it
+loads. It does not implement all six layers. See the
+[Rust implementation reference](/morphir-rust-configuration-cdfa6c63.md).
 
 ## Environment variable mapping (informative)
 
 Variables prefixed `MORPHIR_` (the default prefix) become config keys.
 
-- **Double underscore** marks a nested object boundary:
-  `MORPHIR_CODEGEN__GO__PACKAGE=foo` → `codegen.go.package = "foo"`
-- **Single underscores are not split.** They stay part of the key name at that level:
-  `MORPHIR_IR_FORMAT_VERSION=3` → `ir_format_version = 3`, a single key in the env-derived map.
+| Syntax | Behavior | Example |
+| --- | --- | --- |
+| Double underscore | Starts a nested object boundary | `MORPHIR_CODEGEN__GO__PACKAGE=foo` becomes `codegen.go.package = "foo"` |
+| Single underscore | Remains part of the key at that level | `MORPHIR_IR_FORMAT_VERSION=3` becomes the single key `ir_format_version = 3` |
 
-The second bullet is a trap. `MORPHIR_IR_FORMAT_VERSION` does **not** set `ir.format_version`; it creates a key named
+The `MORPHIR_IR_FORMAT_VERSION` row is a trap. That variable does **not** set `ir.format_version`; it creates a key named
 `ir_format_version` that nothing reads. The correct form is `MORPHIR_IR__FORMAT_VERSION`.
 
-The specification is explicit that this is deliberate — the mapping is "intentionally mechanical; it does not attempt
-to guess dotted paths."
+The specification calls this mapping "intentionally mechanical" and says it does not guess dotted paths.

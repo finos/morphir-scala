@@ -9,18 +9,20 @@ self-contained OKF bundle.
 | [`morphir-ir-v3`](./morphir-ir-v3/) | [finos/morphir](https://github.com/finos/morphir) `docs/` | The Morphir IR specification at format version 3 — the current, active version. |
 | [`morphir-ir-v4-draft`](./morphir-ir-v4-draft/) | [finos/morphir](https://github.com/finos/morphir) `docs/spec/draft/` and `docs/design/draft/ir/` | The draft specification for Morphir IR format version 4, with the design rationale behind it. Not yet active; subject to change. |
 | [`morphir-upstream`](./morphir-upstream/) | [finos/morphir](https://github.com/finos/morphir), mirrored | The IR specification, design and schema files themselves, worked on here and synced back. Not a summary — upstream's own bytes. |
-| [`morphir-configuration`](./morphir-configuration/) | [finos/morphir](https://github.com/finos/morphir) `docs/spec/morphir-toml/` | The `morphir.toml` workspace and project configuration format, and how layered configuration sources merge. |
+| [`morphir-configuration`](./morphir-configuration/) | [finos/morphir](https://github.com/finos/morphir) configuration specifications and [finos/morphir-rust](https://github.com/finos/morphir-rust) implementation | The shared Morphir configuration model, its TOML and YAML serializations, and the implementation status of layered discovery and merging. |
 | [`morphir-scala`](./morphir-scala/) | this repository | Morphir-scala capabilities, decisions, design notes, and research. |
 | [`morphir-elm`](./morphir-elm/) | [finos/morphir-elm](https://github.com/finos/morphir-elm) | The Elm implementation of Morphir, which produces and consumes IR format version 3. |
 
 ## Source discipline
 
-These bundles were seeded from two upstream repositories at pinned commits:
+These bundles were seeded from three upstream repositories at pinned commits:
 
-- `finos/morphir` @ `4d5e5c06a7cf269c5f86b050a16a6f82bb5c29bc` (2026-07-27)
+- `finos/morphir` @ `4d5e5c06a7cf269c5f86b050a16a6f82bb5c29bc` (2026-07-27), with the YAML and
+  configuration-discovery update at `4d2a6d836da1c3a114241e911f1af0f38b97b453` (2026-08-24)
 - `finos/morphir-elm` @ `1956c36d3715851a2f215775a45395690746d801` (2026-05-28)
+- `finos/morphir-rust` @ `cdfa6c6323ab0f08a285b77a8a857eb9915a83fb` (2026-08-24)
 
-Two constraints apply to how those repositories may be used as sources:
+Three constraints apply to how those repositories may be used as sources:
 
 1. **`finos/morphir` — documentation, plus the artifacts the format is actually defined by.** `docs/` is
    authoritative for spec knowledge, and so are four things outside it that the original seeding missed:
@@ -30,6 +32,9 @@ Two constraints apply to how those repositories may be used as sources:
    repository remains experimental and must not be consulted for knowledge.
 2. **`finos/morphir-elm` — the v3 implementation.** Its source is authoritative for how format version 3 is actually
    implemented, and is the right place to verify v3 claims against working code.
+3. **`finos/morphir-rust`, the Rust configuration implementation.** Its source defines the implemented YAML
+   parser, configuration discovery, and merge subset. Compare it with the configuration specifications rather than
+   assuming that every normative layer is implemented.
 
 Every concept document records the file it came from in its `sources` frontmatter, with a commit-pinned URL.
 
