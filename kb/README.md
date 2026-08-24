@@ -39,7 +39,7 @@ under `bundles/` or be grouped one level deeper by subject.
 | [`morphir/morphir-ir-v3`](./bundles/morphir/morphir-ir-v3/) | The Morphir Intermediate Representation at format version 3 — the current, active IR format. |
 | [`morphir/morphir-ir-v4-draft`](./bundles/morphir/morphir-ir-v4-draft/) | The draft specification for Morphir IR format version 4 — not yet active and subject to change. |
 | [`morphir/morphir-upstream`](./bundles/morphir/morphir-upstream/) | The IR specification, design and schema files mirrored from finos/morphir, worked on here and synced back. |
-| [`morphir/morphir-configuration`](./bundles/morphir/morphir-configuration/) | The `morphir.toml` workspace and project configuration format, and how layered configuration sources merge. |
+| [`morphir/morphir-configuration`](./bundles/morphir/morphir-configuration/) | The shared Morphir configuration model, its TOML and YAML serializations, and the implementation status of layered discovery and merging. |
 | [`intent`](./bundles/intent/) | Work this project means to do, is doing, or has done — with the reasoning behind it. |
 | [`programming-language-tooling`](./bundles/programming-language-tooling/) | Evidence-backed references and tutorials for syntax trees, traversal, interoperability, transformation pipelines, and toolchain design. |
 | [`morphir/morphir-scala`](./bundles/morphir/morphir-scala/) | Morphir-scala capabilities, decisions, design notes, and research. |
