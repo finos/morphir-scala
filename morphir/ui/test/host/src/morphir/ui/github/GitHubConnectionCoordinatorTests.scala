@@ -47,6 +47,12 @@ class GitHubConnectionCoordinatorTests extends Test[Any]:
   private def readProvider(coordinator: GitHubConnectionCoordinator): Result[GitHubException, Token] < Async =
     Abort.run[GitHubException](coordinator.tokenProvider.token)
 
+  private def awaitWithin[A](effect: => A < Async): Result[Timeout, A] < Async =
+    Abort.run[Timeout](Async.timeout(2.seconds)(effect))
+
+  private def useTargetFiber[A](effect: => A < Async)(use: Fiber[A, Any] => Unit < Async): Unit < Async =
+    Fiber.use[Nothing, A, Any, Any](effect)[Unit, Async](use)
+
   private def awaitStatus(
       coordinator: GitHubConnectionCoordinator,
       expected: GitHubConnectionStatus
@@ -344,18 +350,23 @@ class GitHubConnectionCoordinatorTests extends Test[Any]:
             case Result.Success(coordinator) =>
               run(coordinator.connect(TokenSubmission.from(firstRaw), remember = true)).map { _ =>
                 vault.afterNextPut(credentialStored.release.andThen(releaseVault.await))
-                Fiber.initUnscoped(
-                  run(coordinator.connect(TokenSubmission.from(secondRaw), remember = true))
-                ).map { connectionFiber =>
-                  Fiber.initUnscoped(credentialStored.await).map(_.block(1.second)).map { entered =>
-                    assert(entered.isSuccess)
-                    connectionFiber.interrupt.map { _ =>
-                      releaseVault.release.map { _ =>
-                        connectionFiber.block(1.second).map { interrupted =>
-                          assert(interrupted.isPanic)
-                          val expected = GitHubConnectionStatus.Connected(grace.value, ConnectionPersistence.Device)
-                          Fiber.initUnscoped(awaitStatus(coordinator, expected)).map(_.block(1.second)).map {
-                            completed =>
+                Sync.ensure(releaseVault.release) {
+                  useTargetFiber(
+                    run(coordinator.connect(TokenSubmission.from(secondRaw), remember = true))
+                  ) { connectionFiber =>
+                    awaitWithin(credentialStored.await).map { entered =>
+                      assert(entered.isSuccess)
+                      connectionFiber.interrupt.map { _ =>
+                        releaseVault.release.map { _ =>
+                          awaitWithin(connectionFiber.getResult).map { interrupted =>
+                            assert(
+                              interrupted match
+                                case Result.Panic(_: Interrupted) => true
+                                case _                            => false
+                            )
+                            val expected =
+                              GitHubConnectionStatus.Connected(grace.value, ConnectionPersistence.Device)
+                            awaitWithin(awaitStatus(coordinator, expected)).map { completed =>
                               run(coordinator.status()).map { status =>
                                 readProvider(coordinator).map { provider =>
                                   assert(completed.isSuccess)
@@ -364,6 +375,7 @@ class GitHubConnectionCoordinatorTests extends Test[Any]:
                                   assert(provider == Result.succeed(second))
                                 }
                               }
+                            }
                           }
                         }
                       }
@@ -631,26 +643,30 @@ class GitHubConnectionCoordinatorTests extends Test[Any]:
             case Result.Success(coordinator) =>
               run(coordinator.connect(TokenSubmission.from(firstRaw), remember = true)).map { _ =>
                 vault.afterNextRemove(credentialRemoved.release.andThen(releaseVault.await))
-                Fiber.initUnscoped(run(coordinator.disconnect())).map { disconnectFiber =>
-                  Fiber.initUnscoped(credentialRemoved.await).map(_.block(1.second)).map { entered =>
-                    assert(entered.isSuccess)
-                    disconnectFiber.interrupt.map { _ =>
-                      releaseVault.release.map { _ =>
-                        disconnectFiber.block(1.second).map { interrupted =>
-                          assert(interrupted.isPanic)
-                          Fiber
-                            .initUnscoped(awaitStatus(coordinator, GitHubConnectionStatus.Disconnected))
-                            .map(_.block(1.second))
-                            .map { completed =>
-                              run(coordinator.status()).map { status =>
-                                readProvider(coordinator).map { provider =>
-                                  assert(completed.isSuccess)
-                                  assert(vault.snapshot.isEmpty)
-                                  assert(status == Result.succeed(GitHubConnectionStatus.Disconnected))
-                                  assert(provider.isFailure)
+                Sync.ensure(releaseVault.release) {
+                  useTargetFiber(run(coordinator.disconnect())) { disconnectFiber =>
+                    awaitWithin(credentialRemoved.await).map { entered =>
+                      assert(entered.isSuccess)
+                      disconnectFiber.interrupt.map { _ =>
+                        releaseVault.release.map { _ =>
+                          awaitWithin(disconnectFiber.getResult).map { interrupted =>
+                            assert(
+                              interrupted match
+                                case Result.Panic(_: Interrupted) => true
+                                case _                            => false
+                            )
+                            awaitWithin(awaitStatus(coordinator, GitHubConnectionStatus.Disconnected)).map {
+                              completed =>
+                                run(coordinator.status()).map { status =>
+                                  readProvider(coordinator).map { provider =>
+                                    assert(completed.isSuccess)
+                                    assert(vault.snapshot.isEmpty)
+                                    assert(status == Result.succeed(GitHubConnectionStatus.Disconnected))
+                                    assert(provider.isFailure)
+                                  }
                                 }
-                              }
                             }
+                          }
                         }
                       }
                     }
