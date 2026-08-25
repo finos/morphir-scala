@@ -924,6 +924,65 @@ object SquireCiPolicy:
   def rejects(validator: String => Unit, workflow: String): Boolean =
     scala.util.Try(validator(workflow)).isFailure
 
+  def assertDesktopSmokeOwnership(
+      shell: String,
+      adapter: String,
+      desktopPackage: String,
+      desktopTesting: String
+  ): Unit =
+    val normalizedShell = shell.replace("\r\n", "\n")
+    val expectedShell =
+      "#!/usr/bin/env bash\n" +
+        "set -euo pipefail\n" +
+        "cd \"$(dirname \"$0\")/../../..\"\n" +
+        "exec ./mill --ticker false morphir.desktop.smokeRun \"$@\"\n"
+    val executableLines = normalizedShell.linesIterator
+      .map(_.trim)
+      .filter(line => line.nonEmpty && !line.startsWith("#"))
+      .toList
+    expect(executableLines.size <= 4, s"desktop smoke shell contains ${executableLines.size} executable lines")
+    expect(normalizedShell == expectedShell, "desktop smoke shell must be the exact four-line Mill launcher")
+    expect(!adapter.contains("MutationObserver"), "desktop smoke adapter must not observe DOM mutations")
+    expect(!adapter.contains("querySelector"), "desktop smoke adapter must not query the DOM")
+    expect("(?s).*\\bwhile\\s*\\(.*".r.findFirstIn(adapter).isEmpty, "desktop smoke adapter must not poll")
+    expect(!adapter.contains("setTimeout"), "desktop smoke adapter must use Electron readiness events")
+    expect(!adapter.contains("setInterval"), "desktop smoke adapter must not poll on an interval")
+    expect(!adapter.contains(".filter("), "desktop smoke adapter must not suppress renderer console output")
+    expect(
+      adapter.contains("rendererLines.join('\\n')"),
+      "desktop smoke adapter must write the raw renderer console capture"
+    )
+    expect(
+      desktopPackage.contains("build.MorphirDesktopSmoke"),
+      "desktop package must mix in build.MorphirDesktopSmoke"
+    )
+    expect(
+      desktopTesting.contains("desktopSmokeElectronInstallerSources") &&
+        desktopTesting.contains("\"install.js\"") && desktopTesting.contains("Task.Sources("),
+      "desktop smoke must acquire Electron through declared locked package inputs and its package installer"
+    )
+    expect(
+      !desktopTesting.contains("existingAbsolute(appDir / \"node_modules\")"),
+      "desktop smoke acquisition must not resolve workspace modules"
+    )
+    expect(
+      desktopTesting.contains("DesktopSmoke.npmCommand(platform)"),
+      "desktop smoke acquisition must install the locked dependency closure inside its task output"
+    )
+    expect(
+      desktopTesting.contains("desktopSmokePlatform") && desktopTesting.contains("Task.Input"),
+      "desktop smoke acquisition cache must include its normalized platform"
+    )
+    expect(
+      desktopTesting.contains("DesktopSmoke.withoutSourceMapTrailer(linked)") &&
+        !desktopTesting.contains("os.copy(sourceMap"),
+      "desktop smoke assembly must not retain stale linked-bundle source map references"
+    )
+    expect(
+      !desktopTesting.contains("os.read.bytes") && !desktopTesting.contains("map(os.read"),
+      "desktop smoke subprocess logs must use bounded streaming helpers"
+    )
+
 class SquireCliSpec extends Test[Any]:
   "commands" - {
     "expose the complete unified command tree" in {
@@ -1726,6 +1785,23 @@ class SquireCiPolicySpec extends Test[Any]:
     skillDirectory.resolve("../../../ci/package.mill.yaml").normalize,
     StandardCharsets.UTF_8
   )
+  private val desktopSmokeShell = Files.readString(
+    skillDirectory.resolve("../../../morphir/desktop/scripts/smoke.sh").normalize,
+    StandardCharsets.UTF_8
+  )
+  private val desktopSmokeAdapter = Files.readString(
+    skillDirectory.resolve("../../../morphir/desktop/app/run-capture.cjs").normalize,
+    StandardCharsets.UTF_8
+  )
+  private val desktopPackage = Files.readString(
+    skillDirectory.resolve("../../../morphir/desktop/package.mill.yaml").normalize,
+    StandardCharsets.UTF_8
+  )
+  private val desktopTesting = Files.readString(
+    skillDirectory.resolve("../../../desktop-testing.mill").normalize,
+    StandardCharsets.UTF_8
+  )
+
   /** Each broad selector followed by the curated ones it must equal; resolved against Mill, then compared. */
   private val jvmTargetSelectors =
     ("morphir.__.jvm.__.compile" :: JvmCompileSelectors) :::
@@ -1836,6 +1912,25 @@ class SquireCiPolicySpec extends Test[Any]:
   }
 
   "hosted CI policy" - {
+    "keeps desktop smoke orchestration in Mill" in {
+      assertDesktopSmokeOwnership(desktopSmokeShell, desktopSmokeAdapter, desktopPackage, desktopTesting)
+      val noOpShell = desktopSmokeShell.replace(
+        "exec ./mill --ticker false morphir.desktop.smokeRun \"$@\"",
+        "true"
+      )
+      assert(
+        scala.util
+          .Try(assertDesktopSmokeOwnership(noOpShell, desktopSmokeAdapter, desktopPackage, desktopTesting))
+          .isFailure
+      )
+      assertDesktopSmokeOwnership(
+        desktopSmokeShell.replace("\n", "\r\n"),
+        desktopSmokeAdapter,
+        desktopPackage,
+        desktopTesting
+      )
+    }
+
     "guards the manual hosted linker benchmark workflow" in {
       assertLinkerBenchmarkWorkflowPolicy(linkerBenchmarkWorkflow)
 

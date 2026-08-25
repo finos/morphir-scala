@@ -1,1 +1,1 @@
-extends: Module
+extends: [Module, build.MorphirDesktopSmoke]
