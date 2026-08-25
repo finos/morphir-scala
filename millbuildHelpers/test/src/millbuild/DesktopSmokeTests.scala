@@ -141,7 +141,12 @@ object DesktopSmokeTests extends TestSuite {
       assert(darwin.launchCommand.take(2) == Seq("/bin/sh", "-c"))
       assert(darwin.launchCommand.contains("tool with spaces"))
       assert(linux.kind == DesktopSmoke.BoundaryKind.LinuxSession)
-      assert(linux.launchCommand == Seq("/usr/bin/setsid") ++ command)
+      assert(linux.launchCommand.take(3) == Seq("/usr/bin/setsid", "--wait", "/bin/sh"))
+      assert(linux.launchCommand.takeRight(command.size) == command)
+      assert(linux.marker.nonEmpty)
+      val linuxScript = linux.launchCommand(4)
+      assert(linuxScript.contains("exec \"$@\""))
+      assert(!command.exists(linuxScript.contains))
       assert(DesktopSmoke.processBoundary("linux-x64", command, root, None).isLeft)
       assert(windows.kind == DesktopSmoke.BoundaryKind.WindowsTaskkillBestEffort)
       assert(!windows.launchCommand.contains("cmd.exe"))
@@ -173,10 +178,14 @@ object DesktopSmokeTests extends TestSuite {
       val hostJava  = java.nio.file.Paths.get(System.getProperty("java.home"), "bin", "java").toString
       os.write.over(generated.path, generated.content)
       val hostLaunch = hostJava +: boundary.launchCommand.tail
-      val process    = new ProcessBuilder(hostLaunch*)
+      val builder    = new ProcessBuilder(hostLaunch*)
         .redirectOutput(stdout.toIO)
         .redirectError(ProcessBuilder.Redirect.INHERIT)
-        .start()
+      val javaOptionVariables = Seq("JDK_JAVA_OPTIONS", "JAVA_TOOL_OPTIONS", "_JAVA_OPTIONS")
+      javaOptionVariables.foreach(builder.environment().put(_, "-XX:+PrintCommandLineFlags"))
+      javaOptionVariables.foreach(builder.environment().remove)
+      assert(javaOptionVariables.forall(!builder.environment().containsKey(_)))
+      val process = builder.start()
 
       @annotation.tailrec
       def awaitCompletion(attempts: Int): Unit =
@@ -195,6 +204,42 @@ object DesktopSmokeTests extends TestSuite {
       } finally {
         process.destroyForcibly()
         process.waitFor(5L, java.util.concurrent.TimeUnit.SECONDS)
+      }
+    }
+
+    test("Linux boundary marker handshake forwards exact argv through a fake setsid on macOS") {
+      if !scala.util.Properties.isMac then ()
+      else {
+        val root   = os.temp.dir(prefix = "desktop-smoke-linux-boundary-", deleteOnExit = true)
+        val fake   = root / "setsid"
+        val stdout = root / "stdout.log"
+        val weird  = Seq("space value", "percent%", "bang!", "caret^", "amp&", "pipe|", "(group)", "quote\"")
+        os.write.over(
+          fake,
+          "#!/bin/sh\n" +
+            "if [ \"$1\" != \"--wait\" ]; then exit 64; fi\n" +
+            "shift\n" +
+            "set -m\n" +
+            "\"$@\" &\n" +
+            "child=$!\n" +
+            "wait \"$child\"\n"
+        )
+        java.nio.file.Files.setPosixFilePermissions(
+          fake.toNIO,
+          java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")
+        )
+        val command  = Seq("/usr/bin/printf", "<%s>\\n") ++ weird
+        val boundary = DesktopSmoke.processBoundary("linux-x64", command, root, Some(fake.toString)).toOption.get
+        val process  = new ProcessBuilder(boundary.launchCommand*)
+          .redirectOutput(stdout.toIO)
+          .redirectError(ProcessBuilder.Redirect.INHERIT)
+          .start()
+        try {
+          assert(process.waitFor(5L, java.util.concurrent.TimeUnit.SECONDS))
+          assert(process.exitValue() == 0)
+          assert(boundary.marker.exists(path => os.read(path).trim.toLong > 1L))
+          assert(os.read.lines(stdout) == weird.map(value => s"<$value>"))
+        } finally if process.isAlive then process.destroyForcibly()
       }
     }
 

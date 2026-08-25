@@ -140,11 +140,23 @@ object DesktopSmoke {
         Some(marker),
         None
       ))
-    } else if platform.startsWith("linux-") then
+    } else if platform.startsWith("linux-") then {
+      val script =
+        "group=$(/bin/ps -o pgid= -p \"$$\" | /usr/bin/tr -d ' ')\n" +
+          "if [ \"$group\" != \"$$\" ]; then exit 125; fi\n" +
+          "printf '%s\\n' \"$group\" > \"$0\"\n" +
+          "exec \"$@\"\n"
       setsidExecutable
         .toRight("desktop smoke requires setsid on Linux")
-        .map(path => ProcessBoundary(BoundaryKind.LinuxSession, Seq(path) ++ command, None, None))
-    else if platform.startsWith("windows-") then {
+        .map(path =>
+          ProcessBoundary(
+            BoundaryKind.LinuxSession,
+            Seq(path, "--wait", "/bin/sh", "-c", script, markerPath) ++ command,
+            Some(marker),
+            None
+          )
+        )
+    } else if platform.startsWith("windows-") then {
       val source     = stateDirectory / "WindowsProcessBoundary.java"
       val sourcePath = source.toNIO.getParent.toRealPath().resolve(source.last).toString
       Right(
@@ -544,7 +556,7 @@ object DesktopSmoke {
     def loop(): Option[ActiveBoundary] = {
       val candidate = boundary.kind match
         case BoundaryKind.DarwinProcessGroup        => boundary.marker.flatMap(readLong)
-        case BoundaryKind.LinuxSession              => processGroup(process.pid()).filter(_ == process.pid())
+        case BoundaryKind.LinuxSession              => boundary.marker.flatMap(readLong)
         case BoundaryKind.WindowsTaskkillBestEffort =>
           boundary.marker.flatMap(readLong).filter(_ > 1L).map(_ => process.pid())
       candidate match
@@ -657,8 +669,15 @@ object DesktopSmoke {
 
     os.remove.all(stateDirectory)
     os.makeDir.all(stateDirectory)
-    val setsid = if platform.startsWith("linux-") then resolveExecutable("setsid") else None
-    processBoundary(platform, command, stateDirectory, setsid) match
+    val boundaryPlan =
+      if platform.startsWith("linux-") then
+        resolveExecutable("setsid") match
+          case None => Left("desktop smoke requires setsid on Linux")
+          case Some(path) if !utilityExit(Seq(path, "--wait", "/bin/true"), 2000L).contains(0) =>
+            Left("desktop smoke requires setsid --wait support on Linux")
+          case Some(path) => processBoundary(platform, command, stateDirectory, Some(path))
+      else processBoundary(platform, command, stateDirectory, None)
+    boundaryPlan match
       case Left(message) =>
         os.remove.all(stateDirectory)
         ProcessResult(ProcessStatus.LaunchFailed, None, treeStopped = true, redact(message))
