@@ -3,6 +3,7 @@ package millbuild
 import java.nio.charset.StandardCharsets
 
 import scala.concurrent.duration.*
+import scala.jdk.CollectionConverters.*
 
 import utest.*
 
@@ -25,7 +26,7 @@ object DesktopSmokeTests extends TestSuite {
 
   @annotation.tailrec
   private def awaitDead(pid: Long, attempts: Int = 100): Unit =
-    if attempts <= 0 || ProcessHandle.of(pid).isEmpty || !ProcessHandle.of(pid).get().isAlive then ()
+    if attempts <= 0 || !DesktopSmoke.isProcessRunning(pid) then ()
     else {
       Thread.sleep(25L)
       awaitDead(pid, attempts - 1)
@@ -166,6 +167,114 @@ object DesktopSmokeTests extends TestSuite {
         DesktopSmoke.npmCommand("windows-x64") ==
           Seq("cmd.exe", "/d", "/s", "/c", "npm ci --ignore-scripts")
       )
+      assert(DesktopSmoke.unixGroupSignalCommand("0", 4242L) == Seq("/bin/kill", "-0", "--", "-4242"))
+      assert(DesktopSmoke.unixGroupSignalCommand("TERM", 4242L) == Seq("/bin/kill", "-TERM", "--", "-4242"))
+      assert(DesktopSmoke.unixGroupSignalCommand("KILL", 4242L) == Seq("/bin/kill", "-KILL", "--", "-4242"))
+    }
+
+    test("Unix process states treat only fully stopped zombies as stopped") {
+      assert(DesktopSmoke.processOutputRunning("", "linux-x64").isEmpty)
+      assert(DesktopSmoke.processOutputRunning("   \n", "linux-x64").isEmpty)
+      assert(DesktopSmoke.processOutputRunning("malformed row here", "darwin-arm64").isEmpty)
+      assert(DesktopSmoke.processOutputRunning("Q\n", "linux-x64").contains(true))
+      assert(DesktopSmoke.processOutputRunning("R 1\n", "linux-x64").contains(true))
+      assert(DesktopSmoke.processOutputRunning("S+ 1\n", "linux-x64").contains(true))
+      assert(DesktopSmoke.processOutputRunning("D< 1\n", "linux-x64").contains(true))
+      assert(DesktopSmoke.processOutputRunning("Z 1\n", "linux-x64").contains(false))
+      assert(DesktopSmoke.processOutputRunning("Zl 4\n", "linux-x64").contains(true))
+      assert(DesktopSmoke.processOutputRunning("Zl\n", "linux-x64").contains(true))
+      assert(DesktopSmoke.processOutputRunning("Zl bad\n", "linux-x64").contains(true))
+      assert(DesktopSmoke.processOutputRunning("Z> 1\n", "linux-x64").contains(true))
+      assert(DesktopSmoke.processOutputRunning("Z\n", "darwin-arm64").contains(false))
+      Seq(">", "A", "E", "S", "V", "W", "X").foreach { modifier =>
+        assert(DesktopSmoke.processOutputRunning(s"Z$modifier\n", "darwin-arm64").contains(false))
+      }
+      assert(DesktopSmoke.processOutputRunning("R\n", "darwin-arm64").contains(true))
+      assert(DesktopSmoke.processOutputRunning("S>\n", "darwin-arm64").contains(true))
+      assert(DesktopSmoke.processOutputRunning("SE\n", "darwin-arm64").contains(true))
+      assert(DesktopSmoke.processOutputRunning("Z?\n", "darwin-arm64").contains(true))
+
+      val groupRows = "100 R 1\n200 Z 1\n"
+      assert(DesktopSmoke.groupOutputRunning(groupRows, "linux-x64", 100L).contains(true))
+      assert(DesktopSmoke.groupOutputRunning(groupRows, "linux-x64", 200L).contains(false))
+      assert(DesktopSmoke.groupOutputRunning(groupRows, "linux-x64", 300L).contains(false))
+      assert(DesktopSmoke.groupOutputRunning("200 Zl 4\n", "linux-x64", 200L).contains(true))
+      assert(DesktopSmoke.groupOutputRunning("200 Zl\n", "linux-x64", 200L).contains(true))
+      assert(DesktopSmoke.groupOutputRunning("100 Z\n999 exotic!\n", "darwin-arm64", 100L).contains(false))
+      assert(DesktopSmoke.groupOutputRunning("999 exotic!\n", "darwin-arm64", 100L).contains(false))
+      assert(DesktopSmoke.groupOutputRunning("", "linux-x64", 300L).isEmpty)
+      assert(DesktopSmoke.groupOutputRunning("invalid\n", "linux-x64", 300L).isEmpty)
+      assert(DesktopSmoke.groupOutputRunning("100 Z\ninvalid\n", "darwin-arm64", 100L).isEmpty)
+
+      if !scala.util.Properties.isWin then {
+        val process = new ProcessBuilder("/bin/sh", "-c", "sleep 30").start()
+        try assert(DesktopSmoke.isProcessRunning(process.pid()))
+        finally {
+          process.destroyForcibly()
+          process.waitFor(5L, java.util.concurrent.TimeUnit.SECONDS)
+        }
+        assert(!DesktopSmoke.isProcessRunning(process.pid()))
+      }
+    }
+
+    test("bounded command output captures exactly and stops overflow stalled and interrupted utilities") {
+      if scala.util.Properties.isWin then ()
+      else {
+        assert(
+          DesktopSmoke
+            .boundedCommandOutput(Seq("/usr/bin/printf", "ordinary output"), 1000L, 1024L)
+            .contains("ordinary output")
+        )
+        assert(DesktopSmoke.boundedCommandOutput(Seq("/usr/bin/printf", "output-over-limit"), 1000L, 4L).isEmpty)
+
+        val started = System.nanoTime()
+        val result  = DesktopSmoke.boundedCommandOutput(
+          Seq("/bin/sh", "-c", "exec sleep 30"),
+          timeoutMillis = 100L,
+          maxBytes = 1024L
+        )
+        val elapsedMillis = java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started)
+        assert(result.isEmpty)
+        assert(elapsedMillis < 2000L)
+
+        val root        = os.temp.dir(prefix = "desktop-smoke-interrupted-command-", deleteOnExit = true)
+        val marker      = root / "pid"
+        val returned    = new java.util.concurrent.atomic.AtomicBoolean(false)
+        val interrupted = new java.util.concurrent.atomic.AtomicBoolean(false)
+        val worker      = new Thread(
+          () => {
+            val output = DesktopSmoke.boundedCommandOutput(
+              Seq("/bin/sh", "-c", "printf '%s\\n' \"$$\" > \"$0\"; exec sleep 30", marker.toString),
+              timeoutMillis = 5000L,
+              maxBytes = 1024L
+            )
+            returned.set(output.isEmpty)
+            interrupted.set(Thread.currentThread().isInterrupted)
+          },
+          "desktop-smoke-interrupt-test"
+        )
+        worker.start()
+
+        @annotation.tailrec
+        def awaitMarker(attempts: Int): Unit =
+          if os.isFile(marker) then ()
+          else if attempts <= 0 then throw new java.lang.AssertionError("interrupted utility pid did not appear")
+          else {
+            Thread.sleep(20L)
+            awaitMarker(attempts - 1)
+          }
+
+        awaitMarker(250)
+        val pid = os.read(marker).trim.toLong
+        worker.interrupt()
+        worker.join(2000L)
+        awaitDead(pid)
+        assert(!worker.isAlive)
+        assert(returned.get())
+        assert(interrupted.get())
+        assert(!DesktopSmoke.isProcessRunning(pid))
+        assert(!Thread.getAllStackTraces.keySet().asScala.exists(_.getName == s"morphir-desktop-output-$pid"))
+      }
     }
 
     test("generated Java boundary preserves metacharacter arguments without a shell") {
@@ -239,6 +348,44 @@ object DesktopSmokeTests extends TestSuite {
           assert(process.exitValue() == 0)
           assert(boundary.marker.exists(path => os.read(path).trim.toLong > 1L))
           assert(os.read.lines(stdout) == weird.map(value => s"<$value>"))
+        } finally if process.isAlive then process.destroyForcibly()
+      }
+    }
+
+    test("Unix group signal command terminates a dedicated macOS process group") {
+      if !scala.util.Properties.isMac then ()
+      else {
+        val root   = os.temp.dir(prefix = "desktop-smoke-group-signal-", deleteOnExit = true)
+        val marker = root / "group-id"
+        val script =
+          "set -m\n" +
+            "sleep 30 &\n" +
+            "target=$!\n" +
+            "group=$(/bin/ps -o pgid= -p \"$target\" | /usr/bin/tr -d ' ')\n" +
+            "if [ \"$group\" != \"$target\" ]; then exit 125; fi\n" +
+            "printf '%s\\n' \"$group\" > \"$0\"\n" +
+            "wait \"$target\"\n"
+        val process = new ProcessBuilder("/bin/sh", "-c", script, marker.toString)
+          .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+          .redirectError(ProcessBuilder.Redirect.DISCARD)
+          .start()
+
+        @annotation.tailrec
+        def awaitMarker(attempts: Int): Unit =
+          if os.isFile(marker) then ()
+          else if attempts <= 0 then throw new java.lang.AssertionError("process-group marker did not appear")
+          else {
+            Thread.sleep(20L)
+            awaitMarker(attempts - 1)
+          }
+
+        try {
+          awaitMarker(250)
+          val groupId = os.read(marker).trim.toLong
+          assert(DesktopSmoke.isProcessRunning(groupId))
+          assert(DesktopSmoke.stopUnixGroup(groupId))
+          assert(!DesktopSmoke.isProcessRunning(groupId))
+          assert(process.waitFor(5L, java.util.concurrent.TimeUnit.SECONDS))
         } finally if process.isAlive then process.destroyForcibly()
       }
     }
@@ -425,7 +572,7 @@ object DesktopSmokeTests extends TestSuite {
         assert(result.status == DesktopSmoke.ProcessStatus.Completed)
         assert(result.exitCode.contains(0))
         assert(result.treeStopped)
-        assert(ProcessHandle.of(childPid).isEmpty || !ProcessHandle.of(childPid).get().isAlive)
+        assert(!DesktopSmoke.isProcessRunning(childPid))
       }
     }
 
@@ -452,8 +599,8 @@ object DesktopSmokeTests extends TestSuite {
 
         assert(result.status == DesktopSmoke.ProcessStatus.TimedOut)
         assert(result.treeStopped)
-        assert(ProcessHandle.of(rootPid).isEmpty || !ProcessHandle.of(rootPid).get().isAlive)
-        assert(ProcessHandle.of(childPid).isEmpty || !ProcessHandle.of(childPid).get().isAlive)
+        assert(!DesktopSmoke.isProcessRunning(rootPid))
+        assert(!DesktopSmoke.isProcessRunning(childPid))
       }
     }
 

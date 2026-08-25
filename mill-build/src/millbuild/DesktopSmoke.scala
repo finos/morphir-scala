@@ -443,7 +443,7 @@ object DesktopSmoke {
     val forceDeadline = started + TimeUnit.MILLISECONDS.toNanos(processCleanupMillis)
     var interrupted   = false
 
-    def live(): Seq[ProcessHandle] = expandRetained(root, retained).filter(_.isAlive)
+    def live(): Seq[ProcessHandle] = expandRetained(root, retained).filter(isHandleRunning)
 
     def pause(): Unit =
       try Thread.sleep(20L)
@@ -511,6 +511,214 @@ object DesktopSmoke {
       case NonFatal(_) => None
     }
 
+  private final class BoundedDrainer(input: java.io.InputStream, maxBytes: Int, processId: Long) {
+    private val output    = new java.io.ByteArrayOutputStream(Math.min(maxBytes, 4096))
+    private val overflow  = new AtomicBoolean(false)
+    private val failed    = new AtomicBoolean(false)
+    private val completed = new AtomicBoolean(false)
+    val thread            = new Thread(
+      () => {
+        val buffer = new Array[Byte](4096)
+        try {
+          @annotation.tailrec
+          def loop(total: Int): Unit = {
+            val count = input.read(buffer)
+            if count >= 0 then {
+              val retained = Math.min(count, maxBytes - total)
+              if retained > 0 then output.write(buffer, 0, retained)
+              if retained < count then overflow.set(true)
+              loop(total + retained)
+            }
+          }
+
+          loop(0)
+        } catch {
+          case NonFatal(_) => failed.set(true)
+        } finally completed.set(true)
+      },
+      s"morphir-desktop-output-$processId"
+    )
+    thread.setDaemon(true)
+
+    def result: Option[String] =
+      if completed.get() && !failed.get() && !overflow.get() then Some(output.toString(StandardCharsets.UTF_8))
+      else None
+  }
+
+  private[millbuild] def boundedCommandOutput(
+      command: Seq[String],
+      timeoutMillis: Long,
+      maxBytes: Long
+  ): Option[String] = {
+    require(command.nonEmpty, "bounded utility command must not be empty")
+    require(timeoutMillis > 0L, "bounded utility timeout must be positive")
+    require(maxBytes > 0L && maxBytes <= Int.MaxValue, "bounded utility output limit must fit a byte array")
+    var process: Process        = null
+    var drainer: BoundedDrainer = null
+    var interrupted             = false
+    val cleanupTimeoutMillis    = Math.min(Math.max(timeoutMillis, 100L), 1000L)
+
+    def awaitProcess(deadline: Long): Boolean = {
+      @annotation.tailrec
+      def loop(): Boolean =
+        if !process.isAlive then true
+        else {
+          val remaining = deadline - System.nanoTime()
+          if remaining <= 0L then false
+          else {
+            val result = try Some(process.waitFor(remaining, TimeUnit.NANOSECONDS))
+            catch {
+              case _: InterruptedException =>
+                interrupted = true
+                None
+            }
+            result match
+              case Some(exited) => exited
+              case None         => loop()
+          }
+        }
+      loop()
+    }
+
+    def awaitDrainer(deadline: Long): Boolean = {
+      @annotation.tailrec
+      def loop(): Boolean =
+        if !drainer.thread.isAlive then true
+        else {
+          val remaining = deadline - System.nanoTime()
+          if remaining <= 0L then false
+          else {
+            try {
+              val waitMillis = Math.max(1L, TimeUnit.NANOSECONDS.toMillis(remaining))
+              drainer.thread.join(waitMillis)
+            } catch {
+              case _: InterruptedException =>
+                interrupted = true
+            }
+            loop()
+          }
+        }
+      loop()
+    }
+
+    def cleanup(action: => Unit): Unit =
+      try action
+      catch {
+        case _: InterruptedException => interrupted = true
+        case NonFatal(_)             => ()
+      }
+
+    try {
+      process = new ProcessBuilder(command.asJava)
+        .redirectError(ProcessBuilder.Redirect.DISCARD)
+        .start()
+      drainer = new BoundedDrainer(process.getInputStream, maxBytes.toInt, process.pid())
+      drainer.thread.start()
+      val exited =
+        try process.waitFor(timeoutMillis, TimeUnit.MILLISECONDS)
+        catch {
+          case _: InterruptedException =>
+            interrupted = true
+            false
+        }
+      if !exited then {
+        process.destroyForcibly()
+        awaitProcess(System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(cleanupTimeoutMillis))
+      }
+      val drained = awaitDrainer(System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(cleanupTimeoutMillis))
+      if exited && drained && !interrupted && process.exitValue() == 0 then drainer.result else None
+    } catch {
+      case NonFatal(_) => None
+    } finally {
+      if process != null then {
+        cleanup(if process.isAlive then process.destroyForcibly())
+        cleanup(awaitProcess(System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(cleanupTimeoutMillis)))
+        cleanup(process.getInputStream.close())
+        cleanup(process.getErrorStream.close())
+        cleanup(process.getOutputStream.close())
+      }
+      if drainer != null && drainer.thread.isAlive then {
+        cleanup(drainer.thread.interrupt())
+        cleanup(awaitDrainer(System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(cleanupTimeoutMillis)))
+      }
+      if interrupted then Thread.currentThread().interrupt()
+    }
+  }
+
+  private def hostPlatform: String =
+    platformToken(System.getProperty("os.name", ""), System.getProperty("os.arch", ""))
+
+  private def recognizedZombieState(state: String, platform: String): Boolean =
+    if platform.startsWith("linux-") then state.matches("Z[<LNsl+]*")
+    else state.matches("Z[<>AELNSVWXsl+]*")
+
+  private def processStateRunning(state: String, threadCount: Option[Int], platform: String): Boolean =
+    if !recognizedZombieState(state, platform) then true
+    else if platform.startsWith("linux-") then threadCount.forall(_ > 1)
+    else false
+
+  private def processRowRunning(line: String, platform: String): Option[Boolean] = {
+    val fields = line.trim.split("\\s+").toList
+    val parsed =
+      if platform.startsWith("linux-") then
+        fields match
+          case state :: Nil if state.nonEmpty            => Some(processStateRunning(state, None, platform))
+          case state :: threads :: Nil if state.nonEmpty =>
+            val threadCount = threads.toIntOption.filter(_ > 0)
+            Some(processStateRunning(state, threadCount, platform))
+          case _ => None
+      else
+        fields match
+          case state :: Nil if state.nonEmpty => Some(processStateRunning(state, None, platform))
+          case _                              => None
+    parsed
+  }
+
+  private[millbuild] def processOutputRunning(output: String, platform: String): Option[Boolean] = {
+    val rows = output.linesIterator.map(_.trim).filter(_.nonEmpty).toList
+    if rows.isEmpty then None
+    else {
+      val parsed = rows.map(processRowRunning(_, platform))
+      if parsed.exists(_.isEmpty) then None else Some(parsed.flatten.exists(identity))
+    }
+  }
+
+  private[millbuild] def groupOutputRunning(output: String, platform: String, groupId: Long): Option[Boolean] = {
+    val rows = output.linesIterator.map(_.trim).filter(_.nonEmpty).toList
+    if rows.isEmpty then None
+    else {
+      val parsed = rows.map { line =>
+        line.split("\\s+", 2).toList match
+          case group :: processState :: Nil =>
+            group.toLongOption.map { value =>
+              if value == groupId then processRowRunning(processState, platform) else Some(false)
+            }
+          case group :: Nil => group.toLongOption.map(value => if value == groupId then None else Some(false))
+          case _            => None
+      }
+      if parsed.exists(_.isEmpty) || parsed.flatten.exists(_.isEmpty) then None
+      else Some(parsed.flatten.flatten.exists(identity))
+    }
+  }
+
+  private def processState(pid: Long): Option[Boolean] = {
+    val platform = hostPlatform
+    val columns  = if platform.startsWith("linux-") then "stat=,nlwp=" else "stat="
+    boundedCommandOutput(Seq("/bin/ps", "-o", columns, "-p", pid.toString), 1000L, 1024L)
+      .flatMap(processOutputRunning(_, platform))
+  }
+
+  private def isHandleRunning(handle: ProcessHandle): Boolean =
+    if !handle.isAlive then false
+    else if !Files.isExecutable(java.nio.file.Path.of("/bin/ps")) then true
+    else processState(handle.pid()).getOrElse(true)
+
+  private[millbuild] def isProcessRunning(pid: Long): Boolean =
+    ProcessHandle.of(pid).toScala.exists(isHandleRunning)
+
+  private[millbuild] def unixGroupSignalCommand(signal: String, groupId: Long): Seq[String] =
+    Seq("/bin/kill", s"-$signal", "--", s"-$groupId")
+
   private def processGroup(pid: Long): Option[Long] =
     try {
       val process = new ProcessBuilder("/bin/ps", "-o", "pgid=", "-p", pid.toString)
@@ -576,15 +784,22 @@ object DesktopSmoke {
     }
   }
 
-  private def unixGroupAlive(groupId: Long): Boolean =
-    utilityExit(Seq("/bin/kill", "-0", s"-$groupId")).contains(0)
+  private def unixGroupHasRunningProcess(groupId: Long): Option[Boolean] =
+    val platform = hostPlatform
+    val columns  = if platform.startsWith("linux-") then "pgid=,stat=,nlwp=" else "pgid=,stat="
+    boundedCommandOutput(Seq("/bin/ps", "-axo", columns), 1000L, 1024L * 1024L)
+      .flatMap(groupOutputRunning(_, platform, groupId))
 
-  private def stopUnixGroup(groupId: Long): Boolean = {
+  private def unixGroupAlive(groupId: Long): Boolean =
+    utilityExit(unixGroupSignalCommand("0", groupId)).contains(0) &&
+      unixGroupHasRunningProcess(groupId).getOrElse(true)
+
+  private[millbuild] def stopUnixGroup(groupId: Long): Boolean = {
     val started       = System.nanoTime()
     val graceDeadline = started + TimeUnit.SECONDS.toNanos(1L)
     val forceDeadline = started + TimeUnit.MILLISECONDS.toNanos(processCleanupMillis)
 
-    utilityExit(Seq("/bin/kill", "-TERM", s"-$groupId"))
+    utilityExit(unixGroupSignalCommand("TERM", groupId))
 
     @annotation.tailrec
     def graceful(): Boolean =
@@ -600,7 +815,7 @@ object DesktopSmoke {
       if !unixGroupAlive(groupId) then true
       else if System.nanoTime() >= forceDeadline then false
       else {
-        utilityExit(Seq("/bin/kill", "-KILL", s"-$groupId"))
+        utilityExit(unixGroupSignalCommand("KILL", groupId))
         Thread.sleep(20L)
         force()
       }
@@ -664,7 +879,11 @@ object DesktopSmoke {
       val handlesStopped  = process == null || stopRetainedTree(process.toHandle, retained)
       val treeStopped     = process == null || (boundaryStopped && observerStopped && handlesStopped)
       if treeStopped then os.remove.all(stateDirectory)
-      ProcessResult(status, exitCode, treeStopped, redact(detail))
+      val shutdownDetail =
+        if treeStopped then detail
+        else
+          s"$detail; shutdown incomplete (boundary=$boundaryStopped, observer=$observerStopped, handles=$handlesStopped)"
+      ProcessResult(status, exitCode, treeStopped, redact(shutdownDetail))
     }
 
     os.remove.all(stateDirectory)
