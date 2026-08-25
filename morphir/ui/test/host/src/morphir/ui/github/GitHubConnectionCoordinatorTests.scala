@@ -47,6 +47,15 @@ class GitHubConnectionCoordinatorTests extends Test[Any]:
   private def readProvider(coordinator: GitHubConnectionCoordinator): Result[GitHubException, Token] < Async =
     Abort.run[GitHubException](coordinator.tokenProvider.token)
 
+  private def awaitStatus(
+      coordinator: GitHubConnectionCoordinator,
+      expected: GitHubConnectionStatus
+  ): Unit < Async =
+    run(coordinator.status()).map {
+      case Result.Success(status) if status == expected => ()
+      case _ => Async.sleep(1.millis).andThen(awaitStatus(coordinator, expected))
+    }
+
   private enum TransitionRace:
     case ContentionObserved, CompetingOperationCompleted
 
@@ -327,6 +336,46 @@ class GitHubConnectionCoordinatorTests extends Test[Any]:
       }
     }
 
+    "finishes activating a remembered credential when interrupted after storage" in
+      Latch.init(1).map { credentialStored =>
+        Latch.init(1).map { releaseVault =>
+          val vault = MemoryVault()
+          run(GitHubConnectionCoordinator.init(accepts(first -> ada, second -> grace), Present(vault))).map {
+            case Result.Success(coordinator) =>
+              run(coordinator.connect(TokenSubmission.from(firstRaw), remember = true)).map { _ =>
+                vault.afterNextPut(credentialStored.release.andThen(releaseVault.await))
+                Fiber.initUnscoped(
+                  run(coordinator.connect(TokenSubmission.from(secondRaw), remember = true))
+                ).map { connectionFiber =>
+                  Fiber.initUnscoped(credentialStored.await).map(_.block(1.second)).map { entered =>
+                    assert(entered.isSuccess)
+                    connectionFiber.interrupt.map { _ =>
+                      releaseVault.release.map { _ =>
+                        connectionFiber.block(1.second).map { interrupted =>
+                          assert(interrupted.isPanic)
+                          val expected = GitHubConnectionStatus.Connected(grace.value, ConnectionPersistence.Device)
+                          Fiber.initUnscoped(awaitStatus(coordinator, expected)).map(_.block(1.second)).map {
+                            completed =>
+                              run(coordinator.status()).map { status =>
+                                readProvider(coordinator).map { provider =>
+                                  assert(completed.isSuccess)
+                                  assert(vault.snapshot == Present(secret(secondRaw)))
+                                  assert(status == Result.succeed(expected))
+                                  assert(provider == Result.succeed(second))
+                                }
+                              }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            case _ => assert(false)
+          }
+        }
+      }
+
     "requires secure storage when remember is requested" in
       run(GitHubConnectionCoordinator.init(accepts(first -> ada), Absent)).map {
         case Result.Success(coordinator) =>
@@ -574,6 +623,45 @@ class GitHubConnectionCoordinatorTests extends Test[Any]:
       }
     }
 
+    "finishes clearing a remembered connection when interrupted after removal" in
+      Latch.init(1).map { credentialRemoved =>
+        Latch.init(1).map { releaseVault =>
+          val vault = MemoryVault()
+          run(GitHubConnectionCoordinator.init(accepts(first -> ada), Present(vault))).map {
+            case Result.Success(coordinator) =>
+              run(coordinator.connect(TokenSubmission.from(firstRaw), remember = true)).map { _ =>
+                vault.afterNextRemove(credentialRemoved.release.andThen(releaseVault.await))
+                Fiber.initUnscoped(run(coordinator.disconnect())).map { disconnectFiber =>
+                  Fiber.initUnscoped(credentialRemoved.await).map(_.block(1.second)).map { entered =>
+                    assert(entered.isSuccess)
+                    disconnectFiber.interrupt.map { _ =>
+                      releaseVault.release.map { _ =>
+                        disconnectFiber.block(1.second).map { interrupted =>
+                          assert(interrupted.isPanic)
+                          Fiber
+                            .initUnscoped(awaitStatus(coordinator, GitHubConnectionStatus.Disconnected))
+                            .map(_.block(1.second))
+                            .map { completed =>
+                              run(coordinator.status()).map { status =>
+                                readProvider(coordinator).map { provider =>
+                                  assert(completed.isSuccess)
+                                  assert(vault.snapshot.isEmpty)
+                                  assert(status == Result.succeed(GitHubConnectionStatus.Disconnected))
+                                  assert(provider.isFailure)
+                                }
+                              }
+                            }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            case _ => assert(false)
+          }
+        }
+      }
+
     "does not remove a vault entry for a session connection" in {
       val vault = MemoryVault()
       run(GitHubConnectionCoordinator.init(accepts(first -> ada), Present(vault))).map {
@@ -669,6 +757,8 @@ class GitHubConnectionCoordinatorTests extends Test[Any]:
     private var putFailure: Maybe[SecretException]    = Absent
     private var removeFailure: Maybe[SecretException] = Absent
     private var putPanic: Maybe[Throwable]            = Absent
+    private var afterPut: Unit < Async                = Kyo.unit
+    private var afterRemove: Unit < Async             = Kyo.unit
 
     def snapshot: Maybe[Secret] = synchronized(stored)
 
@@ -696,6 +786,14 @@ class GitHubConnectionCoordinatorTests extends Test[Any]:
       putPanic = Present(error)
     }
 
+    def afterNextPut(effect: Unit < Async): Unit = synchronized {
+      afterPut = effect
+    }
+
+    def afterNextRemove(effect: Unit < Async): Unit = synchronized {
+      afterRemove = effect
+    }
+
     def get(service: String, account: String): Maybe[Secret] < (Abort[SecretException] & Async) =
       if !expectedKey(service, account) then Abort.fail(SecretException.LookupFailed("unexpected test key"))
       else
@@ -711,22 +809,30 @@ class GitHubConnectionCoordinatorTests extends Test[Any]:
           case Absent             =>
             synchronized(putFailure) match
               case Present(error) => Abort.fail(error)
-              case Absent         => Sync.defer {
+              case Absent         =>
+                Sync.defer {
                   synchronized {
                     stored = Present(secret)
+                    val hook = afterPut
+                    afterPut = Kyo.unit
+                    hook
                   }
-                }
+                }.map(identity)
 
     def remove(service: String, account: String): Unit < (Abort[SecretException] & Async) =
       if !expectedKey(service, account) then Abort.fail(SecretException.MutationFailed("unexpected test key"))
       else
         synchronized(removeFailure) match
           case Present(error) => Abort.fail(error)
-          case Absent         => Sync.defer {
+          case Absent         =>
+            Sync.defer {
               synchronized {
                 stored = Absent
+                val hook = afterRemove
+                afterRemove = Kyo.unit
+                hook
               }
-            }
+            }.map(identity)
 
     private def expectedKey(service: String, account: String): Boolean =
       service == "org.finos.morphir" && account == "github.com"

@@ -33,15 +33,17 @@ final class GitHubConnectionCoordinator private (
         case Present(token) =>
           verify(token).map { login =>
             state.get.map { current =>
-              persist(submission, remember, current.hasStoredCredential).map { _ =>
-                val persistence =
-                  if remember then ConnectionPersistence.Device
-                  else ConnectionPersistence.Session
-                val connected = GitHubConnectionStatus.Connected(login.value, persistence)
-                state
-                  .set(GitHubConnectionCoordinator.ConnectionState.Connected(token, login.value, persistence))
+              val persistence =
+                if remember then ConnectionPersistence.Device
+                else ConnectionPersistence.Session
+              val connected = GitHubConnectionStatus.Connected(login.value, persistence)
+              commit(
+                persist(submission, remember, current.hasStoredCredential)
+                  .andThen(
+                    state.set(GitHubConnectionCoordinator.ConnectionState.Connected(token, login.value, persistence))
+                  )
                   .andThen(connected)
-              }
+              )
             }
           }
     }
@@ -49,9 +51,10 @@ final class GitHubConnectionCoordinator private (
   def disconnect(): Unit < (Async & Abort[GitHubConnectionError]) =
     serialized {
       state.get.map { current =>
-        removeIfNeeded(current.hasStoredCredential).map { _ =>
-          state.set(GitHubConnectionCoordinator.ConnectionState.Disconnected)
-        }
+        commit(
+          removeIfNeeded(current.hasStoredCredential)
+            .andThen(state.set(GitHubConnectionCoordinator.ConnectionState.Disconnected))
+        )
       }
     }
 
@@ -141,6 +144,11 @@ final class GitHubConnectionCoordinator private (
       case Result.Failure(_) | Result.Panic(_) =>
         Abort.fail(GitHubConnectionError.GitHubUnavailable)
     }
+
+  private def commit[A](
+      effect: => A < (Async & Abort[GitHubConnectionError])
+  ): A < (Async & Abort[GitHubConnectionError]) =
+    Async.mask(effect)
 
   private def writeStored(secretVault: SecretVault, secret: Secret): Unit < (Async & Abort[GitHubConnectionError]) =
     mutateStored(
