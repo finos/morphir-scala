@@ -987,6 +987,7 @@ trait MorphirMillbuildHelpersModule extends ScalaModule with ScalafmtModule {
     helpersRoot / "LintSelectors.scala",
     helpersRoot / "JsTestSelectors.scala",
     helpersRoot / "NativeTestSelectors.scala",
+    helpersRoot / "DesktopSmoke.scala",
     helpersRoot / "LinkerBenchmark.scala",
     helpersRoot / "LinkerBenchmarkProcess.scala"
   )
