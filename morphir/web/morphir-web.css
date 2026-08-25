@@ -1,0 +1,289 @@
+:root {
+  color-scheme: light dark;
+  --bg: #0f0d14;
+  --surface: #16131d;
+  --panel: #1a1622;
+  --panel-edge: #2a2438;
+  --row-edge: #221d2e;
+  --text: #e8e4f1;
+  --muted: #8d849e;
+  --muted2: #6f6785;
+  --accent: #d6409f;
+  --accent-text: #f2b7dd;
+  --knob: #ffffff;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f6f4fa;
+    --surface: #ffffff;
+    --panel: #ffffff;
+    --panel-edge: #e4dff0;
+    --row-edge: #ebe6f4;
+    --text: #1c1726;
+    --muted: #6c6484;
+    --muted2: #847c9c;
+    --accent: #c02e8c;
+    --accent-text: #9c2f77;
+    --knob: #ffffff;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  margin: 0;
+  padding: 0;
+}
+
+div,
+section,
+main,
+header,
+footer,
+form,
+article,
+aside,
+p,
+ul,
+ol,
+pre,
+code,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+label {
+  display: flex;
+  flex-direction: column;
+}
+
+nav,
+li,
+span,
+button,
+a {
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+}
+
+[data-kyo-reactive] {
+  display: contents;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+ul,
+ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+#app {
+  margin: 0 auto;
+  max-width: 48rem;
+  padding: 2rem;
+}
+
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  padding: 0 0 28px;
+}
+
+.settings-group-title {
+  font-size: 18px;
+  font-weight: 600;
+  padding: 0 0 14px;
+}
+
+.settings-intro {
+  color: var(--muted2);
+  font-size: 12.5px;
+  padding: 0 0 12px;
+}
+
+.settings-row {
+  align-items: center;
+  border-bottom: 1px solid var(--row-edge);
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+  justify-content: space-between;
+  padding: 12px 0;
+}
+
+.settings-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.settings-label {
+  font-weight: 500;
+}
+
+.settings-description {
+  color: var(--muted2);
+  font-size: 12.5px;
+}
+
+.settings-control {
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  flex-shrink: 0;
+}
+
+.settings-value {
+  color: var(--accent-text);
+  flex-shrink: 0;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.github-connection {
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.github-connection-status {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.github-connection-detail {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.github-connection-section,
+.github-connection-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.github-token-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.github-token-input {
+  background: var(--bg);
+  border: 1px solid var(--panel-edge);
+  border-radius: 7px;
+  color: var(--text);
+  font-family: var(--mono);
+  padding: 10px 12px;
+  width: 100%;
+}
+
+.github-remember {
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  font-size: 13px;
+  gap: 8px;
+}
+
+.github-connection-actions {
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
+
+.github-connection-action {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 7px;
+  color: var(--knob);
+  cursor: pointer;
+  padding: 8px 12px;
+}
+
+.github-connection-secondary {
+  background: var(--surface);
+  border-color: var(--panel-edge);
+  color: var(--text);
+}
+
+.github-connection-progress {
+  color: var(--muted2);
+  font-size: 12.5px;
+}
+
+input,
+button {
+  font: inherit;
+}
+
+.github-connection-error {
+  border: 1px solid var(--accent);
+  border-radius: 7px;
+  color: var(--accent-text);
+  font-size: 12.5px;
+  padding: 8px 10px;
+}
+
+.github-connection:has([data-github-state="disconnected-idle"]) #github-connected,
+.github-connection:has([data-github-state="disconnected-idle"]) #github-rejected,
+.github-connection:has([data-github-state="disconnected-idle"]) #github-connect-busy,
+.github-connection:has([data-github-state="disconnected-busy"]) #github-connected,
+.github-connection:has([data-github-state="disconnected-busy"]) #github-rejected,
+.github-connection:has([data-github-state="disconnected-busy"]) #github-connect-idle,
+.github-connection:has([data-github-state="connected-idle"]) #github-disconnected,
+.github-connection:has([data-github-state="connected-idle"]) #github-rejected,
+.github-connection:has([data-github-state="connected-idle"]) #github-disconnect-busy,
+.github-connection:has([data-github-state="connected-busy"]) #github-disconnected,
+.github-connection:has([data-github-state="connected-busy"]) #github-rejected,
+.github-connection:has([data-github-state="connected-busy"]) #github-disconnect-idle,
+.github-connection:has([data-github-state="rejected-idle"]) #github-disconnected,
+.github-connection:has([data-github-state="rejected-idle"]) #github-connected,
+.github-connection:has([data-github-state="rejected-idle"]) #github-replace-busy,
+.github-connection:has([data-github-state="rejected-busy"]) #github-disconnected,
+.github-connection:has([data-github-state="rejected-busy"]) #github-connected,
+.github-connection:has([data-github-state="rejected-busy"]) #github-replace-idle {
+  display: none;
+}

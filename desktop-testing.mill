@@ -1,0 +1,191 @@
+package build
+
+import scala.concurrent.duration.*
+
+import mill.*
+import millbuild.DesktopSmoke
+
+trait MorphirDesktopSmoke extends Module {
+  private def workspace = mill.api.BuildCtx.workspaceRoot
+  private def appDir    = workspace / "morphir" / "desktop" / "app"
+
+  def desktopSmokeAdapter: T[PathRef] = Task.Source(appDir / "run-capture.cjs")
+
+  def desktopSmokeAppSources: T[Seq[PathRef]] = Task.Sources(
+    appDir / "index.html",
+    appDir / "preload.cjs",
+    appDir / "package.json",
+    appDir / "package-lock.json"
+  )
+
+  def desktopSmokeElectronInstallerSources: T[Seq[PathRef]] = Task.Sources(
+    appDir / "package.json",
+    appDir / "package-lock.json"
+  )
+
+  def desktopSmokePlatform: T[String] = Task.Input {
+    DesktopSmoke.platformToken(System.getProperty("os.name"), System.getProperty("os.arch"))
+  }
+
+  def desktopSmokeElectron: T[PathRef] = Task {
+    val sources    = desktopSmokeElectronInstallerSources().map(_.path)
+    val platform   = desktopSmokePlatform()
+    val acquired   = Task.dest / "acquisition"
+    val npmOut     = Task.dest / "npm.stdout.log"
+    val npmErr     = Task.dest / "npm.stderr.log"
+    val installOut = Task.dest / "electron-install.stdout.log"
+    val installErr = Task.dest / "electron-install.stderr.log"
+    os.remove.all(acquired)
+    os.makeDir.all(acquired)
+    sources.foreach(source => os.copy(source, acquired / source.last))
+
+    val dependencies = DesktopSmoke.runProcess(
+      DesktopSmoke.npmCommand(platform),
+      acquired,
+      Map.empty,
+      Set.empty,
+      5.minutes,
+      npmOut,
+      npmErr,
+      platform
+    )
+    requireSuccessfulProcess("locked npm install", dependencies, npmOut, npmErr)
+
+    val electron  = acquired / "node_modules" / "electron"
+    val installer = electron / "install.js"
+    val installed = DesktopSmoke.runProcess(
+      Seq("node", existingAbsolute(installer)),
+      electron,
+      Map.empty,
+      Set.empty,
+      5.minutes,
+      installOut,
+      installErr,
+      platform
+    )
+    requireSuccessfulProcess("Electron package installer", installed, installOut, installErr)
+
+    val executable = electron / "dist" / electronPlatformPath(platform)
+    if !os.isFile(executable) then
+      throw new IllegalStateException("Electron package installer completed without an executable")
+
+    PathRef(electron / "dist")
+  }
+
+  private def electronPlatformPath(platform: String): os.RelPath =
+    if platform.startsWith("darwin-") then os.RelPath("Electron.app/Contents/MacOS/Electron")
+    else if platform.startsWith("windows-") then os.RelPath("electron.exe")
+    else os.RelPath("electron")
+
+  def smokeRun: T[PathRef] = Task {
+    val adapter        = desktopSmokeAdapter().path
+    val appSources     = desktopSmokeAppSources().map(_.path)
+    val platform       = desktopSmokePlatform()
+    val electron       = desktopSmokeElectron().path / electronPlatformPath(platform)
+    val bootBundle     = build.morphir.desktop.boot.js.fastLinkJS().dest.path
+    val rendererBundle = build.morphir.desktop.renderer.js.fastLinkJS().dest.path
+    val driverBundle   = build.morphir.desktop.smoke.js.fastLinkJS().dest.path
+    val runBase        = Task.dest
+    val runPath        = runBase / "run"
+
+    os.makeDir.all(runPath)
+    val runRoot =
+      DesktopSmoke.safeRunRoot(runBase, runPath).fold(message => throw new IllegalStateException(message), identity)
+    DesktopSmoke.cleanup(runRoot)
+    os.makeDir.all(runRoot.path)
+
+    val assembled = runRoot.path / "app"
+    val dist      = assembled / "dist"
+    val userData  = runRoot.path / "user-data"
+    val paths     = DesktopSmoke.artifacts(runRoot)
+    os.makeDir.all(dist)
+    os.makeDir.all(userData)
+    os.makeDir.all(paths.screenshot / os.up)
+
+    appSources.foreach(source => os.copy(source, assembled / source.last, replaceExisting = true))
+    os.copy(adapter, assembled / adapter.last, replaceExisting = true)
+    copyLinkedBundle(bootBundle, dist / "main.js")
+    copyLinkedBundle(rendererBundle, dist / "renderer.js")
+    copyLinkedBundle(driverBundle, dist / "smoke-driver.js")
+
+    val smokeEnvironment = Map(
+      "MORPHIR_DESKTOP_SMOKE_USER_DATA"    -> existingAbsolute(userData),
+      "MORPHIR_DESKTOP_SMOKE_SCREENSHOT"   -> outputAbsolute(paths.screenshot),
+      "MORPHIR_DESKTOP_SMOKE_RESULT"       -> outputAbsolute(paths.result),
+      "MORPHIR_DESKTOP_SMOKE_RENDERER_LOG" -> outputAbsolute(paths.rendererLog)
+    )
+    val executable  = existingAbsolute(electron)
+    val entrypoint  = existingAbsolute(assembled / adapter.last)
+    val processOut  = paths.processLog / os.up / "process.stdout.log"
+    val processErr  = paths.processLog / os.up / "process.stderr.log"
+    var treeStopped = false
+
+    try {
+      val process = DesktopSmoke.runProcess(
+        Seq(executable, entrypoint),
+        assembled,
+        smokeEnvironment ++ DesktopSmoke.launchEnvironment,
+        Set("ELECTRON_RUN_AS_NODE"),
+        90.seconds,
+        processOut,
+        processErr,
+        platform
+      )
+      treeStopped = process.treeStopped
+      if !treeStopped then throw new IllegalStateException("desktop smoke process tree did not terminate")
+      mergeProcessLogs(processOut, processErr, paths.processLog)
+      DesktopSmoke
+        .scanForSentinel(paths, userData)
+        .fold(message => throw new IllegalStateException(message), identity)
+      process.status match
+        case DesktopSmoke.ProcessStatus.TimedOut =>
+          throw new IllegalStateException("desktop smoke process timed out after 90 seconds")
+        case DesktopSmoke.ProcessStatus.Interrupted =>
+          throw new IllegalStateException("desktop smoke process was interrupted")
+        case DesktopSmoke.ProcessStatus.LaunchFailed =>
+          throw new IllegalStateException(s"desktop smoke process ${process.detail}")
+        case DesktopSmoke.ProcessStatus.Completed => ()
+      val result = DesktopSmoke
+        .verifyProcessAndArtifacts(process.exitCode.getOrElse(-1), paths)
+        .fold(message => throw new IllegalStateException(message), identity)
+      val rendered = result.assertions.toSeq.sortBy(_._1).map { case (name, value) => s"$name=$value" }.mkString(", ")
+      println(s"desktop smoke assertions: $rendered")
+      PathRef(runRoot.path)
+    } catch {
+      case error: Throwable =>
+        throw new IllegalStateException(DesktopSmoke.redact(Option(error.getMessage).getOrElse("desktop smoke failed")))
+    } finally
+      if treeStopped then DesktopSmoke.safeRunRoot(runRoot.path, userData).foreach(DesktopSmoke.cleanup)
+  }
+
+  private def copyLinkedBundle(source: os.Path, target: os.Path): Unit = {
+    val linked = os.read(source / "main.js")
+    os.write.over(target, DesktopSmoke.withoutSourceMapTrailer(linked))
+  }
+
+  private def mergeProcessLogs(stdout: os.Path, stderr: os.Path, target: os.Path): Unit = {
+    DesktopSmoke.mergeLogs(Seq(stdout, stderr), target)
+    os.remove(stdout, checkExists = false)
+    os.remove(stderr, checkExists = false)
+  }
+
+  private def requireSuccessfulProcess(
+      label: String,
+      result: DesktopSmoke.ProcessResult,
+      stdout: os.Path,
+      stderr: os.Path
+  ): Unit =
+    if !result.treeStopped then
+      throw new IllegalStateException(DesktopSmoke.redact(s"$label process tree did not terminate"))
+    else if result.status != DesktopSmoke.ProcessStatus.Completed || !result.exitCode.contains(0) then {
+      val diagnostic = DesktopSmoke.cappedDiagnosticTail(Seq(stdout, stderr))
+      throw new IllegalStateException(
+        DesktopSmoke.redact(s"$label failed (${result.detail}, exit ${result.exitCode}): ${diagnostic.text}")
+      )
+    }
+
+  private def existingAbsolute(path: os.Path): String = path.toNIO.toRealPath().toString
+
+  private def outputAbsolute(path: os.Path): String =
+    path.toNIO.getParent.toRealPath().resolve(path.last).toString
+}

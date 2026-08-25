@@ -19,6 +19,10 @@ private[github] object PlatformLive:
     val _ = token
     StubClient()
 
+  def verify(token: Token): GitHubLogin < (Abort[GitHubException] & Async) =
+    val _ = token
+    Abort.fail(GitHubException.Transport(detail))
+
   private final class StubClient() extends GithubClient:
     def listIssues(
         repository: RepositoryRef,

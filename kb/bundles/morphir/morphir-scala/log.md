@@ -1,9 +1,29 @@
 # Log
 
+## 2026-08-25
+
+* **Update**: [GitHub connection settings and local web host](/design/github-connection-settings-and-local-web-host.md)
+  now records unresolved stored credentials, removal-before-replacement behavior, and the interruption-masked vault
+  and coordinator commit.
+* **Update**: [morphir-ui architecture](/design/morphir-ui-architecture.md) now records the Scala.js desktop smoke
+  driver, its flat 18-Boolean contract, Mill-owned orchestration, platform process boundaries, sentinel checks, and
+  safe cleanup.
+
 ## 2026-08-24
+
+* **Update**: [Continuous Integration](/continuous-integration.md) now documents the configurable manual hosted
+  linker profiler. The same Native test inventory now runs as four deterministic fresh-JVM shards instead of
+  batches of five. Long-lived and recycled workers remain profiler-only pending hosted evidence. The local
+  `quick-smoke` acceptance passed all nine cases.
 
 * **Update**: Linked the pipeline and workspace narrative to the pinned Morphir Rust configuration reference. The
   narrative now distinguishes the normative six-source merge from the smaller subset implemented in Rust.
+
+## 2026-08-23
+
+* **Update**: [Continuous Integration](/continuous-integration.md) now records that hosted and local platform tests
+  enter through Mill `ci.*` commands, while Mise supplies fresh process boundaries for retained Scala.js, Wasm and
+  Scala Native linker workers. A direct `./mill __.test` remains a single build JVM and is not an isolation boundary.
 
 ## 2026-08-21
 

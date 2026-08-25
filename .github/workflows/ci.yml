@@ -557,7 +557,7 @@ jobs:
           experimental: true
 
       - name: Run JVM tests
-        run: mise run test:jvm-platform
+        run: ./mill --ticker false -i ci.testJvm
 
       - name: Cache JVM build output
         # when in master repo: all commits to main branch and all additional tags

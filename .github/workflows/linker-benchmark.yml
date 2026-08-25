@@ -1,0 +1,177 @@
+# Manual dispatch appears in the Actions UI only after this file exists on the default branch.
+name: Linker benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      preset:
+        description: Hosted benchmark preset
+        required: true
+        type: choice
+        default: quick-smoke
+        options:
+          - quick-smoke
+          - js-strategies
+          - wasm-strategies
+          - native-long-lived
+          - native-fresh-recycled
+      platforms:
+        description: Optional comma-separated platform override
+        required: false
+        type: string
+        default: ""
+      strategies:
+        description: Optional comma-separated strategy override
+        required: false
+        type: string
+        default: ""
+      trials:
+        description: Trial count override; zero uses the preset
+        required: false
+        type: number
+        default: 0
+      order_seed:
+        description: Optional strategy-order seed override
+        required: false
+        type: string
+        default: ""
+      target_filter:
+        description: Optional target filter
+        required: false
+        type: string
+        default: ""
+      target_limit:
+        description: Target limit override; zero uses the preset
+        required: false
+        type: number
+        default: 0
+      memory_gib:
+        description: Memory budget override in GiB; zero uses the preset
+        required: false
+        type: number
+        default: 0
+      reserve_gib:
+        description: Reserved memory override in GiB; zero uses the preset
+        required: false
+        type: number
+        default: 0
+      mill_jobs:
+        description: Mill jobs override; zero uses the preset
+        required: false
+        type: number
+        default: 0
+      max_children:
+        description: Maximum child-process override; zero uses the preset
+        required: false
+        type: number
+        default: 0
+      batch_size:
+        description: Batch-size override; zero uses the preset
+        required: false
+        type: number
+        default: 0
+      timeout_minutes:
+        description: Per-operation timeout override; zero uses the preset
+        required: false
+        type: number
+        default: 0
+      continue_on_failure:
+        description: Continue after a failed trial
+        required: true
+        type: choice
+        default: preset
+        options:
+          - preset
+          - "true"
+          - "false"
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup Scala and Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v8
+
+      - name: Generate artifact name
+        id: artifact-name
+        env:
+          PRESET: ${{ inputs.preset }}
+        run: |
+          name="$(./mill --ticker false scripts/ci/LinkerBenchmark.scala \
+            --preset "$PRESET" \
+            --artifact-name-only true \
+            --artifact-ref "$GITHUB_REF_NAME" \
+            --artifact-run-id "$GITHUB_RUN_ID" \
+            --artifact-run-attempt "$GITHUB_RUN_ATTEMPT")"
+          printf 'name=%s\n' "$name" >> "$GITHUB_OUTPUT"
+
+      - name: Run linker benchmark
+        env:
+          PRESET: ${{ inputs.preset }}
+          PLATFORMS: ${{ inputs.platforms }}
+          STRATEGIES: ${{ inputs.strategies }}
+          TRIALS: ${{ inputs.trials }}
+          ORDER_SEED: ${{ inputs.order_seed }}
+          TARGET_FILTER: ${{ inputs.target_filter }}
+          TARGET_LIMIT: ${{ inputs.target_limit }}
+          MEMORY_GIB: ${{ inputs.memory_gib }}
+          RESERVE_GIB: ${{ inputs.reserve_gib }}
+          MILL_JOBS: ${{ inputs.mill_jobs }}
+          MAX_CHILDREN: ${{ inputs.max_children }}
+          BATCH_SIZE: ${{ inputs.batch_size }}
+          TIMEOUT_MINUTES: ${{ inputs.timeout_minutes }}
+          CONTINUE_ON_FAILURE: ${{ inputs.continue_on_failure }}
+        run: |
+          ./mill --ticker false scripts/ci/LinkerBenchmark.scala \
+            --preset "$PRESET" \
+            --platforms "$PLATFORMS" \
+            --strategies "$STRATEGIES" \
+            --trials "$TRIALS" \
+            --order-seed "$ORDER_SEED" \
+            --target-filter "$TARGET_FILTER" \
+            --target-limit "$TARGET_LIMIT" \
+            --memory-gib "$MEMORY_GIB" \
+            --reserve-gib "$RESERVE_GIB" \
+            --mill-jobs "$MILL_JOBS" \
+            --max-children "$MAX_CHILDREN" \
+            --batch-size "$BATCH_SIZE" \
+            --timeout-minutes "$TIMEOUT_MINUTES" \
+            --continue-on-failure "$CONTINUE_ON_FAILURE" \
+            --output ".dev/.sdlc/mill-jvm-worker-pool/out/hosted"
+
+      - name: Upload benchmark results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.artifact-name.outputs.name || format('linker-benchmark-{0}-{1}', github.run_id, github.run_attempt) }}
+          path: .dev/.sdlc/mill-jvm-worker-pool/out/hosted/**
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Publish benchmark summary
+        if: ${{ always() }}
+        env:
+          ARTIFACT_NAME: ${{ steps.artifact-name.outputs.name || format('linker-benchmark-{0}-{1}', github.run_id, github.run_attempt) }}
+        run: |
+          summary="$(find ".dev/.sdlc/mill-jvm-worker-pool/out/hosted" -type f -name summary.md -print -quit 2>/dev/null || true)"
+          if [[ -n "$summary" ]]; then
+            cat "$summary" >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf 'Linker benchmark results: artifact %s.\n' "$ARTIFACT_NAME" >> "$GITHUB_STEP_SUMMARY"
+          fi

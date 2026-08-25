@@ -8,13 +8,26 @@ first release: IR explorer and knowledge/intent browser over fixed demo data.
 - `renderer/` — browser bundle (Scala.js script): bridge port, RPC client, kyo-ui mount.
 - `app/` — static Electron app dir: `package.json`, `preload.cjs`, `index.html`; linked bundles land
   in `app/dist/` (gitignored).
-- `scripts/run.sh` — link, assemble, launch. `scripts/smoke.sh` — headless boot + one RPC round-trip.
+- `scripts/run.sh` — link, assemble, launch. `scripts/smoke.sh` — run `morphir.desktop.smokeRun`, which validates 18
+  assertions across multiple GitHub connection-state transitions.
 - `scripts/package.sh <platform-token> <version>` — release packaging: links with `fullLinkJS` and runs
   electron-builder for one platform, leaving raw output in `app/release/`. CI calls this per runner; the
   canonical naming and checksums are applied later by `ci.desktop.canonicalize`.
 
 The renderer never touches Electron APIs: `contextIsolation` stays on, and the only bridge is the
 `morphirIpc` postMessage/onMessage pair exposed by the hand-written preload. See kb intent 0030.
+
+## GitHub connection settings
+
+The desktop Connections panel accepts GitHub.com personal access tokens through the existing JSON-RPC bridge. The
+token stays in the main process after submission. Remember this device is unchecked by default, so ordinary
+connections live only for the running desktop session. Disconnect drops that session token and removes any
+remembered credential.
+
+Electron remembers a token only when `safeStorage` reports encryption is available. On Linux, Morphir refuses
+remembered storage when Electron selects `basic_text` or cannot identify a secure backend. It then continues to
+offer session-only connections. A remembered connection that cannot be written leaves the previous connection in
+place and reports the failure; it does not become a session connection without the user's choice.
 
 ## Downloading a release
 

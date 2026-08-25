@@ -22,12 +22,10 @@ private[github] object PlatformGhAuth extends GhAuth:
           stderrFiber <- Fiber.init(Scope.run(process.stderr.run))
           exitCode    <- process.waitFor
           stdout      <- stdoutFiber.get
-          stderr      <- stderrFiber.get
-          out = String(stdout.toArray, StandardCharsets.UTF_8)
-          err = String(stderr.toArray, StandardCharsets.UTF_8)
-          _ <-
-            if exitCode.toInt == 0 then Sync.defer(())
-            else Abort.fail(GitHubException.Unauthorized(detail(exitCode.toInt, err, out)))
+          _           <- stderrFiber.get
+          out         <-
+            if exitCode.toInt == 0 then Sync.defer(String(stdout.toArray, StandardCharsets.UTF_8))
+            else Abort.fail(GitHubException.Unauthorized(s"gh auth token exited ${exitCode.toInt}"))
         yield out
       }
     }
@@ -35,13 +33,6 @@ private[github] object PlatformGhAuth extends GhAuth:
   private def commandFailure(exception: CommandException): GitHubException.Unauthorized =
     exception match
       case _: ProgramNotFoundException | _: PermissionDeniedException =>
-        GitHubException.Unauthorized(s"gh is not installed or could not be started: ${exception.getMessage}")
-      case other =>
-        GitHubException.Unauthorized(other.getMessage)
-
-  private def detail(code: Int, err: String, out: String): String =
-    val fromErr = err.trim
-    val fromOut = out.trim
-    if fromErr.nonEmpty then s"gh auth token exited $code: $fromErr"
-    else if fromOut.nonEmpty then s"gh auth token exited $code: $fromOut"
-    else s"gh auth token exited $code"
+        GitHubException.Unauthorized("gh is not installed or could not be started")
+      case _ =>
+        GitHubException.Unauthorized("gh auth token could not be started")

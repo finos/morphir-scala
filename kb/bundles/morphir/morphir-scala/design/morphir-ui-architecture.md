@@ -41,10 +41,9 @@ flowchart LR
 
 **Figure 1:** unidirectional flow; only commands write state, only signals reach views.
 
-Testing has four independent layers, each cheap: contract round-trips over the in-memory jsonrpc
-transport; store commands asserted on signal values with no DOM; views rendered through
-`UI.runRender(ui).take(1)` (the stream never ends — it emits on every signal change); and the
-Electron smoke test driving the real app.
+Testing has four independent layers: contract round-trips over the in-memory jsonrpc transport, store commands
+asserted on signal values with no DOM, views rendered through `UI.runRender(ui).take(1)`, and an Electron smoke run
+against the real app. The render stream never ends because it emits on every signal change.
 
 ## Animation and other DOM-level work
 
@@ -61,6 +60,37 @@ inline gate written by an adapter would be lost along with the element it was wr
 region drives its extent to zero rather than unmounting it, which is what lets the neighbours reflow with the slide.
 Adapters are proven in the Electron smoke run rather than in unit tests; the store's commands and the views stay
 unit-tested as usual.
+
+## Desktop smoke boundary
+
+The test-only Scala.js DOM driver owns the desktop smoke scenario. The driver exports one
+`runMorphirDesktopSmoke` function. It drives the settings UI and returns a flat object with exactly 18 Boolean
+assertions. The small Electron adapter is event-driven: it waits for the window, loads the linked driver, captures the
+screenshot, and closes the window. It then writes the accumulated raw renderer log, writes the flat result augmented
+with the renderer-console sentinel assertion, and exits.
+
+The named, cached `morphir.desktop.smokeRun` Mill task owns the rest of the workflow. Its declared sources, linked
+Scala.js bundles, and platform `Task.Input` make the run input-aware. A separate cached task performs a locked
+`npm ci` in task-local storage and runs Electron's installer there. Before assembly, the smoke task validates the
+task-owned run root beneath `Task.dest`, deletes the prior run root, and recreates it. It then assembles an isolated app
+and enforces the 90-second process timeout.
+
+After the process returns, the task requires confirmed process-tree ownership and termination before it continues. It
+merges the process logs, scans the artifacts and Electron user data for a sentinel token, then validates process
+status, exit code, required artifacts, and the exact 18-key result. Diagnostics redact the sentinel. The `finally`
+block deletes separately validated `user-data` only when tree termination was confirmed. If ownership is not
+confirmed, the task fails and retains `user-data` for safe diagnosis. A successful cached run retains its run root,
+assembled app, and artifacts as Mill output.
+
+Process ownership varies by the platform input. Darwin launches Electron in a verified child process group. Linux
+uses `setsid` and fails with a clear diagnostic when that executable is unavailable. Windows uses a
+best-effort boundary: a generated Java wrapper records the child process and completion, then cleanup calls
+`taskkill /PID <pid> /T /F`. The Windows strategy is isolated behind the boundary helper so a stronger mechanism can
+replace it later. Platform-independent tests cover Windows boundary construction, the generated Java wrapper, and
+argument preservation. The `taskkill` cleanup remains best-effort and was not verified on a live Windows host.
+
+`morphir/desktop/scripts/smoke.sh` remains a thin launcher. It sets strict shell flags, changes to the repository root,
+and delegates to `./mill --ticker false morphir.desktop.smokeRun`.
 
 ## Package layout
 
@@ -103,6 +133,6 @@ types, so its test bundle never links `require("electron")`), `morphir/desktop/b
 Electron bootstrap, and `morphir/desktop/renderer` mounts the shell. Hosts adopt the theme by
 injecting `Theme.css`.
 
-The proposed browser host and shared GitHub connection store follow the same boundary. The UI owns a
+The browser host and shared GitHub connection store follow the same boundary. The UI owns a
 transport-blind connection contract and safe status signals. Host processes own submitted tokens, validation, and
 persistence. See [GitHub connection settings and local web host](./github-connection-settings-and-local-web-host.md).

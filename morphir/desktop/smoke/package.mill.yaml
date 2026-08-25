@@ -1,0 +1,10 @@
+extends: Module
+
+object js:
+  extends: [build.MorphirJSModule, build.MorphirJSNodeModule, build.MorphirKyoCoreMvnDeps]
+  moduleDeps: [build.morphir.ui.js]
+  mvnDeps: !append
+  - io.getkyo::kyo-ui
+  object test:
+    extends: [ScalaJSTests, build.MorphirJSTestNoSourceMap, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
+    sources: [../js/test/src]

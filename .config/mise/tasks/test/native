@@ -10,7 +10,7 @@ echo "Running Native tests..."
 # `morphir.__` — every other module is jvm/js only and would resolve to
 # nothing.
 #
-# The links run in BATCHES, each its own `./mill` process, because the binding
+# The links run in SHARDS, each its own `./mill` process, because the binding
 # constraint is heap *retention* rather than concurrency. `-i` is daemonless, so
 # one invocation linking every module holds one JVM for all of them, and the
 # linker state from each link is not fully released. On CI the fourteenth link
@@ -21,51 +21,35 @@ echo "Running Native tests..."
 # fine, and the one that died was mid-pack at 6090.
 #
 # Halving `-j` did NOT help, which is what proves the cause: at `-j 2` it died
-# the same way, only later. So concurrency stays at 4 and the batches, not the
+# the same way, only later. So concurrency stays at 4 and the shards, not the
 # job, bound how many links share a heap.
 #
-# The batch list is resolved from Mill rather than written here, so a new native
-# module joins automatically and cannot drift out of step with the build.
+# `ci.testNative` resolves and partitions the target list, so a new native module
+# joins automatically and cannot drift out of step with the build. This launcher
+# only supplies the process boundary that an in-process Mill command cannot.
 #
 # CI runs this task rather than repeating the invocation in ci.yml. It used to
 # hold its own copy, synchronised by hand, and the two drifted apart — which is
 # how `-j 4` survived here while ci.yml ran `-j 2` and each file's comments
 # described the other's settings.
 #
-# This is a stopgap. The durable fix is to shard these across runners from a
-# Mill command, which also gives each shard a fresh JVM — see morphir-lc8.38.
-BATCH="${MORPHIR_NATIVE_BATCH:-5}"
+# Four shards currently put three or four of the 14 Native test targets in each
+# JVM. Keep the count configurable for local and CI memory profiles.
+SHARDS="${MORPHIR_NATIVE_SHARDS:-4}"
 
-# Compile and publish in one pass: these are cheap next to `nativeLink`, and
-# sharing a JVM across them is not what exhausts the heap.
-./mill -i -k -j 4 \
-    "morphir.__.native.__.compile" \
-    + \
-    "morphir.__.native.publishArtifacts"
-
-# Read with a `while` loop rather than `mapfile`: mise runs this under
-# `/usr/bin/env bash`, which is bash 3.2 on macOS, and `mapfile` is bash 4+.
-targets=()
-while IFS= read -r target; do
-  targets+=("$target")
-done < <(./mill --ticker false resolve "morphir.__.native.__.test" | grep '^morphir\.')
-
-if [ "${#targets[@]}" -eq 0 ]; then
-  echo "no native test targets resolved — refusing to report success" >&2
+if [[ ! "$SHARDS" =~ ^[1-9][0-9]*$ ]]; then
+  echo "MORPHIR_NATIVE_SHARDS must be a positive integer (was '$SHARDS')" >&2
   exit 1
 fi
 
-echo "Linking and running ${#targets[@]} native test module(s) in batches of $BATCH"
+# Compile and publish in one pass: these are cheap next to `nativeLink`, and
+# sharing a JVM across them is not what exhausts the heap.
+./mill -i -k -j 4 ci.testNativePrepare
 
-for ((i = 0; i < ${#targets[@]}; i += BATCH)); do
-  batch=("${targets[@]:i:BATCH}")
-  args=()
-  for target in "${batch[@]}"; do
-    [ "${#args[@]}" -eq 0 ] || args+=("+")
-    args+=("$target")
-  done
-  echo "--- batch $((i / BATCH + 1)): ${batch[*]}"
-  ./mill -i -k -j 4 "${args[@]}"
+echo "Linking and running Native tests in $SHARDS fresh-JVM shard(s)"
+for ((shard = 0; shard < SHARDS; shard++)); do
+  echo "--- shard $((shard + 1)) of $SHARDS"
+  ./mill -i -k -j 4 ci.testNative --shard "$shard" --shards "$SHARDS"
 done
 
 echo "Native tests completed successfully"

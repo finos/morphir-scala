@@ -1,6 +1,7 @@
 package morphir.ui
 
 import kyo.*
+import morphir.ui.github.GitHubConnectionView
 import morphir.ui.layout.{RegionPanel, ResizeHandle, SettingsSidebar, Shell, Sidebar, Topbar}
 import morphir.ui.{IrExplorerView, KnowledgeBrowserView, SchemePicker, SettingsView, Toggle}
 import morphir.ui.theme.{Base, Tokens}
@@ -16,7 +17,7 @@ object Theme:
     Tokens.sheet ++ Base.sheet ++ Shell.sheet ++ Sidebar.sheet ++ Topbar.sheet ++ RegionPanel.sheet ++
       ResizeHandle.sheet ++
       SettingsSidebar.sheet ++ SettingsView.sheet ++ Toggle.sheet ++ SchemePicker.sheet ++ IrExplorerView.sheet ++
-      KnowledgeBrowserView.sheet
+      KnowledgeBrowserView.sheet ++ GitHubConnectionView.sheet
 
   /** Each rule here names the missing typed vocabulary that forces it to stay raw. */
   private val quarantineCss: String =
@@ -49,6 +50,27 @@ object Theme:
       |.brand-mark {
       |  background: linear-gradient(120deg, var(--accent), var(--accent2));
       |  -webkit-background-clip: text; background-clip: text; color: transparent;
+      |}
+      |/* Reactive connection state replaces only the inert marker so password inputs stay mounted. */
+      |.github-connection:has([data-github-state="disconnected-idle"]) #github-connected,
+      |.github-connection:has([data-github-state="disconnected-idle"]) #github-rejected,
+      |.github-connection:has([data-github-state="disconnected-idle"]) #github-connect-busy,
+      |.github-connection:has([data-github-state="disconnected-busy"]) #github-connected,
+      |.github-connection:has([data-github-state="disconnected-busy"]) #github-rejected,
+      |.github-connection:has([data-github-state="disconnected-busy"]) #github-connect-idle,
+      |.github-connection:has([data-github-state="connected-idle"]) #github-disconnected,
+      |.github-connection:has([data-github-state="connected-idle"]) #github-rejected,
+      |.github-connection:has([data-github-state="connected-idle"]) #github-disconnect-busy,
+      |.github-connection:has([data-github-state="connected-busy"]) #github-disconnected,
+      |.github-connection:has([data-github-state="connected-busy"]) #github-rejected,
+      |.github-connection:has([data-github-state="connected-busy"]) #github-disconnect-idle,
+      |.github-connection:has([data-github-state="rejected-idle"]) #github-disconnected,
+      |.github-connection:has([data-github-state="rejected-idle"]) #github-connected,
+      |.github-connection:has([data-github-state="rejected-idle"]) #github-replace-busy,
+      |.github-connection:has([data-github-state="rejected-busy"]) #github-disconnected,
+      |.github-connection:has([data-github-state="rejected-busy"]) #github-connected,
+      |.github-connection:has([data-github-state="rejected-busy"]) #github-replace-idle {
+      |  display: none;
       |}
       |""".stripMargin
 

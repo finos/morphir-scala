@@ -3,4 +3,4 @@
 
 set -euo pipefail
 
-./mill --ticker false -i Alias/run testJVMPlatform
+./mill --ticker false -i ci.testJvm
