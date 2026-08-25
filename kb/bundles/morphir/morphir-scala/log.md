@@ -1,5 +1,14 @@
 # Log
 
+## 2026-08-25
+
+* **Update**: [GitHub connection settings and local web host](/design/github-connection-settings-and-local-web-host.md)
+  now records unresolved stored credentials, removal-before-replacement behavior, and the interruption-masked vault
+  and coordinator commit.
+* **Update**: [morphir-ui architecture](/design/morphir-ui-architecture.md) now records the Scala.js desktop smoke
+  driver, its flat 18-Boolean contract, Mill-owned orchestration, platform process boundaries, sentinel checks, and
+  safe cleanup.
+
 ## 2026-08-24
 
 * **Update**: [Continuous Integration](/continuous-integration.md) now documents the configurable manual hosted

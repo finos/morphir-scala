@@ -12,7 +12,7 @@ Browser and Electron clients use one `GitHubConnectionService` to establish a Gi
 process validates, stores, and uses the token. The UI receives only redacted connection status. Session-only use is
 the default. A user can choose operating-system-backed persistence.
 
- This Design Note is the narrative home for [intent 0036](../../../intent/0036-local-web-host-and-github-connection-settings.md).
+This Design Note is the narrative home for [intent 0036](../../../intent/0036-local-web-host-and-github-connection-settings.md).
 It builds on the shipped token-provider and secret-reader design in
 [GitHub token providers and appkit secrets](./github-token-providers-and-appkit-secrets.md). It follows the UI
 store, signal, and view rules in [morphir-ui architecture](./morphir-ui-architecture.md).
@@ -113,12 +113,25 @@ sequenceDiagram
 **Figure 2:** Persistence and provider replacement happen only after GitHub accepts the token.
 
 The active provider reads a process-local token cell owned by the host. Session-only disconnect drops its reference.
-Remembered disconnect also removes the vault entry. The service does not build a fallback chain across submitted,
-remembered, CLI, or environment tokens. The host chooses this UI-managed provider for its UI services.
+Remembered disconnect removes the vault entry before clearing the provider. The service does not build a fallback
+chain across submitted, remembered, CLI, or environment tokens. The host chooses this UI-managed provider for its UI
+services.
 
-On startup, the host reads the GitHub.com vault entry and validates it before reporting a connected state. A revoked
-or expired entry produces `StoredCredentialRejected`. The host does not retry it in a loop. The UI can replace or
-remove it, with `disconnect` implementing removal.
+On startup, the host reads the GitHub.com vault entry and validates it before reporting a connected state. A malformed
+entry or one GitHub rejects as unauthorized produces `StoredCredentialRejected`. A lookup failure, verifier transport
+failure, or verifier panic instead records an internal unresolved-stored-credential state. That state preserves the
+knowledge that a vault entry may exist, while public startup and `status()` report `Disconnected` so the host can
+continue serving session connections. The host does not retry either outcome in a loop.
+
+A session replacement and `disconnect` remove a rejected or unresolved stored credential before changing coordinator
+state. A removal failure leaves the old state intact and prevents the replacement from becoming active. This avoids a
+session connection that appears successful while the older device credential remains ready for the next startup.
+
+Connection transitions use one Kyo mutex. Lock acquisition, token parsing, GitHub verification, and coordinator state
+reads remain interruptible. Once those steps have selected a commit, `Async.mask` narrowly covers the vault mutation
+and coordinator state write. Kyo keeps the transition mutex held while that masked commit finishes. An interruption
+therefore cannot leave a newly written credential without its matching active provider, or remove a credential without
+clearing its provider.
 
 ## Module placement
 
@@ -236,8 +249,12 @@ developer credential store.
 - Electron tests cover IPC routing, encryption availability, Linux weak-backend rejection, atomic blob replacement,
   deletion, corrupt blobs, and redacted output.
 - CLI tests cover command parsing, loopback defaults, automatic port selection, browser launch, and `--no-open`.
-- The desktop smoke test connects through a fake verifier, observes status, disconnects, and captures output for
-  token leaks.
+- The desktop smoke test uses a test-only Scala.js DOM driver. Its single exported
+  `runMorphirDesktopSmoke` function returns a flat contract of exactly 18 Boolean assertions. The scenario removes a
+  rejected stored credential before connecting with a remembered token. It then disconnects, connects for the
+  session, disconnects again, and submits a rejected token. It checks transient DOM and renderer-console output for
+  token leaks. The Electron adapter waits for app events, injects the linked driver, captures the screenshot, and
+  closes the window. It then writes the raw renderer log, writes the augmented flat result, and exits.
 
 The tests define expected behavior. A separate security audit must challenge the assumptions and record residual
 risks before the capability is considered release-ready.
