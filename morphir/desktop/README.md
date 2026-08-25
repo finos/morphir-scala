@@ -8,7 +8,8 @@ first release: IR explorer and knowledge/intent browser over fixed demo data.
 - `renderer/` — browser bundle (Scala.js script): bridge port, RPC client, kyo-ui mount.
 - `app/` — static Electron app dir: `package.json`, `preload.cjs`, `index.html`; linked bundles land
   in `app/dist/` (gitignored).
-- `scripts/run.sh` — link, assemble, launch. `scripts/smoke.sh` — headless boot + one RPC round-trip.
+- `scripts/run.sh` — link, assemble, launch. `scripts/smoke.sh` — run `morphir.desktop.smokeRun`, which validates 18
+  assertions across multiple GitHub connection-state transitions.
 - `scripts/package.sh <platform-token> <version>` — release packaging: links with `fullLinkJS` and runs
   electron-builder for one platform, leaving raw output in `app/release/`. CI calls this per runner; the
   canonical naming and checksums are applied later by `ci.desktop.canonicalize`.

@@ -581,7 +581,7 @@ object SquireCiPolicy:
 
     val expectedActions = List(
       "actions/checkout@v7.0.1",
-      "actions/setup-java@v5",
+      "actions/setup-java@v6",
       "coursier/cache-action@v8",
       "actions/upload-artifact@v7"
     )
@@ -2067,8 +2067,8 @@ class SquireCiPolicySpec extends Test[Any]:
         ),
         "setup-java pin drifted" -> replaceOnce(
           linkerBenchmarkWorkflow,
-          "actions/setup-java@v5",
-          "actions/setup-java@v4"
+          "actions/setup-java@v6",
+          "actions/setup-java@v5"
         ),
         "Coursier pin drifted" -> replaceOnce(
           linkerBenchmarkWorkflow,
