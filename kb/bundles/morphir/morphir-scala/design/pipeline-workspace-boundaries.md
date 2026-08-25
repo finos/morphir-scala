@@ -42,9 +42,9 @@ sources:
 # Multi-frontend pipeline and workspace boundaries
 
 Morphir buildkit should provide language-neutral phase and workspace contracts while each frontend retains its own
-effects, native manifests, syntax trees, and compiler accommodations. `morphir.toml` owns workspace orchestration;
-manifest adapters normalize ecosystem projects; package resolution supplies frontend-readable sources without making
-an Elm cache or compiler sandbox part of the shared model.
+effects, native manifests, syntax trees, and compiler accommodations. `morphir.toml` and `morphir.yaml` own workspace
+orchestration. Manifest adapters normalize ecosystem projects. Package resolution supplies frontend-readable sources
+without making an Elm cache or compiler sandbox part of the shared model.
 
 This is a mutable Design Note for [intent 0007](../../../intent/0007-multi-frontend-morphir-transformation-pipeline.md).
 The boundaries below are settled enough to guide refinement, but implementation feedback has not yet made their
@@ -59,8 +59,13 @@ registries, and materialization evolve separately in the
 - The reusable `Stage` abstraction lived under the Elm compiler API even though sequencing typed input and output
   values is not intrinsically Elm-specific. It has since moved to `morphir/buildkit/core` (package
   `morphir.buildkit`).
-- Existing draft Morphir configuration knowledge gives `morphir.toml` responsibility for workspace members, tasks,
-  workflows, outputs, and toolchain policy. It does not erase `elm.json`, `morphir.json`, or future native manifests.
+- Existing Morphir configuration knowledge assigns workspace members, tasks, workflows, outputs, and toolchain policy
+  to one model with TOML and YAML serializations. The normative merge model has six sources. The pinned Rust
+  implementation loads a smaller subset and handles daemon projects separately. The
+  [configuration overview](../../morphir-configuration/overview.md) and the
+  [Morphir Rust configuration reference](../../morphir-configuration/morphir-rust-configuration-cdfa6c63.md)
+  document this difference.
+  This configuration does not erase `elm.json`, `morphir.json`, or future native manifests.
 - Morphir transforms projects rather than isolated files. A frontend needs normalized project inputs and resolved
   dependency modules before it can produce Morphir IR.
 - Issue #930 needs dependency source to resolve Elm operator fixities. That need is narrower than delivering the
@@ -126,10 +131,11 @@ closed by the report executor on this branch; parallel execution remains open.
 
 ### Workspace ownership and normalization
 
-`morphir.toml` owns workspace discovery, members, task and workflow policy, outputs, and toolchain selection. Native
-manifests remain authoritative for ecosystem semantics and normalize through adapters into a shared project model.
-Explicit request values override `morphir.toml`; `morphir.toml` overrides adapter defaults. Contradictory native
-claims produce diagnostics rather than being silently merged.
+The shared Morphir configuration model, serialized as `morphir.toml` or `morphir.yaml`, owns workspace discovery,
+members, task and workflow policy, outputs, and toolchain selection. Native manifests remain authoritative for
+ecosystem semantics and normalize through adapters into a shared project model. Explicit request values override
+Morphir configuration. Morphir configuration overrides adapter defaults. Contradictory native claims produce
+diagnostics rather than being silently merged.
 
 This arrangement makes Morphir orchestration explicit without inventing a second representation of every ecosystem's
 package and compiler rules.
@@ -161,8 +167,8 @@ is part of the issue #930 API.
 2. Which validation belongs in an immutable pipeline definition, and which checks require per-run workspace data?
 3. How do plugin repetition, replacement, and ordering remain explicit without an untyped option-merging model?
 4. What normalized project fields are genuinely shared across ecosystems, and which must remain adapter-owned?
-5. How should contradictory information from `morphir.toml`, `morphir.json`, and a native manifest be reported when
-   no source has universal authority?
+5. How should contradictory information from Morphir configuration, `morphir.json`, and a native manifest be
+   reported when no source has universal authority?
 6. Which minimal package interpreters does issue #930 require before the full package-management intent is delivered?
 7. Which of the settled-enough boundaries need separate Decision Records rather than one combined record?
 

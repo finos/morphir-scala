@@ -7,6 +7,9 @@
   batches of five. Long-lived and recycled workers remain profiler-only pending hosted evidence. The local
   `quick-smoke` acceptance passed all nine cases.
 
+* **Update**: Linked the pipeline and workspace narrative to the pinned Morphir Rust configuration reference. The
+  narrative now distinguishes the normative six-source merge from the smaller subset implemented in Rust.
+
 ## 2026-08-23
 
 * **Update**: [Continuous Integration](/continuous-integration.md) now records that hosted and local platform tests
