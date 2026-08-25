@@ -117,6 +117,34 @@ class GitHubConnectionCoordinatorTests extends Test[Any]:
       }
     }
 
+    "continues startup when a stored credential cannot be verified" in {
+      val vault   = MemoryVault(Present(secret(firstRaw)))
+      val offline = verifier(_ => Abort.fail(GitHubException.Transport("offline")))
+
+      run(GitHubConnectionCoordinator.init(offline, Present(vault))).map {
+        case Result.Success(coordinator) =>
+          run(coordinator.status()).map { status =>
+            assert(status == Result.succeed(GitHubConnectionStatus.Disconnected))
+            assert(vault.snapshot == Present(secret(firstRaw)))
+          }
+        case _ => assert(false)
+      }
+    }
+
+    "continues startup when stored-token verification panics" in {
+      val vault  = MemoryVault(Present(secret(firstRaw)))
+      val panics = verifier(_ => Sync.defer(throw new RuntimeException("verification panic")))
+
+      run(GitHubConnectionCoordinator.init(panics, Present(vault))).map {
+        case Result.Success(coordinator) =>
+          run(coordinator.status()).map { status =>
+            assert(status == Result.succeed(GitHubConnectionStatus.Disconnected))
+            assert(vault.snapshot == Present(secret(firstRaw)))
+          }
+        case _ => assert(false)
+      }
+    }
+
     "keeps session connections available when secure storage is unavailable" in {
       val vault = MemoryVault()
       vault.rejectGet(SecretException.NotAvailable("unavailable-secret-sentinel"))
@@ -169,6 +197,43 @@ class GitHubConnectionCoordinatorTests extends Test[Any]:
   }
 
   "GitHubConnectionCoordinator connect" - {
+    "removes an unread stored credential before accepting a session replacement" in {
+      val vault = MemoryVault(Present(secret(firstRaw)))
+      vault.rejectGet(SecretException.LookupFailed("offline"))
+
+      run(GitHubConnectionCoordinator.init(accepts(second -> grace), Present(vault))).map {
+        case Result.Success(coordinator) =>
+          vault.allowGet()
+          run(coordinator.connect(TokenSubmission.from(secondRaw), remember = false)).map { connected =>
+            assert(
+              connected == Result.succeed(
+                GitHubConnectionStatus.Connected(grace.value, ConnectionPersistence.Session)
+              )
+            )
+            assert(vault.snapshot.isEmpty)
+          }
+        case _ => assert(false)
+      }
+    }
+
+    "does not activate a session replacement while an unread credential cannot be removed" in {
+      val vault = MemoryVault(Present(secret(firstRaw)))
+      vault.rejectGet(SecretException.LookupFailed("offline"))
+      vault.rejectRemove(SecretException.MutationFailed("offline"))
+
+      run(GitHubConnectionCoordinator.init(accepts(second -> grace), Present(vault))).map {
+        case Result.Success(coordinator) =>
+          run(coordinator.connect(TokenSubmission.from(secondRaw), remember = false)).map { connected =>
+            run(coordinator.status()).map { status =>
+              assert(connected == Result.fail(GitHubConnectionError.SecureStorageFailure))
+              assert(status == Result.succeed(GitHubConnectionStatus.Disconnected))
+              assert(vault.snapshot == Present(secret(firstRaw)))
+            }
+          }
+        case _ => assert(false)
+      }
+    }
+
     "removes a rejected stored credential before activating its session replacement" in {
       val vault              = MemoryVault(Present(secret(firstRaw)))
       val acceptsReplacement = accepts(second -> grace)
@@ -478,6 +543,20 @@ class GitHubConnectionCoordinatorTests extends Test[Any]:
   }
 
   "GitHubConnectionCoordinator disconnect" - {
+    "disconnect removes an unread stored credential" in {
+      val vault = MemoryVault(Present(secret(firstRaw)))
+      vault.rejectGet(SecretException.LookupFailed("offline"))
+
+      run(GitHubConnectionCoordinator.init(accepts(first -> ada), Present(vault))).map {
+        case Result.Success(coordinator) =>
+          run(coordinator.disconnect()).map { disconnected =>
+            assert(disconnected == Result.succeed(()))
+            assert(vault.snapshot.isEmpty)
+          }
+        case _ => assert(false)
+      }
+    }
+
     "removes a remembered credential before clearing the connection" in {
       val vault = MemoryVault()
       run(GitHubConnectionCoordinator.init(accepts(first -> ada), Present(vault))).map {
@@ -599,6 +678,10 @@ class GitHubConnectionCoordinatorTests extends Test[Any]:
 
     def rejectGet(error: SecretException): Unit = synchronized {
       getFailure = Present(error)
+    }
+
+    def allowGet(): Unit = synchronized {
+      getFailure = Absent
     }
 
     def rejectPut(error: SecretException): Unit = synchronized {

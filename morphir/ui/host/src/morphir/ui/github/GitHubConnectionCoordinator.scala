@@ -49,12 +49,7 @@ final class GitHubConnectionCoordinator private (
   def disconnect(): Unit < (Async & Abort[GitHubConnectionError]) =
     serialized {
       state.get.map { current =>
-        val removeStored = current.status match
-          case GitHubConnectionStatus.Connected(_, ConnectionPersistence.Device) => true
-          case GitHubConnectionStatus.StoredCredentialRejected                   => true
-          case _                                                                 => false
-
-        removeIfNeeded(removeStored).map { _ =>
+        removeIfNeeded(current.hasStoredCredential).map { _ =>
           state.set(GitHubConnectionCoordinator.ConnectionState.Disconnected)
         }
       }
@@ -71,10 +66,12 @@ final class GitHubConnectionCoordinator private (
               Token.parse(secret.unsafeReveal) match
                 case Absent         => state.set(GitHubConnectionCoordinator.ConnectionState.StoredCredentialRejected)
                 case Present(token) => initializeStored(token)
-            case Result.Failure(GitHubConnectionError.SecureStorageUnavailable) => Kyo.unit
-            case Result.Failure(GitHubConnectionError.SecureStorageFailure)     => Kyo.unit
-            case Result.Failure(error)                                          => Abort.fail(error)
-            case Result.Panic(error)                                            => Sync.defer(throw error)
+            case Result.Failure(GitHubConnectionError.SecureStorageUnavailable) =>
+              state.set(GitHubConnectionCoordinator.ConnectionState.StoredCredentialUnresolved)
+            case Result.Failure(GitHubConnectionError.SecureStorageFailure) =>
+              state.set(GitHubConnectionCoordinator.ConnectionState.StoredCredentialUnresolved)
+            case Result.Failure(error) => Abort.fail(error)
+            case Result.Panic(error)   => Sync.defer(throw error)
           }
     }
 
@@ -91,7 +88,7 @@ final class GitHubConnectionCoordinator private (
       case Result.Failure(_: GitHubException.Unauthorized) =>
         state.set(GitHubConnectionCoordinator.ConnectionState.StoredCredentialRejected)
       case Result.Failure(_) | Result.Panic(_) =>
-        Abort.fail(GitHubConnectionError.GitHubUnavailable)
+        state.set(GitHubConnectionCoordinator.ConnectionState.StoredCredentialUnresolved)
     }
 
   private def verify(token: Token): GitHubLogin < (Async & Abort[GitHubConnectionError]) =
@@ -187,19 +184,22 @@ object GitHubConnectionCoordinator:
     case Disconnected
     case Connected(tokenValue: Token, login: String, persistence: ConnectionPersistence)
     case StoredCredentialRejected
+    case StoredCredentialUnresolved
 
     def status: GitHubConnectionStatus = this match
       case Disconnected                     => GitHubConnectionStatus.Disconnected
       case Connected(_, login, persistence) => GitHubConnectionStatus.Connected(login, persistence)
       case StoredCredentialRejected         => GitHubConnectionStatus.StoredCredentialRejected
+      case StoredCredentialUnresolved       => GitHubConnectionStatus.Disconnected
 
     def token: Maybe[Token] = this match
       case Connected(token, _, _) => Present(token)
       case _                      => Absent
 
     def hasStoredCredential: Boolean = this match
-      case Connected(_, _, ConnectionPersistence.Device) | StoredCredentialRejected => true
-      case _                                                                        => false
+      case Connected(_, _, ConnectionPersistence.Device) | StoredCredentialRejected | StoredCredentialUnresolved =>
+        true
+      case _ => false
 
 private[github] final class TransitionLock private (
     mutex: Meter,
