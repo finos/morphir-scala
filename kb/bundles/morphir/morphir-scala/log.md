@@ -4,6 +4,8 @@
 
 * **Update**: [GitHub connection settings and local web host](/design/github-connection-settings-and-local-web-host.md)
   now names `morphir server` as the CLI entry point for the loopback browser host.
+* **Update**: [Build System](/build-system.md) now records the native Mill build-JVM setup required for Scala.js
+  linking on Windows ARM64.
 
 ## 2026-08-25
 
