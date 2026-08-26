@@ -5,20 +5,20 @@ import morphir.appkit.SecretVault
 import morphir.connector.github.GitHubTokenVerifier
 import morphir.web.server.WebHost
 
-private[cli] object ServeCommandLive:
+private[cli] object ServerCommandLive:
 
-  def dependencies: ServeCommand.Dependencies =
-    ServeCommand.Dependencies(
+  def dependencies: ServerCommand.Dependencies =
+    ServerCommand.Dependencies(
       LiveHost,
-      ServeCommand.DesktopBrowserLauncher(ServeCommand.DesktopPlatform.system, ServeCommand.Output.console),
-      ServeCommand.Output.console
+      ServerCommand.DesktopBrowserLauncher(ServerCommand.DesktopPlatform.system, ServerCommand.Output.console),
+      ServerCommand.Output.console
     )
 
-  private object LiveHost extends ServeCommand.Host:
+  private object LiveHost extends ServerCommand.Host:
     def start(
-        config: ServeCommand.HostConfig,
-        browserLauncher: ServeCommand.BrowserLauncher
-    )(using Frame): ServeCommand.BoundHost < (Async & Scope & Abort[Throwable]) =
+        config: ServerCommand.HostConfig,
+        browserLauncher: ServerCommand.BrowserLauncher
+    )(using Frame): ServerCommand.BoundHost < (Async & Scope & Abort[Throwable]) =
       val started: AnyRef < (Async & Scope & Abort[Throwable]) = WebHost
         .startWithLauncher(
           WebHost.Config(port = config.port, openBrowser = config.openBrowser),
@@ -34,5 +34,5 @@ private[cli] object ServeCommandLive:
   private final class LiveBoundHost(
       val port: Int,
       waitForClose: () => Unit < Async
-  ) extends ServeCommand.BoundHost:
+  ) extends ServerCommand.BoundHost:
     def await(using Frame): Unit < Async = waitForClose()

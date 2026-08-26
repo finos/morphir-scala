@@ -1,5 +1,10 @@
 # Log
 
+## 2026-08-26
+
+* **Update**: [GitHub connection settings and local web host](/design/github-connection-settings-and-local-web-host.md)
+  now names `morphir server` as the CLI entry point for the loopback browser host.
+
 ## 2026-08-25
 
 * **Update**: [GitHub connection settings and local web host](/design/github-connection-settings-and-local-web-host.md)

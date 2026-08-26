@@ -35,7 +35,7 @@ remembered on the device. The shared settings view defaults to session-only use.
 
 Both hosts implement the same service. Electron handles it in the main process over the existing JSON-RPC IPC
 transport. A new Kyo JVM web host serves the browser UI and JSON-RPC from one loopback origin. The existing Kyo
-CaseApp CLI adds `morphir serve` and runs this host directly. It does not route through the legacy ZIO dispatcher or
+CaseApp CLI adds `morphir server` and runs this host directly. It does not route through the legacy ZIO dispatcher or
 add a ZIO-to-Kyo bridge.
 
 Extend appkit with a writable `SecretVault`. The JVM host uses the operating-system credential store. Electron uses
@@ -51,7 +51,7 @@ The full design is [GitHub connection settings and local web host](../morphir/mo
 ## Scope
 
 This intent includes GitHub.com, pasted personal access tokens, the shared settings UI, secure optional persistence,
-Electron hosting, the loopback web host, and the `morphir serve` command.
+Electron hosting, the loopback web host, and the `morphir server` command.
 
 GitHub Enterprise Server is follow-up work because the current connector fixes its live endpoint to
 `https://api.github.com/graphql`. OAuth, device flow, remote binding, and multi-user deployment are also outside this
