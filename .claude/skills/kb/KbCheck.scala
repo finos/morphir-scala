@@ -1,7 +1,7 @@
 //| scalaVersion: 3.8.4
 //| moduleDeps: [KbStore.scala, KbDecision.scala]
 //| mvnDeps:
-//| - io.getkyo::kyo-core:1.0.0-RC5
+//| - io.getkyo::kyo-core:1.0.0-RC6
 
 /** Conformance and drift checks over a knowledge base.
   *

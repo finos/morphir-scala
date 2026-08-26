@@ -231,6 +231,31 @@ Or use Mill directly:
 ./mill morphir.runtime.classic.jvm.test
 ```
 
+### Windows ARM64 build JVM
+
+On Windows ARM64, check the JVM that Mill uses before diagnosing a slow Scala.js link:
+
+```powershell
+.\mill.bat --no-server --version
+```
+
+The output must report `os.arch: aarch64`. Mill's default managed JDK may resolve to an x64 Azul build and run under
+Windows emulation even when the machine itself is ARM64. That mismatch can make the Closure phase of `fullLinkJS`
+appear stuck.
+
+Use the native Microsoft OpenJDK already installed through Scoop, or install it if absent. Select it and create
+Mill's ignored local override:
+
+```powershell
+scoop install microsoft-lts-jdk # only when it is not already installed
+scoop reset microsoft-lts-jdk
+Set-Content .mill-jvm-version system
+```
+
+Run the version check again before a Scala.js build. Do not treat a multi-minute Closure pass as a code-generation
+failure until Mill reports `aarch64`. See [CONTRIBUTING.md](./CONTRIBUTING.md#windows-arm64) for the contributor
+workflow.
+
 ### Cross-Platform Sources
 
 The project uses a custom cross-platform source layout. For a module at `morphir/foo/`:

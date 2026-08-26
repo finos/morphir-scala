@@ -145,7 +145,7 @@ The work follows the module boundaries already established for the connector, UI
 | `morphir/ui` | Connection protocol, store, view, safe status, and errors |
 | `morphir/web/renderer` | Browser entry point that mounts the shared UI |
 | `morphir/web/server` | Loopback HTTP, sessions, static assets, JSON-RPC routes, and host services |
-| `morphir/main` | Pure Kyo `serve` command and options |
+| `morphir/main` | Pure Kyo `server` command and options |
 
 The UI module adds a JVM variant so the web server can use the same schema and route definitions as the Scala.js
 clients. The web modules form an unpublished application like `morphir/desktop`; the published libraries keep host
@@ -153,7 +153,7 @@ assembly and static assets out of their artifacts.
 
 ## Browser host
 
-The existing CLI entry point is a Kyo CaseApp dispatcher whose legacy commands call ZIO. `morphir serve` is a pure
+The existing CLI entry point is a Kyo CaseApp dispatcher whose legacy commands call ZIO. `morphir server` is a pure
 Kyo command. It runs a new JVM web-host module directly and does not add another ZIO-to-Kyo adapter. This follows
 [Decision Record 0005](../decisions/0005-bridge-nothing-between-zio-and-kyo.md).
 

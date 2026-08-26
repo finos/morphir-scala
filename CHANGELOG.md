@@ -9,6 +9,7 @@ a release.
 ## [Unreleased]
 
 ### Changed
+- The local browser host command is now `morphir server`; the earlier `morphir serve` spelling is removed.
 - The repository moved to trunk-based development. Pull requests target `main` and merge into it; the `develop`
   integration branch, its promotion pull request and its back-migration are retired. Snapshots publish from `main`
   alone, and `squire branch refresh` now requires `--target`. See decision 0014.

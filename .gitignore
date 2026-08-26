@@ -455,6 +455,9 @@ build.user.properties
 build.user.conf
 build.user.yaml
 
+# Local Mill JVM selection. Windows ARM64 contributors use this to select their native system JDK.
+.mill-jvm-version
+
 
 .yarn/*
 !.yarn/cache

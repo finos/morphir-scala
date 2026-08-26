@@ -8,7 +8,7 @@ import kyo.test.*
 import morphir.connector.github.GitHubTokenVerifier
 import morphir.web.server.WebHost
 
-class ServeCommandWebHostTests extends Test[Any]:
+class ServerCommandWebHostTests extends Test[Any]:
 
   private final case class Response(status: Int, headers: Map[String, String])
 
@@ -68,12 +68,12 @@ class ServeCommandWebHostTests extends Test[Any]:
       case Array(_, launch) => launch
       case _                => throw AssertionError("missing launch fragment")
 
-  "ServeCommand live WebHost composition" - {
+  "ServerCommand live WebHost composition" - {
     "keeps serving a manual launch after the desktop browser fails safely" in {
       val failureText = "desktop-launch-secret-sentinel"
-      val desktop     = new ServeCommand.DesktopPlatform:
+      val desktop     = new ServerCommand.DesktopPlatform:
         def browse(url: String): Unit = throw RuntimeException(failureText)
-      val launcher = ServeCommand.DesktopBrowserLauncher(desktop, ServeCommand.Output.console)
+      val launcher = ServerCommand.DesktopBrowserLauncher(desktop, ServerCommand.Output.console)
       val verifier = GitHubTokenVerifier.recorded("""{"data":{"viewer":{"login":"octocat"}}}""")
 
       Console.withOut {
@@ -106,11 +106,11 @@ class ServeCommandWebHostTests extends Test[Any]:
         }
       }.map { case (output, _) =>
         assert(output.stdOut.isEmpty)
-        assert(output.stdErr == s"${ServeCommand.browserWarning}\n")
+        assert(output.stdErr == s"${ServerCommand.browserWarning}\n")
         assert(!output.toString.contains("#launch="))
         assert(!output.toString.contains(failureText))
         assert(!output.toString.contains(classOf[RuntimeException].getName))
       }
     }
   }
-end ServeCommandWebHostTests
+end ServerCommandWebHostTests

@@ -194,6 +194,20 @@ More detail for the evaluator-tests Elm tree:
 
 #### IntelliJ Setup for Windows
 
+Windows on ARM64 needs a native build JVM for Scala.js linking. Mill's managed JDK may resolve to an x64 build and
+run under emulation, which makes the Closure phase of `fullLinkJS` much slower. Select the native Microsoft OpenJDK
+and add the ignored local Mill override:
+
+```powershell
+scoop install microsoft-lts-jdk # only when it is not already installed
+scoop reset microsoft-lts-jdk
+Set-Content .mill-jvm-version system
+.\mill.bat --no-server --version
+```
+
+The last command must report `os.arch: aarch64`. See the
+[Windows ARM64 contributor setup](./CONTRIBUTING.md#windows-arm64) for the explanation and server command.
+
 If you are using IntelliJ IDEA to edit morphir-scala's Scala code, you can create the
 IntelliJ project files via or use the **BSP Setup** option (BSP is the recommended approach):
 

@@ -1,7 +1,7 @@
 //| scalaVersion: 3.8.4
 //| moduleDeps: [KbScaffold.scala, KbCheck.scala]
 //| mvnDeps:
-//| - io.getkyo::kyo-core:1.0.0-RC5
+//| - io.getkyo::kyo-core:1.0.0-RC6
 //| - org.yaml:snakeyaml:2.6
 
 /** Vendoring external documents into a bundle, and projecting them back out.
@@ -428,7 +428,7 @@ object KbSync:
     java.security.MessageDigest.getInstance("SHA-256").digest(bytes)
       .map(b => String.format("%02x", Integer.valueOf(b & 0xff))).mkString
 
-  private def jpath(p: Path): java.nio.file.Path = java.nio.file.Path.of(KbPath.render(p))
+  private def jpath(p: Path): java.nio.file.Path = KbPath.toNio(p)
 
   def readBytes(p: Path): Array[Byte] < (Sync & Abort[Throwable]) =
     Sync.defer(java.nio.file.Files.readAllBytes(jpath(p)))

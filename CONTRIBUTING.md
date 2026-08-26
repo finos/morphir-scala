@@ -80,6 +80,38 @@ The focused CI jobs are:
 
 The cache changes performance only. A disabled or empty cache must not change build results.
 
+### Windows ARM64
+
+Scala.js linking runs inside Mill's build JVM. Mill normally downloads its own JDK, independently of `JAVA_HOME`.
+On Windows ARM64, that managed JDK may resolve to an x64 build and run under Windows emulation. A production
+`fullLinkJS` can then spend several minutes in Closure without producing `main.js`.
+
+Use a native ARM64 JDK and tell Mill to use the system JVM. The Microsoft OpenJDK package from Scoop provides a
+native build:
+
+```powershell
+scoop install microsoft-lts-jdk # only when it is not already installed
+scoop reset microsoft-lts-jdk
+Set-Content .mill-jvm-version system
+```
+
+The repository ignores `.mill-jvm-version` because this selection belongs to the local machine. Confirm the build
+JVM before running Scala.js links:
+
+```powershell
+.\mill.bat --no-server --version
+```
+
+The output must report `os.arch: aarch64`. It should name the native JDK selected above, rather than a cached
+`win_x64` JDK under the Coursier directory. `--no-server` prevents an older x64 Mill daemon from satisfying the
+check. Node does not need a separate global installation for the build; Mill owns its JavaScript tool acquisition.
+
+The local browser host can then be built and run with:
+
+```powershell
+.\mill.bat --no-server --ticker false morphir.main.run server --no-open --port 8123
+```
+
 ### Refreshing a long-lived branch from `main`
 
 `main` is the trunk: pull requests target it and merge into it, and there is no integration branch in front of it.

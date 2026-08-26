@@ -7,11 +7,11 @@ import java.net.URISyntaxException
 import kyo.*
 import kyo.test.*
 
-class ServeCommandTests extends Test[Any]:
+class ServerCommandTests extends Test[Any]:
 
   private val launchSentinel = "http://127.0.0.1:43123/#launch=launch-secret-sentinel"
 
-  private final class FakeLauncher extends ServeCommand.BrowserLauncher:
+  private final class FakeLauncher extends ServerCommand.BrowserLauncher:
     private var opened = Vector.empty[String]
 
     def open(url: String)(using Frame): Boolean < Async = Async.defer {
@@ -22,7 +22,7 @@ class ServeCommandTests extends Test[Any]:
     def urls: Vector[String] = opened
 
   private final class FakeBoundHost(events: collection.mutable.ArrayBuffer[String], failAwait: Boolean)
-      extends ServeCommand.BoundHost:
+      extends ServerCommand.BoundHost:
     val port = 43123
 
     def await(using Frame): Unit < Async = Async.defer {
@@ -33,14 +33,14 @@ class ServeCommandTests extends Test[Any]:
   private final class FakeHost(
       failStart: Boolean = false,
       failAwait: Boolean = false
-  ) extends ServeCommand.Host:
+  ) extends ServerCommand.Host:
     val events  = collection.mutable.ArrayBuffer.empty[String]
-    var configs = Vector.empty[ServeCommand.HostConfig]
+    var configs = Vector.empty[ServerCommand.HostConfig]
 
     def start(
-        config: ServeCommand.HostConfig,
-        browserLauncher: ServeCommand.BrowserLauncher
-    )(using Frame): ServeCommand.BoundHost < (Async & Scope & Abort[Throwable]) =
+        config: ServerCommand.HostConfig,
+        browserLauncher: ServerCommand.BrowserLauncher
+    )(using Frame): ServerCommand.BoundHost < (Async & Scope & Abort[Throwable]) =
       Sync.defer {
         events += "start"
         configs = configs :+ config
@@ -55,32 +55,32 @@ class ServeCommandTests extends Test[Any]:
           )
       }
 
-  private final class ThrowingDesktop(failure: Throwable) extends ServeCommand.DesktopPlatform:
+  private final class ThrowingDesktop(failure: Throwable) extends ServerCommand.DesktopPlatform:
     def browse(url: String): Unit = throw failure
 
-  private def dependencies(host: FakeHost, launcher: ServeCommand.BrowserLauncher = FakeLauncher()) =
-    ServeCommand.Dependencies(host, launcher, ServeCommand.Output.console)
+  private def dependencies(host: FakeHost, launcher: ServerCommand.BrowserLauncher = FakeLauncher()) =
+    ServerCommand.Dependencies(host, launcher, ServerCommand.Output.console)
 
-  private def runCommand(options: ServeOptions, dependencies: ServeCommand.Dependencies) =
-    Console.withOut(Abort.run[Throwable](ServeCommand.run(options, dependencies)))
+  private def runCommand(options: ServerOptions, dependencies: ServerCommand.Dependencies) =
+    Console.withOut(Abort.run[Throwable](ServerCommand.run(options, dependencies)))
 
   private def parse(args: String*) =
-    Parser[ServeOptions].parse(args)
+    Parser[ServerOptions].parse(args)
 
-  "ServeOptions parsing" - {
+  "ServerOptions parsing" - {
     "uses an ephemeral port and opens the browser by default" in
-      assert(parse() == Right((ServeOptions(), Seq.empty)))
+      assert(parse() == Right((ServerOptions(), Seq.empty)))
 
     "accepts an explicit port" in
-      assert(parse("--port", "8123") == Right((ServeOptions(port = 8123), Seq.empty)))
+      assert(parse("--port", "8123") == Right((ServerOptions(port = 8123), Seq.empty)))
 
     "accepts both ends of the TCP port range" in {
-      assert(parse("--port", "0") == Right((ServeOptions(port = 0), Seq.empty)))
-      assert(parse("--port", "65535") == Right((ServeOptions(port = 65535), Seq.empty)))
+      assert(parse("--port", "0") == Right((ServerOptions(port = 0), Seq.empty)))
+      assert(parse("--port", "65535") == Right((ServerOptions(port = 65535), Seq.empty)))
     }
 
     "accepts --no-open" in
-      assert(parse("--no-open") == Right((ServeOptions(noOpen = true), Seq.empty)))
+      assert(parse("--no-open") == Right((ServerOptions(noOpen = true), Seq.empty)))
 
     "rejects ports outside the TCP range" in {
       assert(parse("--port", "-1").isLeft)
@@ -92,7 +92,7 @@ class ServeCommandTests extends Test[Any]:
   }
 
   "command registration" - {
-    "adds serve without changing the legacy command names" in {
+    "adds server without changing the legacy command names" in {
       val commandNames = MorphirCliMain.commands.flatMap(_.names).map(_.mkString(" "))
       assert(
         commandNames == Seq(
@@ -102,7 +102,7 @@ class ServeCommandTests extends Test[Any]:
           "setup",
           "test",
           "version",
-          "serve",
+          "server",
           "elm",
           "elm develop",
           "elm init",
@@ -113,8 +113,8 @@ class ServeCommandTests extends Test[Any]:
       )
     }
 
-    "keeps the registered serve command free of process signal ownership" in {
-      val command: Any = ServeCommand
+    "keeps the registered server command free of process signal ownership" in {
+      val command: Any = ServerCommand
       assert(command.isInstanceOf[Command[?]])
       assert(!command.isInstanceOf[KyoCommand[?]])
     }
@@ -126,7 +126,7 @@ class ServeCommandTests extends Test[Any]:
         override protected def loadClass(name: String, resolve: Boolean): Class[?] =
           throw ClassNotFoundException(name)
 
-      assert(!ServeCommand.webHostAvailable(missing))
+      assert(!ServerCommand.webHostAvailable(missing))
     }
 
     "propagates linkage failures from the implementation class" in {
@@ -135,20 +135,20 @@ class ServeCommandTests extends Test[Any]:
         override protected def loadClass(name: String, resolve: Boolean): Class[?] = throw failure
 
       var observed: Throwable | Null = null
-      try ServeCommand.webHostAvailable(broken)
+      try ServerCommand.webHostAvailable(broken)
       catch case error: Throwable => observed = error
 
       assert(observed eq failure)
     }
   }
 
-  "ServeCommand.run" - {
+  "ServerCommand.run" - {
     "starts on the requested port, opens by default, reports only the bound origin, awaits, and releases" in {
       val host     = FakeHost()
       val launcher = FakeLauncher()
-      runCommand(ServeOptions(), dependencies(host, launcher)).map { case (output, result) =>
+      runCommand(ServerOptions(), dependencies(host, launcher)).map { case (output, result) =>
         assert(result == Result.Success(()))
-        assert(host.configs == Vector(ServeCommand.HostConfig(port = 0, openBrowser = true)))
+        assert(host.configs == Vector(ServerCommand.HostConfig(port = 0, openBrowser = true)))
         assert(launcher.urls == Vector(launchSentinel))
         assert(host.events.toVector == Vector("start", "await", "release"))
         assert(output.stdOut == "Listening on http://127.0.0.1:43123\n")
@@ -162,10 +162,10 @@ class ServeCommandTests extends Test[Any]:
     "passes --no-open through without touching the browser launcher" in {
       val host     = FakeHost()
       val launcher = FakeLauncher()
-      runCommand(ServeOptions(port = 8123, noOpen = true), dependencies(host, launcher)).map {
+      runCommand(ServerOptions(port = 8123, noOpen = true), dependencies(host, launcher)).map {
         case (output, result) =>
           assert(result == Result.Success(()))
-          assert(host.configs == Vector(ServeCommand.HostConfig(port = 8123, openBrowser = false)))
+          assert(host.configs == Vector(ServerCommand.HostConfig(port = 8123, openBrowser = false)))
           assert(launcher.urls.isEmpty)
           assert(host.events.toVector == Vector("start", "await", "release"))
           assert(output == Console.Out("Listening on http://127.0.0.1:43123\n", ""))
@@ -174,17 +174,17 @@ class ServeCommandTests extends Test[Any]:
 
     "keeps awaiting after the desktop browser launch fails" in {
       val host     = FakeHost()
-      val launcher = ServeCommand.DesktopBrowserLauncher(
+      val launcher = ServerCommand.DesktopBrowserLauncher(
         ThrowingDesktop(RuntimeException("launch-secret-sentinel")),
-        ServeCommand.Output.console
+        ServerCommand.Output.console
       )
-      runCommand(ServeOptions(), dependencies(host, launcher)).map { case (output, result) =>
+      runCommand(ServerOptions(), dependencies(host, launcher)).map { case (output, result) =>
         assert(result == Result.Success(()))
         assert(host.events.toVector == Vector("start", "await", "release"))
         assert(
           output == Console.Out(
             "Listening on http://127.0.0.1:43123\n",
-            s"${ServeCommand.browserWarning}\n"
+            s"${ServerCommand.browserWarning}\n"
           )
         )
         assert(!output.toString.contains("#launch="))
@@ -195,8 +195,8 @@ class ServeCommandTests extends Test[Any]:
     "rejects directly constructed invalid options before starting the host" in {
       val lowHost  = FakeHost()
       val highHost = FakeHost()
-      runCommand(ServeOptions(port = -1), dependencies(lowHost)).map { case (lowOutput, lowResult) =>
-        runCommand(ServeOptions(port = 65536), dependencies(highHost)).map { case (highOutput, highResult) =>
+      runCommand(ServerOptions(port = -1), dependencies(lowHost)).map { case (lowOutput, lowResult) =>
+        runCommand(ServerOptions(port = 65536), dependencies(highHost)).map { case (highOutput, highResult) =>
           assert(lowResult.isFailure)
           assert(highResult.isFailure)
           assert(lowHost.events.isEmpty)
@@ -209,7 +209,7 @@ class ServeCommandTests extends Test[Any]:
 
     "propagates host startup failure without output or an await" in {
       val host = FakeHost(failStart = true)
-      runCommand(ServeOptions(noOpen = true), dependencies(host)).map { case (output, result) =>
+      runCommand(ServerOptions(noOpen = true), dependencies(host)).map { case (output, result) =>
         assert(result.isFailure)
         assert(host.events.toVector == Vector("start"))
         assert(output == Console.Out("", ""))
@@ -218,7 +218,7 @@ class ServeCommandTests extends Test[Any]:
 
     "releases the host when awaiting termination panics" in {
       val host = FakeHost(failAwait = true)
-      runCommand(ServeOptions(noOpen = true), dependencies(host)).map { case (output, result) =>
+      runCommand(ServerOptions(noOpen = true), dependencies(host)).map { case (output, result) =>
         assert(result.isPanic)
         assert(host.events.toVector == Vector("start", "await", "release"))
         assert(output == Console.Out("Listening on http://127.0.0.1:43123\n", ""))
@@ -230,9 +230,9 @@ class ServeCommandTests extends Test[Any]:
   "DesktopBrowserLauncher" - {
     "opens a supported browser without writing output" in {
       var openedUrls = Vector.empty[String]
-      val desktop    = new ServeCommand.DesktopPlatform:
+      val desktop    = new ServerCommand.DesktopPlatform:
         def browse(url: String): Unit = openedUrls = openedUrls :+ url
-      val launcher = ServeCommand.DesktopBrowserLauncher(desktop, ServeCommand.Output.console)
+      val launcher = ServerCommand.DesktopBrowserLauncher(desktop, ServerCommand.Output.console)
       Console.withOut(launcher.open(launchSentinel)).map { case (output, launched) =>
         assert(launched)
         assert(openedUrls == Vector(launchSentinel))
@@ -250,11 +250,11 @@ class ServeCommandTests extends Test[Any]:
         AssertionError("error launch-secret-sentinel")
       )
       Async.foreachDiscard(failures) { failure =>
-        val launcher = ServeCommand.DesktopBrowserLauncher(ThrowingDesktop(failure), ServeCommand.Output.console)
+        val launcher = ServerCommand.DesktopBrowserLauncher(ThrowingDesktop(failure), ServerCommand.Output.console)
         Console.withOut(launcher.open(launchSentinel)).map { case (output, opened) =>
           assert(!opened)
           assert(output.stdOut.isEmpty)
-          assert(output.stdErr == s"${ServeCommand.browserWarning}\n")
+          assert(output.stdErr == s"${ServerCommand.browserWarning}\n")
           assert(!output.toString.contains("launch-secret-sentinel"))
           assert(!output.toString.contains(failure.getClass.getName))
         }

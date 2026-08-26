@@ -39,9 +39,28 @@ mise run test:jvm
 Tasks live in `.config/mise/tasks/`, one executable script per task, and cover setup, formatting, linting, the three
 test platforms, the knowledge base check, and local CI.
 
+## Windows ARM64 build JVM
+
+Scala.js linking runs inside Mill's build JVM. Mill normally resolves that JVM through Coursier instead of using
+`JAVA_HOME`. On Windows ARM64, the default managed JDK may resolve to `win_x64`. Windows can run that binary under
+emulation, but Closure linking becomes much slower.
+
+Windows ARM64 contributors select a native Microsoft OpenJDK and put `system` in `.mill-jvm-version`. The ignored
+local file tells Mill to use the `java` selected by `JAVA_HOME` and `PATH`:
+
+```powershell
+scoop reset microsoft-lts-jdk
+Set-Content .mill-jvm-version system
+.\mill.bat --no-server --version
+```
+
+The version output must report `os.arch: aarch64`. The `--no-server` check avoids reusing an x64 daemon started
+before the override existed. Mill owns Node acquisition for the build, so this workaround does not add a global
+Node prerequisite.
+
 ## Dependencies
 
-Declared with the `mvn""` interpolator — `ivy""` is deprecated in Mill 1.x. For JS and Native dependencies the
+Declare dependencies with the `mvn""` interpolator. Mill 1.x deprecates `ivy""`. For JS and Native dependencies the
 double-colon form (`group::artifact::version`) is required; a single colon cross-builds only by Scala version and
 silently resolves the JVM jar.
 
