@@ -6,7 +6,7 @@
 
 [tools]
 bun = "1.4.0"
-node = "24.19.0"
+node = "24.20.0"
 "scala-cli" = "1.16.0"
 
 # JSON Schema CLI (https://github.com/sourcemeta/jsonschema). Only used against the IR schemas mirrored into
