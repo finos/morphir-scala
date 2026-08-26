@@ -1,6 +1,6 @@
 //| scalaVersion: 3.8.4
 //| mvnDeps:
-//| - io.getkyo::kyo-core:1.0.0-RC5
+//| - io.getkyo::kyo-core:1.0.0-RC6
 //| - org.yaml:snakeyaml:2.6
 
 /** Domain model for an Open Knowledge Format knowledge base.
@@ -24,6 +24,9 @@ object KbPath:
   /** Segments of `child` below `base`, or None when `child` is not under `base`. */
   def segmentsUnder(child: Path, base: Path): Option[Seq[String]] =
     Option.when(isUnder(child, base))(child.parts.drop(base.parts.size).toSeq)
+
+  /** Converts a Kyo path to the current platform's native path syntax. */
+  def toNio(p: Path): java.nio.file.Path = java.nio.file.Path.of(p.toString)
 
   def render(p: Path): String = p.parts.filter(_.nonEmpty).mkString("/", "/", "")
 

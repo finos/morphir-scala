@@ -1,7 +1,7 @@
 //| scalaVersion: 3.8.4
 //| moduleDeps: [KbIntent.scala]
 //| mvnDeps:
-//| - io.getkyo::kyo-core:1.0.0-RC5
+//| - io.getkyo::kyo-core:1.0.0-RC6
 
 /** Writing intent: creating records, moving them between states, and regenerating the grouped index.
   *

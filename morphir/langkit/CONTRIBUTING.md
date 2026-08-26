@@ -25,8 +25,7 @@ arithmetic over a string.
 ## One `Span` type
 
 There is a single `morphir.langkit.core.Span`, exposing both `offset`/`length` and `start`/`end` views of the same
-half-open range. It replaced a pair of types — one for syntax nodes, one for diagnostics — that differed only in
-encoding.
+half-open range. It replaced two types that differed only in encoding, one for syntax nodes and one for diagnostics.
 
 Do not reintroduce a second span type for a new encoding. If a caller wants boundaries rather than an extent, use
 `Span.fromStartEnd`; if it wants both plus a resolved line and column, use `SourceSpan`, which wraps a `Span` rather
@@ -38,13 +37,13 @@ Every module here builds for the JVM, Scala.js, and Scala Native, so dependency 
 form for the JS and Native blocks:
 
 ```yaml
-- io.getkyo::kyo-core:1.0.0-RC5     # jvm
-- io.getkyo::kyo-core::1.0.0-RC5    # js and native
+- io.getkyo::kyo-core:1.0.0-RC6     # jvm
+- io.getkyo::kyo-core::1.0.0-RC6    # js and native
 ```
 
-A single colon cross-builds only by Scala version and silently resolves the JVM jar. Nothing fails at resolution — it
-surfaces later as a `ClassNotFoundException` when the class is actually loaded, which is why it is worth getting right
-up front.
+A single colon cross-builds only by Scala version and silently resolves the JVM jar. Nothing fails at resolution. The
+mistake surfaces later as a `ClassNotFoundException` when the class is loaded, so use the double-colon form from the
+start.
 
 Native test blocks additionally need `org.scala-native::test-interface::<version>`; Mill does not pull it in, and
 without it the link fails on an unreachable `sbt.testing.Framework`.

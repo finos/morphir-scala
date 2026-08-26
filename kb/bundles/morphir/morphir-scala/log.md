@@ -6,6 +6,10 @@
   now names `morphir server` as the CLI entry point for the loopback browser host.
 * **Update**: [Build System](/build-system.md) now records the native Mill build-JVM setup required for Scala.js
   linking on Windows ARM64.
+* **Update**: KB scripts now use Kyo 1.0.0-RC6, which fixes `Frame` macro expansion against CRLF source files on
+  Windows.
+* **Update**: KB sync now converts Kyo paths to native Java paths before byte-level file operations, so Windows drive
+  letters no longer produce invalid `/C:/...` paths.
 
 ## 2026-08-25
 

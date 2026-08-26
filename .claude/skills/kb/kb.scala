@@ -2,7 +2,7 @@
 //| mainClass: KbApp
 //| moduleDeps: [KbCheck.scala, KbScaffold.scala, KbRender.scala, KbIndex.scala, KbRefresh.scala, KbIntentEdit.scala, KbSync.scala]
 //| mvnDeps:
-//| - io.getkyo::kyo-case-app:1.0.0-RC5
+//| - io.getkyo::kyo-case-app:1.0.0-RC6
 
 /** `kb` — knowledge base management for the Morphir knowledge base under `kb/`.
   *

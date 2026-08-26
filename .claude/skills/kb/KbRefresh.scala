@@ -1,7 +1,7 @@
 //| scalaVersion: 3.8.4
 //| moduleDeps: [KbScaffold.scala, KbIndex.scala, KbIntentEdit.scala]
 //| mvnDeps:
-//| - io.getkyo::kyo-core:1.0.0-RC5
+//| - io.getkyo::kyo-core:1.0.0-RC6
 
 /** Bringing derived state back in line with the markdown.
   *

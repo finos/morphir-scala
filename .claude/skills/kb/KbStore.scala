@@ -1,7 +1,7 @@
 //| scalaVersion: 3.8.4
 //| moduleDeps: [KbModel.scala]
 //| mvnDeps:
-//| - io.getkyo::kyo-core:1.0.0-RC5
+//| - io.getkyo::kyo-core:1.0.0-RC6
 //| - org.yaml:snakeyaml:2.6
 //| - org.commonmark:commonmark:0.29.0
 

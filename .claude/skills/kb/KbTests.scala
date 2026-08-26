@@ -3,8 +3,8 @@
 //| resources: [test-resources]
 //| moduleDeps: [KbIntentEdit.scala, KbRefresh.scala, KbRender.scala, KbSync.scala]
 //| mvnDeps:
-//| - io.getkyo::kyo-test-api:1.0.0-RC5
-//| - io.getkyo::kyo-test-runner:1.0.0-RC5
+//| - io.getkyo::kyo-test-api:1.0.0-RC6
+//| - io.getkyo::kyo-test-runner:1.0.0-RC6
 
 /** Tests for the kb and intent skill code, using kyo-test — the same framework `langkit` and `kit` use.
   *
@@ -122,6 +122,13 @@ class KbParsingSpec extends Test[Any]:
 // ------------------------------------------------------------------------ paths
 
 class KbPathsSpec extends Test[Any]:
+
+  "native path conversion" - {
+    "round-trips an absolute path on the current platform (regression)" in {
+      val native = java.nio.file.Path.of(sys.props("user.dir")).toAbsolutePath.normalize()
+      assert(KbPath.toNio(Path(native.toString)) == native)
+    }
+  }
 
   "segmentsUnder" - {
     "relativises a path below the base" in {
