@@ -1088,11 +1088,7 @@ jobs:
     # input turns it off for one manual run: dispatch on the release tag with the box unchecked and
     # only the GitHub release ships. On every other event the input is absent, so the event-name
     # guard keeps the clause true.
-    if: >-
-      github.repository == 'finos/morphir-scala'
-      && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || startsWith(github.ref, 'refs/tags/v'))
-      && vars.MORPHIR_RELEASE_MAVEN_CENTRAL != 'false'
-      && (github.event_name != 'workflow_dispatch' || inputs.maven_central)
+    if: github.repository == 'finos/morphir-scala' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || startsWith(github.ref, 'refs/tags/v')) && vars.MORPHIR_RELEASE_MAVEN_CENTRAL != 'false' && (github.event_name != 'workflow_dispatch' || inputs.maven_central)
     needs: [ci]
 
     # Without this the job inherits GitHub's six-hour default. An `apt-get update` wedged against
@@ -1201,11 +1197,7 @@ jobs:
     # The last two clauses are the same Maven Central stand-down switches the `publish` job
     # documents: the MORPHIR_RELEASE_MAVEN_CENTRAL repository variable, and the maven_central
     # input on a manual dispatch.
-    if: >-
-      github.repository == 'finos/morphir-scala'
-      && startsWith(github.ref, 'refs/tags/mill-plugins/v')
-      && vars.MORPHIR_RELEASE_MAVEN_CENTRAL != 'false'
-      && (github.event_name != 'workflow_dispatch' || inputs.maven_central)
+    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/mill-plugins/v') && vars.MORPHIR_RELEASE_MAVEN_CENTRAL != 'false' && (github.event_name != 'workflow_dispatch' || inputs.maven_central)
     needs: [ci]
 
     # See the `publish` job's own comment on its timeout: an early half-hour job timeout reads as

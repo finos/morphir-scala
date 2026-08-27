@@ -73,13 +73,24 @@ object SquireLauncherFixtures:
 
 object SquireCiPolicy:
   val SupportedBranches = List("main", "0.4.x")
-  val PublishPredicate  =
+  /**
+   * The two Maven Central stand-down clauses shared by `publish` and `publish-plugins`: the
+   * MORPHIR_RELEASE_MAVEN_CENTRAL repository variable, and the maven_central input on a manual
+   * dispatch (absent on every other event, which the event-name guard covers). They are policy —
+   * a GitHub-Releases-only release depends on both jobs honouring them.
+   */
+  val MavenCentralSwitchClauses =
+    " && vars.MORPHIR_RELEASE_MAVEN_CENTRAL != 'false' && " +
+      "(github.event_name != 'workflow_dispatch' || inputs.maven_central)"
+  val PublishPredicate =
     "github.repository == 'finos/morphir-scala' && " +
       "(github.ref == 'refs/heads/main' || " +
       "github.ref == 'refs/heads/0.4.x' || " +
-      "startsWith(github.ref, 'refs/tags/v'))"
+      "startsWith(github.ref, 'refs/tags/v'))" +
+      MavenCentralSwitchClauses
   val PublishPluginsPredicate =
-    "github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/mill-plugins/v')"
+    "github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/mill-plugins/v')" +
+      MavenCentralSwitchClauses
   val DesktopPackagingPredicate =
     "github.repository == 'finos/morphir-scala' && " +
       "(startsWith(github.ref, 'refs/tags/desktop/v') || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false')"
@@ -2117,13 +2128,13 @@ class SquireCiPolicySpec extends Test[Any]:
 
       val broadenedPluginGuard = replaceOnce(
         workflow,
-        "    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/mill-plugins/v')\n    needs: [ci]\n\n    # See the `publish` job",
-        "    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/')\n    needs: [ci]\n\n    # See the `publish` job"
+        s"    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/mill-plugins/v')$MavenCentralSwitchClauses\n    needs: [ci]\n\n    # See the `publish` job",
+        s"    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/')$MavenCentralSwitchClauses\n    needs: [ci]\n\n    # See the `publish` job"
       )
       val pluginGuardDroppedRepositoryCheck = replaceOnce(
         workflow,
-        "    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/mill-plugins/v')\n    needs: [ci]\n\n    # See the `publish` job",
-        "    if: startsWith(github.ref, 'refs/tags/mill-plugins/v')\n    needs: [ci]\n\n    # See the `publish` job"
+        s"    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/mill-plugins/v')$MavenCentralSwitchClauses\n    needs: [ci]\n\n    # See the `publish` job",
+        s"    if: startsWith(github.ref, 'refs/tags/mill-plugins/v')$MavenCentralSwitchClauses\n    needs: [ci]\n\n    # See the `publish` job"
       )
       val broadenedDesktopReleaseGuard = replaceOnce(
         workflow,
