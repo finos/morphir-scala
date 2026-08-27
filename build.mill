@@ -477,6 +477,17 @@ trait AssemblyPublishInfo extends JavaModule with PublishModule {
   }
 }
 
+/** Builds the CLI with GraalVM Native Image for the current operating system and architecture. */
+trait MorphirCliNativeImage extends mill.javalib.NativeImageModule { this: JavaModule =>
+  override def nativeImageClasspath = Task {
+    Seq(assembly())
+  }
+
+  override def nativeImageOptions = Task {
+    Seq("--no-fallback", "-march=compatibility")
+  }
+}
+
 /**
  * Skips scaladoc generation, publishing an empty docJar instead.
  *
@@ -987,12 +998,16 @@ trait MorphirMillbuildHelpersModule extends ScalaModule with ScalafmtModule {
     helpersRoot / "LintSelectors.scala",
     helpersRoot / "JsTestSelectors.scala",
     helpersRoot / "NativeTestSelectors.scala",
+    helpersRoot / "CliRelease.scala",
     helpersRoot / "DesktopSmoke.scala",
     helpersRoot / "LinkerBenchmark.scala",
     helpersRoot / "LinkerBenchmarkProcess.scala"
   )
 
-  override def mvnDeps = Seq(Deps.com.lihaoyi.`os-lib`) ++ Deps.com.lihaoyi.upickleManaged
+  override def mvnDeps = Seq(
+    Deps.com.lihaoyi.`os-lib`,
+    Deps.org.apache.commons.`commons-compress`
+  ) ++ Deps.com.lihaoyi.upickleManaged
 }
 
 // The following section contains aliases used to simplify build tasks

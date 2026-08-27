@@ -6,27 +6,17 @@ the shape of the next release, and it is what CI stamps on every build. Dated he
 `## [Unreleased]` is optional and carries no build meaning; use it for entries not yet assigned to
 a release.
 
-## [Unreleased]
-
-### Changed
-- The local browser host command is now `morphir server`; the earlier `morphir serve` spelling is removed.
-- The repository moved to trunk-based development. Pull requests target `main` and merge into it; the `develop`
-  integration branch, its promotion pull request and its back-migration are retired. Snapshots publish from `main`
-  alone, and `squire branch refresh` now requires `--target`. See decision 0014.
-
-### Removed
-- `Concept.splitFrontmatter` and its `closingFence` helper are gone from the public API of
-  `morphir-knowledge-okf` on JVM, JS and Native, with no deprecation shim. Where a frontmatter fence
-  ends is a syntax question the Markdown parser now answers: parse with a frontmatter-enabled profile
-  (`MdProfile.commonmark.withYamlFrontmatter`) and read `Root.frontmatter` (#1025).
-
 ## [0.5.0-M05]
 
 The first release cut through the independent version streams, and the first since this changelog
 existed. It carries roughly seventy merged pull requests; the notable ones are below, and the GitHub
-release notes hold the full list, which release-drafter builds from the pull requests themselves.
+release notes hold the full list, generated from the pull requests themselves.
 
 ### Added
+- Native CLI packages on the GitHub release: GraalVM Native Image archives for macOS ARM64 and x64,
+  Linux ARM64 and x64, and Windows x64, plus an executable JVM assembly as the portable package and
+  the Windows ARM64 path. Every asset carries a `.sha256` sidecar and is verified again after upload
+  (#1038).
 - The Morphir desktop application: an Electron shell hosting morphir-ui, with Scala.js in both
   processes over a kyo-jsonrpc seam. It is packaged for macOS, Linux and Windows and published to a
   GitHub Release and to Maven Central, each asset carrying a `.sha256` sidecar (#986, #987, #988).
@@ -43,12 +33,25 @@ release notes hold the full list, which release-drafter builds from the pull req
 - Elm port and effect module metadata, carried through lowering (#937).
 
 ### Changed
+- The local browser host command is now `morphir server`; the earlier `morphir serve` spelling is
+  removed (#1036).
+- Releases run in two phases: pushing a release tag stages a draft GitHub release with verified
+  assets, and publishing that draft is what promotes the release to Maven Central (#1038).
+- The repository moved to trunk-based development. Pull requests target `main` and merge into it;
+  the `develop` integration branch, its promotion pull request and its back-migration are retired.
+  Snapshots publish from `main` alone, and `squire branch refresh` now requires `--target`. See
+  decision 0014.
 - Snapshot coordinates now count toward the release the changelog names next, rather than away from
   the last one that shipped. `0.5.0-M05-12-SNAPSHOT` means twelve commits into work that will become
   `0.5.0-M05` (#991).
-- SNAPSHOTs publish from `develop` as well as `main` (#970).
 - Squire's tooling is Scala rather than Python (#956).
 - Durable task tracking moved to beads (#941).
+
+### Removed
+- `Concept.splitFrontmatter` and its `closingFence` helper are gone from the public API of
+  `morphir-knowledge-okf` on JVM, JS and Native, with no deprecation shim. Where a frontmatter fence
+  ends is a syntax question the Markdown parser now answers: parse with a frontmatter-enabled profile
+  (`MdProfile.commonmark.withYamlFrontmatter`) and read `Root.frontmatter` (#1025).
 
 ### Fixed
 - Closure parameter patterns are retained in the model (#952).

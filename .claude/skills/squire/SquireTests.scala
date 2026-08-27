@@ -73,13 +73,40 @@ object SquireLauncherFixtures:
 
 object SquireCiPolicy:
   val SupportedBranches = List("main", "0.4.x")
-  val PublishPredicate  =
+  /**
+   * The two Maven Central stand-down clauses shared by every Sonatype-uploading job: the
+   * MORPHIR_RELEASE_MAVEN_CENTRAL repository variable, and the maven_central input on a manual
+   * dispatch (absent on every other event, which the event-name guard covers). They are policy —
+   * a GitHub-Releases-only release depends on every job honouring them.
+   */
+  val MavenCentralSwitchClauses =
+    " && vars.MORPHIR_RELEASE_MAVEN_CENTRAL != 'false' && " +
+      "(github.event_name != 'workflow_dispatch' || inputs.maven_central)"
+
+  /**
+   * ci.yml's publish job is snapshots and branch milestones only. Release tags are deliberately
+   * absent: a tag push stages a draft GitHub release, and every release-tag Sonatype upload lives
+   * in release-publish.yml behind the human act of publishing that draft. A tag ref reappearing
+   * here would put an irreversible Maven Central upload before that promotion gate.
+   */
+  val PublishPredicate =
     "github.repository == 'finos/morphir-scala' && " +
       "(github.ref == 'refs/heads/main' || " +
-      "github.ref == 'refs/heads/0.4.x' || " +
-      "startsWith(github.ref, 'refs/tags/v'))"
-  val PublishPluginsPredicate =
-    "github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/mill-plugins/v')"
+      "github.ref == 'refs/heads/0.4.x')" +
+      MavenCentralSwitchClauses
+
+  /**
+   * release-publish.yml routes by the tag its `target` job resolved, one namespace per job. The
+   * repository guard lives on `target` alone — when it skips, every dependent publish job skips
+   * with it — and each publish job carries the Maven Central stand-down clauses.
+   */
+  val ReleasePublishTargetPredicate    = "github.repository == 'finos/morphir-scala'"
+  val ReleasePublishLibrariesPredicate =
+    "startsWith(needs.target.outputs.tag, 'v')" + MavenCentralSwitchClauses
+  val ReleasePublishPluginsPredicate =
+    "startsWith(needs.target.outputs.tag, 'mill-plugins/v')" + MavenCentralSwitchClauses
+  val ReleasePublishDesktopPredicate =
+    "startsWith(needs.target.outputs.tag, 'desktop/v')" + MavenCentralSwitchClauses
   val DesktopPackagingPredicate =
     "github.repository == 'finos/morphir-scala' && " +
       "(startsWith(github.ref, 'refs/tags/desktop/v') || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false')"
@@ -231,14 +258,67 @@ object SquireCiPolicy:
       !release.contains("BEGIN PGP PRIVATE KEY"),
       "Release step must not duplicate PgpSecret conversion in bash"
     )
+    // Release-tag Sonatype uploads live in release-publish.yml alone. An invocation reappearing in
+    // ci.yml would publish to Maven Central on the tag push, before the draft-release promotion
+    // gate a human is supposed to hold.
+    List("ci.sonatype.libraries", "ci.sonatype.plugins", "ci.desktop.sonatype").foreach { task =>
+      expect(
+        count(workflow, s"./mill --ticker false -i $task") == 0,
+        s"ci.yml must not invoke $task; release-tag Sonatype uploads live in release-publish.yml"
+      )
+    }
 
-  def assertPublishPluginsPolicy(workflow: String): Unit =
-    val job = indentedBlock(workflow, "publish-plugins:", 2)
+  /**
+   * The promotion workflow: release-publish.yml. Its `target` job carries the repository guard and
+   * resolves the tag; each publish job routes on one tag namespace, depends only on `target`,
+   * honours the Maven Central stand-down clauses, and invokes its Sonatype destination exactly
+   * once. The workflow-level token stays read-only — promotion downloads and verifies staged
+   * assets, it never uploads any.
+   */
+  def assertReleasePublishPolicy(releaseWorkflow: String): Unit =
+    val target = indentedBlock(releaseWorkflow, "target:", 2)
     expect(
-      scalar(job, "if") == PublishPluginsPredicate,
+      scalar(target, "if") == ReleasePublishTargetPredicate,
+      "target predicate does not match the release-publish allowlist"
+    )
+    val jobs = List(
+      ("publish-libraries:", ReleasePublishLibrariesPredicate, "ci.sonatype.libraries"),
+      ("publish-plugins:", ReleasePublishPluginsPredicate, "ci.sonatype.plugins"),
+      ("publish-desktop:", ReleasePublishDesktopPredicate, "ci.desktop.sonatype")
+    )
+    jobs.foreach { case (name, predicate, task) =>
+      val job = indentedBlock(releaseWorkflow, name, 2)
+      expect(
+        scalar(job, "if") == predicate,
+        s"$name predicate does not match the release-publish allowlist"
+      )
+      expect(scalar(job, "needs") == "[target]", s"$name must depend only on the target job")
+      expect(
+        count(job, s"./mill --ticker false -i $task") == 1,
+        s"$name must invoke $task exactly once"
+      )
+      expect(
+        count(job, "writeMillEnv") == 1,
+        s"$name must convert GPG_* via ci.sonatype.writeMillEnv"
+      )
+    }
+    expect(
+      count(releaseWorkflow, "./mill --ticker false -i ci.publish") == 0,
+      "release-publish.yml must not run the snapshot publish"
+    )
+    val permissions = indentedBlock(releaseWorkflow, "permissions:", 0)
+    expect(
+      permissions.linesIterator.filter(_.trim.nonEmpty).toList == List("  contents: read"),
+      "release-publish.yml permissions must be exactly contents: read"
+    )
+
+  def assertPublishPluginsPolicy(releaseWorkflow: String): Unit =
+    val job = indentedBlock(releaseWorkflow, "publish-plugins:", 2)
+    expect(
+      scalar(job, "if") == ReleasePublishPluginsPredicate,
       "publish-plugins predicate does not match the plugin-family release allowlist"
     )
-    expect(scalar(job, "needs") == "[ci]", "publish-plugins must depend only on aggregate ci")
+    expect(scalar(job, "needs") == "[target]", "publish-plugins must depend only on the target job")
     expect(
       count(job, "./mill --ticker false -i ci.sonatype.plugins") == 1,
       "publish-plugins job must invoke ci.sonatype.plugins exactly once"
@@ -246,9 +326,10 @@ object SquireCiPolicy:
 
   /**
    * The three packaging jobs (desktop-matrix, desktop-package, desktop-verify) share one guard: a
-   * desktop/v* tag or release always packages, and the MORPHIR_CI_PACKAGE_DESKTOP switch otherwise
-   * controls ordinary CI. desktop-release itself carries the narrower, switch-free guard: only a
-   * desktop/v* tag ships anything.
+   * desktop/v* tag always packages, and the MORPHIR_CI_PACKAGE_DESKTOP switch otherwise controls
+   * ordinary CI. desktop-release itself carries the narrower, switch-free guard: only a
+   * desktop/v* tag stages anything, and what it stages is a draft — the Sonatype upload lives in
+   * release-publish.yml behind the draft's publication.
    */
   def assertDesktopReleaseGuards(workflow: String): Unit =
     List("desktop-matrix:", "desktop-package:", "desktop-verify:").foreach { job =>
@@ -1761,6 +1842,10 @@ class SquireCiPolicySpec extends Test[Any]:
     skillDirectory.resolve("../../../.github/workflows/ci.yml").normalize,
     StandardCharsets.UTF_8
   )
+  private val releasePublishWorkflow = Files.readString(
+    skillDirectory.resolve("../../../.github/workflows/release-publish.yml").normalize,
+    StandardCharsets.UTF_8
+  )
   private val linkerBenchmarkWorkflow = Files.readString(
     skillDirectory.resolve("../../../.github/workflows/linker-benchmark.yml").normalize,
     StandardCharsets.UTF_8
@@ -2112,18 +2197,18 @@ class SquireCiPolicySpec extends Test[Any]:
     }
 
     "routes the plugin release and the desktop release to their own namespaced guards" in {
-      assertPublishPluginsPolicy(workflow)
+      assertPublishPluginsPolicy(releasePublishWorkflow)
       assertDesktopReleaseGuards(workflow)
 
       val broadenedPluginGuard = replaceOnce(
-        workflow,
-        "    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/mill-plugins/v')\n    needs: [ci]\n\n    # See the `publish` job",
-        "    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/')\n    needs: [ci]\n\n    # See the `publish` job"
+        releasePublishWorkflow,
+        s"    if: startsWith(needs.target.outputs.tag, 'mill-plugins/v')$MavenCentralSwitchClauses\n    needs: [target]",
+        s"    if: needs.target.outputs.tag != ''$MavenCentralSwitchClauses\n    needs: [target]"
       )
-      val pluginGuardDroppedRepositoryCheck = replaceOnce(
-        workflow,
-        "    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/mill-plugins/v')\n    needs: [ci]\n\n    # See the `publish` job",
-        "    if: startsWith(github.ref, 'refs/tags/mill-plugins/v')\n    needs: [ci]\n\n    # See the `publish` job"
+      val pluginGuardLostMavenSwitches = replaceOnce(
+        releasePublishWorkflow,
+        s"    if: startsWith(needs.target.outputs.tag, 'mill-plugins/v')$MavenCentralSwitchClauses\n    needs: [target]",
+        "    if: startsWith(needs.target.outputs.tag, 'mill-plugins/v')\n    needs: [target]"
       )
       val broadenedDesktopReleaseGuard = replaceOnce(
         workflow,
@@ -2140,22 +2225,65 @@ class SquireCiPolicySpec extends Test[Any]:
         "    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/desktop/v') || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false')\n    runs-on: ubuntu-latest\n    timeout-minutes: 20",
         "    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/desktop/v')\n    runs-on: ubuntu-latest\n    timeout-minutes: 20"
       )
-      val mutations = List(
-        broadenedPluginGuard,
-        pluginGuardDroppedRepositoryCheck,
-        broadenedDesktopReleaseGuard,
-        desktopMatrixGuardDroppedRepositoryCheck,
-        desktopMatrixGuardLostSwitch
+      assert(rejects(assertPublishPluginsPolicy, broadenedPluginGuard))
+      assert(rejects(assertPublishPluginsPolicy, pluginGuardLostMavenSwitches))
+      assert(
+        List(
+          broadenedDesktopReleaseGuard,
+          desktopMatrixGuardDroppedRepositoryCheck,
+          desktopMatrixGuardLostSwitch
+        ).forall(rejects(assertDesktopReleaseGuards, _))
+      )
+    }
+
+    "keeps promotion in release-publish.yml behind the namespaced and switchable guards" in {
+      assertReleasePublishPolicy(releasePublishWorkflow)
+
+      val librariesGuardBroadened = replaceOnce(
+        releasePublishWorkflow,
+        s"    if: startsWith(needs.target.outputs.tag, 'v')$MavenCentralSwitchClauses\n    needs: [target]",
+        s"    if: needs.target.outputs.tag != ''$MavenCentralSwitchClauses\n    needs: [target]"
+      )
+      val librariesGuardLostMavenSwitches = replaceOnce(
+        releasePublishWorkflow,
+        s"    if: startsWith(needs.target.outputs.tag, 'v')$MavenCentralSwitchClauses\n    needs: [target]",
+        "    if: startsWith(needs.target.outputs.tag, 'v')\n    needs: [target]"
+      )
+      val desktopGuardLostMavenSwitches = replaceOnce(
+        releasePublishWorkflow,
+        s"    if: startsWith(needs.target.outputs.tag, 'desktop/v')$MavenCentralSwitchClauses\n    needs: [target]",
+        "    if: startsWith(needs.target.outputs.tag, 'desktop/v')\n    needs: [target]"
+      )
+      val targetLostRepositoryGuard = replaceOnce(
+        releasePublishWorkflow,
+        "    if: github.repository == 'finos/morphir-scala'\n    runs-on: ubuntu-latest",
+        "    if: true\n    runs-on: ubuntu-latest"
+      )
+      val snapshotPublishSmuggledIn = releasePublishWorkflow +
+        "\n  smuggled:\n" +
+        "    runs-on: ubuntu-latest\n" +
+        "    steps:\n" +
+        "      - name: Snapshot publish does not belong here\n" +
+        "        run: ./mill --ticker false -i ci.publish\n"
+      val writeToken = replaceOnce(
+        releasePublishWorkflow,
+        "permissions:\n  contents: read",
+        "permissions:\n  contents: write"
       )
       assert(
-        mutations.forall(mutation =>
-          rejects(assertPublishPluginsPolicy, mutation) || rejects(assertDesktopReleaseGuards, mutation)
-        )
+        List(
+          librariesGuardBroadened,
+          librariesGuardLostMavenSwitches,
+          desktopGuardLostMavenSwitches,
+          targetLostRepositoryGuard,
+          snapshotPublishSmuggledIn,
+          writeToken
+        ).forall(rejects(assertReleasePublishPolicy, _))
       )
     }
 
     "disables the mill ticker on hosted workflow and mise mill invocations" in {
-      assertMillInvocationsDisableTicker(Seq(workflow, lintTask, jvmPlatformTask))
+      assertMillInvocationsDisableTicker(Seq(workflow, releasePublishWorkflow, lintTask, jvmPlatformTask))
       val tickerEnabled = replaceOnce(
         workflow,
         "./mill --ticker false -i ci.publish",

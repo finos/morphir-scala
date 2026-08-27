@@ -121,6 +121,12 @@ class ServerCommandTests extends Test[Any]:
   }
 
   "web host availability" - {
+    "recognizes a GraalVM native-image runtime" in {
+      assert(ServerCommand.nativeImageRuntime(Map("org.graalvm.nativeimage.imagecode" -> "runtime")))
+      assert(!ServerCommand.nativeImageRuntime(Map("org.graalvm.nativeimage.imagecode" -> "buildtime")))
+      assert(!ServerCommand.nativeImageRuntime(Map.empty))
+    }
+
     "treats an absent implementation class as unavailable" in {
       val missing = new ClassLoader(null):
         override protected def loadClass(name: String, resolve: Boolean): Class[?] =

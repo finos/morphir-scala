@@ -32,7 +32,7 @@ Draft Design Notes and research are provisional.
 * [Continuous Integration](/continuous-integration.md) - GitHub Actions runs linting, cross-platform tests and knowledge base checks on pull requests targeting supported branches.
 * [Build System](/build-system.md) - Mill drives the build from per-directory package.mill.yaml files, with mise as the task runner.
 * [Cross-Platform Targets](/cross-platform-targets.md) - Modules compile to the JVM, ScalaJS, WebAssembly and Scala Native from one shared source layout.
-* [Packaging and Release](/packaging-and-release.md) - CI publishes Scala libraries and Mill plugins to Sonatype Central, and the desktop app to both Sonatype Central and GitHub Releases.
+* [Packaging and Release](/packaging-and-release.md) - CI publishes Scala libraries and Mill plugins to Sonatype Central, plus CLI and desktop packages to GitHub Releases.
 
 ## Decisions
 
