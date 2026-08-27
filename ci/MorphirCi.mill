@@ -230,12 +230,14 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
       }
 
     /**
-     * Upload every verified CLI asset to the GitHub release for `tag`, creating the release when none exists.
+     * Stage every verified CLI asset on the GitHub release for `tag`, creating the release as a **draft** when none
+     * exists yet.
      *
-     * The workflow runs this from a v* tag push (or a manual dispatch on that tag), so the tag itself is the release
-     * act — the created release is published, not a draft, with notes generated from the merged pull requests.
-     * `--verify-tag` refuses to conjure a tag that was never pushed. Uploads pass `--clobber`, so a failed run is
-     * safely retriable by dispatching the workflow on the same tag.
+     * The workflow runs this from a v* tag push (or a manual dispatch on that tag). The tag push stages; a human
+     * publishes the draft, and that publication is what fires the release-publish workflow that promotes the release to
+     * Maven Central — the same draft-then-publish gate the desktop stream uses. `--verify-tag` refuses to conjure a tag
+     * that was never pushed. Uploads pass `--clobber`, so a failed run is safely retriable by dispatching the workflow
+     * on the same tag.
      */
     def githubRelease(tag: String) = Task.Command(exclusive = true) {
       require(tag.nonEmpty, "ci.cli.githubRelease: --tag is required")
@@ -251,8 +253,8 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
           .call(cwd = BuildCtx.workspaceRoot, check = false)
           .exitCode == 0
         if !exists then
-          Task.log.info(s"ci.cli: no release for $tag — creating it")
-          os.proc("gh", "release", "create", tag, "--verify-tag", "--title", tag, "--generate-notes")
+          Task.log.info(s"ci.cli: no release for $tag — creating a draft")
+          os.proc("gh", "release", "create", tag, "--draft", "--verify-tag", "--title", tag, "--generate-notes")
             .call(cwd = BuildCtx.workspaceRoot)
         os.proc("gh", "release", "upload", tag, assets.map(_.toString), "--clobber")
           .call(cwd = BuildCtx.workspaceRoot)
@@ -260,10 +262,11 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
     }
 
     /**
-     * Prove the published release, not the local staging directory: download every CLI asset fresh from the GitHub
-     * release for `tag` and run the same verifier over the download, then require the published `checksums.txt` to
-     * match the one recomputed from the downloaded bytes. A truncated, corrupted or mislabeled upload fails the release
-     * run here instead of a user's install.
+     * Prove the staged release, not the local staging directory: download every CLI asset fresh from the GitHub release
+     * for `tag` and run the same verifier over the download, then require the release's `checksums.txt` to match the
+     * one recomputed from the downloaded bytes. A truncated, corrupted or mislabeled upload fails here instead of a
+     * user's install. Runs against drafts and published releases alike — `gh` resolves both by tag — so phase one
+     * (staging) and phase two (promotion) each get the same proof.
      */
     def verifyRelease(tag: String, platforms: String = CliRelease.Platform.AllTokens, includeJvm: Boolean = true) =
       Task.Command(exclusive = true) {

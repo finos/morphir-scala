@@ -1,0 +1,267 @@
+name: Release Publish
+
+# Phase two of the two-phase release flow. Phase one is ci.yml on a tag push: it tests, packages,
+# verifies, and stages a draft GitHub release with the assets attached. Publishing that draft —
+# a human act — fires this workflow, which promotes the release to Maven Central. Keeping the
+# promotion in its own workflow means publishing a release never re-runs the test and packaging
+# pipeline, and keeping Maven Central out of phase one means nothing irreversible happens before
+# a human has looked at the draft.
+#
+# The three publish jobs route by tag namespace, exactly as ci.yml's guards do: a tag can only
+# ever start 'v', 'mill-plugins/v' or 'desktop/v', so at most one job runs per release. Each job
+# also honours the two Maven Central stand-down switches (the MORPHIR_RELEASE_MAVEN_CENTRAL
+# repository variable and the maven_central dispatch input), which is what makes a
+# GitHub-Releases-only release a matter of flipping a switch: the draft still publishes on
+# GitHub, and every job here stands down.
+#
+# The workflow_dispatch trigger is the retry and late-promotion path: a failed Sonatype upload,
+# or a release published while the switches were off, is promoted by dispatching this workflow
+# with the tag. Publishing a release requires write access, the same bar as pushing the tag, and
+# that authorization is what the release event carries.
+
+env:
+  JDK_JAVA_OPTIONS: -XX:+PrintCommandLineFlags -Xss10M
+  JVM_OPTS: -XX:+PrintCommandLineFlags -Xss10M
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to promote (v*, mill-plugins/v*, or desktop/v*)"
+        required: true
+        type: string
+      maven_central:
+        description: >-
+          Publish to Maven Central (Sonatype). Uncheck to run promotion checks without uploading
+          anything.
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Resolves the tag once, from whichever trigger fired. Everything downstream keys off this
+  # output rather than re-deriving it, so the release event and a manual dispatch behave
+  # identically. The repository guard lives here: when this job skips, every publish job skips
+  # with it.
+  target:
+    if: github.repository == 'finos/morphir-scala'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - name: Resolve the release tag
+        id: tag
+        run: |
+          TAG="${{ github.event.release.tag_name || inputs.tag }}"
+          if [[ -z "$TAG" ]]; then
+            echo "no release tag on this event" >&2
+            exit 1
+          fi
+          echo "resolved release tag: $TAG"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+  publish-libraries:
+    # A root v* tag only: 'mill-plugins/v...' and 'desktop/v...' begin 'm' and 'd', so they can
+    # never match startsWith(tag, 'v'). The last two clauses are the Maven Central stand-down
+    # switches described at the top of this file.
+    if: startsWith(needs.target.outputs.tag, 'v') && vars.MORPHIR_RELEASE_MAVEN_CENTRAL != 'false' && (github.event_name != 'workflow_dispatch' || inputs.maven_central)
+    needs: [target]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    concurrency: publish-sonatype-${{ needs.target.outputs.tag }}
+    env:
+      LANG: "en_US.UTF-8"
+      LC_MESSAGES: "en_US.UTF-8"
+      LC_ALL: "en_US.UTF-8"
+    steps:
+      # The tag itself, not the event's default ref: version resolution requires HEAD to sit at
+      # distance zero on the stream's tag, with the tag agreeing with the changelog's release
+      # line. fetch-depth: 0 brings the tags the resolver matches against.
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: refs/tags/${{ needs.target.outputs.tag }}
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v6
+        with:
+          java-version: "25"
+          distribution: temurin
+
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v8
+
+      - name: Install native dependencies
+        # Bounded for the same reason as ci.yml's publish job: a wedged apt mirror must not hold
+        # the release open for an hour.
+        timeout-minutes: 6
+        run: .github/scripts/install-native-deps.sh
+
+      # Best-effort restores of the build output the tag-push run's test jobs saved under this
+      # sha. The release event runs on the same tag ref, so the caches are visible; a manual
+      # dispatch from a branch may miss and fall back to a cold compile, which is slower but not
+      # a failure.
+      - name: Restore JVM Build Output From Cache
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            out/morphir/**/jvm/
+          key: ${{ runner.os }}-mill-jvm-25-${{ github.sha }}
+
+      - name: Restore JS Build Output From Cache (platform)
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            out/morphir/**/js/
+          key: ${{ runner.os }}-mill-js-platform-25-${{ github.sha }}
+
+      - name: Restore JS Build Output From Cache (desktop)
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            out/morphir/**/js/
+          key: ${{ runner.os }}-mill-js-desktop-25-${{ github.sha }}
+
+      # The promotion gate re-proves the staged release before anything irreversible happens:
+      # every CLI asset is downloaded fresh off the release and checked against its published
+      # checksums.txt. A release whose staging run never completed fails here, loudly, instead of
+      # publishing a library release whose CLI packages are missing or corrupt.
+      - name: Verify the release's CLI assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./mill --ticker false -i ci.cli.verifyRelease --tag "${{ needs.target.outputs.tag }}"
+
+      - name: Publish libraries to Maven Central
+        env:
+          # Sonatype credentials
+          SONATYPE_USERNAME: ${{ secrets.ORG_MORPHIR_MAVEN_DEPLOY_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.ORG_MORPHIR_MAVEN_DEPLOY_PASSWORD }}
+          # GPG signing credentials (using ORG_MORPHIR_CI keys)
+          GPG_PRIVATE_KEY: ${{ secrets.ORG_MORPHIR_CI_GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.ORG_MORPHIR_CI_GPG_PASSPHRASE }}
+        run: |
+          # Same two-process dance as ci.yml's publish job: Task.env is snapshotted at mill
+          # start, so GPG_*/SONATYPE_* are converted in a first mill, sourced, and only then does
+          # the publishing mill start. Do not mill show the file: it contains secrets.
+          envfile="${RUNNER_TEMP:-/tmp}/mill-publish.env"
+          trap 'rm -f "$envfile"' EXIT
+          ./mill --ticker false -i ci.sonatype.writeMillEnv --path "$envfile"
+          set -a
+          # shellcheck disable=SC1090
+          source "$envfile"
+          set +a
+          ./mill --ticker false -i ci.sonatype.libraries
+
+  publish-plugins:
+    # The mill-plugins/v* namespace alone; see publish-libraries for the switch clauses. There is
+    # no branch case here — plugin snapshots publish from ci.yml's publish job on main.
+    if: startsWith(needs.target.outputs.tag, 'mill-plugins/v') && vars.MORPHIR_RELEASE_MAVEN_CENTRAL != 'false' && (github.event_name != 'workflow_dispatch' || inputs.maven_central)
+    needs: [target]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    concurrency: publish-sonatype-plugins-${{ needs.target.outputs.tag }}
+    env:
+      LANG: "en_US.UTF-8"
+      LC_MESSAGES: "en_US.UTF-8"
+      LC_ALL: "en_US.UTF-8"
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: refs/tags/${{ needs.target.outputs.tag }}
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v6
+        with:
+          java-version: "25"
+          distribution: temurin
+
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v8
+
+      - name: Publish the Mill plugin family to Maven Central
+        env:
+          # Sonatype credentials
+          SONATYPE_USERNAME: ${{ secrets.ORG_MORPHIR_MAVEN_DEPLOY_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.ORG_MORPHIR_MAVEN_DEPLOY_PASSWORD }}
+          # GPG signing credentials (using ORG_MORPHIR_CI keys)
+          GPG_PRIVATE_KEY: ${{ secrets.ORG_MORPHIR_CI_GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.ORG_MORPHIR_CI_GPG_PASSPHRASE }}
+        run: |
+          # Same two-process dance as publish-libraries above.
+          envfile="${RUNNER_TEMP:-/tmp}/mill-publish.env"
+          trap 'rm -f "$envfile"' EXIT
+          ./mill --ticker false -i ci.sonatype.writeMillEnv --path "$envfile"
+          set -a
+          # shellcheck disable=SC1090
+          source "$envfile"
+          set +a
+          ./mill --ticker false -i ci.sonatype.plugins
+
+  publish-desktop:
+    # The desktop/v* namespace alone; see publish-libraries for the switch clauses. The staged
+    # release assets are the handoff from phase one: canonicalized archives, installers, sidecars,
+    # checksums.txt and its signature were all verified and uploaded by ci.yml's desktop-release
+    # job, so this job downloads them back off the release, re-verifies the full set — signature
+    # included — and uploads the archives to Sonatype as one bundle. Nothing is rebuilt: the bytes
+    # a human saw on the draft are the bytes that publish.
+    if: startsWith(needs.target.outputs.tag, 'desktop/v') && vars.MORPHIR_RELEASE_MAVEN_CENTRAL != 'false' && (github.event_name != 'workflow_dispatch' || inputs.maven_central)
+    needs: [target]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency: publish-desktop-${{ needs.target.outputs.tag }}
+    env:
+      LANG: "en_US.UTF-8"
+      LC_MESSAGES: "en_US.UTF-8"
+      LC_ALL: "en_US.UTF-8"
+      MORPHIR_DESKTOP_RELEASE_DIR: .dev/dist/desktop/release
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: refs/tags/${{ needs.target.outputs.tag }}
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v6
+        with:
+          java-version: "25"
+          distribution: temurin
+
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v8
+
+      - name: Download the staged release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p "$MORPHIR_DESKTOP_RELEASE_DIR"
+          gh release download "${{ needs.target.outputs.tag }}" --dir "$MORPHIR_DESKTOP_RELEASE_DIR"
+          ls -R "$MORPHIR_DESKTOP_RELEASE_DIR"
+
+      # The one place the full check set can run against what actually shipped: the assets just
+      # crossed the network twice (upload in phase one, download here), and the signature check
+      # runs with its default requireSignature = true because phase one signed checksums.txt.
+      - name: Verify the staged release assets
+        run: ./mill --ticker false -i ci.desktop.verify
+
+      - name: Publish archives to Maven Central
+        env:
+          # Sonatype credentials
+          SONATYPE_USERNAME: ${{ secrets.ORG_MORPHIR_MAVEN_DEPLOY_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.ORG_MORPHIR_MAVEN_DEPLOY_PASSWORD }}
+          # GPG signing credentials (using ORG_MORPHIR_CI keys)
+          GPG_PRIVATE_KEY: ${{ secrets.ORG_MORPHIR_CI_GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.ORG_MORPHIR_CI_GPG_PASSPHRASE }}
+        run: |
+          # Same two-process dance as publish-libraries above.
+          envfile="${RUNNER_TEMP:-/tmp}/mill-publish.env"
+          trap 'rm -f "$envfile"' EXIT
+          ./mill --ticker false -i ci.sonatype.writeMillEnv --path "$envfile"
+          set -a
+          # shellcheck disable=SC1090
+          source "$envfile"
+          set +a
+          ./mill --ticker false -i ci.desktop.sonatype

@@ -29,8 +29,9 @@ why something did not show up where you expected it.
 
 Two aggregate gates stand between a trigger and anything leaving the repository: `ci` for lint, tests
 and knowledge base checks, and `packaging` for the CLI and desktop builds. Packaging runs on ordinary
-pushes and pull requests as well as release tags. Only a root `v*` tag reaches the CLI publishing
-step. Figure 1 shows every path, end to end.
+pushes and pull requests as well as release tags. A release itself runs in two phases across two
+workflows: a tag push *stages* a draft GitHub release through `ci.yml`, and publishing that draft
+*promotes* it to Maven Central through `release-publish.yml`. Figure 1 shows every path, end to end.
 
 ```mermaid
 flowchart TD
@@ -39,12 +40,8 @@ flowchart TD
     TagPush[Tag push: v*, mill-plugins/v*, desktop/v*] --> Gate
     Dispatch[Manual dispatch] --> Gate
 
-    Gate -->|branch push: every area snapshots or milestones together, each from its own changelog| PublishAll[publish: ci.publish]
-    Gate -->|refs/tags/v*: library release| PublishLib[publish: ci.sonatype.libraries]
-    Gate -->|refs/tags/mill-plugins/v*: plugin release| PublishPlugins[publish-plugins: ci.sonatype.plugins]
+    Gate -->|branch push only: every area snapshots or milestones together, each from its own changelog| PublishAll[publish: ci.publish]
     PublishAll -->|serial upload, one module at a time| Sonatype[(Sonatype Central)]
-    PublishLib --> Sonatype
-    PublishPlugins --> Sonatype
 
     Gate --> CliMatrix[cli-matrix: five platforms on a v* tag; three-OS smoke matrix on a pull request or branch push]
     CliMatrix --> CliNative[cli-package-native: GraalVM Native Image]
@@ -52,7 +49,7 @@ flowchart TD
     CliNative --> CliVerify[cli-verify: assets and SHA-256 checksums]
     CliJvm --> CliVerify
     CliVerify --> Packaging
-    CliVerify -->|refs/tags/v* only| CliRelease[cli-release: create or reuse the release, upload assets, re-download and verify]
+    CliVerify -->|refs/tags/v* only| CliRelease[cli-release: create or reuse the draft release, upload assets, re-download and verify]
     CliRelease --> GhAssets
 
     Gate --> Matrix[desktop-matrix: five platforms on a branch push or a desktop/v* tag; three-OS smoke matrix on a pull request]
@@ -65,19 +62,25 @@ flowchart TD
     Packaging -->|refs/tags/desktop/v* only| Canon[desktop-release: canonicalize]
     Canon -->|renamed assets, .sha256 sidecars, checksums.txt| Sign[sign checksums.txt with the PGP key]
     Sign -->|checksums.txt.asc| Verify[verify: seven checks]
-    Verify -->|all checks pass| GhRelease[githubRelease: upload every asset]
-    GhRelease -->|then, in sequence| DesktopSonatype[sonatype: five coordinates, one deployment]
-    GhRelease -->|archives, installers, checksums| GhAssets[(GitHub Release assets)]
-    DesktopSonatype -->|archives only| Sonatype
+    Verify -->|all checks pass| GhRelease[githubRelease: upload every asset to the draft]
+    GhRelease -->|archives, installers, checksums| GhAssets[(Draft GitHub Release assets)]
+
+    GhAssets -->|a human publishes the draft| RelPub[release-publish.yml: target resolves the tag]
+    RelPub -->|v*| PromoteLib[publish-libraries: verify CLI assets, then ci.sonatype.libraries]
+    RelPub -->|mill-plugins/v*| PromotePlugins[publish-plugins: ci.sonatype.plugins]
+    RelPub -->|desktop/v*| PromoteDesktop[publish-desktop: download and re-verify staged assets, then ci.desktop.sonatype]
+    PromoteLib --> Sonatype
+    PromotePlugins --> Sonatype
+    PromoteDesktop -->|archives only| Sonatype
 
     Sonatype -.->|coursier resolves latest.release| Cli[CLI install]
 ```
 
-**Figure 1:** Two gates stand in the flow, and three separate paths lead into `Sonatype` rather than
-one. Everything above `packaging` runs on ordinary pull requests and pushes, so broken CLI or desktop
-packaging surfaces where it was introduced. Uploads remain scoped to their release tag. `publish` and
-`publish-plugins` are two separate jobs, each guarded on its own tag namespace. See
-[Release routing](#release-routing) for why a single tag can never satisfy both.
+**Figure 1:** Two gates stand in the staging flow, and every path into `Sonatype` except the branch
+snapshot runs through the published-release promotion in `release-publish.yml`. Everything above
+`packaging` runs on ordinary pull requests and pushes, so broken CLI or desktop packaging surfaces
+where it was introduced. The three promotion jobs are each guarded on their own tag namespace. See
+[Release routing](#release-routing) for why a single tag can never satisfy two of them.
 
 ## Triggers
 
@@ -85,16 +88,23 @@ packaging surfaces where it was introduced. Uploads remain scoped to their relea
 | --- | --- | --- | --- |
 | Pull request | `pull_request` | into `main`, `0.4.x` | `ci` gate; nothing publishes. CLI and desktop packaging each run one runner per operating system, unless their switches turn them off |
 | Branch push | `push` | to `main`, `0.4.x` | `ci` gate, then `publish` (`ci.publish`, every area) once it passes. CLI packaging runs its three-OS smoke matrix; desktop packaging runs all five platforms; either switch turns its half off |
-| Tag push | `push` | tags `v*`, `mill-plugins/v*`, `desktop/v*` | `ci` gate, then the tag namespace routes publication. A root `v*` tag publishes libraries to Sonatype and attaches CLI packages to its GitHub release, creating the release when none exists; `mill-plugins/v*` publishes plugins; `desktop/v*` publishes the desktop app |
-| Manual dispatch | `workflow_dispatch` | whichever ref is chosen | the same jobs that ref would otherwise trigger. Choosing a release tag as the ref re-runs that tag's release flow; the `maven_central` input stands the Sonatype jobs down for a GitHub-Releases-only run |
+| Tag push | `push` | tags `v*`, `mill-plugins/v*`, `desktop/v*` | phase one of a release: `ci` gate, then full packaging and verification, then a **draft** GitHub release is created (or reused) with the assets attached. No Maven Central upload happens on a tag push |
+| Release published | `release`, `types: [published]` on `release-publish.yml` | any published release | phase two: the tag namespace routes to one promotion job, which re-verifies the staged assets and uploads to Sonatype — unless the Maven Central switches stand it down |
+| Manual dispatch of CI | `workflow_dispatch` on `ci.yml` | whichever ref is chosen | the same jobs that ref would otherwise trigger. Choosing a release tag re-runs that tag's staging phase (the retry path for a failed build or upload) |
+| Manual dispatch of promotion | `workflow_dispatch` on `release-publish.yml` | `tag` input | re-runs phase two for that tag: the retry path for a failed Sonatype upload, or late promotion of a release published while the switches were off |
 
-Pushing the tag is what cuts the release: tests, packaging, verification and publication all run from
-that one event. Creating a GitHub release with a **new** tag through the UI fires the same tag-push
-event, so that path releases too, exactly once. The workflow deliberately has no `release:` trigger:
-with tag pushes wired, a release-published event for an already-pushed tag would re-run the whole
-pipeline — including a second, non-idempotent Sonatype upload — for work the tag push already did.
-The corollary is that publishing a release in the UI against an *existing* tag runs nothing; the tag
-push already ran it all.
+A release runs in two phases. **Phase one — staging** — is the tag push: tests, packaging,
+verification, and a draft GitHub release holding the verified assets. Nothing irreversible happens;
+a bad draft is deleted, the tag moved or removed, and nothing shipped. **Phase two — promotion** —
+is a human publishing that draft: the `release: published` event fires `release-publish.yml`, a slim
+workflow that re-verifies the staged assets and uploads to Maven Central. Splitting the phases
+across two workflows is what keeps the publish button from re-running the whole test and packaging
+pipeline, and what keeps the irrevocable Sonatype upload behind a human gate.
+
+Creating a GitHub release with a **new** tag through the UI fires the tag-push event, so staging
+still runs — but it also fires the release event immediately, and promotion will fail its
+verification until staging finishes; re-run promotion through its dispatch afterwards. The routine
+path is: push the tag, wait for staging to go green, review the draft, publish it.
 
 ### Skipping Maven Central
 
@@ -102,11 +112,15 @@ Two switches make a release target GitHub Releases only:
 
 - The repository variable `MORPHIR_RELEASE_MAVEN_CENTRAL` — unset or anything other than `false`
   means enabled, matching the `MORPHIR_CI_PACKAGE_*` switches. Set to `false` it stands down every
-  Sonatype upload (`publish`, `publish-plugins`, and the desktop Sonatype step), snapshots included,
-  from repository settings without a commit.
-- The `maven_central` input on a manual dispatch — uncheck it, pick the release tag as the ref, and
-  that one run packages, verifies and uploads GitHub release assets while the Sonatype jobs stand
-  down.
+  Sonatype upload — the three promotion jobs in `release-publish.yml` and the snapshot `publish`
+  job in `ci.yml` — from repository settings without a commit.
+- The `maven_central` input on a manual dispatch of `release-publish.yml` — uncheck it and the
+  promotion run verifies without uploading. (The same input on `ci.yml` stands down the snapshot
+  publish for one run.)
+
+With either switch off, publishing the draft still publishes the GitHub release — assets were
+staged in phase one — and Maven Central simply receives nothing until someone re-runs promotion
+with the switches on.
 
 ### Release routing
 
@@ -115,21 +129,19 @@ application. Each releases through its own tag namespace, and the tag's shape is
 push to the right destination; nothing else about the event distinguishes them, since `github.ref`
 is the only thing that differs.
 
-| Tag shape | Publishes | Via |
+| Tag shape | Stages (tag push, `ci.yml`) | Promotes (release published, `release-publish.yml`) |
 | --- | --- | --- |
-| `v0.6.0-M01` | Libraries and CLI release packages | `publish` → `ci.sonatype.libraries`; `cli-release` → `ci.cli.githubRelease` |
-| `mill-plugins/v0.1.0` | The Mill plugin family only | `publish-plugins` job → `ci.sonatype.plugins` |
-| `desktop/v0.3.0` | The desktop application only | `desktop-release` job → `ci.desktop.all` |
-| Anything else | Nothing, visibly: no publish job matches | |
+| `v0.6.0-M01` | CLI packages and checksums on a draft release, via `cli-release` → `ci.cli.githubRelease` | `publish-libraries`: verify the CLI assets, then `ci.sonatype.libraries` |
+| `mill-plugins/v0.1.0` | Nothing beyond the `ci` gate — plugins carry no GitHub release assets | `publish-plugins`: `ci.sonatype.plugins` |
+| `desktop/v0.3.0` | Archives, installers, signed checksums on a draft release, via `desktop-release` | `publish-desktop`: download and re-verify the staged assets, then `ci.desktop.sonatype` |
+| Anything else | Nothing, visibly: no job matches | Nothing: no promotion job matches |
 
-Each job's `if:` guard uses `startsWith(github.ref, 'refs/tags/<namespace>/v')` (or, for the
-unnamespaced library stream, a check that also rejects `refs/tags/desktop/v...` and
-`refs/tags/mill-plugins/v...`, since both continue the ref differently from a bare `v` tag). The three
-guards are mutually exclusive by construction. A single tag can only ever start one of `refs/tags/v`,
-`refs/tags/desktop/v` or `refs/tags/mill-plugins/v`, so a release never triggers two publish paths at
-once. Snapshot and milestone publishing from a branch push is unaffected by this table: `publish`
-still runs `ci.publish` on `main` and `0.4.x`, publishing every area together, each stamped
-from its own changelog. Only the release path routes by tag.
+Staging guards use `startsWith(github.ref, 'refs/tags/<namespace>/v')`; promotion guards apply the
+same prefixes to the tag the `target` job resolved. Both are mutually exclusive by construction: a
+single tag can only ever start one of `v`, `desktop/v` or `mill-plugins/v`, so a release never
+routes to two paths at once. Snapshot and milestone publishing from a branch push is unaffected by
+this table: `publish` still runs `ci.publish` on `main` and `0.4.x`, publishing every area
+together, each stamped from its own changelog. Only the release path routes by tag.
 
 ### Desktop packaging in ordinary CI
 
@@ -156,21 +168,24 @@ packaging must never weaken a real release. `desktop-release` depends on `packag
 
 | Step | Task | What happens |
 | --- | --- | --- |
-| 1 | `ci` gate | lint, cross-platform tests and knowledge base checks all pass |
-| 2 | `ci.publish` (branch push) or `ci.sonatype.libraries` / `ci.sonatype.plugins` (release, routed by tag; see [Release routing](#release-routing)) | resolves `__.publishSonatypeCentral`, dropping modules whose path matches `excludedModuleSubstrings` |
+| 1 | `ci` gate (snapshots) or the staged, published release (promotion) | a snapshot publishes only after lint, cross-platform tests and knowledge base checks pass; a release publishes only after its tag-push run went green and a human published the draft |
+| 2 | `ci.publish` (branch push) or `ci.sonatype.libraries` / `ci.sonatype.plugins` (promotion, routed by tag; see [Release routing](#release-routing)) | resolves `__.publishSonatypeCentral`, dropping modules whose path matches `excludedModuleSubstrings` |
 | 3 | Upload | one module at a time (`uploadJobs: 1`); parallel upload hits an SLF4J failure (morphir-scala#957) |
 | 4 | Version | each area's `streamVersion` stamps its own coordinate; see [Versions](#versions) |
 
 `excludedModuleSubstrings` in `ci/package.mill.yaml` drops `.integration.` (test-only) and
 `.desktop.dist.`: the desktop archives publish through the separate `ci.desktop` destination described
-below, because there is no archive to publish on an ordinary snapshot run. Snapshots publish from `main`;
-milestones and releases publish from `0.4.x` and tags. See
+below, because there is no archive to publish on an ordinary snapshot run. Snapshots publish from
+`main`; milestones and releases publish by promoting a tag's draft release. Promotion checks out the
+tag itself, so `streamVersion` resolves the released version: HEAD sits at distance zero on the
+stream's tag and the tag agrees with the changelog's release line. See
 [Continuous Integration](/continuous-integration.md) for the exact coordinate formats, which this page
 reuses rather than restating.
 
 ## Publishing the CLI
 
-The root library version stream also versions the CLI. A published root `v*` release targeting `main` receives six CLI packages:
+The root library version stream also versions the CLI. A root `v*` tag stages six CLI packages on
+its draft release:
 
 | Token | Runner | Package |
 | --- | --- | --- |
@@ -193,13 +208,15 @@ style as Mill's own executable distribution, while it remains valid input to `ja
 Every package command smoke-tests `version`, the top-level command list, and `server --help` before it
 writes an archive. `cli-verify` then checks the complete platform set, rejects missing, empty, unexpected,
 or corrupted assets, and writes `checksums.txt` from the per-asset SHA-256 sidecars. A root `v*` tag runs
-the verifier again before `ci.cli.githubRelease` creates the GitHub release when none exists yet
-(published, with generated notes, against the pushed tag) and uploads with `--clobber`, making a failed
+the verifier again before `ci.cli.githubRelease` creates the GitHub release as a **draft** when none
+exists yet (with generated notes, against the pushed tag) and uploads with `--clobber`, making a failed
 upload safe to retry by dispatching the workflow on the same tag. After the upload, `ci.cli.verifyRelease`
-downloads every asset fresh from the release and verifies it against the published `checksums.txt`, so a
-truncated or mislabeled upload fails the release run rather than a user's install. The workflow does not
-create or upload to a GitHub Release from a pull request or branch push. Only a root `v*` tag ref —
-pushed, or chosen for a manual dispatch — receives the job's `contents: write` token.
+downloads every asset fresh from the release and verifies it against the staged `checksums.txt`, so a
+truncated or mislabeled upload fails the staging run rather than a user's install; the same task runs
+again in `release-publish.yml` before the Maven Central upload, so promotion re-proves what staging
+proved. The workflow does not create or upload to a GitHub Release from a pull request or branch push.
+Only a root `v*` tag ref — pushed, or chosen for a manual dispatch — receives the job's
+`contents: write` token.
 
 GraalVM does not provide Native Image for Windows ARM64. That platform uses the JVM package with a native
 ARM64 Java 25 runtime. An x64 Windows package can also run through Windows emulation, but it is not an
@@ -224,7 +241,8 @@ Five platform tokens cover the desktop application, each packaged on a runner th
 | `linux-aarch64` | `ubuntu-24.04-arm` | tar.gz | AppImage, deb |
 | `win-amd64` | `windows-latest` | zip | exe |
 
-On a `desktop/v*` tag, all five package and the release then runs as one ordered sequence:
+On a `desktop/v*` tag, all five package and the staging phase then runs as one ordered sequence,
+with the Sonatype upload deferred to promotion:
 
 | # | Step | Runs on | What it does |
 | --- | --- | --- | --- |
@@ -232,8 +250,8 @@ On a `desktop/v*` tag, all five package and the release then runs as one ordered
 | 2 | `canonicalize` | `desktop-release`, one Linux runner | renames staged output to canonical names, writes a `.sha256` sidecar per asset and one `checksums.txt` |
 | 3 | Sign `checksums.txt` | same runner | GPG detached signature over `checksums.txt`, producing `checksums.txt.asc` |
 | 4 | `verify` | same runner | runs seven named checks against the release directory |
-| 5 | `githubRelease --tag` | same runner | uploads every file in the release directory to that tag's release |
-| 6 | `sonatype` | same runner | uploads all five archives to Sonatype Central in one deployment |
+| 5 | `githubRelease --tag` | same runner | uploads every file in the release directory to that tag's draft release |
+| 6 | `publish-desktop` | `release-publish.yml`, after a human publishes the draft | downloads the staged assets back off the release, re-runs `verify` (signature included), then uploads all five archives to Sonatype Central in one deployment |
 
 Outside a release, [desktop packaging in ordinary CI](#desktop-packaging-in-ordinary-ci) runs steps 1, 2 and
 4 only, restricted to whatever subset `desktop-matrix` computed, with step 4's signature check relaxed and
@@ -264,11 +282,12 @@ catches corruption in transit.
 | `signature-present` | `checksums.txt.asc` exists, is non-empty, and begins with the PGP signature header |
 
 `githubRelease` uploads with `--clobber`. If no release exists yet for the tag, it creates one as a
-**draft** first and uploads into that. Publishing the release itself stays a human action, not something
-this step does automatically — and pressing that publish button starts no workflow, since the pipeline
-has no `release:` trigger; the tag push already did all the work. Step 6, the Sonatype upload, stands
-down when either [Maven Central switch](#skipping-maven-central) is off; the GitHub side of the release
-is unaffected.
+**draft** first and uploads into that. Publishing the release itself stays a human action, not
+something this step does automatically — and pressing that publish button is exactly what starts
+promotion: `release-publish.yml` fires, downloads the staged assets, re-verifies them, and runs the
+Sonatype upload. That upload stands down when either
+[Maven Central switch](#skipping-maven-central) is off; the GitHub side of the release is
+unaffected.
 
 Maven Central receives archives only; the native installers (dmg, NSIS `.exe`, AppImage, `.deb`) go to the
 GitHub Release only, because an automated consumer can act on a portable archive but not on an installer.

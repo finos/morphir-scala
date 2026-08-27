@@ -9,20 +9,21 @@ on:
     branches: ["main", "0.4.x"]
   push:
     branches: ["main", "0.4.x"]
-    # A release is cut by pushing a tag — the whole workflow (tests, packaging, verification,
-    # publication) runs from that one event. Creating a GitHub release with a *new* tag through the
-    # UI fires the same tag-push event, so that path releases too, exactly once. There is
-    # deliberately no `release:` trigger anymore: with tag pushes wired here, a release-published
-    # event for an already-pushed tag would re-run the entire pipeline — including a second,
-    # non-idempotent Sonatype upload — for work the tag push already did.
+    # A release runs in two phases. Pushing a tag is phase one — this workflow tests, packages,
+    # verifies, and stages a *draft* GitHub release with the assets attached; nothing irreversible
+    # happens here, and a draft can simply be deleted. Publishing that draft is phase two: the
+    # human act that fires release-publish.yml, which promotes the release to Maven Central. This
+    # workflow deliberately has no `release:` trigger — the promotion lives in that separate, slim
+    # workflow precisely so publishing a release does not re-run the whole test and packaging
+    # pipeline.
     tags: ["v*", "mill-plugins/v*", "desktop/v*"]
   workflow_dispatch:
     inputs:
       maven_central:
         description: >-
-          Publish to Maven Central (Sonatype). Uncheck to run a GitHub-Releases-only release: pick
-          the release tag as the ref, and the run packages, verifies and uploads GitHub release
-          assets while every Sonatype publish job stands down.
+          Publish snapshots to Maven Central (Sonatype). Uncheck to stand the snapshot publish job
+          down for this run. Release promotion has moved to the release-publish workflow, which
+          carries its own switch.
         type: boolean
         default: true
 
@@ -714,11 +715,12 @@ jobs:
 
   cli-release:
     # Pull requests and branch pushes package and verify the CLI, but never receive a write token
-    # or upload assets. Upload happens for a root v* tag — pushed bare, created by a release, or
-    # chosen as the ref of a manual dispatch; github.ref carries the tag in all three cases.
-    # ci.cli.githubRelease creates the GitHub release when none exists yet, so the tag push is the
-    # whole release act. Pushing a v* tag requires write access, which is the authorization this
-    # job relies on; the tag namespace check keeps mill-plugins/v* and desktop/v* tags out.
+    # or upload assets. Staging happens for a root v* tag — pushed bare, or chosen as the ref of a
+    # manual dispatch; github.ref carries the tag in both cases. ci.cli.githubRelease creates the
+    # GitHub release as a *draft* when none exists yet and attaches the assets; publishing that
+    # draft is the human promotion act, and it is what fires release-publish.yml for the Maven
+    # Central side. Pushing a v* tag requires write access, which is the authorization this job
+    # relies on; the tag namespace check keeps mill-plugins/v* and desktop/v* tags out.
     if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/v')
     needs: [cli-matrix, cli-package-native, cli-package-jvm, cli-verify]
     runs-on: ubuntu-latest
@@ -748,17 +750,17 @@ jobs:
           path: ${{ env.MORPHIR_CLI_RELEASE_DIR }}
           merge-multiple: true
 
-      - name: Verify and publish CLI packages
+      - name: Verify and stage CLI packages on the draft release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ./mill --ticker false -i ci.cli.verify --platforms "${{ needs.cli-matrix.outputs.platforms }}"
           ./mill --ticker false -i ci.cli.githubRelease --tag "${{ github.ref_name }}"
 
-      # Publishing is not done until the published assets check out: download every asset fresh
-      # from the release and verify it against the uploaded checksums.txt, so a truncated or
-      # mislabeled upload fails this run instead of a user's install.
-      - name: Verify the published release assets
+      # Staging is not done until the staged assets check out: download every asset fresh from the
+      # release and verify it against the uploaded checksums.txt, so a truncated or mislabeled
+      # upload fails this run instead of a user's install.
+      - name: Verify the staged release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./mill --ticker false -i ci.cli.verifyRelease --tag "${{ github.ref_name }}" --platforms "${{ needs.cli-matrix.outputs.platforms }}"
@@ -1050,45 +1052,26 @@ jobs:
           TAG="${{ github.ref_name }}"
           ./mill --ticker false -i ci.desktop.githubRelease --tag "$TAG"
 
-      - name: Publish archives to Maven Central
-        # Same Maven Central stand-down switches the `publish` job documents: the
-        # MORPHIR_RELEASE_MAVEN_CENTRAL repository variable, and the maven_central input on a
-        # manual dispatch. With either off, the desktop release still verifies, signs and uploads
-        # to the GitHub release above; only this Sonatype step stands down.
-        if: vars.MORPHIR_RELEASE_MAVEN_CENTRAL != 'false' && (github.event_name != 'workflow_dispatch' || inputs.maven_central)
-        env:
-          SONATYPE_USERNAME: ${{ secrets.ORG_MORPHIR_MAVEN_DEPLOY_USERNAME }}
-          SONATYPE_PASSWORD: ${{ secrets.ORG_MORPHIR_MAVEN_DEPLOY_PASSWORD }}
-          GPG_PRIVATE_KEY: ${{ secrets.ORG_MORPHIR_CI_GPG_PRIVATE_KEY }}
-          GPG_PASSPHRASE: ${{ secrets.ORG_MORPHIR_CI_GPG_PASSPHRASE }}
-        run: |
-          # Same two-process dance as the library publish: Task.env is snapshotted at mill start.
-          envfile="${RUNNER_TEMP:-/tmp}/mill-publish.env"
-          trap 'rm -f "$envfile"' EXIT
-          ./mill --ticker false -i ci.sonatype.writeMillEnv --path "$envfile"
-          set -a
-          # shellcheck disable=SC1090
-          source "$envfile"
-          set +a
-          ./mill --ticker false -i ci.desktop.sonatype
+      # The Maven Central upload of the desktop archives deliberately does not happen here. This
+      # job stages the draft release; publishing that draft fires release-publish.yml, whose
+      # publish-desktop job downloads these verified assets back off the release and runs
+      # ci.desktop.sonatype. Uploading here would put an irreversible Central deployment before
+      # the human promotion gate.
 
   publish:
-    # when in master repo: all commits to main branch (snapshot, both areas) and library release tags.
-    # startsWith(github.ref, 'refs/tags/v') is false for refs/tags/desktop/v... and
-    # refs/tags/mill-plugins/v..., because those refs continue 'refs/tags/d' and 'refs/tags/m' —
-    # the 'v' immediately after 'refs/tags/' only ever comes from an unnamespaced v* tag. The
-    # plugin family releases through the sibling publish-plugins job below, gated on
-    # refs/tags/mill-plugins/v*; the desktop application ships through desktop-release, gated on
-    # refs/tags/desktop/v*.
+    # Snapshots and branch milestones only: all commits to main (snapshot, both areas) and 0.4.x.
+    # Release tags are deliberately absent — a tag push stages a draft GitHub release (see the
+    # cli-release and desktop-release jobs), and publishing that draft fires release-publish.yml,
+    # which is where every release-tag Sonatype upload now lives. This job publishing on a tag as
+    # well would put an irreversible Maven Central upload before the human promotion gate.
     #
-    # Two clauses stand every Sonatype upload down for a GitHub-Releases-only release. The
-    # repository variable MORPHIR_RELEASE_MAVEN_CENTRAL — unset or anything other than "false"
-    # meaning enabled, matching the MORPHIR_CI_PACKAGE_* switches — turns Maven Central publishing
-    # off from repository settings without a commit, snapshots included. The maven_central dispatch
-    # input turns it off for one manual run: dispatch on the release tag with the box unchecked and
-    # only the GitHub release ships. On every other event the input is absent, so the event-name
-    # guard keeps the clause true.
-    if: github.repository == 'finos/morphir-scala' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || startsWith(github.ref, 'refs/tags/v')) && vars.MORPHIR_RELEASE_MAVEN_CENTRAL != 'false' && (github.event_name != 'workflow_dispatch' || inputs.maven_central)
+    # Two clauses stand the snapshot upload down. The repository variable
+    # MORPHIR_RELEASE_MAVEN_CENTRAL — unset or anything other than "false" meaning enabled,
+    # matching the MORPHIR_CI_PACKAGE_* switches — turns Maven Central publishing off from
+    # repository settings without a commit. The maven_central dispatch input turns it off for one
+    # manual run. On every other event the input is absent, so the event-name guard keeps the
+    # clause true.
+    if: github.repository == 'finos/morphir-scala' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x') && vars.MORPHIR_RELEASE_MAVEN_CENTRAL != 'false' && (github.event_name != 'workflow_dispatch' || inputs.maven_central)
     needs: [ci]
 
     # Without this the job inherits GitHub's six-hour default. An `apt-get update` wedged against
@@ -1175,89 +1158,10 @@ jobs:
           # shellcheck disable=SC1090
           source "$envfile"
           set +a
-          # Branch pushes (main, 0.4.x) are the snapshot case and keep publishing every
-          # area — libraries and plugins — each stamped from its own changelog, via ci.publish.
-          # A refs/tags/v* release is the routed case: this job's guard above already limits the
-          # tag path to that one namespace, so ci.sonatype.libraries is the only kind-specific
-          # command this branch of the script can ever reach.
-          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            ./mill --ticker false -i ci.sonatype.libraries
-          else
-            ./mill --ticker false -i ci.publish
-          fi
-
-  publish-plugins:
-    # Routes a mill-plugins/v* release tag to the plugin family alone, through
-    # ci.sonatype.plugins. startsWith(github.ref, 'refs/tags/mill-plugins/v') cannot match a
-    # bare v* library tag or a desktop/v* tag — both continue the ref differently ('refs/tags/v...'
-    # and 'refs/tags/d...' respectively) — so this job and `publish` above can never both claim
-    # the same tag. Unlike `publish`, this job has no branch case: the plugin family's snapshot
-    # publishing already happens from the `publish` job's ci.publish call on main/0.4.x;
-    # only the release path is routed separately.
-    # The last two clauses are the same Maven Central stand-down switches the `publish` job
-    # documents: the MORPHIR_RELEASE_MAVEN_CENTRAL repository variable, and the maven_central
-    # input on a manual dispatch.
-    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/mill-plugins/v') && vars.MORPHIR_RELEASE_MAVEN_CENTRAL != 'false' && (github.event_name != 'workflow_dispatch' || inputs.maven_central)
-    needs: [ci]
-
-    # See the `publish` job's own comment on its timeout: an early half-hour job timeout reads as
-    # an unrelated cancellation rather than the real failure.
-    timeout-minutes: 60
-
-    runs-on: ubuntu-latest
-
-    # Distinct from the `publish` job's concurrency group: a mill-plugins/v* tag never collides
-    # with a v* tag or a branch push on the same sha, so the two publish paths need not serialize
-    # against one another — this only guards against a duplicate run of this job itself.
-    concurrency: publish-sonatype-plugins-${{ github.sha }}
-
-    env:
-      LANG: "en_US.UTF-8"
-      LC_MESSAGES: "en_US.UTF-8"
-      LC_ALL: "en_US.UTF-8"
-
-    steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-java@v6
-        with:
-          java-version: "25"
-          distribution: temurin
-
-      - name: Cache scala dependencies
-        uses: coursier/cache-action@v8
-
-      - name: Restore Mill plugin build output from cache
-        # Same cache the mill-morphir-unit job saves (see its "Cache Mill capability outputs"
-        # step); ci runs mill-morphir-unit before this job on every trigger, including release, so
-        # a hit here avoids recompiling the plugin family before publishing it. A miss just falls
-        # back to a cold compile inside ci.sonatype.plugins — not a failure.
-        uses: actions/cache/restore@v6
-        with:
-          path: |
-            out/mill-plugins/morphir/
-          key: ${{ runner.os }}-mill-morphir-unit-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}-${{ github.sha }}
-
-      - name: Release
-        env:
-          # Sonatype credentials
-          SONATYPE_USERNAME: ${{ secrets.ORG_MORPHIR_MAVEN_DEPLOY_USERNAME }}
-          SONATYPE_PASSWORD: ${{ secrets.ORG_MORPHIR_MAVEN_DEPLOY_PASSWORD }}
-          # GPG signing credentials (using ORG_MORPHIR_CI keys)
-          GPG_PRIVATE_KEY: ${{ secrets.ORG_MORPHIR_CI_GPG_PRIVATE_KEY }}
-          GPG_PASSPHRASE: ${{ secrets.ORG_MORPHIR_CI_GPG_PASSPHRASE }}
-        run: |
-          # Same two-process dance as the `publish` job: Task.env is snapshotted at mill start.
-          envfile="${RUNNER_TEMP:-/tmp}/mill-publish.env"
-          trap 'rm -f "$envfile"' EXIT
-          ./mill --ticker false -i ci.sonatype.writeMillEnv --path "$envfile"
-          set -a
-          # shellcheck disable=SC1090
-          source "$envfile"
-          set +a
-          ./mill --ticker false -i ci.sonatype.plugins
+          # Branch pushes (main, 0.4.x) are the snapshot case and publish every area — libraries
+          # and plugins — each stamped from its own changelog, via ci.publish. Release tags never
+          # reach this job (see its guard); ci.sonatype.libraries runs from release-publish.yml.
+          ./mill --ticker false -i ci.publish
 
   ci:
     if: ${{ always() }}

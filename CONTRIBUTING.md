@@ -115,11 +115,25 @@ The local browser host can then be built and run with:
 ### Testing CLI release packages
 
 The release tasks build the same JVM and native CLI packages that CI attaches to a root `v*` tag's
-GitHub release. Pushing that tag is what cuts the release: the workflow tests, packages, verifies,
-publishes to Maven Central, creates the GitHub release when none exists, uploads the CLI assets, and
-re-verifies them after upload. Re-run a failed release by dispatching the CI workflow on the same tag;
-uncheck the `maven_central` input there (or set the `MORPHIR_RELEASE_MAVEN_CENTRAL` repository
-variable to `false`) for a GitHub-Releases-only release. On Windows, use:
+GitHub release. A release runs in two phases:
+
+1. **Stage** — push the tag (for the libraries, `v<release-line>`, where the release line is the
+   topmost undated `CHANGELOG.md` heading; it must match, and the changelog stays undated until
+   after the release). CI tests, packages every platform, verifies checksums, creates a **draft**
+   GitHub release with generated notes, attaches the assets, and re-verifies them after upload.
+   Nothing publishes to Maven Central in this phase; a bad draft is simply deleted.
+2. **Promote** — review the draft and publish it. That fires the `release-publish` workflow, which
+   re-verifies the staged assets and uploads to Maven Central, routed by the tag's namespace
+   (`v*` libraries, `mill-plugins/v*` plugins, `desktop/v*` desktop archives).
+
+Re-run a failed staging build by dispatching the CI workflow on the tag; re-run a failed promotion
+by dispatching the `release-publish` workflow with the tag. For a GitHub-Releases-only release,
+uncheck `maven_central` on that dispatch, or set the `MORPHIR_RELEASE_MAVEN_CENTRAL` repository
+variable to `false` before publishing the draft. After the release, run
+`.claude/skills/squire/squire release prepare --area libraries --date <YYYY-MM-DD>` to date the
+changelog heading and open the next one.
+
+To build the packages locally on Windows, use:
 
 ```powershell
 .\mill.bat --ticker false -i ci.cli.packageJvm

@@ -41,12 +41,14 @@ tag runs all five native targets, because five GraalVM builds per ordinary merge
 publishes. A verification job recomputes every SHA-256 digest after workflow artifact transfer and writes one
 `checksums.txt`.
 
-Pushing the root `v*` tag is the release trigger — CI has tag-push triggers for the release namespaces and,
-deliberately, no `release:` trigger, so a release-published event cannot re-run a Sonatype upload the tag push
-already performed. The release job creates the GitHub release when none exists (published, with generated notes,
-against the pushed tag), uploads with clobber semantics so a failed run can be retried by dispatching the workflow
-on the same tag, and then re-downloads every published asset and verifies it against the uploaded `checksums.txt`.
-A manual dispatch on the tag ref re-runs the same flow, and its `maven_central` input — like the
+A release runs in two phases. Pushing the root `v*` tag stages: the full test gate runs, all packages build and
+verify, and the release job creates the GitHub release as a draft when none exists (with generated notes, against
+the pushed tag), uploads with clobber semantics so a failed run can be retried by dispatching the workflow on the
+same tag, and then re-downloads every staged asset and verifies it against the uploaded `checksums.txt`. Publishing
+that draft — a human act — promotes: the separate `release-publish` workflow re-verifies the staged assets and
+uploads to Maven Central, routed by tag namespace. `ci.yml` deliberately has no `release:` trigger and no
+release-tag Sonatype upload, so the publish button never re-runs the pipeline and nothing irrevocable happens
+before a human reviews the draft. The promotion workflow's `maven_central` dispatch input — like the
 `MORPHIR_RELEASE_MAVEN_CENTRAL` repository variable — stands the Sonatype jobs down for a GitHub-Releases-only
-release. Pull requests and branch pushes package and verify only. They do not receive the release job's write
-permission.
+release, and its dispatch is the retry path for a failed upload. Pull requests and branch pushes package and
+verify only. They do not receive the release job's write permission.
