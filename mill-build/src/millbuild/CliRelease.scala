@@ -1,6 +1,7 @@
 package millbuild
 
 import java.io.BufferedOutputStream
+import java.io.InputStream
 import java.nio.file.Files
 import java.security.MessageDigest
 import java.util.zip.{GZIPOutputStream, ZipEntry, ZipOutputStream}
@@ -161,10 +162,13 @@ object CliRelease:
     val digest = MessageDigest.getInstance("SHA-256")
     val input  = Files.newInputStream(path.toNIO)
     val buffer = Array.ofDim[Byte](64 * 1024)
-    try
-      var read = input.read(buffer)
-      while read >= 0 do
-        if read > 0 then digest.update(buffer, 0, read)
-        read = input.read(buffer)
+    try updateDigest(input, buffer, digest)
     finally input.close()
     digest.digest().map(byte => f"${byte & 0xff}%02x").mkString
+
+  @annotation.tailrec
+  private def updateDigest(input: InputStream, buffer: Array[Byte], digest: MessageDigest): Unit =
+    val read = input.read(buffer)
+    if read >= 0 then
+      if read > 0 then digest.update(buffer, 0, read)
+      updateDigest(input, buffer, digest)

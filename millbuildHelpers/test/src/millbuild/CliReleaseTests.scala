@@ -78,6 +78,16 @@ object CliReleaseTests extends TestSuite:
       assert(os.read(asset) == "assembly")
       assert(os.read(os.Path(asset.toString + ".sha256")).endsWith(s"  ${asset.last}\n"))
 
+    test("checksums assets that span multiple digest buffer reads"):
+      val root     = os.temp.dir(prefix = "morphir-cli-release-large-jvm-", deleteOnExit = true)
+      val assembly = root / "out.jar"
+      os.write(assembly, Array.fill[Byte](131073)('a'.toByte))
+
+      val asset   = CliRelease.packageJvm("0.6.0-M01", assembly, root / "release")
+      val sidecar = os.read(os.Path(asset.toString + ".sha256"))
+
+      assert(sidecar == s"7e009ea4ef882e385b3c0bcbbfa8d009bb0a633bdd764415c09182ee0e75da73  ${asset.last}\n")
+
     test("verifies the complete release and writes a combined checksum file"):
       val root       = os.temp.dir(prefix = "morphir-cli-release-verify-", deleteOnExit = true)
       val imageDir   = root / "image"
