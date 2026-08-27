@@ -262,8 +262,8 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
     private def verifyExecutable(executable: os.Path, prefix: Seq[String], expectedVersion: String)(using
         TaskCtx
     ): Unit = {
-      val command       = prefix :+ physicalPath(executable)
-      val versionResult = os.proc(command, "version").call(cwd = BuildCtx.workspaceRoot)
+      val command         = prefix :+ physicalPath(executable)
+      val versionResult   = os.proc(command, "version").call(cwd = BuildCtx.workspaceRoot)
       val reportedVersion = CliRelease.lastNonBlankLine(versionResult.out.text())
       if (!reportedVersion.contains(expectedVersion))
         throw new Exception(
