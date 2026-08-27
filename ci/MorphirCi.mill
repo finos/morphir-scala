@@ -256,7 +256,7 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
           Task.log.info(s"ci.cli: no release for $tag — creating a draft")
           os.proc("gh", "release", "create", tag, "--draft", "--verify-tag", "--title", tag, "--generate-notes")
             .call(cwd = BuildCtx.workspaceRoot)
-        os.proc("gh", "release", "upload", tag, assets.map(_.toString), "--clobber")
+        os.proc("gh", "release", "upload", tag, assets.map(physicalPath), "--clobber")
           .call(cwd = BuildCtx.workspaceRoot)
         Task.log.info(s"ci.cli: uploaded ${assets.size} assets to $tag")
     }
@@ -281,7 +281,7 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
             "download",
             tag,
             "--dir",
-            downloaded.toString,
+            physicalPath(downloaded),
             "--pattern",
             "morphir-cli-*",
             "--pattern",
@@ -337,17 +337,6 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
 
     private def stripAnsi(value: String): String =
       value.replaceAll("\\u001b\\[[;\\d]*m", "")
-
-    private def physicalPath(path: os.Path): String = {
-      val normalized     = path.toString.replace('\\', '/')
-      val workspaceAlias = "mill-workspace/"
-      val aliasIndex     = normalized.indexOf(workspaceAlias)
-      val workspace      = BuildCtx.workspaceRoot.toNIO.toFile.getCanonicalPath
-      if aliasIndex >= 0 then
-        val relative = normalized.substring(aliasIndex + workspaceAlias.length)
-        new java.io.File(workspace, relative).getCanonicalPath
-      else path.toNIO.toFile.getCanonicalPath
-    }
   }
 
   /**
@@ -497,7 +486,7 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
           os.proc("gh", "release", "create", tag, "--draft", "--title", tag, "--generate-notes")
             .call(cwd = BuildCtx.workspaceRoot)
         }
-        os.proc("gh", "release", "upload", tag, assets.map(_.toString), "--clobber")
+        os.proc("gh", "release", "upload", tag, assets.map(physicalPath), "--clobber")
           .call(cwd = BuildCtx.workspaceRoot)
         Task.log.info(s"ci.desktop: uploaded ${assets.size} assets to $tag")
       }
@@ -763,6 +752,23 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
     Task.env.get("DRY_RUN").orElse(sys.env.get("DRY_RUN")).exists(v =>
       v.equalsIgnoreCase("true") || v == "1"
     )
+
+  /**
+   * A path a subprocess can resolve. Mill's sandbox hands tasks paths through the `mill-workspace` alias, which the JVM
+   * follows but an external process such as `gh` cannot — the v0.5.0-M05 staging run failed exactly there, with
+   * `gh release upload` reporting `no matches found` for an aliased asset path. Every path handed to a subprocess as an
+   * argument must pass through here first.
+   */
+  private def physicalPath(path: os.Path): String = {
+    val normalized     = path.toString.replace('\\', '/')
+    val workspaceAlias = "mill-workspace/"
+    val aliasIndex     = normalized.indexOf(workspaceAlias)
+    val workspace      = BuildCtx.workspaceRoot.toNIO.toFile.getCanonicalPath
+    if aliasIndex >= 0 then
+      val relative = normalized.substring(aliasIndex + workspaceAlias.length)
+      new java.io.File(workspace, relative).getCanonicalPath
+    else path.toNIO.toFile.getCanonicalPath
+  }
 
   private def resolvePublishModules(
       evaluator: Evaluator,
