@@ -2,6 +2,9 @@
 
 ## 2026-08-26
 
+* **Creation**: [Packaging and Release](/packaging-and-release.md) and
+  [Continuous Integration](/continuous-integration.md) now cover the GraalVM native and executable JVM CLI
+  packages attached to root GitHub Releases. The JVM package is the documented Windows ARM64 path.
 * **Update**: [GitHub connection settings and local web host](/design/github-connection-settings-and-local-web-host.md)
   now names `morphir server` as the CLI entry point for the loopback browser host.
 * **Update**: [Build System](/build-system.md) now records the native Mill build-JVM setup required for Scala.js

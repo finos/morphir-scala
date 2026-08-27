@@ -6,7 +6,7 @@ import build.{morphir => morphirArea}
 import build.morphir.{desktop => desktopArea}
 import mill.*
 import mill.api.{BuildCtx, DefaultTaskModule, Evaluator, ModuleRef, Result, SelectMode, TaskCtx}
-import millbuild.{JsTestSelectors, LintSelectors, MillVersions, NativeTestSelectors}
+import millbuild.{CliRelease, JsTestSelectors, LintSelectors, MillVersions, NativeTestSelectors}
 import org.finos.morphir.mill.publish.{MillPublishEnvFile, MillSonatypeEnv, PgpSecret, PublishSelectors}
 import org.finos.morphir.mill.publish.desktop.{
   DesktopPlatform,
@@ -164,6 +164,131 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
       val cfg = publishFilterConfig()
       runArtifactPhase(evaluator, PublishKind.All, cfg)
       runUploadPhase(evaluator, PublishKind.All, cfg)
+    }
+  }
+
+  /** GitHub Release packaging for the morphir-scala command-line application. */
+  object cli extends Module {
+    def releaseDirPath = Task.Input {
+      Task.env
+        .get("MORPHIR_CLI_RELEASE_DIR")
+        .map(value => os.Path(value, BuildCtx.workspaceRoot))
+        .getOrElse(BuildCtx.workspaceRoot / ".dev" / "dist" / "cli" / "release")
+        .toString
+    }
+
+    def version = Task { morphirArea.main.publishVersion() }
+
+    def packageNative(platform: String) = Task.Command(exclusive = true) {
+      val selected = CliRelease.Platform
+        .fromToken(platform)
+        .fold(message => throw new Exception(s"ci.cli.packageNative: $message"), identity)
+      val host = CliRelease.Platform
+        .fromHost(System.getProperty("os.name"), System.getProperty("os.arch"))
+        .fold(message => throw new Exception(s"ci.cli.packageNative: $message"), identity)
+      if selected != host then
+        throw new Exception(
+          s"ci.cli.packageNative: requested ${selected.token}, but GraalVM is running for ${host.token}"
+        )
+
+      val releaseVersion = version()
+      val executable     = morphirArea.main.nativeImage().path
+      verifyExecutable(executable, Seq.empty, releaseVersion)
+      val asset = CliRelease.packageNative(
+        selected,
+        releaseVersion,
+        executable,
+        os.Path(releaseDirPath())
+      )
+      Task.log.info(s"ci.cli: packaged ${asset.last}")
+    }
+
+    def packageJvm() = Task.Command(exclusive = true) {
+      val releaseVersion = version()
+      val assembly       = morphirArea.main.assembly().path
+      verifyExecutable(assembly, Seq("java", "-jar"), releaseVersion)
+      val asset = CliRelease.packageJvm(
+        releaseVersion,
+        assembly,
+        os.Path(releaseDirPath())
+      )
+      Task.log.info(s"ci.cli: packaged ${asset.last}")
+    }
+
+    def verify(platforms: String = CliRelease.Platform.AllTokens, includeJvm: Boolean = true) =
+      Task.Command(exclusive = true) {
+        val selected = parsePlatforms(platforms)
+        CliRelease
+          .verifyAndWriteChecksums(os.Path(releaseDirPath()), version(), selected, includeJvm)
+          .fold(
+            problems =>
+              throw new Exception(
+                s"ci.cli.verify: ${problems.size} problem(s):\n${problems.map(p => s"  - $p").mkString("\n")}"
+              ),
+            assets => Task.log.info(s"ci.cli: verified ${assets.size} release assets")
+          )
+      }
+
+    def githubRelease(tag: String) = Task.Command(exclusive = true) {
+      require(tag.nonEmpty, "ci.cli.githubRelease: --tag is required")
+      val release = os.Path(releaseDirPath())
+      val assets  = os.list(release).filter(os.isFile).sortBy(_.last)
+      if assets.isEmpty then throw new Exception(s"ci.cli.githubRelease: no assets in $release")
+      if !os.isFile(release / "checksums.txt") then
+        throw new Exception(s"ci.cli.githubRelease: missing checksums.txt; run ci.cli.verify first")
+
+      if dryRun then Task.log.info(s"DRY_RUN: would upload ${assets.size} CLI assets to release $tag")
+      else
+        val exists = os.proc("gh", "release", "view", tag)
+          .call(cwd = BuildCtx.workspaceRoot, check = false)
+          .exitCode == 0
+        if !exists then
+          val prerelease = if tag.contains("-") then Seq("--prerelease") else Seq.empty
+          os.proc(Seq("gh", "release", "create", tag, "--title", s"Release $tag", "--generate-notes") ++ prerelease)
+            .call(cwd = BuildCtx.workspaceRoot)
+        os.proc("gh", "release", "upload", tag, assets.map(_.toString), "--clobber")
+          .call(cwd = BuildCtx.workspaceRoot)
+        Task.log.info(s"ci.cli: uploaded ${assets.size} assets to $tag")
+    }
+
+    private def parsePlatforms(platforms: String): Seq[CliRelease.Platform] =
+      val tokens = platforms.split(",", -1).toSeq.map(_.trim)
+      if tokens.isEmpty || tokens.exists(_.isEmpty) then
+        throw new Exception(s"ci.cli: platform list contains an empty token: '$platforms'")
+      tokens.map { token =>
+        CliRelease.Platform
+          .fromToken(token)
+          .fold(message => throw new Exception(s"ci.cli: $message"), identity)
+      }
+
+    private def verifyExecutable(executable: os.Path, prefix: Seq[String], expectedVersion: String)(using
+        TaskCtx
+    ): Unit = {
+      val command       = prefix :+ physicalPath(executable)
+      val versionResult = os.proc(command, "version").call(cwd = BuildCtx.workspaceRoot)
+      if (versionResult.out.text().trim != expectedVersion)
+        throw new Exception(
+          s"ci.cli: packaged executable reports '${versionResult.out.text().trim}', expected '$expectedVersion'"
+        )
+      val topLevelHelp = os.proc(command, "--help").call(cwd = BuildCtx.workspaceRoot).out.text()
+      if (!topLevelHelp.linesIterator.map(stripAnsi).exists(_.trim == "server"))
+        throw new Exception("ci.cli: packaged executable omits the server command")
+      os.proc(command, "server", "--help").call(cwd = BuildCtx.workspaceRoot)
+      Task.log.info(s"ci.cli: smoke-tested ${executable.last}")
+    }
+
+    private def stripAnsi(value: String): String =
+      value.replaceAll("\\u001b\\[[;\\d]*m", "")
+
+    private def physicalPath(path: os.Path): String = {
+      val normalized     = path.toString.replace('\\', '/')
+      val workspaceAlias = "mill-workspace/"
+      val aliasIndex     = normalized.indexOf(workspaceAlias)
+      val workspace      = BuildCtx.workspaceRoot.toNIO.toFile.getCanonicalPath
+      if aliasIndex >= 0 then
+        val relative = normalized.substring(aliasIndex + workspaceAlias.length)
+        new java.io.File(workspace, relative).getCanonicalPath
+      else path.toNIO.toFile.getCanonicalPath
     }
   }
 

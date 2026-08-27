@@ -31,7 +31,8 @@ object ServerOptions:
   given parser: Parser[ServerOptions] = Parser.derive[ServerOptions]
 
 object ServerCommand extends Command[ServerOptions]:
-  private val WebHostClassName = "morphir.web.server.WebHost$"
+  private val WebHostClassName        = "morphir.web.server.WebHost$"
+  private val NativeImageCodeProperty = "org.graalvm.nativeimage.imagecode"
 
   private[cli] val browserWarning = "Warning: Unable to open the browser."
 
@@ -101,7 +102,10 @@ object ServerCommand extends Command[ServerOptions]:
     this.run { options => ServerCommand.run(options, ServerCommandLive.dependencies) }
 
   private[cli] def available: Boolean =
-    webHostAvailable(getClass.getClassLoader)
+    nativeImageRuntime(sys.props.toMap) || webHostAvailable(getClass.getClassLoader)
+
+  private[cli] def nativeImageRuntime(properties: Map[String, String]): Boolean =
+    properties.get(NativeImageCodeProperty).contains("runtime")
 
   private[cli] def webHostAvailable(classLoader: ClassLoader): Boolean =
     try

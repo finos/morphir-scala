@@ -112,6 +112,37 @@ The local browser host can then be built and run with:
 .\mill.bat --no-server --ticker false morphir.main.run server --no-open --port 8123
 ```
 
+### Testing CLI release packages
+
+The release tasks build the same JVM and native CLI packages that CI attaches to a root `v*` GitHub
+Release. On Windows, use:
+
+```powershell
+.\mill.bat --ticker false -i ci.cli.packageJvm
+.\mill.bat --ticker false -i ci.cli.packageNative --platform win-amd64
+.\mill.bat --ticker false -i ci.cli.verify --platforms win-amd64
+```
+
+On macOS or Linux, replace `.\mill.bat` with `./mill` and use the host token: `mac-aarch64`,
+`mac-amd64`, `linux-aarch64`, or `linux-amd64`. Native packaging requires GraalVM 25 with
+`native-image` and the host C/C++ toolchain. The command deliberately refuses a target that does not
+match the running host.
+
+Artifacts are written to `.dev/dist/cli/release` unless `MORPHIR_CLI_RELEASE_DIR` names another
+directory. Each package command runs the CLI's `version`, top-level `--help`, and `server --help`
+before creating the asset. `ci.cli.verify` checks the archive and JAR sidecars and writes
+`checksums.txt`.
+
+Windows ARM64 has no GraalVM Native Image distribution. Contributors on that platform should use a
+native ARM64 Java 25 runtime and test the executable assembly:
+
+```powershell
+java -jar .dev\dist\cli\release\morphir-cli-jvm-<version>.jar server --help
+```
+
+An x64 GraalVM running under Windows emulation can exercise `win-amd64`, but the resulting archive is
+an x64 package and must retain that label.
+
 ### Refreshing a long-lived branch from `main`
 
 `main` is the trunk: pull requests target it and merge into it, and there is no integration branch in front of it.

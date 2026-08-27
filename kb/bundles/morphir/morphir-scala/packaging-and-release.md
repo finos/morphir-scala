@@ -1,8 +1,8 @@
 ---
 type: Capability
 title: Packaging and Release
-description: "CI publishes Scala libraries and Mill plugins to Sonatype Central, and the desktop app to both Sonatype Central and GitHub Releases."
-tags: [ci, release, packaging, desktop]
+description: "CI publishes Scala libraries and Mill plugins to Sonatype Central, plus CLI and desktop packages to GitHub Releases."
+tags: [ci, release, packaging, cli, desktop]
 status: stable
 generated:
   by: human:damreev
@@ -23,11 +23,13 @@ why something did not show up where you expected it.
 | Mill Morphir plugins | Sonatype Central | `org.finos.morphir.mill:*` |
 | Desktop application archives | Sonatype Central | `org.finos.morphir:morphir-desktop-<os>-<arch>` |
 | Desktop archives, installers and checksums | GitHub Releases | `morphir-desktop-<os>-<arch>-<version>.<ext>` |
-| CLI | Coursier channel | `org.finos.morphir:morphir-main_3`, resolved as `latest.release` |
+| Native CLI packages and checksums | GitHub Releases | `morphir-cli-<os>-<arch>-<version>.tar.gz` or `.zip` |
+| Executable JVM CLI and checksum | GitHub Releases | `morphir-cli-jvm-<version>.jar` |
+| CLI library | Sonatype Central and Coursier channel | `org.finos.morphir:morphir-main_3` |
 
 Two aggregate gates stand between a trigger and anything leaving the repository: `ci` for lint, tests
-and knowledge base checks, and `packaging` for the desktop build. Packaging runs on ordinary pushes and
-pull requests as well as releases, but only a published release reaches a publishing step. Figure 1
+and knowledge base checks, and `packaging` for the CLI and desktop builds. Packaging runs on ordinary
+pushes and pull requests as well as releases, but only a published release reaches a publishing step. Figure 1
 shows every path, end to end.
 
 ```mermaid
@@ -43,6 +45,15 @@ flowchart TD
     PublishAll -->|serial upload, one module at a time| Sonatype[(Sonatype Central)]
     PublishLib --> Sonatype
     PublishPlugins --> Sonatype
+
+    Gate --> CliMatrix[cli-matrix: five platforms on a branch push or v* release; three-OS smoke matrix on a pull request]
+    CliMatrix --> CliNative[cli-package-native: GraalVM Native Image]
+    CliMatrix --> CliJvm[cli-package-jvm: executable assembly]
+    CliNative --> CliVerify[cli-verify: assets and SHA-256 checksums]
+    CliJvm --> CliVerify
+    CliVerify --> Packaging
+    CliVerify -->|refs/tags/v* only| CliRelease[cli-release: upload assets to the root release]
+    CliRelease --> GhAssets
 
     Gate --> Matrix[desktop-matrix: five platforms on a push, a release or a desktop/v* tag; linux-amd64 on a pull request]
     Matrix --> Package[desktop-package: one runner per platform]
@@ -63,9 +74,8 @@ flowchart TD
 ```
 
 **Figure 1:** Two gates stand in the flow, and three separate paths lead into `Sonatype` rather than
-one. Everything above `packaging` runs on ordinary pull requests and pushes, so a broken desktop build
-surfaces where it was introduced; everything below it runs only for a `desktop/v*` tag or the release
-cut from it, and signing comes before verification, which comes before either upload. `publish` and
+one. Everything above `packaging` runs on ordinary pull requests and pushes, so broken CLI or desktop
+packaging surfaces where it was introduced. Uploads remain scoped to their release tag. `publish` and
 `publish-plugins` are two separate jobs, each guarded on its own tag namespace. See
 [Release routing](#release-routing) for why a single tag can never satisfy both.
 
@@ -73,9 +83,9 @@ cut from it, and signing comes before verification, which comes before either up
 
 | Event | GitHub Actions trigger | Condition | What runs |
 | --- | --- | --- | --- |
-| Pull request | `pull_request` | into `main`, `0.4.x` | `ci` gate; nothing publishes. Desktop packaging also runs, `linux-amd64` alone, unless the switch below turns it off |
-| Push | `push` | to `main`, `0.4.x` | `ci` gate, then `publish` (`ci.publish`, every area) once it passes. Desktop packaging also runs, all five platforms, unless the switch below turns it off |
-| Release published | `release`, `types: [published]` | not scoped to a branch | `ci` gate, then whichever of `publish`, `publish-plugins` or `desktop-release` the tag's namespace routes to; see [Release routing](#release-routing). Desktop packaging (all five platforms) always runs alongside it, since a release's `github.ref` carries a tag and `desktop-matrix` treats any tag as the full-platform case |
+| Pull request | `pull_request` | into `main`, `0.4.x` | `ci` gate; nothing publishes. CLI packaging runs on one runner per operating system, and desktop packaging runs on `linux-amd64`, unless their switches turn them off |
+| Push | `push` | to `main`, `0.4.x` | `ci` gate, then `publish` (`ci.publish`, every area) once it passes. CLI and desktop packaging also run on all five platforms unless their switches turn them off |
+| Release published | `release`, `types: [published]` | not scoped to a branch | `ci` gate, then the tag namespace routes publication. A root `v*` release publishes libraries and attaches CLI packages; `mill-plugins/v*` publishes plugins; `desktop/v*` publishes the desktop app |
 | Manual dispatch | `workflow_dispatch` | whichever ref is chosen | the same jobs that ref would otherwise trigger |
 
 The workflow has no `push: tags:` trigger. A bare `git push --tags` never runs anything on its own.
@@ -92,7 +102,7 @@ published` events.
 
 | Tag shape | Publishes | Via |
 | --- | --- | --- |
-| `v0.6.0-M01` | Libraries only | `publish` job → `ci.sonatype.libraries` |
+| `v0.6.0-M01` | Libraries and CLI release packages | `publish` → `ci.sonatype.libraries`; `cli-release` → `ci.cli.githubRelease` |
 | `mill-plugins/v0.1.0` | The Mill plugin family only | `publish-plugins` job → `ci.sonatype.plugins` |
 | `desktop/v0.3.0` | The desktop application only | `desktop-release` job → `ci.desktop.all` |
 | Anything else | Nothing, visibly: no publish job matches | |
@@ -142,6 +152,44 @@ below, because there is no archive to publish on an ordinary snapshot run. Snaps
 milestones and releases publish from `0.4.x` and tags. See
 [Continuous Integration](/continuous-integration.md) for the exact coordinate formats, which this page
 reuses rather than restating.
+
+## Publishing the CLI
+
+The root library version stream also versions the CLI. A root `v*` release receives six CLI packages:
+
+| Token | Runner | Package |
+| --- | --- | --- |
+| `mac-aarch64` | `macos-14` | `morphir-cli-mac-aarch64-<version>.tar.gz` |
+| `mac-amd64` | `macos-15-intel` | `morphir-cli-mac-amd64-<version>.tar.gz` |
+| `linux-amd64` | `ubuntu-24.04` | `morphir-cli-linux-amd64-<version>.tar.gz` |
+| `linux-aarch64` | `ubuntu-24.04-arm` | `morphir-cli-linux-aarch64-<version>.tar.gz` |
+| `win-amd64` | `windows-latest` | `morphir-cli-win-amd64-<version>.zip` |
+| JVM, platform independent | `ubuntu-latest` | `morphir-cli-jvm-<version>.jar` |
+
+Each native runner uses GraalVM Native Image with `--no-fallback` and `-march=compatibility`. The Native
+Image classpath is the CLI assembly rather than its expanded dependency graph. This avoids the Windows
+command-line limit and ensures the native compiler sees the same application bytes as the JVM package.
+The Windows archive retains the DLLs emitted next to the executable. Unix archives mark `morphir` as
+executable.
+
+The JVM package is Mill's assembly output. Mill adds a shell and batch launcher to the JAR, in the same
+style as Mill's own executable distribution, while it remains valid input to `java -jar`.
+
+Every package command smoke-tests `version`, the top-level command list, and `server --help` before it
+writes an archive. `cli-verify` then checks the complete platform set, rejects missing, empty, unexpected,
+or corrupted assets, and writes `checksums.txt` from the per-asset SHA-256 sidecars. A root `v*` release
+runs the verifier again before `ci.cli.githubRelease` uploads with `--clobber`, making a failed upload safe
+to retry.
+
+GraalVM does not provide Native Image for Windows ARM64. That platform uses the JVM package with a native
+ARM64 Java 25 runtime. An x64 Windows package can also run through Windows emulation, but it is not an
+ARM64 native image. `CliRelease.Platform.fromHost` rejects a claimed `win-aarch64` build so an emulated
+toolchain cannot be mislabeled.
+
+Ordinary CI uses `MORPHIR_CI_PACKAGE_CLI` as its switch. Unset, or any value other than `false`, enables
+the jobs. Pull requests exercise `linux-amd64`, `win-amd64`, and `mac-aarch64`; pushes to `main` or
+`0.4.x` exercise all five native targets. Root `v*` releases always exercise all five and ignore the
+switch.
 
 ## Publishing the desktop app
 
@@ -296,13 +344,24 @@ from a clean slate. Nothing in the desktop path can leave a release half-publish
 
 ## Installing the CLI
 
-The CLI is an ordinary Scala library, `org.finos.morphir:morphir-main_3`, published through the library
-and plugin path above. It has no separate publish job. Consumers install it with
-[Coursier](https://get-coursier.io/), pointed at the channel declared in `coursier-channel.json` at the
-repository root: `morphir-cli` resolves `org.finos.morphir:morphir-main_3:latest.release` from three
-repository aliases (`central`, `sonatype:releases`, `typesafe:ivy-releases`), and `morphir-insiders-cli`
-adds `sonatype:snapshots` for pre-release builds. `morphir-cli-install.sh` runs `cs bootstrap` against
-that coordinate and drops the launcher into the Coursier bin directory.
+For a native install, download the archive matching the operating system and architecture from the
+root GitHub Release, verify it against `checksums.txt`, extract it, and place `morphir` or `morphir.exe`
+on `PATH`.
+
+The JVM package is the fallback for every supported operating system and the primary package for Windows
+ARM64. With Java 25 or newer installed, run:
+
+```text
+java -jar morphir-cli-jvm-<version>.jar version
+java -jar morphir-cli-jvm-<version>.jar server --help
+```
+
+On macOS or Linux, the same file can be made executable with `chmod +x` and invoked directly.
+
+The existing [Coursier](https://get-coursier.io/) channel remains available. `morphir-cli` resolves
+`org.finos.morphir:morphir-main_3:latest.release`, while `morphir-insiders-cli` also admits snapshots.
+`morphir-cli-install.sh` bootstraps that coordinate into the Coursier bin directory. This route consumes
+the Maven-published library; the GitHub Release packages are a separate distribution of the same CLI.
 
 Unverified: whether the `sonatype:releases` and `typesafe:ivy-releases` aliases in `coursier-channel.json`
 still resolve anything now that publishing targets Sonatype Central's portal directly rather than the
