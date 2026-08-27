@@ -1,5 +1,15 @@
 # Log
 
+## 2026-08-27
+
+* **Update**: [Packaging and Release](/packaging-and-release.md) and
+  [Continuous Integration](/continuous-integration.md) now record the tag-push release model: pushing a
+  `v*`, `mill-plugins/v*` or `desktop/v*` tag is what cuts a release, the workflow has no `release:`
+  trigger, the CLI release job creates the GitHub release and re-verifies the published assets, and the
+  `MORPHIR_RELEASE_MAVEN_CENTRAL` variable or `maven_central` dispatch input yields a
+  GitHub-Releases-only release. Full five-platform CLI packaging now runs only on a `v*` tag; pull
+  requests and branch pushes run the three-OS smoke matrix.
+
 ## 2026-08-26
 
 * **Creation**: [Packaging and Release](/packaging-and-release.md) and

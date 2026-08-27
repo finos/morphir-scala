@@ -36,8 +36,17 @@ assembly is an uber JAR with Mill's universal shell and batch prefix. Passing it
 command-line length limit, which the expanded runtime classpath exceeds. Every package runs `version`, top-level
 help, and `server --help` before upload so AOT reachability cannot silently remove the server command.
 
-Pull requests build one native target per operating system plus the JVM package. Mainline and release builds run all
-five native targets. A verification job recomputes every SHA-256 digest after workflow artifact transfer and writes
-one `checksums.txt`. A published root release targeting `main` uploads changed assets to its existing GitHub Release
-with clobber semantics, so a failed run can be retried. Pull requests and branch pushes package and verify only. They
-do not receive the release job's write permission.
+Pull requests and branch pushes build one native target per operating system plus the JVM package; only a root `v*`
+tag runs all five native targets, because five GraalVM builds per ordinary merge would be paid for assets nothing
+publishes. A verification job recomputes every SHA-256 digest after workflow artifact transfer and writes one
+`checksums.txt`.
+
+Pushing the root `v*` tag is the release trigger — CI has tag-push triggers for the release namespaces and,
+deliberately, no `release:` trigger, so a release-published event cannot re-run a Sonatype upload the tag push
+already performed. The release job creates the GitHub release when none exists (published, with generated notes,
+against the pushed tag), uploads with clobber semantics so a failed run can be retried by dispatching the workflow
+on the same tag, and then re-downloads every published asset and verifies it against the uploaded `checksums.txt`.
+A manual dispatch on the tag ref re-runs the same flow, and its `maven_central` input — like the
+`MORPHIR_RELEASE_MAVEN_CENTRAL` repository variable — stands the Sonatype jobs down for a GitHub-Releases-only
+release. Pull requests and branch pushes package and verify only. They do not receive the release job's write
+permission.

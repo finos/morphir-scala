@@ -9,10 +9,22 @@ on:
     branches: ["main", "0.4.x"]
   push:
     branches: ["main", "0.4.x"]
-  release:
-    types:
-      - published
+    # A release is cut by pushing a tag — the whole workflow (tests, packaging, verification,
+    # publication) runs from that one event. Creating a GitHub release with a *new* tag through the
+    # UI fires the same tag-push event, so that path releases too, exactly once. There is
+    # deliberately no `release:` trigger anymore: with tag pushes wired here, a release-published
+    # event for an already-pushed tag would re-run the entire pipeline — including a second,
+    # non-idempotent Sonatype upload — for work the tag push already did.
+    tags: ["v*", "mill-plugins/v*", "desktop/v*"]
   workflow_dispatch:
+    inputs:
+      maven_central:
+        description: >-
+          Publish to Maven Central (Sonatype). Uncheck to run a GitHub-Releases-only release: pick
+          the release tag as the ref, and the run packages, verifies and uploads GitHub release
+          assets while every Sonatype publish job stands down.
+        type: boolean
+        default: true
 
 # cancel older runs of a pull request;
 # this will not cancel anything for normal git pushes
@@ -60,9 +72,10 @@ jobs:
           fetch-depth: 0
 
       - name: Check commit authorship
-        # A pull request supplies its own base and head. A push supplies the commit it moved from, which is the
-        # range that push added. Neither is available on a release or a manual run, and the script falls back to the
-        # head commit alone rather than refusing to run — see its own comment on why it never checks whole history.
+        # A pull request supplies its own base and head. A branch push supplies the commit it moved from, which is
+        # the range that push added. Neither is available on a tag push (whose `before` is all zeros) or a manual
+        # run, and the script falls back to the head commit alone rather than refusing to run — see its own comment
+        # on why it never checks whole history.
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -581,8 +594,13 @@ jobs:
       - name: Compute the CLI packaging matrix
         id: matrix
         shell: bash
+        # Only a v* tag — a release, however it is triggered — packages all five platforms. Branch
+        # pushes and pull requests get the three-OS smoke matrix: each leg covers toolchain
+        # machinery the others do not, and what a merge to main defers is only the second
+        # architecture of an already-covered operating system. Five GraalVM native-image builds per
+        # ordinary merge would be paid on every merge for assets nothing publishes.
         run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* || "$GITHUB_REF" == "refs/heads/main" || "$GITHUB_REF" == "refs/heads/0.4.x" ]]; then
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             MATRIX='{"include":[{"token":"mac-aarch64","runner":"macos-14"},{"token":"mac-amd64","runner":"macos-15-intel"},{"token":"linux-amd64","runner":"ubuntu-24.04"},{"token":"linux-aarch64","runner":"ubuntu-24.04-arm"},{"token":"win-amd64","runner":"windows-latest"}]}'
             PLATFORMS="mac-aarch64,mac-amd64,linux-amd64,linux-aarch64,win-amd64"
           else
@@ -695,9 +713,13 @@ jobs:
         run: ./mill --ticker false -i ci.cli.verify --platforms "${{ needs.cli-matrix.outputs.platforms }}"
 
   cli-release:
-    # Pull requests package and verify the CLI, but never receive a write token or upload assets.
-    # Upload only when GitHub publishes a root v* release whose target branch is main.
-    if: github.repository == 'finos/morphir-scala' && github.event_name == 'release' && github.event.action == 'published' && github.event.release.target_commitish == 'main' && startsWith(github.ref, 'refs/tags/v')
+    # Pull requests and branch pushes package and verify the CLI, but never receive a write token
+    # or upload assets. Upload happens for a root v* tag — pushed bare, created by a release, or
+    # chosen as the ref of a manual dispatch; github.ref carries the tag in all three cases.
+    # ci.cli.githubRelease creates the GitHub release when none exists yet, so the tag push is the
+    # whole release act. Pushing a v* tag requires write access, which is the authorization this
+    # job relies on; the tag namespace check keeps mill-plugins/v* and desktop/v* tags out.
+    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/v')
     needs: [cli-matrix, cli-package-native, cli-package-jvm, cli-verify]
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -731,23 +753,29 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           ./mill --ticker false -i ci.cli.verify --platforms "${{ needs.cli-matrix.outputs.platforms }}"
-          ./mill --ticker false -i ci.cli.githubRelease --tag "${{ github.event.release.tag_name || github.ref_name }}"
+          ./mill --ticker false -i ci.cli.githubRelease --tag "${{ github.ref_name }}"
+
+      # Publishing is not done until the published assets check out: download every asset fresh
+      # from the release and verify it against the uploaded checksums.txt, so a truncated or
+      # mislabeled upload fails this run instead of a user's install.
+      - name: Verify the published release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./mill --ticker false -i ci.cli.verifyRelease --tag "${{ github.ref_name }}" --platforms "${{ needs.cli-matrix.outputs.platforms }}"
 
   desktop-matrix:
-    # A desktop/v* tag or the desktop release it came from always packages all five platforms,
-    # ignoring the switch below — turning off ordinary-CI packaging must never weaken a real
-    # release. A push to main or 0.4.x also packages all five; everything else (a pull
-    # request, or a v*/mill-plugins/v* release, which are not this job's business) packages the
+    # A desktop/v* tag — pushed bare, or chosen as the ref of a manual dispatch — always packages
+    # all five platforms, ignoring the switch below — turning off ordinary-CI packaging must never
+    # weaken a real release. A push to main or 0.4.x also packages all five; everything else (a
+    # pull request, or a v*/mill-plugins/v* tag, which are not this job's business) packages the
     # three-leg smoke matrix, one per operating system. This job just computes which;
     # desktop-package and desktop-verify consume its outputs.
     #
     # startsWith(github.ref, 'refs/tags/desktop/v') is deliberately namespaced: a bare v* library
     # tag or a mill-plugins/v* plugin tag must not force full-platform packaging here, and must
-    # never reach desktop-release below. github.event_name == 'release' is dropped for the same
-    # reason it was wrong on desktop-release — it is true for every published release regardless
-    # of tag shape, so it would undo the namespacing. The ref already carries the tag for a
-    # release event, so startsWith(github.ref, ...) alone covers both a bare tag push and the
-    # release it was cut from.
+    # never reach desktop-release below. A github.event_name test would add nothing: the workflow
+    # has no `release:` trigger (see `on:` at the top), and the ref alone carries the tag on both
+    # a tag push and a manual dispatch of that ref.
     #
     # Gated by the repository variable MORPHIR_CI_PACKAGE_DESKTOP, unset or anything other than
     # "false" meaning enabled, so packaging runs today without anyone creating the variable and a
@@ -770,10 +798,8 @@ jobs:
         shell: bash
         run: |
           # Namespaced for the same reason as the job's `if:` above: a bare v* library tag or a
-          # mill-plugins/v* plugin tag is not this job's business, and a generic refs/tags/* or
-          # "$GITHUB_EVENT_NAME" == "release" test would start all five packaging runners for one.
-          # The ref carries the tag on a release event too, so this covers a bare tag push and the
-          # release cut from it alike.
+          # mill-plugins/v* plugin tag is not this job's business, and a generic refs/tags/* test
+          # would start all five packaging runners for one.
           if [[ "$GITHUB_REF" == refs/tags/desktop/v* || "$GITHUB_REF" == "refs/heads/main" || "$GITHUB_REF" == "refs/heads/0.4.x" ]]; then
             MATRIX='{"include":[{"token":"mac-aarch64","runner":"macos-14"},{"token":"mac-amd64","runner":"macos-15-intel"},{"token":"linux-amd64","runner":"ubuntu-24.04"},{"token":"linux-aarch64","runner":"ubuntu-24.04-arm"},{"token":"win-amd64","runner":"windows-latest"}]}'
             PLATFORMS="mac-aarch64,mac-amd64,linux-amd64,linux-aarch64,win-amd64"
@@ -822,13 +848,12 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
   desktop-package:
-    # Desktop binaries ship on a desktop/v* tag or the release it came from, regardless of the
-    # switch — see desktop-matrix above for why the ref check is namespaced to that prefix and
-    # drops the separate github.event_name == 'release' check. Ordinary pushes and pull requests
+    # Desktop binaries ship on a desktop/v* tag, regardless of the switch — see desktop-matrix
+    # above for why the ref check is namespaced to that prefix. Ordinary pushes and pull requests
     # package too, gated by MORPHIR_CI_PACKAGE_DESKTOP (see desktop-matrix above), so a change that
     # breaks electron-builder, the Scala.js link or canonicalization is caught in ordinary CI
     # rather than at release time; that also means this job still runs, as a build-only smoke
-    # test, on a v* or mill-plugins/v* release while the switch is enabled — it just never
+    # test, on a v* or mill-plugins/v* tag while the switch is enabled — it just never
     # publishes anything, which only desktop-release below does.
     if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/desktop/v') || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false')
     needs: [ci, desktop-matrix]
@@ -936,17 +961,15 @@ jobs:
         run: ./mill --ticker false -i ci.desktop.verify --require-signature false --platforms "${{ needs.desktop-matrix.outputs.platforms }}"
 
   desktop-release:
-    # Namespaced to a desktop/v* tag alone. startsWith(github.ref, 'refs/tags/') matched every tag
-    # namespace, and github.event_name == 'release' is true for every published release regardless
-    # of tag shape — together those two clauses meant cutting a v* library release or a
+    # Namespaced to a desktop/v* tag alone. An earlier form matched startsWith(github.ref,
+    # 'refs/tags/') — every tag namespace — which meant cutting a v* library release or a
     # mill-plugins/v* plugin release also uploaded desktop binaries to that release and pushed
-    # desktop archives to Sonatype, which contradicts a release publishing exactly one stream. The
-    # ref already carries the tag on a release event, so startsWith(github.ref, 'refs/tags/desktop/v')
-    # alone covers a bare desktop/v* tag push and the release cut from it; a v* or mill-plugins/v*
-    # ref cannot match because those refs continue 'refs/tags/v' and 'refs/tags/m', never
-    # 'refs/tags/desktop/v'. Unlike desktop-matrix/-package/-verify above, this job has no
-    # MORPHIR_CI_PACKAGE_DESKTOP switch clause: it uploads and publishes, so it must never run
-    # outside an actual desktop release.
+    # desktop archives to Sonatype, contradicting a release publishing exactly one stream.
+    # startsWith(github.ref, 'refs/tags/desktop/v') alone covers a desktop/v* tag push and a
+    # manual dispatch on that tag; a v* or mill-plugins/v* ref cannot match because those refs
+    # continue 'refs/tags/v' and 'refs/tags/m', never 'refs/tags/desktop/v'. Unlike
+    # desktop-matrix/-package/-verify above, this job has no MORPHIR_CI_PACKAGE_DESKTOP switch
+    # clause: it uploads and publishes, so it must never run outside an actual desktop release.
     if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/desktop/v')
     needs: [ci, packaging]
     runs-on: ubuntu-latest
@@ -1024,10 +1047,15 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="${{ github.event.release.tag_name || github.ref_name }}"
+          TAG="${{ github.ref_name }}"
           ./mill --ticker false -i ci.desktop.githubRelease --tag "$TAG"
 
       - name: Publish archives to Maven Central
+        # Same Maven Central stand-down switches the `publish` job documents: the
+        # MORPHIR_RELEASE_MAVEN_CENTRAL repository variable, and the maven_central input on a
+        # manual dispatch. With either off, the desktop release still verifies, signs and uploads
+        # to the GitHub release above; only this Sonatype step stands down.
+        if: vars.MORPHIR_RELEASE_MAVEN_CENTRAL != 'false' && (github.event_name != 'workflow_dispatch' || inputs.maven_central)
         env:
           SONATYPE_USERNAME: ${{ secrets.ORG_MORPHIR_MAVEN_DEPLOY_USERNAME }}
           SONATYPE_PASSWORD: ${{ secrets.ORG_MORPHIR_MAVEN_DEPLOY_PASSWORD }}
@@ -1052,7 +1080,19 @@ jobs:
     # plugin family releases through the sibling publish-plugins job below, gated on
     # refs/tags/mill-plugins/v*; the desktop application ships through desktop-release, gated on
     # refs/tags/desktop/v*.
-    if: github.repository == 'finos/morphir-scala' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || startsWith(github.ref, 'refs/tags/v'))
+    #
+    # Two clauses stand every Sonatype upload down for a GitHub-Releases-only release. The
+    # repository variable MORPHIR_RELEASE_MAVEN_CENTRAL — unset or anything other than "false"
+    # meaning enabled, matching the MORPHIR_CI_PACKAGE_* switches — turns Maven Central publishing
+    # off from repository settings without a commit, snapshots included. The maven_central dispatch
+    # input turns it off for one manual run: dispatch on the release tag with the box unchecked and
+    # only the GitHub release ships. On every other event the input is absent, so the event-name
+    # guard keeps the clause true.
+    if: >-
+      github.repository == 'finos/morphir-scala'
+      && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || startsWith(github.ref, 'refs/tags/v'))
+      && vars.MORPHIR_RELEASE_MAVEN_CENTRAL != 'false'
+      && (github.event_name != 'workflow_dispatch' || inputs.maven_central)
     needs: [ci]
 
     # Without this the job inherits GitHub's six-hour default. An `apt-get update` wedged against
@@ -1158,7 +1198,14 @@ jobs:
     # the same tag. Unlike `publish`, this job has no branch case: the plugin family's snapshot
     # publishing already happens from the `publish` job's ci.publish call on main/0.4.x;
     # only the release path is routed separately.
-    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/mill-plugins/v')
+    # The last two clauses are the same Maven Central stand-down switches the `publish` job
+    # documents: the MORPHIR_RELEASE_MAVEN_CENTRAL repository variable, and the maven_central
+    # input on a manual dispatch.
+    if: >-
+      github.repository == 'finos/morphir-scala'
+      && startsWith(github.ref, 'refs/tags/mill-plugins/v')
+      && vars.MORPHIR_RELEASE_MAVEN_CENTRAL != 'false'
+      && (github.event_name != 'workflow_dispatch' || inputs.maven_central)
     needs: [ci]
 
     # See the `publish` job's own comment on its timeout: an early half-hour job timeout reads as

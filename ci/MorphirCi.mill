@@ -229,6 +229,14 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
           )
       }
 
+    /**
+     * Upload every verified CLI asset to the GitHub release for `tag`, creating the release when none exists.
+     *
+     * The workflow runs this from a v* tag push (or a manual dispatch on that tag), so the tag itself is the release
+     * act — the created release is published, not a draft, with notes generated from the merged pull requests.
+     * `--verify-tag` refuses to conjure a tag that was never pushed. Uploads pass `--clobber`, so a failed run is
+     * safely retriable by dispatching the workflow on the same tag.
+     */
     def githubRelease(tag: String) = Task.Command(exclusive = true) {
       require(tag.nonEmpty, "ci.cli.githubRelease: --tag is required")
       val release = os.Path(releaseDirPath())
@@ -243,11 +251,59 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
           .call(cwd = BuildCtx.workspaceRoot, check = false)
           .exitCode == 0
         if !exists then
-          throw new Exception(s"ci.cli.githubRelease: release $tag does not exist")
+          Task.log.info(s"ci.cli: no release for $tag — creating it")
+          os.proc("gh", "release", "create", tag, "--verify-tag", "--title", tag, "--generate-notes")
+            .call(cwd = BuildCtx.workspaceRoot)
         os.proc("gh", "release", "upload", tag, assets.map(_.toString), "--clobber")
           .call(cwd = BuildCtx.workspaceRoot)
         Task.log.info(s"ci.cli: uploaded ${assets.size} assets to $tag")
     }
+
+    /**
+     * Prove the published release, not the local staging directory: download every CLI asset fresh from the GitHub
+     * release for `tag` and run the same verifier over the download, then require the published `checksums.txt` to
+     * match the one recomputed from the downloaded bytes. A truncated, corrupted or mislabeled upload fails the release
+     * run here instead of a user's install.
+     */
+    def verifyRelease(tag: String, platforms: String = CliRelease.Platform.AllTokens, includeJvm: Boolean = true) =
+      Task.Command(exclusive = true) {
+        require(tag.nonEmpty, "ci.cli.verifyRelease: --tag is required")
+        if dryRun then Task.log.info(s"DRY_RUN: would download and verify CLI assets on release $tag")
+        else
+          val downloaded = Task.dest / "assets"
+          os.makeDir.all(downloaded)
+          os.proc(
+            "gh",
+            "release",
+            "download",
+            tag,
+            "--dir",
+            downloaded.toString,
+            "--pattern",
+            "morphir-cli-*",
+            "--pattern",
+            "checksums.txt"
+          ).call(cwd = BuildCtx.workspaceRoot)
+          val checksums = downloaded / "checksums.txt"
+          if !os.isFile(checksums) then
+            throw new Exception(s"ci.cli.verifyRelease: release $tag carries no checksums.txt")
+          val published = os.read(checksums)
+          CliRelease
+            .verifyAndWriteChecksums(downloaded, version(), parsePlatforms(platforms), includeJvm)
+            .fold(
+              problems =>
+                throw new Exception(
+                  s"ci.cli.verifyRelease: ${problems.size} problem(s) on release $tag:\n" +
+                    problems.map(p => s"  - $p").mkString("\n")
+                ),
+              assets => Task.log.info(s"ci.cli: verified ${assets.size} published assets on $tag")
+            )
+          val recomputed = os.read(checksums)
+          if published != recomputed then
+            throw new Exception(
+              s"ci.cli.verifyRelease: checksums.txt on release $tag does not match the downloaded assets"
+            )
+      }
 
     private def parsePlatforms(platforms: String): Seq[CliRelease.Platform] =
       val tokens = platforms.split(",", -1).toSeq.map(_.trim)
@@ -410,9 +466,9 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
     /**
      * Upload every canonicalized asset to the release for `tag`.
      *
-     * If no release exists for the tag, one is created as a **draft**. Publishing a release is a human action, and the
-     * workflow only reaches this task on `release: published` — it has no `push: tags:` trigger, so a bare tag push
-     * never runs it.
+     * If no release exists for the tag, one is created as a **draft**. The workflow reaches this task from a desktop/v*
+     * tag push (or a manual dispatch on that tag); publishing the drafted release remains a human action, taken after
+     * the uploaded assets have been looked at.
      */
     def githubRelease(tag: String) = Task.Command(exclusive = true) {
       runGithubRelease(os.Path(releaseDirPath()), tag)

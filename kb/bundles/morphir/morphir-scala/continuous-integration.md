@@ -23,13 +23,13 @@ branches.
 | `test-js-desktop` | The same ScalaJS/WebAssembly workload as `test-js`, scoped to `morphir.ui`, `morphir.desktop` and `morphir.appkit.electron`. Split into its own runner because linking that subset alongside the rest of the JS tree in one Mill daemon exceeded the 8 GB heap in `.mill-jvm-opts`; `ci.testJs`/`ci.testJsWasmLink` (`ci/MorphirCi.mill`) resolve the shared wildcard once and partition it with `millbuild.JsTestSelectors`, so the two jobs' targets are exhaustive and disjoint by construction. |
 | `test-native` | Mill `ci.testNativePrepare` followed by four `ci.testNative` shards. `millbuild.NativeTestSelectors` resolves and partitions every Native test target; the Mise launcher gives each shard a fresh daemonless Mill JVM. |
 | `publish` | Sonatype publication via Mill `ci.publish`. Branch snapshots on `main`; VCS milestones and releases on `0.4.x` and tags. The publish set is whatever Mill resolves for `__.publishSonatypeCentral`, including the Mill Morphir plugin family (`org.finos.morphir.mill`); the test-only `integration` module is not a publish module and is not uploaded. Destination tasks live under `ci.sonatype.*`. |
-| `cli-matrix` | Selects five native targets on root `v*` releases and branch pushes, or a three-operating-system smoke matrix on pull requests. |
+| `cli-matrix` | Selects five native targets on a root `v*` tag, or a three-operating-system smoke matrix on pull requests and branch pushes. |
 | `cli-package-native` | Builds the CLI with GraalVM Native Image on each selected host, smoke-tests `version` and `server`, and uploads an archive plus SHA-256 sidecar. |
 | `cli-package-jvm` | Builds and smoke-tests Mill's executable assembly JAR, then uploads it with its SHA-256 sidecar. This is the Windows ARM64 distribution because GraalVM has no Native Image build for that platform. |
 | `cli-verify` | Downloads the native and JVM packages, verifies the expected set and digests, rejects extra files, and writes `checksums.txt`. |
-| `cli-release` | Repeats verification and attaches the CLI packages and checksums to an existing root `v*` GitHub Release. It runs only for a published release targeting `main`; pull requests have no upload path or write token. Destination tasks live under `ci.cli.*`. |
-| `desktop-package` | Matrix job, one runner per platform token (`mac-aarch64`, `mac-amd64`, `linux-amd64`, `linux-aarch64`, `win-amd64`). Links Scala.js with `fullLinkJS` and runs `electron-builder`, then uploads the raw output as a workflow artifact. Runs only when a GitHub Release publishes or the ref is a tag. |
-| `desktop-release` | One Linux runner. Canonicalizes the staged assets, signs `checksums.txt`, verifies, then uploads to the GitHub Release and to Sonatype Central as one bundle. Destination tasks live under `ci.desktop.*`. Same trigger scope as `desktop-package`, and needs it to finish first. |
+| `cli-release` | Repeats verification, creates the root `v*` GitHub Release when none exists, attaches the CLI packages and checksums, then re-downloads and re-verifies the published assets. It runs only for a root `v*` tag ref; pull requests and branch pushes have no upload path or write token. Destination tasks live under `ci.cli.*`. |
+| `desktop-package` | Matrix job, one runner per platform token (`mac-aarch64`, `mac-amd64`, `linux-amd64`, `linux-aarch64`, `win-amd64`). Links Scala.js with `fullLinkJS` and runs `electron-builder`, then uploads the raw output as a workflow artifact. Runs in ordinary CI too, sized by `desktop-matrix`, unless the `MORPHIR_CI_PACKAGE_DESKTOP` switch turns it off; a `desktop/v*` tag ignores the switch. |
+| `desktop-release` | One Linux runner. Canonicalizes the staged assets, signs `checksums.txt`, verifies, then uploads to the GitHub Release and to Sonatype Central as one bundle. Destination tasks live under `ci.desktop.*`. Runs only for a `desktop/v*` tag ref, and needs `packaging` to finish first. |
 | `ci` | Aggregate gate, depending on lint, knowledge-base and all four test jobs |
 
 See [Packaging and Release](/packaging-and-release.md) for what `publish`, `cli-package-native`,
@@ -37,8 +37,11 @@ See [Packaging and Release](/packaging-and-release.md) for what `publish`, `cli-
 each one runs, and the signing keys involved. This page is
 the job inventory; that one is the release story.
 
-CI runs on pull requests into `main` and `0.4.x`; pushes to those same branches; published releases; and
-manual dispatch. Older runs of the same pull request are cancelled automatically. Hosted mill invocations pass
+CI runs on pull requests into `main` and `0.4.x`; pushes to those same branches; pushes of `v*`,
+`mill-plugins/v*` and `desktop/v*` tags; and manual dispatch. There is deliberately no `release:`
+trigger — the tag push is the release trigger, and a release-published event for an already-pushed
+tag would only re-run work (including a second, non-idempotent Sonatype upload) the tag push already
+did. Older runs of the same pull request are cancelled automatically. Hosted mill invocations pass
 `--ticker false`. That includes the workflow, the local `lint` mise wrapper, and `test:jvm-platform`. The GitHub
 log is then a linear task trace rather than a replayed progress ticker.
 

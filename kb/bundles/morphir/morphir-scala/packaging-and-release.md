@@ -29,14 +29,14 @@ why something did not show up where you expected it.
 
 Two aggregate gates stand between a trigger and anything leaving the repository: `ci` for lint, tests
 and knowledge base checks, and `packaging` for the CLI and desktop builds. Packaging runs on ordinary
-pushes and pull requests as well as releases. Only a published release targeting `main` reaches the CLI publishing step. Figure 1
-shows every path, end to end.
+pushes and pull requests as well as release tags. Only a root `v*` tag reaches the CLI publishing
+step. Figure 1 shows every path, end to end.
 
 ```mermaid
 flowchart TD
     PR[Pull request] --> Gate[ci gate: lint, tests, kb checks]
     Push[Push to main or 0.4.x] --> Gate
-    Rel[GitHub Release published] --> Gate
+    TagPush[Tag push: v*, mill-plugins/v*, desktop/v*] --> Gate
     Dispatch[Manual dispatch] --> Gate
 
     Gate -->|branch push: every area snapshots or milestones together, each from its own changelog| PublishAll[publish: ci.publish]
@@ -46,16 +46,16 @@ flowchart TD
     PublishLib --> Sonatype
     PublishPlugins --> Sonatype
 
-    Gate --> CliMatrix[cli-matrix: five platforms on a branch push or v* release; three-OS smoke matrix on a pull request]
+    Gate --> CliMatrix[cli-matrix: five platforms on a v* tag; three-OS smoke matrix on a pull request or branch push]
     CliMatrix --> CliNative[cli-package-native: GraalVM Native Image]
     CliMatrix --> CliJvm[cli-package-jvm: executable assembly]
     CliNative --> CliVerify[cli-verify: assets and SHA-256 checksums]
     CliJvm --> CliVerify
     CliVerify --> Packaging
-    CliVerify -->|published refs/tags/v* release targeting main| CliRelease[cli-release: upload assets to the root release]
+    CliVerify -->|refs/tags/v* only| CliRelease[cli-release: create or reuse the release, upload assets, re-download and verify]
     CliRelease --> GhAssets
 
-    Gate --> Matrix[desktop-matrix: five platforms on a push, a release or a desktop/v* tag; linux-amd64 on a pull request]
+    Gate --> Matrix[desktop-matrix: five platforms on a branch push or a desktop/v* tag; three-OS smoke matrix on a pull request]
     Matrix --> Package[desktop-package: one runner per platform]
     Package -->|raw electron-builder output, one artifact per platform| CiVerify[desktop-verify: canonicalize and verify, no signing, no upload]
     Matrix --> Packaging[packaging gate]
@@ -83,22 +83,37 @@ packaging surfaces where it was introduced. Uploads remain scoped to their relea
 
 | Event | GitHub Actions trigger | Condition | What runs |
 | --- | --- | --- | --- |
-| Pull request | `pull_request` | into `main`, `0.4.x` | `ci` gate; nothing publishes. CLI packaging runs on one runner per operating system, and desktop packaging runs on `linux-amd64`, unless their switches turn them off |
-| Push | `push` | to `main`, `0.4.x` | `ci` gate, then `publish` (`ci.publish`, every area) once it passes. CLI and desktop packaging also run on all five platforms unless their switches turn them off |
-| Release published | `release`, `types: [published]` | not scoped to a branch | `ci` gate, then the tag namespace routes publication. A root `v*` release targeting `main` attaches CLI packages; `mill-plugins/v*` publishes plugins; `desktop/v*` publishes the desktop app |
-| Manual dispatch | `workflow_dispatch` | whichever ref is chosen | the same jobs that ref would otherwise trigger |
+| Pull request | `pull_request` | into `main`, `0.4.x` | `ci` gate; nothing publishes. CLI and desktop packaging each run one runner per operating system, unless their switches turn them off |
+| Branch push | `push` | to `main`, `0.4.x` | `ci` gate, then `publish` (`ci.publish`, every area) once it passes. CLI packaging runs its three-OS smoke matrix; desktop packaging runs all five platforms; either switch turns its half off |
+| Tag push | `push` | tags `v*`, `mill-plugins/v*`, `desktop/v*` | `ci` gate, then the tag namespace routes publication. A root `v*` tag publishes libraries to Sonatype and attaches CLI packages to its GitHub release, creating the release when none exists; `mill-plugins/v*` publishes plugins; `desktop/v*` publishes the desktop app |
+| Manual dispatch | `workflow_dispatch` | whichever ref is chosen | the same jobs that ref would otherwise trigger. Choosing a release tag as the ref re-runs that tag's release flow; the `maven_central` input stands the Sonatype jobs down for a GitHub-Releases-only run |
 
-The workflow has no `push: tags:` trigger. A bare `git push --tags` never runs anything on its own.
-Publishing a release, not pushing a tag, is what starts the flow: that is the routine path for every
-stream's release.
+Pushing the tag is what cuts the release: tests, packaging, verification and publication all run from
+that one event. Creating a GitHub release with a **new** tag through the UI fires the same tag-push
+event, so that path releases too, exactly once. The workflow deliberately has no `release:` trigger:
+with tag pushes wired, a release-published event for an already-pushed tag would re-run the whole
+pipeline — including a second, non-idempotent Sonatype upload — for work the tag push already did.
+The corollary is that publishing a release in the UI against an *existing* tag runs nothing; the tag
+push already ran it all.
+
+### Skipping Maven Central
+
+Two switches make a release target GitHub Releases only:
+
+- The repository variable `MORPHIR_RELEASE_MAVEN_CENTRAL` — unset or anything other than `false`
+  means enabled, matching the `MORPHIR_CI_PACKAGE_*` switches. Set to `false` it stands down every
+  Sonatype upload (`publish`, `publish-plugins`, and the desktop Sonatype step), snapshots included,
+  from repository settings without a commit.
+- The `maven_central` input on a manual dispatch — uncheck it, pick the release tag as the ref, and
+  that one run packages, verifies and uploads GitHub release assets while the Sonatype jobs stand
+  down.
 
 ### Release routing
 
 Three independently versioned areas exist: the libraries, the Mill plugin family, and the desktop
-application. Each releases through its own tag namespace, and the tag's shape is what routes a
-published release to the right destination; nothing else about the release event distinguishes them,
-since `github.ref` is the only thing that differs between three otherwise-identical `release:
-published` events.
+application. Each releases through its own tag namespace, and the tag's shape is what routes a tag
+push to the right destination; nothing else about the event distinguishes them, since `github.ref`
+is the only thing that differs.
 
 | Tag shape | Publishes | Via |
 | --- | --- | --- |
@@ -124,7 +139,7 @@ rather than at release time. Four jobs carry this:
 
 | Job | Does |
 | --- | --- |
-| `desktop-matrix` | Computes the platform set: all five tokens on a tag, a published release, or a push to `main` or `0.4.x`; `linux-amd64` alone everywhere else (a pull request). Outputs both the matrix JSON and the same set as a comma-separated token list. |
+| `desktop-matrix` | Computes the platform set: all five tokens on a `desktop/v*` tag or a push to `main` or `0.4.x`; the three-OS smoke matrix everywhere else (a pull request, or another namespace's tag). Outputs both the matrix JSON and the same set as a comma-separated token list. |
 | `desktop-package` | The same packaging matrix described below, now sized from `desktop-matrix`'s output instead of always covering all five. |
 | `desktop-verify` | Downloads the packaged artifacts, normalizes staging the way `desktop-release` does, then runs `ci.desktop.canonicalize` and `ci.desktop.verify` over exactly that subset, with the signature check relaxed because nothing signs `checksums.txt` here and a pull request carries no GPG secret. No signing and no upload happen in this job, or anywhere in ordinary CI. |
 | `packaging` | Aggregates the three above, the way `ci` aggregates lint and the test jobs. It reads `desktop-matrix` first, because a skip on its own is ambiguous: `desktop-package` also skips when `ci` fails upstream. If `desktop-matrix` was skipped the switch is off and every member must be skipped together; if it ran, packaging was expected to run and only success will do. |
@@ -133,7 +148,7 @@ The repository variable `MORPHIR_CI_PACKAGE_DESKTOP` is the switch: unset, or se
 `false`, packaging runs; set to `false`, it does not. It is a repository variable, not a workflow `env:`,
 because GitHub Actions does not expose the `env` context inside a job's `if:` condition. An `env`-based
 switch would evaluate empty there and the gated jobs would never run. A maintainer flips it from repository
-settings, no commit required. Tags and published releases ignore it entirely: turning off ordinary-CI
+settings, no commit required. A `desktop/v*` tag ignores it entirely: turning off ordinary-CI
 packaging must never weaken a real release. `desktop-release` depends on `packaging` rather than on
 `desktop-package` directly, exactly as `publish` depends on the whole `ci` gate rather than one test job.
 
@@ -177,11 +192,14 @@ style as Mill's own executable distribution, while it remains valid input to `ja
 
 Every package command smoke-tests `version`, the top-level command list, and `server --help` before it
 writes an archive. `cli-verify` then checks the complete platform set, rejects missing, empty, unexpected,
-or corrupted assets, and writes `checksums.txt` from the per-asset SHA-256 sidecars. A root `v*` release
-runs the verifier again before `ci.cli.githubRelease` uploads with `--clobber`, making a failed upload safe
-to retry. The release must already exist. The workflow does not create or upload to a GitHub Release from
-a pull request, branch push, or manual dispatch. Only a published root `v*` release targeting `main` receives
-the job's `contents: write` token.
+or corrupted assets, and writes `checksums.txt` from the per-asset SHA-256 sidecars. A root `v*` tag runs
+the verifier again before `ci.cli.githubRelease` creates the GitHub release when none exists yet
+(published, with generated notes, against the pushed tag) and uploads with `--clobber`, making a failed
+upload safe to retry by dispatching the workflow on the same tag. After the upload, `ci.cli.verifyRelease`
+downloads every asset fresh from the release and verifies it against the published `checksums.txt`, so a
+truncated or mislabeled upload fails the release run rather than a user's install. The workflow does not
+create or upload to a GitHub Release from a pull request or branch push. Only a root `v*` tag ref —
+pushed, or chosen for a manual dispatch — receives the job's `contents: write` token.
 
 GraalVM does not provide Native Image for Windows ARM64. That platform uses the JVM package with a native
 ARM64 Java 25 runtime. An x64 Windows package can also run through Windows emulation, but it is not an
@@ -189,9 +207,10 @@ ARM64 native image. `CliRelease.Platform.fromHost` rejects a claimed `win-aarch6
 toolchain cannot be mislabeled.
 
 Ordinary CI uses `MORPHIR_CI_PACKAGE_CLI` as its switch. Unset, or any value other than `false`, enables
-the jobs. Pull requests exercise `linux-amd64`, `win-amd64`, and `mac-aarch64`; pushes to `main` or
-`0.4.x` exercise all five native targets. Root `v*` releases always exercise all five and ignore the
-switch.
+the jobs. Pull requests and branch pushes exercise the three-OS smoke matrix — `linux-amd64`,
+`win-amd64`, and `mac-aarch64` — each leg covering toolchain machinery the others do not, while five
+GraalVM builds per ordinary merge would be paid for assets nothing publishes. A root `v*` tag always
+exercises all five and ignores the switch.
 
 ## Publishing the desktop app
 
@@ -205,7 +224,7 @@ Five platform tokens cover the desktop application, each packaged on a runner th
 | `linux-aarch64` | `ubuntu-24.04-arm` | tar.gz | AppImage, deb |
 | `win-amd64` | `windows-latest` | zip | exe |
 
-On a tag or a published release, all five package and the release then runs as one ordered sequence:
+On a `desktop/v*` tag, all five package and the release then runs as one ordered sequence:
 
 | # | Step | Runs on | What it does |
 | --- | --- | --- | --- |
@@ -246,7 +265,10 @@ catches corruption in transit.
 
 `githubRelease` uploads with `--clobber`. If no release exists yet for the tag, it creates one as a
 **draft** first and uploads into that. Publishing the release itself stays a human action, not something
-this step does automatically.
+this step does automatically — and pressing that publish button starts no workflow, since the pipeline
+has no `release:` trigger; the tag push already did all the work. Step 6, the Sonatype upload, stands
+down when either [Maven Central switch](#skipping-maven-central) is off; the GitHub side of the release
+is unaffected.
 
 Maven Central receives archives only; the native installers (dmg, NSIS `.exe`, AppImage, `.deb`) go to the
 GitHub Release only, because an automated consumer can act on a portable archive but not on an installer.

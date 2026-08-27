@@ -114,8 +114,12 @@ The local browser host can then be built and run with:
 
 ### Testing CLI release packages
 
-The release tasks build the same JVM and native CLI packages that CI attaches to a root `v*` GitHub
-Release. On Windows, use:
+The release tasks build the same JVM and native CLI packages that CI attaches to a root `v*` tag's
+GitHub release. Pushing that tag is what cuts the release: the workflow tests, packages, verifies,
+publishes to Maven Central, creates the GitHub release when none exists, uploads the CLI assets, and
+re-verifies them after upload. Re-run a failed release by dispatching the CI workflow on the same tag;
+uncheck the `maven_central` input there (or set the `MORPHIR_RELEASE_MAVEN_CENTRAL` repository
+variable to `false`) for a GitHub-Releases-only release. On Windows, use:
 
 ```powershell
 .\mill.bat --ticker false -i ci.cli.packageJvm
