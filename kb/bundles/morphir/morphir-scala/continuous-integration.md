@@ -27,7 +27,7 @@ branches.
 | `cli-package-native` | Builds the CLI with GraalVM Native Image on each selected host, smoke-tests `version` and `server`, and uploads an archive plus SHA-256 sidecar. |
 | `cli-package-jvm` | Builds and smoke-tests Mill's executable assembly JAR, then uploads it with its SHA-256 sidecar. This is the Windows ARM64 distribution because GraalVM has no Native Image build for that platform. |
 | `cli-verify` | Downloads the native and JVM packages, verifies the expected set and digests, rejects extra files, and writes `checksums.txt`. |
-| `cli-release` | Repeats verification and attaches the CLI packages and checksums to a root `v*` GitHub Release. Destination tasks live under `ci.cli.*`. |
+| `cli-release` | Repeats verification and attaches the CLI packages and checksums to an existing root `v*` GitHub Release. It runs only for a published release targeting `main`; pull requests have no upload path or write token. Destination tasks live under `ci.cli.*`. |
 | `desktop-package` | Matrix job, one runner per platform token (`mac-aarch64`, `mac-amd64`, `linux-amd64`, `linux-aarch64`, `win-amd64`). Links Scala.js with `fullLinkJS` and runs `electron-builder`, then uploads the raw output as a workflow artifact. Runs only when a GitHub Release publishes or the ref is a tag. |
 | `desktop-release` | One Linux runner. Canonicalizes the staged assets, signs `checksums.txt`, verifies, then uploads to the GitHub Release and to Sonatype Central as one bundle. Destination tasks live under `ci.desktop.*`. Same trigger scope as `desktop-package`, and needs it to finish first. |
 | `ci` | Aggregate gate, depending on lint, knowledge-base and all four test jobs |

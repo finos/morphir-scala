@@ -29,7 +29,7 @@ why something did not show up where you expected it.
 
 Two aggregate gates stand between a trigger and anything leaving the repository: `ci` for lint, tests
 and knowledge base checks, and `packaging` for the CLI and desktop builds. Packaging runs on ordinary
-pushes and pull requests as well as releases, but only a published release reaches a publishing step. Figure 1
+pushes and pull requests as well as releases. Only a published release targeting `main` reaches the CLI publishing step. Figure 1
 shows every path, end to end.
 
 ```mermaid
@@ -52,7 +52,7 @@ flowchart TD
     CliNative --> CliVerify[cli-verify: assets and SHA-256 checksums]
     CliJvm --> CliVerify
     CliVerify --> Packaging
-    CliVerify -->|refs/tags/v* only| CliRelease[cli-release: upload assets to the root release]
+    CliVerify -->|published refs/tags/v* release targeting main| CliRelease[cli-release: upload assets to the root release]
     CliRelease --> GhAssets
 
     Gate --> Matrix[desktop-matrix: five platforms on a push, a release or a desktop/v* tag; linux-amd64 on a pull request]
@@ -85,7 +85,7 @@ packaging surfaces where it was introduced. Uploads remain scoped to their relea
 | --- | --- | --- | --- |
 | Pull request | `pull_request` | into `main`, `0.4.x` | `ci` gate; nothing publishes. CLI packaging runs on one runner per operating system, and desktop packaging runs on `linux-amd64`, unless their switches turn them off |
 | Push | `push` | to `main`, `0.4.x` | `ci` gate, then `publish` (`ci.publish`, every area) once it passes. CLI and desktop packaging also run on all five platforms unless their switches turn them off |
-| Release published | `release`, `types: [published]` | not scoped to a branch | `ci` gate, then the tag namespace routes publication. A root `v*` release publishes libraries and attaches CLI packages; `mill-plugins/v*` publishes plugins; `desktop/v*` publishes the desktop app |
+| Release published | `release`, `types: [published]` | not scoped to a branch | `ci` gate, then the tag namespace routes publication. A root `v*` release targeting `main` attaches CLI packages; `mill-plugins/v*` publishes plugins; `desktop/v*` publishes the desktop app |
 | Manual dispatch | `workflow_dispatch` | whichever ref is chosen | the same jobs that ref would otherwise trigger |
 
 The workflow has no `push: tags:` trigger. A bare `git push --tags` never runs anything on its own.
@@ -155,7 +155,7 @@ reuses rather than restating.
 
 ## Publishing the CLI
 
-The root library version stream also versions the CLI. A root `v*` release receives six CLI packages:
+The root library version stream also versions the CLI. A published root `v*` release targeting `main` receives six CLI packages:
 
 | Token | Runner | Package |
 | --- | --- | --- |
@@ -179,7 +179,9 @@ Every package command smoke-tests `version`, the top-level command list, and `se
 writes an archive. `cli-verify` then checks the complete platform set, rejects missing, empty, unexpected,
 or corrupted assets, and writes `checksums.txt` from the per-asset SHA-256 sidecars. A root `v*` release
 runs the verifier again before `ci.cli.githubRelease` uploads with `--clobber`, making a failed upload safe
-to retry.
+to retry. The release must already exist. The workflow does not create or upload to a GitHub Release from
+a pull request, branch push, or manual dispatch. Only a published root `v*` release targeting `main` receives
+the job's `contents: write` token.
 
 GraalVM does not provide Native Image for Windows ARM64. That platform uses the JVM package with a native
 ARM64 Java 25 runtime. An x64 Windows package can also run through Windows emulation, but it is not an

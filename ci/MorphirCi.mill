@@ -243,9 +243,7 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
           .call(cwd = BuildCtx.workspaceRoot, check = false)
           .exitCode == 0
         if !exists then
-          val prerelease = if tag.contains("-") then Seq("--prerelease") else Seq.empty
-          os.proc(Seq("gh", "release", "create", tag, "--title", s"Release $tag", "--generate-notes") ++ prerelease)
-            .call(cwd = BuildCtx.workspaceRoot)
+          throw new Exception(s"ci.cli.githubRelease: release $tag does not exist")
         os.proc("gh", "release", "upload", tag, assets.map(_.toString), "--clobber")
           .call(cwd = BuildCtx.workspaceRoot)
         Task.log.info(s"ci.cli: uploaded ${assets.size} assets to $tag")
@@ -266,9 +264,10 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
     ): Unit = {
       val command       = prefix :+ physicalPath(executable)
       val versionResult = os.proc(command, "version").call(cwd = BuildCtx.workspaceRoot)
-      if (versionResult.out.text().trim != expectedVersion)
+      val reportedVersion = CliRelease.lastNonBlankLine(versionResult.out.text())
+      if (!reportedVersion.contains(expectedVersion))
         throw new Exception(
-          s"ci.cli: packaged executable reports '${versionResult.out.text().trim}', expected '$expectedVersion'"
+          s"ci.cli: packaged executable reports '${reportedVersion.getOrElse("<no output>")}', expected '$expectedVersion'"
         )
       val topLevelHelp = os.proc(command, "--help").call(cwd = BuildCtx.workspaceRoot).out.text()
       if (!topLevelHelp.linesIterator.map(stripAnsi).exists(_.trim == "server"))

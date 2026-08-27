@@ -23,6 +23,13 @@ object CliReleaseTests extends TestSuite:
       )
       assert(CliRelease.jvmAssetName("0.6.0-M01") == "morphir-cli-jvm-0.6.0-M01.jar")
 
+    test("reads the final nonblank line from command output"):
+      val output =
+        "-XX:InitialHeapSize=134217728 -XX:+PrintCommandLineFlags\n\n0.6.0-M01\n"
+
+      assert(CliRelease.lastNonBlankLine(output).contains("0.6.0-M01"))
+      assert(CliRelease.lastNonBlankLine("\n  \n").isEmpty)
+
     test("packages a Windows image with its runtime libraries"):
       val root       = os.temp.dir(prefix = "morphir-cli-release-zip-", deleteOnExit = true)
       val imageDir   = root / "image"

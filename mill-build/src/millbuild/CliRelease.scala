@@ -54,6 +54,9 @@ object CliRelease:
   def jvmAssetName(version: String): String =
     s"morphir-cli-jvm-${safeVersion(version)}.jar"
 
+  def lastNonBlankLine(output: String): Option[String] =
+    output.linesIterator.map(_.trim).filter(_.nonEmpty).toSeq.lastOption
+
   def packageNative(platform: Platform, version: String, executable: os.Path, releaseDir: os.Path): os.Path =
     require(os.isFile(executable), s"native executable does not exist: $executable")
     val imageDir = executable / os.up

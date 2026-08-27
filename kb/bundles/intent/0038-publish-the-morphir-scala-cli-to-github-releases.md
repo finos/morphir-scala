@@ -38,5 +38,6 @@ help, and `server --help` before upload so AOT reachability cannot silently remo
 
 Pull requests build one native target per operating system plus the JVM package. Mainline and release builds run all
 five native targets. A verification job recomputes every SHA-256 digest after workflow artifact transfer and writes
-one `checksums.txt`. Root release tags create the GitHub Release when needed and upload changed assets with clobber
-semantics, so a failed run can be retried.
+one `checksums.txt`. A published root release targeting `main` uploads changed assets to its existing GitHub Release
+with clobber semantics, so a failed run can be retried. Pull requests and branch pushes package and verify only. They
+do not receive the release job's write permission.

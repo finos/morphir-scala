@@ -695,7 +695,9 @@ jobs:
         run: ./mill --ticker false -i ci.cli.verify --platforms "${{ needs.cli-matrix.outputs.platforms }}"
 
   cli-release:
-    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/v')
+    # Pull requests package and verify the CLI, but never receive a write token or upload assets.
+    # Upload only when GitHub publishes a root v* release whose target branch is main.
+    if: github.repository == 'finos/morphir-scala' && github.event_name == 'release' && github.event.action == 'published' && github.event.release.target_commitish == 'main' && startsWith(github.ref, 'refs/tags/v')
     needs: [cli-matrix, cli-package-native, cli-package-jvm, cli-verify]
     runs-on: ubuntu-latest
     timeout-minutes: 20
