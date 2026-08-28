@@ -3,7 +3,7 @@ package morphir.langkit.markdown
 import kyo.*
 
 /**
- * Compiles the Markdown AST to `kyo.UI` values, the markup the morphir-ui client and the desktop app mount.
+ * Compiles the Markdown AST to `kyo.UI` values, the markup the morphir-ui client mounts.
  *
  * This is the writer users see, and deliberately not the conformance oracle. kyo-ui stamps a `data-kyo-path` attribute
  * onto every element and has no `em` or `strong` element at all, so its HTML cannot be compared byte for byte against

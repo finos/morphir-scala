@@ -8,6 +8,13 @@ a release.
 
 ## [0.5.0-M06]
 
+### Removed
+- The Morphir desktop application (the Electron shell hosting morphir-ui) and its `appkit-electron`
+  secret-storage integration. The Morphir desktop/web UI now lives at
+  [finos/morphir-ui](https://github.com/finos/morphir-ui). `morphir-ui` remains in this repository
+  as the shared library behind the local web host (`morphir server`), and `morphir-scala` continues
+  as the Scala implementation and capability provider (markdown tooling, the GitHub connector).
+
 ## [0.5.0-M05] - 2026-08-27
 
 The first release cut through the independent version streams, and the first since this changelog

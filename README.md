@@ -25,6 +25,14 @@ For the first time, business logic can be shared, stored, translated and visuali
 
 Provides Scala language bindings and JVM based tooling for Morphir.
 
+## Desktop and web UI
+
+The Morphir desktop and web UI now lives at [finos/morphir-ui](https://github.com/finos/morphir-ui).
+`morphir-scala` continues as the Scala implementation and capability provider behind it — for
+example the Markdown tooling (`morphir/langkit/markdown`) and the GitHub connector
+(`morphir/connector/github`) — and as the shared `morphir-ui` library (`morphir/ui`) behind the
+local web host started by `morphir server`.
+
 ## Installation
 
 You can install the `morphir-cli` in the following ways:
