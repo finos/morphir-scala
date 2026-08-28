@@ -84,11 +84,12 @@ standard error.
 
 Refinement settles the first implementation choices as follows:
 
-- ship one Scala Native process artifact first, then expand the platform matrix from repeatable CI builds;
+- build the first compiler on the JVM and ship it as one GraalVM Native Image process artifact, then expand the
+  platform matrix from repeatable CI builds;
 - introduce a pure compiler seam shared by the in-process adapter and the MEP adapter, leaving the existing JSON ABI
   as a parser/query compatibility surface;
-- keep parsing and Elm semantics in langkit, with a narrow classic Morphir IR v3 lowering and encoding boundary that
-  remains portable to Scala Native;
+- keep parsing and Elm semantics in langkit, reuse the existing classic Morphir IR v3 model and JSON codec on the JVM,
+  and keep protocol concerns outside the compiler;
 - identify the provider as `morphir-scala-elm`, distinct from the `morphir-elm` reference provider, and add explicit
   provider selection to the host so both can be installed at once;
 - use the acquired extension index, checksum, catalog, and exact-version lock already shipped by the Morphir CLI;

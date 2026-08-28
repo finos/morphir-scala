@@ -2,7 +2,7 @@
 type: Design Note
 title: morphir-scala Elm frontend extension
 description: "The shared Elm compiler, MEP process adapter, provider identity, and verified executable distribution."
-tags: [elm, langkit, extension-protocol, scala-native, distribution]
+tags: [elm, langkit, extension-protocol, graalvm, distribution]
 status: draft
 stale_after: 2026-11-28
 sources:
@@ -28,7 +28,8 @@ sources:
 
 # morphir-scala Elm frontend extension
 
-Morphir-scala should ship a directly executable Scala Native MEP provider named `morphir-scala-elm`. The process
+Morphir-scala should compile its Elm frontend on the JVM and ship a directly executable GraalVM Native Image MEP
+provider named `morphir-scala-elm`. The process
 adapter and the in-process buildkit adapter must call one pure Elm-to-Morphir-IR compiler. The MEP layer owns framing,
 lifecycle, metadata, and conversion to protocol values. It does not own parsing, type checking, lowering, or a second
 compiler pipeline.
@@ -75,10 +76,10 @@ exposed modules, and requested IR version explicit.
 buildkit boundaries. The MEP adapter converts protocol values to the same compiler request and converts the result
 back to MEP values. It never becomes a buildkit stage or another lowering implementation.
 
-The first lowering target is the classic Morphir IR v3 JSON contract required by MEP 0.1. The implementation should
-introduce only the portable IR value and encoder surface needed by the supported Elm slice. It should not pull the
-JVM-only classic runtime or ZIO model through the Scala Native dependency graph. A future shared IR module may absorb
-that narrow representation after its cross-platform API is proven.
+The first lowering target is the classic Morphir IR v3 JSON contract required by MEP 0.1. The compiler should reuse
+the existing JVM Morphir IR model and JSON codec. That keeps one canonical representation and makes the smallest
+compiler slice available without first porting the wider IR dependency graph to Scala Native. The compiler module
+should depend on the model and codec, not on the classic runtime or CLI application.
 
 ## First supported Elm slice
 
@@ -143,9 +144,11 @@ lock insufficient to explain which implementation produced an IR distribution.
 
 ## Artifact and release model
 
-The first distributable artifact is one directly executable Scala Native process. This matches the host's shipped
-`runtime: process` contract without requiring Java, a classpath, an archive launcher, or multiple installed files.
-Mill builds the executable, but the Morphir extension index and store distribute and activate it.
+The first distributable artifact is one GraalVM Native Image executable built from the JVM compiler and MEP
+application. This matches the host's shipped `runtime: process` contract without requiring Java at activation time, a
+classpath, an archive launcher, or multiple installed files. It also reuses the repository's established native-image
+build and CI conventions. Mill builds the executable, but the Morphir extension index and store distribute and
+activate it.
 
 Each supported operating-system and architecture pair has an immutable index artifact with:
 
@@ -169,13 +172,13 @@ selection, installation, locking, and activation.
 ## Toolchain policy
 
 Morphir is greenfield. Morphir-scala artifacts and the Rust host crates have not been published, and there are no
-downstream compatibility consumers. The implementation uses current stable Scala, Scala Native, Mill, and Rust
-toolchains rather than maintaining a legacy minimum supported version. Toolchain pins remain exact and reproducible;
-they are upgraded deliberately and verified in CI. A compatibility floor becomes a product requirement only when a
-published artifact or real consumer creates one.
+downstream compatibility consumers. The implementation uses current stable Scala, GraalVM, Mill, and Rust toolchains
+rather than maintaining a legacy minimum supported version. Toolchain pins remain exact and reproducible; they are
+upgraded deliberately and verified in CI. A compatibility floor becomes a product requirement only when a published
+artifact or real consumer creates one.
 
 This policy permits the host's Rust 1.98 baseline and allows the Scala extension to adopt the latest stable compiler
-or Native release needed for a safe process implementation. It does not permit unreviewed floating CI versions.
+or GraalVM release needed for a safe process implementation. It does not permit unreviewed floating CI versions.
 
 ## Acceptance
 
@@ -194,12 +197,15 @@ the reference provider. Differences in nonsemantic metadata may be normalized ex
 
 ## Alternatives and unresolved work
 
-A JVM jar was rejected for the first artifact because the shipped acquisition model installs one executable file and
-does not describe a Java launcher or classpath. The existing JSON ABI was rejected as the MEP implementation because
-it exposes parse/query operations and does not define the compiler contract. Duplicating a minimal lowering inside
-the process adapter was rejected because intent 0010 and intent 0037 must converge on one compiler.
+A JVM jar was rejected as the distributed artifact because the shipped acquisition model installs one executable file
+and does not describe a Java launcher or classpath. JVM bytecode remains the compiler's build boundary and feeds
+GraalVM Native Image. Scala Native was rejected for the first slice because the parser supports it but the established
+Morphir IR model and JSON codec do not; porting that dependency graph would delay compiler semantics without improving
+the host contract. The existing JSON ABI was rejected as the MEP implementation because it exposes parse/query
+operations and does not define the compiler contract. Duplicating a minimal lowering inside the process adapter was
+rejected because intent 0010 and intent 0037 must converge on one compiler.
 
-Implementation must still determine the smallest typed IR representation that can encode classic v3 without a
-JVM-only dependency, the exact native main-linking shape in the current Mill build, and which parser positions need
-normalization to MEP's exclusive end range. Multi-platform publication, complete Elm typing, source dependencies, and
-versioned protocol evolution remain later slices.
+Implementation must still determine the narrowest dependency from the shared compiler to the classic v3 model, the
+exact reusable Native Image build trait, and which parser positions need normalization to MEP's exclusive end range.
+Multi-platform publication, complete Elm typing, source dependencies, and versioned protocol evolution remain later
+slices.
