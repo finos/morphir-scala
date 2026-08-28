@@ -2,6 +2,8 @@
 
 ## 2026-08-28
 
+* **Creation**: Added the evolving [morphir-scala Elm frontend extension Design Note](/design/elm-frontend-extension.md), settling the shared compiler, MEP process, provider identity, native executable, verified distribution, and greenfield toolchain boundaries for intent 0037.
+* **Update**: Distinguished runtime extension acquisition from source-package materialization and Mill's build-tool cache, and added the external MEP adapter to the multi-frontend pipeline boundary.
 * **Update**: [Packaging and Release](/packaging-and-release.md) and
   [Continuous Integration](/continuous-integration.md) now describe the post-removal reality after
   the Electron desktop UI retired in favor of finos/morphir-ui: two independently versioned areas

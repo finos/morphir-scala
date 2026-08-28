@@ -1,25 +1,37 @@
 ---
 type: Intent
 title: morphir-scala Elm frontend extension
-description: "Expose morphir-scala's Elm source-to-IR compiler through the Morphir Extension Protocol after the reference morphir-elm sidecar ships."
-state: Backlog
+description: "Ship morphir-scala's Elm source-to-IR compiler as an independently selectable Morphir Extension Protocol provider."
+state: Refinement
 kind: feature
 breaking: false
 created: 2026-08-26
-state_since: 2026-08-26
+state_since: 2026-08-28
 tags: [elm, extension-protocol, langkit]
 sources:
-  - id: mep-0.1-proposal
-    title: Morphir Extension Protocol 0.1 proposal
-    resource: https://github.com/finos/morphir/blob/5a697e4eab0db662f9bc0b339ade80630701b420/docs/design/draft/extensions/protocol.md
+  - id: morphir-host
+    title: Shipped Morphir MEP host and verified extension acquisition
+    resource: https://github.com/finos/morphir/tree/f7bede45d6a97ad5e673bc4a1371e2665fd22d1f
+  - id: mep-0.1
+    title: Morphir Extension Protocol 0.1
+    resource: https://github.com/finos/morphir/blob/f7bede45d6a97ad5e673bc4a1371e2665fd22d1f/docs/design/draft/extensions/protocol.md
+  - id: elm-conformance
+    title: Shared Elm extension conformance tests
+    resource: https://github.com/finos/morphir/blob/f7bede45d6a97ad5e673bc4a1371e2665fd22d1f/crates/integration-tests/tests/elm_extension.rs
+  - id: reference-extension
+    title: Shipped morphir-elm MEP reference extension
+    resource: https://github.com/finos/morphir-elm/tree/b065e493d7a4256ed47878b129abf2333e977313/cli2/mep
+  - id: morphir-rust-sdk
+    title: Shipped MEP SDK and process host
+    resource: https://github.com/finos/morphir-rust/tree/8e069a3c0ba2bc057555d951f4bac15458c366ad/crates
   - id: scala-elm-compiler-api
     title: Current morphir-scala Elm compiler API
-    resource: https://github.com/finos/morphir-scala/tree/355eb96e2eaa5e5bea0f68d83e9ff9aa7293a2c7/morphir/langkit/elm/compiler/api
+    resource: https://github.com/finos/morphir-scala/tree/43439fcccec3da5f78b4a314f19f8919912fefc1/morphir/langkit/elm/compiler/api
 ---
 
 # 0037: morphir-scala Elm frontend extension
 
-Expose morphir-scala's Elm source-to-IR compiler through the Morphir Extension Protocol after the reference morphir-elm sidecar ships.
+Ship morphir-scala's Elm source-to-IR compiler as an independently selectable Morphir Extension Protocol provider.
 
 ## Problem
 
@@ -39,9 +51,10 @@ Elm-to-IR implementation. Neither intent should create a second buildkit adapter
 
 ## Approach
 
-Keep this intent in Backlog until the `finos/morphir-elm` sidecar and CLI path establish the first working MEP
-frontend. Then move it to Refinement and write a detailed design against that implementation, the conformance
-fixtures, and the MEP 0.1 proposal pinned at commit `5a697e4e`.
+The prerequisite is satisfied. The `finos/morphir-elm` reference extension shipped at `b065e493`, and the Morphir
+CLI's MEP host and verified acquisition path shipped through `f7bede45`. The
+[Elm frontend extension Design Note](../morphir/morphir-scala/design/elm-frontend-extension.md) is the narrative
+home for the Scala provider's compiler, protocol, runtime, identity, and distribution boundaries.
 
 The proposed delivery order is:
 
@@ -69,29 +82,39 @@ characters, an inclusive start, and an exclusive end. Invalid protocol messages,
 extension failures use JSON-RPC errors. Standard output contains protocol frames only; operational logs go to
 standard error.
 
-The refinement stage must settle these questions before implementation starts:
+Refinement settles the first implementation choices as follows:
 
-- whether the first distributable runtime is a Scala Native executable, a JVM process, or both;
-- how the MEP handler calls the shared compiler without making the existing JSON ABI a second public protocol;
-- where Elm type checking and lowering to Morphir IR live relative to the langkit and intent 0010 buildkit adapter;
-- which operating-system and architecture artifacts can ship, including Windows ARM64;
-- how extension metadata, protocol versions, checksums, discovery, and release versions are packaged;
-- which diagnostics the current parser can map losslessly to MEP and where conversion needs more compiler data.
+- ship one Scala Native process artifact first, then expand the platform matrix from repeatable CI builds;
+- introduce a pure compiler seam shared by the in-process adapter and the MEP adapter, leaving the existing JSON ABI
+  as a parser/query compatibility surface;
+- keep parsing and Elm semantics in langkit, with a narrow classic Morphir IR v3 lowering and encoding boundary that
+  remains portable to Scala Native;
+- identify the provider as `morphir-scala-elm`, distinct from the `morphir-elm` reference provider, and add explicit
+  provider selection to the host so both can be installed at once;
+- use the acquired extension index, checksum, catalog, and exact-version lock already shipped by the Morphir CLI;
+- normalize parser failures to stable MEP diagnostics, including `elm.parser`, the request URI, and zero-based ranges.
+
+The first implementation uses current stable project toolchains. Morphir is greenfield, has no published Scala or
+Rust crates, and has no downstream compatibility promise. Toolchain upgrades therefore optimize for a correct,
+maintainable implementation rather than preserving a hypothetical minimum supported version. A compatibility floor
+may be introduced later when a real consumer or published artifact requires one.
 
 The first slice excludes multi-file projects, user-module imports, project manifest discovery, dependency resolution,
 incremental document sessions, progress, and cooperative cancellation. It also excludes backend generation,
 validation, IR transforms, changes to the MEP host, and ownership of the generic buildkit contracts. Later intent can
 add those capabilities after the single-file path proves the compiler and protocol boundary.
 
-The initial slice is complete when a Morphir CLI host can select the packaged Scala extension, compile one valid Elm
-module to schema-valid Morphir IR, and render structured diagnostics for an invalid module. The same conformance
-fixtures must pass against the reference Elm sidecar and the Scala extension.
+The initial slice is complete when a Morphir CLI host can install and explicitly select the packaged
+`morphir-scala-elm` extension, compile one valid Elm module to schema-valid Morphir IR, and render structured
+diagnostics for an invalid module. The same conformance fixtures must pass against the reference Elm sidecar and the
+Scala extension. Offline activation must succeed from the verified content-addressed store, and tampered installed
+bytes must be rejected before process launch.
 
 ## Unresolved
 
-MEP 0.1 remains a proposal. The reference implementation may expose contract gaps that require a newer pinned
-revision before Scala refinement begins. The detailed design must record any divergence instead of copying behavior
-that conflicts with the agreed protocol.
+MEP 0.1 is the shipped compatibility target but remains explicitly versioned and evolvable. Any Scala implementation
+feedback that changes the common contract must update the protocol and both providers rather than creating an
+undocumented provider-specific behavior.
 
 The current langkit proves parsing and cross-language invocation, not Elm-to-IR semantic correctness. Refinement must
 identify the smallest supported Elm subset and the conformance corpus that demonstrates equivalent Morphir IR. It

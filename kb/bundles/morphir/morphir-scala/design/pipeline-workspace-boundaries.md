@@ -113,6 +113,12 @@ shared stop-or-continue policy without reinterpreting frontend semantics.
 The generic `Stage` has moved to buildkit core. Its contract must remain cross-platform and must not acquire an Elm,
 filesystem, process, or network dependency.
 
+The external MEP process adapter described by the
+[Elm frontend extension Design Note](/design/elm-frontend-extension.md) is another boundary around the same Elm
+compiler. `ElmParse` remains internal to that compiler. The typed `Frontend` and `Compile[I, O, D]` contracts remain
+the in-process buildkit API. Content-Length framing, JSON-RPC lifecycle, and protocol diagnostics belong to the MEP
+adapter and must not create a second lowering path.
+
 Buildkit core now also carries the first `Pipeline` slice: a sealed trait whose public variants are a buildable
 `PipelineDef` and a validated `SealedPipeline`, with path-structured node identities assigned at seal time
 (explicit id, else label slug, else position), whole-chain error accumulation into a `MorphirException`-rooted
