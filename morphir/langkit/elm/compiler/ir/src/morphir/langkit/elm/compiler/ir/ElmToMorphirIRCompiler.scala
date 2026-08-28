@@ -32,6 +32,7 @@ enum CompileDiagnostic derives CanEqual:
   case ModuleNameMismatch(expected: ModuleName, actual: ModuleName, span: Span)
   case ExposedNameMismatch(expected: Set[Name], actual: Set[Name], span: Span)
   case UnsupportedIRVersion(version: MorphirIRVersion)
+  case UnsupportedExposure(kind: String, span: Span)
 
   def code: String = this match
     case ParserFailure(_)             => "ELM-IR001"
@@ -45,22 +46,21 @@ enum CompileDiagnostic derives CanEqual:
     case ModuleNameMismatch(_, _, _)  => "ELM-IR009"
     case ExposedNameMismatch(_, _, _) => "ELM-IR010"
     case UnsupportedIRVersion(_)      => "ELM-IR011"
+    case UnsupportedExposure(_, _)    => "ELM-IR012"
 
 object ElmToMorphirIRCompiler:
 
   def compile(input: CompileInput): Result[CompileFailure, MorphirIRFile] =
     if input.irVersion != MorphirIRVersion.V3_0 then
       Result.fail(CompileFailure(Chunk(CompileDiagnostic.UnsupportedIRVersion(input.irVersion))))
-    else if hasMalformedModuleHeader(input.source) then
-      val start = input.source.indexWhere(!_.isWhitespace)
-      val end   = input.source.indexOf('\n', start) match
-        case -1    => input.source.length
-        case index => index
-      Result.fail(CompileFailure(Chunk(CompileDiagnostic.MalformedModuleHeader(Span.fromStartEnd(start, end)))))
     else
       Elm.parseAst(input.source).fold(
         diagnostic =>
-          Result.fail(CompileFailure(Chunk(CompileDiagnostic.ParserFailure(diagnostic)))),
+          malformedModuleHeaderSpan(input.source, diagnostic) match
+            case Some(span) =>
+              Result.fail(CompileFailure(Chunk(CompileDiagnostic.MalformedModuleHeader(span))))
+            case None =>
+              Result.fail(CompileFailure(Chunk(CompileDiagnostic.ParserFailure(diagnostic)))),
         module =>
           if module.moduleType != ast.ModuleType.Plain then
             Result.fail(CompileFailure(Chunk(CompileDiagnostic.UnsupportedModule(module.moduleType, module.span))))
@@ -76,6 +76,9 @@ object ElmToMorphirIRCompiler:
                 )
               )
             )
+          else if unsupportedExposure(module).nonEmpty then
+            val (kind, span) = unsupportedExposure(module).get
+            Result.fail(CompileFailure(Chunk(CompileDiagnostic.UnsupportedExposure(kind, span))))
           else if exposedValueNames(module) != input.exposedValues then
             Result.fail(
               CompileFailure(
@@ -158,19 +161,18 @@ object ElmToMorphirIRCompiler:
         Result.fail(CompileFailure(Chunk(CompileDiagnostic.UnsupportedExpression(kind, span))))
       case None => Result.succeed(lower(input, module))
 
-  private def hasMalformedModuleHeader(source: String): Boolean =
+  private def malformedModuleHeaderSpan(source: String, diagnostic: ParseDiagnostic): Option[Span] =
     val start = source.indexWhere(!_.isWhitespace)
-    if start < 0 then false
+    if start < 0 then None
     else
       val end = source.indexOf('\n', start) match
         case -1    => source.length
         case index => index
-      val header           = source.substring(start, end)
+      val firstLine        = source.substring(start, end)
+      val firstLineNumber  = source.substring(0, start).count(_ == '\n') + 1
       val beginsLikeHeader =
-        header.startsWith("module") || header.startsWith("port module") || header.startsWith("effect module")
-      val validHeader =
-        "^(?:port\\s+|effect\\s+)?module\\s+[A-Z][A-Za-z0-9_.]*\\s+exposing\\s*\\([^)]*\\)(?:\\s+where\\s*\\{.*\\})?\\s*$".r
-      beginsLikeHeader && validHeader.findFirstIn(header).isEmpty
+        firstLine.startsWith("module") || firstLine.startsWith("port module") || firstLine.startsWith("effect module")
+      Option.when(beginsLikeHeader && diagnostic.span.line == firstLineNumber)(Span.fromStartEnd(start, end))
 
   private def exposedValueNames(module: ast.Module): Set[Name] =
     module.exposing match
@@ -180,6 +182,15 @@ object ElmToMorphirIRCompiler:
         module.declarations.collect { case declaration: ast.ValueDeclaration =>
           Name.fromString(declaration.name)
         }.toSet
+
+  private def unsupportedExposure(module: ast.Module): Option[(String, Span)] =
+    module.exposing match
+      case ast.ExposingExplicit(items) =>
+        items.collectFirst {
+          case operator @ ast.ExposedOperator(name)   => s"operator $name" -> operator.span
+          case exposedType @ ast.ExposedType(name, _) => s"type $name"     -> exposedType.span
+        }
+      case exposeAll: ast.ExposingAll => Some("all values" -> exposeAll.span)
 
   private def declaredValueNames(module: ast.Module): Set[Name] =
     module.declarations.collect { case declaration: ast.ValueDeclaration =>

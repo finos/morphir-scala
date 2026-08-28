@@ -106,6 +106,31 @@ class ElmToMorphirIRCompilerTests extends Test[Any]:
         case other => assert(false, s"expected unsupported module failure, got $other")
     }
 
+    "parses a valid effect module header before rejecting its module type" in {
+      val effectModule = source.replace(
+        "module Example exposing (add)",
+        "effect module Example where { command = MyCmd } exposing (add)"
+      )
+
+      ElmToMorphirIRCompiler.compile(input(sourceText = effectModule)) match
+        case Result.Failure(CompileFailure(Chunk(CompileDiagnostic.UnsupportedModule(moduleType, _)))) =>
+          assert(moduleType == ModuleType.Effect)
+        case other => assert(false, s"expected unsupported effect module failure, got $other")
+    }
+
+    "compiles a valid multiline exposing header" in {
+      val multilineHeader = source.replace(
+        "module Example exposing (add)",
+        """module Example exposing
+          |    ( add
+          |    )""".stripMargin
+      )
+
+      ElmToMorphirIRCompiler.compile(input(sourceText = multilineHeader)) match
+        case Result.Success(MorphirIRFile(MorphirIRVersion.V3_0, _)) => succeed
+        case other => assert(false, s"expected successful multiline-header compilation, got $other")
+    }
+
     "rejects imports instead of guessing dependency IR" in {
       val imported = source.replace("\n\nadd", "\n\nimport Other\n\nadd")
 
@@ -187,5 +212,36 @@ class ElmToMorphirIRCompilerTests extends Test[Any]:
           assert(actual == Set(Name.fromString("subtract")))
           assert(span.length >= "subtract".length)
         case other => assert(false, s"expected exposed name mismatch failure, got $other")
+    }
+
+    "rejects exposed operators in the explicit-value-only slice" in {
+      val exposedOperator = source.replace("exposing (add)", "exposing (add, (+))")
+
+      ElmToMorphirIRCompiler.compile(input(sourceText = exposedOperator)) match
+        case Result.Failure(CompileFailure(Chunk(error @ CompileDiagnostic.UnsupportedExposure(kind, span)))) =>
+          assert(error.code == "ELM-IR012")
+          assert(kind == "operator +")
+          assert(span.length > 0)
+        case other => assert(false, s"expected unsupported exposure failure, got $other")
+    }
+
+    "rejects exposed types in the explicit-value-only slice" in {
+      val exposedType = source.replace("exposing (add)", "exposing (add, Thing)")
+
+      ElmToMorphirIRCompiler.compile(input(sourceText = exposedType)) match
+        case Result.Failure(CompileFailure(Chunk(CompileDiagnostic.UnsupportedExposure(kind, span)))) =>
+          assert(kind == "type Thing")
+          assert(span.length > 0)
+        case other => assert(false, s"expected unsupported exposure failure, got $other")
+    }
+
+    "rejects expose-all in the explicit-value-only slice" in {
+      val exposeAll = source.replace("exposing (add)", "exposing (..)")
+
+      ElmToMorphirIRCompiler.compile(input(sourceText = exposeAll)) match
+        case Result.Failure(CompileFailure(Chunk(CompileDiagnostic.UnsupportedExposure(kind, span)))) =>
+          assert(kind == "all values")
+          assert(span.length > 0)
+        case other => assert(false, s"expected unsupported exposure failure, got $other")
     }
   }
