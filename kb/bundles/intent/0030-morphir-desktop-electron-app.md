@@ -2,12 +2,13 @@
 type: Intent
 title: morphir-desktop Electron app
 description: "Build morphir/desktop, an unpublished Electron app hosting morphir-ui with Scala.js in both processes over a kyo-jsonrpc seam."
-state: InProgress
+state: Superseded
 kind: feature
 breaking: false
 created: 2026-08-15
-state_since: 2026-08-15
+state_since: 2026-08-28
 tags: [desktop, electron, ui]
+superseded_by: 0039
 ---
 
 # 0030 — morphir-desktop Electron app
