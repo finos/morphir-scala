@@ -1061,7 +1061,8 @@ object MyAliases extends Aliases {
     "morphir.jvm.publishArtifacts",
     "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,extensibility,interop.borer,interop.zio.json,knowledge.okf,langkit.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,lib.interop,model,model.lowering,naming,prelude,tests,tools,ui}.jvm.publishArtifacts",
     "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,model,model.lowering,prelude,tests,ui,web.server}.jvm.test",
-    "morphir.langkit.itest.testCached"
+    "morphir.langkit.itest.testCached",
+    "millbuildHelpers.test"
   )
   def testJVMCached = alias("morphir.__.jvm.__.testCached")
   def compileall    = alias("__.compile")
