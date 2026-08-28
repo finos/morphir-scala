@@ -64,6 +64,12 @@ Once those questions settle, an immutable Decision Record will capture the accep
 This design does not turn a Package URL into a download URL, make a mutable branch reproducible, or standardize Elm's
 private package-cache representation.
 
+Executable extensions are a separate distribution domain. The
+[Elm frontend extension Design Note](/design/elm-frontend-extension.md) uses the Morphir host's extension index,
+content-addressed artifact store, catalog, and exact-version lock. Those records select executable providers. The
+`PackageRequirement`, `ResolvedPackage`, package lock, and materialized source views in this note select source
+dependencies supplied to a compiler. Neither model substitutes for the other.
+
 ## Standards facts that constrain the design
 
 A Package URL has seven components:

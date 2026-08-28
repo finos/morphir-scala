@@ -116,6 +116,12 @@ The machine cache is an optimization, not a project requirement. Removing it can
 paths, `ELM_HOME`, `elm-stuff`, tool homes, and sandbox layouts remain private implementation details. GitHub Actions
 may cache these verified entries without adding CI concepts to the public plugin API.
 
+This cache is not the Morphir CLI extension store described by the
+[Elm frontend extension Design Note](/design/elm-frontend-extension.md). `mill-morphir-toolchain` acquires tools for a
+Mill build and may cache them as a machine-local optimization. Mill may also build and package an extension
+executable. The common Morphir host independently owns the runtime extension index, verified content-addressed store,
+installed catalog, exact-version lock, provider selection, and activation checks.
+
 ## Project execution
 
 Each Morphir project keeps configuration in its colocated `package.mill.yaml`. Declared sources, `elm.json`,
