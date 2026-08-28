@@ -2,7 +2,7 @@
 type: Intent
 title: morphir-scala Elm frontend extension
 description: "Ship morphir-scala's Elm source-to-IR compiler as an independently selectable Morphir Extension Protocol provider."
-state: Refinement
+state: InProgress
 kind: feature
 breaking: false
 created: 2026-08-26
