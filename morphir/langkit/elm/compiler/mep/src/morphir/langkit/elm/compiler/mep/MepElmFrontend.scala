@@ -2,12 +2,15 @@ package morphir.langkit.elm.compiler.mep
 
 import kyo.*
 import morphir.langkit.core.{SourceOffsets, Span}
+import morphir.langkit.elm.Elm
+import morphir.langkit.elm.ast.{ExposedValue, ExposingExplicit}
 import morphir.langkit.elm.compiler.ir.{CompileDiagnostic, CompileFailure, CompileInput, ElmToMorphirIRCompiler}
 import org.finos.morphir.ir.MorphirIRVersion
 import org.finos.morphir.ir.MorphirIRFile
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.json.MorphirJsonSupport.*
 import org.finos.morphir.naming.{ModuleName, Name, PackageName}
+import scala.util.Try
 import zio.json.*
 import zio.json.ast.Json
 
@@ -28,10 +31,10 @@ object MepCompileError:
     case _: MepCompileError.InvalidCompilerOutput | _: MepCompileError.IRSerializationFailure => -32603
 
 object MepElmFrontend:
-  private val ModuleHeader = raw"(?m)^module\s+([A-Z][A-Za-z0-9]*(?:\.[A-Z][A-Za-z0-9]*)*)\s+exposing\s*\(([^)]*)\)".r
-  private val PackageIdentity =
+  private val MaxDocumentVersion = (BigInt(1) << 64) - 1
+  private val PackageIdentity    =
     raw"(?:[a-z]+|[0-9]+)(?:-(?:[a-z]+|[0-9]+))*(?:/(?:[a-z]+|[0-9]+)(?:-(?:[a-z]+|[0-9]+))*)*".r
-  private val ModuleIdentity = raw"[A-Z][A-Za-z0-9]*(?:\.[A-Z][A-Za-z0-9]*)*".r
+  private val ModuleIdentity = raw"[A-Z][A-Za-z0-9_]*(?:\.[A-Z][A-Za-z0-9_]*)*".r
 
   def compile(params: Json): Either[MepCompileError, Json] =
     parseRequest(params)
@@ -86,7 +89,7 @@ object MepElmFrontend:
       module <- request.compilePackage.exposedModules.headOption.toRight(
         MepCompileError.InvalidParams("Exactly one exposed module is required")
       )
-      exposedValues = sourceExposedValues(document.text)
+      exposedValues = sourceMetadata(document.text).map(_._2).getOrElse(Set.empty)
       input         = CompileInput(
         source = document.text,
         packageName = PackageName.fromString(request.compilePackage.name),
@@ -113,15 +116,39 @@ object MepElmFrontend:
       "code"     -> Json.Str(diagnostic match
         case _: CompileDiagnostic.ParserFailure | _: CompileDiagnostic.MalformedModuleHeader => "elm.parser"
         case other                                                                           => other.code),
-      "message" -> Json.Str(diagnostic match
-        case CompileDiagnostic.ParserFailure(parseDiagnostic) => parseDiagnostic.message
-        case _: CompileDiagnostic.MalformedModuleHeader       => "Malformed Elm module header"
-        case other                                            => other.toString),
+      "message"  -> Json.Str(diagnosticMessage(diagnostic)),
       "location" -> Json.Obj(
         "uri"   -> Json.Str(document.uri),
         "range" -> sourceRange(document.text, span)
       )
     )
+
+  private[mep] def diagnosticMessage(diagnostic: CompileDiagnostic): String = diagnostic match
+    case CompileDiagnostic.ParserFailure(parseDiagnostic)   => parseDiagnostic.message
+    case _: CompileDiagnostic.MalformedModuleHeader         => "Malformed Elm module header"
+    case CompileDiagnostic.UnsupportedModule(moduleType, _) =>
+      val kind = moduleType match
+        case morphir.langkit.elm.ast.ModuleType.Plain  => "plain"
+        case morphir.langkit.elm.ast.ModuleType.Port   => "port"
+        case morphir.langkit.elm.ast.ModuleType.Effect => "effect"
+      s"Unsupported Elm module type: $kind"
+    case CompileDiagnostic.UnsupportedImport(moduleName, _)        => s"Elm imports are not supported: $moduleName"
+    case CompileDiagnostic.UnsupportedDeclaration(kind, _)         => s"Unsupported Elm declaration: $kind"
+    case CompileDiagnostic.UnsupportedType(kind, _)                => s"Unsupported Elm type: $kind"
+    case CompileDiagnostic.UnsupportedExpression(kind, _)          => s"Unsupported Elm expression: $kind"
+    case CompileDiagnostic.UnsupportedPattern(kind, _)             => s"Unsupported Elm pattern: $kind"
+    case CompileDiagnostic.ModuleNameMismatch(expected, actual, _) =>
+      s"Expected Elm module $expected, but found $actual"
+    case CompileDiagnostic.ExposedNameMismatch(expected, actual, _) =>
+      s"Expected exposed values ${displayNames(expected)}, but found ${displayNames(actual)}"
+    case _: CompileDiagnostic.UnsupportedIRVersion      => "Unsupported Morphir IR version"
+    case CompileDiagnostic.UnsupportedExposure(kind, _) => s"Unsupported Elm exposure: $kind"
+    case CompileDiagnostic.AnnotationNameMismatch(annotationName, declarationName, _) =>
+      s"Type annotation $annotationName does not match declaration $declarationName"
+    case CompileDiagnostic.DuplicateParameter(name, _)    => s"Duplicate Elm parameter: $name"
+    case CompileDiagnostic.DuplicateExposedValue(name, _) => s"Duplicate exposed Elm value: $name"
+
+  private def displayNames(names: Set[Name]): String = names.toVector.map(_.toString).sorted.mkString("[", ", ", "]")
 
   private def diagnosticSpan(diagnostic: CompileDiagnostic): Span = diagnostic match
     case CompileDiagnostic.ParserFailure(parseDiagnostic)     => parseDiagnostic.toSpan
@@ -146,11 +173,12 @@ object MepElmFrontend:
       Json.Obj("line" -> Json.Num(line - 1), "character" -> Json.Num(column - 1))
     Json.Obj("start" -> position(span.start), "end" -> position(span.end))
 
-  private def sourceExposedValues(source: String): Set[Name] =
-    ModuleHeader.findFirstMatchIn(source).toSet.flatMap { matched =>
-      matched.group(
-        2
-      ).split(',').iterator.map(_.trim).filter(value => value.nonEmpty && value != "..").map(Name.fromString)
+  private def sourceMetadata(source: String): Option[(String, Set[Name])] =
+    Elm.parseAst(source).toOption.map { module =>
+      val exposedValues = module.exposing match
+        case ExposingExplicit(items) => items.collect { case ExposedValue(name) => Name.fromString(name) }.toSet
+        case _                       => Set.empty[Name]
+      module.name.fullName -> exposedValues
     }
 
   private def parseRequest(value: Json): Either[String, CompileRequest] = value match
@@ -175,13 +203,14 @@ object MepElmFrontend:
         _       <- Either.cond(documents.head.languageId == "elm", (), "The source document language must be elm")
         _       <- Either.cond(documents.head.uri.trim.nonEmpty, (), "The source document URI must not be empty")
         _       <- Either.cond(options.irVersion == "3", (), "Morphir Scala Elm only emits Morphir IR version 3")
+        _       <- Either.cond(!options.typesOnly, (), "Types-only compilation is not supported")
         _       <- Either.cond(PackageIdentity.matches(compilePackage.name), (), "Invalid package identity")
         _       <- Either.cond(
           compilePackage.exposedModules.size == 1 && ModuleIdentity.matches(compilePackage.exposedModules.head),
           (),
           "Invalid exposed module identity"
         )
-        _ <- ModuleHeader.findFirstMatchIn(documents.head.text).map(_.group(1)) match
+        _ <- sourceMetadata(documents.head.text).map(_._1) match
           case Some(sourceModule) =>
             Either.cond(
               sourceModule == compilePackage.exposedModules.head,
@@ -198,7 +227,7 @@ object MepElmFrontend:
       for
         uri      <- string(values, "uri")
         language <- string(values, "languageId")
-        version  <- integer(values, "version")
+        version  <- unsignedInteger(values, "version")
         text     <- string(values, "text")
       yield SourceDocument(uri, language, version, text)
     case _ => Left("document must be an object")
@@ -231,11 +260,10 @@ object MepElmFrontend:
       case Some(Json.Str(value)) => Right(value)
       case _                     => Left(s"$field must be a string")
 
-  private def integer(values: Map[String, Json], field: String): Either[String, Int] =
+  private def unsignedInteger(values: Map[String, Json], field: String): Either[String, BigInt] =
     values.get(field) match
       case Some(Json.Num(value)) =>
-        Option(value.toBigIntegerExact)
-          .filter(number => number.signum >= 0 && number.bitLength <= 31)
-          .map(_.intValue)
+        Try(BigInt(value.toBigIntegerExact)).toOption
+          .filter(number => number.signum >= 0 && number <= MaxDocumentVersion)
           .toRight(s"$field must be a non-negative integer")
       case _ => Left(s"$field must be a non-negative integer")

@@ -111,6 +111,28 @@ class MepSessionTests extends Test[Any]:
       assert(at(response, "result", "capabilities", "frontend", "compile") == Some(Json.Bool(true)))
     }
 
+    "responds to ping before initialization" in {
+      val response = MepSession.loaded(ProviderMetadata.default)
+        .handle("""{"jsonrpc":"2.0","id":"ping-loaded","method":"morphir.ping","params":{}}""")
+        .response
+        .flatMap(_.fromJson[Json].toOption)
+        .get
+
+      assert(at(response, "id") == Some(Json.Str("ping-loaded")))
+      assert(at(response, "result", "ok") == Some(Json.Bool(true)))
+    }
+
+    "rejects non-object ping parameters" in {
+      val response = MepSession.loaded(ProviderMetadata.default)
+        .handle("""{"jsonrpc":"2.0","id":41,"method":"morphir.ping","params":null}""")
+        .response
+        .flatMap(_.fromJson[Json].toOption)
+        .get
+
+      assert(at(response, "error", "code") == Some(Json.Num(-32602)))
+      assert(at(response, "error", "message") == Some(Json.Str("morphir.ping parameters must be an object")))
+    }
+
     "executes an initialize notification without responding" in {
       val transition = MepSession.loaded(ProviderMetadata.default).handle(
         """{"jsonrpc":"2.0","method":"morphir.initialize","params":{"protocolVersions":["0.1"],"host":{"name":"test-host","version":"1.0.0"}}}"""
@@ -169,6 +191,69 @@ class MepSessionTests extends Test[Any]:
 
       assert(transition.session.state == SessionState.Ready)
       assert(transition.response.isEmpty)
+    }
+
+    "returns exact extension metadata after initialization" in {
+      val response = initializedSession
+        .handle("""{"jsonrpc":"2.0","id":"info","method":"morphir.extension.info","params":{}}""")
+        .response
+        .flatMap(_.fromJson[Json].toOption)
+        .get
+
+      assert(at(response, "id") == Some(Json.Str("info")))
+      assert(at(response, "result") == Some(Json.Obj(
+        "id"      -> Json.Str("morphir-scala-elm"),
+        "name"    -> Json.Str("Morphir Scala Elm frontend"),
+        "version" -> Json.Str("0.1.0"),
+        "types"   -> Json.Arr(Json.Str("frontend"))
+      )))
+    }
+
+    "returns exact extension capabilities after initialization" in {
+      val response = initializedSession
+        .handle("""{"jsonrpc":"2.0","id":42,"method":"morphir.extension.capabilities","params":{}}""")
+        .response
+        .flatMap(_.fromJson[Json].toOption)
+        .get
+
+      assert(at(response, "id") == Some(Json.Num(42)))
+      assert(at(response, "result", "frontend", "languages") == Some(Json.Arr(
+        Json.Obj("id" -> Json.Str("elm"), "fileExtensions" -> Json.Arr(Json.Str(".elm")))
+      )))
+      assert(at(response, "result", "frontend", "irVersions") == Some(Json.Arr(Json.Str("3"))))
+      assert(at(response, "result", "frontend", "compile") == Some(Json.Bool(true)))
+      assert(at(response, "result", "frontend", "incremental") == Some(Json.Bool(false)))
+      assert(at(response, "result", "frontend", "fragments") == Some(Json.Bool(false)))
+      assert(at(response, "result", "streaming") == Some(Json.Bool(false)))
+      assert(at(response, "result", "incremental") == Some(Json.Bool(false)))
+      assert(at(response, "result", "cancellation") == Some(Json.Bool(false)))
+      assert(at(response, "result", "progress") == Some(Json.Bool(false)))
+    }
+
+    "rejects non-object extension metadata method parameters" in {
+      val methods   = Vector("morphir.extension.info", "morphir.extension.capabilities")
+      val responses = methods.zipWithIndex.map { case (method, index) =>
+        initializedSession
+          .handle(s"""{"jsonrpc":"2.0","id":${43 + index},"method":"$method","params":null}""")
+          .response
+          .flatMap(_.fromJson[Json].toOption)
+          .get
+      }
+
+      assert(responses.forall(response => at(response, "error", "code") == Some(Json.Num(-32602))))
+      assert(responses.zip(methods).forall { case (response, method) =>
+        at(response, "error", "message") == Some(Json.Str(s"$method parameters must be an object"))
+      })
+    }
+
+    "suppresses responses for core method notifications" in {
+      val methods     = Vector("morphir.ping", "morphir.extension.info", "morphir.extension.capabilities")
+      val transitions = methods.map(method =>
+        initializedSession.handle(s"""{"jsonrpc":"2.0","method":"$method","params":{}}""")
+      )
+
+      assert(transitions.forall(_.session.state == SessionState.Ready))
+      assert(transitions.forall(_.response.isEmpty))
     }
 
     "rejects repeated initialization as a lifecycle error" in {
@@ -250,6 +335,26 @@ class MepSessionTests extends Test[Any]:
       assert(responseModules == irModules)
     }
 
+    "ignores a fake module header inside a leading block comment" in {
+      val request =
+        """{"jsonrpc":"2.0","id":39,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":1,"text":"{-\nmodule Fake exposing (fake)\n-}\nmodule Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
+
+      val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+
+      assert(at(response, "result", "success") == Some(Json.Bool(true)))
+      assert(at(response, "result", "modules") == Some(Json.Arr(Json.Str("Example"))))
+    }
+
+    "compiles an underscore-bearing module with a multiline header" in {
+      val request =
+        """{"jsonrpc":"2.0","id":40,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/My_Module.elm","languageId":"elm","version":1,"text":"module My_Module exposing\n    ( add\n    )\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/example","exposedModules":["My_Module"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
+
+      val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+
+      assert(at(response, "result", "success") == Some(Json.Bool(true)))
+      assert(at(response, "result", "modules") == Some(Json.Arr(Json.Str("MyModule"))))
+    }
+
     "executes a valid compile notification without responding" in {
       val notification =
         """{"jsonrpc":"2.0","method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":1,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
@@ -302,6 +407,7 @@ class MepSessionTests extends Test[Any]:
       }.get
 
       assert(at(diagnostic, "code") == Some(Json.Str("ELM-IR006")))
+      assert(at(diagnostic, "message") == Some(Json.Str("Unsupported Elm type: function signature")))
       assert(at(diagnostic, "location", "uri") == Some(Json.Str("file:///workspace/Example.elm")))
     }
 
@@ -430,9 +536,54 @@ class MepSessionTests extends Test[Any]:
       assert(at(response, "error", "code") == Some(Json.Num(-32602)))
     }
 
+    "accepts the maximum unsigned 64-bit document version" in {
+      val request =
+        """{"jsonrpc":"2.0","id":35,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":18446744073709551615,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
+
+      val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+
+      assert(at(response, "result", "success") == Some(Json.Bool(true)))
+    }
+
+    "rejects a fractional document version" in {
+      val request =
+        """{"jsonrpc":"2.0","id":36,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":1.5,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
+
+      val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+
+      assert(at(response, "error", "code") == Some(Json.Num(-32602)))
+    }
+
+    "rejects a document version above the unsigned 64-bit range" in {
+      val request =
+        """{"jsonrpc":"2.0","id":37,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":18446744073709551616,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
+
+      val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+
+      assert(at(response, "error", "code") == Some(Json.Num(-32602)))
+    }
+
+    "rejects a negative document version" in {
+      val request =
+        """{"jsonrpc":"2.0","id":38,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":-1,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
+
+      val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+
+      assert(at(response, "error", "code") == Some(Json.Num(-32602)))
+    }
+
     "rejects an IR version other than 3" in {
       val request =
         """{"jsonrpc":"2.0","id":13,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":1,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"4"}}}"""
+
+      val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+
+      assert(at(response, "error", "code") == Some(Json.Num(-32602)))
+    }
+
+    "rejects types-only compilation in the first slice" in {
+      val request =
+        """{"jsonrpc":"2.0","id":34,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":1,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":true,"irVersion":"3"}}}"""
 
       val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
 

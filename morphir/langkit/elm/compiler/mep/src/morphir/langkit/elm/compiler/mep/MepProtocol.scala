@@ -25,7 +25,7 @@ object ProviderMetadata:
     compile = true
   )
 
-final case class SourceDocument(uri: String, languageId: String, version: Int, text: String) derives CanEqual
+final case class SourceDocument(uri: String, languageId: String, version: BigInt, text: String) derives CanEqual
 
 final case class CompilePackage(name: String, exposedModules: Vector[String]) derives CanEqual
 

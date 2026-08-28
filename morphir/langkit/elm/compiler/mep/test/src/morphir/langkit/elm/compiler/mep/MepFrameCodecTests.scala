@@ -19,6 +19,27 @@ class MepFrameCodecTests extends Test[Any]:
       assert(third.toOption.get.frames.map(_.toSeq) == Vector(body.toSeq))
     }
 
+    "allocates one bounded body only after a validated fragmented header" in {
+      val initial       = MepFrameCodec.decoder(maxPayloadBytes = 8, maxHeaderBytes = 32)
+      val partialHeader = initial.feed("Content-Length: 6\r\n".getBytes(UTF_8)).toOption.get.decoder
+
+      assert(initial.bodyAllocationCount == 0)
+      assert(!initial.hasAllocatedBody)
+      assert(partialHeader.bodyAllocationCount == 0)
+      assert(!partialHeader.hasAllocatedBody)
+
+      val partialBody = partialHeader.feed("\r\nab".getBytes(UTF_8)).toOption.get.decoder
+      assert(partialBody.bodyAllocationCount == 1)
+      assert(partialBody.hasAllocatedBody)
+
+      val moreBody = partialBody.feed("cd".getBytes(UTF_8)).toOption.get.decoder
+      val complete = moreBody.feed("ef".getBytes(UTF_8)).toOption.get
+
+      assert(moreBody.bodyAllocationCount == 1)
+      assert(complete.decoder.bodyAllocationCount == 1)
+      assert(complete.frames.map(bytes => String(bytes, UTF_8)) == Vector("abcdef"))
+    }
+
     "rejects duplicate Content-Length headers" in {
       val bytes = "Content-Length: 2\r\ncontent-length: 2\r\n\r\n{}".getBytes(UTF_8)
 
@@ -57,8 +78,28 @@ class MepFrameCodecTests extends Test[Any]:
       assert(result == Left(MepFrameError("invalid header line")))
     }
 
+    "rejects malformed UTF-8 in frame headers" in {
+      val malformed = Array(0xc3.toByte) ++ ": value\r\nContent-Length: 2\r\n\r\n{}".getBytes(UTF_8)
+
+      val result = MepFrameCodec.decoder().feed(malformed)
+
+      assert(result == Left(MepFrameError("invalid header encoding")))
+    }
+
+    "rejects non-ASCII frame header names" in {
+      val result = MepFrameCodec.decoder().feed("X-λ: value\r\nContent-Length: 2\r\n\r\n{}".getBytes(UTF_8))
+
+      assert(result == Left(MepFrameError("non-ASCII frame header")))
+    }
+
     "rejects a malformed Content-Length value" in {
       val result = MepFrameCodec.decoder().feed("Content-Length: 2.5\r\n\r\n{}".getBytes(UTF_8))
+
+      assert(result == Left(MepFrameError("invalid Content-Length")))
+    }
+
+    "rejects non-ASCII Content-Length digits" in {
+      val result = MepFrameCodec.decoder().feed("Content-Length: ٢\r\n\r\n{}".getBytes(UTF_8))
 
       assert(result == Left(MepFrameError("invalid Content-Length")))
     }

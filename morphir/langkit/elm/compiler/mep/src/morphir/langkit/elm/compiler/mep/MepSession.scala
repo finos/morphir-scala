@@ -31,6 +31,16 @@ final case class MepSession private (state: SessionState, provider: ProviderMeta
       case Right(Json.Obj(fields)) if state == SessionState.Stopped =>
         val response = fields.toMap.get("id").map(id => error(id, -32600, "The MEP session is stopped").toJson)
         SessionTransition(this, response)
+      case Right(Json.Obj(fields))
+          if fields.toMap.get("method") == Some(Json.Str("morphir.ping")) &&
+            fields.toMap.get("params").forall(_.isInstanceOf[Json.Obj]) =>
+        val response = fields.toMap.get("id").map(id => success(id, Json.Obj("ok" -> Json.Bool(true))).toJson)
+        SessionTransition(this, response)
+      case Right(Json.Obj(fields)) if fields.toMap.get("method") == Some(Json.Str("morphir.ping")) =>
+        val response = fields.toMap.get("id").map { id =>
+          error(id, -32602, "morphir.ping parameters must be an object").toJson
+        }
+        SessionTransition(this, response)
       case Right(request @ Json.Obj(_)) if state == SessionState.Ready => ready(request)
       case Right(request @ Json.Obj(_))                                => initialize(request)
       case Right(_) => SessionTransition(this, Some(error(Json.Null, -32600, "Invalid JSON-RPC request").toJson))
@@ -48,6 +58,24 @@ final case class MepSession private (state: SessionState, provider: ProviderMeta
     then SessionTransition(copy(state = SessionState.Stopped), None)
     else if fields.get("method") == Some(Json.Str("morphir.shutdown")) && !fields.contains("id") then
       SessionTransition(this, None)
+    else if fields.get("method") == Some(Json.Str("morphir.extension.info")) &&
+      fields.get("params").forall(_.isInstanceOf[Json.Obj])
+    then SessionTransition(this, fields.get("id").map(id => success(id, extensionInfo).toJson))
+    else if fields.get("method") == Some(Json.Str("morphir.extension.info")) then
+      SessionTransition(
+        this,
+        fields.get("id").map(id => error(id, -32602, "morphir.extension.info parameters must be an object").toJson)
+      )
+    else if fields.get("method") == Some(Json.Str("morphir.extension.capabilities")) &&
+      fields.get("params").forall(_.isInstanceOf[Json.Obj])
+    then SessionTransition(this, fields.get("id").map(id => success(id, capabilities).toJson))
+    else if fields.get("method") == Some(Json.Str("morphir.extension.capabilities")) then
+      SessionTransition(
+        this,
+        fields.get("id").map(id =>
+          error(id, -32602, "morphir.extension.capabilities parameters must be an object").toJson
+        )
+      )
     else
       (fields.get("method"), fields.get("id")) match
         case (Some(Json.Str("morphir.initialize")), Some(id)) =>
@@ -111,30 +139,34 @@ final case class MepSession private (state: SessionState, provider: ProviderMeta
 
   private def initializationResult: Json = Json.Obj(
     "protocolVersion" -> Json.Str(provider.protocolVersion),
-    "extension"       -> Json.Obj(
-      "id"      -> Json.Str(provider.id),
-      "name"    -> Json.Str(provider.name),
-      "version" -> Json.Str(provider.version),
-      "types"   -> Json.Arr(provider.types.map(Json.Str.apply)*)
+    "extension"       -> extensionInfo,
+    "capabilities"    -> capabilities
+  )
+
+  private def capabilities: Json = Json.Obj(
+    "frontend" -> Json.Obj(
+      "languages" -> Json.Arr(provider.languages.map(language =>
+        Json.Obj(
+          "id"             -> Json.Str(language.id),
+          "fileExtensions" -> Json.Arr(language.fileExtensions.map(Json.Str.apply)*)
+        )
+      )*),
+      "irVersions"  -> Json.Arr(provider.irVersions.map(Json.Str.apply)*),
+      "compile"     -> Json.Bool(provider.compile),
+      "incremental" -> Json.Bool(false),
+      "fragments"   -> Json.Bool(false)
     ),
-    "capabilities" -> Json.Obj(
-      "frontend" -> Json.Obj(
-        "languages" -> Json.Arr(provider.languages.map(language =>
-          Json.Obj(
-            "id"             -> Json.Str(language.id),
-            "fileExtensions" -> Json.Arr(language.fileExtensions.map(Json.Str.apply)*)
-          )
-        )*),
-        "irVersions"  -> Json.Arr(provider.irVersions.map(Json.Str.apply)*),
-        "compile"     -> Json.Bool(provider.compile),
-        "incremental" -> Json.Bool(false),
-        "fragments"   -> Json.Bool(false)
-      ),
-      "streaming"    -> Json.Bool(false),
-      "incremental"  -> Json.Bool(false),
-      "cancellation" -> Json.Bool(false),
-      "progress"     -> Json.Bool(false)
-    )
+    "streaming"    -> Json.Bool(false),
+    "incremental"  -> Json.Bool(false),
+    "cancellation" -> Json.Bool(false),
+    "progress"     -> Json.Bool(false)
+  )
+
+  private def extensionInfo: Json = Json.Obj(
+    "id"      -> Json.Str(provider.id),
+    "name"    -> Json.Str(provider.name),
+    "version" -> Json.Str(provider.version),
+    "types"   -> Json.Arr(provider.types.map(Json.Str.apply)*)
   )
 
   private def success(id: Json, result: Json): Json =

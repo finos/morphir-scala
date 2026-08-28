@@ -2,7 +2,8 @@ package morphir.langkit.elm.compiler.mep
 
 import kyo.*
 import kyo.test.*
-import morphir.langkit.elm.compiler.ir.{CompileInput, ElmToMorphirIRCompiler}
+import morphir.langkit.core.Span as SourceSpan
+import morphir.langkit.elm.compiler.ir.{CompileDiagnostic, CompileInput, ElmToMorphirIRCompiler}
 import org.finos.morphir.ir.{MorphirIRFile, MorphirIRVersion}
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.naming.{ModuleName, Name, PackageName}
@@ -47,6 +48,20 @@ class MepElmFrontendTests extends Test[Any]:
       val code = MepCompileError.jsonRpcCode(MepCompileError.IRSerializationFailure("bad JSON"))
 
       assert(code == -32603)
+    }
+  }
+
+  "MepElmFrontend.diagnosticMessage" - {
+    "uses stable human-readable text without exposing source span internals" in {
+      val diagnostics = Vector(
+        CompileDiagnostic.UnsupportedImport("Html", SourceSpan.zero)       -> "Elm imports are not supported: Html",
+        CompileDiagnostic.UnsupportedExpression("lambda", SourceSpan.zero) -> "Unsupported Elm expression: lambda",
+        CompileDiagnostic.DuplicateParameter("value", SourceSpan.zero)     -> "Duplicate Elm parameter: value"
+      )
+      val messages = diagnostics.map((diagnostic, _) => MepElmFrontend.diagnosticMessage(diagnostic))
+
+      assert(messages == diagnostics.map(_._2))
+      assert(messages.forall(message => !message.contains("Span")))
     }
   }
 
