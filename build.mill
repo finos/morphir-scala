@@ -440,6 +440,24 @@ trait MorphirCliBuildInfo extends MorphirVersionBuildInfo {
   def buildInfoPackageName = "org.finos.morphir.cli"
 }
 
+/** Build-time provider identity for the Elm MEP executable. */
+trait MorphirElmMepBuildInfo extends BuildInfo with ScalaModule {
+  def buildInfoPackageName         = "morphir.langkit.elm.compiler.mep"
+  override def buildInfoObjectName = "MepBuildInfo"
+
+  def mepProviderVersion = Task.Input {
+    Task.env.get("MORPHIR_ELM_MEP_VERSION").filter(_.nonEmpty).getOrElse("0.1.0")
+  }
+
+  def buildInfoMembers = Task {
+    Seq(
+      BuildInfo.Value("providerId", "morphir-scala-elm"),
+      BuildInfo.Value("providerName", "Morphir Scala Elm frontend"),
+      BuildInfo.Value("providerVersion", mepProviderVersion())
+    )
+  }
+}
+
 /**
  * BuildInfo wiring for `morphir.intelligence` — its own member set (adds JVM build info, no `platform` member since
  * this module isn't cross-platform) and package name, both hardcoded per [[MorphirExtensibilityBuildInfo]].
@@ -474,8 +492,8 @@ trait AssemblyPublishInfo extends JavaModule with PublishModule {
   }
 }
 
-/** Builds the CLI with GraalVM Native Image for the current operating system and architecture. */
-trait MorphirCliNativeImage extends mill.javalib.NativeImageModule { this: JavaModule =>
+/** Builds an assembly-backed executable for the current operating system and architecture with GraalVM Native Image. */
+trait MorphirNativeImage extends mill.javalib.NativeImageModule { this: JavaModule =>
   override def nativeImageClasspath = Task {
     Seq(assembly())
   }
@@ -484,6 +502,9 @@ trait MorphirCliNativeImage extends mill.javalib.NativeImageModule { this: JavaM
     Seq("--no-fallback", "-march=compatibility")
   }
 }
+
+/** Keeps the existing CLI native-image mixin name stable. */
+trait MorphirCliNativeImage extends MorphirNativeImage { this: JavaModule => }
 
 /**
  * Skips scaladoc generation, publishing an empty docJar instead.

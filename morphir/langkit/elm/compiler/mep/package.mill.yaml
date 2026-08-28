@@ -1,7 +1,7 @@
 extends: Module
 
 object jvm:
-  extends: [build.MorphirJVMModule, build.MorphirKyoCoreMvnDeps]
+  extends: [build.MorphirJVMModule, build.MorphirKyoCoreMvnDeps, build.MorphirElmMepBuildInfo, build.MorphirNativeImage]
   mainClass: morphir.langkit.elm.compiler.mep.Main
   moduleDeps:
   - build.morphir.langkit.elm.compiler.ir.jvm

@@ -21,6 +21,20 @@ class MepSessionTests extends Test[Any]:
       """{"jsonrpc":"2.0","id":1,"method":"morphir.initialize","params":{"protocolVersions":["0.1"],"host":{"name":"test-host","version":"1.0.0"}}}"""
     ).session
 
+  private def metadataResponses(provider: ProviderMetadata): (Json, Json) =
+    val initialize = MepSession.loaded(provider).handle(
+      """{"jsonrpc":"2.0","id":"init","method":"morphir.initialize","params":{"protocolVersions":["0.1"],"host":{"name":"test-host","version":"1.0.0"}}}"""
+    )
+    val initialized = initialize.session
+    val info        = initialized.handle(
+      """{"jsonrpc":"2.0","id":"info","method":"morphir.extension.info","params":{}}"""
+    )
+
+    (
+      initialize.response.flatMap(_.fromJson[Json].toOption).get,
+      info.response.flatMap(_.fromJson[Json].toOption).get
+    )
+
   "MepSession" - {
     "rejects non-object JSON-RPC envelopes as invalid requests" in {
       val session   = MepSession.loaded(ProviderMetadata.default)
@@ -109,6 +123,33 @@ class MepSessionTests extends Test[Any]:
       assert(at(response, "result", "extension", "name") == Some(Json.Str("Morphir Scala Elm frontend")))
       assert(at(response, "result", "extension", "version") == Some(Json.Str("0.1.0")))
       assert(at(response, "result", "capabilities", "frontend", "compile") == Some(Json.Bool(true)))
+    }
+
+    "reports the default build metadata exactly during initialize and extension info" in {
+      val (initialize, info) = metadataResponses(Main.providerMetadata)
+
+      assert(at(initialize, "result", "extension", "id") == Some(Json.Str("morphir-scala-elm")))
+      assert(at(initialize, "result", "extension", "name") == Some(Json.Str("Morphir Scala Elm frontend")))
+      assert(at(initialize, "result", "extension", "version") == Some(Json.Str("0.1.0")))
+      assert(at(info, "result", "id") == Some(Json.Str("morphir-scala-elm")))
+      assert(at(info, "result", "name") == Some(Json.Str("Morphir Scala Elm frontend")))
+      assert(at(info, "result", "version") == Some(Json.Str("0.1.0")))
+    }
+
+    "reports overridden build metadata exactly during initialize and extension info" in {
+      val provider = Main.providerMetadata(
+        id = "morphir-scala-elm",
+        name = "Morphir Scala Elm frontend",
+        version = "9.8.7"
+      )
+      val (initialize, info) = metadataResponses(provider)
+
+      assert(at(initialize, "result", "extension", "id") == Some(Json.Str("morphir-scala-elm")))
+      assert(at(initialize, "result", "extension", "name") == Some(Json.Str("Morphir Scala Elm frontend")))
+      assert(at(initialize, "result", "extension", "version") == Some(Json.Str("9.8.7")))
+      assert(at(info, "result", "id") == Some(Json.Str("morphir-scala-elm")))
+      assert(at(info, "result", "name") == Some(Json.Str("Morphir Scala Elm frontend")))
+      assert(at(info, "result", "version") == Some(Json.Str("9.8.7")))
     }
 
     "responds to ping before initialization" in {
