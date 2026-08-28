@@ -10,8 +10,9 @@ The family-root artifact is `org.finos.morphir::morphir-appkit`. Package `morphi
 `security find-generic-password` on the JVM, Node, and Scala Native. Tests inject a fake store and do not
 require a real Keychain.
 
-The `electron` leaf exists: [`morphir/appkit/electron`](./electron/README.md) publishes
-`morphir-appkit-electron` (kb intent 0025).
+The `electron` leaf (`morphir-appkit-electron`, kb intent 0025) retired with the Electron desktop
+UI; the Morphir desktop/web UI now lives at [finos/morphir-ui](https://github.com/finos/morphir-ui).
+The JVM and native `SecretStore` backends above remain and back the local web host.
 
 | Planned leaf | Artifact | Host |
 | --- | --- | --- |

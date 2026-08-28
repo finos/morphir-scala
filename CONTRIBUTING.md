@@ -124,7 +124,7 @@ GitHub release. A release runs in two phases:
    Nothing publishes to Maven Central in this phase; a bad draft is simply deleted.
 2. **Promote** — review the draft and publish it. That fires the `release-publish` workflow, which
    re-verifies the staged assets and uploads to Maven Central, routed by the tag's namespace
-   (`v*` libraries, `mill-plugins/v*` plugins, `desktop/v*` desktop archives).
+   (`v*` libraries, `mill-plugins/v*` plugins).
 
 Re-run a failed staging build by dispatching the CI workflow on the tag; re-run a failed promotion
 by dispatching the `release-publish` workflow with the tag. For a GitHub-Releases-only release,

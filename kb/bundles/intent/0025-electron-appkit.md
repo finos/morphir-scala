@@ -2,12 +2,13 @@
 type: Intent
 title: Electron appkit
 description: "Publish morphir-appkit-electron for running Morphir inside an Electron host using Scala."
-state: InProgress
+state: Superseded
 kind: feature
 breaking: false
 created: 2026-08-14
-state_since: 2026-08-15
+state_since: 2026-08-28
 tags: [appkit, electron]
+superseded_by: 0039
 ---
 
 # 0025 — Electron appkit

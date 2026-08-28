@@ -1,8 +1,8 @@
 ---
 type: Capability
 title: Packaging and Release
-description: "CI publishes Scala libraries and Mill plugins to Sonatype Central, plus CLI and desktop packages to GitHub Releases."
-tags: [ci, release, packaging, cli, desktop]
+description: "CI publishes Scala libraries and Mill plugins to Sonatype Central, plus CLI packages to GitHub Releases."
+tags: [ci, release, packaging, cli]
 status: stable
 generated:
   by: human:damreev
@@ -21,14 +21,12 @@ why something did not show up where you expected it.
 | --- | --- | --- |
 | Scala libraries | Sonatype Central | `org.finos.morphir:*` |
 | Mill Morphir plugins | Sonatype Central | `org.finos.morphir.mill:*` |
-| Desktop application archives | Sonatype Central | `org.finos.morphir:morphir-desktop-<os>-<arch>` |
-| Desktop archives, installers and checksums | GitHub Releases | `morphir-desktop-<os>-<arch>-<version>.<ext>` |
 | Native CLI packages and checksums | GitHub Releases | `morphir-cli-<os>-<arch>-<version>.tar.gz` or `.zip` |
 | Executable JVM CLI and checksum | GitHub Releases | `morphir-cli-jvm-<version>.jar` |
 | CLI library | Sonatype Central and Coursier channel | `org.finos.morphir:morphir-main_3` |
 
 Two aggregate gates stand between a trigger and anything leaving the repository: `ci` for lint, tests
-and knowledge base checks, and `packaging` for the CLI and desktop builds. Packaging runs on ordinary
+and knowledge base checks, and `packaging` for the CLI build. Packaging runs on ordinary
 pushes and pull requests as well as release tags. A release itself runs in two phases across two
 workflows: a tag push *stages* a draft GitHub release through `ci.yml`, and publishing that draft
 *promotes* it to Maven Central through `release-publish.yml`. Figure 1 shows every path, end to end.
@@ -37,7 +35,7 @@ workflows: a tag push *stages* a draft GitHub release through `ci.yml`, and publ
 flowchart TD
     PR[Pull request] --> Gate[ci gate: lint, tests, kb checks]
     Push[Push to main or 0.4.x] --> Gate
-    TagPush[Tag push: v*, mill-plugins/v*, desktop/v*] --> Gate
+    TagPush[Tag push: v*, mill-plugins/v*] --> Gate
     Dispatch[Manual dispatch] --> Gate
 
     Gate -->|branch push only: every area snapshots or milestones together, each from its own changelog| PublishAll[publish: ci.publish]
@@ -48,47 +46,36 @@ flowchart TD
     CliMatrix --> CliJvm[cli-package-jvm: executable assembly]
     CliNative --> CliVerify[cli-verify: assets and SHA-256 checksums]
     CliJvm --> CliVerify
-    CliVerify --> Packaging
+    CliVerify --> Packaging[packaging gate]
     CliVerify -->|refs/tags/v* only| CliRelease[cli-release: create or reuse the draft release, upload assets, re-download and verify]
-    CliRelease --> GhAssets
-
-    Gate --> Matrix[desktop-matrix: five platforms on a branch push or a desktop/v* tag; three-OS smoke matrix on a pull request]
-    Matrix --> Package[desktop-package: one runner per platform]
-    Package -->|raw electron-builder output, one artifact per platform| CiVerify[desktop-verify: canonicalize and verify, no signing, no upload]
-    Matrix --> Packaging[packaging gate]
-    Package --> Packaging
-    CiVerify --> Packaging
-
-    Packaging -->|refs/tags/desktop/v* only| Canon[desktop-release: canonicalize]
-    Canon -->|renamed assets, .sha256 sidecars, checksums.txt| Sign[sign checksums.txt with the PGP key]
-    Sign -->|checksums.txt.asc| Verify[verify: seven checks]
-    Verify -->|all checks pass| GhRelease[githubRelease: upload every asset to the draft]
-    GhRelease -->|archives, installers, checksums| GhAssets[(Draft GitHub Release assets)]
+    CliRelease --> GhAssets[(Draft GitHub Release assets)]
 
     GhAssets -->|a human publishes the draft| RelPub[release-publish.yml: target resolves the tag]
     RelPub -->|v*| PromoteLib[publish-libraries: verify CLI assets, then ci.sonatype.libraries]
     RelPub -->|mill-plugins/v*| PromotePlugins[publish-plugins: ci.sonatype.plugins]
-    RelPub -->|desktop/v*| PromoteDesktop[publish-desktop: download and re-verify staged assets, then ci.desktop.sonatype]
     PromoteLib --> Sonatype
     PromotePlugins --> Sonatype
-    PromoteDesktop -->|archives only| Sonatype
 
     Sonatype -.->|coursier resolves latest.release| Cli[CLI install]
 ```
 
 **Figure 1:** Two gates stand in the staging flow, and every path into `Sonatype` except the branch
 snapshot runs through the published-release promotion in `release-publish.yml`. Everything above
-`packaging` runs on ordinary pull requests and pushes, so broken CLI or desktop packaging surfaces
-where it was introduced. The three promotion jobs are each guarded on their own tag namespace. See
-[Release routing](#release-routing) for why a single tag can never satisfy two of them.
+`packaging` runs on ordinary pull requests and pushes, so broken CLI packaging surfaces
+where it was introduced. The two promotion jobs are each guarded on their own tag namespace. See
+[Release routing](#release-routing) for why a single tag can never satisfy both of them. A third area
+and a third promotion job, `publish-desktop`, existed for the Electron desktop application; it retired
+along with the app when the Electron desktop UI moved to
+[finos/morphir-ui](https://github.com/finos/morphir-ui) — see
+[intent 0039](../../intent/0039-remove-the-electron-desktop-ui-in-favor-of-finos-morphir-ui.md).
 
 ## Triggers
 
 | Event | GitHub Actions trigger | Condition | What runs |
 | --- | --- | --- | --- |
-| Pull request | `pull_request` | into `main`, `0.4.x` | `ci` gate; nothing publishes. CLI and desktop packaging each run one runner per operating system, unless their switches turn them off |
-| Branch push | `push` | to `main`, `0.4.x` | `ci` gate, then `publish` (`ci.publish`, every area) once it passes. CLI packaging runs its three-OS smoke matrix; desktop packaging runs all five platforms; either switch turns its half off |
-| Tag push | `push` | tags `v*`, `mill-plugins/v*`, `desktop/v*` | phase one of a release: `ci` gate, then full packaging and verification, then a **draft** GitHub release is created (or reused) with the assets attached. No Maven Central upload happens on a tag push |
+| Pull request | `pull_request` | into `main`, `0.4.x` | `ci` gate; nothing publishes. CLI packaging runs one runner per operating system, unless its switch turns it off |
+| Branch push | `push` | to `main`, `0.4.x` | `ci` gate, then `publish` (`ci.publish`, every area) once it passes. CLI packaging runs its three-OS smoke matrix, unless its switch turns it off |
+| Tag push | `push` | tags `v*`, `mill-plugins/v*` | phase one of a release: `ci` gate, then full packaging and verification, then a **draft** GitHub release is created (or reused) with the assets attached. No Maven Central upload happens on a tag push |
 | Release published | `release`, `types: [published]` on `release-publish.yml` | any published release | phase two: the tag namespace routes to one promotion job, which re-verifies the staged assets and uploads to Sonatype — unless the Maven Central switches stand it down |
 | Manual dispatch of CI | `workflow_dispatch` on `ci.yml` | whichever ref is chosen | the same jobs that ref would otherwise trigger. Choosing a release tag re-runs that tag's staging phase (the retry path for a failed build or upload) |
 | Manual dispatch of promotion | `workflow_dispatch` on `release-publish.yml` | `tag` input | re-runs phase two for that tag: the retry path for a failed Sonatype upload, or late promotion of a release published while the switches were off |
@@ -124,45 +111,33 @@ with the switches on.
 
 ### Release routing
 
-Three independently versioned areas exist: the libraries, the Mill plugin family, and the desktop
-application. Each releases through its own tag namespace, and the tag's shape is what routes a tag
-push to the right destination; nothing else about the event distinguishes them, since `github.ref`
-is the only thing that differs.
+Two independently versioned areas exist: the libraries and the Mill plugin family. Each releases
+through its own tag namespace, and the tag's shape is what routes a tag push to the right
+destination; nothing else about the event distinguishes them, since `github.ref` is the only thing
+that differs.
 
 | Tag shape | Stages (tag push, `ci.yml`) | Promotes (release published, `release-publish.yml`) |
 | --- | --- | --- |
 | `v0.6.0-M01` | CLI packages and checksums on a draft release, via `cli-release` → `ci.cli.githubRelease` | `publish-libraries`: verify the CLI assets, then `ci.sonatype.libraries` |
 | `mill-plugins/v0.1.0` | Nothing beyond the `ci` gate — plugins carry no GitHub release assets | `publish-plugins`: `ci.sonatype.plugins` |
-| `desktop/v0.3.0` | Archives, installers, signed checksums on a draft release, via `desktop-release` | `publish-desktop`: download and re-verify the staged assets, then `ci.desktop.sonatype` |
 | Anything else | Nothing, visibly: no job matches | Nothing: no promotion job matches |
 
 Staging guards use `startsWith(github.ref, 'refs/tags/<namespace>/v')`; promotion guards apply the
 same prefixes to the tag the `target` job resolved. Both are mutually exclusive by construction: a
-single tag can only ever start one of `v`, `desktop/v` or `mill-plugins/v`, so a release never
+single tag can only ever start one of `v` or `mill-plugins/v`, so a release never
 routes to two paths at once. Snapshot and milestone publishing from a branch push is unaffected by
 this table: `publish` still runs `ci.publish` on `main` and `0.4.x`, publishing every area
 together, each stamped from its own changelog. Only the release path routes by tag.
 
-### Desktop packaging in ordinary CI
+### Desktop application packaging (retired)
 
-Desktop packaging is no longer release-only. It also runs from a pull request and from a push, so a change
-that breaks `electron-builder`, the Scala.js link, or canonicalization is caught where it was introduced
-rather than at release time. Four jobs carry this:
-
-| Job | Does |
-| --- | --- |
-| `desktop-matrix` | Computes the platform set: all five tokens on a `desktop/v*` tag or a push to `main` or `0.4.x`; the three-OS smoke matrix everywhere else (a pull request, or another namespace's tag). Outputs both the matrix JSON and the same set as a comma-separated token list. |
-| `desktop-package` | The same packaging matrix described below, now sized from `desktop-matrix`'s output instead of always covering all five. |
-| `desktop-verify` | Downloads the packaged artifacts, normalizes staging the way `desktop-release` does, then runs `ci.desktop.canonicalize` and `ci.desktop.verify` over exactly that subset, with the signature check relaxed because nothing signs `checksums.txt` here and a pull request carries no GPG secret. No signing and no upload happen in this job, or anywhere in ordinary CI. |
-| `packaging` | Aggregates the three above, the way `ci` aggregates lint and the test jobs. It reads `desktop-matrix` first, because a skip on its own is ambiguous: `desktop-package` also skips when `ci` fails upstream. If `desktop-matrix` was skipped the switch is off and every member must be skipped together; if it ran, packaging was expected to run and only success will do. |
-
-The repository variable `MORPHIR_CI_PACKAGE_DESKTOP` is the switch: unset, or set to anything other than
-`false`, packaging runs; set to `false`, it does not. It is a repository variable, not a workflow `env:`,
-because GitHub Actions does not expose the `env` context inside a job's `if:` condition. An `env`-based
-switch would evaluate empty there and the gated jobs would never run. A maintainer flips it from repository
-settings, no commit required. A `desktop/v*` tag ignores it entirely: turning off ordinary-CI
-packaging must never weaken a real release. `desktop-release` depends on `packaging` rather than on
-`desktop-package` directly, exactly as `publish` depends on the whole `ci` gate rather than one test job.
+A third area, the Electron desktop application, released through a `desktop/v*` tag namespace,
+staged via `desktop-matrix`/`desktop-package`/`desktop-verify`/`desktop-release` (the last also
+running in ordinary CI, gated by a `MORPHIR_CI_PACKAGE_DESKTOP` repository-variable switch that a
+release tag ignored) and promoted via `publish-desktop` (`ci.desktop.sonatype`). All of it retired
+with the app when the Electron desktop UI moved to
+[finos/morphir-ui](https://github.com/finos/morphir-ui) — see
+[intent 0039](../../intent/0039-remove-the-electron-desktop-ui-in-favor-of-finos-morphir-ui.md).
 
 ## Publishing libraries and plugins
 
@@ -173,9 +148,10 @@ packaging must never weaken a real release. `desktop-release` depends on `packag
 | 3 | Upload | one module at a time (`uploadJobs: 1`); parallel upload hits an SLF4J failure (morphir-scala#957) |
 | 4 | Version | each area's `streamVersion` stamps its own coordinate; see [Versions](#versions) |
 
-`excludedModuleSubstrings` in `ci/package.mill.yaml` drops `.integration.` (test-only) and
-`.desktop.dist.`: the desktop archives publish through the separate `ci.desktop` destination described
-below, because there is no archive to publish on an ordinary snapshot run. Snapshots publish from
+`excludedModuleSubstrings` in `ci/package.mill.yaml` drops `.integration.` (test-only). It also
+dropped `.desktop.dist.` before the Electron desktop UI retired: the desktop archives published
+through a separate `ci.desktop` destination, because there was no archive to publish on an ordinary
+snapshot run. Snapshots publish from
 `main`; milestones and releases publish by promoting a tag's draft release. Promotion checks out the
 tag itself, so `streamVersion` resolves the released version: HEAD sits at distance zero on the
 stream's tag and the tag agrees with the changelog's release line. See
@@ -229,94 +205,29 @@ the jobs. Pull requests and branch pushes exercise the three-OS smoke matrix —
 GraalVM builds per ordinary merge would be paid for assets nothing publishes. A root `v*` tag always
 exercises all five and ignores the switch.
 
-## Publishing the desktop app
+## Publishing the desktop app (retired)
 
-Five platform tokens cover the desktop application, each packaged on a runner that matches its target:
-
-| Token | Runner | Archive | Installers |
-| --- | --- | --- | --- |
-| `mac-aarch64` | `macos-14` | zip | dmg |
-| `mac-amd64` | `macos-15-intel` | zip | dmg |
-| `linux-amd64` | `ubuntu-24.04` | tar.gz | AppImage, deb |
-| `linux-aarch64` | `ubuntu-24.04-arm` | tar.gz | AppImage, deb |
-| `win-amd64` | `windows-latest` | zip | exe |
-
-On a `desktop/v*` tag, all five package and the staging phase then runs as one ordered sequence,
-with the Sonatype upload deferred to promotion:
-
-| # | Step | Runs on | What it does |
-| --- | --- | --- | --- |
-| 1 | `desktop-package` (matrix) | each of the five runners above | links Scala.js with `fullLinkJS`, runs `electron-builder` through `morphir/desktop/scripts/package.sh`, uploads the raw output as a workflow artifact |
-| 2 | `canonicalize` | `desktop-release`, one Linux runner | renames staged output to canonical names, writes a `.sha256` sidecar per asset and one `checksums.txt` |
-| 3 | Sign `checksums.txt` | same runner | GPG detached signature over `checksums.txt`, producing `checksums.txt.asc` |
-| 4 | `verify` | same runner | runs seven named checks against the release directory |
-| 5 | `githubRelease --tag` | same runner | uploads every file in the release directory to that tag's draft release |
-| 6 | `publish-desktop` | `release-publish.yml`, after a human publishes the draft | downloads the staged assets back off the release, re-runs `verify` (signature included), then uploads all five archives to Sonatype Central in one deployment |
-
-Outside a release, [desktop packaging in ordinary CI](#desktop-packaging-in-ordinary-ci) runs steps 1, 2 and
-4 only, restricted to whatever subset `desktop-matrix` computed, with step 4's signature check relaxed and
-no step 3, 5 or 6. See that section for the job breakdown.
-
-`canonicalize` and `verify` both take a `--platforms` option: a comma-separated list of the tokens above,
-defaulting to all five. `DesktopRelease.canonicalize` fails, naming every missing platform, if any requested
-token has no staged directory. That is correct for a release, where every platform must be present, and it
-is why the subset option exists: a pull request stages only the one platform `desktop-matrix` chose. An
-unrecognized or blank token in the list is also rejected, naming the valid tokens.
-
-`canonicalize` and `verify` are pure preparation: they read and write files, and make no network call.
-`verify` exists because the digests are computed once, during canonicalization, on the runner that staged
-the assets, and the assets then cross a job boundary (uploaded as workflow artifacts, downloaded again)
-before anything publishes them. Recomputing each digest from the bytes on disk after that crossing is what
-catches corruption in transit.
-
-`verify` reports every problem it finds rather than stopping at the first:
-
-| Check | Confirms |
-| --- | --- |
-| `expected-assets-present` | every platform's archive and each of its installers exists under its canonical name |
-| `no-empty-assets` | no asset is a zero-byte file |
-| `archive-magic-numbers` | zip and tar.gz assets start with the right magic bytes, not a truncated download or an HTML error page |
-| `version-in-asset-names` | every asset name embeds the version being published |
-| `sidecar-digests-match` | each asset's recomputed sha256 matches its `.sha256` sidecar, and the sidecar's own filename matches |
-| `checksums-covers-assets` | `checksums.txt` lists every asset exactly once, and nothing that is not an asset |
-| `signature-present` | `checksums.txt.asc` exists, is non-empty, and begins with the PGP signature header |
-
-`githubRelease` uploads with `--clobber`. If no release exists yet for the tag, it creates one as a
-**draft** first and uploads into that. Publishing the release itself stays a human action, not
-something this step does automatically — and pressing that publish button is exactly what starts
-promotion: `release-publish.yml` fires, downloads the staged assets, re-verifies them, and runs the
-Sonatype upload. That upload stands down when either
-[Maven Central switch](#skipping-maven-central) is off; the GitHub side of the release is
-unaffected.
-
-Maven Central receives archives only; the native installers (dmg, NSIS `.exe`, AppImage, `.deb`) go to the
-GitHub Release only, because an automated consumer can act on a portable archive but not on an installer.
-The Maven layout is the archive plus a POM, with no sources jar and no javadoc jar, mirroring
-`com.lihaoyi:mill-dist-native-mac-aarch64`.
-
-`sonatype` uploads all five archives as **one** deployment under a single bundle name
-(`morphir-desktop-<version>`), so nothing releases unless all five validate together. Sonatype Central's
-`AUTOMATIC` publishing type releases a deployment irrevocably on success; five separate deployments could
-leave a partial release with no way to re-run it if, say, the third of five failed after the first two had
-already gone public. One deployment is what makes this step safely retriable.
-
-The word bundle describes the upload, not the artifacts. Maven Central still receives five separate
-coordinates, each with its own POM, archive and signatures, and a consumer resolves
-`org.finos.morphir:morphir-desktop-mac-aarch64` exactly as it would any other artifact. A Sonatype
-deployment bundle is simply the unit Central validates and releases: one zip in Maven repository layout
-that can carry many coordinates at once.
+The Electron desktop application packaged five platform tokens (mac-aarch64, mac-amd64,
+linux-amd64, linux-aarch64, win-amd64), each as a zip or tar.gz archive with a platform installer
+(dmg, AppImage/deb, or exe), canonicalized, signed, verified against seven named checks, and staged
+on a `desktop/v*` tag's draft GitHub release before a `publish-desktop` promotion job uploaded all
+five as one Sonatype Central deployment bundle. All of it retired with the app when the Electron
+desktop UI moved to [finos/morphir-ui](https://github.com/finos/morphir-ui) — see
+[intent 0039](../../intent/0039-remove-the-electron-desktop-ui-in-favor-of-finos-morphir-ui.md).
 
 ## Versions
 
-Three areas version independently, each through the same `MorphirVersionedModule` trait
-(`build.mill`) configured with its own namespace, changelog and (for the plugin family and the
-desktop app) a floor below which the release line may not regress:
+Two areas version independently, each through the same `MorphirVersionedModule` trait
+(`build.mill`) configured with its own namespace and changelog, and (for the plugin family) a floor
+below which the release line may not regress:
 
 | Area | Namespace | Changelog | Tag pattern | Coordinates |
 | --- | --- | --- | --- | --- |
 | Libraries | `None` (the root stream) | `/CHANGELOG.md` | `v*` | `org.finos.morphir:*` |
 | Mill plugin family | `mill-plugins` | `mill-plugins/morphir/CHANGELOG.md` | `mill-plugins/v*` | `org.finos.morphir.mill:*` |
-| Desktop application | `desktop` | `morphir/desktop/CHANGELOG.md` | `desktop/v*` | `org.finos.morphir:morphir-desktop-*` |
+
+A third area, the Electron desktop application (namespace `desktop`, tag pattern `desktop/v*`),
+retired along with the app — see [intent 0039](../../intent/0039-remove-the-electron-desktop-ui-in-favor-of-finos-morphir-ui.md).
 
 Each area's own `streamVersion` task composes its coordinate from two sources. The changelog supplies
 the **release line**, whose topmost *undated* heading is the number a build is heading toward. Git
@@ -328,18 +239,11 @@ release and a snapshot, the same as before; what changed is where the release li
 Git tag resolution had to change to make this possible. Mill's own `VcsVersion` runs `git describe
 --abbrev=0 --tags` with no `--match`, returning the nearest tag of any shape. That works only while the
 whole repository shares one tag stream. The moment a second namespace exists, that stops being safe: an
-unfiltered lookup would let the first `desktop/v0.3.0` tag become the "nearest tag" for a library
+unfiltered lookup would let the first `mill-plugins/v0.1.0` tag become the "nearest tag" for a library
 build too, and reject it outright as not a semantic version. So every stream, including the original
 library one, now resolves its nearest tag with `git describe --match '<pattern>'` (`GitStream` /
-`TagStream`). The library stream needed that fix as much as the two new ones did, simply to keep
+`TagStream`). The library stream needed that fix as much as the plugin stream did, simply to keep
 working once a second namespace could exist.
-
-`ci.desktop.version` reads the desktop stream's version directly from one
-`morphir.desktop.dist.platform[<token>]` dist module rather than recomputing it, so the packaging jobs
-(`canonicalize`, `verify`, `githubRelease`, `sonatype`) and the dist modules that actually publish can
-never disagree about what version is being built. Which token it reads from is arbitrary: every
-`platform[<token>]` module shares the same namespace, changelog and tag stream, so all five resolve to
-the same version.
 
 **Library snapshot coordinates changed meaning.** Under the previous scheme the number after the base
 version counted commits *past* the last release: `0.5.0-M04-12-SNAPSHOT` meant twelve commits past the
@@ -365,25 +269,21 @@ shared stream.
 
 ## Signing keys
 
-Two roles stay apart, on purpose:
-
 | Role | Secrets | Used by | Populated today |
 | --- | --- | --- | --- |
-| PGP artifact signing | `ORG_MORPHIR_CI_GPG_PRIVATE_KEY`, `ORG_MORPHIR_CI_GPG_PASSPHRASE` | library publish, desktop `checksums.txt` signing, desktop Sonatype upload | yes |
-| Platform code signing | `ORG_MORPHIR_CSC_LINK`, `ORG_MORPHIR_CSC_KEY_PASSWORD`, `ORG_MORPHIR_APPLE_ID`, `ORG_MORPHIR_APPLE_APP_SPECIFIC_PASSWORD`, `ORG_MORPHIR_APPLE_TEAM_ID` | `desktop-package` only | no |
+| PGP artifact signing | `ORG_MORPHIR_CI_GPG_PRIVATE_KEY`, `ORG_MORPHIR_CI_GPG_PASSPHRASE` | library and plugin publish (snapshot and promotion) | yes |
 
-The PGP key is deliberately reused: it is the same key that already signs the Maven artifacts, so a
-desktop release needs no new key material. Platform code signing is a separate concern with its own
-secrets, read only by the packaging runners. electron-builder signs a binary when it finds those
-certificates and produces an unsigned build when it does not, so desktop binaries ship unsigned today.
+The PGP key is the same key across every publish path. A second role, platform code signing
+(`ORG_MORPHIR_CSC_LINK`, `ORG_MORPHIR_CSC_KEY_PASSWORD`, `ORG_MORPHIR_APPLE_ID`,
+`ORG_MORPHIR_APPLE_APP_SPECIFIC_PASSWORD`, `ORG_MORPHIR_APPLE_TEAM_ID`), signed `electron-builder`
+output for the Electron desktop application and retired with it — see
+[intent 0039](../../intent/0039-remove-the-electron-desktop-ui-in-favor-of-finos-morphir-ui.md).
 
 ## Retriability
 
-A failed release run is safe to re-run. Packaging is idempotent: running `desktop-package` again for the
-same version produces the same files. `canonicalize` and `verify` are pure preparation with no side
-effect beyond writing files. `githubRelease` uploads with `--clobber`, so a re-run overwrites rather than
-duplicating. `sonatype` uploads one atomic bundle, so a failed attempt publishes nothing and a retry starts
-from a clean slate. Nothing in the desktop path can leave a release half-published.
+A failed release run is safe to re-run. `githubRelease` uploads with `--clobber`, so a re-run
+overwrites rather than duplicating. `sonatype` uploads one atomic bundle per area, so a failed
+attempt publishes nothing and a retry starts from a clean slate.
 
 ## Installing the CLI
 
@@ -414,9 +314,10 @@ an artifact reaches Maven Central.
 ## Where to go next
 
 [Continuous Integration](/continuous-integration.md) covers every CI job, including `publish`,
-`publish-plugins`, `desktop-package` and `desktop-release`, alongside the jobs that are not about
+`publish-plugins`, `cli-release` and their siblings, alongside the jobs that are not about
 releasing at all. [Build System](/build-system.md) covers Mill and mise mechanics this page assumes.
-The desktop app's own story, still in progress, lives in
-[intent 0030](../../intent/0030-morphir-desktop-electron-app.md) and
-[intent 0031](../../intent/0031-publish-the-morphir-desktop-application.md); the three-stream
+The Electron desktop app's own story — built by [intent 0030](../../intent/0030-morphir-desktop-electron-app.md)
+and published by [intent 0031](../../intent/0031-publish-the-morphir-desktop-application.md), both
+superseded by [intent 0039](../../intent/0039-remove-the-electron-desktop-ui-in-favor-of-finos-morphir-ui.md)
+— retired in favor of [finos/morphir-ui](https://github.com/finos/morphir-ui). The two-stream
 versioning convention itself is [intent 0032](../../intent/0032-independent-version-streams.md).

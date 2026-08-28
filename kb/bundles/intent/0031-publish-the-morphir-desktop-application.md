@@ -2,12 +2,13 @@
 type: Intent
 title: Publish the morphir-desktop application
 description: "Ship the Electron desktop app from CI to GitHub Releases and Maven Central, with per-asset checksums and Mill-style platform naming."
-state: InProgress
+state: Superseded
 kind: feature
 breaking: false
 created: 2026-08-16
-state_since: 2026-08-16
+state_since: 2026-08-28
 tags: [desktop, release, publishing]
+superseded_by: 0039
 ---
 
 # 0031 — Publish the morphir-desktop application

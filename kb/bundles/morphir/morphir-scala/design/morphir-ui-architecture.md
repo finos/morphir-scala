@@ -11,8 +11,12 @@ generated:
 
 # morphir-ui architecture
 
-`morphir-ui` is the client surface for Morphir: kyo-ui views and the service contract they consume,
-shared by the browser and the Electron desktop app ([intent 0029](../../../intent/0029-morphir-ui-kyo-ui-client-library.md)).
+`morphir-ui` is the client surface for Morphir: kyo-ui views and the service contract they consume
+([intent 0029](../../../intent/0029-morphir-ui-kyo-ui-client-library.md)), mounted today by the
+local web host started by `morphir server` (`morphir/web/renderer`, `morphir/web/server`). It was
+also shared, unchanged, by the Electron desktop app (`morphir/desktop`) until that app retired in
+favor of [finos/morphir-ui](https://github.com/finos/morphir-ui)
+([intent 0039](../../../intent/0039-remove-the-electron-desktop-ui-in-favor-of-finos-morphir-ui.md)).
 This note records how its code is organized, which UI-to-model paradigm it uses, and how styling is
 expressed. It is a Design Note: it changes as the library grows.
 
@@ -41,9 +45,10 @@ flowchart LR
 
 **Figure 1:** unidirectional flow; only commands write state, only signals reach views.
 
-Testing has four independent layers: contract round-trips over the in-memory jsonrpc transport, store commands
-asserted on signal values with no DOM, views rendered through `UI.runRender(ui).take(1)`, and an Electron smoke run
-against the real app. The render stream never ends because it emits on every signal change.
+Testing has three independent layers: contract round-trips over the in-memory jsonrpc transport, store commands
+asserted on signal values with no DOM, and views rendered through `UI.runRender(ui).take(1)`. The render stream never
+ends because it emits on every signal change. A fourth layer, an Electron smoke run against the real desktop app,
+retired with `morphir/desktop` (see [Desktop smoke boundary](#desktop-smoke-boundary) below).
 
 ## Animation and other DOM-level work
 
@@ -58,39 +63,20 @@ sets the size on the element already on screen, letting the panel's own typed tr
 setting is honoured one level up, by a class on the shell root: the root re-renders when the setting changes, so an
 inline gate written by an adapter would be lost along with the element it was written to. Collapsing a
 region drives its extent to zero rather than unmounting it, which is what lets the neighbours reflow with the slide.
-Adapters are proven in the Electron smoke run rather than in unit tests; the store's commands and the views stay
-unit-tested as usual.
+Adapters were proven in the retired Electron smoke run rather than in unit tests; the store's commands and the views
+stay unit-tested as usual. No replacement adapter-level smoke coverage exists today.
 
-## Desktop smoke boundary
+## Desktop smoke boundary (retired)
 
-The test-only Scala.js DOM driver owns the desktop smoke scenario. The driver exports one
-`runMorphirDesktopSmoke` function. It drives the settings UI and returns a flat object with exactly 18 Boolean
-assertions. The small Electron adapter is event-driven: it waits for the window, loads the linked driver, captures the
-screenshot, and closes the window. It then writes the accumulated raw renderer log, writes the flat result augmented
-with the renderer-console sentinel assertion, and exits.
-
-The named, cached `morphir.desktop.smokeRun` Mill task owns the rest of the workflow. Its declared sources, linked
-Scala.js bundles, and platform `Task.Input` make the run input-aware. A separate cached task performs a locked
-`npm ci` in task-local storage and runs Electron's installer there. Before assembly, the smoke task validates the
-task-owned run root beneath `Task.dest`, deletes the prior run root, and recreates it. It then assembles an isolated app
-and enforces the 90-second process timeout.
-
-After the process returns, the task requires confirmed process-tree ownership and termination before it continues. It
-merges the process logs, scans the artifacts and Electron user data for a sentinel token, then validates process
-status, exit code, required artifacts, and the exact 18-key result. Diagnostics redact the sentinel. The `finally`
-block deletes separately validated `user-data` only when tree termination was confirmed. If ownership is not
-confirmed, the task fails and retains `user-data` for safe diagnosis. A successful cached run retains its run root,
-assembled app, and artifacts as Mill output.
-
-Process ownership varies by the platform input. Darwin launches Electron in a verified child process group. Linux
-uses `setsid` and fails with a clear diagnostic when that executable is unavailable. Windows uses a
-best-effort boundary: a generated Java wrapper records the child process and completion, then cleanup calls
-`taskkill /PID <pid> /T /F`. The Windows strategy is isolated behind the boundary helper so a stronger mechanism can
-replace it later. Platform-independent tests cover Windows boundary construction, the generated Java wrapper, and
-argument preservation. The `taskkill` cleanup remains best-effort and was not verified on a live Windows host.
-
-`morphir/desktop/scripts/smoke.sh` remains a thin launcher. It sets strict shell flags, changes to the repository root,
-and delegates to `./mill --ticker false morphir.desktop.smokeRun`.
+`morphir/desktop` carried a desktop smoke scenario: a test-only Scala.js DOM driver
+(`runMorphirDesktopSmoke`) drove the settings UI inside a real Electron process, and a named, cached
+`morphir.desktop.smokeRun` Mill task owned process-tree ownership, artifact verification, and a
+sentinel-token leak scan across Darwin, Linux and Windows. It retired with the rest of
+`morphir/desktop` when the Electron desktop UI moved to
+[finos/morphir-ui](https://github.com/finos/morphir-ui)
+([intent 0039](../../../intent/0039-remove-the-electron-desktop-ui-in-favor-of-finos-morphir-ui.md)).
+No replacement end-to-end smoke run exists for the local web host today; its adapters (see
+[Animation and other DOM-level work](#animation-and-other-dom-level-work) above) are unit-tested only.
 
 ## Package layout
 
@@ -128,11 +114,13 @@ pseudo-elements, font smoothing). If Kyo grows the vocabulary, the quarantine sh
 
 ## Host boundary
 
-The desktop app splits the same way: `morphir/desktop/main` holds testable services (no Electron
-types, so its test bundle never links `require("electron")`), `morphir/desktop/boot` holds the
-Electron bootstrap, and `morphir/desktop/renderer` mounts the shell. Hosts adopt the theme by
-injecting `Theme.css`.
+`morphir/web/renderer` mounts the shell in the browser; `morphir/web/server` is the JVM loopback host
+`morphir server` starts. Hosts adopt the theme by injecting `Theme.css`.
 
-The browser host and shared GitHub connection store follow the same boundary. The UI owns a
+The retired Electron desktop app split the same way: `morphir/desktop/main` held testable services (no
+Electron types, so its test bundle never linked `require("electron")`), `morphir/desktop/boot` held
+the Electron bootstrap, and `morphir/desktop/renderer` mounted the shell.
+
+The browser host and shared GitHub connection store follow the host-boundary rule above. The UI owns a
 transport-blind connection contract and safe status signals. Host processes own submitted tokens, validation, and
 persistence. See [GitHub connection settings and local web host](./github-connection-settings-and-local-web-host.md).

@@ -349,13 +349,6 @@
       "changelogPath": "mill-plugins/morphir/CHANGELOG.md",
       "startingVersion": "0.5.0-M04",
       "millSelector": "mill-plugins.morphir"
-    },
-    {
-      "name": "desktop",
-      "namespace": "desktop",
-      "changelogPath": "morphir/desktop/CHANGELOG.md",
-      "startingVersion": "0.1.0",
-      "millSelector": "morphir.desktop.dist"
     }
   ]
 }

@@ -20,7 +20,7 @@ branches.
 | `knowledge-base` | `kb check` and `kb intent check` |
 | `test-jvm` | Mill `ci.testJvm`: the curated non-classic JVM platform inventory, including the Cucumber/JUnit5 `langkit.itest` suite. The generated-fixture-backed classic runtime remains in its separate jobs. |
 | `test-js` | ScalaJS tests, including the WebAssembly link variants, for every JS/Wasm module except the desktop/UI subset (see `test-js-desktop`) |
-| `test-js-desktop` | The same ScalaJS/WebAssembly workload as `test-js`, scoped to `morphir.ui`, `morphir.desktop` and `morphir.appkit.electron`. Split into its own runner because linking that subset alongside the rest of the JS tree in one Mill daemon exceeded the 8 GB heap in `.mill-jvm-opts`; `ci.testJs`/`ci.testJsWasmLink` (`ci/MorphirCi.mill`) resolve the shared wildcard once and partition it with `millbuild.JsTestSelectors`, so the two jobs' targets are exhaustive and disjoint by construction. |
+| `test-js-desktop` | The same ScalaJS/WebAssembly workload as `test-js`, scoped to `morphir.ui`. Split into its own runner because linking that subset alongside the rest of the JS tree in one Mill daemon exceeded the 8 GB heap in `.mill-jvm-opts`; `ci.testJs`/`ci.testJsWasmLink` (`ci/MorphirCi.mill`) resolve the shared wildcard once and partition it with `millbuild.JsTestSelectors`, so the two jobs' targets are exhaustive and disjoint by construction. `morphir.desktop` and `morphir.appkit.electron` shared this job before the Electron desktop UI retired ([intent 0039](../../intent/0039-remove-the-electron-desktop-ui-in-favor-of-finos-morphir-ui.md)); the job and its `desktop` group name stayed rather than being renamed for `morphir.ui` alone. |
 | `test-native` | Mill `ci.testNativePrepare` followed by four `ci.testNative` shards. `millbuild.NativeTestSelectors` resolves and partitions every Native test target; the Mise launcher gives each shard a fresh daemonless Mill JVM. |
 | `publish` | Sonatype snapshot publication via Mill `ci.publish`, on `main` and `0.4.x` branch pushes only — release tags promote through `release-publish.yml` instead. The publish set is whatever Mill resolves for `__.publishSonatypeCentral`, including the Mill Morphir plugin family (`org.finos.morphir.mill`); the test-only `integration` module is not a publish module and is not uploaded. Destination tasks live under `ci.sonatype.*`. |
 | `cli-matrix` | Selects five native targets on a root `v*` tag, or a three-operating-system smoke matrix on pull requests and branch pushes. |
@@ -28,21 +28,20 @@ branches.
 | `cli-package-jvm` | Builds and smoke-tests Mill's executable assembly JAR, then uploads it with its SHA-256 sidecar. This is the Windows ARM64 distribution because GraalVM has no Native Image build for that platform. |
 | `cli-verify` | Downloads the native and JVM packages, verifies the expected set and digests, rejects extra files, and writes `checksums.txt`. |
 | `cli-release` | Repeats verification, creates the root `v*` GitHub Release as a draft when none exists, attaches the CLI packages and checksums, then re-downloads and re-verifies the staged assets. It runs only for a root `v*` tag ref; pull requests and branch pushes have no upload path or write token. Destination tasks live under `ci.cli.*`. |
-| `desktop-package` | Matrix job, one runner per platform token (`mac-aarch64`, `mac-amd64`, `linux-amd64`, `linux-aarch64`, `win-amd64`). Links Scala.js with `fullLinkJS` and runs `electron-builder`, then uploads the raw output as a workflow artifact. Runs in ordinary CI too, sized by `desktop-matrix`, unless the `MORPHIR_CI_PACKAGE_DESKTOP` switch turns it off; a `desktop/v*` tag ignores the switch. |
-| `desktop-release` | One Linux runner. Canonicalizes the staged assets, signs `checksums.txt`, verifies, then uploads everything to the draft GitHub Release — the Sonatype upload happens at promotion, in `release-publish.yml`. Destination tasks live under `ci.desktop.*`. Runs only for a `desktop/v*` tag ref, and needs `packaging` to finish first. |
 | `ci` | Aggregate gate, depending on lint, knowledge-base and all four test jobs |
 
 See [Packaging and Release](/packaging-and-release.md) for what `publish`, `cli-package-native`,
-`cli-package-jvm`, `cli-release`, `desktop-package`, and `desktop-release` actually ship, the ordered steps
-each one runs, and the signing keys involved. This page is
-the job inventory; that one is the release story.
+`cli-package-jvm`, and `cli-release` actually ship, the ordered steps each one runs, and the signing
+keys involved. This page is the job inventory; that one is the release story. It also has the
+Electron desktop app's packaging and publish jobs, retired from this table when the Electron desktop
+UI moved to finos/morphir-ui.
 
-CI runs on pull requests into `main` and `0.4.x`; pushes to those same branches; pushes of `v*`,
-`mill-plugins/v*` and `desktop/v*` tags; and manual dispatch. `ci.yml` deliberately has no
+CI runs on pull requests into `main` and `0.4.x`; pushes to those same branches; pushes of `v*` and
+`mill-plugins/v*` tags; and manual dispatch. `ci.yml` deliberately has no
 `release:` trigger: a tag push *stages* a release — full test gate, packaging, verification, and a
 draft GitHub release holding the assets — and publishing that draft fires the separate
-`release-publish.yml` workflow, whose `target` job resolves the tag and whose `publish-libraries`,
-`publish-plugins` and `publish-desktop` jobs route it by namespace to one Sonatype promotion. The
+`release-publish.yml` workflow, whose `target` job resolves the tag and whose `publish-libraries`
+and `publish-plugins` jobs route it by namespace to one Sonatype promotion. The
 split means the publish button never re-runs the test and packaging pipeline, and the irrevocable
 Maven Central upload always sits behind a human's review of the draft. Older runs of the same pull
 request are cancelled automatically. Hosted mill invocations pass

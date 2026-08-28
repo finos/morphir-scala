@@ -9,10 +9,6 @@ object JsTestSelectorsTests extends TestSuite {
         "morphir.ui.js.compile",
         "morphir.ui.js.test.compile",
         "morphir.ui.wasm.test",
-        "morphir.desktop.main.js.compile",
-        "morphir.desktop.main.js.test",
-        "morphir.appkit.electron.js.compile",
-        "morphir.appkit.electron.js.publishArtifacts",
         "morphir.appkit.js.compile",
         "morphir.langkit.core.js.compile",
         "morphir.langkit.core.js.publishArtifacts",
@@ -25,11 +21,7 @@ object JsTestSelectorsTests extends TestSuite {
         split.desktop == Seq(
           "morphir.ui.js.compile",
           "morphir.ui.js.test.compile",
-          "morphir.ui.wasm.test",
-          "morphir.desktop.main.js.compile",
-          "morphir.desktop.main.js.test",
-          "morphir.appkit.electron.js.compile",
-          "morphir.appkit.electron.js.publishArtifacts"
+          "morphir.ui.wasm.test"
         )
       )
       assert(
@@ -50,7 +42,6 @@ object JsTestSelectorsTests extends TestSuite {
     test("isDesktopTask uses dotted-segment prefix match") {
       assert(!JsTestSelectors.isDesktopTask("morphir.uiThing.js.compile"))
       assert(!JsTestSelectors.isDesktopTask("morphir.appkit.js.compile"))
-      assert(JsTestSelectors.isDesktopTask("morphir.appkit.electron.js.compile"))
       assert(JsTestSelectors.isDesktopTask("morphir.ui.js.compile"))
     }
 

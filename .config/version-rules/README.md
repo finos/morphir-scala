@@ -22,9 +22,8 @@ once already: a fix rejecting `1.2.3-01` had to be hand-copied into the port, an
 noticed if it had not been.
 
 The area declarations drift the same way. `SquireChangelog.Areas` states each area's namespace,
-changelog path and floor as literals, and so do `build.mill`, `mill-plugins/morphir/package.mill` and
-`morphir/desktop/dist/package.mill`. Raise a floor in the build and the gate keeps validating the old
-one.
+changelog path and floor as literals, and so do `build.mill` and `mill-plugins/morphir/package.mill`.
+Raise a floor in the build and the gate keeps validating the old one.
 
 When the two disagree, the gate and the build disagree about whether a release is valid.
 
