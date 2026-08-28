@@ -1,5 +1,23 @@
 # Log
 
+## 2026-08-28
+
+* **Update**: [Packaging and Release](/packaging-and-release.md) and
+  [Continuous Integration](/continuous-integration.md) now describe the post-removal reality after
+  the Electron desktop UI retired in favor of finos/morphir-ui: two independently versioned areas
+  (libraries, Mill plugins) instead of three, no `desktop-matrix`/`-package`/`-verify`/`-release` or
+  `publish-desktop` jobs, no `ci.desktop.*` destination, and no `MORPHIR_CI_PACKAGE_DESKTOP` switch.
+  Their desktop-specific sections are now short retired notes pointing at
+  [intent 0039](../../intent/0039-remove-the-electron-desktop-ui-in-favor-of-finos-morphir-ui.md)
+  rather than present-tense job/step descriptions of code that no longer exists.
+* **Update**: [morphir-ui architecture](/design/morphir-ui-architecture.md) and
+  [GitHub token providers and appkit secrets](/design/github-token-providers-and-appkit-secrets.md)
+  similarly dropped their present-tense Electron mentions: the Design Note's desktop smoke boundary,
+  host boundary and testing-layer sections now read as history, and both docs point at intent 0039.
+  `morphir-ui` itself, and [GitHub connection settings and local web host](/design/github-connection-settings-and-local-web-host.md)
+  (the narrative home of the still-open local web host intent), are unaffected — the shared UI
+  library and its browser host stay.
+
 ## 2026-08-27
 
 * **Update**: [Packaging and Release](/packaging-and-release.md) and
