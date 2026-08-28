@@ -1,1 +1,0 @@
-extends: [Module, build.MorphirDesktopSmoke]
