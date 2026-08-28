@@ -4,7 +4,7 @@ import java.nio.charset.StandardCharsets.UTF_8
 import java.nio.ByteBuffer
 import java.nio.charset.{CharacterCodingException, CodingErrorAction}
 
-final case class DecodedFrames(decoder: MepFrameDecoder, frames: Vector[Array[Byte]])
+final case class MepFrameFeedOutcome(frames: Vector[Array[Byte]], error: Option[MepFrameError])
 
 final case class MepFrameError(message: String) derives CanEqual
 
@@ -12,18 +12,41 @@ private[mep] sealed trait MepFrameReadState
 private[mep] final case class ReadingHeader(buffer: Array[Byte], length: Int) extends MepFrameReadState
 private[mep] final case class ReadingBody(buffer: Array[Byte], received: Int) extends MepFrameReadState
 
-final case class MepFrameDecoder private[mep] (
-    private[mep] val state: MepFrameReadState,
-    maxPayloadBytes: Int,
-    maxHeaderBytes: Int,
-    private[mep] val bodyAllocationCount: Int
+/** A non-thread-safe, single-owner streaming frame decoder. */
+final class MepFrameDecoder private[mep] (
+    private val headerScratch: Array[Byte],
+    val maxPayloadBytes: Int,
+    val maxHeaderBytes: Int,
+    private var allocations: Int
 ):
-  def feed(bytes: Array[Byte]): Either[MepFrameError, DecodedFrames] = MepFrameCodec.feed(this, bytes)
+  private var currentState  = ReadingHeader(headerScratch, length = 0): MepFrameReadState
+  private var terminalError = Option.empty[MepFrameError]
 
-  def finish: Either[MepFrameError, Unit] = state match
-    case ReadingHeader(_, 0) => Right(())
-    case _: ReadingHeader    => Left(MepFrameError("truncated frame header"))
-    case _: ReadingBody      => Left(MepFrameError("truncated frame body"))
+  private[mep] def state: MepFrameReadState = currentState
+
+  private[mep] def bodyAllocationCount: Int = allocations
+
+  private[mep] def headerAllocationCount: Int = 1
+
+  private[mep] def resetHeader(): ReadingHeader = ReadingHeader(headerScratch, length = 0)
+
+  private[mep] def update(state: MepFrameReadState, bodyAllocationCount: Int): Unit =
+    currentState = state
+    allocations = bodyAllocationCount
+
+  private[mep] def markTerminal(error: MepFrameError): Unit = terminalError = Some(error)
+
+  def feed(bytes: Array[Byte]): MepFrameFeedOutcome =
+    terminalError match
+      case Some(error) => MepFrameFeedOutcome(Vector.empty, Some(error))
+      case None        => MepFrameCodec.feed(this, bytes)
+
+  def finish: Either[MepFrameError, Unit] = terminalError.toLeft(()).flatMap { _ =>
+    state match
+      case ReadingHeader(_, 0) => Right(())
+      case _: ReadingHeader    => Left(MepFrameError("truncated frame header"))
+      case _: ReadingBody      => Left(MepFrameError("truncated frame body"))
+  }
 
   private[mep] def hasAllocatedBody: Boolean = state.isInstanceOf[ReadingBody]
 
@@ -35,7 +58,10 @@ object MepFrameCodec:
       maxPayloadBytes: Int = DefaultMaxPayloadBytes,
       maxHeaderBytes: Int = DefaultMaxHeaderBytes
   ): MepFrameDecoder =
-    MepFrameDecoder(newHeader(maxHeaderBytes), maxPayloadBytes, maxHeaderBytes, bodyAllocationCount = 0)
+    require(maxPayloadBytes >= 0, "maxPayloadBytes must be non-negative")
+    require(maxHeaderBytes >= 0, "maxHeaderBytes must be non-negative")
+    require(maxHeaderBytes <= Int.MaxValue - 4, "maxHeaderBytes cannot include delimiter lookahead")
+    new MepFrameDecoder(new Array[Byte](maxHeaderBytes + 4), maxPayloadBytes, maxHeaderBytes, allocations = 0)
 
   def encode(body: Array[Byte]): Array[Byte] =
     s"Content-Length: ${body.length}\r\n\r\n".getBytes(UTF_8) ++ body
@@ -45,7 +71,7 @@ object MepFrameCodec:
   private[mep] def feed(
       decoder: MepFrameDecoder,
       input: Array[Byte]
-  ): Either[MepFrameError, DecodedFrames] =
+  ): MepFrameFeedOutcome =
     var state       = decoder.state
     var allocations = decoder.bodyAllocationCount
     var offset      = 0
@@ -76,7 +102,7 @@ object MepFrameCodec:
                       allocations += 1
                       if bodyLength == 0 then
                         frames += body
-                        state = newHeader(decoder.maxHeaderBytes)
+                        state = decoder.resetHeader()
                       else state = ReadingBody(body, received = 0)
               case None =>
                 if nextLength - pendingDelimiterBytes(buffer, nextLength) > decoder.maxHeaderBytes then
@@ -90,21 +116,12 @@ object MepFrameCodec:
           val nextReceived = received + copied
           if nextReceived == buffer.length then
             frames += buffer
-            state = newHeader(decoder.maxHeaderBytes)
+            state = decoder.resetHeader()
           else state = body.copy(received = nextReceived)
 
-    failure match
-      case Some(error) => Left(error)
-      case None        =>
-        Right(
-          DecodedFrames(
-            MepFrameDecoder(state, decoder.maxPayloadBytes, decoder.maxHeaderBytes, allocations),
-            frames.result()
-          )
-        )
-
-  private def newHeader(maxHeaderBytes: Int): ReadingHeader =
-    ReadingHeader(new Array[Byte](maxHeaderBytes + 4), length = 0)
+    decoder.update(state, allocations)
+    failure.foreach(decoder.markTerminal)
+    MepFrameFeedOutcome(frames.result(), failure)
 
   private def delimiterLengthAtEnd(bytes: Array[Byte], length: Int): Option[Int] =
     if length >= 4 && bytes(length - 4) == 13 && bytes(length - 3) == 10 && bytes(length - 2) == 13 &&

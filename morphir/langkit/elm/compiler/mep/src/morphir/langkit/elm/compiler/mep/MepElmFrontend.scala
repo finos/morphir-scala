@@ -68,7 +68,8 @@ object MepElmFrontend:
   private[mep] def encodeCompilerOutput(
       ir: MorphirIRFile,
       requestedPackage: PackageName,
-      requestedModules: Set[ModuleName]
+      requestedModules: Set[ModuleName],
+      moduleSpellings: Vector[String] = Vector.empty
   ): Either[MepCompileError, Json] =
     for
       validated <- validateCompilerOutput(ir, requestedPackage, requestedModules)
@@ -78,7 +79,11 @@ object MepElmFrontend:
       "irVersion"   -> Json.Str("3"),
       "ir"          -> irJson,
       "diagnostics" -> Json.Arr(),
-      "modules"     -> Json.Arr(validated.modules.map(name => Json.Str(name.toString))*)
+      "modules"     -> Json.Arr(
+        Option.when(moduleSpellings.nonEmpty)(moduleSpellings)
+          .getOrElse(validated.modules.map(_.toString))
+          .map(Json.Str.apply)*
+      )
     )
 
   private def compileRequest(request: CompileRequest): Either[MepCompileError, Json] =
@@ -98,7 +103,8 @@ object MepElmFrontend:
         irVersion = MorphirIRVersion.V3_0
       )
       result <- ElmToMorphirIRCompiler.compile(input) match
-        case Result.Success(ir)      => encodeCompilerOutput(ir, input.packageName, Set(input.moduleName))
+        case Result.Success(ir) =>
+          encodeCompilerOutput(ir, input.packageName, Set(input.moduleName), request.compilePackage.exposedModules)
         case Result.Failure(failure) => Right(compileFailure(document, failure))
     yield result
 

@@ -13,7 +13,7 @@ object MepProcess:
       provider: ProviderMetadata
   ): Int =
     val readBuffer = new Array[Byte](8192)
-    var decoder    = MepFrameCodec.decoder()
+    val decoder    = MepFrameCodec.decoder()
     var session    = MepSession.loaded(provider)
     var done       = false
     var exitCode   = 0
@@ -28,22 +28,21 @@ object MepProcess:
           case Right(_) => ()
         done = true
       else
-        decoder.feed(readBuffer.take(count)) match
-          case Left(frameError) =>
-            error.println(frameError.message)
-            exitCode = 1
-            done = true
-          case Right(decoded) =>
-            decoder = decoded.decoder
-            decoded.frames.iterator.takeWhile(_ => !done).foreach { frame =>
-              val transition = decodeUtf8(frame).fold(_ => session.parseError, session.handle)
-              session = transition.session
-              transition.response.foreach { response =>
-                output.write(MepFrameCodec.encodeJson(response))
-                output.flush()
-              }
-              if session.state == SessionState.Stopped then done = true
-            }
+        val decoded = decoder.feed(readBuffer.take(count))
+        decoded.frames.iterator.takeWhile(_ => !done).foreach { frame =>
+          val transition = decodeUtf8(frame).fold(_ => session.parseError, session.handle)
+          session = transition.session
+          transition.response.foreach { response =>
+            output.write(MepFrameCodec.encodeJson(response))
+            output.flush()
+          }
+          if session.state == SessionState.Stopped then done = true
+        }
+        decoded.error.foreach { frameError =>
+          error.println(frameError.message)
+          exitCode = 1
+          done = true
+        }
     exitCode
 
   private def decodeUtf8(bytes: Array[Byte]): Either[Unit, String] =

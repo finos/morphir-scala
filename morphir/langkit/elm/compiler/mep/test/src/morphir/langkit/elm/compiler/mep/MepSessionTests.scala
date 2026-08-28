@@ -352,7 +352,13 @@ class MepSessionTests extends Test[Any]:
       val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
 
       assert(at(response, "result", "success") == Some(Json.Bool(true)))
-      assert(at(response, "result", "modules") == Some(Json.Arr(Json.Str("MyModule"))))
+      assert(at(response, "result", "modules") == Some(Json.Arr(Json.Str("My_Module"))))
+
+      val ir        = at(response, "result", "ir").get.toJson.fromJson[MorphirIRFile].toOption.get
+      val irModules = ir.distribution match
+        case library: Distribution.Library => library.packageDef.modules.keys.map(_.toString).toSet
+        case _                             => Set.empty[String]
+      assert(irModules == Set("MyModule"))
     }
 
     "executes a valid compile notification without responding" in {
