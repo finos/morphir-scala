@@ -1,0 +1,9 @@
+extends: Module
+
+object jvm:
+  extends: [build.MorphirJVMModule, build.MorphirKyoCoreMvnDeps]
+  moduleDeps:
+  - build.morphir.langkit.elm.core.jvm
+  - build.morphir.jvm
+  object test:
+    extends: [ScalaTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps]
