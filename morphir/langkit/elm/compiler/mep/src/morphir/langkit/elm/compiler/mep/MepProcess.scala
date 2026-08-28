@@ -1,6 +1,8 @@
 package morphir.langkit.elm.compiler.mep
 
 import java.io.{InputStream, OutputStream, PrintStream}
+import java.nio.ByteBuffer
+import java.nio.charset.CodingErrorAction
 import java.nio.charset.StandardCharsets.UTF_8
 
 object MepProcess:
@@ -34,7 +36,7 @@ object MepProcess:
           case Right(decoded) =>
             decoder = decoded.decoder
             decoded.frames.iterator.takeWhile(_ => !done).foreach { frame =>
-              val transition = session.handle(String(frame, UTF_8))
+              val transition = decodeUtf8(frame).fold(_ => session.parseError, session.handle)
               session = transition.session
               transition.response.foreach { response =>
                 output.write(MepFrameCodec.encodeJson(response))
@@ -43,3 +45,11 @@ object MepProcess:
               if session.state == SessionState.Stopped then done = true
             }
     exitCode
+
+  private def decodeUtf8(bytes: Array[Byte]): Either[Unit, String] =
+    try
+      val decoder = UTF_8.newDecoder()
+        .onMalformedInput(CodingErrorAction.REPORT)
+        .onUnmappableCharacter(CodingErrorAction.REPORT)
+      Right(decoder.decode(ByteBuffer.wrap(bytes)).toString)
+    catch case _: java.nio.charset.CharacterCodingException => Left(())

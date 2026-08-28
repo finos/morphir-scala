@@ -7,13 +7,29 @@ final case class SessionTransition(session: MepSession, response: Option[String]
 
 final case class MepSession private (state: SessionState, provider: ProviderMetadata):
   def handle(body: String): SessionTransition =
-    body.fromJson[Json].toOption match
-      case Some(Json.Obj(fields))
+    body.fromJson[Json] match
+      case Right(Json.Obj(fields))
+          if fields.toMap.get("id").exists {
+            case _: Json.Str | _: Json.Num | Json.Null => false
+            case _                                     => true
+          } =>
+        SessionTransition(this, Some(error(Json.Null, -32600, "Invalid JSON-RPC request").toJson))
+      case Right(Json.Obj(fields)) if fields.toMap.get("jsonrpc") != Some(Json.Str("2.0")) =>
+        val id = fields.toMap.getOrElse("id", Json.Null)
+        SessionTransition(this, Some(error(id, -32600, "Invalid JSON-RPC request").toJson))
+      case Right(Json.Obj(fields)) if !fields.toMap.get("method").exists(_.isInstanceOf[Json.Str]) =>
+        val id = fields.toMap.getOrElse("id", Json.Null)
+        SessionTransition(this, Some(error(id, -32600, "Invalid JSON-RPC request").toJson))
+      case Right(Json.Obj(fields))
           if fields.toMap.get("method") == Some(Json.Str("morphir.exit")) && !fields.toMap.contains("id") =>
         SessionTransition(copy(state = SessionState.Stopped), None)
-      case Some(request @ Json.Obj(_)) if state == SessionState.Ready => ready(request)
-      case Some(request @ Json.Obj(_))                                => initialize(request)
-      case _ => SessionTransition(this, Some(error(Json.Null, -32700, "Parse error").toJson))
+      case Right(request @ Json.Obj(_)) if state == SessionState.Ready => ready(request)
+      case Right(request @ Json.Obj(_))                                => initialize(request)
+      case Right(_) => SessionTransition(this, Some(error(Json.Null, -32600, "Invalid JSON-RPC request").toJson))
+      case Left(_)  => parseError
+
+  private[mep] def parseError: SessionTransition =
+    SessionTransition(this, Some(error(Json.Null, -32700, "Parse error").toJson))
 
   private def ready(request: Json.Obj): SessionTransition =
     val fields = request.fields.toMap
@@ -22,25 +38,41 @@ final case class MepSession private (state: SessionState, provider: ProviderMeta
     else if fields.get("method") == Some(Json.Str("morphir.shutdown")) && !fields.contains("id") &&
       fields.get("params").forall(_.isInstanceOf[Json.Obj])
     then SessionTransition(copy(state = SessionState.Stopped), None)
+    else if fields.get("method") == Some(Json.Str("morphir.shutdown")) && !fields.contains("id") then
+      SessionTransition(this, None)
     else
       (fields.get("method"), fields.get("id")) match
+        case (Some(Json.Str("morphir.initialize")), Some(id)) =>
+          SessionTransition(this, Some(error(id, -32600, "The MEP session is already initialized").toJson))
         case (Some(Json.Str("morphir.shutdown")), Some(id)) if fields.get("params").forall(_.isInstanceOf[Json.Obj]) =>
           SessionTransition(copy(state = SessionState.Stopped), Some(success(id, Json.Obj()).toJson))
+        case (Some(Json.Str("morphir.shutdown")), Some(id)) =>
+          SessionTransition(this, Some(error(id, -32602, "morphir.shutdown parameters must be an object").toJson))
         case (Some(Json.Str("morphir.frontend.compile")), Some(id)) =>
           fields.get("params").flatMap(params => MepElmFrontend.compile(params).toOption) match
             case Some(result) => SessionTransition(this, Some(success(id, result).toJson))
             case None         =>
               SessionTransition(this, Some(error(id, -32602, "Invalid morphir.frontend.compile parameters").toJson))
+        case (Some(Json.Str("morphir.frontend.compile")), None) =>
+          fields.get("params").foreach(MepElmFrontend.compile)
+          SessionTransition(this, None)
+        case (Some(Json.Str("morphir.exit")), Some(id)) =>
+          SessionTransition(this, Some(error(id, -32600, "morphir.exit is a notification").toJson))
+        case (Some(Json.Str(method)), None)
+            if method != "morphir.frontend.compile" && method != "morphir.shutdown" =>
+          SessionTransition(this, None)
         case (Some(Json.Str(method)), Some(id)) =>
           SessionTransition(this, Some(error(id, -32601, s"Method not found: $method").toJson))
         case _ => initialize(request)
 
   private def initialize(request: Json.Obj): SessionTransition =
-    val fields = request.fields.toMap
-    val id     = fields.getOrElse("id", Json.Null)
-    if fields.get("method") != Some(Json.Str("morphir.initialize")) then
-      SessionTransition(this, Some(error(id, -32600, "The MEP session is not initialized").toJson))
-    else initializeRequest(fields, id)
+    val fields     = request.fields.toMap
+    val id         = fields.getOrElse("id", Json.Null)
+    val transition =
+      if fields.get("method") != Some(Json.Str("morphir.initialize")) then
+        SessionTransition(this, Some(error(id, -32600, "The MEP session is not initialized").toJson))
+      else initializeRequest(fields, id)
+    if fields.contains("id") then transition else transition.copy(response = None)
 
   private def initializeRequest(fields: Map[String, Json], id: Json): SessionTransition =
     val versions =

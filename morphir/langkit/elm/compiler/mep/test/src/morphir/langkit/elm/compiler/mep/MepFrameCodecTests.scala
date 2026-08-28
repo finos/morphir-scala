@@ -51,6 +51,12 @@ class MepFrameCodecTests extends Test[Any]:
       assert(result == Left(MepFrameError("missing Content-Length")))
     }
 
+    "rejects a nonempty header line without a colon" in {
+      val result = MepFrameCodec.decoder().feed("invalid\r\nContent-Length: 2\r\n\r\n{}".getBytes(UTF_8))
+
+      assert(result == Left(MepFrameError("invalid header line")))
+    }
+
     "rejects a malformed Content-Length value" in {
       val result = MepFrameCodec.decoder().feed("Content-Length: 2.5\r\n\r\n{}".getBytes(UTF_8))
 

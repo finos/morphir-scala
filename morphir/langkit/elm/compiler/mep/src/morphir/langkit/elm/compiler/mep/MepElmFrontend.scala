@@ -4,18 +4,44 @@ import kyo.*
 import morphir.langkit.core.{SourceOffsets, Span}
 import morphir.langkit.elm.compiler.ir.{CompileDiagnostic, CompileFailure, CompileInput, ElmToMorphirIRCompiler}
 import org.finos.morphir.ir.MorphirIRVersion
+import org.finos.morphir.ir.MorphirIRFile
+import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.json.MorphirJsonSupport.*
 import org.finos.morphir.naming.{ModuleName, Name, PackageName}
 import zio.json.*
 import zio.json.ast.Json
 
+final case class ValidatedCompiledIR(
+    ir: MorphirIRFile,
+    packageName: PackageName,
+    modules: Vector[ModuleName]
+) derives CanEqual
+
 object MepElmFrontend:
   private val ModuleHeader = raw"(?m)^module\s+([A-Z][A-Za-z0-9]*(?:\.[A-Z][A-Za-z0-9]*)*)\s+exposing\s*\(([^)]*)\)".r
-  private val PackageIdentity = raw"[a-z][A-Za-z0-9_-]*(?:/[a-z][A-Za-z0-9_-]*)*".r
-  private val ModuleIdentity  = raw"[A-Z][A-Za-z0-9]*(?:\.[A-Z][A-Za-z0-9]*)*".r
+  private val PackageIdentity =
+    raw"(?:[a-z]+|[0-9]+)(?:-(?:[a-z]+|[0-9]+))*(?:/(?:[a-z]+|[0-9]+)(?:-(?:[a-z]+|[0-9]+))*)*".r
+  private val ModuleIdentity = raw"[A-Z][A-Za-z0-9]*(?:\.[A-Z][A-Za-z0-9]*)*".r
 
   def compile(params: Json): Either[String, Json] =
     parseRequest(params).flatMap(compileRequest)
+
+  private[mep] def validateCompiledIR(
+      ir: MorphirIRFile,
+      requestedPackage: PackageName,
+      requestedModules: Set[ModuleName]
+  ): Either[String, ValidatedCompiledIR] =
+    if ir.version != MorphirIRVersion.V3_0 then Left("The compiler returned Morphir IR other than version 3")
+    else
+      ir.distribution match
+        case library: Distribution.Library if library.packageName != requestedPackage =>
+          Left("The compiled IR package does not match the requested package")
+        case library: Distribution.Library =>
+          val modules = library.packageDef.modules.keys.toVector.sortBy(_.toString)
+          if modules.toSet != requestedModules then
+            Left("The compiled IR modules do not match the requested modules")
+          else Right(ValidatedCompiledIR(ir, library.packageName, modules))
+        case _ => Left("The compiler returned a non-library distribution")
 
   private def compileRequest(request: CompileRequest): Either[String, Json] =
     for
@@ -31,15 +57,16 @@ object MepElmFrontend:
       )
       result <- ElmToMorphirIRCompiler.compile(input) match
         case Result.Success(ir) =>
-          ir.toJsonAST.left.map(identity).map { irJson =>
-            Json.Obj(
-              "success"     -> Json.Bool(true),
-              "irVersion"   -> Json.Str("3"),
-              "ir"          -> irJson,
-              "diagnostics" -> Json.Arr(),
-              "modules"     -> Json.Arr(Json.Str(module))
-            )
-          }
+          for
+            validated <- validateCompiledIR(ir, input.packageName, Set(input.moduleName))
+            irJson    <- validated.ir.toJsonAST.left.map(identity)
+          yield Json.Obj(
+            "success"     -> Json.Bool(true),
+            "irVersion"   -> Json.Str("3"),
+            "ir"          -> irJson,
+            "diagnostics" -> Json.Arr(),
+            "modules"     -> Json.Arr(validated.modules.map(name => Json.Str(name.toString))*)
+          )
         case Result.Failure(failure) => Right(compileFailure(document, failure))
     yield result
 

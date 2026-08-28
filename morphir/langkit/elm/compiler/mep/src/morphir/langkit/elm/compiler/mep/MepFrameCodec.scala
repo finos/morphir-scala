@@ -68,14 +68,16 @@ object MepFrameCodec:
   private[mep] def hasCompleteHeader(bytes: Vector[Byte]): Boolean = headerEnd(bytes).nonEmpty
 
   private def parseLength(header: Vector[Byte]): Either[MepFrameError, Int] =
-    val lengths = String(header.toArray, UTF_8).split("\\r?\\n").toVector.flatMap { line =>
+    val lines   = String(header.toArray, UTF_8).split("\\r?\\n").toVector
+    val lengths = lines.flatMap { line =>
       line.indexOf(':') match
         case -1                                                                        => Vector.empty
         case separator if line.take(separator).trim.equalsIgnoreCase("content-length") =>
           Vector(line.drop(separator + 1).trim)
         case _ => Vector.empty
     }
-    if lengths.isEmpty then Left(MepFrameError("missing Content-Length"))
+    if lines.exists(line => line.nonEmpty && !line.contains(':')) then Left(MepFrameError("invalid header line"))
+    else if lengths.isEmpty then Left(MepFrameError("missing Content-Length"))
     else if lengths.size > 1 then Left(MepFrameError("duplicate Content-Length"))
     else
       lengths match
