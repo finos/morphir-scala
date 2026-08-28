@@ -95,6 +95,34 @@ class ElmToMorphirIRCompilerTests extends Test[Any]:
         case other => assert(false, s"expected malformed module header failure, got $other")
     }
 
+    "recognizes a malformed module header after leading comments" in {
+      val malformedHeader = "-- module documentation\nmodule Malformed\n\nadd : Int\nadd = 1\n"
+
+      ElmToMorphirIRCompiler.compile(input(sourceText = malformedHeader)) match
+        case Result.Failure(CompileFailure(Chunk(CompileDiagnostic.MalformedModuleHeader(span)))) =>
+          assert(malformedHeader.substring(span.start, span.end) == "module Malformed")
+        case other => assert(false, s"expected malformed module header after a comment, got $other")
+    }
+
+    "recognizes a malformed multiline module header" in {
+      val malformedHeader =
+        "module Example exposing\n    (add\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"
+
+      ElmToMorphirIRCompiler.compile(input(sourceText = malformedHeader)) match
+        case Result.Failure(CompileFailure(Chunk(CompileDiagnostic.MalformedModuleHeader(span)))) =>
+          assert(malformedHeader.substring(span.start, span.end) == "module Example exposing\n    (add")
+        case other => assert(false, s"expected malformed multiline module header, got $other")
+    }
+
+    "keeps a module-prefixed identifier as an ordinary parser failure" in {
+      val notAHeader = "moduleName = 1\n"
+
+      ElmToMorphirIRCompiler.compile(input(sourceText = notAHeader)) match
+        case Result.Failure(CompileFailure(Chunk(error @ CompileDiagnostic.ParserFailure(_)))) =>
+          assert(error.code == "ELM-IR001")
+        case other => assert(false, s"expected ordinary parser failure for a module-prefixed identifier, got $other")
+    }
+
     "rejects non-plain Elm modules" in {
       val portModule = "port module Example exposing (add)\n\nport add : Int -> Int\n"
 
@@ -164,6 +192,22 @@ class ElmToMorphirIRCompilerTests extends Test[Any]:
         case other => assert(false, s"expected unsupported type failure, got $other")
     }
 
+    "rejects an annotation bound to a different declaration name" in {
+      val mismatchedAnnotation = source.replace("add : Int -> Int -> Int", "other : Int -> Int -> Int")
+
+      ElmToMorphirIRCompiler.compile(input(sourceText = mismatchedAnnotation)) match
+        case Result.Failure(
+              CompileFailure(
+                Chunk(error @ CompileDiagnostic.AnnotationNameMismatch(annotationName, declarationName, span))
+              )
+            ) =>
+          assert(error.code == "ELM-IR013")
+          assert(annotationName == "other")
+          assert(declarationName == "add")
+          assert(span.length == "other".length)
+        case other => assert(false, s"expected annotation name mismatch failure, got $other")
+    }
+
     "rejects unsupported expressions" in {
       val subtraction = source.replace("left + right", "left - right")
 
@@ -184,6 +228,20 @@ class ElmToMorphirIRCompilerTests extends Test[Any]:
           assert(kind == "tuple")
           assert(span.length >= "(left, other)".length)
         case other => assert(false, s"expected unsupported pattern failure, got $other")
+    }
+
+    "rejects duplicate variable parameters at the duplicate span" in {
+      val duplicateParameter = source.replace("add left right =", "add left left =").replace(
+        "left + right",
+        "left + left"
+      )
+
+      ElmToMorphirIRCompiler.compile(input(sourceText = duplicateParameter)) match
+        case Result.Failure(CompileFailure(Chunk(error @ CompileDiagnostic.DuplicateParameter(name, span)))) =>
+          assert(error.code == "ELM-IR014")
+          assert(name == "left")
+          assert(duplicateParameter.substring(span.start, span.end) == "left")
+        case other => assert(false, s"expected duplicate parameter failure, got $other")
     }
 
     "rejects a module name that differs from the caller context" in {
@@ -212,6 +270,17 @@ class ElmToMorphirIRCompilerTests extends Test[Any]:
           assert(actual == Set(Name.fromString("subtract")))
           assert(span.length >= "subtract".length)
         case other => assert(false, s"expected exposed name mismatch failure, got $other")
+    }
+
+    "rejects duplicate exposed values at the duplicate span" in {
+      val duplicateExposure = source.replace("exposing (add)", "exposing (add, add)")
+
+      ElmToMorphirIRCompiler.compile(input(sourceText = duplicateExposure)) match
+        case Result.Failure(CompileFailure(Chunk(error @ CompileDiagnostic.DuplicateExposedValue(name, span)))) =>
+          assert(error.code == "ELM-IR015")
+          assert(name == Name.fromString("add"))
+          assert(duplicateExposure.substring(span.start, span.end) == "add")
+        case other => assert(false, s"expected duplicate exposed value failure, got $other")
     }
 
     "rejects exposed operators in the explicit-value-only slice" in {

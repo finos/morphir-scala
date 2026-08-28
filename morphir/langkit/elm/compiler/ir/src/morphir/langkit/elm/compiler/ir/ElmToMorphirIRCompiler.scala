@@ -5,6 +5,8 @@ import morphir.langkit.core.Span
 import morphir.langkit.elm.Elm
 import morphir.langkit.elm.ast
 import morphir.langkit.elm.compiler.ParseDiagnostic
+import morphir.langkit.elm.cst.{CstModule, CstPattern, CstValueDeclaration, CstVariablePattern}
+import morphir.langkit.elm.parser.CstLowering
 import org.finos.morphir.ir.*
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.ir.sdk.Basics
@@ -33,20 +35,26 @@ enum CompileDiagnostic derives CanEqual:
   case ExposedNameMismatch(expected: Set[Name], actual: Set[Name], span: Span)
   case UnsupportedIRVersion(version: MorphirIRVersion)
   case UnsupportedExposure(kind: String, span: Span)
+  case AnnotationNameMismatch(annotationName: String, declarationName: String, span: Span)
+  case DuplicateParameter(name: String, span: Span)
+  case DuplicateExposedValue(name: Name, span: Span)
 
   def code: String = this match
-    case ParserFailure(_)             => "ELM-IR001"
-    case MalformedModuleHeader(_)     => "ELM-IR002"
-    case UnsupportedModule(_, _)      => "ELM-IR003"
-    case UnsupportedImport(_, _)      => "ELM-IR004"
-    case UnsupportedDeclaration(_, _) => "ELM-IR005"
-    case UnsupportedType(_, _)        => "ELM-IR006"
-    case UnsupportedExpression(_, _)  => "ELM-IR007"
-    case UnsupportedPattern(_, _)     => "ELM-IR008"
-    case ModuleNameMismatch(_, _, _)  => "ELM-IR009"
-    case ExposedNameMismatch(_, _, _) => "ELM-IR010"
-    case UnsupportedIRVersion(_)      => "ELM-IR011"
-    case UnsupportedExposure(_, _)    => "ELM-IR012"
+    case ParserFailure(_)                => "ELM-IR001"
+    case MalformedModuleHeader(_)        => "ELM-IR002"
+    case UnsupportedModule(_, _)         => "ELM-IR003"
+    case UnsupportedImport(_, _)         => "ELM-IR004"
+    case UnsupportedDeclaration(_, _)    => "ELM-IR005"
+    case UnsupportedType(_, _)           => "ELM-IR006"
+    case UnsupportedExpression(_, _)     => "ELM-IR007"
+    case UnsupportedPattern(_, _)        => "ELM-IR008"
+    case ModuleNameMismatch(_, _, _)     => "ELM-IR009"
+    case ExposedNameMismatch(_, _, _)    => "ELM-IR010"
+    case UnsupportedIRVersion(_)         => "ELM-IR011"
+    case UnsupportedExposure(_, _)       => "ELM-IR012"
+    case AnnotationNameMismatch(_, _, _) => "ELM-IR013"
+    case DuplicateParameter(_, _)        => "ELM-IR014"
+    case DuplicateExposedValue(_, _)     => "ELM-IR015"
 
 object ElmToMorphirIRCompiler:
 
@@ -54,125 +62,190 @@ object ElmToMorphirIRCompiler:
     if input.irVersion != MorphirIRVersion.V3_0 then
       Result.fail(CompileFailure(Chunk(CompileDiagnostic.UnsupportedIRVersion(input.irVersion))))
     else
-      Elm.parseAst(input.source).fold(
+      Elm.parseCst(input.source).fold(
         diagnostic =>
           malformedModuleHeaderSpan(input.source, diagnostic) match
             case Some(span) =>
               Result.fail(CompileFailure(Chunk(CompileDiagnostic.MalformedModuleHeader(span))))
             case None =>
               Result.fail(CompileFailure(Chunk(CompileDiagnostic.ParserFailure(diagnostic)))),
-        module =>
-          if module.moduleType != ast.ModuleType.Plain then
-            Result.fail(CompileFailure(Chunk(CompileDiagnostic.UnsupportedModule(module.moduleType, module.span))))
-          else if ModuleName.fromStrings(module.name.parts*) != input.moduleName then
-            Result.fail(
-              CompileFailure(
-                Chunk(
-                  CompileDiagnostic.ModuleNameMismatch(
-                    input.moduleName,
-                    ModuleName.fromStrings(module.name.parts*),
-                    module.name.span
-                  )
+        cst =>
+          annotationNameMismatch(cst) match
+            case Some((annotationName, declarationName, span)) =>
+              Result.fail(
+                CompileFailure(
+                  Chunk(CompileDiagnostic.AnnotationNameMismatch(annotationName, declarationName, span))
                 )
               )
-            )
-          else if unsupportedExposure(module).nonEmpty then
-            val (kind, span) = unsupportedExposure(module).get
-            Result.fail(CompileFailure(Chunk(CompileDiagnostic.UnsupportedExposure(kind, span))))
-          else if exposedValueNames(module) != input.exposedValues then
-            Result.fail(
-              CompileFailure(
-                Chunk(
-                  CompileDiagnostic.ExposedNameMismatch(
-                    input.exposedValues,
-                    exposedValueNames(module),
-                    module.exposing.span
-                  )
-                )
-              )
-            )
-          else if module.imports.nonEmpty then
-            val unsupported = module.imports.head
-            Result.fail(
-              CompileFailure(
-                Chunk(CompileDiagnostic.UnsupportedImport(unsupported.moduleName.fullName, unsupported.span))
-              )
-            )
-          else if module.declarations.exists(!_.isInstanceOf[ast.ValueDeclaration]) then
-            val unsupported = module.declarations.find(!_.isInstanceOf[ast.ValueDeclaration]).get
-            val kind        = unsupported match
-              case _: ast.TypeAliasDeclaration  => "type alias"
-              case _: ast.CustomTypeDeclaration => "custom type"
-              case _: ast.PortDeclaration       => "port"
-              case _: ast.InfixDeclaration      => "infix"
-              case _: ast.ValueDeclaration      => "value"
-            Result.fail(
-              CompileFailure(Chunk(CompileDiagnostic.UnsupportedDeclaration(kind, unsupported.span)))
-            )
-          else if module.declarations.size != 1 then
-            Result.fail(
-              CompileFailure(
-                Chunk(
-                  CompileDiagnostic.UnsupportedDeclaration(
-                    s"module with ${module.declarations.size} value declarations",
-                    module.span
-                  )
-                )
-              )
-            )
-          else if declaredValueNames(module) != input.exposedValues then
-            Result.fail(
-              CompileFailure(
-                Chunk(
-                  CompileDiagnostic.ExposedNameMismatch(
-                    input.exposedValues,
-                    declaredValueNames(module),
-                    module.declarations.head.span
-                  )
-                )
-              )
-            )
-          else
-            module.declarations.collectFirst(Function.unlift {
-              case declaration: ast.ValueDeclaration => unsupportedType(declaration)
-              case _                                 => None
-            }) match
-              case Some((kind, span)) =>
-                Result.fail(CompileFailure(Chunk(CompileDiagnostic.UnsupportedType(kind, span))))
-              case None =>
-                module.declarations.collectFirst(Function.unlift {
-                  case declaration: ast.ValueDeclaration => unsupportedPattern(declaration.parameters)
-                  case _                                 => None
-                }) match
-                  case Some((kind, span)) =>
-                    Result.fail(CompileFailure(Chunk(CompileDiagnostic.UnsupportedPattern(kind, span))))
-                  case None => compileExpressions(input, module)
+            case None =>
+              duplicateParameter(cst) match
+                case Some((name, span)) =>
+                  Result.fail(CompileFailure(Chunk(CompileDiagnostic.DuplicateParameter(name, span))))
+                case None => compileModule(input, CstLowering.lowerModule(cst))
       )
 
-  private def compileExpressions(
-      input: CompileInput,
+  private def compileModule(input: CompileInput, module: ast.Module): Result[CompileFailure, MorphirIRFile] =
+    validateModule(input, module) match
+      case Some(diagnostic) => Result.fail(CompileFailure(Chunk(diagnostic)))
+      case None             =>
+        singleValueDeclaration(module) match
+          case Left(diagnostic)   => Result.fail(CompileFailure(Chunk(diagnostic)))
+          case Right(declaration) => compileDeclaration(input, module, declaration)
+
+  private def validateModule(input: CompileInput, module: ast.Module): Option[CompileDiagnostic] =
+    val actualModuleName = ModuleName.fromStrings(module.name.parts*)
+    if module.moduleType != ast.ModuleType.Plain then
+      Some(CompileDiagnostic.UnsupportedModule(module.moduleType, module.span))
+    else if actualModuleName != input.moduleName then
+      Some(CompileDiagnostic.ModuleNameMismatch(input.moduleName, actualModuleName, module.name.span))
+    else
+      duplicateExposedValue(module)
+        .map((name, span) => CompileDiagnostic.DuplicateExposedValue(name, span))
+        .orElse(
+          unsupportedExposure(module).map((kind, span) => CompileDiagnostic.UnsupportedExposure(kind, span))
+        )
+        .orElse {
+          val actualExposedValues = exposedValueNames(module)
+          Option.when(actualExposedValues != input.exposedValues)(
+            CompileDiagnostic.ExposedNameMismatch(input.exposedValues, actualExposedValues, module.exposing.span)
+          )
+        }
+        .orElse {
+          module.imports.headOption.map(unsupported =>
+            CompileDiagnostic.UnsupportedImport(unsupported.moduleName.fullName, unsupported.span)
+          )
+        }
+
+  private def singleValueDeclaration(
       module: ast.Module
+  ): Either[CompileDiagnostic, ast.ValueDeclaration] =
+    module.declarations.toList match
+      case List(declaration: ast.ValueDeclaration) => Right(declaration)
+      case declarations                            =>
+        declarations.collectFirst {
+          case unsupported: ast.TypeAliasDeclaration =>
+            CompileDiagnostic.UnsupportedDeclaration("type alias", unsupported.span)
+          case unsupported: ast.CustomTypeDeclaration =>
+            CompileDiagnostic.UnsupportedDeclaration("custom type", unsupported.span)
+          case unsupported: ast.PortDeclaration =>
+            CompileDiagnostic.UnsupportedDeclaration("port", unsupported.span)
+          case unsupported: ast.InfixDeclaration =>
+            CompileDiagnostic.UnsupportedDeclaration("infix", unsupported.span)
+        } match
+          case Some(diagnostic) => Left(diagnostic)
+          case None             =>
+            Left(
+              CompileDiagnostic.UnsupportedDeclaration(
+                s"module with ${module.declarations.size} value declarations",
+                module.span
+              )
+            )
+
+  private def compileDeclaration(
+      input: CompileInput,
+      module: ast.Module,
+      declaration: ast.ValueDeclaration
   ): Result[CompileFailure, MorphirIRFile] =
-    module.declarations.collectFirst(Function.unlift {
-      case declaration: ast.ValueDeclaration => unsupportedExpression(declaration)
-      case _                                 => None
-    }) match
+    val declaredValues = Set(Name.fromString(declaration.name))
+    if declaredValues != input.exposedValues then
+      Result.fail(
+        CompileFailure(
+          Chunk(
+            CompileDiagnostic.ExposedNameMismatch(input.exposedValues, declaredValues, declaration.span)
+          )
+        )
+      )
+    else
+      unsupportedType(declaration) match
+        case Some((kind, span)) =>
+          Result.fail(CompileFailure(Chunk(CompileDiagnostic.UnsupportedType(kind, span))))
+        case None =>
+          unsupportedPattern(declaration.parameters) match
+            case Some((kind, span)) =>
+              Result.fail(CompileFailure(Chunk(CompileDiagnostic.UnsupportedPattern(kind, span))))
+            case None => compileExpression(input, module, declaration)
+
+  private def annotationNameMismatch(cst: CstModule): Option[(String, String, Span)] =
+    cst.declarations.collectFirst(Function.unlift {
+      case declaration: CstValueDeclaration =>
+        declaration.annotation.collect {
+          case annotation if annotation.name.value != declaration.name.value =>
+            (annotation.name.value, declaration.name.value, annotation.name.span)
+        }
+      case _ => None
+    })
+
+  private def duplicateParameter(cst: CstModule): Option[(String, Span)] =
+    cst.declarations.collectFirst(Function.unlift {
+      case declaration: CstValueDeclaration => duplicateVariableParameter(declaration.patterns.toList, Set.empty)
+      case _                                => None
+    })
+
+  private def duplicateVariableParameter(
+      remaining: List[CstPattern],
+      seen: Set[String]
+  ): Option[(String, Span)] =
+    remaining match
+      case (pattern: CstVariablePattern) :: _ if seen.contains(pattern.name.value) =>
+        Some(pattern.name.value -> pattern.name.span)
+      case (pattern: CstVariablePattern) :: tail =>
+        duplicateVariableParameter(tail, seen + pattern.name.value)
+      case _ :: tail => duplicateVariableParameter(tail, seen)
+      case Nil       => None
+
+  private def compileExpression(
+      input: CompileInput,
+      module: ast.Module,
+      declaration: ast.ValueDeclaration
+  ): Result[CompileFailure, MorphirIRFile] =
+    unsupportedExpression(declaration) match
       case Some((kind, span)) =>
         Result.fail(CompileFailure(Chunk(CompileDiagnostic.UnsupportedExpression(kind, span))))
-      case None => Result.succeed(lower(input, module))
+      case None => Result.succeed(lower(input, module, declaration))
 
   private def malformedModuleHeaderSpan(source: String, diagnostic: ParseDiagnostic): Option[Span] =
-    val start = source.indexWhere(!_.isWhitespace)
+    val start = skipLeadingWhitespaceAndLineComments(source, 0)
     if start < 0 then None
     else
       val end = source.indexOf('\n', start) match
         case -1    => source.length
         case index => index
-      val firstLine        = source.substring(start, end)
-      val firstLineNumber  = source.substring(0, start).count(_ == '\n') + 1
-      val beginsLikeHeader =
-        firstLine.startsWith("module") || firstLine.startsWith("port module") || firstLine.startsWith("effect module")
-      Option.when(beginsLikeHeader && diagnostic.span.line == firstLineNumber)(Span.fromStartEnd(start, end))
+      val firstLine               = source.substring(start, end)
+      val firstLineNumber         = source.substring(0, start).count(_ == '\n') + 1
+      val beginsLikeHeader        = beginsWithModuleHeaderTokens(source, start)
+      val plainlyIncompleteHeader = beginsLikeHeader && !firstLine.contains("exposing")
+      val headerEnd               = source.indexOf("\n\n", start) match
+        case -1    => end
+        case index => index
+      val headerText         = source.substring(start, headerEnd)
+      val unclosedExposure   = headerText.count(_ == '(') > headerText.count(_ == ')')
+      val headerParseFailure = diagnostic.span.line == firstLineNumber || plainlyIncompleteHeader || unclosedExposure
+      Option.when(beginsLikeHeader && headerParseFailure)(Span.fromStartEnd(start, headerEnd))
+
+  private def beginsWithModuleHeaderTokens(source: String, start: Int): Boolean =
+    readIdentifier(source, start) match
+      case Some(("module", _))                      => true
+      case Some(("port" | "effect", afterModifier)) =>
+        val moduleStart = skipLeadingWhitespaceAndLineComments(source, afterModifier)
+        moduleStart >= 0 && readIdentifier(source, moduleStart).exists(_._1 == "module")
+      case _ => false
+
+  private def readIdentifier(source: String, start: Int): Option[(String, Int)] =
+    if start >= source.length || !source(start).isLetter then None
+    else
+      val end = source.indexWhere(character => !character.isLetterOrDigit && character != '_', start) match
+        case -1    => source.length
+        case index => index
+      Some(source.substring(start, end) -> end)
+
+  private def skipLeadingWhitespaceAndLineComments(source: String, offset: Int): Int =
+    val nonWhitespace = source.indexWhere(!_.isWhitespace, offset)
+    if nonWhitespace < 0 then -1
+    else if source.startsWith("--", nonWhitespace) then
+      source.indexOf('\n', nonWhitespace) match
+        case -1      => -1
+        case lineEnd => skipLeadingWhitespaceAndLineComments(source, lineEnd + 1)
+    else nonWhitespace
 
   private def exposedValueNames(module: ast.Module): Set[Name] =
     module.exposing match
@@ -183,6 +256,23 @@ object ElmToMorphirIRCompiler:
           Name.fromString(declaration.name)
         }.toSet
 
+  private def duplicateExposedValue(module: ast.Module): Option[(Name, Span)] =
+    module.exposing match
+      case ast.ExposingExplicit(items) => duplicateExposedValue(items.toList, Set.empty)
+      case _: ast.ExposingAll          => None
+
+  private def duplicateExposedValue(
+      remaining: List[ast.ExposedItem],
+      seen: Set[Name]
+  ): Option[(Name, Span)] =
+    remaining match
+      case (item @ ast.ExposedValue(value)) :: _ if seen.contains(Name.fromString(value)) =>
+        Some(Name.fromString(value) -> item.span)
+      case ast.ExposedValue(value) :: tail =>
+        duplicateExposedValue(tail, seen + Name.fromString(value))
+      case _ :: tail => duplicateExposedValue(tail, seen)
+      case Nil       => None
+
   private def unsupportedExposure(module: ast.Module): Option[(String, Span)] =
     module.exposing match
       case ast.ExposingExplicit(items) =>
@@ -191,11 +281,6 @@ object ElmToMorphirIRCompiler:
           case exposedType @ ast.ExposedType(name, _) => s"type $name"     -> exposedType.span
         }
       case exposeAll: ast.ExposingAll => Some("all values" -> exposeAll.span)
-
-  private def declaredValueNames(module: ast.Module): Set[Name] =
-    module.declarations.collect { case declaration: ast.ValueDeclaration =>
-      Name.fromString(declaration.name)
-    }.toSet
 
   private def unsupportedType(declaration: ast.ValueDeclaration): Option[(String, Span)] =
     declaration.typeAnnotation match
@@ -285,8 +370,11 @@ object ElmToMorphirIRCompiler:
       case _: ast.Parenthesized       => "parenthesized expression"
       case _: ast.Glsl                => "GLSL expression"
 
-  private def lower(input: CompileInput, module: ast.Module): MorphirIRFile =
-    val declaration    = module.declarations.head.asInstanceOf[ast.ValueDeclaration]
+  private def lower(
+      input: CompileInput,
+      module: ast.Module,
+      declaration: ast.ValueDeclaration
+  ): MorphirIRFile =
     val parameterNames = declaration.parameters.collect { case ast.VariablePattern(name) => name }
     val addDefinition  = Value.Definition.Typed(
       parameterNames.map(_ -> Basics.intType)*
