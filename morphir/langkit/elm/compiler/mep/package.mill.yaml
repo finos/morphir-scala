@@ -1,0 +1,12 @@
+extends: Module
+
+object jvm:
+  extends: [build.MorphirJVMModule, build.MorphirKyoCoreMvnDeps]
+  mainClass: morphir.langkit.elm.compiler.mep.Main
+  moduleDeps:
+  - build.morphir.langkit.elm.compiler.ir.jvm
+  - build.morphir.interop.zio.json.jvm
+  mvnDeps:
+  - dev.zio::zio-json
+  object test:
+    extends: [ScalaTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps]

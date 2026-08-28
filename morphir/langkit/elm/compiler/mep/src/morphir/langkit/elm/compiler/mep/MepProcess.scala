@@ -1,0 +1,45 @@
+package morphir.langkit.elm.compiler.mep
+
+import java.io.{InputStream, OutputStream, PrintStream}
+import java.nio.charset.StandardCharsets.UTF_8
+
+object MepProcess:
+  def run(
+      input: InputStream,
+      output: OutputStream,
+      error: PrintStream,
+      provider: ProviderMetadata
+  ): Int =
+    val readBuffer = new Array[Byte](8192)
+    var decoder    = MepFrameCodec.decoder()
+    var session    = MepSession.loaded(provider)
+    var done       = false
+    var exitCode   = 0
+
+    while !done do
+      val count = input.read(readBuffer)
+      if count < 0 then
+        decoder.finish match
+          case Left(frameError) =>
+            error.println(frameError.message)
+            exitCode = 1
+          case Right(_) => ()
+        done = true
+      else
+        decoder.feed(readBuffer.take(count)) match
+          case Left(frameError) =>
+            error.println(frameError.message)
+            exitCode = 1
+            done = true
+          case Right(decoded) =>
+            decoder = decoded.decoder
+            decoded.frames.iterator.takeWhile(_ => !done).foreach { frame =>
+              val transition = session.handle(String(frame, UTF_8))
+              session = transition.session
+              transition.response.foreach { response =>
+                output.write(MepFrameCodec.encodeJson(response))
+                output.flush()
+              }
+              if session.state == SessionState.Stopped then done = true
+            }
+    exitCode
