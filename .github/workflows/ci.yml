@@ -649,6 +649,16 @@ jobs:
           }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Build and smoke-test the Elm MEP native image
+        shell: pwsh
+        run: |
+          if ($IsWindows) {
+            & ./mill.bat --ticker false -i morphir.langkit.elm.compiler.mep.jvm.nativeImageSmoke
+          } else {
+            & ./mill --ticker false -i morphir.langkit.elm.compiler.mep.jvm.nativeImageSmoke
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Upload native CLI package
         uses: actions/upload-artifact@v7
         with:

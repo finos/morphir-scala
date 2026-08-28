@@ -446,7 +446,7 @@ trait MorphirElmMepBuildInfo extends BuildInfo with ScalaModule {
   override def buildInfoObjectName = "MepBuildInfo"
 
   def mepProviderVersion = Task.Input {
-    Task.env.get("MORPHIR_ELM_MEP_VERSION").filter(_.nonEmpty).getOrElse("0.1.0")
+    MepProviderVersion.fromEnvironment(Task.env)
   }
 
   def buildInfoMembers = Task {
@@ -1023,6 +1023,8 @@ trait MorphirMillbuildHelpersModule extends ScalaModule with ScalafmtModule {
     helpersRoot / "LintSelectors.scala",
     helpersRoot / "JsTestSelectors.scala",
     helpersRoot / "NativeTestSelectors.scala",
+    helpersRoot / "MepProviderVersion.scala",
+    helpersRoot / "MepNativeImageSmoke.scala",
     helpersRoot / "CliRelease.scala",
     helpersRoot / "LinkerBenchmark.scala",
     helpersRoot / "LinkerBenchmarkProcess.scala"

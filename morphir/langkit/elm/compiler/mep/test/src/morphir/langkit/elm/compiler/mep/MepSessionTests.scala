@@ -125,15 +125,15 @@ class MepSessionTests extends Test[Any]:
       assert(at(response, "result", "capabilities", "frontend", "compile") == Some(Json.Bool(true)))
     }
 
-    "reports the default build metadata exactly during initialize and extension info" in {
+    "reports the compiled build metadata exactly during initialize and extension info" in {
       val (initialize, info) = metadataResponses(Main.providerMetadata)
 
       assert(at(initialize, "result", "extension", "id") == Some(Json.Str("morphir-scala-elm")))
       assert(at(initialize, "result", "extension", "name") == Some(Json.Str("Morphir Scala Elm frontend")))
-      assert(at(initialize, "result", "extension", "version") == Some(Json.Str("0.1.0")))
+      assert(at(initialize, "result", "extension", "version") == Some(Json.Str(MepBuildInfo.providerVersion)))
       assert(at(info, "result", "id") == Some(Json.Str("morphir-scala-elm")))
       assert(at(info, "result", "name") == Some(Json.Str("Morphir Scala Elm frontend")))
-      assert(at(info, "result", "version") == Some(Json.Str("0.1.0")))
+      assert(at(info, "result", "version") == Some(Json.Str(MepBuildInfo.providerVersion)))
     }
 
     "reports overridden build metadata exactly during initialize and extension info" in {

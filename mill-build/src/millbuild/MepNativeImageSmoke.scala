@@ -3,25 +3,31 @@ package millbuild
 import java.nio.charset.StandardCharsets.UTF_8
 
 object MepNativeImageSmoke {
+  private val TimeoutMillis = 30000L
+
+  enum ProcessResult derives CanEqual:
+    case Completed(exitCode: Int, stdout: Array[Byte], stderr: Array[Byte])
+    case TimedOut(timeoutMillis: Long)
+
   def verify(executable: os.Path, expectedVersion: String): Unit = {
     require(os.isFile(executable), s"MEP native executable does not exist: $executable")
     val runtimeVersion = s"$expectedVersion-runtime-must-not-win"
 
-    val result = os.proc(executable).call(
-      stdin = requests.iterator.flatMap(frame).toArray,
-      stdout = os.Pipe,
-      stderr = os.Pipe,
-      env = Map(
-        "PATH"                    -> "/usr/bin:/bin",
-        "MORPHIR_ELM_MEP_VERSION" -> runtimeVersion
-      ),
-      propagateEnv = false,
-      check = false
+    val process = runProcess(
+      command = Seq(executable.toString),
+      input = requests.iterator.flatMap(frame).toArray,
+      environment = Map(MepProviderVersion.EnvironmentVariable -> runtimeVersion),
+      timeoutMillis = TimeoutMillis
     )
+    val output = process match {
+      case ProcessResult.Completed(0, stdout, _)        => stdout
+      case ProcessResult.Completed(exitCode, _, stderr) =>
+        throw new IllegalStateException(s"MEP native smoke exited $exitCode: ${String(stderr, UTF_8)}")
+      case ProcessResult.TimedOut(timeoutMillis) =>
+        throw new IllegalStateException(s"MEP native smoke timed out after $timeoutMillis ms")
+    }
 
-    require(result.exitCode == 0, s"MEP native smoke exited ${result.exitCode}: ${result.err.text()}")
-
-    val responses = decodeFrames(result.out.bytes).map(bytes => ujson.read(bytes))
+    val responses = decodeFrames(output).map(bytes => ujson.read(bytes))
     require(responses.size == 6, s"expected 6 framed MEP responses, received ${responses.size}")
     val byId = responses.map(response => response("id").str -> response).toMap
 
@@ -56,6 +62,30 @@ object MepNativeImageSmoke {
       s"expected compiled provider version $expectedVersion, received ${metadata("version")}"
     )
     require(metadata("version").str != runtimeVersion, "runtime environment changed compiled provider metadata")
+  }
+
+  private[millbuild] def runProcess(
+      command: Seq[String],
+      input: Array[Byte],
+      environment: Map[String, String],
+      timeoutMillis: Long
+  ): ProcessResult = {
+    require(timeoutMillis > 0L, "native smoke timeout must be positive")
+    val stdout                                                           = new java.io.ByteArrayOutputStream()
+    val stderr                                                           = new java.io.ByteArrayOutputStream()
+    def capture(output: java.io.ByteArrayOutputStream): os.ProcessOutput =
+      os.ProcessOutput.ReadBytes((bytes, length) => output.synchronized(output.write(bytes, 0, length)))
+
+    val process = os.proc(command).spawn(
+      stdin = input,
+      stdout = capture(stdout),
+      stderr = capture(stderr),
+      env = environment,
+      propagateEnv = true
+    )
+    val completed = process.join(timeoutMillis, timeoutGracePeriod = 100L)
+    if completed then ProcessResult.Completed(process.exitCode(), stdout.toByteArray, stderr.toByteArray)
+    else ProcessResult.TimedOut(timeoutMillis)
   }
 
   private def requests: Seq[ujson.Value] = Seq(
