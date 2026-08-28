@@ -6,6 +6,7 @@ import morphir.langkit.elm.compiler.ir.{CompileInput, ElmToMorphirIRCompiler}
 import org.finos.morphir.ir.{MorphirIRFile, MorphirIRVersion}
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.naming.{ModuleName, Name, PackageName}
+import zio.json.ast.Json
 
 class MepElmFrontendTests extends Test[Any]:
   private val packageName = PackageName.fromString("local/example")
@@ -23,7 +24,55 @@ class MepElmFrontendTests extends Test[Any]:
     case Result.Success(ir) => ir
     case other              => throw AssertionError(s"test fixture did not compile: $other")
 
+  "MepCompileError" - {
+    "classifies semantic request errors as invalid compile parameters" in {
+      val result = MepElmFrontend.compile(Json.Obj())
+
+      assert(result == Left(MepCompileError.InvalidParams("languageId must be a string")))
+    }
+
+    "maps invalid compile parameters to JSON-RPC invalid params" in {
+      val code = MepCompileError.jsonRpcCode(MepCompileError.InvalidParams("bad params"))
+
+      assert(code == -32602)
+    }
+
+    "maps invalid compiler output to JSON-RPC internal error" in {
+      val code = MepCompileError.jsonRpcCode(MepCompileError.InvalidCompilerOutput("bad IR"))
+
+      assert(code == -32603)
+    }
+
+    "maps IR serialization failure to JSON-RPC internal error" in {
+      val code = MepCompileError.jsonRpcCode(MepCompileError.IRSerializationFailure("bad JSON"))
+
+      assert(code == -32603)
+    }
+  }
+
   "MepElmFrontend.validateCompiledIR" - {
+    "classifies invalid constructed IR as invalid compiler output" in {
+      val result = MepElmFrontend.validateCompilerOutput(
+        validIr.copy(version = MorphirIRVersion.V2_0),
+        packageName,
+        Set(moduleName)
+      )
+
+      assert(result ==
+        Left(MepCompileError.InvalidCompilerOutput("The compiler returned Morphir IR other than version 3")))
+    }
+
+    "rejects invalid constructed IR before encoding a successful compile result" in {
+      val result = MepElmFrontend.encodeCompilerOutput(
+        validIr.copy(version = MorphirIRVersion.V2_0),
+        packageName,
+        Set(moduleName)
+      )
+
+      assert(result ==
+        Left(MepCompileError.InvalidCompilerOutput("The compiler returned Morphir IR other than version 3")))
+    }
+
     "derives the package and module metadata from valid IR" in {
       val validated = MepElmFrontend.validateCompiledIR(validIr, packageName, Set(moduleName)).toOption.get
 

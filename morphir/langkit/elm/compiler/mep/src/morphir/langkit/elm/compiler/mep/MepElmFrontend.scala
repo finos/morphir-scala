@@ -17,14 +17,26 @@ final case class ValidatedCompiledIR(
     modules: Vector[ModuleName]
 ) derives CanEqual
 
+enum MepCompileError(val message: String) derives CanEqual:
+  case InvalidParams(details: String)          extends MepCompileError(details)
+  case InvalidCompilerOutput(details: String)  extends MepCompileError(details)
+  case IRSerializationFailure(details: String) extends MepCompileError(details)
+
+object MepCompileError:
+  def jsonRpcCode(error: MepCompileError): Int = error match
+    case _: MepCompileError.InvalidParams                                                     => -32602
+    case _: MepCompileError.InvalidCompilerOutput | _: MepCompileError.IRSerializationFailure => -32603
+
 object MepElmFrontend:
   private val ModuleHeader = raw"(?m)^module\s+([A-Z][A-Za-z0-9]*(?:\.[A-Z][A-Za-z0-9]*)*)\s+exposing\s*\(([^)]*)\)".r
   private val PackageIdentity =
     raw"(?:[a-z]+|[0-9]+)(?:-(?:[a-z]+|[0-9]+))*(?:/(?:[a-z]+|[0-9]+)(?:-(?:[a-z]+|[0-9]+))*)*".r
   private val ModuleIdentity = raw"[A-Z][A-Za-z0-9]*(?:\.[A-Z][A-Za-z0-9]*)*".r
 
-  def compile(params: Json): Either[String, Json] =
-    parseRequest(params).flatMap(compileRequest)
+  def compile(params: Json): Either[MepCompileError, Json] =
+    parseRequest(params)
+      .left.map(MepCompileError.InvalidParams.apply)
+      .flatMap(compileRequest)
 
   private[mep] def validateCompiledIR(
       ir: MorphirIRFile,
@@ -43,10 +55,37 @@ object MepElmFrontend:
           else Right(ValidatedCompiledIR(ir, library.packageName, modules))
         case _ => Left("The compiler returned a non-library distribution")
 
-  private def compileRequest(request: CompileRequest): Either[String, Json] =
+  private[mep] def validateCompilerOutput(
+      ir: MorphirIRFile,
+      requestedPackage: PackageName,
+      requestedModules: Set[ModuleName]
+  ): Either[MepCompileError, ValidatedCompiledIR] =
+    validateCompiledIR(ir, requestedPackage, requestedModules).left.map(MepCompileError.InvalidCompilerOutput.apply)
+
+  private[mep] def encodeCompilerOutput(
+      ir: MorphirIRFile,
+      requestedPackage: PackageName,
+      requestedModules: Set[ModuleName]
+  ): Either[MepCompileError, Json] =
     for
-      document <- request.documents.headOption.toRight("Morphir Scala Elm requires exactly one source document")
-      module   <- request.compilePackage.exposedModules.headOption.toRight("Exactly one exposed module is required")
+      validated <- validateCompilerOutput(ir, requestedPackage, requestedModules)
+      irJson    <- validated.ir.toJsonAST.left.map(MepCompileError.IRSerializationFailure.apply)
+    yield Json.Obj(
+      "success"     -> Json.Bool(true),
+      "irVersion"   -> Json.Str("3"),
+      "ir"          -> irJson,
+      "diagnostics" -> Json.Arr(),
+      "modules"     -> Json.Arr(validated.modules.map(name => Json.Str(name.toString))*)
+    )
+
+  private def compileRequest(request: CompileRequest): Either[MepCompileError, Json] =
+    for
+      document <- request.documents.headOption.toRight(
+        MepCompileError.InvalidParams("Morphir Scala Elm requires exactly one source document")
+      )
+      module <- request.compilePackage.exposedModules.headOption.toRight(
+        MepCompileError.InvalidParams("Exactly one exposed module is required")
+      )
       exposedValues = sourceExposedValues(document.text)
       input         = CompileInput(
         source = document.text,
@@ -56,17 +95,7 @@ object MepElmFrontend:
         irVersion = MorphirIRVersion.V3_0
       )
       result <- ElmToMorphirIRCompiler.compile(input) match
-        case Result.Success(ir) =>
-          for
-            validated <- validateCompiledIR(ir, input.packageName, Set(input.moduleName))
-            irJson    <- validated.ir.toJsonAST.left.map(identity)
-          yield Json.Obj(
-            "success"     -> Json.Bool(true),
-            "irVersion"   -> Json.Str("3"),
-            "ir"          -> irJson,
-            "diagnostics" -> Json.Arr(),
-            "modules"     -> Json.Arr(validated.modules.map(name => Json.Str(name.toString))*)
-          )
+        case Result.Success(ir)      => encodeCompilerOutput(ir, input.packageName, Set(input.moduleName))
         case Result.Failure(failure) => Right(compileFailure(document, failure))
     yield result
 

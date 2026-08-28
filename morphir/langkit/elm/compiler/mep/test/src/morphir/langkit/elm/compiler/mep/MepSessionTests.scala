@@ -57,6 +57,18 @@ class MepSessionTests extends Test[Any]:
       ))
     }
 
+    "rejects an empty JSON-RPC method" in {
+      val response = MepSession.loaded(ProviderMetadata.default)
+        .handle("""{"jsonrpc":"2.0","id":"empty-method","method":"","params":{}}""")
+        .response
+        .flatMap(_.fromJson[Json].toOption)
+        .get
+
+      assert(at(response, "id") == Some(Json.Str("empty-method")))
+      assert(at(response, "error", "code") == Some(Json.Num(-32600)))
+      assert(at(response, "error", "message") == Some(Json.Str("Invalid JSON-RPC request")))
+    }
+
     "rejects invalid JSON-RPC ID types with a null response ID" in {
       val session    = MepSession.loaded(ProviderMetadata.default)
       val invalidIds = Vector("{}", "[]", "true")
@@ -68,6 +80,19 @@ class MepSessionTests extends Test[Any]:
 
       assert(responses.forall(response => at(response, "id") == Some(Json.Null)))
       assert(responses.forall(response => at(response, "error", "code") == Some(Json.Num(-32600))))
+    }
+
+    "rejects a fractional numeric JSON-RPC ID with a null response ID" in {
+      val response = MepSession.loaded(ProviderMetadata.default)
+        .handle(
+          """{"jsonrpc":"2.0","id":1.5,"method":"morphir.initialize","params":{"protocolVersions":["0.1"],"host":{"name":"test-host","version":"1.0.0"}}}"""
+        )
+        .response
+        .flatMap(_.fromJson[Json].toOption)
+        .get
+
+      assert(at(response, "id") == Some(Json.Null))
+      assert(at(response, "error", "code") == Some(Json.Num(-32600)))
     }
 
     "negotiates MEP 0.1 with the configured provider identity" in {
@@ -186,6 +211,18 @@ class MepSessionTests extends Test[Any]:
       assert(at(response, "error", "message") == Some(Json.Str("Invalid morphir.frontend.compile parameters")))
     }
 
+    "encodes invalid compiler output as a JSON-RPC internal error" in {
+      val response = initializedSession
+        .compileErrorResponse(Json.Num(33), MepCompileError.InvalidCompilerOutput("bad IR"))
+        .fromJson[Json]
+        .toOption
+        .get
+
+      assert(at(response, "id") == Some(Json.Num(33)))
+      assert(at(response, "error", "code") == Some(Json.Num(-32603)))
+      assert(at(response, "error", "message") == Some(Json.Str("Internal error")))
+    }
+
     "compiles one Elm document to embedded Morphir IR 3" in {
       val request =
         """{"jsonrpc":"2.0","id":"compile-1","method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":1,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right =\n    left + right\n"}],"package":{"name":"local/example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
@@ -276,6 +313,33 @@ class MepSessionTests extends Test[Any]:
 
       assert(transition.session.state == SessionState.Stopped)
       assert(at(response, "result") == Some(Json.Obj()))
+    }
+
+    "keeps reinitialize, compile, and unknown requests stopped after shutdown" in {
+      val stopped = initializedSession.handle(
+        """{"jsonrpc":"2.0","id":9,"method":"morphir.shutdown","params":{}}"""
+      ).session
+      val requests = Vector(
+        """{"jsonrpc":"2.0","id":30,"method":"morphir.initialize","params":{"protocolVersions":["0.1"],"host":{"name":"test-host","version":"1.0.0"}}}""",
+        """{"jsonrpc":"2.0","id":31,"method":"morphir.frontend.compile","params":{}}""",
+        """{"jsonrpc":"2.0","id":32,"method":"morphir.unknown","params":{}}"""
+      )
+      val transitions = requests.map(stopped.handle)
+      val responses   = transitions.map(_.response.flatMap(_.fromJson[Json].toOption).get)
+
+      assert(transitions.forall(_.session.state == SessionState.Stopped))
+      assert(responses.forall(response => at(response, "error", "code") == Some(Json.Num(-32600))))
+    }
+
+    "accepts only an exit notification after shutdown without responding" in {
+      val stopped = initializedSession.handle(
+        """{"jsonrpc":"2.0","id":9,"method":"morphir.shutdown","params":{}}"""
+      ).session
+
+      val transition = stopped.handle("""{"jsonrpc":"2.0","method":"morphir.exit"}""")
+
+      assert(transition.session.state == SessionState.Stopped)
+      assert(transition.response.isEmpty)
     }
 
     "rejects explicit null or non-object shutdown parameters" in {

@@ -37,7 +37,8 @@ object MepFrameCodec:
       maxHeaderBytes: Int
   ): Either[MepFrameError, DecodedFrames] =
     headerEnd(bytes) match
-      case None if bytes.length > maxHeaderBytes => Left(MepFrameError(s"header exceeds $maxHeaderBytes bytes"))
+      case None if bytes.length - pendingDelimiterBytes(bytes) > maxHeaderBytes =>
+        Left(MepFrameError(s"header exceeds $maxHeaderBytes bytes"))
       case None => Right(DecodedFrames(MepFrameDecoder(bytes, maxPayloadBytes, maxHeaderBytes), decoded))
       case Some((headerLength, delimiterLength)) =>
         if headerLength > maxHeaderBytes then Left(MepFrameError(s"header exceeds $maxHeaderBytes bytes"))
@@ -66,6 +67,13 @@ object MepFrameCodec:
       case (_, b)           => Some(b -> 2)
 
   private[mep] def hasCompleteHeader(bytes: Vector[Byte]): Boolean = headerEnd(bytes).nonEmpty
+
+  private def pendingDelimiterBytes(bytes: Vector[Byte]): Int =
+    Vector(Vector[Byte](10), Vector[Byte](13), Vector[Byte](13, 10), Vector[Byte](13, 10, 13))
+      .filter(bytes.endsWith)
+      .map(_.length)
+      .maxOption
+      .getOrElse(0)
 
   private def parseLength(header: Vector[Byte]): Either[MepFrameError, Int] =
     val lines   = String(header.toArray, UTF_8).split("\\r?\\n").toVector

@@ -87,6 +87,31 @@ class MepFrameCodecTests extends Test[Any]:
       assert(result == Left(MepFrameError("header exceeds 4 bytes")))
     }
 
+    "accepts an exact-limit header when a CRLF delimiter arrives fragmented" in {
+      val maxHeaderBytes = 32
+      val prefix         = "Content-Length: 2\r\nX:"
+      val header         = prefix + ("a" * (maxHeaderBytes - prefix.length))
+      val fragments      = Vector("\r", "\n", "\r", "\n{}")
+      val result         =
+        fragments.foldLeft(MepFrameCodec.decoder(maxHeaderBytes = maxHeaderBytes).feed(header.getBytes(UTF_8))) {
+          case (Right(decoded), fragment) => decoded.decoder.feed(fragment.getBytes(UTF_8))
+          case (left, _)                  => left
+        }
+
+      assert(result.toOption.get.frames.map(bytes => String(bytes, UTF_8)) == Vector("{}"))
+    }
+
+    "accepts an exact-limit header when an LF delimiter arrives fragmented" in {
+      val maxHeaderBytes = 32
+      val prefix         = "Content-Length: 2\nX:"
+      val header         = prefix + ("a" * (maxHeaderBytes - prefix.length))
+      val first          = MepFrameCodec.decoder(maxHeaderBytes = maxHeaderBytes).feed(header.getBytes(UTF_8))
+      val delimiterStart = first.toOption.get.decoder.feed("\n".getBytes(UTF_8))
+      val result         = delimiterStart.toOption.get.decoder.feed("\n{}".getBytes(UTF_8))
+
+      assert(result.toOption.get.frames.map(bytes => String(bytes, UTF_8)) == Vector("{}"))
+    }
+
     "reports a truncated body at EOF" in {
       val partial = MepFrameCodec.decoder().feed("Content-Length: 4\r\n\r\n{}".getBytes(UTF_8)).toOption.get
 

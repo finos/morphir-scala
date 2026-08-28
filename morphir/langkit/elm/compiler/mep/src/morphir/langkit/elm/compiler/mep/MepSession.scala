@@ -10,19 +10,27 @@ final case class MepSession private (state: SessionState, provider: ProviderMeta
     body.fromJson[Json] match
       case Right(Json.Obj(fields))
           if fields.toMap.get("id").exists {
-            case _: Json.Str | _: Json.Num | Json.Null => false
-            case _                                     => true
+            case _: Json.Str | Json.Null => false
+            case Json.Num(value)         => value.stripTrailingZeros.scale > 0
+            case _                       => true
           } =>
         SessionTransition(this, Some(error(Json.Null, -32600, "Invalid JSON-RPC request").toJson))
       case Right(Json.Obj(fields)) if fields.toMap.get("jsonrpc") != Some(Json.Str("2.0")) =>
         val id = fields.toMap.getOrElse("id", Json.Null)
         SessionTransition(this, Some(error(id, -32600, "Invalid JSON-RPC request").toJson))
-      case Right(Json.Obj(fields)) if !fields.toMap.get("method").exists(_.isInstanceOf[Json.Str]) =>
+      case Right(Json.Obj(fields))
+          if !fields.toMap.get("method").exists {
+            case Json.Str(value) => value.nonEmpty
+            case _               => false
+          } =>
         val id = fields.toMap.getOrElse("id", Json.Null)
         SessionTransition(this, Some(error(id, -32600, "Invalid JSON-RPC request").toJson))
       case Right(Json.Obj(fields))
           if fields.toMap.get("method") == Some(Json.Str("morphir.exit")) && !fields.toMap.contains("id") =>
         SessionTransition(copy(state = SessionState.Stopped), None)
+      case Right(Json.Obj(fields)) if state == SessionState.Stopped =>
+        val response = fields.toMap.get("id").map(id => error(id, -32600, "The MEP session is stopped").toJson)
+        SessionTransition(this, response)
       case Right(request @ Json.Obj(_)) if state == SessionState.Ready => ready(request)
       case Right(request @ Json.Obj(_))                                => initialize(request)
       case Right(_) => SessionTransition(this, Some(error(Json.Null, -32600, "Invalid JSON-RPC request").toJson))
@@ -49,10 +57,10 @@ final case class MepSession private (state: SessionState, provider: ProviderMeta
         case (Some(Json.Str("morphir.shutdown")), Some(id)) =>
           SessionTransition(this, Some(error(id, -32602, "morphir.shutdown parameters must be an object").toJson))
         case (Some(Json.Str("morphir.frontend.compile")), Some(id)) =>
-          fields.get("params").flatMap(params => MepElmFrontend.compile(params).toOption) match
-            case Some(result) => SessionTransition(this, Some(success(id, result).toJson))
-            case None         =>
-              SessionTransition(this, Some(error(id, -32602, "Invalid morphir.frontend.compile parameters").toJson))
+          fields.get("params").toRight(MepCompileError.InvalidParams("compile params are required"))
+            .flatMap(MepElmFrontend.compile) match
+            case Right(result)        => SessionTransition(this, Some(success(id, result).toJson))
+            case Left(compileFailure) => SessionTransition(this, Some(compileErrorResponse(id, compileFailure)))
         case (Some(Json.Str("morphir.frontend.compile")), None) =>
           fields.get("params").foreach(MepElmFrontend.compile)
           SessionTransition(this, None)
@@ -131,6 +139,12 @@ final case class MepSession private (state: SessionState, provider: ProviderMeta
 
   private def success(id: Json, result: Json): Json =
     Json.Obj("jsonrpc" -> Json.Str("2.0"), "id" -> id, "result" -> result)
+
+  private[mep] def compileErrorResponse(id: Json, compileFailure: MepCompileError): String =
+    val message = compileFailure match
+      case _: MepCompileError.InvalidParams => "Invalid morphir.frontend.compile parameters"
+      case _                                => "Internal error"
+    error(id, MepCompileError.jsonRpcCode(compileFailure), message).toJson
 
   private def error(id: Json, code: Int, message: String, data: Option[Json] = None): Json =
     Json.Obj(
