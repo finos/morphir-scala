@@ -6,7 +6,9 @@ the shape of the next release, and it is what CI stamps on every build. Dated he
 `## [Unreleased]` is optional and carries no build meaning; use it for entries not yet assigned to
 a release.
 
-## [0.5.0-M05]
+## [0.5.0-M06]
+
+## [0.5.0-M05] - 2026-08-27
 
 The first release cut through the independent version streams, and the first since this changelog
 existed. It carries roughly seventy merged pull requests; the notable ones are below, and the GitHub
