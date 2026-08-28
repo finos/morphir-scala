@@ -458,6 +458,13 @@ trait MorphirElmMepBuildInfo extends BuildInfo with ScalaModule {
   }
 }
 
+/** Builds and exercises the Elm MEP native executable as a framed protocol peer. */
+trait MorphirElmMepNativeImageSmoke extends MorphirNativeImage with MorphirElmMepBuildInfo { this: JavaModule =>
+  def nativeImageSmoke = Task {
+    MepNativeImageSmoke.verify(nativeImage().path, mepProviderVersion())
+  }
+}
+
 /**
  * BuildInfo wiring for `morphir.intelligence` — its own member set (adds JVM build info, no `platform` member since
  * this module isn't cross-platform) and package name, both hardcoded per [[MorphirExtensibilityBuildInfo]].
