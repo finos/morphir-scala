@@ -204,31 +204,65 @@ object ElmToMorphirIRCompiler:
       case None => Result.succeed(lower(input, module, declaration))
 
   private def malformedModuleHeaderSpan(source: String, diagnostic: ParseDiagnostic): Option[Span] =
-    val start = skipLeadingWhitespaceAndLineComments(source, 0)
+    val start = skipTrivia(source, 0, source.length)
     if start < 0 then None
     else
-      val end = source.indexOf('\n', start) match
-        case -1    => source.length
-        case index => index
-      val firstLine               = source.substring(start, end)
-      val firstLineNumber         = source.substring(0, start).count(_ == '\n') + 1
-      val beginsLikeHeader        = beginsWithModuleHeaderTokens(source, start)
-      val plainlyIncompleteHeader = beginsLikeHeader && !firstLine.contains("exposing")
-      val headerEnd               = source.indexOf("\n\n", start) match
-        case -1    => end
-        case index => index
-      val headerText         = source.substring(start, headerEnd)
-      val unclosedExposure   = headerText.count(_ == '(') > headerText.count(_ == ')')
-      val headerParseFailure = diagnostic.span.line == firstLineNumber || plainlyIncompleteHeader || unclosedExposure
-      Option.when(beginsLikeHeader && headerParseFailure)(Span.fromStartEnd(start, headerEnd))
+      val regionEnd = headerRegionEnd(source, start)
+      if !beginsWithModuleHeaderTokens(source, start) then None
+      else
+        exposingListEnd(source, start, regionEnd) match
+          case Some(headerEnd) =>
+            Option.when(diagnostic.span.range.start < headerEnd)(Span.fromStartEnd(start, headerEnd))
+          case None => Some(Span.fromStartEnd(start, regionEnd))
 
   private def beginsWithModuleHeaderTokens(source: String, start: Int): Boolean =
     readIdentifier(source, start) match
       case Some(("module", _))                      => true
       case Some(("port" | "effect", afterModifier)) =>
-        val moduleStart = skipLeadingWhitespaceAndLineComments(source, afterModifier)
+        val moduleStart = skipTrivia(source, afterModifier, source.length)
         moduleStart >= 0 && readIdentifier(source, moduleStart).exists(_._1 == "module")
       case _ => false
+
+  private def exposingListEnd(source: String, start: Int, limit: Int): Option[Int] =
+    findIdentifier(source, "exposing", start, limit).flatMap { afterExposing =>
+      val open = skipTrivia(source, afterExposing, limit)
+      Option.when(open >= 0 && open < limit && source(open) == '(')(open).flatMap { openParenthesis =>
+        matchingParenthesisEnd(source, openParenthesis + 1, limit, depth = 1)
+      }
+    }
+
+  private def findIdentifier(source: String, expected: String, offset: Int, limit: Int): Option[Int] =
+    val start = skipTrivia(source, offset, limit)
+    if start < 0 then None
+    else
+      readIdentifier(source, start) match
+        case Some((identifier, end)) if identifier == expected => Some(end)
+        case Some((_, end))                                    => findIdentifier(source, expected, end, limit)
+        case None                                              => findIdentifier(source, expected, start + 1, limit)
+
+  private def matchingParenthesisEnd(source: String, offset: Int, limit: Int, depth: Int): Option[Int] =
+    if offset >= limit then None
+    else
+      val next = skipTrivia(source, offset, limit)
+      if next < 0 then None
+      else
+        source(next) match
+          case '('               => matchingParenthesisEnd(source, next + 1, limit, depth + 1)
+          case ')' if depth == 1 => Some(next + 1)
+          case ')'               => matchingParenthesisEnd(source, next + 1, limit, depth - 1)
+          case _                 => matchingParenthesisEnd(source, next + 1, limit, depth)
+
+  private def headerRegionEnd(source: String, start: Int): Int =
+    def loop(lineStart: Int): Int =
+      val lineEnd = source.indexOf('\n', lineStart) match
+        case -1    => source.length
+        case index => index
+      if lineStart > start && source.substring(lineStart, lineEnd).forall(_.isWhitespace) then
+        math.max(start, lineStart - 1)
+      else if lineEnd == source.length then source.length
+      else loop(lineEnd + 1)
+
+    loop(start)
 
   private def readIdentifier(source: String, start: Int): Option[(String, Int)] =
     if start >= source.length || !source(start).isLetter then None
@@ -238,14 +272,26 @@ object ElmToMorphirIRCompiler:
         case index => index
       Some(source.substring(start, end) -> end)
 
-  private def skipLeadingWhitespaceAndLineComments(source: String, offset: Int): Int =
+  private def skipTrivia(source: String, offset: Int, limit: Int): Int =
     val nonWhitespace = source.indexWhere(!_.isWhitespace, offset)
-    if nonWhitespace < 0 then -1
+    if nonWhitespace < 0 || nonWhitespace >= limit then -1
     else if source.startsWith("--", nonWhitespace) then
       source.indexOf('\n', nonWhitespace) match
         case -1      => -1
-        case lineEnd => skipLeadingWhitespaceAndLineComments(source, lineEnd + 1)
+        case lineEnd => skipTrivia(source, lineEnd + 1, limit)
+    else if source.startsWith("{-", nonWhitespace) then
+      blockCommentEnd(source, nonWhitespace + 2, limit, depth = 1) match
+        case Some(commentEnd) => skipTrivia(source, commentEnd, limit)
+        case None             => -1
     else nonWhitespace
+
+  private def blockCommentEnd(source: String, offset: Int, limit: Int, depth: Int): Option[Int] =
+    if offset >= limit then None
+    else if source.startsWith("{-", offset) then blockCommentEnd(source, offset + 2, limit, depth + 1)
+    else if source.startsWith("-}", offset) then
+      if depth == 1 then Some(offset + 2)
+      else blockCommentEnd(source, offset + 2, limit, depth - 1)
+    else blockCommentEnd(source, offset + 1, limit, depth)
 
   private def exposedValueNames(module: ast.Module): Set[Name] =
     module.exposing match

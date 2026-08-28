@@ -104,6 +104,33 @@ class ElmToMorphirIRCompilerTests extends Test[Any]:
         case other => assert(false, s"expected malformed module header after a comment, got $other")
     }
 
+    "recognizes a malformed module header after a leading block comment" in {
+      val malformedHeader = "{- lead -}\nmodule Malformed\n\nadd : Int\nadd = 1\n"
+
+      ElmToMorphirIRCompiler.compile(input(sourceText = malformedHeader)) match
+        case Result.Failure(CompileFailure(Chunk(CompileDiagnostic.MalformedModuleHeader(span)))) =>
+          assert(malformedHeader.substring(span.start, span.end) == "module Malformed")
+        case other => assert(false, s"expected malformed module header after a block comment, got $other")
+    }
+
+    "recognizes a malformed module header after a leading doc comment" in {
+      val malformedHeader = "{-| docs -}\nmodule Malformed\n\nadd : Int\nadd = 1\n"
+
+      ElmToMorphirIRCompiler.compile(input(sourceText = malformedHeader)) match
+        case Result.Failure(CompileFailure(Chunk(CompileDiagnostic.MalformedModuleHeader(span)))) =>
+          assert(malformedHeader.substring(span.start, span.end) == "module Malformed")
+        case other => assert(false, s"expected malformed module header after a doc comment, got $other")
+    }
+
+    "recognizes a malformed module header after nested block comments" in {
+      val malformedHeader = "{- outer {- inner -} outer -}\nmodule Malformed\n\nadd : Int\nadd = 1\n"
+
+      ElmToMorphirIRCompiler.compile(input(sourceText = malformedHeader)) match
+        case Result.Failure(CompileFailure(Chunk(CompileDiagnostic.MalformedModuleHeader(span)))) =>
+          assert(malformedHeader.substring(span.start, span.end) == "module Malformed")
+        case other => assert(false, s"expected malformed module header after nested block comments, got $other")
+    }
+
     "recognizes a malformed multiline module header" in {
       val malformedHeader =
         "module Example exposing\n    (add\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"
@@ -112,6 +139,26 @@ class ElmToMorphirIRCompilerTests extends Test[Any]:
         case Result.Failure(CompileFailure(Chunk(CompileDiagnostic.MalformedModuleHeader(span)))) =>
           assert(malformedHeader.substring(span.start, span.end) == "module Example exposing\n    (add")
         case other => assert(false, s"expected malformed multiline module header, got $other")
+    }
+
+    "recognizes balanced malformed multiline exposure syntax" in {
+      val malformedHeader =
+        "module Example exposing\n    (add,\n    )\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"
+
+      ElmToMorphirIRCompiler.compile(input(sourceText = malformedHeader)) match
+        case Result.Failure(CompileFailure(Chunk(CompileDiagnostic.MalformedModuleHeader(span)))) =>
+          assert(malformedHeader.substring(span.start, span.end) == "module Example exposing\n    (add,\n    )")
+        case other => assert(false, s"expected balanced malformed multiline module header, got $other")
+    }
+
+    "keeps an invalid body after a valid multiline header as a parser failure" in {
+      val invalidBody =
+        "module Example exposing\n    (add\n    )\n\nadd : Int -> Int -> Int\nadd left right =\n"
+
+      ElmToMorphirIRCompiler.compile(input(sourceText = invalidBody)) match
+        case Result.Failure(CompileFailure(Chunk(CompileDiagnostic.ParserFailure(diagnostic)))) =>
+          assert(diagnostic.span.range.start > invalidBody.indexOf("add left right"))
+        case other => assert(false, s"expected body parser failure after a valid multiline header, got $other")
     }
 
     "keeps a module-prefixed identifier as an ordinary parser failure" in {
