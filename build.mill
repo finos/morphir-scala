@@ -74,7 +74,7 @@ object scoverage extends ScoverageReport {
 trait MorphirVersionedModule extends Module {
   import org.finos.morphir.mill.publish.version.*
 
-  /** None is the root stream, tagged `v*`. Some("desktop") is tagged `desktop/v*`. */
+  /** None is the root stream, tagged `v*`. Some("mill-plugins") is tagged `mill-plugins/v*`. */
   def versionNamespace = Task { Option.empty[String] }
 
   /**
@@ -82,10 +82,10 @@ trait MorphirVersionedModule extends Module {
    *
    * The default is the root/library stream's own floor, `0.5.0-M04` — the last version this repository's shared tag
    * line published before independent streams existed, and the one stream with real published history (~40 tags) to
-   * protect. The plugin family and the desktop application override this with their own floor; leaving the root stream
-   * on `None` left the one area with anything to lose unprotected, while the two areas that have never published
-   * anything carried one. Mirrored in `SquireChangelog.Areas` (`.claude/skills/squire/SquireChangelog.scala`) so the CI
-   * policy gate validates against the same value.
+   * protect. The plugin family overrides this with its own floor; leaving the root stream on `None` left the one area
+   * with anything to lose unprotected, while the never-published plugin area carried one. Mirrored in
+   * `SquireChangelog.Areas` (`.claude/skills/squire/SquireChangelog.scala`) so the CI policy gate validates against the
+   * same value.
    */
   def startingVersion = Task { Some("0.5.0-M04") }
 
@@ -97,7 +97,7 @@ trait MorphirVersionedModule extends Module {
    * `Task`.
    *
    * The libraries' changelog lives at the repository root, not per-module, so the default reads from there; the plugin
-   * family and the desktop application override this to their own namespaced file.
+   * family overrides this to its own namespaced file.
    */
   def changelog = Task.Source(mill.api.BuildCtx.workspaceRoot / "CHANGELOG.md")
 
@@ -180,10 +180,6 @@ trait MorphirVersionedModule extends Module {
 }
 
 /**
- * Version and POM policy shared by every Morphir publishable, including the desktop distributions, which are not JVM
- * libraries and must not carry Mima.
- */
-/**
  * A JVM module that carries JMH benchmarks.
  *
  * Not a publish module: benchmarks are a measuring instrument for this repository, not something consumers depend on.
@@ -193,6 +189,7 @@ trait MorphirBenchmarksModule extends MorphirJVMModule with JmhModule {
   def jmhCoreVersion = Vers.jmh
 }
 
+/** Version and POM policy shared by every Morphir publishable. */
 trait MorphirPublishBase extends PublishModule with SonatypeCentralPublishModule with MorphirVersionedModule {
   import mill.scalalib.publish.*
 
@@ -999,7 +996,6 @@ trait MorphirMillbuildHelpersModule extends ScalaModule with ScalafmtModule {
     helpersRoot / "JsTestSelectors.scala",
     helpersRoot / "NativeTestSelectors.scala",
     helpersRoot / "CliRelease.scala",
-    helpersRoot / "DesktopSmoke.scala",
     helpersRoot / "LinkerBenchmark.scala",
     helpersRoot / "LinkerBenchmarkProcess.scala"
   )

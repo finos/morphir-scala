@@ -16,7 +16,7 @@ on:
     # workflow deliberately has no `release:` trigger — the promotion lives in that separate, slim
     # workflow precisely so publishing a release does not re-run the whole test and packaging
     # pipeline.
-    tags: ["v*", "mill-plugins/v*", "desktop/v*"]
+    tags: ["v*", "mill-plugins/v*"]
   workflow_dispatch:
     inputs:
       maven_central:
@@ -328,12 +328,13 @@ jobs:
           ./mill --ticker false -i morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery
           ./mill --ticker false -i morphir.runtime.classic.jvm.test
 
-  # Split from test-js-desktop (morphir-oyn): linking morphir.ui, morphir.desktop and
-  # morphir.appkit.electron alongside the rest of the JS/Wasm tree in one Mill daemon pushed the
-  # Scala.js linker past the 8 GB heap in .mill-jvm-opts, OOM-ing inside the source-map printer.
-  # ci.testJs / ci.testJsWasmLink (ci/MorphirCi.mill) resolve the shared wildcards once and split
-  # them by millbuild.JsTestSelectors so the two peaks land on two runners with two daemons; "platform"
-  # here is everything *except* the desktop/UI subset that test-js-desktop takes.
+  # Split from test-js-desktop (morphir-oyn): linking morphir.ui alongside the rest of the JS/Wasm
+  # tree in one Mill daemon pushed the Scala.js linker past the 8 GB heap in .mill-jvm-opts, OOM-ing
+  # inside the source-map printer. (Originally morphir.ui shared this split with morphir.desktop and
+  # morphir.appkit.electron, which retired with the Electron UI — the desktop/web UI now lives at
+  # finos/morphir-ui.) ci.testJs / ci.testJsWasmLink (ci/MorphirCi.mill) resolve the shared wildcards
+  # once and split them by millbuild.JsTestSelectors so the two peaks land on two runners with two
+  # daemons; "platform" here is everything *except* the desktop/UI subset that test-js-desktop takes.
   test-js:
     runs-on: ubuntu-latest
     # 45 rather than the 30 the other test jobs use. The "Run JS tests" step alone has finished in
@@ -370,8 +371,7 @@ jobs:
         # rather than that task's `-j 4` default: a GitHub-hosted runner is smaller than a developer
         # machine and shares its 8 GB daemon heap (.mill-jvm-opts) with everything else on the box.
         # ci.testJs partitions the shared wildcard by millbuild.JsTestSelectors; "platform" is every
-        # JS/Wasm test module except morphir.ui/morphir.desktop/morphir.appkit.electron, which
-        # test-js-desktop covers instead.
+        # JS/Wasm test module except morphir.ui, which test-js-desktop covers instead.
         run: |
           ./mill --ticker false -i -k -j 2 ci.testJs --group platform
 
@@ -398,9 +398,12 @@ jobs:
           # `-platform` distinguishes this from test-js-desktop's own save under the same commit.
           key: ${{ runner.os }}-mill-js-platform-${{matrix.java}}-${{ github.sha }}
 
-  # See test-js above for why this job exists (morphir-oyn): morphir.ui, morphir.desktop and
-  # morphir.appkit.electron are the desktop/UI half of the same JS/Wasm wildcard, split out by
-  # ci.testJs --group desktop so their link load lands on its own runner and daemon.
+  # See test-js above for why this job exists (morphir-oyn): morphir.ui is the desktop/UI half of
+  # the same JS/Wasm wildcard, split out by ci.testJs --group desktop so its link load lands on its
+  # own runner and daemon. (morphir.desktop and morphir.appkit.electron shared this group before
+  # retiring with the Electron UI — the desktop/web UI now lives at finos/morphir-ui.) The job and
+  # its "desktop" group name are kept as-is rather than renamed now that morphir.ui is its sole
+  # member.
   test-js-desktop:
     runs-on: ubuntu-latest
     # Kept in step with test-js's own reasoning for 45 rather than 30.
@@ -429,8 +432,8 @@ jobs:
         uses: coursier/cache-action@v8
 
       - name: Run JS tests (desktop/UI)
-        # See test-js's "Run JS tests" step for the `-j 2` reasoning. "desktop" is
-        # morphir.ui/morphir.desktop/morphir.appkit.electron, the subset test-js excludes.
+        # See test-js's "Run JS tests" step for the `-j 2` reasoning. "desktop" is morphir.ui, the
+        # subset test-js excludes.
         run: |
           ./mill --ticker false -i -k -j 2 ci.testJs --group desktop
 
@@ -720,7 +723,7 @@ jobs:
     # GitHub release as a *draft* when none exists yet and attaches the assets; publishing that
     # draft is the human promotion act, and it is what fires release-publish.yml for the Maven
     # Central side. Pushing a v* tag requires write access, which is the authorization this job
-    # relies on; the tag namespace check keeps mill-plugins/v* and desktop/v* tags out.
+    # relies on; the tag namespace check keeps mill-plugins/v* tags out.
     if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/v')
     needs: [cli-matrix, cli-package-native, cli-package-jvm, cli-verify]
     runs-on: ubuntu-latest
@@ -765,305 +768,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./mill --ticker false -i ci.cli.verifyRelease --tag "${{ github.ref_name }}" --platforms "${{ needs.cli-matrix.outputs.platforms }}"
 
-  desktop-matrix:
-    # A desktop/v* tag — pushed bare, or chosen as the ref of a manual dispatch — always packages
-    # all five platforms, ignoring the switch below — turning off ordinary-CI packaging must never
-    # weaken a real release. A push to main or 0.4.x also packages all five; everything else (a
-    # pull request, or a v*/mill-plugins/v* tag, which are not this job's business) packages the
-    # three-leg smoke matrix, one per operating system. This job just computes which;
-    # desktop-package and desktop-verify consume its outputs.
-    #
-    # startsWith(github.ref, 'refs/tags/desktop/v') is deliberately namespaced: a bare v* library
-    # tag or a mill-plugins/v* plugin tag must not force full-platform packaging here, and must
-    # never reach desktop-release below. A github.event_name test would add nothing: the workflow
-    # has no `release:` trigger (see `on:` at the top), and the ref alone carries the tag on both
-    # a tag push and a manual dispatch of that ref.
-    #
-    # Gated by the repository variable MORPHIR_CI_PACKAGE_DESKTOP, unset or anything other than
-    # "false" meaning enabled, so packaging runs today without anyone creating the variable and a
-    # maintainer can disable it from repository settings without a commit. It must be `vars`, not a
-    # workflow-level `env:` — GitHub Actions does not expose the `env` context inside a job-level
-    # `if:` condition, so an `env:`-based switch would silently evaluate empty there and this job
-    # (and everything gated on it) would never run. This half is unchanged: it is what still
-    # exercises desktop packaging on an ordinary pull request or a v*/mill-plugins/v* release, as a
-    # smoke test that never uploads or publishes anything.
-    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/desktop/v') || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false')
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    outputs:
-      matrix: ${{ steps.matrix.outputs.matrix }}
-      platforms: ${{ steps.matrix.outputs.platforms }}
-      version: ${{ steps.version.outputs.version }}
-    steps:
-      - name: Compute the packaging matrix
-        id: matrix
-        shell: bash
-        run: |
-          # Namespaced for the same reason as the job's `if:` above: a bare v* library tag or a
-          # mill-plugins/v* plugin tag is not this job's business, and a generic refs/tags/* test
-          # would start all five packaging runners for one.
-          if [[ "$GITHUB_REF" == refs/tags/desktop/v* || "$GITHUB_REF" == "refs/heads/main" || "$GITHUB_REF" == "refs/heads/0.4.x" ]]; then
-            MATRIX='{"include":[{"token":"mac-aarch64","runner":"macos-14"},{"token":"mac-amd64","runner":"macos-15-intel"},{"token":"linux-amd64","runner":"ubuntu-24.04"},{"token":"linux-aarch64","runner":"ubuntu-24.04-arm"},{"token":"win-amd64","runner":"windows-latest"}]}'
-            PLATFORMS="mac-aarch64,mac-amd64,linux-amd64,linux-aarch64,win-amd64"
-          else
-            # A pull request, or a v*/mill-plugins/v* release, packages one leg per operating
-            # system: linux-amd64, win-amd64 and mac-aarch64. Each covers machinery the others do not — fpm and AppImage on Linux, Git
-            # Bash and mill.bat and NSIS on Windows, code signing and dmg on macOS — and all three
-            # of those areas have produced a real packaging failure. What a pull request defers is
-            # only the second architecture of an already-covered operating system, mac-amd64 and
-            # linux-aarch64, which a push to a release branch still exercises.
-            MATRIX='{"include":[{"token":"linux-amd64","runner":"ubuntu-24.04"},{"token":"win-amd64","runner":"windows-latest"},{"token":"mac-aarch64","runner":"macos-14"}]}'
-            PLATFORMS="linux-amd64,win-amd64,mac-aarch64"
-          fi
-          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
-          echo "platforms=$PLATFORMS" >> "$GITHUB_OUTPUT"
-
-      # Resolved once, here, rather than on each packaging runner. Two reasons: every leg then
-      # stamps the identical version, where five independent resolves could disagree across a
-      # commit boundary; and Windows never has to run Mill for this, since the ./mill launcher
-      # supports only Linux and macOS and exits 1 anywhere else.
-      - uses: actions/checkout@v7.0.1
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-java@v6
-        with:
-          java-version: "25"
-          distribution: temurin
-
-      - name: Cache scala dependencies
-        uses: coursier/cache-action@v8
-
-      - name: Resolve the publish version
-        id: version
-        shell: bash
-        # `mill show` is not guaranteed to put the value alone on stdout, so take the last line and
-        # strip the JSON quotes; an empty result is a failure rather than a blank version carried
-        # into electron-builder, where it would surface as a confusing packaging error.
-        run: |
-          version="$(./mill --ticker false -i show ci.desktop.version | tail -n 1 | tr -d '"')"
-          if [[ -z "$version" ]]; then
-            echo "ci.desktop.version resolved to an empty string" >&2
-            exit 1
-          fi
-          echo "resolved desktop version: $version"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-
-  desktop-package:
-    # Desktop binaries ship on a desktop/v* tag, regardless of the switch — see desktop-matrix
-    # above for why the ref check is namespaced to that prefix. Ordinary pushes and pull requests
-    # package too, gated by MORPHIR_CI_PACKAGE_DESKTOP (see desktop-matrix above), so a change that
-    # breaks electron-builder, the Scala.js link or canonicalization is caught in ordinary CI
-    # rather than at release time; that also means this job still runs, as a build-only smoke
-    # test, on a v* or mill-plugins/v* tag while the switch is enabled — it just never
-    # publishes anything, which only desktop-release below does.
-    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/desktop/v') || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false')
-    needs: [ci, desktop-matrix]
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.desktop-matrix.outputs.matrix) }}
-    runs-on: ${{ matrix.runner }}
-    steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-java@v6
-        with:
-          java-version: "25"
-          distribution: temurin
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "24"
-
-      - name: Cache scala dependencies
-        uses: coursier/cache-action@v8
-
-      - name: Package
-        shell: bash
-        env:
-          # electron-builder signs when these are present and builds unsigned when they are absent.
-          CSC_LINK: ${{ secrets.ORG_MORPHIR_CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.ORG_MORPHIR_CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.ORG_MORPHIR_APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.ORG_MORPHIR_APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.ORG_MORPHIR_APPLE_TEAM_ID }}
-        run: ./morphir/desktop/scripts/package.sh "${{ matrix.token }}" "${{ needs.desktop-matrix.outputs.version }}"
-
-      - name: Upload raw packaging output
-        uses: actions/upload-artifact@v7
-        with:
-          name: desktop-${{ matrix.token }}
-          # electron-builder also leaves unpacked app trees (mac-arm64/, linux-unpacked/, …) next to the
-          # archives and installers; only the distributable extensions are wanted downstream, and the glob
-          # keeps the files directly under the artifact root to match the desktop-release staging contract.
-          path: |
-            morphir/desktop/app/release/*.zip
-            morphir/desktop/app/release/*.tar.gz
-            morphir/desktop/app/release/*.dmg
-            morphir/desktop/app/release/*.exe
-            morphir/desktop/app/release/*.AppImage
-            morphir/desktop/app/release/*.deb
-          if-no-files-found: error
-
-  desktop-verify:
-    # Runs whenever packaging ran (see desktop-matrix above): a desktop/v* tag or release always,
-    # ordinary pushes and pull requests when the switch is enabled — same namespacing as
-    # desktop-package. No signing and no uploads happen here — this job only proves the packaged
-    # subset canonicalizes and passes the pre-publish checks, with the signature check relaxed the
-    # same way a local `ci.desktop.all` run relaxes it, since there is no GPG signing step and no
-    # secrets outside a release.
-    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/desktop/v') || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false')
-    needs: [desktop-matrix, desktop-package]
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    env:
-      LANG: "en_US.UTF-8"
-      LC_MESSAGES: "en_US.UTF-8"
-      LC_ALL: "en_US.UTF-8"
-      MORPHIR_DESKTOP_STAGING_DIR: .dev/dist/desktop/staging
-      MORPHIR_DESKTOP_RELEASE_DIR: .dev/dist/desktop/release
-
-    steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-java@v6
-        with:
-          java-version: "25"
-          distribution: temurin
-
-      - name: Cache scala dependencies
-        uses: coursier/cache-action@v8
-
-      - name: Download packaging output
-        uses: actions/download-artifact@v8
-        with:
-          pattern: desktop-*
-          path: ${{ env.MORPHIR_DESKTOP_STAGING_DIR }}
-
-      # Same normalization desktop-release does: download-artifact names each directory after the
-      # artifact (desktop-<token>); the staging contract is <root>/<token>.
-      - name: Normalize staging layout
-        run: |
-          cd "$MORPHIR_DESKTOP_STAGING_DIR"
-          for directory in desktop-*; do
-            mv "$directory" "${directory#desktop-}"
-          done
-          ls -R .
-
-      - name: Canonicalize the packaged subset
-        run: ./mill --ticker false -i ci.desktop.canonicalize --platforms "${{ needs.desktop-matrix.outputs.platforms }}"
-
-      - name: Verify the packaged subset (no signature — nothing signs it outside a release)
-        run: ./mill --ticker false -i ci.desktop.verify --require-signature false --platforms "${{ needs.desktop-matrix.outputs.platforms }}"
-
-  desktop-release:
-    # Namespaced to a desktop/v* tag alone. An earlier form matched startsWith(github.ref,
-    # 'refs/tags/') — every tag namespace — which meant cutting a v* library release or a
-    # mill-plugins/v* plugin release also uploaded desktop binaries to that release and pushed
-    # desktop archives to Sonatype, contradicting a release publishing exactly one stream.
-    # startsWith(github.ref, 'refs/tags/desktop/v') alone covers a desktop/v* tag push and a
-    # manual dispatch on that tag; a v* or mill-plugins/v* ref cannot match because those refs
-    # continue 'refs/tags/v' and 'refs/tags/m', never 'refs/tags/desktop/v'. Unlike
-    # desktop-matrix/-package/-verify above, this job has no MORPHIR_CI_PACKAGE_DESKTOP switch
-    # clause: it uploads and publishes, so it must never run outside an actual desktop release.
-    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/desktop/v')
-    needs: [ci, packaging]
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    # The workflow default is contents: read, which cannot upload release assets.
-    permissions:
-      contents: write
-
-    concurrency: publish-desktop-${{ github.sha }}
-
-    env:
-      LANG: "en_US.UTF-8"
-      LC_MESSAGES: "en_US.UTF-8"
-      LC_ALL: "en_US.UTF-8"
-      MORPHIR_DESKTOP_STAGING_DIR: .dev/dist/desktop/staging
-      MORPHIR_DESKTOP_RELEASE_DIR: .dev/dist/desktop/release
-
-    steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-java@v6
-        with:
-          java-version: "25"
-          distribution: temurin
-
-      - name: Cache scala dependencies
-        uses: coursier/cache-action@v8
-
-      - name: Download packaging output
-        uses: actions/download-artifact@v8
-        with:
-          pattern: desktop-*
-          path: ${{ env.MORPHIR_DESKTOP_STAGING_DIR }}
-
-      # download-artifact names each directory after the artifact (desktop-<token>); the staging
-      # contract is <root>/<token>, so strip the prefix.
-      - name: Normalize staging layout
-        run: |
-          cd "$MORPHIR_DESKTOP_STAGING_DIR"
-          for directory in desktop-*; do
-            mv "$directory" "${directory#desktop-}"
-          done
-          ls -R .
-
-      - name: Canonicalize assets and write checksums
-        run: ./mill --ticker false -i ci.desktop.canonicalize
-
-      - name: Sign checksums.txt
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.ORG_MORPHIR_CI_GPG_PRIVATE_KEY }}
-          GPG_PASSPHRASE: ${{ secrets.ORG_MORPHIR_CI_GPG_PASSPHRASE }}
-        run: |
-          # The org secret's encoding is not documented, so accept the same three forms
-          # PgpSecret.toMillBase64 accepts (mill-plugins/morphir/core/src/org/finos/morphir/mill/publish/PgpSecret.scala):
-          # ASCII-armored plaintext, base64-of-armor, or base64-of-binary. A plain `base64 --decode`
-          # would fail fast under `-e -o pipefail` if the secret is armored plaintext.
-          if printf '%s' "$GPG_PRIVATE_KEY" | grep -q "BEGIN PGP PRIVATE KEY"; then
-            printf '%s' "$GPG_PRIVATE_KEY" | gpg --batch --import
-          else
-            printf '%s' "$GPG_PRIVATE_KEY" | base64 --decode | gpg --batch --import
-          fi
-          gpg --batch --yes --pinentry-mode loopback --passphrase "$GPG_PASSPHRASE" \
-            --detach-sign --armor "$MORPHIR_DESKTOP_RELEASE_DIR/checksums.txt"
-
-      # Runs after signing (so checksums.txt.asc exists) and before either upload, with the default
-      # requireSignature = true: this is the one place the signature check can run, since neither
-      # ci.desktop.canonicalize nor a local ci.desktop.all run produces checksums.txt.asc.
-      - name: Verify release assets
-        run: ./mill --ticker false -i ci.desktop.verify
-
-      - name: Upload to the GitHub Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG="${{ github.ref_name }}"
-          ./mill --ticker false -i ci.desktop.githubRelease --tag "$TAG"
-
-      # The Maven Central upload of the desktop archives deliberately does not happen here. This
-      # job stages the draft release; publishing that draft fires release-publish.yml, whose
-      # publish-desktop job downloads these verified assets back off the release and runs
-      # ci.desktop.sonatype. Uploading here would put an irreversible Central deployment before
-      # the human promotion gate.
-
   publish:
     # Snapshots and branch milestones only: all commits to main (snapshot, both areas) and 0.4.x.
     # Release tags are deliberately absent — a tag push stages a draft GitHub release (see the
-    # cli-release and desktop-release jobs), and publishing that draft fires release-publish.yml,
-    # which is where every release-tag Sonatype upload now lives. This job publishing on a tag as
-    # well would put an irreversible Maven Central upload before the human promotion gate.
+    # cli-release job), and publishing that draft fires release-publish.yml, which is where every
+    # release-tag Sonatype upload now lives. This job publishing on a tag as well would put an
+    # irreversible Maven Central upload before the human promotion gate.
     #
     # Two clauses stand the snapshot upload down. The repository variable
     # MORPHIR_RELEASE_MAVEN_CENTRAL — unset or anything other than "false" meaning enabled,
@@ -1188,32 +898,14 @@ jobs:
         run: echo "ci passed"
 
   packaging:
+    # Desktop packaging (desktop-matrix/-package/-verify) retired with the Electron UI — the
+    # desktop/web UI now lives at finos/morphir-ui — leaving this job as the CLI packaging
+    # aggregate alone.
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [desktop-matrix, desktop-package, desktop-verify, cli-matrix, cli-package-native, cli-package-jvm, cli-verify]
+    needs: [cli-matrix, cli-package-native, cli-package-jvm, cli-verify]
     steps:
-      # Unlike `ci`, a skip can be legitimate here — MORPHIR_CI_PACKAGE_DESKTOP=false stands the whole
-      # phase down outside a tag or release. But a skip is ambiguous on its own: desktop-package also
-      # skips when `ci` fails upstream, and that must not read as green. desktop-matrix is what
-      # disambiguates. It is gated by the switch and depends on nothing else, so:
-      #
-      #   desktop-matrix skipped  -> the switch is off; every member must be skipped together.
-      #   desktop-matrix ran      -> packaging was expected to run; a skip below it is a cascade from
-      #                              an upstream failure, and only success is acceptable.
-      #
-      # Failure and cancellation are never acceptable in either branch.
-      - name: Verify packaging jobs succeeded, or stood down together
-        run: |
-          matrix='${{ needs.desktop-matrix.result }}'
-          package='${{ needs.desktop-package.result }}'
-          verify='${{ needs.desktop-verify.result }}'
-          echo "desktop-matrix=$matrix desktop-package=$package desktop-verify=$verify"
-          if [[ "$matrix" == "skipped" ]]; then
-            [[ "$package" == "skipped" && "$verify" == "skipped" ]]
-          else
-            [[ "$matrix" == "success" && "$package" == "success" && "$verify" == "success" ]]
-          fi
       - name: Verify CLI packaging jobs succeeded, or stood down together
         run: |
           matrix='${{ needs.cli-matrix.result }}'

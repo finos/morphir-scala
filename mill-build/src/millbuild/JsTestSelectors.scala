@@ -4,10 +4,12 @@ package millbuild
  * Pure partitioning of resolved JS/Wasm task selectors between the desktop/UI CI job and the platform CI job, for
  * `ci/MorphirCi.mill`'s `testJs` and `testJsWasmLink`.
  *
- * The `test-js` job used to link every JS and Wasm module in one Mill daemon. `morphir.ui`, `morphir.desktop` and
- * `morphir.appkit.electron` together with the rest of the tree pushed the Scala.js linker past an 8 GB heap and it died
- * with `OutOfMemoryError` inside the source-map printer (morphir-oyn). Splitting the desktop/UI link load into its own
- * CI job spreads the two peaks across two runners with two daemons.
+ * The `test-js` job used to link every JS and Wasm module in one Mill daemon. `morphir.ui` — originally alongside
+ * `morphir.desktop` and `morphir.appkit.electron`, which retired with the Electron UI (the desktop/web UI now lives at
+ * finos/morphir-ui) — together with the rest of the tree pushed the Scala.js linker past an 8 GB heap and it died with
+ * `OutOfMemoryError` inside the source-map printer (morphir-oyn). Splitting the UI link load into its own CI job
+ * spreads the two peaks across two runners with two daemons. The job and its `"desktop"` group name are kept as-is
+ * rather than renamed now that `morphir.ui` is its sole member.
  *
  * Mill wildcards cannot subtract a subset, so `ci/MorphirCi.mill` resolves the full wildcard first, the same way
  * `ci.lint` does, and this object partitions the *resolved* selector strings by which module they belong to — mirroring
@@ -35,7 +37,7 @@ object JsTestSelectors {
   val wasmLinkSelector: String = "morphir.__.wasm.fullLinkJS"
 
   /** Module roots moved into the desktop/UI CI job — see morphir-oyn. */
-  val desktopModuleRoots: Seq[String] = Seq("morphir.ui", "morphir.desktop", "morphir.appkit.electron")
+  val desktopModuleRoots: Seq[String] = Seq("morphir.ui")
 
   private def segments(path: String): Seq[String] = path.split('.').toIndexedSeq
 

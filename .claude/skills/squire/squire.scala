@@ -119,7 +119,7 @@ final case class ChangelogCheckOpts(@HelpMessage("Output the typed result as JSO
 final case class ChangelogShowOpts(@HelpMessage("Output the typed result as JSON") json: Boolean = false)
 
 final case class ReleasePrepareOpts(
-    @HelpMessage("Area to prepare: libraries, mill-plugins, or desktop") area: Option[String] = None,
+    @HelpMessage("Area to prepare: libraries or mill-plugins") area: Option[String] = None,
     @HelpMessage("Release date, yyyy-MM-dd; defaults to today") date: Option[String] = None,
     @HelpMessage("Output the typed result as JSON") json: Boolean = false
 )

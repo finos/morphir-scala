@@ -105,13 +105,6 @@ object SquireCiPolicy:
     "startsWith(needs.target.outputs.tag, 'v')" + MavenCentralSwitchClauses
   val ReleasePublishPluginsPredicate =
     "startsWith(needs.target.outputs.tag, 'mill-plugins/v')" + MavenCentralSwitchClauses
-  val ReleasePublishDesktopPredicate =
-    "startsWith(needs.target.outputs.tag, 'desktop/v')" + MavenCentralSwitchClauses
-  val DesktopPackagingPredicate =
-    "github.repository == 'finos/morphir-scala' && " +
-      "(startsWith(github.ref, 'refs/tags/desktop/v') || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false')"
-  val DesktopReleasePredicate =
-    "github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/desktop/v')"
   val CachePredicate =
     "github.ref == 'refs/heads/main' || " +
       "github.ref == 'refs/heads/0.4.x' || " +
@@ -261,7 +254,7 @@ object SquireCiPolicy:
     // Release-tag Sonatype uploads live in release-publish.yml alone. An invocation reappearing in
     // ci.yml would publish to Maven Central on the tag push, before the draft-release promotion
     // gate a human is supposed to hold.
-    List("ci.sonatype.libraries", "ci.sonatype.plugins", "ci.desktop.sonatype").foreach { task =>
+    List("ci.sonatype.libraries", "ci.sonatype.plugins").foreach { task =>
       expect(
         count(workflow, s"./mill --ticker false -i $task") == 0,
         s"ci.yml must not invoke $task; release-tag Sonatype uploads live in release-publish.yml"
@@ -283,8 +276,7 @@ object SquireCiPolicy:
     )
     val jobs = List(
       ("publish-libraries:", ReleasePublishLibrariesPredicate, "ci.sonatype.libraries"),
-      ("publish-plugins:", ReleasePublishPluginsPredicate, "ci.sonatype.plugins"),
-      ("publish-desktop:", ReleasePublishDesktopPredicate, "ci.desktop.sonatype")
+      ("publish-plugins:", ReleasePublishPluginsPredicate, "ci.sonatype.plugins")
     )
     jobs.foreach { case (name, predicate, task) =>
       val job = indentedBlock(releaseWorkflow, name, 2)
@@ -322,31 +314,6 @@ object SquireCiPolicy:
     expect(
       count(job, "./mill --ticker false -i ci.sonatype.plugins") == 1,
       "publish-plugins job must invoke ci.sonatype.plugins exactly once"
-    )
-
-  /**
-   * The three packaging jobs (desktop-matrix, desktop-package, desktop-verify) share one guard: a
-   * desktop/v* tag always packages, and the MORPHIR_CI_PACKAGE_DESKTOP switch otherwise controls
-   * ordinary CI. desktop-release itself carries the narrower, switch-free guard: only a
-   * desktop/v* tag stages anything, and what it stages is a draft — the Sonatype upload lives in
-   * release-publish.yml behind the draft's publication.
-   */
-  def assertDesktopReleaseGuards(workflow: String): Unit =
-    List("desktop-matrix:", "desktop-package:", "desktop-verify:").foreach { job =>
-      val block = indentedBlock(workflow, job, 2)
-      expect(
-        scalar(block, "if") == DesktopPackagingPredicate,
-        s"$job predicate does not match the desktop packaging allowlist"
-      )
-    }
-    val releaseJob = indentedBlock(workflow, "desktop-release:", 2)
-    expect(
-      scalar(releaseJob, "if") == DesktopReleasePredicate,
-      "desktop-release predicate does not match the desktop-only release allowlist"
-    )
-    expect(
-      scalar(releaseJob, "needs") == "[ci, packaging]",
-      "desktop-release must depend on aggregate ci and the packaging aggregate"
     )
 
   def assertCiMillTicker(workflow: String): Unit =
@@ -1004,65 +971,6 @@ object SquireCiPolicy:
 
   def rejects(validator: String => Unit, workflow: String): Boolean =
     scala.util.Try(validator(workflow)).isFailure
-
-  def assertDesktopSmokeOwnership(
-      shell: String,
-      adapter: String,
-      desktopPackage: String,
-      desktopTesting: String
-  ): Unit =
-    val normalizedShell = shell.replace("\r\n", "\n")
-    val expectedShell =
-      "#!/usr/bin/env bash\n" +
-        "set -euo pipefail\n" +
-        "cd \"$(dirname \"$0\")/../../..\"\n" +
-        "exec ./mill --ticker false morphir.desktop.smokeRun \"$@\"\n"
-    val executableLines = normalizedShell.linesIterator
-      .map(_.trim)
-      .filter(line => line.nonEmpty && !line.startsWith("#"))
-      .toList
-    expect(executableLines.size <= 4, s"desktop smoke shell contains ${executableLines.size} executable lines")
-    expect(normalizedShell == expectedShell, "desktop smoke shell must be the exact four-line Mill launcher")
-    expect(!adapter.contains("MutationObserver"), "desktop smoke adapter must not observe DOM mutations")
-    expect(!adapter.contains("querySelector"), "desktop smoke adapter must not query the DOM")
-    expect("(?s).*\\bwhile\\s*\\(.*".r.findFirstIn(adapter).isEmpty, "desktop smoke adapter must not poll")
-    expect(!adapter.contains("setTimeout"), "desktop smoke adapter must use Electron readiness events")
-    expect(!adapter.contains("setInterval"), "desktop smoke adapter must not poll on an interval")
-    expect(!adapter.contains(".filter("), "desktop smoke adapter must not suppress renderer console output")
-    expect(
-      adapter.contains("rendererLines.join('\\n')"),
-      "desktop smoke adapter must write the raw renderer console capture"
-    )
-    expect(
-      desktopPackage.contains("build.MorphirDesktopSmoke"),
-      "desktop package must mix in build.MorphirDesktopSmoke"
-    )
-    expect(
-      desktopTesting.contains("desktopSmokeElectronInstallerSources") &&
-        desktopTesting.contains("\"install.js\"") && desktopTesting.contains("Task.Sources("),
-      "desktop smoke must acquire Electron through declared locked package inputs and its package installer"
-    )
-    expect(
-      !desktopTesting.contains("existingAbsolute(appDir / \"node_modules\")"),
-      "desktop smoke acquisition must not resolve workspace modules"
-    )
-    expect(
-      desktopTesting.contains("DesktopSmoke.npmCommand(platform)"),
-      "desktop smoke acquisition must install the locked dependency closure inside its task output"
-    )
-    expect(
-      desktopTesting.contains("desktopSmokePlatform") && desktopTesting.contains("Task.Input"),
-      "desktop smoke acquisition cache must include its normalized platform"
-    )
-    expect(
-      desktopTesting.contains("DesktopSmoke.withoutSourceMapTrailer(linked)") &&
-        !desktopTesting.contains("os.copy(sourceMap"),
-      "desktop smoke assembly must not retain stale linked-bundle source map references"
-    )
-    expect(
-      !desktopTesting.contains("os.read.bytes") && !desktopTesting.contains("map(os.read"),
-      "desktop smoke subprocess logs must use bounded streaming helpers"
-    )
 
 class SquireCliSpec extends Test[Any]:
   "commands" - {
@@ -1870,23 +1778,6 @@ class SquireCiPolicySpec extends Test[Any]:
     skillDirectory.resolve("../../../ci/package.mill.yaml").normalize,
     StandardCharsets.UTF_8
   )
-  private val desktopSmokeShell = Files.readString(
-    skillDirectory.resolve("../../../morphir/desktop/scripts/smoke.sh").normalize,
-    StandardCharsets.UTF_8
-  )
-  private val desktopSmokeAdapter = Files.readString(
-    skillDirectory.resolve("../../../morphir/desktop/app/run-capture.cjs").normalize,
-    StandardCharsets.UTF_8
-  )
-  private val desktopPackage = Files.readString(
-    skillDirectory.resolve("../../../morphir/desktop/package.mill.yaml").normalize,
-    StandardCharsets.UTF_8
-  )
-  private val desktopTesting = Files.readString(
-    skillDirectory.resolve("../../../desktop-testing.mill").normalize,
-    StandardCharsets.UTF_8
-  )
-
   /** Each broad selector followed by the curated ones it must equal; resolved against Mill, then compared. */
   private val jvmTargetSelectors =
     ("morphir.__.jvm.__.compile" :: JvmCompileSelectors) :::
@@ -1997,25 +1888,6 @@ class SquireCiPolicySpec extends Test[Any]:
   }
 
   "hosted CI policy" - {
-    "keeps desktop smoke orchestration in Mill" in {
-      assertDesktopSmokeOwnership(desktopSmokeShell, desktopSmokeAdapter, desktopPackage, desktopTesting)
-      val noOpShell = desktopSmokeShell.replace(
-        "exec ./mill --ticker false morphir.desktop.smokeRun \"$@\"",
-        "true"
-      )
-      assert(
-        scala.util
-          .Try(assertDesktopSmokeOwnership(noOpShell, desktopSmokeAdapter, desktopPackage, desktopTesting))
-          .isFailure
-      )
-      assertDesktopSmokeOwnership(
-        desktopSmokeShell.replace("\n", "\r\n"),
-        desktopSmokeAdapter,
-        desktopPackage,
-        desktopTesting
-      )
-    }
-
     "guards the manual hosted linker benchmark workflow" in {
       assertLinkerBenchmarkWorkflowPolicy(linkerBenchmarkWorkflow)
 
@@ -2196,9 +2068,8 @@ class SquireCiPolicySpec extends Test[Any]:
       assert(true)
     }
 
-    "routes the plugin release and the desktop release to their own namespaced guards" in {
+    "routes the plugin release to its own namespaced guard" in {
       assertPublishPluginsPolicy(releasePublishWorkflow)
-      assertDesktopReleaseGuards(workflow)
 
       val broadenedPluginGuard = replaceOnce(
         releasePublishWorkflow,
@@ -2210,30 +2081,8 @@ class SquireCiPolicySpec extends Test[Any]:
         s"    if: startsWith(needs.target.outputs.tag, 'mill-plugins/v')$MavenCentralSwitchClauses\n    needs: [target]",
         "    if: startsWith(needs.target.outputs.tag, 'mill-plugins/v')\n    needs: [target]"
       )
-      val broadenedDesktopReleaseGuard = replaceOnce(
-        workflow,
-        "    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/desktop/v')\n    needs: [ci, packaging]",
-        "    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/')\n    needs: [ci, packaging]"
-      )
-      val desktopMatrixGuardDroppedRepositoryCheck = replaceOnce(
-        workflow,
-        "    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/desktop/v') || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false')\n    runs-on: ubuntu-latest\n    timeout-minutes: 20",
-        "    if: startsWith(github.ref, 'refs/tags/desktop/v') || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false'\n    runs-on: ubuntu-latest\n    timeout-minutes: 20"
-      )
-      val desktopMatrixGuardLostSwitch = replaceOnce(
-        workflow,
-        "    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/desktop/v') || vars.MORPHIR_CI_PACKAGE_DESKTOP != 'false')\n    runs-on: ubuntu-latest\n    timeout-minutes: 20",
-        "    if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/desktop/v')\n    runs-on: ubuntu-latest\n    timeout-minutes: 20"
-      )
       assert(rejects(assertPublishPluginsPolicy, broadenedPluginGuard))
       assert(rejects(assertPublishPluginsPolicy, pluginGuardLostMavenSwitches))
-      assert(
-        List(
-          broadenedDesktopReleaseGuard,
-          desktopMatrixGuardDroppedRepositoryCheck,
-          desktopMatrixGuardLostSwitch
-        ).forall(rejects(assertDesktopReleaseGuards, _))
-      )
     }
 
     "keeps promotion in release-publish.yml behind the namespaced and switchable guards" in {
@@ -2248,11 +2097,6 @@ class SquireCiPolicySpec extends Test[Any]:
         releasePublishWorkflow,
         s"    if: startsWith(needs.target.outputs.tag, 'v')$MavenCentralSwitchClauses\n    needs: [target]",
         "    if: startsWith(needs.target.outputs.tag, 'v')\n    needs: [target]"
-      )
-      val desktopGuardLostMavenSwitches = replaceOnce(
-        releasePublishWorkflow,
-        s"    if: startsWith(needs.target.outputs.tag, 'desktop/v')$MavenCentralSwitchClauses\n    needs: [target]",
-        "    if: startsWith(needs.target.outputs.tag, 'desktop/v')\n    needs: [target]"
       )
       val targetLostRepositoryGuard = replaceOnce(
         releasePublishWorkflow,
@@ -2274,7 +2118,6 @@ class SquireCiPolicySpec extends Test[Any]:
         List(
           librariesGuardBroadened,
           librariesGuardLostMavenSwitches,
-          desktopGuardLostMavenSwitches,
           targetLostRepositoryGuard,
           snapshotPublishSmuggledIn,
           writeToken
@@ -7143,20 +6986,19 @@ class SquireChangelogSpec extends Test[Any]:
     "passes on a well-formed changelog with one undated heading" in {
       for
         root   <- SquireFixtures.scratch("changelog-check-ok")
-        _      <- writeAllAreas(root, validLibraries, validMillPlugins, validDesktop)
+        _      <- writeAllAreas(root, validLibraries, validMillPlugins)
         report <- SquireChangelog.check(root)
       yield assert(
         report.ok && report.outcomes.forall(_.status == "ok") &&
           report.outcomes.find(_.area == "libraries").exists(_.releaseLine.exists(_ == "1.2.3")) &&
-          report.outcomes.find(_.area == "mill-plugins").exists(_.releaseLine.exists(_ == "0.5.0-M05")) &&
-          report.outcomes.find(_.area == "desktop").exists(_.releaseLine.exists(_ == "0.2.0"))
+          report.outcomes.find(_.area == "mill-plugins").exists(_.releaseLine.exists(_ == "0.5.0-M05"))
       )
     }
 
     "fails naming the file when there is no undated heading" in {
       for
         root     <- SquireFixtures.scratch("changelog-check-none")
-        _        <- writeAllAreas(root, noUndated, validMillPlugins, validDesktop)
+        _        <- writeAllAreas(root, noUndated, validMillPlugins)
         report   <- SquireChangelog.check(root)
         libraries = report.outcomes.find(_.area == "libraries").get
       yield assert(
@@ -7168,7 +7010,7 @@ class SquireChangelogSpec extends Test[Any]:
     "fails naming both when there are two undated headings" in {
       for
         root        <- SquireFixtures.scratch("changelog-check-two")
-        _           <- writeAllAreas(root, validLibraries, twoUndated, validDesktop)
+        _           <- writeAllAreas(root, validLibraries, twoUndated)
         report      <- SquireChangelog.check(root)
         millPlugins  = report.outcomes.find(_.area == "mill-plugins").get
       yield assert(
@@ -7181,24 +7023,26 @@ class SquireChangelogSpec extends Test[Any]:
     }
 
     "fails when the release line is below the area's starting version" in {
+      // mill-plugins is the never-published area here: unlike libraries below, it has no real
+      // history to protect, but its own floor (see SquireChangelog.Areas) must still be enforced.
       for
         root   <- SquireFixtures.scratch("changelog-check-floor")
-        _      <- writeAllAreas(root, validLibraries, validMillPlugins, belowFloorDesktop)
+        _      <- writeAllAreas(root, validLibraries, belowFloorMillPlugins)
         report <- SquireChangelog.check(root)
-        desktop = report.outcomes.find(_.area == "desktop").get
+        millPlugins = report.outcomes.find(_.area == "mill-plugins").get
       yield assert(
-        !report.ok && desktop.status == "issue" && desktop.releaseLine.exists(_ == "0.0.5") &&
-          desktop.detail.exists(message => message.contains("0.0.5") && message.contains("0.1.0"))
+        !report.ok && millPlugins.status == "issue" && millPlugins.releaseLine.exists(_ == "0.0.5") &&
+          millPlugins.detail.exists(message => message.contains("0.0.5") && message.contains("0.5.0-M04"))
       )
     }
 
     "fails when the libraries release line is below the shared floor" in {
-      // The libraries are the one stream with real published history (~40 tags): unlike the two
-      // never-published areas, a bad merge in its undated heading must not be free to publish below
-      // everything already shipped. See SquireChangelog.Areas.
+      // The libraries are the one stream with real published history (~40 tags): unlike the
+      // never-published mill-plugins area, a bad merge in its undated heading must not be free to
+      // publish below everything already shipped. See SquireChangelog.Areas.
       for
         root      <- SquireFixtures.scratch("changelog-check-libraries-floor")
-        _         <- writeAllAreas(root, belowFloorLibraries, validMillPlugins, validDesktop)
+        _         <- writeAllAreas(root, belowFloorLibraries, validMillPlugins)
         report    <- SquireChangelog.check(root)
         libraries  = report.outcomes.find(_.area == "libraries").get
       yield assert(
@@ -7212,14 +7056,13 @@ class SquireChangelogSpec extends Test[Any]:
     "prints the release line for each area without enforcing the floor" in {
       for
         root     <- SquireFixtures.scratch("changelog-show")
-        _        <- writeAllAreas(root, validLibraries, validMillPlugins, belowFloorDesktop)
+        _        <- writeAllAreas(root, validLibraries, belowFloorMillPlugins)
         report   <- SquireChangelog.show(root)
         rendered  = SquireChangelog.renderChangelogReport(report)
-        desktop   = report.outcomes.find(_.area == "desktop").get
+        millPlugins = report.outcomes.find(_.area == "mill-plugins").get
       yield assert(
-        report.ok && desktop.status == "ok" && desktop.releaseLine.exists(_ == "0.0.5") &&
-          rendered.contains("release line 1.2.3") && rendered.contains("release line 0.5.0-M05") &&
-          rendered.contains("release line 0.0.5")
+        report.ok && millPlugins.status == "ok" && millPlugins.releaseLine.exists(_ == "0.0.5") &&
+          rendered.contains("release line 1.2.3") && rendered.contains("release line 0.0.5")
       )
     }
   }
@@ -7228,7 +7071,7 @@ class SquireChangelogSpec extends Test[Any]:
     "dates the undated heading with the date it is given and inserts a real next undated heading above it" in {
       for
         root    <- SquireFixtures.scratch("release-prepare")
-        _       <- writeAllAreas(root, preparable, validMillPlugins, validDesktop)
+        _       <- writeAllAreas(root, preparable, validMillPlugins)
         result  <- SquireChangelog.prepare(root, "libraries", "2026-08-18")
         updated <- Sync.defer(Files.readString((root / "CHANGELOG.md").toJava))
         // The build must be able to read a release line straight out of the file `prepare` just
@@ -7251,7 +7094,7 @@ class SquireChangelogSpec extends Test[Any]:
     "refuses, without writing, when the changelog has no undated heading to date" in {
       for
         root   <- SquireFixtures.scratch("release-prepare-refuse")
-        _      <- writeAllAreas(root, noUndated, validMillPlugins, validDesktop)
+        _      <- writeAllAreas(root, noUndated, validMillPlugins)
         before <- Sync.defer(Files.readString((root / "CHANGELOG.md").toJava))
         result <- Abort.run[SquireError](SquireChangelog.prepare(root, "libraries", "2026-08-18"))
         after  <- Sync.defer(Files.readString((root / "CHANGELOG.md").toJava))
@@ -7261,7 +7104,7 @@ class SquireChangelogSpec extends Test[Any]:
     "refuses an unknown area and a malformed date without writing" in {
       for
         root         <- SquireFixtures.scratch("release-prepare-bad-input")
-        _            <- writeAllAreas(root, validLibraries, validMillPlugins, validDesktop)
+        _            <- writeAllAreas(root, validLibraries, validMillPlugins)
         before       <- Sync.defer(Files.readString((root / "CHANGELOG.md").toJava))
         unknownArea  <- Abort.run[SquireError](SquireChangelog.prepare(root, "nope", "2026-08-18"))
         badDate      <- Abort.run[SquireError](SquireChangelog.prepare(root, "libraries", "not-a-date"))
@@ -7277,23 +7120,39 @@ class SquireChangelogSpec extends Test[Any]:
         val stdout = pattern match
           case "v*"              => ""
           case "mill-plugins/v*" => "mill-plugins/v0.5.0-M05\n"
-          case "desktop/v*"      => "desktop/v9.9.9\n"
           case _                 => ""
         ProcessResult(request, 0, stdout, "")
       }
       for
         root        <- SquireFixtures.scratch("release-status")
-        _           <- writeAllAreas(root, validLibraries, millPluginsWithRelease, validDesktop)
+        _           <- writeAllAreas(root, validLibraries, millPluginsWithRelease)
         report      <- SquireChangelog.status(root, statusRunner)
         libraries    = report.areas.find(_.area == "libraries").get
         millPlugins  = report.areas.find(_.area == "mill-plugins").get
-        desktop      = report.areas.find(_.area == "desktop").get
       yield assert(
-        !report.ok &&
+        report.ok &&
           libraries.status == "pending" && libraries.tag.exists(_ == "v1.2.3") &&
-          millPlugins.status == "released" && millPlugins.tag.exists(_ == "mill-plugins/v0.5.0-M05") &&
-          desktop.status == "issue" &&
-          desktop.detail.exists(message => message.contains("desktop/v9.9.9") && message.contains("does not record"))
+          millPlugins.status == "released" && millPlugins.tag.exists(_ == "mill-plugins/v0.5.0-M05")
+      )
+    }
+
+    "reports a tag/changelog mismatch as an issue rather than pending or released" in {
+      val statusRunner = RuleRunner { request =>
+        val pattern = request.argv.lastOption.getOrElse("")
+        val stdout = pattern match
+          case "v*"              => ""
+          case "mill-plugins/v*" => "mill-plugins/v9.9.9\n"
+          case _                 => ""
+        ProcessResult(request, 0, stdout, "")
+      }
+      for
+        root        <- SquireFixtures.scratch("release-status-issue")
+        _           <- writeAllAreas(root, validLibraries, validMillPlugins)
+        report      <- SquireChangelog.status(root, statusRunner)
+        millPlugins  = report.areas.find(_.area == "mill-plugins").get
+      yield assert(
+        !report.ok && millPlugins.status == "issue" &&
+          millPlugins.detail.exists(message => message.contains("mill-plugins/v9.9.9") && message.contains("does not record"))
       )
     }
 
@@ -7303,7 +7162,7 @@ class SquireChangelogSpec extends Test[Any]:
       }
       for
         root   <- SquireFixtures.scratch("release-status-git-failure")
-        _      <- writeAllAreas(root, validLibraries, validMillPlugins, validDesktop)
+        _      <- writeAllAreas(root, validLibraries, validMillPlugins)
         result <- Abort.run[SquireError](SquireChangelog.status(root, brokenRunner))
       yield assert(result match
         case Result.Failure(error) => error.getMessage.contains("not a git repository")
@@ -7316,7 +7175,7 @@ class SquireChangelogSpec extends Test[Any]:
     "routes changelog check, show, and release prepare through SquireCli with correct exit codes" in {
       for
         root          <- SquireFixtures.scratch("changelog-cli")
-        _             <- writeAllAreas(root, preparable, validMillPlugins, validDesktop)
+        _             <- writeAllAreas(root, preparable, validMillPlugins)
         checkOutput    = new StringBuilder
         checkExit     <- SquireCli.runChangelogCheck(ChangelogCheckOpts(json = true), root, value => checkOutput.append(value))
         showOutput     = new StringBuilder
@@ -7372,16 +7231,7 @@ object SquireChangelogFixtures:
       |- widget
       |""".stripMargin
 
-  val validDesktop: String =
-    """# Changelog
-      |
-      |## [0.2.0]
-      |
-      |### Added
-      |- widget
-      |""".stripMargin
-
-  val belowFloorDesktop: String =
+  val belowFloorMillPlugins: String =
     """# Changelog
       |
       |## [0.0.5]
@@ -7452,9 +7302,8 @@ object SquireChangelogFixtures:
       Files.writeString(target.toJava, text)
     }
 
-  def writeAllAreas(root: Path, libraries: String, millPlugins: String, desktop: String): Unit < Sync =
+  def writeAllAreas(root: Path, libraries: String, millPlugins: String): Unit < Sync =
     for
       _ <- writeChangelog(root, "CHANGELOG.md", libraries)
       _ <- writeChangelog(root, "mill-plugins/morphir/CHANGELOG.md", millPlugins)
-      _ <- writeChangelog(root, "morphir/desktop/CHANGELOG.md", desktop)
     yield ()
