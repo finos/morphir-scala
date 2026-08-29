@@ -251,33 +251,46 @@ object V3WireProjection:
     })(values => sequence(values*))
 
   private def projectType(tpe: cm.Type, path: String): Projection[Value] =
-    flatMapResult(projectTypeAttributes(tpe, path)) { attributes =>
+    projectTypeLoop(tpe, path).result
+
+  private def projectTypeLoop(tpe: cm.Type, path: String): TailRec[Projection[Value]] =
+    flatMapTail(projectTypeAttributes(tpe, path)) { attributes =>
       tpe match
         case cm.Type.Variable(_, variableName) =>
-          succeed(sequence(str("Variable"), attributes, name(variableName)))
+          done(succeed(sequence(str("Variable"), attributes, name(variableName))))
         case cm.Type.Reference(_, reference, args) =>
-          mapResult(traverse(args.toList.zipWithIndex) { case (argument, index) =>
-            projectType(argument, s"$path.args[$index]")
-          })(projected => sequence(str("Reference"), attributes, fqName(reference), sequence(projected*)))
+          traverseTail(args.toList.zipWithIndex) { case (argument, index) =>
+            tailcall(projectTypeLoop(argument, s"$path.args[$index]"))
+          }.map(result =>
+            mapResult(result)(projected =>
+              sequence(str("Reference"), attributes, fqName(reference), sequence(projected*))
+            )
+          )
         case cm.Type.Tuple(_, elements) =>
-          mapResult(traverse(elements.toList.zipWithIndex) { case (element, index) =>
-            projectType(element, s"$path.elements[$index]")
-          })(projected => sequence(str("Tuple"), attributes, sequence(projected*)))
+          traverseTail(elements.toList.zipWithIndex) { case (element, index) =>
+            tailcall(projectTypeLoop(element, s"$path.elements[$index]"))
+          }.map(result =>
+            mapResult(result)(projected => sequence(str("Tuple"), attributes, sequence(projected*)))
+          )
         case cm.Type.Record(_, fields) =>
-          mapResult(projectTypeFields(fields, s"$path.fields"))(projected =>
-            sequence(str("Record"), attributes, projected)
+          tailcall(projectTypeFieldsLoop(fields, s"$path.fields")).map(result =>
+            mapResult(result)(projected => sequence(str("Record"), attributes, projected))
           )
         case cm.Type.ExtensibleRecord(_, variable, fields) =>
-          mapResult(projectTypeFields(fields, s"$path.fields"))(projected =>
-            sequence(str("ExtensibleRecord"), attributes, name(variable), projected)
+          tailcall(projectTypeFieldsLoop(fields, s"$path.fields")).map(result =>
+            mapResult(result)(projected =>
+              sequence(str("ExtensibleRecord"), attributes, name(variable), projected)
+            )
           )
         case cm.Type.Function(_, argumentType, returnType) =>
-          flatMapResult(projectType(argumentType, s"$path.argument")) { argument =>
-            mapResult(projectType(returnType, s"$path.return")) { result =>
-              sequence(str("Function"), attributes, argument, result)
+          tailcall(projectTypeLoop(argumentType, s"$path.argument")).flatMap { argumentResult =>
+            flatMapTail(argumentResult) { argument =>
+              tailcall(projectTypeLoop(returnType, s"$path.return")).map(result =>
+                mapResult(result)(projected => sequence(str("Function"), attributes, argument, projected))
+              )
             }
           }
-        case cm.Type.Unit(_) => succeed(sequence(str("Unit"), attributes))
+        case cm.Type.Unit(_) => done(succeed(sequence(str("Unit"), attributes)))
     }
 
   private def projectTypeAttributes(tpe: cm.Type, path: String): Projection[Value] =
@@ -292,12 +305,12 @@ object V3WireProjection:
     if attributes == cm.TypeAttributes.empty then succeed(record())
     else fail(V3ProjectionError.UnsupportedFeature(path, "TypeAttributes"))
 
-  private def projectTypeFields(fields: Chunk[cm.Field], path: String): Projection[Value] =
-    mapResult(traverse(fields.toList.zipWithIndex) { case (field, index) =>
-      mapResult(projectType(field.fieldType, s"$path[$index].type")) { projectedType =>
-        record("name" -> name(field.name), "tpe" -> projectedType)
-      }
-    })(values => sequence(values*))
+  private def projectTypeFieldsLoop(fields: Chunk[cm.Field], path: String): TailRec[Projection[Value]] =
+    traverseTail(fields.toList.zipWithIndex) { case (field, index) =>
+      tailcall(projectTypeLoop(field.fieldType, s"$path[$index].type")).map(result =>
+        mapResult(result)(projectedType => record("name" -> name(field.name), "tpe" -> projectedType))
+      )
+    }.map(result => mapResult(result)(values => sequence(values*)))
 
   private def projectExprLoop(expression: cm.Expr, path: String): TailRec[Projection[Value]] =
     flatMapTail(projectValueAttributes(expression, path)) { attributes =>
@@ -545,11 +558,12 @@ object V3WireProjection:
 
   private def projectLiteral(literal: cm.Literal, path: String): Projection[Value] =
     literal match
-      case cm.Literal.BoolLiteral(value)                      => succeed(sequence(str("BoolLiteral"), bool(value)))
-      case cm.Literal.CharLiteral(value) if value.length == 1 =>
+      case cm.Literal.BoolLiteral(value) => succeed(sequence(str("BoolLiteral"), bool(value)))
+      case cm.Literal.CharLiteral(value) if value.codePointCount(0, value.length) == 1 =>
         succeed(sequence(str("CharLiteral"), str(value)))
-      case cm.Literal.CharLiteral(_)       => fail(V3ProjectionError.UnsupportedFeature(path, "non-BMP CharLiteral"))
-      case cm.Literal.StringLiteral(value) => succeed(sequence(str("StringLiteral"), str(value)))
+      case cm.Literal.CharLiteral(_) =>
+        fail(V3ProjectionError.UnsupportedFeature(path, "CharLiteral with code point count other than one"))
+      case cm.Literal.StringLiteral(value)                       => succeed(sequence(str("StringLiteral"), str(value)))
       case cm.Literal.IntegerLiteral(value) if value.isValidLong =>
         succeed(sequence(str("WholeNumberLiteral"), Structure.Value.Integer(value.longValue)))
       case cm.Literal.IntegerLiteral(_) =>

@@ -194,6 +194,50 @@ class V3WireProjectionTests extends Test[Any]:
       case other             => assert(false, s"expected a successful deep projection, got $other")
   }
 
+  "projects deeply nested types without consuming the JVM stack" in {
+    val nestedType = List.fill(10_000)(()).foldLeft(intType) { (argument, _) =>
+      cm.Type.Reference(
+        cm.TypeAttributes.empty,
+        FQName.fqn("Example", "Types", "Wrapper"),
+        Chunk(argument)
+      )
+    }
+    val deepDefinition = cm.ValueDefinition(
+      cm.AccessControlled(
+        cm.Access.Public,
+        cm.ValueDefinitionBody.ExpressionBody(
+          Chunk.empty,
+          nestedType,
+          cm.Expr.Unit(cm.ValueAttributes.empty)
+        )
+      )
+    )
+
+    V3WireProjection.project(libraryWith(deepDefinition)) match
+      case Result.Success(_) => assert(true)
+      case other             => assert(false, s"expected a successful deep type projection, got $other")
+  }
+
+  "projects one supplementary Unicode code point as a character literal" in {
+    val characterDefinition = cm.ValueDefinition(
+      cm.AccessControlled(
+        cm.Access.Public,
+        cm.ValueDefinitionBody.ExpressionBody(
+          Chunk.empty,
+          intType,
+          cm.Expr.Literal(
+            cm.ValueAttributes.empty,
+            cm.Literal.CharLiteral("😀")
+          )
+        )
+      )
+    )
+
+    V3WireProjection.encode(libraryWith(characterDefinition)) match
+      case Result.Success(json) => assert(json.contains("[\"CharLiteral\",\"😀\"]"))
+      case other                => assert(false, s"expected a successful character projection, got $other")
+  }
+
   "renders decimal literals in schema-compatible plain notation" in {
     val decimalDefinition = cm.ValueDefinition(
       cm.AccessControlled(
