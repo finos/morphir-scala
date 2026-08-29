@@ -73,21 +73,21 @@ object SquireLauncherFixtures:
 
 object SquireCiPolicy:
   val SupportedBranches = List("main", "0.4.x")
+
   /**
-   * The two Maven Central stand-down clauses shared by every Sonatype-uploading job: the
-   * MORPHIR_RELEASE_MAVEN_CENTRAL repository variable, and the maven_central input on a manual
-   * dispatch (absent on every other event, which the event-name guard covers). They are policy —
-   * a GitHub-Releases-only release depends on every job honouring them.
+   * The two Maven Central stand-down clauses shared by every Sonatype-uploading job: the MORPHIR_RELEASE_MAVEN_CENTRAL
+   * repository variable, and the maven_central input on a manual dispatch (absent on every other event, which the
+   * event-name guard covers). They are policy — a GitHub-Releases-only release depends on every job honouring them.
    */
   val MavenCentralSwitchClauses =
     " && vars.MORPHIR_RELEASE_MAVEN_CENTRAL != 'false' && " +
       "(github.event_name != 'workflow_dispatch' || inputs.maven_central)"
 
   /**
-   * ci.yml's publish job is snapshots and branch milestones only. Release tags are deliberately
-   * absent: a tag push stages a draft GitHub release, and every release-tag Sonatype upload lives
-   * in release-publish.yml behind the human act of publishing that draft. A tag ref reappearing
-   * here would put an irreversible Maven Central upload before that promotion gate.
+   * ci.yml's publish job is snapshots and branch milestones only. Release tags are deliberately absent: a tag push
+   * stages a draft GitHub release, and every release-tag Sonatype upload lives in release-publish.yml behind the human
+   * act of publishing that draft. A tag ref reappearing here would put an irreversible Maven Central upload before that
+   * promotion gate.
    */
   val PublishPredicate =
     "github.repository == 'finos/morphir-scala' && " +
@@ -96,9 +96,9 @@ object SquireCiPolicy:
       MavenCentralSwitchClauses
 
   /**
-   * release-publish.yml routes by the tag its `target` job resolved, one namespace per job. The
-   * repository guard lives on `target` alone — when it skips, every dependent publish job skips
-   * with it — and each publish job carries the Maven Central stand-down clauses.
+   * release-publish.yml routes by the tag its `target` job resolved, one namespace per job. The repository guard lives
+   * on `target` alone — when it skips, every dependent publish job skips with it — and each publish job carries the
+   * Maven Central stand-down clauses.
    */
   val ReleasePublishTargetPredicate    = "github.repository == 'finos/morphir-scala'"
   val ReleasePublishLibrariesPredicate =
@@ -126,18 +126,21 @@ object SquireCiPolicy:
    */
   val JvmCompileSelectors = List(
     "morphir.jvm.__.compile",
-    "morphir.{appkit,benchmarks,buildkit.core,connector.github,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.compiler.ir,langkit.elm.compiler.mep,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools,ui,web.server}.jvm.__.compile"
+    "morphir.{appkit,benchmarks,buildkit.core,connector.github,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.compiler.ir,langkit.elm.compiler.mep,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,lib.interop,model,model.compat.v3,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools,ui,web.server}.jvm.__.compile"
   )
   val JvmPublishSelectors = List(
     "morphir.jvm.publishArtifacts",
-    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,extensibility,interop.borer,interop.zio.json,knowledge.okf,langkit.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,lib.interop,model,model.lowering,naming,prelude,tests,tools,ui}.jvm.publishArtifacts"
+    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,extensibility,interop.borer,interop.zio.json,knowledge.okf,langkit.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,lib.interop,model,model.compat.v3,model.lowering,naming,prelude,tests,tools,ui}.jvm.publishArtifacts"
   )
   val JvmTestSelectors = List(
-    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.compiler.ir,langkit.elm.compiler.mep,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,model,model.lowering,prelude,tests,ui,web.server}.jvm.test"
+    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.compiler.ir,langkit.elm.compiler.mep,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,model,model.compat.v3,model.lowering,prelude,tests,ui,web.server}.jvm.test"
   )
 
   /** The Cucumber-style integration suite, which is not a `.jvm` module and so is not in the census. */
   val JvmItestSelector = "morphir.langkit.itest.testCached"
+
+  /** The source and manifest guard for the Elm extension's Kyo architecture boundary. */
+  val ElmExtensionArchitectureSelector = "millbuildHelpers.elmExtensionArchitectureCheck"
 
   /** Build-logic tests, which are outside the Morphir JVM module census. */
   val MillbuildHelpersTestSelector = "millbuildHelpers.test"
@@ -145,7 +148,7 @@ object SquireCiPolicy:
   /** Exactly what `testJVMPlatform` must name, in order. */
   val JvmPlatformAliasMembers: List[String] =
     JvmCompileSelectors ::: JvmPublishSelectors ::: JvmTestSelectors :::
-      List(JvmItestSelector, MillbuildHelpersTestSelector)
+      List(JvmItestSelector, ElmExtensionArchitectureSelector, MillbuildHelpersTestSelector)
 
   val SnapshotCommands = List(
     "echo \"MORPHIR_PUBLISH_MODE=snapshot\" >> \"$GITHUB_ENV\"",
@@ -266,11 +269,10 @@ object SquireCiPolicy:
     }
 
   /**
-   * The promotion workflow: release-publish.yml. Its `target` job carries the repository guard and
-   * resolves the tag; each publish job routes on one tag namespace, depends only on `target`,
-   * honours the Maven Central stand-down clauses, and invokes its Sonatype destination exactly
-   * once. The workflow-level token stays read-only — promotion downloads and verifies staged
-   * assets, it never uploads any.
+   * The promotion workflow: release-publish.yml. Its `target` job carries the repository guard and resolves the tag;
+   * each publish job routes on one tag namespace, depends only on `target`, honours the Maven Central stand-down
+   * clauses, and invokes its Sonatype destination exactly once. The workflow-level token stays read-only — promotion
+   * downloads and verifies staged assets, it never uploads any.
    */
   def assertReleasePublishPolicy(releaseWorkflow: String): Unit =
     val target = indentedBlock(releaseWorkflow, "target:", 2)
@@ -329,8 +331,8 @@ object SquireCiPolicy:
         .map(_.trim)
         .filter { line =>
           line.startsWith("./mill") ||
-            line.startsWith("if ./mill") ||
-            line.startsWith("run: ./mill")
+          line.startsWith("if ./mill") ||
+          line.startsWith("run: ./mill")
         }
     }.toList
     expect(invocations.nonEmpty, "CI mill invocations must exist")
@@ -621,7 +623,10 @@ object SquireCiPolicy:
       s"unexpected linker benchmark steps: $stepNames"
     )
     expect(yamlSequenceEntries(job, 6).size == 7, "benchmark job must contain exactly seven named steps")
-    expect(job.linesIterator.count(_.trim.startsWith("run:")) == 3, "benchmark job must contain exactly three run steps")
+    expect(
+      job.linesIterator.count(_.trim.startsWith("run:")) == 3,
+      "benchmark job must contain exactly three run steps"
+    )
 
     def runLines(step: String, name: String): List[String] =
       val lines    = step.linesIterator.toList
@@ -677,8 +682,8 @@ object SquireCiPolicy:
       "artifact name shell must contain only command substitution and the GITHUB_OUTPUT write"
     )
 
-    val benchmark = indentedBlock(job, "- name: Run linker benchmark", 6)
-    val benchmarkEnvironment = indentedBlock(benchmark, "env:", 8)
+    val benchmark                    = indentedBlock(job, "- name: Run linker benchmark", 6)
+    val benchmarkEnvironment         = indentedBlock(benchmark, "env:", 8)
     val expectedBenchmarkEnvironment = "PRESET" :: overrides.map(_._4) ::: List("CONTINUE_ON_FAILURE")
     expect(
       yamlKeysAtIndent(benchmarkEnvironment, 10) == expectedBenchmarkEnvironment,
@@ -775,11 +780,11 @@ object SquireCiPolicy:
 
   def assertMorphirCapabilityPolicy(workflow: String): Unit =
     val commands = List(
-      "mill-morphir-unit:" -> "'mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test'",
-      "mill-morphir-integration:" -> "mill-plugins.morphir.integration.test",
-      "morphir-elm-projects:" -> "examples.morphir-elm-projects.__.morphirIR",
+      "mill-morphir-unit:"          -> "'mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test'",
+      "mill-morphir-integration:"   -> "mill-plugins.morphir.integration.test",
+      "morphir-elm-projects:"       -> "examples.morphir-elm-projects.__.morphirIR",
       "runtime-generated-fixtures:" -> "morphir.runtime.classic.jvm.test.generatedRuntimeFixtures",
-      "runtime-tests:" -> "morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery"
+      "runtime-tests:"              -> "morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery"
     )
     commands.foreach { case (job, command) =>
       val block = indentedBlock(workflow, job, 2)
@@ -788,10 +793,10 @@ object SquireCiPolicy:
     val unit = indentedBlock(workflow, "mill-morphir-unit:", 2)
     expect(!unit.contains("mill-plugins.morphir.integration"), "unit selector must exclude integration")
     List(
-      "mill-morphir-integration:" -> "[mill-morphir-unit]",
-      "morphir-elm-projects:" -> "[mill-morphir-unit]",
+      "mill-morphir-integration:"   -> "[mill-morphir-unit]",
+      "morphir-elm-projects:"       -> "[mill-morphir-unit]",
       "runtime-generated-fixtures:" -> "[morphir-elm-projects]",
-      "runtime-tests:" -> "[runtime-generated-fixtures]"
+      "runtime-tests:"              -> "[runtime-generated-fixtures]"
     ).foreach { case (job, dependency) =>
       expect(
         scalar(indentedBlock(workflow, job, 2), "needs") == dependency,
@@ -813,11 +818,11 @@ object SquireCiPolicy:
     val definitions = "(?m)^\\s*def testJVMPlatform\\b".r.findAllMatchIn(buildMill).size
     expect(definitions == 1, s"build must provide exactly one testJVMPlatform alias, found $definitions")
     val aliasPattern = "(?ms)^\\s*def testJVMPlatform\\s*=\\s*alias\\(\\s*\\n(.*?)^\\s*\\)\\s*$".r
-    val aliasBody = aliasPattern.findFirstMatchIn(buildMill).map(_.group(1))
+    val aliasBody    = aliasPattern.findFirstMatchIn(buildMill).map(_.group(1))
       .getOrElse(fail("testJVMPlatform must have a parseable alias body"))
     val memberPattern = "^\\s*\"([^\"]+)\"(,?)\\s*$".r
     val lines         = aliasBody.linesIterator.toList
-    val members = lines.zipWithIndex.map { case (line, index) =>
+    val members       = lines.zipWithIndex.map { case (line, index) =>
       line match
         case memberPattern(member, comma) =>
           val expectedComma = if index < lines.size - 1 then "," else ""
@@ -858,7 +863,7 @@ object SquireCiPolicy:
     )
     val generatedOutputs = List("out/examples/morphir-elm-projects/", "out/morphir-elm/")
     val runtimeOutputs   = List("out/morphir/runtime/classic/jvm/test/")
-    val expected = List(
+    val expected         = List(
       "mill-morphir-unit:" -> List(
         "Cache verified Morphir tool downloads" -> List("~/.cache/morphir-scala"),
         "Cache Mill capability outputs"         -> pluginOutputs
@@ -893,7 +898,7 @@ object SquireCiPolicy:
     val lines      = job.linesIterator.toList
     val stepStarts = lines.indices.filter(index => lines(index).startsWith("      - "))
     stepStarts.zip(stepStarts.drop(1) :+ lines.size).flatMap { case (start, end) =>
-      val step = lines.slice(start, end).mkString("\n")
+      val step        = lines.slice(start, end).mkString("\n")
       val cacheAction = step.linesIterator.map(_.trim.stripPrefix("- ")).exists(line =>
         line.startsWith("uses: actions/cache@") || line.startsWith("uses: actions/cache/restore@")
       )
@@ -912,8 +917,8 @@ object SquireCiPolicy:
       case path => List(path)
 
   def assertSquireCiPolicy(workflow: String): Unit =
-    val jobName          = "squire-policy:"
-    val stepName         = "Test Squire and release policy"
+    val jobName           = "squire-policy:"
+    val stepName          = "Test Squire and release policy"
     val changelogStepName = "Check the independent-version-stream changelogs"
     expect(
       workflow.linesIterator.count(_ == s"  $jobName") == 1,
@@ -922,9 +927,9 @@ object SquireCiPolicy:
     val lint = indentedBlock(workflow, "lint:", 2)
     expect(!lint.contains("mise run test:squire"), "lint must not run Squire policy")
 
-    val policy = indentedBlock(workflow, jobName, 2)
+    val policy     = indentedBlock(workflow, jobName, 2)
     val stepStarts = yamlSequenceEntries(policy, 6)
-    val headers = policy.linesIterator.collect {
+    val headers    = policy.linesIterator.collect {
       case line if line.startsWith("      - name: ") => line.stripPrefix("      - name: ")
     }.toList
     expect(stepStarts.size == 6, s"unexpected squire-policy step count: ${stepStarts.size}")
@@ -960,8 +965,8 @@ object SquireCiPolicy:
     val aggregate = inlineList(ci, "needs")
     expect(aggregate.count(_ == "squire-policy") == 1, "ci must depend on squire-policy exactly once")
     expect(scalar(ci, "if") == "${{ always() }}", "ci must always run after its dependencies")
-    val aggregateStep = indentedBlock(ci, "- name: Verify required CI jobs succeeded", 6)
-    val requiredResults = aggregate.map(job => s"test \"$${{ needs.$job.result }}\" = \"success\"")
+    val aggregateStep    = indentedBlock(ci, "- name: Verify required CI jobs succeeded", 6)
+    val requiredResults  = aggregate.map(job => s"test \"$${{ needs.$job.result }}\" = \"success\"")
     val resultAssertions = aggregateStep.linesIterator.map(_.trim).filter(_.startsWith("test ")).toList
     expect(
       resultAssertions == requiredResults,
@@ -1141,7 +1146,9 @@ class SquireCliSpec extends Test[Any]:
         SquireApp.ReferenceRepoStatusCmd.parser.detailedParse(Seq("mill")) -> List("mill"),
         SquireApp.ReferenceRepoRemoveCmd.parser.detailedParse(Seq("mill")) -> List("mill")
       )
-      assert(cases.forall { case (Right((_, remaining)), expected) => remaining.remaining == expected; case _ => false })
+      assert(cases.forall {
+        case (Right((_, remaining)), expected) => remaining.remaining == expected; case _ => false
+      })
     }
 
     "resolves documented named and positional argument contracts strictly" in {
@@ -1177,7 +1184,12 @@ class SquireCliSpec extends Test[Any]:
         )
       )
       val afterDoubleDash = Abort.run[SquireError](
-        SquireCli.resolveRequiredArguments("cellar deps", List("coordinate" -> None), Seq.empty, Seq("org.example:demo:1"))
+        SquireCli.resolveRequiredArguments(
+          "cellar deps",
+          List("coordinate" -> None),
+          Seq.empty,
+          Seq("org.example:demo:1")
+        )
       )
       val absentOptional = Abort.run[SquireError](
         SquireCli.resolveOptionalArgument("reference repo status", "name", None, Seq.empty, Seq.empty)
@@ -1189,14 +1201,14 @@ class SquireCliSpec extends Test[Any]:
         SquireCli.resolveOptionalArgument("reference repo status", "name", Some("mill"), Seq("other"), Seq.empty)
       )
       for
-        mixedResult             <- mixed
-        duplicateResult         <- duplicate
-        missingResult           <- missing
-        excessResult            <- excess
-        afterDoubleDashResult   <- afterDoubleDash
-        absentOptionalResult    <- absentOptional
+        mixedResult              <- mixed
+        duplicateResult          <- duplicate
+        missingResult            <- missing
+        excessResult             <- excess
+        afterDoubleDashResult    <- afterDoubleDash
+        absentOptionalResult     <- absentOptional
         positionalOptionalResult <- positionalOptional
-        duplicateOptionalResult <- duplicateOptional
+        duplicateOptionalResult  <- duplicateOptional
       yield assert(
         mixedResult == Result.Success(List("org.example:demo:1", "demo.Symbol")) &&
           failureContains(duplicateResult, "cellar deps", "unexpected positional") &&
@@ -1239,7 +1251,7 @@ class SquireCliSpec extends Test[Any]:
         Seq("https://example.test/repo", "accidental", "--sparse", "docs")
       ): @unchecked
       var accidentalInvoked = false
-      val accidental = Abort.run[SquireError](
+      val accidental        = Abort.run[SquireError](
         SquireCli
           .resolveRepoAddArguments(
             accidentalOptions.urlOrPath,
@@ -1253,7 +1265,7 @@ class SquireCliSpec extends Test[Any]:
         Seq("--url-or-path", "https://example.test/repo", "duplicate", "--sparse", "docs")
       ): @unchecked
       var duplicateInvoked = false
-      val duplicate = Abort.run[SquireError](
+      val duplicate        = Abort.run[SquireError](
         SquireCli
           .resolveRepoAddArguments(
             duplicateOptions.urlOrPath,
@@ -1318,8 +1330,8 @@ class SquireCliSpec extends Test[Any]:
       yield assert(
         repeatedOptions.sparse == List("docs", "website", "tests/bdd", "wit") &&
           repeatedResult == Result.Success(
-          "https://github.com/finos/morphir" -> List("docs", "website", "tests/bdd", "wit")
-        ) &&
+            "https://github.com/finos/morphir" -> List("docs", "website", "tests/bdd", "wit")
+          ) &&
           failureContains(accidentalResult, "reference repo add", "unexpected positional", "accidental") &&
           !accidentalInvoked &&
           failureContains(duplicateResult, "reference repo add", "unexpected positional", "duplicate") &&
@@ -1333,7 +1345,8 @@ class SquireCliSpec extends Test[Any]:
 
     "renders the documented positional contracts in generated help" in {
       val helpFormat = caseapp.core.help.HelpFormat.default(ansiColors = false)
-      val cellarHelp = SquireApp.CellarGetCmd.finalHelp.withProgName("squire cellar get").help(helpFormat, showHidden = false)
+      val cellarHelp =
+        SquireApp.CellarGetCmd.finalHelp.withProgName("squire cellar get").help(helpFormat, showHidden = false)
       val addHelp = SquireApp.ReferenceRepoAddCmd.finalHelp
         .withProgName("squire reference repo add")
         .help(helpFormat, showHidden = false)
@@ -1347,11 +1360,11 @@ class SquireCliSpec extends Test[Any]:
     }
 
     "rejects invalid routed arguments before downstream work" in {
-      var duplicateInvoked      = false
-      var missingInvoked        = false
-      var excessInvoked         = false
+      var duplicateInvoked       = false
+      var missingInvoked         = false
+      var excessInvoked          = false
       var afterDoubleDashInvoked = false
-      val duplicate = Abort.run[SquireError](
+      val duplicate              = Abort.run[SquireError](
         SquireCli
           .resolveRequiredArguments(
             "reference repo remove",
@@ -1732,8 +1745,8 @@ class SquireMetaSpec extends Test[Any]:
         Seq.empty,
         Map("SQUIRE_TEST_MILL_EXIT" -> "23")
       )
-      val help = SquireLauncherFixtures.run(root, Seq("cellar", "get", "--help"))
-      val missingHandoff = SquireLauncherFixtures.run(root, Seq("cellar", "get"))
+      val help                 = SquireLauncherFixtures.run(root, Seq("cellar", "get", "--help"))
+      val missingHandoff       = SquireLauncherFixtures.run(root, Seq("cellar", "get"))
       val malformedHelpHandoff = SquireLauncherFixtures.run(
         root,
         Seq("cellar", "get", "--help"),
@@ -1899,6 +1912,7 @@ class SquireCiPolicySpec extends Test[Any]:
     skillDirectory.resolve("../../../ci/package.mill.yaml").normalize,
     StandardCharsets.UTF_8
   )
+
   /** Each broad selector followed by the curated ones it must equal; resolved against Mill, then compared. */
   private val jvmTargetSelectors =
     ("morphir.__.jvm.__.compile" :: JvmCompileSelectors) :::
@@ -1908,12 +1922,11 @@ class SquireCiPolicySpec extends Test[Any]:
   /**
    * Mill's stderr, appended to a failure message rather than left only in `detail`.
    *
-   * `SquireError.Failure` passes only `message` to `RuntimeException`, so when one of these escapes
-   * a kyo-test leaf as a thrown exception the reporter prints the exit code and nothing else — which
-   * is exactly what happened when a cold-cache launcher race produced exit 126 and the cause had to
-   * be inferred (bead morphir-47j). Widening `SquireError`'s own rendering would change every
-   * consumer of that format, including the exported spec reports the CLI tests assert on, so the
-   * stderr is folded in here at the one call site that needs it.
+   * `SquireError.Failure` passes only `message` to `RuntimeException`, so when one of these escapes a kyo-test leaf as
+   * a thrown exception the reporter prints the exit code and nothing else — which is exactly what happened when a
+   * cold-cache launcher race produced exit 126 and the cause had to be inferred (bead morphir-47j). Widening
+   * `SquireError`'s own rendering would change every consumer of that format, including the exported spec reports the
+   * CLI tests assert on, so the stderr is folded in here at the one call site that needs it.
    */
   private def withStderr(message: String, stderr: String): String =
     val trimmed = stderr.trim
@@ -1966,8 +1979,8 @@ class SquireCiPolicySpec extends Test[Any]:
    * The build's own area table, read back through Mill rather than by parsing `package.mill`.
    *
    * `ci.releaseAreas` reports what each area module declares. Comparing it to the corpus closes the second drift
-   * surface: `SquireChangelog.Areas` restates the same three namespaces, changelog paths and floors, and a floor
-   * raised in the build alone would otherwise leave `squire changelog check` validating the old one.
+   * surface: `SquireChangelog.Areas` restates the same three namespaces, changelog paths and floors, and a floor raised
+   * in the build alone would otherwise leave `squire changelog check` validating the old one.
    */
   private def resolveReleaseAreas: List[SquireVersionCorpus.AreaCase] < (Async & Abort[SquireError]) =
     LiveProcessRunner.run(
@@ -2064,10 +2077,10 @@ class SquireCiPolicySpec extends Test[Any]:
       )
 
       val mutations = List(
-        "artifact preset env mapping removed" -> artifactPresetUnmapped,
+        "artifact preset env mapping removed"  -> artifactPresetUnmapped,
         "benchmark preset env mapping removed" -> benchmarkPresetUnmapped,
-        "both preset env mappings removed" -> bothPresetsUnmapped,
-        "manual trigger replaced" -> replaceOnce(
+        "both preset env mappings removed"     -> bothPresetsUnmapped,
+        "manual trigger replaced"              -> replaceOnce(
           linkerBenchmarkWorkflow,
           "  workflow_dispatch:\n",
           "  push:\n"
@@ -2108,7 +2121,7 @@ class SquireCiPolicySpec extends Test[Any]:
           "--platforms \"${{ inputs.platforms }}\""
         ),
         "production command added" -> forbiddenCommandMutation,
-        "summary find can fail" -> replaceOnce(
+        "summary find can fail"    -> replaceOnce(
           linkerBenchmarkWorkflow,
           " -print -quit 2>/dev/null || true)",
           " -print -quit 2>/dev/null)"
@@ -2126,12 +2139,12 @@ class SquireCiPolicySpec extends Test[Any]:
         "case validator injected" -> replaceOnce(
           linkerBenchmarkWorkflow,
           "          ./mill --ticker false scripts/ci/LinkerBenchmark.scala \\",
-          "          case \"$PRESET\" in\n            quick-smoke) ;;\n            *) exit 2 ;;\n          esac\n          ./mill --ticker false scripts/ci/LinkerBenchmark.scala \\",
+          "          case \"$PRESET\" in\n            quick-smoke) ;;\n            *) exit 2 ;;\n          esac\n          ./mill --ticker false scripts/ci/LinkerBenchmark.scala \\"
         ),
         "scheduling loop injected" -> replaceOnce(
           linkerBenchmarkWorkflow,
           "          ./mill --ticker false scripts/ci/LinkerBenchmark.scala \\",
-          "          for attempt in 1; do\n            true\n          done\n          ./mill --ticker false scripts/ci/LinkerBenchmark.scala \\",
+          "          for attempt in 1; do\n            true\n          done\n          ./mill --ticker false scripts/ci/LinkerBenchmark.scala \\"
         ),
         "extra run step injected" -> replaceOnce(
           linkerBenchmarkWorkflow,
@@ -2270,7 +2283,11 @@ class SquireCiPolicySpec extends Test[Any]:
       )
       assert(rejects(assertCiMillTicker, tickerEnabled))
       assert(rejects(assertCiMillTicker, lintJobTickerEnabled))
-      assert(scala.util.Try(assertMillInvocationsDisableTicker(Seq(workflow, lintTickerEnabled, jvmPlatformTask))).isFailure)
+      assert(scala.util.Try(assertMillInvocationsDisableTicker(Seq(
+        workflow,
+        lintTickerEnabled,
+        jvmPlatformTask
+      ))).isFailure)
       assert(scala.util.Try(assertMillInvocationsDisableTicker(Seq(workflow, lintTask, jvmTickerEnabled))).isFailure)
     }
 
@@ -2647,9 +2664,9 @@ class SquireCiPolicySpec extends Test[Any]:
       val aggregate      = inlineList(indentedBlock(workflow, "ci:", 2), "needs")
       val aggregateNeeds = s"needs: [${aggregate.mkString(", ")}]"
       val requiredResult = (job: String) => s"test \"$${{ needs.$job.result }}\" = \"success\""
-      val mutations = List(
-        "missing job" -> replaceOnce(workflow, policyJob, ""),
-        "duplicate job" -> replaceOnce(workflow, policyJob, s"$policyJob\n$policyJob"),
+      val mutations      = List(
+        "missing job"          -> replaceOnce(workflow, policyJob, ""),
+        "duplicate job"        -> replaceOnce(workflow, policyJob, s"$policyJob\n$policyJob"),
         "step moved into lint" -> replaceOnce(
           replaceOnce(workflow, policyStep, ""),
           "      - name: Lint code\n        run: ./mill --ticker false -i ci.lint",
@@ -2671,7 +2688,11 @@ class SquireCiPolicySpec extends Test[Any]:
         ),
         "changelog check command changed" -> {
           val changedPolicy =
-            replaceOnce(policyJob, ".claude/skills/squire/squire changelog check", ".claude/skills/squire/squire changelog show")
+            replaceOnce(
+              policyJob,
+              ".claude/skills/squire/squire changelog check",
+              ".claude/skills/squire/squire changelog show"
+            )
           replaceOnce(workflow, policyJob, changedPolicy)
         },
         "job dependency added" -> replaceOnce(
@@ -2729,8 +2750,8 @@ class SquireCiPolicySpec extends Test[Any]:
           aggregateNeeds,
           s"needs: [${aggregate.flatMap(name => if name == "squire-policy" then List(name, name) else List(name)).mkString(", ")}]"
         ),
-        "aggregate always removed" -> replaceOnce(workflow, "    if: ${{ always() }}\n", ""),
-        "squire-policy failure guard removed" -> replaceOnce(workflow, requiredResult("squire-policy"), ""),
+        "aggregate always removed"               -> replaceOnce(workflow, "    if: ${{ always() }}\n", ""),
+        "squire-policy failure guard removed"    -> replaceOnce(workflow, requiredResult("squire-policy"), ""),
         "squire-policy result handling weakened" -> replaceOnce(
           workflow,
           requiredResult("squire-policy"),
@@ -2754,17 +2775,17 @@ class SquireCiPolicySpec extends Test[Any]:
 
     "keeps Mill Morphir dogfood and generated-runtime work in ordered CI jobs" in {
       val required = List(
-        "mill-morphir-unit:"         -> "mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test",
-        "mill-morphir-integration:"  -> "mill-plugins.morphir.integration.test",
-        "morphir-elm-projects:"      -> "examples.morphir-elm-projects.__.morphirIR",
+        "mill-morphir-unit:"          -> "mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test",
+        "mill-morphir-integration:"   -> "mill-plugins.morphir.integration.test",
+        "morphir-elm-projects:"       -> "examples.morphir-elm-projects.__.morphirIR",
         "runtime-generated-fixtures:" -> "morphir.runtime.classic.jvm.test.generatedRuntimeFixtures",
-        "runtime-tests:"             -> "morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery"
+        "runtime-tests:"              -> "morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery"
       )
       val dependencies = List(
-        "mill-morphir-integration:"  -> "needs: [mill-morphir-unit]",
-        "morphir-elm-projects:"      -> "needs: [mill-morphir-unit]",
+        "mill-morphir-integration:"   -> "needs: [mill-morphir-unit]",
+        "morphir-elm-projects:"       -> "needs: [mill-morphir-unit]",
         "runtime-generated-fixtures:" -> "needs: [morphir-elm-projects]",
-        "runtime-tests:"             -> "needs: [runtime-generated-fixtures]"
+        "runtime-tests:"              -> "needs: [runtime-generated-fixtures]"
       )
       assert(
         required.forall((job, command) => indentedBlock(workflow, job, 2).contains(command)) &&
@@ -2849,8 +2870,8 @@ class SquireMisePolicySpec extends Test[Any]:
   private val miseExecutable = Option(java.lang.System.getenv("SQUIRE_MISE_BIN")).filter(_.nonEmpty).getOrElse("mise")
   private val buildElmScript = repositoryRoot / ".config" / "mise" / "tasks" / "build" / "elm"
   private val buildEvaluatorScript = repositoryRoot / ".config" / "mise" / "tasks" / "build" / "morphir-elm"
-  private val setupScript = repositoryRoot / ".config" / "mise" / "tasks" / "setup"
-  private val localCiScript = repositoryRoot / ".config" / "mise" / "tasks" / "ci" / "local"
+  private val setupScript          = repositoryRoot / ".config" / "mise" / "tasks" / "setup"
+  private val localCiScript        = repositoryRoot / ".config" / "mise" / "tasks" / "ci" / "local"
   private val expectedDependencies = List(
     "lint",
     "test:squire",
@@ -2877,9 +2898,12 @@ class SquireMisePolicySpec extends Test[Any]:
       Chunk("--ticker", "false", "examples.morphir-elm-projects.evaluator-tests.morphirIR")
     )
   )
-  private val expectedSetup = Chunk(TaskInvocation("bun", Chunk("install", "--ignore-scripts")))
+  private val expectedSetup   = Chunk(TaskInvocation("bun", Chunk("install", "--ignore-scripts")))
   private val expectedLocalCi = Chunk(
-    TaskInvocation("mill", Chunk("-i", "-k", "mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test")),
+    TaskInvocation(
+      "mill",
+      Chunk("-i", "-k", "mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test")
+    ),
     TaskInvocation("mill", Chunk("-i", "mill-plugins.morphir.integration.test")),
     TaskInvocation(
       "mill",
@@ -2894,11 +2918,11 @@ class SquireMisePolicySpec extends Test[Any]:
     LiveProcessRunner.run(ProcessRequest(Chunk(miseExecutable) ++ Chunk.from(arguments), Present(repositoryRoot)))
 
   private def validateTaskScript(scriptText: String): Either[SquireError, Unit] =
-    val scriptLines = scriptText.linesIterator.toList
+    val scriptLines     = scriptText.linesIterator.toList
     val executableLines = scriptLines match
       case "#!/usr/bin/env bash" :: remaining => remaining
-      case _                                    => scriptLines
-    val executableText = executableLines.filterNot(_.trim.startsWith("#")).mkString("\n")
+      case _                                  => scriptLines
+    val executableText    = executableLines.filterNot(_.trim.startsWith("#")).mkString("\n")
     val absoluteReference = "(?<![A-Za-z0-9_.-])(/[^\\s\\\"';&|]+|\\.\\./[^\\s\\\"';&|]+)".r
       .findFirstMatchIn(executableText).map(_.group(1))
     absoluteReference match
@@ -2951,11 +2975,11 @@ class SquireMisePolicySpec extends Test[Any]:
   ): Chunk[TaskInvocation] < (Async & Sync & Abort[SquireError]) =
     validateTaskScript(scriptText) match
       case Left(error) => Abort.fail(error)
-      case Right(_) =>
+      case Right(_)    =>
         Scope.run {
           for
             root <- SquireFixtures.scopedScratch(s"task-${script.toJava.getFileName}")
-            log <- Sync.defer {
+            log  <- Sync.defer {
               val bin = root / "bin"
               val log = root / "task-invocations.bin"
               Files.createDirectories(bin.toJava)
@@ -2967,7 +2991,7 @@ class SquireMisePolicySpec extends Test[Any]:
               SquireLauncherFixtures.executable((bin / "bash").toJava, s"#!/bin/sh\nexec $ambientBash \"$$@\"\n")
               log
             }
-            _ <- Sync.defer(executionStarted())
+            _      <- Sync.defer(executionStarted())
             result <- LiveProcessRunner.run(
               ProcessRequest(
                 Chunk(
@@ -2983,7 +3007,7 @@ class SquireMisePolicySpec extends Test[Any]:
             )
             _ <- result match
               case ProcessResult(_, 0, _, _) => Sync.defer(())
-              case _ =>
+              case _                         =>
                 Abort.fail(
                   SquireError.Failure(
                     "mise-policy",
@@ -2991,7 +3015,7 @@ class SquireMisePolicySpec extends Test[Any]:
                     Present(result.stderr.trim)
                   )
                 )
-            decoded <- Sync.defer(decodeTaskInvocations(log))
+            decoded     <- Sync.defer(decodeTaskInvocations(log))
             invocations <- decoded match
               case Right(value) => Sync.defer(value)
               case Left(error)  => Abort.fail(error)
@@ -3014,8 +3038,8 @@ esac
 
   private def decodeTaskInvocations(log: Path): Either[SquireError, Chunk[TaskInvocation]] =
     try
-      val bytes = Files.readAllBytes(log.toJava)
-      var offset = 0
+      val bytes   = Files.readAllBytes(log.toJava)
+      var offset  = 0
       val decoded = scala.collection.mutable.ArrayBuffer.empty[TaskInvocation]
 
       def readField(): String =
@@ -3055,7 +3079,7 @@ esac
 
   private def morphirElmManifests: List[Path] =
     val examples = repositoryRoot / "examples" / "morphir-elm-projects"
-    val stream = Files.walk(examples.toJava)
+    val stream   = Files.walk(examples.toJava)
     try
       (repositoryRoot / "package.json") :: stream.iterator.asScala
         .filter(path => path.getFileName.toString == "package.json")
@@ -3067,7 +3091,7 @@ esac
     SquireJson.decode[Structure.Value](json) match
       case Result.Success(value) =>
         !recordFieldContains(value, "devDependencies", "morphir-elm") &&
-          !recordFieldContains(value, "scripts", "make")
+        !recordFieldContains(value, "scripts", "make")
       case Result.Failure(_) => false
 
   private def recordFieldContains(value: Structure.Value, field: String, key: String): Boolean =
@@ -3118,22 +3142,21 @@ esac
       yield assert(buildElm == expectedBuildElm && buildEvaluator == expectedBuildEvaluator && setup == expectedSetup)
     }
 
-    "runs every local-CI Morphir capability through its dedicated Mill invocation" in {
+    "runs every local-CI Morphir capability through its dedicated Mill invocation" in
       runTaskScript(
         localCiScript,
         Files.readString(localCiScript.toJava, StandardCharsets.UTF_8),
         Set("mill")
       ).map(invocations => assert(invocations == expectedLocalCi))
-    }
 
     "rejects executed task mutations that add package tooling or change the approved invocation sequences" in {
-      val buildElmText  = Files.readString(buildElmScript.toJava, StandardCharsets.UTF_8)
-      val setupText     = Files.readString(setupScript.toJava, StandardCharsets.UTF_8)
-      val localCiText   = Files.readString(localCiScript.toJava, StandardCharsets.UTF_8)
-      val addBun        = buildElmText + "\nbun install\n"
-      val addNpm        = buildElmText + "\nnpm install\n"
-      val removeSdk     = buildElmText.replace("    + \"morphir-elm.sdks.__.morphirIR\"\n", "")
-      val broadUnit     = localCiText.replace(
+      val buildElmText = Files.readString(buildElmScript.toJava, StandardCharsets.UTF_8)
+      val setupText    = Files.readString(setupScript.toJava, StandardCharsets.UTF_8)
+      val localCiText  = Files.readString(localCiScript.toJava, StandardCharsets.UTF_8)
+      val addBun       = buildElmText + "\nbun install\n"
+      val addNpm       = buildElmText + "\nnpm install\n"
+      val removeSdk    = buildElmText.replace("    + \"morphir-elm.sdks.__.morphirIR\"\n", "")
+      val broadUnit    = localCiText.replace(
         "mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test",
         "mill-plugins.morphir.__.test"
       )
@@ -3144,12 +3167,12 @@ esac
       )
       val enableHooks = setupText.replace(" --ignore-scripts", "")
       for
-        bunResult <- Abort.run[SquireError](runTaskScript(buildElmScript, addBun, Set("mill")))
-        npmResult <- Abort.run[SquireError](runTaskScript(buildElmScript, addNpm, Set("mill")))
-        withoutSdk <- runTaskScript(buildElmScript, removeSdk, Set("mill"))
+        bunResult            <- Abort.run[SquireError](runTaskScript(buildElmScript, addBun, Set("mill")))
+        npmResult            <- Abort.run[SquireError](runTaskScript(buildElmScript, addNpm, Set("mill")))
+        withoutSdk           <- runTaskScript(buildElmScript, removeSdk, Set("mill"))
         broadUnitInvocations <- runTaskScript(localCiScript, broadUnit, Set("mill"))
         collapsedInvocations <- runTaskScript(localCiScript, collapseLocal, Set("mill"))
-        hooksEnabled <- runTaskScript(setupScript, enableHooks, Set("bun"))
+        hooksEnabled         <- runTaskScript(setupScript, enableHooks, Set("bun"))
       yield assert(
         failureContains(bunResult, "unapproved program", "bun") &&
           failureContains(npmResult, "unapproved program", "npm") &&
@@ -3165,21 +3188,21 @@ esac
       val abortName   = "cleanup-abort"
       for
         successBefore <- Sync.defer(taskScratchRoots(successName))
-        success <- runTaskScript(
+        success       <- runTaskScript(
           Path(successName),
           "#!/usr/bin/env bash\n./mill clean\n",
           Set("mill")
         )
         successAfter <- Sync.defer(taskScratchRoots(successName))
         abortBefore  <- Sync.defer(taskScratchRoots(abortName))
-        aborted <- Abort.run[SquireError](
+        aborted      <- Abort.run[SquireError](
           runTaskScript(
             Path(abortName),
             "#!/usr/bin/env bash\nnpm install\n",
             Set("mill")
           )
         )
-        abortAfter = taskScratchRoots(abortName)
+        abortAfter   = taskScratchRoots(abortName)
         successLeaks = successAfter -- successBefore
         abortLeaks   = abortAfter -- abortBefore
         _ <- Sync.defer((successLeaks ++ abortLeaks).foreach(SquireFixtures.deleteRecursively))
@@ -3204,8 +3227,8 @@ esac
         }
         approvedShebangAccepted = validateTaskScript("#!/usr/bin/env bash\n./mill clean\n").isRight
         proofs <- Kyo.foreach(variants) { case (program, _, variant, scriptText) =>
-          val scriptName = s"absolute-$program-$variant"
-          val preflight = validateTaskScript(scriptText)
+          val scriptName       = s"absolute-$program-$variant"
+          val preflight        = validateTaskScript(scriptText)
           var executionStarted = false
           preflight match
             case Left(_) =>
@@ -3224,9 +3247,11 @@ esac
 
     "semantically rejects forbidden Morphir Elm package manifest fields" in {
       val forbiddenDevDependency = """{"devDependencies":{"morphir-elm":"1.0.0"},"scripts":{}}"""
-      val forbiddenScript = """{"devDependencies":{},"scripts":{"make":"make"}}"""
+      val forbiddenScript        = """{"devDependencies":{},"scripts":{"make":"make"}}"""
       assert(
-        morphirElmManifests.forall(path => packageManifestIsSafe(Files.readString(path.toJava, StandardCharsets.UTF_8))) &&
+        morphirElmManifests.forall(path =>
+          packageManifestIsSafe(Files.readString(path.toJava, StandardCharsets.UTF_8))
+        ) &&
           !packageManifestIsSafe(forbiddenDevDependency) &&
           !packageManifestIsSafe(forbiddenScript)
       )
@@ -4127,7 +4152,7 @@ class SquireSpecSpec extends Test[Any]:
 
     "preserves exact failed text diagnostics and excludes raw JSON output" in {
       for
-        textRoot <- preparedRoot("spec-check-diagnostics")
+        textRoot   <- preparedRoot("spec-check-diagnostics")
         textReport <- SquireSpec.sync(
           SpecSyncOptions(noFetch = true),
           textRoot,
@@ -4139,8 +4164,8 @@ class SquireSpecSpec extends Test[Any]:
           ),
           TestSpecPlatform()
         )
-        textDetail   = textReport.steps.find(_.step == "check").map(_.detail).getOrElse("")
-        textRendered = SquireSpec.renderText(textReport)
+        textDetail     = textReport.steps.find(_.step == "check").map(_.detail).getOrElse("")
+        textRendered   = SquireSpec.renderText(textReport)
         expectedDetail =
           "check --no-provenance\n  ERROR invalid knowledge entry\nstdout tail  \n" +
             "\tschema path: kb/example.yaml\nstderr tail\n\n"
@@ -4151,7 +4176,7 @@ class SquireSpecSpec extends Test[Any]:
             "[4/5] sync pull\n  ok: sync pull\n" +
             "[5/5] kb check\n  ERROR: " + expectedDetail +
             "\n\nWorkflow failed.\n"
-        jsonRoot <- preparedRoot("spec-check-json-diagnostics")
+        jsonRoot   <- preparedRoot("spec-check-json-diagnostics")
         jsonReport <- SquireSpec.sync(
           SpecSyncOptions(noFetch = true, json = true),
           jsonRoot,
@@ -4701,10 +4726,10 @@ object SquireFixtures:
     java.nio.file.Path.of(java.lang.System.getProperty("java.home"), "bin", "java").toString
 
   /**
-   * Canonicalized on creation. `SquireRepo` resolves real paths on purpose: proving a destination is exactly inside
-   * its configured base is what stops a symlinked path component escaping it, so the argv it builds and the metadata
-   * it records name resolved paths. A scratch root that still carries a symlink therefore does not compare equal to
-   * what the code under test produces. On macOS every temp directory is one, because `java.io.tmpdir` sits under
+   * Canonicalized on creation. `SquireRepo` resolves real paths on purpose: proving a destination is exactly inside its
+   * configured base is what stops a symlinked path component escaping it, so the argv it builds and the metadata it
+   * records name resolved paths. A scratch root that still carries a symlink therefore does not compare equal to what
+   * the code under test produces. On macOS every temp directory is one, because `java.io.tmpdir` sits under
    * `/var/folders`, and `/var` is a symlink to `private/var`; on Linux the two spellings coincide and the difference
    * stays invisible.
    */
@@ -4899,7 +4924,12 @@ object SquireSpecFixtures:
       else if argv.take(3) == kb(root, "sync", "pull").take(3) then
         ProcessResult(request, pullExit, "{\"actions\":[]}", if pullExit == 0 then "" else "pull failed")
       else if argv.take(2) == kb(root, "check").take(2) then
-        ProcessResult(request, checkExit, checkOutput, checkError.getOrElse(if checkExit == 0 then "" else "check failed"))
+        ProcessResult(
+          request,
+          checkExit,
+          checkOutput,
+          checkError.getOrElse(if checkExit == 0 then "" else "check failed")
+        )
       else unexpected(request)
     }
 
@@ -5219,7 +5249,7 @@ class SquireCellarSpec extends Test[Any]:
         root <- SquireFixtures.scratch("cellar-temp")
         relative = Path("relative-temp")
         missing  = root / "missing"
-        valid    <- SquireCellar.validateTempDirectory(Some(root.toString))
+        valid           <- SquireCellar.validateTempDirectory(Some(root.toString))
         invalidRelative <- Abort.run[SquireError](SquireCellar.validateTempDirectory(Some(relative.toString)))
         invalidMissing  <- Abort.run[SquireError](SquireCellar.validateTempDirectory(Some(missing.toString)))
       yield assert(
@@ -6144,7 +6174,7 @@ class SquireEnvSpec extends Test[Any]:
           ),
           root
         )
-        leftovers         <- Sync.defer(SquireFixtures.probeFiles(root))
+        leftovers          <- Sync.defer(SquireFixtures.probeFiles(root))
         effectiveLeftovers <- Sync.defer(SquireFixtures.probeFiles(effective))
       yield assert(
         !absent && writable && leftovers.isEmpty && effectiveLeftovers.isEmpty &&
@@ -6158,7 +6188,7 @@ class SquireEnvSpec extends Test[Any]:
         root <- SquireFixtures.scopedScratch("env-var-folders-sentinel")
         sentinel = root / ".squire-env-probe"
         expected = "  sentinel contents\nwith trailing space  \n".getBytes(java.nio.charset.StandardCharsets.UTF_8)
-        _ <- Sync.defer(Files.write(sentinel.toJava, expected))
+        _        <- Sync.defer(Files.write(sentinel.toJava, expected))
         writable <- SquireEnv.check(
           SquireEnv.CheckKind.VarFolders,
           1.seconds,
@@ -6174,8 +6204,8 @@ class SquireEnvSpec extends Test[Any]:
       for
         root         <- SquireFixtures.scopedScratch("env-var-folders-symlink")
         externalRoot <- SquireFixtures.scopedScratch("env-var-folders-symlink-target")
-        target = externalRoot / "target.txt"
-        link   = root / ".squire-env-probe"
+        target   = externalRoot / "target.txt"
+        link     = root / ".squire-env-probe"
         expected = "external target\n".getBytes(java.nio.charset.StandardCharsets.UTF_8)
         _ <- Sync.defer {
           Files.write(target.toJava, expected)
@@ -6193,22 +6223,22 @@ class SquireEnvSpec extends Test[Any]:
     "uses distinct owned files for overlapping probes in one temp directory" in Scope.run {
       for
         root <- SquireFixtures.scopedScratch("env-var-folders-overlap")
-        paths   = java.util.concurrent.ConcurrentHashMap.newKeySet[String]()
-        barrier = new java.util.concurrent.CyclicBarrier(2)
+        paths    = java.util.concurrent.ConcurrentHashMap.newKeySet[String]()
+        barrier  = new java.util.concurrent.CyclicBarrier(2)
         platform = SquireFixtures.platform(
           root,
           SquireEnv.CheckResult(Present(true), "ok", 0.0),
-          writeProbe = Present(path => {
+          writeProbe = Present { path =>
             paths.add(path.toString)
             Files.writeString(path.toJava, "squire probe")
             barrier.await(5, java.util.concurrent.TimeUnit.SECONDS)
-          })
+          }
         )
-        first  <- Fiber.init(SquireEnv.check(SquireEnv.CheckKind.VarFolders, 1.seconds, platform))
-        second <- Fiber.init(SquireEnv.check(SquireEnv.CheckKind.VarFolders, 1.seconds, platform))
+        first        <- Fiber.init(SquireEnv.check(SquireEnv.CheckKind.VarFolders, 1.seconds, platform))
+        second       <- Fiber.init(SquireEnv.check(SquireEnv.CheckKind.VarFolders, 1.seconds, platform))
         firstResult  <- first.get
         secondResult <- second.get
-        leftovers <- Sync.defer(SquireFixtures.probeFiles(root))
+        leftovers    <- Sync.defer(SquireFixtures.probeFiles(root))
       yield assert(firstResult && secondResult && paths.size() == 2 && leftovers.isEmpty)
     }
 
@@ -6227,7 +6257,7 @@ class SquireEnvSpec extends Test[Any]:
           Absent,
           Absent
         )
-        check <- SquireEnv.check(SquireEnv.CheckKind.VarFolders, 1.seconds, platform)
+        check  <- SquireEnv.check(SquireEnv.CheckKind.VarFolders, 1.seconds, platform)
         report <- SquireEnv.report(1.seconds, platform, root)
       yield assert(
         check &&
@@ -6255,9 +6285,9 @@ class SquireEnvSpec extends Test[Any]:
         platform = SquireFixtures.platform(
           root,
           SquireEnv.CheckResult(Present(true), "ok", 0.0),
-          writeProbe = Present(path => {
+          writeProbe = Present { path =>
             Files.writeString(path.toJava, "partial"); throw java.nio.file.AccessDeniedException(path.toString)
-          })
+          }
         )
         partial   <- SquireEnv.check(SquireEnv.CheckKind.VarFolders, 1.seconds, platform)
         leftovers <- Sync.defer(SquireFixtures.probeFiles(root))
@@ -6346,15 +6376,18 @@ class SquireDoctorSpec extends Test[Any]:
             (root / "morphir" / "package.mill.yaml").toJava,
             "mainClass: org.finos.morphir.Main\n"
           )
-          val plugin = root / "mill-plugins" / "morphir"
+          val plugin  = root / "mill-plugins" / "morphir"
           val modules = List("toolchain", "javascript", "elm-tooling", "core", "elm", "integration")
           modules.foreach(name => Files.createDirectories((plugin / name).toJava))
           Files.writeString(
             (plugin / "package.mill").toJava,
-            modules.map(name => s"object ${if name.contains('-') then s"`$name`" else name} extends Module\n").mkString +
+            modules.map(name =>
+              s"object ${if name.contains('-') then s"`$name`" else name} extends Module\n"
+            ).mkString +
               "publishLocalTestRepo publishedPluginRepositories\n"
           )
-          val integration = plugin / "integration" / "test" / "src" / "org" / "finos" / "morphir" / "mill" / "PublishedPluginIntegrationTests.scala"
+          val integration =
+            plugin / "integration" / "test" / "src" / "org" / "finos" / "morphir" / "mill" / "PublishedPluginIntegrationTests.scala"
           Files.createDirectories(integration.parent.get.toJava)
           Files.writeString(integration.toJava, "COURSIER_REPOSITORIES millExecutable\n")
           val consumer = plugin / "integration" / "resources" / "published-consumer" / "build.mill"
@@ -6384,7 +6417,9 @@ class SquireDoctorSpec extends Test[Any]:
         )
         report <- SquireDoctor.run(root, RecordingRunner(Chunk.empty), platform)
       yield assert(
-        report.finding("mill_morphir").exists(finding => finding.blocked && finding.message.contains("plugin modules")) &&
+        report.finding("mill_morphir").exists(finding =>
+          finding.blocked && finding.message.contains("plugin modules")
+        ) &&
           report.finding("acquisition_cache").exists(finding => finding.blocked && finding.message.contains("absolute"))
       )
     }
@@ -6392,9 +6427,9 @@ class SquireDoctorSpec extends Test[Any]:
     "detects corrupt acquisition cache content and stale metabuild output" in {
       for
         root <- SquireFixtures.scratch("doctor-cache-metabuild")
-        cache = root / "cache"
-        digest = "0" * 64
-        source = root / "build.mill"
+        cache    = root / "cache"
+        digest   = "0" * 64
+        source   = root / "build.mill"
         compiled = root / "out" / "mill-build" / "compile.dest" / "classes" / "build.class"
         _ <- Sync.defer {
           Files.createDirectories((cache / "sha256").toJava)
@@ -6429,16 +6464,16 @@ class SquireDoctorSpec extends Test[Any]:
 
       for
         root <- SquireFixtures.scopedScratch("doctor-platform-cache-roots")
-        macHome = root / "mac-home"
-        macCache = macHome / "Library" / "Caches" / "morphir-scala"
-        windowsHome = root / "windows-home"
-        localAppData = root / "local-app-data"
+        macHome              = root / "mac-home"
+        macCache             = macHome / "Library" / "Caches" / "morphir-scala"
+        windowsHome          = root / "windows-home"
+        localAppData         = root / "local-app-data"
         windowsAbsoluteCache = localAppData / "morphir-scala" / "Cache"
         windowsRelativeCache = windowsHome / "AppData" / "Local" / "morphir-scala" / "Cache"
-        linuxHome = root / "linux-home"
-        xdgCacheHome = root / "xdg-cache"
-        linuxAbsoluteCache = xdgCacheHome / "morphir-scala"
-        linuxRelativeCache = linuxHome / ".cache" / "morphir-scala"
+        linuxHome            = root / "linux-home"
+        xdgCacheHome         = root / "xdg-cache"
+        linuxAbsoluteCache   = xdgCacheHome / "morphir-scala"
+        linuxRelativeCache   = linuxHome / ".cache" / "morphir-scala"
         _ <- Sync.defer {
           corrupt(macCache)
           corrupt(windowsAbsoluteCache)
@@ -6517,10 +6552,10 @@ class SquireDoctorSpec extends Test[Any]:
 
       for
         root <- SquireFixtures.scopedScratch("doctor-malformed-cache-homes")
-        windowsHome = root / "windows-home"
+        windowsHome     = root / "windows-home"
         windowsFallback = windowsHome / "AppData" / "Local" / "morphir-scala" / "Cache"
-        linuxHome = root / "linux-home"
-        linuxFallback = linuxHome / ".cache" / "morphir-scala"
+        linuxHome       = root / "linux-home"
+        linuxFallback   = linuxHome / ".cache" / "morphir-scala"
         _ <- Sync.defer {
           corrupt(windowsFallback)
           corrupt(linuxFallback)
@@ -6552,7 +6587,9 @@ class SquireDoctorSpec extends Test[Any]:
           )
         )
       yield assert(
-        windows.exists(_.finding("acquisition_cache").exists(finding => finding.blocked && finding.code == "CORRUPT")) &&
+        windows.exists(_.finding("acquisition_cache").exists(finding =>
+          finding.blocked && finding.code == "CORRUPT"
+        )) &&
           linux.exists(_.finding("acquisition_cache").exists(finding => finding.blocked && finding.code == "CORRUPT"))
       )
     }
@@ -6566,9 +6603,9 @@ class SquireDoctorSpec extends Test[Any]:
 
       for
         root <- SquireFixtures.scopedScratch("doctor-cache-override-precedence")
-        home = root / "mac-home"
+        home          = root / "mac-home"
         overrideCache = root / "override-cache"
-        _ <- Sync.defer(corrupt(overrideCache))
+        _      <- Sync.defer(corrupt(overrideCache))
         report <- SquireDoctor.run(
           root,
           RecordingRunner(Chunk.empty),
@@ -6594,7 +6631,7 @@ class SquireDoctorSpec extends Test[Any]:
           for
             root <- SquireFixtures.scopedScratch("doctor-cache-bounded")
             _    <- Sync.defer { allocatedRoot = Some(root) }
-            cache = root / "cache"
+            cache  = root / "cache"
             digest = "0" * 64
             _ <- Sync.defer {
               val entry = cache / "sha256" / digest
@@ -6633,8 +6670,8 @@ class SquireDoctorSpec extends Test[Any]:
       for
         externalRoot <- SquireFixtures.scopedScratch("doctor-cache-symlink-external")
         root         <- SquireFixtures.scopedScratch("doctor-cache-symlink")
-        cache = root / "cache"
-        digest = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        cache          = root / "cache"
+        digest         = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         externalTarget = externalRoot / "matching-content"
         _ <- Sync.defer {
           Files.writeString(externalTarget.toJava, "")
@@ -6668,7 +6705,7 @@ class SquireDoctorSpec extends Test[Any]:
           yield ()
         }
         completedRemoved <- Sync.defer(completedRoot.exists(root => !Files.exists(root.toJava)))
-        aborted <- Abort.run[String](
+        aborted          <- Abort.run[String](
           Scope.run {
             for
               root <- SquireFixtures.scopedScratch("doctor-cache-clean-abort")
@@ -6678,7 +6715,7 @@ class SquireDoctorSpec extends Test[Any]:
           }
         )
         abortedRemoved <- Sync.defer(abortedRoot.exists(root => !Files.exists(root.toJava)))
-        _ <- Sync.defer {
+        _              <- Sync.defer {
           completedRoot.foreach(SquireFixtures.deleteRecursively)
           abortedRoot.foreach(SquireFixtures.deleteRecursively)
         }
@@ -6688,7 +6725,7 @@ class SquireDoctorSpec extends Test[Any]:
     "validates a relative cache override before honoring disabled mode and skips corrupt cache content" in Scope.run {
       for
         root <- SquireFixtures.scopedScratch("doctor-cache-disabled")
-        cache = root / "cache"
+        cache  = root / "cache"
         digest = "0" * 64
         _ <- Sync.defer {
           Files.createDirectories((cache / "sha256").toJava)
@@ -6701,7 +6738,7 @@ class SquireDoctorSpec extends Test[Any]:
             root,
             SquireEnv.CheckResult(Present(true), "ok", 0.0),
             environment = Map(
-              "MORPHIR_NODE_CACHE" -> cache.toString,
+              "MORPHIR_NODE_CACHE"                 -> cache.toString,
               "MORPHIR_NODE_DISABLE_MACHINE_CACHE" -> "true"
             )
           )
@@ -6713,7 +6750,7 @@ class SquireDoctorSpec extends Test[Any]:
             root,
             SquireEnv.CheckResult(Present(true), "ok", 0.0),
             environment = Map(
-              "MORPHIR_NODE_CACHE" -> "relative-cache",
+              "MORPHIR_NODE_CACHE"                 -> "relative-cache",
               "MORPHIR_NODE_DISABLE_MACHINE_CACHE" -> "true"
             )
           )
@@ -6744,7 +6781,9 @@ class SquireDoctorSpec extends Test[Any]:
         )
       yield assert(
         report.finding("acquisition_cache").exists(finding =>
-          !finding.blocked && finding.code == "NOTICE" && finding.message.contains("directory entry limit reached (256)")
+          !finding.blocked && finding.code == "NOTICE" && finding.message.contains(
+            "directory entry limit reached (256)"
+          )
         )
       )
     }
@@ -6753,7 +6792,7 @@ class SquireDoctorSpec extends Test[Any]:
       val emptyDigest = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       for
         root <- SquireFixtures.scopedScratch("doctor-cache-unreadable")
-        cache = root / "cache"
+        cache      = root / "cache"
         digestRoot = cache / "sha256"
         unreadable = digestRoot / emptyDigest
         _ <- Sync.defer {
@@ -6792,7 +6831,9 @@ class SquireDoctorSpec extends Test[Any]:
       yield assert(
         structural.finding("acquisition_cache").exists(finding => finding.blocked && finding.code == "CORRUPT") &&
           report.finding("acquisition_cache").exists(finding =>
-            !finding.blocked && finding.code == "NOTICE" && finding.message.contains("unreadable or changed during inspection")
+            !finding.blocked && finding.code == "NOTICE" && finding.message.contains(
+              "unreadable or changed during inspection"
+            )
           )
       )
     }
@@ -6806,7 +6847,7 @@ class SquireDoctorSpec extends Test[Any]:
           val digestRoot = cache / "sha256"
           Files.createDirectories(digestRoot.toJava)
           (1 to 5).foreach { index =>
-            val entry = digestRoot / s"entry-$index"
+            val entry   = digestRoot / s"entry-$index"
             val channel = Files.newByteChannel(
               entry.toJava,
               java.nio.file.StandardOpenOption.CREATE_NEW,
@@ -6819,7 +6860,7 @@ class SquireDoctorSpec extends Test[Any]:
             finally channel.close()
             val digest = java.security.MessageDigest.getInstance("SHA-256")
             digest.update(index.toByte)
-            val zeroes = Array.ofDim[Byte](1024 * 1024)
+            val zeroes    = Array.ofDim[Byte](1024 * 1024)
             var remaining = entryBytes - 1L
             while remaining > 0L do
               val count = math.min(remaining, zeroes.length.toLong).toInt
@@ -6840,7 +6881,9 @@ class SquireDoctorSpec extends Test[Any]:
         )
       yield assert(
         report.finding("acquisition_cache").exists(finding =>
-          !finding.blocked && finding.code == "NOTICE" && finding.message.contains("total hash budget reached (268435456 bytes)")
+          !finding.blocked && finding.code == "NOTICE" && finding.message.contains(
+            "total hash budget reached (268435456 bytes)"
+          )
         )
       )
     }
@@ -7189,22 +7232,24 @@ class SquireChangelogSpec extends Test[Any]:
 
     "fails naming the file when there is no undated heading" in {
       for
-        root     <- SquireFixtures.scratch("changelog-check-none")
-        _        <- writeAllAreas(root, noUndated, validMillPlugins)
-        report   <- SquireChangelog.check(root)
+        root   <- SquireFixtures.scratch("changelog-check-none")
+        _      <- writeAllAreas(root, noUndated, validMillPlugins)
+        report <- SquireChangelog.check(root)
         libraries = report.outcomes.find(_.area == "libraries").get
       yield assert(
         !report.ok && libraries.status == "issue" &&
-          libraries.detail.exists(message => message.contains("CHANGELOG.md") && message.contains("no undated release heading"))
+          libraries.detail.exists(message =>
+            message.contains("CHANGELOG.md") && message.contains("no undated release heading")
+          )
       )
     }
 
     "fails naming both when there are two undated headings" in {
       for
-        root        <- SquireFixtures.scratch("changelog-check-two")
-        _           <- writeAllAreas(root, validLibraries, twoUndated)
-        report      <- SquireChangelog.check(root)
-        millPlugins  = report.outcomes.find(_.area == "mill-plugins").get
+        root   <- SquireFixtures.scratch("changelog-check-two")
+        _      <- writeAllAreas(root, validLibraries, twoUndated)
+        report <- SquireChangelog.check(root)
+        millPlugins = report.outcomes.find(_.area == "mill-plugins").get
       yield assert(
         !report.ok && millPlugins.status == "issue" &&
           millPlugins.detail.exists(message =>
@@ -7233,10 +7278,10 @@ class SquireChangelogSpec extends Test[Any]:
       // never-published mill-plugins area, a bad merge in its undated heading must not be free to
       // publish below everything already shipped. See SquireChangelog.Areas.
       for
-        root      <- SquireFixtures.scratch("changelog-check-libraries-floor")
-        _         <- writeAllAreas(root, belowFloorLibraries, validMillPlugins)
-        report    <- SquireChangelog.check(root)
-        libraries  = report.outcomes.find(_.area == "libraries").get
+        root   <- SquireFixtures.scratch("changelog-check-libraries-floor")
+        _      <- writeAllAreas(root, belowFloorLibraries, validMillPlugins)
+        report <- SquireChangelog.check(root)
+        libraries = report.outcomes.find(_.area == "libraries").get
       yield assert(
         !report.ok && libraries.status == "issue" && libraries.releaseLine.exists(_ == "0.4.9") &&
           libraries.detail.exists(message => message.contains("0.4.9") && message.contains("0.5.0-M04"))
@@ -7247,10 +7292,10 @@ class SquireChangelogSpec extends Test[Any]:
   "changelog show" - {
     "prints the release line for each area without enforcing the floor" in {
       for
-        root     <- SquireFixtures.scratch("changelog-show")
-        _        <- writeAllAreas(root, validLibraries, belowFloorMillPlugins)
-        report   <- SquireChangelog.show(root)
-        rendered  = SquireChangelog.renderChangelogReport(report)
+        root   <- SquireFixtures.scratch("changelog-show")
+        _      <- writeAllAreas(root, validLibraries, belowFloorMillPlugins)
+        report <- SquireChangelog.show(root)
+        rendered    = SquireChangelog.renderChangelogReport(report)
         millPlugins = report.outcomes.find(_.area == "mill-plugins").get
       yield assert(
         report.ok && millPlugins.status == "ok" && millPlugins.releaseLine.exists(_ == "0.0.5") &&
@@ -7295,12 +7340,12 @@ class SquireChangelogSpec extends Test[Any]:
 
     "refuses an unknown area and a malformed date without writing" in {
       for
-        root         <- SquireFixtures.scratch("release-prepare-bad-input")
-        _            <- writeAllAreas(root, validLibraries, validMillPlugins)
-        before       <- Sync.defer(Files.readString((root / "CHANGELOG.md").toJava))
-        unknownArea  <- Abort.run[SquireError](SquireChangelog.prepare(root, "nope", "2026-08-18"))
-        badDate      <- Abort.run[SquireError](SquireChangelog.prepare(root, "libraries", "not-a-date"))
-        after        <- Sync.defer(Files.readString((root / "CHANGELOG.md").toJava))
+        root        <- SquireFixtures.scratch("release-prepare-bad-input")
+        _           <- writeAllAreas(root, validLibraries, validMillPlugins)
+        before      <- Sync.defer(Files.readString((root / "CHANGELOG.md").toJava))
+        unknownArea <- Abort.run[SquireError](SquireChangelog.prepare(root, "nope", "2026-08-18"))
+        badDate     <- Abort.run[SquireError](SquireChangelog.prepare(root, "libraries", "not-a-date"))
+        after       <- Sync.defer(Files.readString((root / "CHANGELOG.md").toJava))
       yield assert(unknownArea.isFailure && badDate.isFailure && before == after)
     }
   }
@@ -7309,18 +7354,18 @@ class SquireChangelogSpec extends Test[Any]:
     "reports which stream a tag would release and whether tag and changelog agree" in {
       val statusRunner = RuleRunner { request =>
         val pattern = request.argv.lastOption.getOrElse("")
-        val stdout = pattern match
+        val stdout  = pattern match
           case "v*"              => ""
           case "mill-plugins/v*" => "mill-plugins/v0.5.0-M05\n"
           case _                 => ""
         ProcessResult(request, 0, stdout, "")
       }
       for
-        root        <- SquireFixtures.scratch("release-status")
-        _           <- writeAllAreas(root, validLibraries, millPluginsWithRelease)
-        report      <- SquireChangelog.status(root, statusRunner)
-        libraries    = report.areas.find(_.area == "libraries").get
-        millPlugins  = report.areas.find(_.area == "mill-plugins").get
+        root   <- SquireFixtures.scratch("release-status")
+        _      <- writeAllAreas(root, validLibraries, millPluginsWithRelease)
+        report <- SquireChangelog.status(root, statusRunner)
+        libraries   = report.areas.find(_.area == "libraries").get
+        millPlugins = report.areas.find(_.area == "mill-plugins").get
       yield assert(
         report.ok &&
           libraries.status == "pending" && libraries.tag.exists(_ == "v1.2.3") &&
@@ -7331,20 +7376,22 @@ class SquireChangelogSpec extends Test[Any]:
     "reports a tag/changelog mismatch as an issue rather than pending or released" in {
       val statusRunner = RuleRunner { request =>
         val pattern = request.argv.lastOption.getOrElse("")
-        val stdout = pattern match
+        val stdout  = pattern match
           case "v*"              => ""
           case "mill-plugins/v*" => "mill-plugins/v9.9.9\n"
           case _                 => ""
         ProcessResult(request, 0, stdout, "")
       }
       for
-        root        <- SquireFixtures.scratch("release-status-issue")
-        _           <- writeAllAreas(root, validLibraries, validMillPlugins)
-        report      <- SquireChangelog.status(root, statusRunner)
-        millPlugins  = report.areas.find(_.area == "mill-plugins").get
+        root   <- SquireFixtures.scratch("release-status-issue")
+        _      <- writeAllAreas(root, validLibraries, validMillPlugins)
+        report <- SquireChangelog.status(root, statusRunner)
+        millPlugins = report.areas.find(_.area == "mill-plugins").get
       yield assert(
         !report.ok && millPlugins.status == "issue" &&
-          millPlugins.detail.exists(message => message.contains("mill-plugins/v9.9.9") && message.contains("does not record"))
+          millPlugins.detail.exists(message =>
+            message.contains("mill-plugins/v9.9.9") && message.contains("does not record")
+          )
       )
     }
 
@@ -7358,21 +7405,21 @@ class SquireChangelogSpec extends Test[Any]:
         result <- Abort.run[SquireError](SquireChangelog.status(root, brokenRunner))
       yield assert(result match
         case Result.Failure(error) => error.getMessage.contains("not a git repository")
-        case _                     => false
-      )
+        case _                     => false)
     }
   }
 
   "squire CLI wiring" - {
     "routes changelog check, show, and release prepare through SquireCli with correct exit codes" in {
       for
-        root          <- SquireFixtures.scratch("changelog-cli")
-        _             <- writeAllAreas(root, preparable, validMillPlugins)
-        checkOutput    = new StringBuilder
-        checkExit     <- SquireCli.runChangelogCheck(ChangelogCheckOpts(json = true), root, value => checkOutput.append(value))
-        showOutput     = new StringBuilder
-        showExit      <- SquireCli.runChangelogShow(ChangelogShowOpts(), root, value => showOutput.append(value))
-        prepareOutput  = new StringBuilder
+        root <- SquireFixtures.scratch("changelog-cli")
+        _    <- writeAllAreas(root, preparable, validMillPlugins)
+        checkOutput = new StringBuilder
+        checkExit <-
+          SquireCli.runChangelogCheck(ChangelogCheckOpts(json = true), root, value => checkOutput.append(value))
+        showOutput = new StringBuilder
+        showExit <- SquireCli.runChangelogShow(ChangelogShowOpts(), root, value => showOutput.append(value))
+        prepareOutput = new StringBuilder
         prepareExit <-
           SquireCli.runReleasePrepare(
             ReleasePrepareOpts(area = Some("libraries"), date = Some("2026-08-18")),
