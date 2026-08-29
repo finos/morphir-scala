@@ -111,4 +111,4 @@ final case class InitializationResult(
 final case class PingResult(ok: Boolean) derives CanEqual, Schema
 
 enum SessionState derives CanEqual:
-  case Loaded, Ready, AwaitExit, Stopped
+  case Loaded, Ready, AwaitExit, Stopped, Failed

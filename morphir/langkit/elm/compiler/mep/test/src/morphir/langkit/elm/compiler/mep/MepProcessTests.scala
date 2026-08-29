@@ -106,4 +106,17 @@ class MepProcessTests extends Test[Any]:
       assert(exitCode == 1)
       assert(String(stderr.toByteArray, UTF_8).contains("morphir.exit"))
     }
+
+    "rejects exit before shutdown" in {
+      val exit   = """{"jsonrpc":"2.0","method":"morphir.exit"}"""
+      val stdin  = ByteArrayInputStream(MepFrameCodec.encodeJson(exit))
+      val stdout = ByteArrayOutputStream()
+      val stderr = ByteArrayOutputStream()
+
+      val exitCode = MepProcess.run(stdin, stdout, PrintStream(stderr), ProviderMetadata.default)
+
+      assert(exitCode == 1)
+      assert(stdout.size == 0)
+      assert(String(stderr.toByteArray, UTF_8).contains("before morphir.shutdown"))
+    }
   }

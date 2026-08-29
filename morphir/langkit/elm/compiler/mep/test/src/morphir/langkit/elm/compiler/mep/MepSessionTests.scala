@@ -248,12 +248,12 @@ class MepSessionTests extends Test[Any]:
       assert(terminated.response.isEmpty)
     }
 
-    "accepts exit before initialization only as a notification" in {
+    "rejects exit before shutdown and request-shaped exit calls" in {
       val loaded      = MepSession.loaded(ProviderMetadata.default)
       val terminated  = loaded.handle(notification("morphir.exit"))
       val exitRequest = value(initializedSession().handle(request(JsonRpcId(14), "morphir.exit")))
 
-      assert(terminated.session.state == SessionState.Stopped)
+      assert(terminated.session.state == SessionState.Failed)
       assert(terminated.response.isEmpty)
       assert(at(exitRequest, "error", "message").contains(Structure.Value.Str("morphir.exit is a notification")))
     }

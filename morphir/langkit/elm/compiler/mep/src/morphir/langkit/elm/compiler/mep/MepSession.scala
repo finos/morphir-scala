@@ -82,8 +82,9 @@ final case class MepSession private (
 
   private def dispatch(call: IncomingCall): SessionTransition =
     if call.method == "morphir.exit" && call.id.isMissing then
-      SessionTransition(copy(state = SessionState.Stopped), Absent)
-    else if state == SessionState.Stopped then
+      if state == SessionState.AwaitExit then SessionTransition(copy(state = SessionState.Stopped), Absent)
+      else SessionTransition(copy(state = SessionState.Failed), Absent)
+    else if state == SessionState.Stopped || state == SessionState.Failed then
       respond(call.id)(errorFor(_, -32600, "The MEP session is stopped"))
     else if state == SessionState.AwaitExit then
       respond(call.id)(errorFor(_, -32600, "The MEP session is awaiting exit"))

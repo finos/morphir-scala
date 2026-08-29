@@ -357,10 +357,12 @@ object V3WireProjection:
             }
           }
         case cm.Expr.Lambda(_, argumentPattern, body) =>
-          flatMapTail(projectPattern(argumentPattern, s"$path.argumentPattern")) { pattern =>
-            tailcall(projectExprLoop(body, s"$path.body")).map(result =>
-              mapResult(result)(projectedBody => sequence(str("Lambda"), attributes, pattern, projectedBody))
-            )
+          tailcall(projectPatternLoop(argumentPattern, s"$path.argumentPattern")).flatMap { patternResult =>
+            flatMapTail(patternResult) { pattern =>
+              tailcall(projectExprLoop(body, s"$path.body")).map(result =>
+                mapResult(result)(projectedBody => sequence(str("Lambda"), attributes, pattern, projectedBody))
+              )
+            }
           }
         case cm.Expr.LetDefinition(_, valueName, definition, inValue) =>
           tailcall(projectValueDefinitionBodyLoop(definition, s"$path.definition")).flatMap { definitionResult =>
@@ -383,14 +385,16 @@ object V3WireProjection:
             }
           }
         case cm.Expr.Destructure(_, pattern, valueToDestructure, inValue) =>
-          flatMapTail(projectPattern(pattern, s"$path.pattern")) { projectedPattern =>
-            tailcall(projectExprLoop(valueToDestructure, s"$path.value")).flatMap { valueResult =>
-              flatMapTail(valueResult) { projectedValue =>
-                tailcall(projectExprLoop(inValue, s"$path.inValue")).map(result =>
-                  mapResult(result)(projectedInValue =>
-                    sequence(str("Destructure"), attributes, projectedPattern, projectedValue, projectedInValue)
+          tailcall(projectPatternLoop(pattern, s"$path.pattern")).flatMap { patternResult =>
+            flatMapTail(patternResult) { projectedPattern =>
+              tailcall(projectExprLoop(valueToDestructure, s"$path.value")).flatMap { valueResult =>
+                flatMapTail(valueResult) { projectedValue =>
+                  tailcall(projectExprLoop(inValue, s"$path.inValue")).map(result =>
+                    mapResult(result)(projectedInValue =>
+                      sequence(str("Destructure"), attributes, projectedPattern, projectedValue, projectedInValue)
+                    )
                   )
-                )
+                }
               }
             }
           }
@@ -497,41 +501,51 @@ object V3WireProjection:
       path: String
   ): TailRec[Projection[Value]] =
     traverseTail(cases.toList.zipWithIndex) { case (matchCase, index) =>
-      flatMapTail(projectPattern(matchCase.pattern, s"$path[$index].pattern")) { pattern =>
-        tailcall(projectExprLoop(matchCase.body, s"$path[$index].body")).map(result =>
-          mapResult(result)(body => sequence(pattern, body))
-        )
+      tailcall(projectPatternLoop(matchCase.pattern, s"$path[$index].pattern")).flatMap { patternResult =>
+        flatMapTail(patternResult) { pattern =>
+          tailcall(projectExprLoop(matchCase.body, s"$path[$index].body")).map(result =>
+            mapResult(result)(body => sequence(pattern, body))
+          )
+        }
       }
     }.map(result => mapResult(result)(values => sequence(values*)))
 
-  private def projectPattern(pattern: cm.Pattern, path: String): Projection[Value] =
-    flatMapResult(projectPatternAttributes(pattern, path)) { attributes =>
+  private def projectPatternLoop(pattern: cm.Pattern, path: String): TailRec[Projection[Value]] =
+    flatMapTail(projectPatternAttributes(pattern, path)) { attributes =>
       pattern match
-        case cm.Pattern.WildcardPattern(_)                => succeed(sequence(str("WildcardPattern"), attributes))
+        case cm.Pattern.WildcardPattern(_)                => done(succeed(sequence(str("WildcardPattern"), attributes)))
         case cm.Pattern.AsPattern(_, nested, patternName) =>
-          mapResult(projectPattern(nested, s"$path.pattern"))(projected =>
-            sequence(str("AsPattern"), attributes, projected, name(patternName))
+          tailcall(projectPatternLoop(nested, s"$path.pattern")).map(result =>
+            mapResult(result)(projected => sequence(str("AsPattern"), attributes, projected, name(patternName)))
           )
         case cm.Pattern.TuplePattern(_, elements) =>
-          mapResult(projectPatterns(elements, s"$path.elements"))(projected =>
-            sequence(str("TuplePattern"), attributes, projected)
+          tailcall(projectPatternsLoop(elements, s"$path.elements")).map(result =>
+            mapResult(result)(projected => sequence(str("TuplePattern"), attributes, projected))
           )
         case cm.Pattern.ConstructorPattern(_, constructor, args) =>
-          mapResult(projectPatterns(args, s"$path.args"))(projected =>
-            sequence(str("ConstructorPattern"), attributes, fqName(constructor), projected)
-          )
-        case cm.Pattern.EmptyListPattern(_)            => succeed(sequence(str("EmptyListPattern"), attributes))
-        case cm.Pattern.HeadTailPattern(_, head, tail) =>
-          flatMapResult(projectPattern(head, s"$path.head")) { projectedHead =>
-            mapResult(projectPattern(tail, s"$path.tail"))(projectedTail =>
-              sequence(str("HeadTailPattern"), attributes, projectedHead, projectedTail)
+          tailcall(projectPatternsLoop(args, s"$path.args")).map(result =>
+            mapResult(result)(projected =>
+              sequence(str("ConstructorPattern"), attributes, fqName(constructor), projected)
             )
+          )
+        case cm.Pattern.EmptyListPattern(_)            => done(succeed(sequence(str("EmptyListPattern"), attributes)))
+        case cm.Pattern.HeadTailPattern(_, head, tail) =>
+          tailcall(projectPatternLoop(head, s"$path.head")).flatMap { headResult =>
+            flatMapTail(headResult) { projectedHead =>
+              tailcall(projectPatternLoop(tail, s"$path.tail")).map(result =>
+                mapResult(result)(projectedTail =>
+                  sequence(str("HeadTailPattern"), attributes, projectedHead, projectedTail)
+                )
+              )
+            }
           }
         case cm.Pattern.LiteralPattern(_, literal) =>
-          mapResult(projectLiteral(literal, s"$path.literal"))(projected =>
-            sequence(str("LiteralPattern"), attributes, projected)
+          done(
+            mapResult(projectLiteral(literal, s"$path.literal"))(projected =>
+              sequence(str("LiteralPattern"), attributes, projected)
+            )
           )
-        case cm.Pattern.UnitPattern(_) => succeed(sequence(str("UnitPattern"), attributes))
+        case cm.Pattern.UnitPattern(_) => done(succeed(sequence(str("UnitPattern"), attributes)))
     }
 
   private def projectPatternAttributes(pattern: cm.Pattern, path: String): Projection[Value] =
@@ -551,10 +565,10 @@ object V3WireProjection:
         case Some(inferredType) => projectType(inferredType, s"$path.inferredType")
         case None               => succeed(record())
 
-  private def projectPatterns(patterns: Chunk[cm.Pattern], path: String): Projection[Value] =
-    mapResult(traverse(patterns.toList.zipWithIndex) { case (pattern, index) =>
-      projectPattern(pattern, s"$path[$index]")
-    })(values => sequence(values*))
+  private def projectPatternsLoop(patterns: Chunk[cm.Pattern], path: String): TailRec[Projection[Value]] =
+    traverseTail(patterns.toList.zipWithIndex) { case (pattern, index) =>
+      tailcall(projectPatternLoop(pattern, s"$path[$index]"))
+    }.map(result => mapResult(result)(values => sequence(values*)))
 
   private def projectLiteral(literal: cm.Literal, path: String): Projection[Value] =
     literal match

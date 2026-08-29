@@ -218,6 +218,36 @@ class V3WireProjectionTests extends Test[Any]:
       case other             => assert(false, s"expected a successful deep type projection, got $other")
   }
 
+  "projects deeply nested patterns without consuming the JVM stack" in {
+    val nestedPattern = List.fill(10_000)(()).foldLeft[cm.Pattern](
+      cm.Pattern.WildcardPattern(cm.ValueAttributes.empty)
+    ) { (pattern, _) =>
+      cm.Pattern.AsPattern(
+        cm.ValueAttributes.empty,
+        pattern,
+        Name.fromString("value")
+      )
+    }
+    val deepDefinition = cm.ValueDefinition(
+      cm.AccessControlled(
+        cm.Access.Public,
+        cm.ValueDefinitionBody.ExpressionBody(
+          Chunk.empty,
+          intType,
+          cm.Expr.Lambda(
+            cm.ValueAttributes.empty,
+            nestedPattern,
+            cm.Expr.Unit(cm.ValueAttributes.empty)
+          )
+        )
+      )
+    )
+
+    V3WireProjection.project(libraryWith(deepDefinition)) match
+      case Result.Success(_) => assert(true)
+      case other             => assert(false, s"expected a successful deep pattern projection, got $other")
+  }
+
   "projects one supplementary Unicode code point as a character literal" in {
     val characterDefinition = cm.ValueDefinition(
       cm.AccessControlled(

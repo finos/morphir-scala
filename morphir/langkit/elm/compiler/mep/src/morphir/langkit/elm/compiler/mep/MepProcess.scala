@@ -19,7 +19,8 @@ object MepProcess:
 
     @tailrec
     def dispatchFrames(frames: Vector[Array[Byte]], index: Int, session: MepSession): MepSession =
-      if index >= frames.size || session.state == SessionState.Stopped then session
+      if index >= frames.size || session.state == SessionState.Stopped || session.state == SessionState.Failed then
+        session
       else
         val transition = decodeUtf8(frames(index)).fold(_ => session.parseError, session.handle)
         transition.response.foreach { response =>
@@ -51,7 +52,10 @@ object MepProcess:
             error.println(frameError.message)
             1
           case Absent if next.state == SessionState.Stopped => 0
-          case Absent                                       => loop(next)
+          case Absent if next.state == SessionState.Failed  =>
+            error.println("morphir.exit received before morphir.shutdown")
+            1
+          case Absent => loop(next)
 
     loop(MepSession.loaded(provider))
 
