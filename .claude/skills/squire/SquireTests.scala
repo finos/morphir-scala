@@ -969,31 +969,121 @@ object SquireCiPolicy:
     )
 
   def assertElmMepReleasePolicy(workflow: String, ciScript: String): Unit =
+    def namedSteps(job: String): List[String] = job.linesIterator.collect {
+      case line if line.startsWith("      - name: ") => line.stripPrefix("      - name: ")
+    }.toList
+
+    def requireOrderedOnce(job: String, expected: List[String], label: String): Unit =
+      val actual = namedSteps(job)
+      expected.foreach(step => expect(actual.count(_ == step) == 1, s"$label must contain '$step' exactly once"))
+      val positions = expected.map(actual.indexOf)
+      expect(positions == positions.sorted, s"$label steps are out of order: $actual")
+
     val nativeJob = indentedBlock(workflow, "cli-package-native:", 2)
-    expect(
-      nativeJob.contains("- name: Resolve Elm MEP provider version"),
-      "native packaging must resolve the Elm MEP provider version before building"
+    requireOrderedOnce(
+      nativeJob,
+      List(
+        "Resolve Elm MEP provider version",
+        "Package and smoke-test the native CLI",
+        "Package and smoke-test the Elm MEP native image",
+        "Archive native packages for artifact transport",
+        "Upload native package transport"
+      ),
+      "cli-package-native"
     )
     expect(
-      nativeJob.contains("ci.cli.writeMepVersionEnv --path $env:GITHUB_ENV"),
-      "native packaging must export the exact resolved release version before the packaging Mill starts"
+      count(nativeJob, "ci.cli.writeMepVersionEnv --path $env:GITHUB_ENV") == 2,
+      "the single version-export step must cover exactly Windows and Unix"
     )
     expect(
-      nativeJob.contains("morphir.langkit.elm.compiler.mep.jvm.nativeImageSmoke"),
-      "native packaging must retain the Elm MEP executable smoke"
+      count(nativeJob, "ci.cli.packageNative --platform \"${{ matrix.token }}\"") == 2,
+      "the CLI package step must cover exactly Windows and Unix"
+    )
+    expect(
+      count(nativeJob, "ci.cli.packageMepNative --platform \"${{ matrix.token }}\"") == 2,
+      "the MEP package step must cover exactly Windows and Unix"
+    )
+    expect(
+      count(nativeJob, "ci.cli.packageNativeTransport --platform \"${{ matrix.token }}\"") == 2,
+      "the transport archive step must cover exactly Windows and Unix"
+    )
+    expect(
+      nativeJob.contains("path: ${{ env.MORPHIR_CLI_TRANSPORT_DIR }}/*.tar"),
+      "native artifact upload must carry only the mode-preserving transport tar"
+    )
+    val upload = indentedBlock(nativeJob, "- name: Upload native package transport", 6)
+    expect(scalar(upload, "uses") == "actions/upload-artifact@v7", "native transport must use upload-artifact@v7")
+    expect(
+      scalar(upload, "path") == "${{ env.MORPHIR_CLI_TRANSPORT_DIR }}/*.tar",
+      "native transport upload path must contain only tar archives"
     )
     expect(
       ciScript.contains("CliRelease.packageMepNative("),
-      "ci.cli.packageNative must copy the Elm MEP executable into durable release staging"
+      "ci.cli.packageMepNative must copy the Elm MEP executable into durable release staging"
+    )
+    val cliCommandStart = ciScript.indexOf("    def packageNative(platform: String)")
+    val mepCommandStart = ciScript.indexOf("    def packageMepNative(platform: String)")
+    expect(
+      cliCommandStart >= 0 && mepCommandStart > cliCommandStart,
+      "ci.cli must define the CLI package command before the separate MEP package command"
+    )
+    val cliCommand = ciScript.substring(cliCommandStart, mepCommandStart)
+    expect(
+      !cliCommand.contains("compiler.mep") && !cliCommand.contains("packageMepNative"),
+      "the CLI package command must not schedule the MEP native image concurrently"
+    )
+    expect(
+      count(ciScript, "morphirArea.langkit.elm.compiler.mep.jvm.nativeImageSmoke()") == 1,
+      "the separate MEP package command must retain exactly one native-image smoke task"
     )
     expect(
       ciScript.contains("MORPHIR_ELM_MEP_VERSION=$releaseVersion"),
       "the release-version export must inject the value read by Elm MEP BuildInfo"
     )
     expect(
+      ciScript.contains("requireExecutable = true"),
+      "merged pre-staging verification must require Unix Elm MEP assets to remain executable"
+    )
+    expect(
       ciScript.contains("\"morphir-scala-elm-*\""),
       "published release verification must download Elm MEP assets"
     )
+
+    List("cli-verify:", "cli-release:").foreach { jobName =>
+      val job = indentedBlock(workflow, jobName, 2)
+      expect(
+        job.contains("MORPHIR_CLI_TRANSPORT_DIR: .dev/dist/cli/transport"),
+        s"$jobName must keep transport archives outside release staging"
+      )
+      requireOrderedOnce(
+        job,
+        List(
+          "Download native package transports",
+          "Download JVM CLI package",
+          "Extract native package transports",
+          if jobName == "cli-verify:" then "Verify CLI and Elm MEP packages and checksums"
+          else "Verify and stage CLI and Elm MEP packages on the draft release"
+        ),
+        jobName.stripSuffix(":")
+      )
+      expect(
+        count(job, "ci.cli.extractNativeTransports --platforms \"${{ needs.cli-matrix.outputs.platforms }}\"") == 1,
+        s"$jobName must extract native transports exactly once before verification"
+      )
+      val nativeDownload = indentedBlock(job, "- name: Download native package transports", 6)
+      expect(
+        scalar(nativeDownload, "uses") == "actions/download-artifact@v8" &&
+          scalar(nativeDownload, "pattern") == "cli-native-*" &&
+          scalar(nativeDownload, "path") == "${{ env.MORPHIR_CLI_TRANSPORT_DIR }}",
+        s"$jobName must download native transport artifacts into the transport directory"
+      )
+      val jvmDownload = indentedBlock(job, "- name: Download JVM CLI package", 6)
+      expect(
+        scalar(jvmDownload, "pattern") == "cli-jvm" &&
+          scalar(jvmDownload, "path") == "${{ env.MORPHIR_CLI_RELEASE_DIR }}",
+        s"$jobName must download the JVM artifact directly into release staging"
+      )
+    }
 
   def replaceInJob(workflow: String, jobName: String, oldValue: String, newValue: String): String =
     val job = indentedBlock(workflow, jobName, 2)
@@ -2496,10 +2586,51 @@ class SquireCiPolicySpec extends Test[Any]:
         "\"morphir-scala-elm-*\"",
         "\"morphir-elm-*\""
       )
+      val reorderedPackages = replaceInJob(
+        replaceInJob(
+          replaceInJob(
+            workflow,
+            "cli-package-native:",
+            "- name: Package and smoke-test the native CLI",
+            "- name: package-order-swap"
+          ),
+          "cli-package-native:",
+          "- name: Package and smoke-test the Elm MEP native image",
+          "- name: Package and smoke-test the native CLI"
+        ),
+        "cli-package-native:",
+        "- name: package-order-swap",
+        "- name: Package and smoke-test the Elm MEP native image"
+      )
+      val missingExtraction = replaceInJob(
+        workflow,
+        "cli-verify:",
+        "ci.cli.extractNativeTransports --platforms \"${{ needs.cli-matrix.outputs.platforms }}\"",
+        "ci.cli.verify --platforms \"${{ needs.cli-matrix.outputs.platforms }}\""
+      )
+      val rawArtifactUpload = replaceInJob(
+        workflow,
+        "cli-package-native:",
+        "path: ${{ env.MORPHIR_CLI_TRANSPORT_DIR }}/*.tar",
+        "path: ${{ env.MORPHIR_CLI_RELEASE_DIR }}/*"
+      )
+      val duplicateVersionStep = replaceInJob(
+        workflow,
+        "cli-package-native:",
+        "- name: Resolve Elm MEP provider version",
+        "- name: Resolve Elm MEP provider version\n      - name: Resolve Elm MEP provider version"
+      )
 
       assert(rejects(assertElmMepReleasePolicy(_, sonatypePublishTask), missingVersionInjection))
       assert(scala.util.Try(assertElmMepReleasePolicy(workflow, missingPackageCopy)).isFailure)
       assert(scala.util.Try(assertElmMepReleasePolicy(workflow, misnamedDownload)).isFailure)
+      List(reorderedPackages, missingExtraction, rawArtifactUpload, duplicateVersionStep).zipWithIndex.foreach {
+        case (mutation, index) =>
+          assert(
+            rejects(assertElmMepReleasePolicy(_, sonatypePublishTask), mutation),
+            s"Elm MEP release workflow mutation $index must be rejected"
+          )
+      }
     }
 
     "runs Squire policy in a dedicated parallel CI job" in {

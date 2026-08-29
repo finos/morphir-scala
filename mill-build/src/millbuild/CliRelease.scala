@@ -1,11 +1,12 @@
 package millbuild
 
-import java.io.BufferedOutputStream
+import java.io.{BufferedInputStream, BufferedOutputStream}
 import java.io.InputStream
 import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 import java.util.zip.{GZIPOutputStream, ZipEntry, ZipOutputStream}
-import org.apache.commons.compress.archivers.tar.{TarArchiveEntry, TarArchiveOutputStream}
+import org.apache.commons.compress.archivers.tar.{TarArchiveEntry, TarArchiveInputStream, TarArchiveOutputStream}
 
 /** Host-native and JVM release packaging for the morphir-scala CLI. */
 object CliRelease:
@@ -59,6 +60,9 @@ object CliRelease:
     s"morphir-scala-elm-${platform.token}-${safeVersion(version)}" +
       (if platform == Platform.WinAmd64 then ".exe" else "")
 
+  def nativeTransportName(platform: Platform, version: String): String =
+    s"morphir-native-transport-${platform.token}-${safeVersion(version)}.tar"
+
   def lastNonBlankLine(output: String): Option[String] =
     output.linesIterator.map(_.trim).filter(_.nonEmpty).toSeq.lastOption
 
@@ -100,16 +104,75 @@ object CliRelease:
     writeSidecar(asset)
     asset
 
+  def packageNativeTransport(platform: Platform, version: String, releaseDir: os.Path, transportDir: os.Path): os.Path =
+    val names   = nativeReleaseNames(platform, version)
+    val missing = names.filterNot(name => os.isFile(releaseDir / name))
+    require(missing.isEmpty, s"native transport is missing release files: ${missing.mkString(", ")}")
+    os.makeDir.all(transportDir)
+    val transport = transportDir / nativeTransportName(platform, version)
+    val output = TarArchiveOutputStream(BufferedOutputStream(Files.newOutputStream(transport.toNIO)))
+    output.setLongFileMode(TarArchiveOutputStream.LONGFILE_POSIX)
+    try names.foreach { name =>
+        val source = releaseDir / name
+        val entry  = TarArchiveEntry(name)
+        entry.setSize(os.size(source))
+        entry.setMode(if name == mepAssetName(platform, version) && platform != Platform.WinAmd64 then 0x1ed else 0x1a4)
+        entry.setModTime(0L)
+        entry.setUserId(0)
+        entry.setGroupId(0)
+        entry.setUserName("")
+        entry.setGroupName("")
+        output.putArchiveEntry(entry)
+        Files.copy(source.toNIO, output)
+        output.closeArchiveEntry()
+      }
+    finally output.close()
+    transport
+
+  def extractNativeTransport(
+      platform: Platform,
+      version: String,
+      transport: os.Path,
+      releaseDir: os.Path
+  ): Either[Seq[String], Seq[String]] =
+    if !os.isFile(transport) then Left(Seq(s"missing native transport: ${transport.last}"))
+    else
+      val expected = nativeReleaseNames(platform, version)
+      val found    = scala.collection.mutable.Set.empty[String]
+      val problems = scala.collection.mutable.ArrayBuffer.empty[String]
+      os.makeDir.all(releaseDir)
+      val input = TarArchiveInputStream(BufferedInputStream(Files.newInputStream(transport.toNIO)))
+      try
+        var entry = input.getNextEntry
+        while entry != null do
+          val name = entry.getName
+          if entry.isDirectory || !expected.contains(name) || name.contains('/') || name.contains('\\') then
+            problems += s"unexpected native transport entry: $name"
+          else if !found.add(name) then problems += s"duplicate native transport entry: $name"
+          else
+            val destination = releaseDir / name
+            Files.copy(input, destination.toNIO, StandardCopyOption.REPLACE_EXISTING)
+            if name == mepAssetName(platform, version) && platform != Platform.WinAmd64 &&
+              !destination.toIO.setExecutable(true, false)
+            then problems += s"could not restore executable mode: $name"
+          entry = input.getNextEntry
+      finally input.close()
+      problems ++= expected.filterNot(found)
+        .map(name => s"missing native transport entry: $name")
+      if problems.nonEmpty then Left(problems.toSeq) else Right(expected)
+
   def verifyAndWriteChecksums(
       releaseDir: os.Path,
       version: String,
       platforms: Seq[Platform],
-      includeJvm: Boolean
+      includeJvm: Boolean,
+      requireExecutable: Boolean = false
   ): Either[Seq[String], Seq[String]] =
     if platforms.isEmpty && !includeJvm then Left(Seq("no CLI release assets requested"))
     else
       val nativeNames   = platforms.flatMap(platform => Seq(nativeArchiveName(platform, version), mepAssetName(platform, version)))
       val assetNames    = nativeNames ++ Option.when(includeJvm)(jvmAssetName(version))
+      val unixMepNames  = platforms.filterNot(_ == Platform.WinAmd64).map(mepAssetName(_, version)).toSet
       val expectedFiles = assetNames.flatMap(name => Seq(name, s"$name.sha256")).toSet + "checksums.txt"
       val presentFiles  =
         if os.isDir(releaseDir) then os.list(releaseDir).filter(os.isFile).map(_.last).toSet else Set.empty[String]
@@ -119,6 +182,8 @@ object CliRelease:
         val sidecar = releaseDir / s"$name.sha256"
         if !os.isFile(asset) then Seq(s"missing release asset: $name")
         else if os.size(asset) == 0 then Seq(s"empty release asset: $name")
+        else if requireExecutable && unixMepNames.contains(name) && !Files.isExecutable(asset.toNIO) then
+          Seq(s"non-executable release asset: $name")
         else if !os.isFile(sidecar) then Seq(s"missing checksum sidecar: $name.sha256")
         else
           val expected = s"${sha256(asset)}  $name\n"
@@ -131,6 +196,11 @@ object CliRelease:
         val lines = assetNames.sorted.map(name => os.read(releaseDir / s"$name.sha256").trim)
         os.write.over(releaseDir / "checksums.txt", lines.mkString("", "\n", "\n"))
         Right(assetNames)
+
+  private def nativeReleaseNames(platform: Platform, version: String): Seq[String] =
+    val cli = nativeArchiveName(platform, version)
+    val mep = mepAssetName(platform, version)
+    Seq(cli, s"$cli.sha256", mep, s"$mep.sha256")
 
   private def safeVersion(version: String): String =
     require(version.nonEmpty, "CLI release version must not be empty")

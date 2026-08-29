@@ -34,6 +34,10 @@ object CliReleaseTests extends TestSuite:
         )
       )
       assert(CliRelease.jvmAssetName("0.6.0-M01") == "morphir-cli-jvm-0.6.0-M01.jar")
+      assert(
+        CliRelease.nativeTransportName(CliRelease.Platform.MacAmd64, "0.6.0-M01") ==
+          "morphir-native-transport-mac-amd64-0.6.0-M01.tar"
+      )
 
     test("reads the final nonblank line from command output"):
       val output =
@@ -105,6 +109,68 @@ object CliReleaseTests extends TestSuite:
       assert(asset.last == "morphir-scala-elm-mac-aarch64-0.6.0-M01")
       assert(os.read.bytes(asset).toSeq == Seq[Byte](7, 8, 9))
       assert(os.isFile(os.Path(asset.toString + ".sha256")))
+
+    test("native transport preserves the raw Unix MEP executable mode across extraction"):
+      val root       = os.temp.dir(prefix = "morphir-native-transport-", deleteOnExit = true)
+      val executable = root / "image" / "native-executable"
+      os.write(executable, Array[Byte](1, 2, 3), createFolders = true)
+      CliRelease.packageNative(CliRelease.Platform.LinuxAmd64, "0.6.0-M01", executable, root / "release")
+      val mepAsset = CliRelease.packageMepNative(
+        CliRelease.Platform.LinuxAmd64,
+        "0.6.0-M01",
+        executable,
+        root / "release"
+      )
+      assert(java.nio.file.Files.isExecutable(mepAsset.toNIO))
+
+      val transport = CliRelease.packageNativeTransport(
+        CliRelease.Platform.LinuxAmd64,
+        "0.6.0-M01",
+        root / "release",
+        root / "transport"
+      )
+      assert(transport.last == "morphir-native-transport-linux-amd64-0.6.0-M01.tar")
+      assert(!transport.startsWith(root / "release"))
+
+      val extracted = root / "extracted"
+      val result = CliRelease.extractNativeTransport(
+        CliRelease.Platform.LinuxAmd64,
+        "0.6.0-M01",
+        transport,
+        extracted
+      )
+      val extractedMep = extracted / mepAsset.last
+      assert(result == Right(Seq(
+        "morphir-cli-linux-amd64-0.6.0-M01.tar.gz",
+        "morphir-cli-linux-amd64-0.6.0-M01.tar.gz.sha256",
+        "morphir-scala-elm-linux-amd64-0.6.0-M01",
+        "morphir-scala-elm-linux-amd64-0.6.0-M01.sha256"
+      )))
+      assert(os.read.bytes(extractedMep).toSeq == Seq[Byte](1, 2, 3))
+      assert(java.nio.file.Files.isExecutable(extractedMep.toNIO))
+
+    test("verification rejects a Unix MEP asset whose executable mode was lost"):
+      val root       = os.temp.dir(prefix = "morphir-mep-release-mode-", deleteOnExit = true)
+      val executable = root / "image" / "native-executable"
+      os.write(executable, Array[Byte](1, 2, 3), createFolders = true)
+      CliRelease.packageNative(CliRelease.Platform.LinuxAmd64, "0.6.0-M01", executable, root / "release")
+      val mepAsset = CliRelease.packageMepNative(
+        CliRelease.Platform.LinuxAmd64,
+        "0.6.0-M01",
+        executable,
+        root / "release"
+      )
+      assert(mepAsset.toIO.setExecutable(false, false))
+
+      val result = CliRelease.verifyAndWriteChecksums(
+        root / "release",
+        "0.6.0-M01",
+        Seq(CliRelease.Platform.LinuxAmd64),
+        includeJvm = false,
+        requireExecutable = true
+      )
+
+      assert(result.left.exists(_.contains("non-executable release asset: morphir-scala-elm-linux-amd64-0.6.0-M01")))
 
     test("checksums assets that span multiple digest buffer reads"):
       val root     = os.temp.dir(prefix = "morphir-cli-release-large-jvm-", deleteOnExit = true)
