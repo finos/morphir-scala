@@ -14,7 +14,7 @@ object MepNativeImageSmoke {
     val runtimeVersion = s"$expectedVersion-runtime-must-not-win"
 
     val process = runProcess(
-      command = Seq(executable.toString),
+      command = Seq(commandPath(executable)),
       input = requests.iterator.flatMap(frame).toArray,
       environment = Map(MepProviderVersion.EnvironmentVariable -> runtimeVersion),
       timeoutMillis = TimeoutMillis
@@ -50,6 +50,9 @@ object MepNativeImageSmoke {
     )
     require(byId("shutdown")("result") == ujson.Obj(), s"unexpected shutdown result: ${byId("shutdown")}")
   }
+
+  private[millbuild] def commandPath(executable: os.Path): String =
+    executable.toNIO.toFile.getCanonicalPath
 
   private def verifyMetadata(metadata: ujson.Value, expectedVersion: String, runtimeVersion: String): Unit = {
     require(metadata("id").str == "morphir-scala-elm", s"unexpected provider ID: ${metadata("id")}")
