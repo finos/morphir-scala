@@ -7,7 +7,8 @@ import kyo.*
 
 final class LaunchSessions private (
     ttl: Duration,
-    compareDigests: (Array[Byte], Array[Byte]) => Boolean
+    compareDigests: (Array[Byte], Array[Byte]) => Boolean,
+    clock: Clock
 ):
 
   import LaunchSessions.*
@@ -20,7 +21,7 @@ final class LaunchSessions private (
   private var currentSession: Maybe[Session] = Absent
 
   def createLaunch(using Frame): LaunchCredential < Sync =
-    Clock.now.map { now =>
+    clock.now.map { now =>
       SecureRandom.nextBytes(entropyBytes).map { entropy =>
         val raw = encode(entropy.toArray)
         Sync.defer {
@@ -33,7 +34,7 @@ final class LaunchSessions private (
     }
 
   def exchange(rawLaunch: String)(using Frame): Result[ExchangeError, SessionCookie] < Sync =
-    Clock.now.map { now =>
+    clock.now.map { now =>
       SecureRandom.nextBytes(entropyBytes).map { entropy =>
         val rawSession    = encode(entropy.toArray)
         val launchDigest  = digest(rawLaunch)
@@ -55,7 +56,7 @@ final class LaunchSessions private (
     }
 
   def authenticate(rawSession: String)(using Frame): Boolean < Sync =
-    Clock.now.map { now =>
+    clock.now.map { now =>
       val candidate = digest(rawSession)
       Sync.defer {
         lock.synchronized {
@@ -87,9 +88,9 @@ object LaunchSessions:
       ttl: Duration,
       compareDigests: (Array[Byte], Array[Byte]) => Boolean
   )(using Frame): LaunchSessions < Sync =
-    Sync.defer {
+    Clock.get.map { clock =>
       require(ttl != Duration.Infinity && ttl > Duration.Zero, "session TTL must be finite and positive")
-      new LaunchSessions(ttl, compareDigests)
+      new LaunchSessions(ttl, compareDigests, clock)
     }
 
   private def encode(bytes: Array[Byte]): String =

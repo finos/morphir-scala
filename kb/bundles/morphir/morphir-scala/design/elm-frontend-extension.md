@@ -24,6 +24,9 @@ sources:
   - id: scala-compiler-api
     title: morphir-scala Elm compiler API
     resource: https://github.com/finos/morphir-scala/tree/43439fcccec3da5f78b4a314f19f8919912fefc1/morphir/langkit/elm/compiler/api
+  - id: kyo-bignum-json
+    title: Kyo arbitrary-precision Structure number follow-on
+    resource: https://github.com/getkyo/kyo/pull/1920
 ---
 
 # morphir-scala Elm frontend extension
@@ -46,7 +49,7 @@ store, locks exact versions, and validates installed bytes again before activati
 reference implementation, and the host integration tests define a reusable single-file Elm compilation contract.
 
 Morphir-scala currently parses Elm into CST and AST values on JVM, JavaScript, WebAssembly, and Scala Native. Its JSON
-ABI exposes parse and query operations. It does not type-check Elm or lower an Elm module to classic Morphir IR v3.
+ABI exposes parse and query operations. It does not type-check Elm or compile an Elm module to the Kyo code model.
 Wrapping that ABI in JSON-RPC would therefore preserve the missing compiler and publish the wrong abstraction.
 
 ## Compiler and adapter boundaries
@@ -59,13 +62,16 @@ flowchart LR
     InProcess["buildkit Elm frontend"] --> Compiler["shared Elm compiler"]
     Adapter --> Compiler
     Compiler --> Parser["langkit parser and semantics"]
-    Compiler --> Lowering["classic IR v3 lowering"]
-    Lowering --> Result["typed compilation result"]
+    Compiler --> Model["Kyo code-model distribution"]
+    Model --> Result["typed compilation result"]
+    Model --> Projection["bounded IR v3 wire projection"]
+    Projection --> Adapter
     Result --> Adapter
     Result --> InProcess
 ```
 
-**Figure 1:** Both public adapters depend on one compiler and lowering path.
+**Figure 1:** Both public adapters depend on one Kyo-native compiler. Only the external adapter projects that model to
+the IR v3 wire contract.
 
 The shared compiler accepts immutable source and request context and returns a typed success or failure value with
 diagnostics. It has no dependency on stdin, stdout, JSON-RPC envelopes, process termination, buildkit scheduling, or
@@ -76,10 +82,15 @@ exposed modules, and requested IR version explicit.
 buildkit boundaries. The MEP adapter converts protocol values to the same compiler request and converts the result
 back to MEP values. It never becomes a buildkit stage or another lowering implementation.
 
-The first lowering target is the classic Morphir IR v3 JSON contract required by MEP 0.1. The compiler should reuse
-the existing JVM Morphir IR model and JSON codec. That keeps one canonical representation and makes the smallest
-compiler slice available without first porting the wider IR dependency graph to Scala Native. The compiler module
-should depend on the model and codec, not on the classic runtime or CLI application.
+The compiler target is `org.finos.morphir.codemodel.Distribution`. This is the Kyo code model used by new Morphir
+modules. The shared compiler depends on that model and does not depend on the classic runtime, classic IR model, or
+ZIO interoperability modules.
+
+MEP 0.1 requires Morphir IR v3 JSON. A separate compatibility projector walks the Kyo code model and emits the exact
+v3 tagged JSON shape through Kyo JSON. It never constructs `org.finos.morphir.ir` objects. It fails with a typed
+projection error when a Kyo-native feature has no unambiguous v3 representation. This is a wire boundary, not a
+reverse of the existing v3-to-code-model lowering. [Decision 0017](/decisions/0017-deprecated-ir-formats-are-wire-projections.md)
+records that rule.
 
 ## First supported Elm slice
 
@@ -92,7 +103,7 @@ document URI, document version, and IR version supplied by the host. The initial
 - local name references; and
 - integer addition lowered to the Morphir SDK function used by the reference provider.
 
-The valid result must be schema-valid classic Morphir IR v3, preserve the requested `local/example` package identity,
+The valid external result must be schema-valid Morphir IR v3, preserve the requested `local/example` package identity,
 and contain exactly the requested `Example` module in both IR and MEP result metadata. Invalid syntax returns
 `success: false`, no IR, and no compiled modules. A malformed module header returns an error diagnostic with code
 `elm.parser`, the request URI, and a nonempty zero-based source range.
@@ -104,8 +115,10 @@ shared conformance fixture.
 
 ## Protocol process
 
-The executable reads and writes Content-Length-framed JSON-RPC 2.0. Standard output contains frames only; diagnostics
-about the process itself go to standard error. The state machine is:
+The executable reads and writes Content-Length-framed JSON-RPC 2.0. Kyo Schema and JSON define the protocol data.
+`kyo-jsonrpc` owns JSON-RPC envelopes, IDs, method dispatch, and errors. A narrow process adapter owns framing and the
+MEP lifecycle. Standard output contains frames only; diagnostics about the process itself go to standard error. The
+state machine is:
 
 ```mermaid
 stateDiagram-v2
@@ -127,6 +140,19 @@ failures are JSON-RPC errors.
 Framing and decoding are bounded. The process rejects missing, duplicate, malformed, or oversized Content-Length
 headers before allocating a body. EOF during a frame is an error. Unknown JSON fields remain forward-compatible where
 MEP allows them, but required identity and compilation fields are validated before compiler invocation.
+
+### Known document-version gap
+
+MEP 0.1 defines a source document version as an unsigned 64-bit integer. The Scala `DocumentVersion` domain type
+retains that range, including validation at zero and `18446744073709551615`. Kyo `1.0.0-RC6`, the published version
+used by this provider, reads self-describing JSON integers through signed `Long`. The executable therefore accepts
+numeric document versions from zero through `9223372036854775807`. Larger valid MEP values cannot cross the RC6 JSON
+boundary.
+
+Kyo [PR 1920](https://github.com/getkyo/kyo/pull/1920) adds exact arbitrary-precision numbers to the self-describing
+JSON path. Morphir-scala will adopt that behavior after it appears in a reviewed, published Kyo version. The current
+extension does not pin the PR commit, use a local snapshot, encode protocol numbers as strings, or add a second JSON
+library.
 
 ## Provider identity and host selection
 
@@ -199,13 +225,13 @@ the reference provider. Differences in nonsemantic metadata may be normalized ex
 
 A JVM jar was rejected as the distributed artifact because the shipped acquisition model installs one executable file
 and does not describe a Java launcher or classpath. JVM bytecode remains the compiler's build boundary and feeds
-GraalVM Native Image. Scala Native was rejected for the first slice because the parser supports it but the established
-Morphir IR model and JSON codec do not; porting that dependency graph would delay compiler semantics without improving
-the host contract. The existing JSON ABI was rejected as the MEP implementation because it exposes parse/query
+GraalVM Native Image. Scala Native was rejected for the first slice because the established release path already
+builds GraalVM executables and changing runtimes would not improve the host contract. The existing JSON ABI was
+rejected as the MEP implementation because it exposes parse/query
 operations and does not define the compiler contract. Duplicating a minimal lowering inside the process adapter was
 rejected because intent 0010 and intent 0037 must converge on one compiler.
 
-Implementation must still determine the narrowest dependency from the shared compiler to the classic v3 model, the
-exact reusable Native Image build trait, and which parser positions need normalization to MEP's exclusive end range.
+Implementation must still determine which Kyo code-model features belong in the first v3 projection and which parser
+positions need normalization to MEP's exclusive end range.
 Multi-platform publication, complete Elm typing, source dependencies, and versioned protocol evolution remain later
 slices.

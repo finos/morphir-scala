@@ -5,7 +5,7 @@ import build.{`mill-plugins` => millPlugins}
 import build.{morphir => morphirArea}
 import mill.*
 import mill.api.{BuildCtx, DefaultTaskModule, Evaluator, ModuleRef, Result, SelectMode, TaskCtx}
-import millbuild.{CliRelease, JsTestSelectors, LintSelectors, MillVersions, NativeTestSelectors}
+import millbuild.{CliRelease, JsTestSelectors, LintSelectors, MepNativeImageSmoke, MillVersions, NativeTestSelectors}
 import org.finos.morphir.mill.publish.{MillPublishEnvFile, MillSonatypeEnv, PgpSecret, PublishSelectors}
 
 /** One independently versioned area, as [[MorphirCiModule.releaseAreas]] reports it. */
@@ -166,19 +166,30 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
         .toString
     }
 
+    def transportDirPath = Task.Input {
+      Task.env
+        .get("MORPHIR_CLI_TRANSPORT_DIR")
+        .map(value => os.Path(value, BuildCtx.workspaceRoot))
+        .getOrElse(BuildCtx.workspaceRoot / ".dev" / "dist" / "cli" / "transport")
+        .toString
+    }
+
     def version = Task { morphirArea.main.publishVersion() }
 
+    def writeMepVersionEnv(path: String) = Task.Command(exclusive = true) {
+      require(path.nonEmpty, "ci.cli.writeMepVersionEnv: --path is required")
+      val releaseVersion = version()
+      val destination    = os.Path(path, BuildCtx.workspaceRoot)
+      os.write.append(
+        destination,
+        s"MORPHIR_ELM_MEP_VERSION=$releaseVersion\n",
+        createFolders = true
+      )
+      Task.log.info(s"ci.cli: exported Elm MEP provider version to $destination")
+    }
+
     def packageNative(platform: String) = Task.Command(exclusive = true) {
-      val selected = CliRelease.Platform
-        .fromToken(platform)
-        .fold(message => throw new Exception(s"ci.cli.packageNative: $message"), identity)
-      val host = CliRelease.Platform
-        .fromHost(System.getProperty("os.name"), System.getProperty("os.arch"))
-        .fold(message => throw new Exception(s"ci.cli.packageNative: $message"), identity)
-      if selected != host then
-        throw new Exception(
-          s"ci.cli.packageNative: requested ${selected.token}, but GraalVM is running for ${host.token}"
-        )
+      val selected = nativeHost(platform, "packageNative")
 
       val releaseVersion = version()
       val executable     = morphirArea.main.nativeImage().path
@@ -190,6 +201,54 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
         os.Path(releaseDirPath())
       )
       Task.log.info(s"ci.cli: packaged ${asset.last}")
+    }
+
+    def packageMepNative(platform: String) = Task.Command(exclusive = true) {
+      val selected           = nativeHost(platform, "packageMepNative")
+      val releaseVersion     = version()
+      val mepProviderVersion = morphirArea.langkit.elm.compiler.mep.jvm.mepProviderVersion()
+      if mepProviderVersion != releaseVersion then
+        throw new Exception(
+          s"ci.cli.packageNative: Elm MEP provider version '$mepProviderVersion' does not match release version '$releaseVersion'"
+        )
+      morphirArea.langkit.elm.compiler.mep.jvm.nativeImageSmoke()
+      val mepAsset = CliRelease.packageMepNative(
+        selected,
+        releaseVersion,
+        morphirArea.langkit.elm.compiler.mep.jvm.nativeImage().path,
+        os.Path(releaseDirPath())
+      )
+      MepNativeImageSmoke.verify(mepAsset, releaseVersion)
+      Task.log.info(s"ci.cli: packaged ${mepAsset.last}")
+    }
+
+    def packageNativeTransport(platform: String) = Task.Command(exclusive = true) {
+      val selected       = nativeHost(platform, "packageNativeTransport")
+      val releaseVersion = version()
+      val transport      = CliRelease.packageNativeTransport(
+        selected,
+        releaseVersion,
+        os.Path(releaseDirPath()),
+        os.Path(transportDirPath())
+      )
+      Task.log.info(s"ci.cli: archived ${transport.last}")
+    }
+
+    def extractNativeTransports(platforms: String = CliRelease.Platform.AllTokens) = Task.Command(exclusive = true) {
+      val selected       = parsePlatforms(platforms)
+      val releaseVersion = version()
+      val problems       = selected.flatMap { platform =>
+        val transport = os.Path(transportDirPath()) / CliRelease.nativeTransportName(platform, releaseVersion)
+        CliRelease
+          .extractNativeTransport(platform, releaseVersion, transport, os.Path(releaseDirPath()))
+          .fold(identity, _ => Seq.empty)
+      }
+      if problems.nonEmpty then
+        throw new Exception(
+          s"ci.cli.extractNativeTransports: ${problems.size} problem(s):\n" +
+            problems.map(problem => s"  - $problem").mkString("\n")
+        )
+      Task.log.info(s"ci.cli: extracted ${selected.size} native package transports")
     }
 
     def packageJvm() = Task.Command(exclusive = true) {
@@ -208,7 +267,13 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
       Task.Command(exclusive = true) {
         val selected = parsePlatforms(platforms)
         CliRelease
-          .verifyAndWriteChecksums(os.Path(releaseDirPath()), version(), selected, includeJvm)
+          .verifyAndWriteChecksums(
+            os.Path(releaseDirPath()),
+            version(),
+            selected,
+            includeJvm,
+            requireExecutable = true
+          )
           .fold(
             problems =>
               throw new Exception(
@@ -273,6 +338,8 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
             "--pattern",
             "morphir-cli-*",
             "--pattern",
+            "morphir-scala-elm-*",
+            "--pattern",
             "checksums.txt"
           ).call(cwd = BuildCtx.workspaceRoot)
           val checksums = downloaded / "checksums.txt"
@@ -305,6 +372,20 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
           .fromToken(token)
           .fold(message => throw new Exception(s"ci.cli: $message"), identity)
       }
+
+    private def nativeHost(platform: String, operation: String): CliRelease.Platform = {
+      val selected = CliRelease.Platform
+        .fromToken(platform)
+        .fold(message => throw new Exception(s"ci.cli.$operation: $message"), identity)
+      val host = CliRelease.Platform
+        .fromHost(System.getProperty("os.name"), System.getProperty("os.arch"))
+        .fold(message => throw new Exception(s"ci.cli.$operation: $message"), identity)
+      if selected != host then
+        throw new Exception(
+          s"ci.cli.$operation: requested ${selected.token}, but GraalVM is running for ${host.token}"
+        )
+      selected
+    }
 
     private def verifyExecutable(executable: os.Path, prefix: Seq[String], expectedVersion: String)(using
         TaskCtx

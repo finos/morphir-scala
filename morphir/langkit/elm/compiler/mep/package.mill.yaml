@@ -1,0 +1,12 @@
+extends: Module
+
+object jvm:
+  extends: [build.MorphirJVMModule, build.MorphirKyoCoreMvnDeps, build.MorphirKyoSchemaJsonMvnDeps, build.MorphirElmMepNativeImageSmoke]
+  mainClass: morphir.langkit.elm.compiler.mep.Main
+  moduleDeps:
+  - build.morphir.langkit.elm.compiler.ir.jvm
+  - build.morphir.model.compat.v3.jvm
+  mvnDeps: !append
+  - io.getkyo::kyo-jsonrpc
+  object test:
+    extends: [ScalaTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps, build.MorphirKyoSchemaJsonMvnDeps]

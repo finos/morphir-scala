@@ -440,6 +440,31 @@ trait MorphirCliBuildInfo extends MorphirVersionBuildInfo {
   def buildInfoPackageName = "org.finos.morphir.cli"
 }
 
+/** Build-time provider identity for the Elm MEP executable. */
+trait MorphirElmMepBuildInfo extends BuildInfo with ScalaModule {
+  def buildInfoPackageName         = "morphir.langkit.elm.compiler.mep"
+  override def buildInfoObjectName = "MepBuildInfo"
+
+  def mepProviderVersion = Task.Input {
+    MepProviderVersion.fromEnvironment(Task.env)
+  }
+
+  def buildInfoMembers = Task {
+    Seq(
+      BuildInfo.Value("providerId", "morphir-scala-elm"),
+      BuildInfo.Value("providerName", "Morphir Scala Elm frontend"),
+      BuildInfo.Value("providerVersion", mepProviderVersion())
+    )
+  }
+}
+
+/** Builds and exercises the Elm MEP native executable as a framed protocol peer. */
+trait MorphirElmMepNativeImageSmoke extends MorphirNativeImage with MorphirElmMepBuildInfo { this: JavaModule =>
+  def nativeImageSmoke = Task {
+    MepNativeImageSmoke.verify(nativeImage().path, mepProviderVersion())
+  }
+}
+
 /**
  * BuildInfo wiring for `morphir.intelligence` — its own member set (adds JVM build info, no `platform` member since
  * this module isn't cross-platform) and package name, both hardcoded per [[MorphirExtensibilityBuildInfo]].
@@ -474,8 +499,8 @@ trait AssemblyPublishInfo extends JavaModule with PublishModule {
   }
 }
 
-/** Builds the CLI with GraalVM Native Image for the current operating system and architecture. */
-trait MorphirCliNativeImage extends mill.javalib.NativeImageModule { this: JavaModule =>
+/** Builds an assembly-backed executable for the current operating system and architecture with GraalVM Native Image. */
+trait MorphirNativeImage extends mill.javalib.NativeImageModule { this: JavaModule =>
   override def nativeImageClasspath = Task {
     Seq(assembly())
   }
@@ -484,6 +509,9 @@ trait MorphirCliNativeImage extends mill.javalib.NativeImageModule { this: JavaM
     Seq("--no-fallback", "-march=compatibility")
   }
 }
+
+/** Keeps the existing CLI native-image mixin name stable. */
+trait MorphirCliNativeImage extends MorphirNativeImage { this: JavaModule => }
 
 /**
  * Skips scaladoc generation, publishing an empty docJar instead.
@@ -995,6 +1023,9 @@ trait MorphirMillbuildHelpersModule extends ScalaModule with ScalafmtModule {
     helpersRoot / "LintSelectors.scala",
     helpersRoot / "JsTestSelectors.scala",
     helpersRoot / "NativeTestSelectors.scala",
+    helpersRoot / "MepProviderVersion.scala",
+    helpersRoot / "MepNativeImageSmoke.scala",
+    helpersRoot / "ElmExtensionArchitecture.scala",
     helpersRoot / "CliRelease.scala",
     helpersRoot / "LinkerBenchmark.scala",
     helpersRoot / "LinkerBenchmarkProcess.scala"
@@ -1004,6 +1035,37 @@ trait MorphirMillbuildHelpersModule extends ScalaModule with ScalafmtModule {
     Deps.com.lihaoyi.`os-lib`,
     Deps.org.apache.commons.`commons-compress`
   ) ++ Deps.com.lihaoyi.upickleManaged
+
+  private def elmExtensionCompilerRoot =
+    mill.api.BuildCtx.workspaceRoot / "morphir" / "langkit" / "elm" / "compiler"
+
+  private def elmExtensionV3CompatibilityRoot =
+    mill.api.BuildCtx.workspaceRoot / "morphir" / "model" / "compat" / "v3"
+
+  def elmExtensionArchitectureSources: T[Seq[PathRef]] =
+    Task.Sources(elmExtensionCompilerRoot, elmExtensionV3CompatibilityRoot)
+
+  def elmExtensionArchitectureCheck = Task {
+    val workspace         = mill.api.BuildCtx.workspaceRoot
+    val compilerRoot      = elmExtensionCompilerRoot
+    val compatibilityRoot = elmExtensionV3CompatibilityRoot
+    val sources           = elmExtensionArchitectureSources().flatMap { root =>
+      os.walk(root.path).collect {
+        case file if file.ext == "scala" && !file.segments.contains("test") =>
+          millbuild.ElmExtensionArchitecture.Source(file.relativeTo(workspace).toString, os.read(file))
+      }
+    }
+    val violations = millbuild.ElmExtensionArchitecture.violations(
+      sources,
+      os.read(compilerRoot / "ir" / "package.mill.yaml"),
+      os.read(compatibilityRoot / "package.mill.yaml"),
+      os.read(compilerRoot / "mep" / "package.mill.yaml")
+    )
+    if violations.nonEmpty then
+      throw new IllegalStateException(
+        "The Elm extension crossed the Kyo strangler boundary:\n" + violations.map("- " + _).mkString("\n")
+      )
+  }
 }
 
 // The following section contains aliases used to simplify build tasks
@@ -1027,11 +1089,13 @@ object MyAliases extends Aliases {
    */
   def testJVMPlatform = alias(
     "morphir.jvm.__.compile",
-    "morphir.{appkit,benchmarks,buildkit.core,connector.github,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,lib.interop,model,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools,ui,web.server}.jvm.__.compile",
+    "morphir.{appkit,benchmarks,buildkit.core,connector.github,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.compiler.ir,langkit.elm.compiler.mep,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,lib.interop,model,model.compat.v3,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools,ui,web.server}.jvm.__.compile",
     "morphir.jvm.publishArtifacts",
-    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,extensibility,interop.borer,interop.zio.json,knowledge.okf,langkit.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,lib.interop,model,model.lowering,naming,prelude,tests,tools,ui}.jvm.publishArtifacts",
-    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,model,model.lowering,prelude,tests,ui,web.server}.jvm.test",
-    "morphir.langkit.itest.testCached"
+    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,extensibility,interop.borer,interop.zio.json,knowledge.okf,langkit.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,lib.interop,model,model.compat.v3,model.lowering,naming,prelude,tests,tools,ui}.jvm.publishArtifacts",
+    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.compiler.ir,langkit.elm.compiler.mep,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,model,model.compat.v3,model.lowering,prelude,tests,ui,web.server}.jvm.test",
+    "morphir.langkit.itest.testCached",
+    "millbuildHelpers.elmExtensionArchitectureCheck",
+    "millbuildHelpers.test"
   )
   def testJVMCached = alias("morphir.__.jvm.__.testCached")
   def compileall    = alias("__.compile")

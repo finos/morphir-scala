@@ -1,5 +1,11 @@
 # Log
 
+## 2026-08-29
+
+* **Update**: The [Elm frontend extension Design Note](/design/elm-frontend-extension.md) records Kyo `1.0.0-RC6`'s signed 64-bit ceiling for self-describing JSON document versions. Full unsigned 64-bit wire support remains follow-on work tracked by Kyo PR 1920; the provider does not depend on an unpublished snapshot.
+* **Decision**: [Deprecated IR formats are emitted as wire projections](/decisions/0017-deprecated-ir-formats-are-wire-projections.md). New compilers target the Kyo code model and emit older external contracts without reconstructing classic IR objects.
+* **Update**: The [Elm frontend extension Design Note](/design/elm-frontend-extension.md) and intent 0037 now place the compiler, model, JSON, and JSON-RPC path entirely on Kyo. MEP 0.1 IR v3 remains a bounded compatibility projection.
+
 ## 2026-08-28
 
 * **Creation**: Added the evolving [morphir-scala Elm frontend extension Design Note](/design/elm-frontend-extension.md), settling the shared compiler, MEP process, provider identity, GraalVM executable, verified distribution, and greenfield toolchain boundaries for intent 0037.

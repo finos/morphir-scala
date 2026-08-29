@@ -2,7 +2,7 @@
 type: Intent
 title: morphir-scala Elm frontend extension
 description: "Ship morphir-scala's Elm source-to-IR compiler as an independently selectable Morphir Extension Protocol provider."
-state: Refinement
+state: InProgress
 kind: feature
 breaking: false
 created: 2026-08-26
@@ -27,6 +27,9 @@ sources:
   - id: scala-elm-compiler-api
     title: Current morphir-scala Elm compiler API
     resource: https://github.com/finos/morphir-scala/tree/43439fcccec3da5f78b4a314f19f8919912fefc1/morphir/langkit/elm/compiler/api
+  - id: kyo-bignum-json
+    title: Kyo arbitrary-precision Structure number follow-on
+    resource: https://github.com/getkyo/kyo/pull/1920
 ---
 
 # 0037: morphir-scala Elm frontend extension
@@ -88,17 +91,34 @@ Refinement settles the first implementation choices as follows:
   platform matrix from repeatable CI builds;
 - introduce a pure compiler seam shared by the in-process adapter and the MEP adapter, leaving the existing JSON ABI
   as a parser/query compatibility surface;
-- keep parsing and Elm semantics in langkit, reuse the existing classic Morphir IR v3 model and JSON codec on the JVM,
-  and keep protocol concerns outside the compiler;
+- keep parsing and Elm semantics in langkit, compile directly to the Kyo code model, and keep protocol concerns
+  outside the compiler;
+- emit the MEP 0.1 Morphir IR v3 result through a bounded one-way wire projection from the Kyo code model. The
+  projection uses Kyo JSON and rejects code-model features that v3 cannot represent;
+- use Kyo Schema, JSON, JSON-RPC, effects, and path support in the process adapter. Do not add ZIO, zio-json, or
+  classic `org.finos.morphir.ir` dependencies to the new compiler or adapter;
 - identify the provider as `morphir-scala-elm`, distinct from the `morphir-elm` reference provider, and add explicit
   provider selection to the host so both can be installed at once;
 - use the acquired extension index, checksum, catalog, and exact-version lock already shipped by the Morphir CLI;
 - normalize parser failures to stable MEP diagnostics, including `elm.parser`, the request URI, and zero-based ranges.
 
+The Kyo code model is the compiler's domain boundary. Morphir IR v3 is an external compatibility format for MEP 0.1,
+not a second domain model. The compiler and adapter must never reconstruct classic IR objects to produce that format.
+This keeps the work inside the strangler boundary established by
+[decision 0005](../morphir/morphir-scala/decisions/0005-bridge-nothing-between-zio-and-kyo.md) and the wire-projection
+rule in [decision 0017](../morphir/morphir-scala/decisions/0017-deprecated-ir-formats-are-wire-projections.md).
+
 The first implementation uses current stable project toolchains. Morphir is greenfield, has no published Scala or
 Rust crates, and has no downstream compatibility promise. Toolchain upgrades therefore optimize for a correct,
 maintainable implementation rather than preserving a hypothetical minimum supported version. A compatibility floor
 may be introduced later when a real consumer or published artifact requires one.
+
+The implementation stays on the published Kyo `1.0.0-RC6` release. Its self-describing JSON reader materializes
+integral numbers through signed `Long`, so MEP document versions from `Long.MaxValue + 1` through the protocol's
+unsigned 64-bit maximum cannot cross this provider's JSON boundary yet. The Scala domain type retains the full
+unsigned range, but the first executable supports wire values from zero through `Long.MaxValue`. Kyo
+[PR 1920](https://github.com/getkyo/kyo/pull/1920) tracks the upstream fix. Adopting a reviewed, published Kyo version
+is follow-on work and does not block this slice. The provider must not depend on a local or unpublished snapshot.
 
 The first slice excludes multi-file projects, user-module imports, project manifest discovery, dependency resolution,
 incremental document sessions, progress, and cooperative cancellation. It also excludes backend generation,

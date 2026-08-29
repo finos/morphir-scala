@@ -624,6 +624,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     env:
       MORPHIR_CLI_RELEASE_DIR: .dev/dist/cli/release
+      MORPHIR_CLI_TRANSPORT_DIR: .dev/dist/cli/transport
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -639,6 +640,16 @@ jobs:
       - name: Cache Scala dependencies
         uses: coursier/cache-action@v8
 
+      - name: Resolve Elm MEP provider version
+        shell: pwsh
+        run: |
+          if ($IsWindows) {
+            & ./mill.bat --ticker false -i ci.cli.writeMepVersionEnv --path $env:GITHUB_ENV
+          } else {
+            & ./mill --ticker false -i ci.cli.writeMepVersionEnv --path $env:GITHUB_ENV
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Package and smoke-test the native CLI
         shell: pwsh
         run: |
@@ -649,11 +660,31 @@ jobs:
           }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Upload native CLI package
+      - name: Package and smoke-test the Elm MEP native image
+        shell: pwsh
+        run: |
+          if ($IsWindows) {
+            & ./mill.bat --ticker false -i ci.cli.packageMepNative --platform "${{ matrix.token }}"
+          } else {
+            & ./mill --ticker false -i ci.cli.packageMepNative --platform "${{ matrix.token }}"
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Archive native packages for artifact transport
+        shell: pwsh
+        run: |
+          if ($IsWindows) {
+            & ./mill.bat --ticker false -i ci.cli.packageNativeTransport --platform "${{ matrix.token }}"
+          } else {
+            & ./mill --ticker false -i ci.cli.packageNativeTransport --platform "${{ matrix.token }}"
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload native package transport
         uses: actions/upload-artifact@v7
         with:
           name: cli-native-${{ matrix.token }}
-          path: ${{ env.MORPHIR_CLI_RELEASE_DIR }}/*
+          path: ${{ env.MORPHIR_CLI_TRANSPORT_DIR }}/*.tar
           if-no-files-found: error
 
   cli-package-jvm:
@@ -693,6 +724,7 @@ jobs:
     timeout-minutes: 20
     env:
       MORPHIR_CLI_RELEASE_DIR: .dev/dist/cli/release
+      MORPHIR_CLI_TRANSPORT_DIR: .dev/dist/cli/transport
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -706,14 +738,24 @@ jobs:
       - name: Cache Scala dependencies
         uses: coursier/cache-action@v8
 
-      - name: Download CLI packages
+      - name: Download native package transports
         uses: actions/download-artifact@v8
         with:
-          pattern: cli-*
+          pattern: cli-native-*
+          path: ${{ env.MORPHIR_CLI_TRANSPORT_DIR }}
+          merge-multiple: true
+
+      - name: Download JVM CLI package
+        uses: actions/download-artifact@v8
+        with:
+          pattern: cli-jvm
           path: ${{ env.MORPHIR_CLI_RELEASE_DIR }}
           merge-multiple: true
 
-      - name: Verify CLI packages and checksums
+      - name: Extract native package transports
+        run: ./mill --ticker false -i ci.cli.extractNativeTransports --platforms "${{ needs.cli-matrix.outputs.platforms }}"
+
+      - name: Verify CLI and Elm MEP packages and checksums
         run: ./mill --ticker false -i ci.cli.verify --platforms "${{ needs.cli-matrix.outputs.platforms }}"
 
   cli-release:
@@ -733,6 +775,7 @@ jobs:
     concurrency: publish-cli-${{ github.sha }}
     env:
       MORPHIR_CLI_RELEASE_DIR: .dev/dist/cli/release
+      MORPHIR_CLI_TRANSPORT_DIR: .dev/dist/cli/transport
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -746,14 +789,24 @@ jobs:
       - name: Cache Scala dependencies
         uses: coursier/cache-action@v8
 
-      - name: Download CLI packages
+      - name: Download native package transports
         uses: actions/download-artifact@v8
         with:
-          pattern: cli-*
+          pattern: cli-native-*
+          path: ${{ env.MORPHIR_CLI_TRANSPORT_DIR }}
+          merge-multiple: true
+
+      - name: Download JVM CLI package
+        uses: actions/download-artifact@v8
+        with:
+          pattern: cli-jvm
           path: ${{ env.MORPHIR_CLI_RELEASE_DIR }}
           merge-multiple: true
 
-      - name: Verify and stage CLI packages on the draft release
+      - name: Extract native package transports
+        run: ./mill --ticker false -i ci.cli.extractNativeTransports --platforms "${{ needs.cli-matrix.outputs.platforms }}"
+
+      - name: Verify and stage CLI and Elm MEP packages on the draft release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
