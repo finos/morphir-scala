@@ -34,9 +34,11 @@ object DocumentVersion:
   val Min: DocumentVersion = BigInt(0)
   val Max: DocumentVersion = (BigInt(1) << 64) - 1
 
-  def apply(value: Int): DocumentVersion    = BigInt(value)
-  def apply(value: Long): DocumentVersion   = BigInt(value)
-  def apply(value: BigInt): DocumentVersion = value
+  def apply(value: Int): DocumentVersion    = apply(BigInt(value))
+  def apply(value: Long): DocumentVersion   = apply(BigInt(value))
+  def apply(value: BigInt): DocumentVersion =
+    require(isValid(value), s"Document version must be between $Min and $Max")
+    value
 
   extension (version: DocumentVersion) def toBigInt: BigInt = version
 
@@ -45,13 +47,20 @@ object DocumentVersion:
   given Schema[DocumentVersion] = Schema.init[DocumentVersion](
     writeFn = (version, writer) =>
       if version.isValidLong then writer.long(version.longValue)
-      else writer.bigInt(version),
-    readFn = reader => DocumentVersion(reader.long()),
+      else writer.bigDecimal(BigDecimal(version)),
+    readFn = reader => decode(reader.bigDecimal())(using reader.frame),
     structure = Structure.Type.Primitive(
       Structure.PrimitiveKind.BigInt,
       Tag[DocumentVersion].asInstanceOf[Tag[Any]]
     )
   )
+
+  private def isValid(value: BigInt): Boolean = value >= Min && value <= Max
+
+  private def decode(number: BigDecimal)(using Frame): DocumentVersion =
+    number.toBigIntExact.filter(isValid) match
+      case Some(version) => version
+      case None          => throw TypeMismatchException(Seq.empty, "unsigned 64-bit integer", number.toString)
 
 final case class SourceDocument(uri: String, languageId: String, version: DocumentVersion, text: String)
     derives CanEqual, Schema

@@ -211,12 +211,6 @@ object MepElmFrontend:
       document = documents.head
       _ <- Either.cond(document.languageId == "elm", (), "The source document language must be elm")
       _ <- Either.cond(document.uri.trim.nonEmpty, (), "The source document URI must not be empty")
-      _ <- Either.cond(
-        document.version.toBigInt >= DocumentVersion.Min.toBigInt &&
-          document.version.toBigInt <= DocumentVersion.Max.toBigInt,
-        (),
-        "version must be a non-negative integer"
-      )
       _ <- Either.cond(request.dependencies.isEmpty, (), "dependencies are not supported")
       _ <- Either.cond(request.options.irVersion == "3", (), "Morphir Scala Elm only emits Morphir IR version 3")
       _ <- Either.cond(!request.options.typesOnly, (), "Types-only compilation is not supported")
