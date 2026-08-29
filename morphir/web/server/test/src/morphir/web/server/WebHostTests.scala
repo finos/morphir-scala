@@ -495,41 +495,44 @@ class WebHostTests extends Test[Any]:
     }
 
     "expires the launch credential and the established session" in {
-      val launcher = FakeLauncher()
-      Scope.run {
-        start(launcher, WebHost.Config(sessionTtl = 120.millis)).map { host =>
-          val launch = launchFrom(launcher.urls.head)
-          Async.sleep(180.millis).andThen(exchange(host, launch)).map { expiredLaunch =>
-            assert(expiredLaunch.status == 401 && expiredLaunch.secure)
-          }
-        }
-      }.andThen {
-        val sessionLauncher = FakeLauncher()
+      val sessionTtl = 1.minute
+      Clock.withTimeControl { clock =>
+        val launcher = FakeLauncher()
         Scope.run {
-          start(sessionLauncher, WebHost.Config(sessionTtl = 120.millis)).map { host =>
-            exchange(host, launchFrom(sessionLauncher.urls.head)).map { accepted =>
-              val cookie = sessionCookie(accepted)
-              Async.sleep(180.millis).andThen(statusRpc(host, cookie)).map { expiredSession =>
-                request(
-                  host.port,
-                  "GET",
-                  "/",
-                  Seq("Host" -> s"127.0.0.1:${host.port}", "Cookie" -> cookie)
-                ).map { recovery =>
-                  val freshLaunch = recovery.header("Location") match
-                    case Present(value) => launchFrom(value)
-                    case Absent         => ""
-                  request(host.port, "GET", "/", Seq("Host" -> s"127.0.0.1:${host.port}")).map { html =>
-                    exchange(host, freshLaunch).map { refreshed =>
-                      exchange(host, launchFrom(sessionLauncher.urls.head)).map { oldReplay =>
-                        statusRpc(host, sessionCookie(refreshed)).map { restored =>
-                          assert(expiredSession.status == 401 && expiredSession.secure)
-                          assert(recovery.status == 302 && recovery.secure)
-                          assert(freshLaunch.matches("[A-Za-z0-9_-]{43}"))
-                          assert(html.status == 200 && html.secure)
-                          assert(refreshed.status == 204 && refreshed.secure)
-                          assert(oldReplay.status == 401 && oldReplay.secure)
-                          assert(restored.status == 200 && restored.secure)
+          start(launcher, WebHost.Config(sessionTtl = sessionTtl)).map { host =>
+            val launch = launchFrom(launcher.urls.head)
+            clock.advance(sessionTtl).andThen(exchange(host, launch)).map { expiredLaunch =>
+              assert(expiredLaunch.status == 401 && expiredLaunch.secure)
+            }
+          }
+        }.andThen {
+          val sessionLauncher = FakeLauncher()
+          Scope.run {
+            start(sessionLauncher, WebHost.Config(sessionTtl = sessionTtl)).map { host =>
+              exchange(host, launchFrom(sessionLauncher.urls.head)).map { accepted =>
+                val cookie = sessionCookie(accepted)
+                clock.advance(sessionTtl).andThen(statusRpc(host, cookie)).map { expiredSession =>
+                  request(
+                    host.port,
+                    "GET",
+                    "/",
+                    Seq("Host" -> s"127.0.0.1:${host.port}", "Cookie" -> cookie)
+                  ).map { recovery =>
+                    val freshLaunch = recovery.header("Location") match
+                      case Present(value) => launchFrom(value)
+                      case Absent         => ""
+                    request(host.port, "GET", "/", Seq("Host" -> s"127.0.0.1:${host.port}")).map { html =>
+                      exchange(host, freshLaunch).map { refreshed =>
+                        exchange(host, launchFrom(sessionLauncher.urls.head)).map { oldReplay =>
+                          statusRpc(host, sessionCookie(refreshed)).map { restored =>
+                            assert(expiredSession.status == 401 && expiredSession.secure)
+                            assert(recovery.status == 302 && recovery.secure)
+                            assert(freshLaunch.matches("[A-Za-z0-9_-]{43}"))
+                            assert(html.status == 200 && html.secure)
+                            assert(refreshed.status == 204 && refreshed.secure)
+                            assert(oldReplay.status == 401 && oldReplay.secure)
+                            assert(restored.status == 200 && restored.secure)
+                          }
                         }
                       }
                     }
