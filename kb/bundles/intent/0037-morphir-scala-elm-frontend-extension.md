@@ -88,12 +88,22 @@ Refinement settles the first implementation choices as follows:
   platform matrix from repeatable CI builds;
 - introduce a pure compiler seam shared by the in-process adapter and the MEP adapter, leaving the existing JSON ABI
   as a parser/query compatibility surface;
-- keep parsing and Elm semantics in langkit, reuse the existing classic Morphir IR v3 model and JSON codec on the JVM,
-  and keep protocol concerns outside the compiler;
+- keep parsing and Elm semantics in langkit, compile directly to the Kyo code model, and keep protocol concerns
+  outside the compiler;
+- emit the MEP 0.1 Morphir IR v3 result through a bounded one-way wire projection from the Kyo code model. The
+  projection uses Kyo JSON and rejects code-model features that v3 cannot represent;
+- use Kyo Schema, JSON, JSON-RPC, effects, and path support in the process adapter. Do not add ZIO, zio-json, or
+  classic `org.finos.morphir.ir` dependencies to the new compiler or adapter;
 - identify the provider as `morphir-scala-elm`, distinct from the `morphir-elm` reference provider, and add explicit
   provider selection to the host so both can be installed at once;
 - use the acquired extension index, checksum, catalog, and exact-version lock already shipped by the Morphir CLI;
 - normalize parser failures to stable MEP diagnostics, including `elm.parser`, the request URI, and zero-based ranges.
+
+The Kyo code model is the compiler's domain boundary. Morphir IR v3 is an external compatibility format for MEP 0.1,
+not a second domain model. The compiler and adapter must never reconstruct classic IR objects to produce that format.
+This keeps the work inside the strangler boundary established by
+[decision 0005](../morphir/morphir-scala/decisions/0005-bridge-nothing-between-zio-and-kyo.md) and the wire-projection
+rule in [decision 0017](../morphir/morphir-scala/decisions/0017-deprecated-ir-formats-are-wire-projections.md).
 
 The first implementation uses current stable project toolchains. Morphir is greenfield, has no published Scala or
 Rust crates, and has no downstream compatibility promise. Toolchain upgrades therefore optimize for a correct,
