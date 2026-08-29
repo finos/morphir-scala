@@ -36,6 +36,16 @@ class MepSessionTests extends Test[Any]:
     val envelope: JsonRpcEnvelope = JsonRpcNotification(method, Present(params), Absent)
     Json.encode(envelope)
 
+  private def nullIdRequest(method: String, params: Value = emptyParams): String =
+    Json.encode(
+      record(
+        "jsonrpc" -> Structure.Value.Str("2.0"),
+        "id"      -> Structure.Value.Null,
+        "method"  -> Structure.Value.Str(method),
+        "params"  -> params
+      )
+    )
+
   private def value(transition: SessionTransition): Value =
     Json.decode[Value](transition.response.get) match
       case Result.Success(value) => value
@@ -78,6 +88,17 @@ class MepSessionTests extends Test[Any]:
 
       assert(at(response, "id").contains(Structure.Value.Null))
       assert(at(response, "error", "code").contains(Structure.Value.Integer(-32700)))
+    }
+
+    "preserves an explicit null request id and returns a response" in {
+      val transition = MepSession.loaded(ProviderMetadata.default).handle(
+        nullIdRequest("morphir.initialize", initializeParams)
+      )
+      val response = value(transition)
+
+      assert(transition.session.state == SessionState.Ready)
+      assert(at(response, "id").contains(Structure.Value.Null))
+      assert(at(response, "result", "protocolVersion").contains(Structure.Value.Str("0.1")))
     }
 
     "negotiates MEP 0.1 and reports provider metadata and capabilities" in {

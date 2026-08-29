@@ -13,8 +13,19 @@ private final case class MepWireError(
 )(using Frame)
     extends JsonRpcApplicationError(code, label, data)
 
+private enum ResponseId:
+  case ExplicitNull
+  case Value(id: JsonRpcId)
+
+private enum IncomingId:
+  case Missing
+  case Request(id: ResponseId)
+
+  def isMissing: Boolean = this == Missing
+  def isRequest: Boolean = !isMissing
+
 private final case class IncomingCall(
-    id: Maybe[JsonRpcId],
+    id: IncomingId,
     method: String,
     params: Option[Structure.Value]
 )
@@ -33,9 +44,9 @@ final case class MepSession private (
       case Result.Panic(_)   => parseError
 
   private[mep] def parseError: SessionTransition =
-    SessionTransition(this, Present(error(Absent, -32700, "Parse error")))
+    SessionTransition(this, Present(error(IncomingId.Missing, -32700, "Parse error")))
 
-  private def decodeCall(raw: Structure.Value): Either[Maybe[JsonRpcId], IncomingCall] = raw match
+  private def decodeCall(raw: Structure.Value): Either[IncomingId, IncomingCall] = raw match
     case Structure.Value.Record(fields) =>
       val values    = fields.iterator.toMap
       val id        = decodeId(values.get("id"))
@@ -49,7 +60,7 @@ final case class MepSession private (
             case Structure.Value.Str(value) => value.nonEmpty
             case _                          => false
           } && !invalidId
-      if !validEnvelope then Left(if invalidId then Absent else id)
+      if !validEnvelope then Left(if invalidId then IncomingId.Missing else id)
       else
         Structure.decode[JsonRpcEnvelope](raw) match
           case Result.Success(_: JsonRpcRequest | _: JsonRpcNotification) =>
@@ -61,15 +72,16 @@ final case class MepSession private (
               )
             )
           case _ => Left(id)
-    case _ => Left(Absent)
+    case _ => Left(IncomingId.Missing)
 
-  private def decodeId(value: Option[Structure.Value]): Maybe[JsonRpcId] = value match
-    case Some(Structure.Value.Integer(number)) => Present(JsonRpcId(number))
-    case Some(Structure.Value.Str(value))      => Present(JsonRpcId(value))
-    case _                                     => Absent
+  private def decodeId(value: Option[Structure.Value]): IncomingId = value match
+    case Some(Structure.Value.Null)            => IncomingId.Request(ResponseId.ExplicitNull)
+    case Some(Structure.Value.Integer(number)) => IncomingId.Request(ResponseId.Value(JsonRpcId(number)))
+    case Some(Structure.Value.Str(value))      => IncomingId.Request(ResponseId.Value(JsonRpcId(value)))
+    case _                                     => IncomingId.Missing
 
   private def dispatch(call: IncomingCall): SessionTransition =
-    if call.method == "morphir.exit" && call.id.isEmpty then
+    if call.method == "morphir.exit" && call.id.isMissing then
       SessionTransition(copy(state = SessionState.Stopped), Absent)
     else if state == SessionState.Stopped then
       respond(call.id)(errorFor(_, -32600, "The MEP session is stopped"))
@@ -82,8 +94,8 @@ final case class MepSession private (
     else initialize(call)
 
   private def ready(call: IncomingCall): SessionTransition = call.method match
-    case "morphir.initialized" if call.id.isEmpty => SessionTransition(this, Absent)
-    case "morphir.shutdown" if call.id.isEmpty    =>
+    case "morphir.initialized" if call.id.isMissing => SessionTransition(this, Absent)
+    case "morphir.shutdown" if call.id.isMissing    =>
       if objectParams(call.params) then SessionTransition(copy(state = SessionState.AwaitExit), Absent)
       else SessionTransition(this, Absent)
     case "morphir.extension.info" =>
@@ -92,23 +104,23 @@ final case class MepSession private (
     case "morphir.extension.capabilities" =>
       if objectParams(call.params) then respondSuccess(call.id, capabilities)
       else respond(call.id)(errorFor(_, -32602, "morphir.extension.capabilities parameters must be an object"))
-    case "morphir.initialize" if call.id.isDefined =>
+    case "morphir.initialize" if call.id.isRequest =>
       respond(call.id)(errorFor(_, -32600, "The MEP session is already initialized"))
-    case "morphir.shutdown" if call.id.isDefined =>
+    case "morphir.shutdown" if call.id.isRequest =>
       if objectParams(call.params) then
         respondSuccess(call.id, Structure.Value.Record(Chunk.empty), copy(state = SessionState.AwaitExit))
       else respond(call.id)(errorFor(_, -32602, "morphir.shutdown parameters must be an object"))
     case "morphir.frontend.compile"          => compile(call)
-    case "morphir.exit" if call.id.isDefined =>
+    case "morphir.exit" if call.id.isRequest =>
       respond(call.id)(errorFor(_, -32600, "morphir.exit is a notification"))
-    case _ if call.id.isEmpty => SessionTransition(this, Absent)
-    case method               => respond(call.id)(errorFor(_, -32601, s"Method not found: $method"))
+    case _ if call.id.isMissing => SessionTransition(this, Absent)
+    case method                 => respond(call.id)(errorFor(_, -32601, s"Method not found: $method"))
 
   private def compile(call: IncomingCall): SessionTransition =
     val result = call.params match
       case Some(params) => compileFrontend(params)
       case None         => Result.fail(MepCompileError.InvalidParams("compile params are required"))
-    if call.id.isEmpty then SessionTransition(this, Absent)
+    if call.id.isMissing then SessionTransition(this, Absent)
     else
       result match
         case Result.Success(value)   => respondSuccess(call.id, value)
@@ -138,7 +150,7 @@ final case class MepSession private (
               respond(call.id)(errorFor(_, -32011, "No compatible Morphir Extension Protocol version", Present(data)))
             case _ => respond(call.id)(errorFor(_, -32602, "Invalid morphir.initialize parameters"))
         case None => respond(call.id)(errorFor(_, -32602, "Invalid morphir.initialize parameters"))
-      if call.id.isDefined then transition else transition.copy(response = Absent)
+      if call.id.isRequest then transition else transition.copy(response = Absent)
 
   private def objectParams(params: Option[Structure.Value]): Boolean = params match
     case None | Some(Structure.Value.Record(_)) => true
@@ -170,50 +182,69 @@ final case class MepSession private (
   private def capabilities: Structure.Value = Structure.encode(capabilitiesValue)
 
   private def respondSuccess(
-      id: Maybe[JsonRpcId],
+      id: IncomingId,
       value: Structure.Value,
       next: MepSession = this
   ): SessionTransition =
-    respond(id, next)(requestId => encode(JsonRpcResponse.success(requestId, value)))
+    respond(id, next)(requestId => success(requestId, value))
 
   private def respond(
-      id: Maybe[JsonRpcId],
+      id: IncomingId,
       next: MepSession = this
-  )(response: JsonRpcId => String): SessionTransition =
-    SessionTransition(next, id.map(response))
+  )(response: ResponseId => String): SessionTransition =
+    id match
+      case IncomingId.Missing            => SessionTransition(next, Absent)
+      case IncomingId.Request(requestId) => SessionTransition(next, Present(response(requestId)))
 
-  private[mep] def compileErrorResponse(id: JsonRpcId, compileFailure: MepCompileError): String =
+  private def compileErrorResponse(id: ResponseId, compileFailure: MepCompileError): String =
     val message = compileFailure match
       case _: MepCompileError.InvalidParams => "Invalid morphir.frontend.compile parameters"
       case _                                => "Internal error"
-    error(Present(id), MepCompileError.jsonRpcCode(compileFailure), message)
+    errorFor(id, MepCompileError.jsonRpcCode(compileFailure), message)
 
   private def errorFor(
-      id: JsonRpcId,
-      code: Int,
-      message: String,
-      data: Maybe[Structure.Value] = Absent
-  ): String = error(Present(id), code, message, data)
-
-  private def error(
-      id: Maybe[JsonRpcId],
+      id: ResponseId,
       code: Int,
       message: String,
       data: Maybe[Structure.Value] = Absent
   ): String = id match
-    case Present(requestId) => encode(JsonRpcResponse.failure(requestId, MepWireError(code, message, data)))
-    case Absent             =>
-      val errorFields = Chunk("code" -> Structure.Value.Integer(code), "message" -> Structure.Value.Str(message)) ++
-        data.map(value => Chunk("data" -> value)).getOrElse(Chunk.empty)
+    case ResponseId.Value(requestId) => encode(JsonRpcResponse.failure(requestId, MepWireError(code, message, data)))
+    case ResponseId.ExplicitNull     => nullError(code, message, data)
+
+  private def success(id: ResponseId, value: Structure.Value): String = id match
+    case ResponseId.Value(requestId) => encode(JsonRpcResponse.success(requestId, value))
+    case ResponseId.ExplicitNull     =>
       Json.encode(
         Structure.Value.Record(
           Chunk(
             "jsonrpc" -> Structure.Value.Str("2.0"),
             "id"      -> Structure.Value.Null,
-            "error"   -> Structure.Value.Record(errorFields)
+            "result"  -> value
           )
         )
       )
+
+  private def error(
+      id: IncomingId,
+      code: Int,
+      message: String,
+      data: Maybe[Structure.Value] = Absent
+  ): String = id match
+    case IncomingId.Request(requestId) => errorFor(requestId, code, message, data)
+    case IncomingId.Missing            => nullError(code, message, data)
+
+  private def nullError(code: Int, message: String, data: Maybe[Structure.Value]): String =
+    val errorFields = Chunk("code" -> Structure.Value.Integer(code), "message" -> Structure.Value.Str(message)) ++
+      data.map(value => Chunk("data" -> value)).getOrElse(Chunk.empty)
+    Json.encode(
+      Structure.Value.Record(
+        Chunk(
+          "jsonrpc" -> Structure.Value.Str("2.0"),
+          "id"      -> Structure.Value.Null,
+          "error"   -> Structure.Value.Record(errorFields)
+        )
+      )
+    )
 
   private def encode(response: JsonRpcResponse): String =
     Json.encode[JsonRpcEnvelope](response)

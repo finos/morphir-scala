@@ -155,6 +155,24 @@ class V3WireProjectionTests extends Test[Any]:
     assert(V3WireProjection.encode(libraryWith()) == Result.succeed(Json.encode(expectedIr)))
   }
 
+  "projects wide collections without consuming the JVM stack" in {
+    val elements       = Chunk.from(List.fill(50_000)(cm.Expr.Unit(cm.ValueAttributes.empty)))
+    val wideDefinition = cm.ValueDefinition(
+      cm.AccessControlled(
+        cm.Access.Public,
+        cm.ValueDefinitionBody.ExpressionBody(
+          Chunk.empty,
+          intType,
+          cm.Expr.List(cm.ValueAttributes.empty, elements)
+        )
+      )
+    )
+
+    V3WireProjection.project(libraryWith(wideDefinition)) match
+      case Result.Success(_) => assert(true)
+      case other             => assert(false, s"expected a successful wide projection, got $other")
+  }
+
   "rejects distribution kinds that Morphir IR v3 cannot represent" in {
     val application = cm.Distribution.Application(
       cm.ApplicationDistribution(

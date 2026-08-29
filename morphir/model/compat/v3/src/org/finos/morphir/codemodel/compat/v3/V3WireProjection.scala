@@ -5,6 +5,7 @@ import kyo.Json.given_Json
 import org.finos.morphir.codemodel as cm
 import org.finos.morphir.naming.*
 
+import scala.annotation.tailrec
 import scala.math.Ordering.Implicits.seqOrdering
 
 enum V3ProjectionError derives CanEqual:
@@ -538,9 +539,12 @@ object V3WireProjection:
       case Result.Panic(cause)   => Result.panic(cause)
 
   private def traverse[A](values: List[A])(projectValue: A => Projection[Value]): Projection[List[Value]] =
-    values match
-      case Nil          => succeed(Nil)
-      case head :: tail =>
-        flatMapResult(projectValue(head)) { projectedHead =>
-          mapResult(traverse(tail)(projectValue))(projectedHead :: _)
-        }
+    @tailrec
+    def loop(remaining: List[A], reversed: List[Value]): Projection[List[Value]] = remaining match
+      case Nil          => succeed(reversed.reverse)
+      case head :: tail => projectValue(head) match
+          case Result.Success(projected) => loop(tail, projected :: reversed)
+          case Result.Failure(error)     => fail(error)
+          case Result.Panic(cause)       => Result.panic(cause)
+
+    loop(values, Nil)
