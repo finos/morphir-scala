@@ -24,6 +24,9 @@ sources:
   - id: scala-compiler-api
     title: morphir-scala Elm compiler API
     resource: https://github.com/finos/morphir-scala/tree/43439fcccec3da5f78b4a314f19f8919912fefc1/morphir/langkit/elm/compiler/api
+  - id: kyo-bignum-json
+    title: Kyo arbitrary-precision Structure number follow-on
+    resource: https://github.com/getkyo/kyo/pull/1920
 ---
 
 # morphir-scala Elm frontend extension
@@ -137,6 +140,19 @@ failures are JSON-RPC errors.
 Framing and decoding are bounded. The process rejects missing, duplicate, malformed, or oversized Content-Length
 headers before allocating a body. EOF during a frame is an error. Unknown JSON fields remain forward-compatible where
 MEP allows them, but required identity and compilation fields are validated before compiler invocation.
+
+### Known document-version gap
+
+MEP 0.1 defines a source document version as an unsigned 64-bit integer. The Scala `DocumentVersion` domain type
+retains that range, including validation at zero and `18446744073709551615`. Kyo `1.0.0-RC6`, the published version
+used by this provider, reads self-describing JSON integers through signed `Long`. The executable therefore accepts
+numeric document versions from zero through `9223372036854775807`. Larger valid MEP values cannot cross the RC6 JSON
+boundary.
+
+Kyo [PR 1920](https://github.com/getkyo/kyo/pull/1920) adds exact arbitrary-precision numbers to the self-describing
+JSON path. Morphir-scala will adopt that behavior after it appears in a reviewed, published Kyo version. The current
+extension does not pin the PR commit, use a local snapshot, encode protocol numbers as strings, or add a second JSON
+library.
 
 ## Provider identity and host selection
 

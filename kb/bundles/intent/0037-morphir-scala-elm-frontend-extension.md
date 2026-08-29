@@ -27,6 +27,9 @@ sources:
   - id: scala-elm-compiler-api
     title: Current morphir-scala Elm compiler API
     resource: https://github.com/finos/morphir-scala/tree/43439fcccec3da5f78b4a314f19f8919912fefc1/morphir/langkit/elm/compiler/api
+  - id: kyo-bignum-json
+    title: Kyo arbitrary-precision Structure number follow-on
+    resource: https://github.com/getkyo/kyo/pull/1920
 ---
 
 # 0037: morphir-scala Elm frontend extension
@@ -109,6 +112,13 @@ The first implementation uses current stable project toolchains. Morphir is gree
 Rust crates, and has no downstream compatibility promise. Toolchain upgrades therefore optimize for a correct,
 maintainable implementation rather than preserving a hypothetical minimum supported version. A compatibility floor
 may be introduced later when a real consumer or published artifact requires one.
+
+The implementation stays on the published Kyo `1.0.0-RC6` release. Its self-describing JSON reader materializes
+integral numbers through signed `Long`, so MEP document versions from `Long.MaxValue + 1` through the protocol's
+unsigned 64-bit maximum cannot cross this provider's JSON boundary yet. The Scala domain type retains the full
+unsigned range, but the first executable supports wire values from zero through `Long.MaxValue`. Kyo
+[PR 1920](https://github.com/getkyo/kyo/pull/1920) tracks the upstream fix. Adopting a reviewed, published Kyo version
+is follow-on work and does not block this slice. The provider must not depend on a local or unpublished snapshot.
 
 The first slice excludes multi-file projects, user-module imports, project manifest discovery, dependency resolution,
 incremental document sessions, progress, and cooperative cancellation. It also excludes backend generation,
