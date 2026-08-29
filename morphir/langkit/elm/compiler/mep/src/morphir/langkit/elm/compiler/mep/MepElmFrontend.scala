@@ -37,12 +37,9 @@ object MepElmFrontend:
   private val ModuleIdentity = raw"[A-Z][A-Za-z0-9_]*(?:\.[A-Z][A-Za-z0-9_]*)*".r
 
   def compile(params: Json): Result[MepCompileError, Json] =
-    val result = parseRequest(params)
-      .left.map(MepCompileError.InvalidParams.apply)
-      .flatMap(compileRequest)
-    result match
-      case Right(value) => Result.succeed(value)
-      case Left(error)  => Result.fail(error)
+    parseRequest(params) match
+      case Right(request) => compileRequest(request)
+      case Left(error)    => Result.fail(MepCompileError.InvalidParams(error))
 
   private[mep] def validateCompiledIR(
       ir: MorphirIRFile,
@@ -89,27 +86,43 @@ object MepElmFrontend:
       )
     )
 
-  private def compileRequest(request: CompileRequest): Either[MepCompileError, Json] =
-    for
-      document <- request.documents.headOption.toRight(
-        MepCompileError.InvalidParams("Morphir Scala Elm requires exactly one source document")
-      )
-      module <- request.compilePackage.exposedModules.headOption.toRight(
-        MepCompileError.InvalidParams("Exactly one exposed module is required")
-      )
-      exposedValues = sourceMetadata(document.text).map(_._2).getOrElse(Set.empty)
-      input         = CompileInput(
-        source = document.text,
-        packageName = PackageName.fromString(request.compilePackage.name),
-        moduleName = ModuleName.fromString(module),
-        exposedValues = exposedValues,
-        irVersion = MorphirIRVersion.V3_0
-      )
-      result <- ElmToMorphirIRCompiler.compile(input) match
-        case Result.Success(ir) =>
-          encodeCompilerOutput(ir, input.packageName, Set(input.moduleName), request.compilePackage.exposedModules)
-        case Result.Failure(failure) => Right(compileFailure(document, failure))
-    yield result
+  private def compileRequest(request: CompileRequest): Result[MepCompileError, Json] =
+    request.documents.headOption match
+      case None => Result.fail(MepCompileError.InvalidParams("Morphir Scala Elm requires exactly one source document"))
+      case Some(document) =>
+        request.compilePackage.exposedModules.headOption match
+          case None         => Result.fail(MepCompileError.InvalidParams("Exactly one exposed module is required"))
+          case Some(module) =>
+            val exposedValues = sourceMetadata(document.text).map(_._2).getOrElse(Set.empty)
+            val input         = CompileInput(
+              source = document.text,
+              packageName = PackageName.fromString(request.compilePackage.name),
+              moduleName = ModuleName.fromString(module),
+              exposedValues = exposedValues,
+              irVersion = MorphirIRVersion.V3_0
+            )
+            foldCompilerResult(
+              document,
+              input.packageName,
+              input.moduleName,
+              request.compilePackage.exposedModules,
+              ElmToMorphirIRCompiler.compile(input)
+            )
+
+  private[mep] def foldCompilerResult(
+      document: SourceDocument,
+      packageName: PackageName,
+      moduleName: ModuleName,
+      moduleSpellings: Vector[String],
+      compilerResult: Result[CompileFailure, MorphirIRFile]
+  ): Result[MepCompileError, Json] =
+    compilerResult match
+      case Result.Success(ir) =>
+        encodeCompilerOutput(ir, packageName, Set(moduleName), moduleSpellings) match
+          case Right(json) => Result.succeed(json)
+          case Left(error) => Result.fail(error)
+      case Result.Failure(failure) => Result.succeed(compileFailure(document, failure))
+      case Result.Panic(cause)     => Result.panic(cause)
 
   private def compileFailure(document: SourceDocument, failure: CompileFailure): Json =
     Json.Obj(

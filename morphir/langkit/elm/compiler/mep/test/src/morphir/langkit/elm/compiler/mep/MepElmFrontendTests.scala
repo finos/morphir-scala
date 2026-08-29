@@ -3,7 +3,7 @@ package morphir.langkit.elm.compiler.mep
 import kyo.*
 import kyo.test.*
 import morphir.langkit.core.Span as SourceSpan
-import morphir.langkit.elm.compiler.ir.{CompileDiagnostic, CompileInput, ElmToMorphirIRCompiler}
+import morphir.langkit.elm.compiler.ir.{CompileDiagnostic, CompileFailure, CompileInput, ElmToMorphirIRCompiler}
 import org.finos.morphir.ir.{MorphirIRFile, MorphirIRVersion}
 import org.finos.morphir.ir.distribution.Distribution
 import org.finos.morphir.naming.{ModuleName, Name, PackageName}
@@ -62,6 +62,46 @@ class MepElmFrontendTests extends Test[Any]:
 
       assert(messages == diagnostics.map(_._2))
       assert(messages.forall(message => !message.contains("Span")))
+    }
+  }
+
+  "MepElmFrontend.foldCompilerResult" - {
+    "maps success and expected failure while preserving panic" in {
+      val document = SourceDocument("file:///workspace/Example.elm", "elm", BigInt(1), source)
+      val failure  = CompileFailure(Chunk(CompileDiagnostic.UnsupportedExpression("lambda", SourceSpan.zero)))
+      val panic    = IllegalStateException("synthetic compiler panic")
+
+      val succeeded = MepElmFrontend.foldCompilerResult(
+        document,
+        packageName,
+        moduleName,
+        Vector("Example"),
+        Result.succeed(validIr)
+      )
+      val failed = MepElmFrontend.foldCompilerResult(
+        document,
+        packageName,
+        moduleName,
+        Vector("Example"),
+        Result.fail(failure)
+      )
+      val panicked = MepElmFrontend.foldCompilerResult(
+        document,
+        packageName,
+        moduleName,
+        Vector("Example"),
+        Result.panic(panic)
+      )
+
+      assert(succeeded match
+        case Result.Success(Json.Obj(fields)) => fields.toMap.get("success").contains(Json.Bool(true))
+        case _                                => false)
+      assert(failed match
+        case Result.Success(Json.Obj(fields)) => fields.toMap.get("success").contains(Json.Bool(false))
+        case _                                => false)
+      assert(panicked match
+        case Result.Panic(cause) => cause eq panic
+        case _                   => false)
     }
   }
 

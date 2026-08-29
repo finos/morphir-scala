@@ -355,6 +355,26 @@ class MepSessionTests extends Test[Any]:
       assert(at(response, "error", "message") == Some(Json.Str("Internal error")))
     }
 
+    "maps a compiler panic request to a JSON-RPC internal error" in {
+      val panic   = IllegalStateException("synthetic compiler panic")
+      val session = MepSession.loaded(
+        ProviderMetadata.default,
+        (_: Json) => Result.panic(panic)
+      ).handle(
+        """{"jsonrpc":"2.0","id":1,"method":"morphir.initialize","params":{"protocolVersions":["0.1"],"host":{"name":"test-host","version":"1.0.0"}}}"""
+      ).session
+      val request =
+        """{"jsonrpc":"2.0","id":41,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":1,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
+
+      val transition = session.handle(request)
+      val response   = transition.response.flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption)).get
+
+      assert(transition.session.state == SessionState.Ready)
+      assert(at(response, "id") == Some(Json.Num(41)))
+      assert(at(response, "error", "code") == Some(Json.Num(-32603)))
+      assert(at(response, "error", "message") == Some(Json.Str("Internal error")))
+    }
+
     "compiles one Elm document to embedded Morphir IR 3" in {
       val request =
         """{"jsonrpc":"2.0","id":"compile-1","method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":1,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right =\n    left + right\n"}],"package":{"name":"local/example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
@@ -418,6 +438,27 @@ class MepSessionTests extends Test[Any]:
 
       val transition = initializedSession.handle(notification)
 
+      assert(transition.session.state == SessionState.Ready)
+      assert(transition.response.isEmpty)
+    }
+
+    "executes a compiler panic notification without responding or crashing" in {
+      val panic       = IllegalStateException("synthetic compiler panic")
+      var invocations = 0
+      val session     = MepSession.loaded(
+        ProviderMetadata.default,
+        (_: Json) =>
+          invocations += 1
+          Result.panic(panic)
+      ).handle(
+        """{"jsonrpc":"2.0","id":1,"method":"morphir.initialize","params":{"protocolVersions":["0.1"],"host":{"name":"test-host","version":"1.0.0"}}}"""
+      ).session
+      val notification =
+        """{"jsonrpc":"2.0","method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":1,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
+
+      val transition = session.handle(notification)
+
+      assert(invocations == 1)
       assert(transition.session.state == SessionState.Ready)
       assert(transition.response.isEmpty)
     }

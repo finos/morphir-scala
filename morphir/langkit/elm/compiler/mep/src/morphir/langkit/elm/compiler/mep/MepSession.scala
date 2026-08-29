@@ -6,7 +6,13 @@ import zio.json.ast.Json
 
 final case class SessionTransition(session: MepSession, response: Maybe[String]) derives CanEqual
 
-final case class MepSession private (state: SessionState, provider: ProviderMetadata):
+private[mep] type CompileFrontend = Json => Result[MepCompileError, Json]
+
+final case class MepSession private (
+    state: SessionState,
+    provider: ProviderMetadata,
+    private val compileFrontend: CompileFrontend
+):
   def handle(body: String): SessionTransition =
     body.fromJson[Json] match
       case Right(Json.Obj(fields))
@@ -94,7 +100,7 @@ final case class MepSession private (state: SessionState, provider: ProviderMeta
           SessionTransition(this, Present(error(id, -32602, "morphir.shutdown parameters must be an object").toJson))
         case (Some(Json.Str("morphir.frontend.compile")), Some(id)) =>
           val compileResult = fields.get("params") match
-            case Some(params) => MepElmFrontend.compile(params)
+            case Some(params) => compileFrontend(params)
             case None         => Result.fail(MepCompileError.InvalidParams("compile params are required"))
           compileResult match
             case Result.Success(result)         => SessionTransition(this, Present(success(id, result).toJson))
@@ -106,7 +112,7 @@ final case class MepSession private (state: SessionState, provider: ProviderMeta
                 Present(compileErrorResponse(id, MepCompileError.InvalidCompilerOutput("compiler panic")))
               )
         case (Some(Json.Str("morphir.frontend.compile")), None) =>
-          fields.get("params").foreach(MepElmFrontend.compile)
+          fields.get("params").foreach(compileFrontend)
           SessionTransition(this, Absent)
         case (Some(Json.Str("morphir.exit")), Some(id)) =>
           SessionTransition(this, Present(error(id, -32600, "morphir.exit is a notification").toJson))
@@ -204,4 +210,7 @@ final case class MepSession private (state: SessionState, provider: ProviderMeta
     )
 
 object MepSession:
-  def loaded(provider: ProviderMetadata): MepSession = MepSession(SessionState.Loaded, provider)
+  def loaded(provider: ProviderMetadata): MepSession = loaded(provider, MepElmFrontend.compile)
+
+  private[mep] def loaded(provider: ProviderMetadata, compileFrontend: CompileFrontend): MepSession =
+    MepSession(SessionState.Loaded, provider, compileFrontend)
