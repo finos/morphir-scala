@@ -3,9 +3,7 @@ package morphir.langkit.elm.compiler.ir
 import kyo.*
 import kyo.test.*
 import morphir.langkit.elm.ast.ModuleType
-import org.finos.morphir.ir.*
-import org.finos.morphir.ir.distribution.Distribution
-import org.finos.morphir.ir.sdk.Basics
+import org.finos.morphir.codemodel as cm
 import org.finos.morphir.naming.*
 
 class ElmToMorphirIRCompilerTests extends Test[Any]:
@@ -20,57 +18,60 @@ class ElmToMorphirIRCompilerTests extends Test[Any]:
 
   private def input(
       sourceText: String = source,
-      version: MorphirIRVersion = MorphirIRVersion.V3_0,
       moduleName: ModuleName = ModuleName.fromString("Example"),
       exposedValues: Set[Name] = Set(Name.fromString("add"))
   ) = CompileInput(
     source = sourceText,
     packageName = PackageName.fromString("local/example"),
     moduleName = moduleName,
-    exposedValues = exposedValues,
-    irVersion = version
+    exposedValues = exposedValues
   )
 
   "ElmToMorphirIRCompiler" - {
-    "compiles a public typed add function into classic IR v3" in {
+    "compiles a public typed add function into the Kyo code model" in {
       val request = input()
 
       ElmToMorphirIRCompiler.compile(request) match
-        case Result.Success(MorphirIRFile(MorphirIRVersion.V3_0, library: Distribution.Library)) =>
-          assert(library.packageName == request.packageName)
+        case Result.Success(cm.Distribution.Library(library)) =>
+          assert(library.packageInfo.name == request.packageName)
+          assert(library.packageInfo.version.isEmpty)
           assert(library.dependencies.isEmpty)
 
-          val module = library.packageDef.modules(request.moduleName)
-          assert(module.withPublicAccess.isDefined)
+          val module = library.definition.modules(request.moduleName)
+          assert(module.access == cm.Access.Public)
 
-          val documented = module.withPrivateAccess.values(Name.fromString("add"))
-          assert(documented.withPublicAccess.isDefined)
-          val definition = documented.withPrivateAccess.value
-          assert(
-            definition.inputTypes.map { case (name, attributes, tpe) => (name, attributes, tpe) }.toList == List(
-              (Name.fromString("left"), Basics.intType, Basics.intType),
-              (Name.fromString("right"), Basics.intType, Basics.intType)
-            )
-          )
-          assert(definition.outputType == Basics.intType)
+          val documented = module.value.values(Name.fromString("add"))
+          assert(documented.access == cm.Access.Public)
+          assert(documented.value.doc.isEmpty)
+          assert(documented.value.value.body.access == cm.Access.Public)
 
-          val expectedBody = Value.applyInferType(
-            Basics.intType,
-            Basics.add,
-            Value.variable("left", Basics.intType),
-            Value.variable("right", Basics.intType)
-          )
-          assert(definition.body == expectedBody)
-          assert(definition.body.attributes == Basics.intType)
-          assert(definition.body.collectReferences == Set(FQName.fqn("Morphir.SDK", "Basics", "add")))
-        case other => assert(false, s"expected successful classic IR v3 compilation, got $other")
-    }
-
-    "rejects an unsupported IR version before producing IR" in {
-      ElmToMorphirIRCompiler.compile(input(version = MorphirIRVersion.V4_0)) match
-        case Result.Failure(CompileFailure(Chunk(CompileDiagnostic.UnsupportedIRVersion(version)))) =>
-          assert(version == MorphirIRVersion.V4_0)
-        case other => assert(false, s"expected unsupported IR version failure, got $other")
+          documented.value.value.body.value match
+            case cm.ValueDefinitionBody.ExpressionBody(inputTypes, outputType, body) =>
+              assert(inputTypes == Chunk(
+                cm.Parameter(Name.fromString("left"), ElmCodeModel.intType),
+                cm.Parameter(Name.fromString("right"), ElmCodeModel.intType)
+              ))
+              assert(outputType == ElmCodeModel.intType)
+              body match
+                case cm.Expr.Apply(
+                      attributes,
+                      cm.Expr.Apply(
+                        innerAttributes,
+                        cm.Expr.Reference(referenceAttributes, reference),
+                        cm.Expr.Variable(leftAttributes, left)
+                      ),
+                      cm.Expr.Variable(rightAttributes, right)
+                    ) =>
+                  assert(reference == FQName.fqn("Morphir.SDK", "Basics", "add"))
+                  assert(left == Name.fromString("left"))
+                  assert(right == Name.fromString("right"))
+                  assert(
+                    Seq(attributes, innerAttributes, referenceAttributes, leftAttributes, rightAttributes)
+                      .forall(_.inferredType.contains(ElmCodeModel.intType))
+                  )
+                case other => assert(false, s"expected curried Morphir SDK addition, got $other")
+            case other => assert(false, s"expected an expression body, got $other")
+        case other => assert(false, s"expected successful Kyo code-model compilation, got $other")
     }
 
     "preserves the parser diagnostic and source span" in {
@@ -202,7 +203,7 @@ class ElmToMorphirIRCompilerTests extends Test[Any]:
       )
 
       ElmToMorphirIRCompiler.compile(input(sourceText = multilineHeader)) match
-        case Result.Success(MorphirIRFile(MorphirIRVersion.V3_0, _)) => succeed
+        case Result.Success(_: cm.Distribution.Library) => succeed
         case other => assert(false, s"expected successful multiline-header compilation, got $other")
     }
 

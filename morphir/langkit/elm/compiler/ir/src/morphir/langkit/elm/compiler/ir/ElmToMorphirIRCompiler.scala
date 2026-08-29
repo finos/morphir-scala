@@ -7,17 +7,14 @@ import morphir.langkit.elm.ast
 import morphir.langkit.elm.compiler.ParseDiagnostic
 import morphir.langkit.elm.cst.{CstModule, CstPattern, CstValueDeclaration, CstVariablePattern}
 import morphir.langkit.elm.parser.CstLowering
-import org.finos.morphir.ir.*
-import org.finos.morphir.ir.distribution.Distribution
-import org.finos.morphir.ir.sdk.Basics
+import org.finos.morphir.codemodel as cm
 import org.finos.morphir.naming.*
 
 final case class CompileInput(
     source: String,
     packageName: PackageName,
     moduleName: ModuleName,
-    exposedValues: Set[Name],
-    irVersion: MorphirIRVersion
+    exposedValues: Set[Name]
 ) derives CanEqual
 
 final case class CompileFailure(diagnostics: Chunk[CompileDiagnostic]) derives CanEqual
@@ -33,7 +30,6 @@ enum CompileDiagnostic derives CanEqual:
   case UnsupportedPattern(kind: String, span: Span)
   case ModuleNameMismatch(expected: ModuleName, actual: ModuleName, span: Span)
   case ExposedNameMismatch(expected: Set[Name], actual: Set[Name], span: Span)
-  case UnsupportedIRVersion(version: MorphirIRVersion)
   case UnsupportedExposure(kind: String, span: Span)
   case AnnotationNameMismatch(annotationName: String, declarationName: String, span: Span)
   case DuplicateParameter(name: String, span: Span)
@@ -50,7 +46,6 @@ enum CompileDiagnostic derives CanEqual:
     case UnsupportedPattern(_, _)        => "ELM-IR008"
     case ModuleNameMismatch(_, _, _)     => "ELM-IR009"
     case ExposedNameMismatch(_, _, _)    => "ELM-IR010"
-    case UnsupportedIRVersion(_)         => "ELM-IR011"
     case UnsupportedExposure(_, _)       => "ELM-IR012"
     case AnnotationNameMismatch(_, _, _) => "ELM-IR013"
     case DuplicateParameter(_, _)        => "ELM-IR014"
@@ -58,33 +53,30 @@ enum CompileDiagnostic derives CanEqual:
 
 object ElmToMorphirIRCompiler:
 
-  def compile(input: CompileInput): Result[CompileFailure, MorphirIRFile] =
-    if input.irVersion != MorphirIRVersion.V3_0 then
-      Result.fail(CompileFailure(Chunk(CompileDiagnostic.UnsupportedIRVersion(input.irVersion))))
-    else
-      Elm.parseCst(input.source).fold(
-        diagnostic =>
-          malformedModuleHeaderSpan(input.source, diagnostic) match
-            case Some(span) =>
-              Result.fail(CompileFailure(Chunk(CompileDiagnostic.MalformedModuleHeader(span))))
-            case None =>
-              Result.fail(CompileFailure(Chunk(CompileDiagnostic.ParserFailure(diagnostic)))),
-        cst =>
-          annotationNameMismatch(cst) match
-            case Some((annotationName, declarationName, span)) =>
-              Result.fail(
-                CompileFailure(
-                  Chunk(CompileDiagnostic.AnnotationNameMismatch(annotationName, declarationName, span))
-                )
+  def compile(input: CompileInput): Result[CompileFailure, cm.Distribution] =
+    Elm.parseCst(input.source).fold(
+      diagnostic =>
+        malformedModuleHeaderSpan(input.source, diagnostic) match
+          case Some(span) =>
+            Result.fail(CompileFailure(Chunk(CompileDiagnostic.MalformedModuleHeader(span))))
+          case None =>
+            Result.fail(CompileFailure(Chunk(CompileDiagnostic.ParserFailure(diagnostic)))),
+      cst =>
+        annotationNameMismatch(cst) match
+          case Some((annotationName, declarationName, span)) =>
+            Result.fail(
+              CompileFailure(
+                Chunk(CompileDiagnostic.AnnotationNameMismatch(annotationName, declarationName, span))
               )
-            case None =>
-              duplicateParameter(cst) match
-                case Some((name, span)) =>
-                  Result.fail(CompileFailure(Chunk(CompileDiagnostic.DuplicateParameter(name, span))))
-                case None => compileModule(input, CstLowering.lowerModule(cst))
-      )
+            )
+          case None =>
+            duplicateParameter(cst) match
+              case Some((name, span)) =>
+                Result.fail(CompileFailure(Chunk(CompileDiagnostic.DuplicateParameter(name, span))))
+              case None => compileModule(input, CstLowering.lowerModule(cst))
+    )
 
-  private def compileModule(input: CompileInput, module: ast.Module): Result[CompileFailure, MorphirIRFile] =
+  private def compileModule(input: CompileInput, module: ast.Module): Result[CompileFailure, cm.Distribution] =
     validateModule(input, module) match
       case Some(diagnostic) => Result.fail(CompileFailure(Chunk(diagnostic)))
       case None             =>
@@ -145,7 +137,7 @@ object ElmToMorphirIRCompiler:
       input: CompileInput,
       module: ast.Module,
       declaration: ast.ValueDeclaration
-  ): Result[CompileFailure, MorphirIRFile] =
+  ): Result[CompileFailure, cm.Distribution] =
     val declaredValues = Set(Name.fromString(declaration.name))
     if declaredValues != input.exposedValues then
       Result.fail(
@@ -197,7 +189,7 @@ object ElmToMorphirIRCompiler:
       input: CompileInput,
       module: ast.Module,
       declaration: ast.ValueDeclaration
-  ): Result[CompileFailure, MorphirIRFile] =
+  ): Result[CompileFailure, cm.Distribution] =
     unsupportedExpression(declaration) match
       case Some((kind, span)) =>
         Result.fail(CompileFailure(Chunk(CompileDiagnostic.UnsupportedExpression(kind, span))))
@@ -420,27 +412,56 @@ object ElmToMorphirIRCompiler:
       input: CompileInput,
       module: ast.Module,
       declaration: ast.ValueDeclaration
-  ): MorphirIRFile =
+  ): cm.Distribution =
     val parameterNames = declaration.parameters.collect { case ast.VariablePattern(name) => name }
-    val addDefinition  = Value.Definition.Typed(
-      parameterNames.map(_ -> Basics.intType)*
-    )(Basics.intType) {
-      Value.applyInferType(
-        Basics.intType,
-        Basics.add,
-        parameterNames.map(Value.variable(_, Basics.intType))*
+    val parameters = Chunk.from(parameterNames.map(name => cm.Parameter(Name.fromString(name), ElmCodeModel.intType)))
+    val addDefinition = cm.ValueDefinition(
+      cm.AccessControlled(
+        cm.Access.Public,
+        cm.ValueDefinitionBody.ExpressionBody(
+          inputTypes = parameters,
+          outputType = ElmCodeModel.intType,
+          body = ElmCodeModel.addVariables(parameters(0).name, parameters(1).name)
+        )
       )
-    }
-    val moduleDefinition = Module.Definition(
+    )
+    val moduleDefinition = cm.ModuleDefinition(
       types = Map.empty,
       values = Map(
-        Name.fromString(declaration.name) -> AccessControlled.publicAccess(Documented("", addDefinition))
+        Name.fromString(declaration.name) -> cm.AccessControlled(
+          cm.Access.Public,
+          cm.Documented(None, addDefinition)
+        )
       )
     )
-    val packageDefinition = PackageModule.Definition.Typed(
-      Map(input.moduleName -> AccessControlled.publicAccess(moduleDefinition))
+    val packageDefinition = cm.PackageDefinition(
+      Map(input.moduleName -> cm.AccessControlled(cm.Access.Public, moduleDefinition))
     )
-    MorphirIRFile(
-      input.irVersion,
-      Distribution.Library(input.packageName, dependencies = Map.empty, packageDefinition)
+    cm.Distribution.Library(
+      cm.LibraryDistribution(
+        packageInfo = cm.PackageInfo(input.packageName, version = ""),
+        definition = packageDefinition,
+        dependencies = Map.empty
+      )
+    )
+
+object ElmCodeModel:
+  val intType: cm.Type = cm.Type.Reference(
+    cm.TypeAttributes.empty,
+    FQName.fqn("Morphir.SDK", "Basics", "Int"),
+    Chunk.empty
+  )
+
+  private val integerAttributes = cm.ValueAttributes.empty.copy(inferredType = Some(intType))
+  private val addReference      = FQName.fqn("Morphir.SDK", "Basics", "add")
+
+  def addVariables(left: Name, right: Name): cm.Expr =
+    cm.Expr.Apply(
+      integerAttributes,
+      cm.Expr.Apply(
+        integerAttributes,
+        cm.Expr.Reference(integerAttributes, addReference),
+        cm.Expr.Variable(integerAttributes, left)
+      ),
+      cm.Expr.Variable(integerAttributes, right)
     )
