@@ -21,6 +21,18 @@ object CliReleaseTests extends TestSuite:
         CliRelease.nativeArchiveName(CliRelease.Platform.LinuxAarch64, "0.6.0-M01") ==
           "morphir-cli-linux-aarch64-0.6.0-M01.tar.gz"
       )
+      val mepAssets = CliRelease.Platform.values.map(platform =>
+        platform.token -> CliRelease.mepAssetName(platform, "0.6.0-M01")
+      ).toMap
+      assert(
+        mepAssets == Map(
+          "mac-aarch64"   -> "morphir-scala-elm-mac-aarch64-0.6.0-M01",
+          "mac-amd64"     -> "morphir-scala-elm-mac-amd64-0.6.0-M01",
+          "linux-amd64"   -> "morphir-scala-elm-linux-amd64-0.6.0-M01",
+          "linux-aarch64" -> "morphir-scala-elm-linux-aarch64-0.6.0-M01",
+          "win-amd64"     -> "morphir-scala-elm-win-amd64-0.6.0-M01.exe"
+        )
+      )
       assert(CliRelease.jvmAssetName("0.6.0-M01") == "morphir-cli-jvm-0.6.0-M01.jar")
 
     test("reads the final nonblank line from command output"):
@@ -78,6 +90,22 @@ object CliReleaseTests extends TestSuite:
       assert(os.read(asset) == "assembly")
       assert(os.read(os.Path(asset.toString + ".sha256")).endsWith(s"  ${asset.last}\n"))
 
+    test("copies the MEP executable out of the native-image output"):
+      val root       = os.temp.dir(prefix = "morphir-mep-release-", deleteOnExit = true)
+      val executable = root / "out" / "morphir-elm-mep"
+      os.write(executable, Array[Byte](7, 8, 9), createFolders = true)
+
+      val asset = CliRelease.packageMepNative(
+        CliRelease.Platform.MacAarch64,
+        "0.6.0-M01",
+        executable,
+        root / "release"
+      )
+
+      assert(asset.last == "morphir-scala-elm-mac-aarch64-0.6.0-M01")
+      assert(os.read.bytes(asset).toSeq == Seq[Byte](7, 8, 9))
+      assert(os.isFile(os.Path(asset.toString + ".sha256")))
+
     test("checksums assets that span multiple digest buffer reads"):
       val root     = os.temp.dir(prefix = "morphir-cli-release-large-jvm-", deleteOnExit = true)
       val assembly = root / "out.jar"
@@ -96,6 +124,7 @@ object CliReleaseTests extends TestSuite:
       os.write(executable, Array[Byte](1, 2, 3), createFolders = true)
       os.write(assembly, "assembly")
       CliRelease.packageNative(CliRelease.Platform.WinAmd64, "0.6.0-M01", executable, root / "release")
+      CliRelease.packageMepNative(CliRelease.Platform.WinAmd64, "0.6.0-M01", executable, root / "release")
       CliRelease.packageJvm("0.6.0-M01", assembly, root / "release")
 
       val result = CliRelease.verifyAndWriteChecksums(
@@ -106,7 +135,33 @@ object CliReleaseTests extends TestSuite:
       )
 
       assert(result.isRight)
-      assert(os.read.lines(root / "release" / "checksums.txt").size == 2)
+      assert(os.read.lines(root / "release" / "checksums.txt").size == 3)
+
+    test("verification rejects an omitted or misnamed MEP executable"):
+      val root       = os.temp.dir(prefix = "morphir-mep-release-missing-", deleteOnExit = true)
+      val executable = root / "image" / "native-executable"
+      os.write(executable, Array[Byte](1, 2, 3), createFolders = true)
+      CliRelease.packageNative(CliRelease.Platform.LinuxAmd64, "0.6.0-M01", executable, root / "release")
+
+      val omitted = CliRelease.verifyAndWriteChecksums(
+        root / "release",
+        "0.6.0-M01",
+        Seq(CliRelease.Platform.LinuxAmd64),
+        includeJvm = false
+      )
+      assert(
+        omitted.left.exists(_.contains("missing release asset: morphir-scala-elm-linux-amd64-0.6.0-M01"))
+      )
+
+      val wrongName = root / "release" / "morphir-scala-elm-linux-x64-0.6.0-M01"
+      os.write(wrongName, Array[Byte](4, 5, 6))
+      val misnamed = CliRelease.verifyAndWriteChecksums(
+        root / "release",
+        "0.6.0-M01",
+        Seq(CliRelease.Platform.LinuxAmd64),
+        includeJvm = false
+      )
+      assert(misnamed.left.exists(_.exists(_.startsWith("unexpected release file:"))))
 
     test("verification reports a corrupt asset without replacing its sidecar"):
       val root       = os.temp.dir(prefix = "morphir-cli-release-corrupt-", deleteOnExit = true)
@@ -119,6 +174,7 @@ object CliReleaseTests extends TestSuite:
         executable,
         root / "release"
       )
+      CliRelease.packageMepNative(CliRelease.Platform.WinAmd64, "0.6.0-M01", executable, root / "release")
       val originalSidecar = os.read(os.Path(asset.toString + ".sha256"))
       os.write.append(asset, Array[Byte](9))
 

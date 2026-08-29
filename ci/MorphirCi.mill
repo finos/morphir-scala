@@ -5,7 +5,7 @@ import build.{`mill-plugins` => millPlugins}
 import build.{morphir => morphirArea}
 import mill.*
 import mill.api.{BuildCtx, DefaultTaskModule, Evaluator, ModuleRef, Result, SelectMode, TaskCtx}
-import millbuild.{CliRelease, JsTestSelectors, LintSelectors, MillVersions, NativeTestSelectors}
+import millbuild.{CliRelease, JsTestSelectors, LintSelectors, MepNativeImageSmoke, MillVersions, NativeTestSelectors}
 import org.finos.morphir.mill.publish.{MillPublishEnvFile, MillSonatypeEnv, PgpSecret, PublishSelectors}
 
 /** One independently versioned area, as [[MorphirCiModule.releaseAreas]] reports it. */
@@ -168,6 +168,18 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
 
     def version = Task { morphirArea.main.publishVersion() }
 
+    def writeMepVersionEnv(path: String) = Task.Command(exclusive = true) {
+      require(path.nonEmpty, "ci.cli.writeMepVersionEnv: --path is required")
+      val releaseVersion = version()
+      val destination    = os.Path(path, BuildCtx.workspaceRoot)
+      os.write.append(
+        destination,
+        s"MORPHIR_ELM_MEP_VERSION=$releaseVersion\n",
+        createFolders = true
+      )
+      Task.log.info(s"ci.cli: exported Elm MEP provider version to $destination")
+    }
+
     def packageNative(platform: String) = Task.Command(exclusive = true) {
       val selected = CliRelease.Platform
         .fromToken(platform)
@@ -190,6 +202,21 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
         os.Path(releaseDirPath())
       )
       Task.log.info(s"ci.cli: packaged ${asset.last}")
+
+      val mepProviderVersion = morphirArea.langkit.elm.compiler.mep.jvm.mepProviderVersion()
+      if mepProviderVersion != releaseVersion then
+        throw new Exception(
+          s"ci.cli.packageNative: Elm MEP provider version '$mepProviderVersion' does not match release version '$releaseVersion'"
+        )
+      morphirArea.langkit.elm.compiler.mep.jvm.nativeImageSmoke()
+      val mepAsset = CliRelease.packageMepNative(
+        selected,
+        releaseVersion,
+        morphirArea.langkit.elm.compiler.mep.jvm.nativeImage().path,
+        os.Path(releaseDirPath())
+      )
+      MepNativeImageSmoke.verify(mepAsset, releaseVersion)
+      Task.log.info(s"ci.cli: packaged ${mepAsset.last}")
     }
 
     def packageJvm() = Task.Command(exclusive = true) {
@@ -272,6 +299,8 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
             physicalPath(downloaded),
             "--pattern",
             "morphir-cli-*",
+            "--pattern",
+            "morphir-scala-elm-*",
             "--pattern",
             "checksums.txt"
           ).call(cwd = BuildCtx.workspaceRoot)

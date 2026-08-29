@@ -968,6 +968,33 @@ object SquireCiPolicy:
       "ci must fail unless every required job result is success"
     )
 
+  def assertElmMepReleasePolicy(workflow: String, ciScript: String): Unit =
+    val nativeJob = indentedBlock(workflow, "cli-package-native:", 2)
+    expect(
+      nativeJob.contains("- name: Resolve Elm MEP provider version"),
+      "native packaging must resolve the Elm MEP provider version before building"
+    )
+    expect(
+      nativeJob.contains("ci.cli.writeMepVersionEnv --path $env:GITHUB_ENV"),
+      "native packaging must export the exact resolved release version before the packaging Mill starts"
+    )
+    expect(
+      nativeJob.contains("morphir.langkit.elm.compiler.mep.jvm.nativeImageSmoke"),
+      "native packaging must retain the Elm MEP executable smoke"
+    )
+    expect(
+      ciScript.contains("CliRelease.packageMepNative("),
+      "ci.cli.packageNative must copy the Elm MEP executable into durable release staging"
+    )
+    expect(
+      ciScript.contains("MORPHIR_ELM_MEP_VERSION=$releaseVersion"),
+      "the release-version export must inject the value read by Elm MEP BuildInfo"
+    )
+    expect(
+      ciScript.contains("\"morphir-scala-elm-*\""),
+      "published release verification must download Elm MEP assets"
+    )
+
   def replaceInJob(workflow: String, jobName: String, oldValue: String, newValue: String): String =
     val job = indentedBlock(workflow, jobName, 2)
     if !job.contains(oldValue) then fail(s"mutation target not found in $jobName: $oldValue")
@@ -2443,6 +2470,36 @@ class SquireCiPolicySpec extends Test[Any]:
         case (mutation, index) if !rejects(assertMorphirCachePolicy, mutation) => index
       }
       assert(acceptedUnnamedMutations.isEmpty, s"unnamed cache mutations accepted: $acceptedUnnamedMutations")
+    }
+
+    "carries Elm MEP executables through native packaging and release verification" in {
+      assertElmMepReleasePolicy(workflow, sonatypePublishTask)
+
+      val missingVersionInjection = replaceInJob(
+        replaceInJob(
+          workflow,
+          "cli-package-native:",
+          "ci.cli.writeMepVersionEnv --path $env:GITHUB_ENV",
+          "ci.cli.version"
+        ),
+        "cli-package-native:",
+        "ci.cli.writeMepVersionEnv --path $env:GITHUB_ENV",
+        "ci.cli.version"
+      )
+      val missingPackageCopy = replaceOnce(
+        sonatypePublishTask,
+        "CliRelease.packageMepNative(",
+        "CliRelease.packageNative("
+      )
+      val misnamedDownload = replaceOnce(
+        sonatypePublishTask,
+        "\"morphir-scala-elm-*\"",
+        "\"morphir-elm-*\""
+      )
+
+      assert(rejects(assertElmMepReleasePolicy(_, sonatypePublishTask), missingVersionInjection))
+      assert(scala.util.Try(assertElmMepReleasePolicy(workflow, missingPackageCopy)).isFailure)
+      assert(scala.util.Try(assertElmMepReleasePolicy(workflow, misnamedDownload)).isFailure)
     }
 
     "runs Squire policy in a dedicated parallel CI job" in {

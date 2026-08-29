@@ -55,6 +55,10 @@ object CliRelease:
   def jvmAssetName(version: String): String =
     s"morphir-cli-jvm-${safeVersion(version)}.jar"
 
+  def mepAssetName(platform: Platform, version: String): String =
+    s"morphir-scala-elm-${platform.token}-${safeVersion(version)}" +
+      (if platform == Platform.WinAmd64 then ".exe" else "")
+
   def lastNonBlankLine(output: String): Option[String] =
     output.linesIterator.map(_.trim).filter(_.nonEmpty).toSeq.lastOption
 
@@ -86,6 +90,16 @@ object CliRelease:
     writeSidecar(asset)
     asset
 
+  def packageMepNative(platform: Platform, version: String, executable: os.Path, releaseDir: os.Path): os.Path =
+    require(os.isFile(executable), s"Elm MEP native executable does not exist: $executable")
+    os.makeDir.all(releaseDir)
+    val asset = releaseDir / mepAssetName(platform, version)
+    os.copy.over(executable, asset)
+    if platform != Platform.WinAmd64 then
+      require(asset.toIO.setExecutable(true, false), s"could not make Elm MEP release asset executable: $asset")
+    writeSidecar(asset)
+    asset
+
   def verifyAndWriteChecksums(
       releaseDir: os.Path,
       version: String,
@@ -94,7 +108,7 @@ object CliRelease:
   ): Either[Seq[String], Seq[String]] =
     if platforms.isEmpty && !includeJvm then Left(Seq("no CLI release assets requested"))
     else
-      val nativeNames   = platforms.map(nativeArchiveName(_, version))
+      val nativeNames   = platforms.flatMap(platform => Seq(nativeArchiveName(platform, version), mepAssetName(platform, version)))
       val assetNames    = nativeNames ++ Option.when(includeJvm)(jvmAssetName(version))
       val expectedFiles = assetNames.flatMap(name => Seq(name, s"$name.sha256")).toSet + "checksums.txt"
       val presentFiles  =
