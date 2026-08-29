@@ -1,6 +1,7 @@
 package morphir.langkit.elm.compiler.mep
 
 import java.nio.charset.StandardCharsets.UTF_8
+import kyo.*
 import kyo.test.*
 
 class MepFrameCodecTests extends Test[Any]:
@@ -88,7 +89,7 @@ class MepFrameCodecTests extends Test[Any]:
     "rejects duplicate Content-Length headers" in {
       val bytes = "Content-Length: 2\r\ncontent-length: 2\r\n\r\n{}".getBytes(UTF_8)
 
-      assert(MepFrameCodec.decoder().feed(bytes).error == Some(MepFrameError("duplicate Content-Length")))
+      assert(MepFrameCodec.decoder().feed(bytes).error == Present(MepFrameError("duplicate Content-Length")))
     }
 
     "decodes coalesced frames in one feed" in {
@@ -106,17 +107,20 @@ class MepFrameCodecTests extends Test[Any]:
       val outcome = MepFrameCodec.decoder().feed(MepFrameCodec.encode(valid) ++ malformed)
 
       assert(outcome.frames.map(_.toSeq) == Vector(valid.toSeq))
-      assert(outcome.error == Some(MepFrameError("invalid Content-Length")))
+      assert(outcome.error == Present(MepFrameError("invalid Content-Length")))
     }
 
     "stays terminal after a framing error" in {
       val decoder = MepFrameCodec.decoder()
-      val error   = decoder.feed("Content-Length: nope\r\n\r\n".getBytes(UTF_8)).error.get
+      val error   = decoder
+        .feed("Content-Length: nope\r\n\r\n".getBytes(UTF_8))
+        .error
+        .getOrElse(throw AssertionError("expected a framing error"))
 
       val afterError = decoder.feed(MepFrameCodec.encodeJson("{}"))
 
       assert(afterError.frames.isEmpty)
-      assert(afterError.error == Some(error))
+      assert(afterError.error == Present(error))
     }
 
     "produces the same completed frames and error across a chunk boundary" in {
@@ -146,13 +150,13 @@ class MepFrameCodecTests extends Test[Any]:
     "rejects a missing Content-Length header" in {
       val result = MepFrameCodec.decoder().feed("Content-Type: application/json\r\n\r\n{}".getBytes(UTF_8))
 
-      assert(result.error == Some(MepFrameError("missing Content-Length")))
+      assert(result.error == Present(MepFrameError("missing Content-Length")))
     }
 
     "rejects a nonempty header line without a colon" in {
       val result = MepFrameCodec.decoder().feed("invalid\r\nContent-Length: 2\r\n\r\n{}".getBytes(UTF_8))
 
-      assert(result.error == Some(MepFrameError("invalid header line")))
+      assert(result.error == Present(MepFrameError("invalid header line")))
     }
 
     "rejects malformed UTF-8 in frame headers" in {
@@ -160,49 +164,49 @@ class MepFrameCodecTests extends Test[Any]:
 
       val result = MepFrameCodec.decoder().feed(malformed)
 
-      assert(result.error == Some(MepFrameError("invalid header encoding")))
+      assert(result.error == Present(MepFrameError("invalid header encoding")))
     }
 
     "rejects non-ASCII frame header names" in {
       val result = MepFrameCodec.decoder().feed("X-λ: value\r\nContent-Length: 2\r\n\r\n{}".getBytes(UTF_8))
 
-      assert(result.error == Some(MepFrameError("non-ASCII frame header")))
+      assert(result.error == Present(MepFrameError("non-ASCII frame header")))
     }
 
     "rejects a malformed Content-Length value" in {
       val result = MepFrameCodec.decoder().feed("Content-Length: 2.5\r\n\r\n{}".getBytes(UTF_8))
 
-      assert(result.error == Some(MepFrameError("invalid Content-Length")))
+      assert(result.error == Present(MepFrameError("invalid Content-Length")))
     }
 
     "rejects non-ASCII Content-Length digits" in {
       val result = MepFrameCodec.decoder().feed("Content-Length: ٢\r\n\r\n{}".getBytes(UTF_8))
 
-      assert(result.error == Some(MepFrameError("invalid Content-Length")))
+      assert(result.error == Present(MepFrameError("invalid Content-Length")))
     }
 
     "rejects a signed Content-Length value" in {
       val result = MepFrameCodec.decoder().feed("Content-Length: +2\r\n\r\n{}".getBytes(UTF_8))
 
-      assert(result.error == Some(MepFrameError("invalid Content-Length")))
+      assert(result.error == Present(MepFrameError("invalid Content-Length")))
     }
 
     "rejects a negative Content-Length value" in {
       val result = MepFrameCodec.decoder().feed("Content-Length: -1\r\n\r\n".getBytes(UTF_8))
 
-      assert(result.error == Some(MepFrameError("invalid Content-Length")))
+      assert(result.error == Present(MepFrameError("invalid Content-Length")))
     }
 
     "rejects an oversized length before receiving or allocating its body" in {
       val result = MepFrameCodec.decoder(maxPayloadBytes = 4).feed("Content-Length: 5\r\n\r\n".getBytes(UTF_8))
 
-      assert(result.error == Some(MepFrameError("payload exceeds 4 bytes")))
+      assert(result.error == Present(MepFrameError("payload exceeds 4 bytes")))
     }
 
     "bounds the frame header" in {
       val result = MepFrameCodec.decoder(maxHeaderBytes = 4).feed("Conte".getBytes(UTF_8))
 
-      assert(result.error == Some(MepFrameError("header exceeds 4 bytes")))
+      assert(result.error == Present(MepFrameError("header exceeds 4 bytes")))
     }
 
     "accepts an exact-limit header when a CRLF delimiter arrives fragmented" in {
@@ -212,7 +216,7 @@ class MepFrameCodecTests extends Test[Any]:
       val fragments      = Vector("\r", "\n", "\r", "\n{}")
       val decoder        = MepFrameCodec.decoder(maxHeaderBytes = maxHeaderBytes)
       decoder.feed(header.getBytes(UTF_8))
-      val result = fragments.foldLeft(MepFrameFeedOutcome(Vector.empty, None)) { case (_, fragment) =>
+      val result = fragments.foldLeft(MepFrameFeedOutcome(Vector.empty, Absent)) { case (_, fragment) =>
         decoder.feed(fragment.getBytes(UTF_8))
       }
 
@@ -235,13 +239,13 @@ class MepFrameCodecTests extends Test[Any]:
       val decoder = MepFrameCodec.decoder()
       decoder.feed("Content-Length: 4\r\n\r\n{}".getBytes(UTF_8))
 
-      assert(decoder.finish == Left(MepFrameError("truncated frame body")))
+      assert(decoder.finish == Result.fail(MepFrameError("truncated frame body")))
     }
 
     "reports a truncated header at EOF" in {
       val decoder = MepFrameCodec.decoder()
       decoder.feed("Content-Len".getBytes(UTF_8))
 
-      assert(decoder.finish == Left(MepFrameError("truncated frame header")))
+      assert(decoder.finish == Result.fail(MepFrameError("truncated frame header")))
     }
   }

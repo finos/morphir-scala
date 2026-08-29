@@ -43,4 +43,4 @@ final case class JsonDependency(packageName: String, irVersion: String, distribu
     derives CanEqual
 
 enum SessionState derives CanEqual:
-  case Loaded, Ready, Stopped
+  case Loaded, Ready, AwaitExit, Stopped

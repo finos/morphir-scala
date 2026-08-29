@@ -3,8 +3,9 @@ package morphir.langkit.elm.compiler.mep
 import java.nio.charset.StandardCharsets.UTF_8
 import java.nio.ByteBuffer
 import java.nio.charset.{CharacterCodingException, CodingErrorAction}
+import kyo.*
 
-final case class MepFrameFeedOutcome(frames: Vector[Array[Byte]], error: Option[MepFrameError])
+final case class MepFrameFeedOutcome(frames: Vector[Array[Byte]], error: Maybe[MepFrameError])
 
 final case class MepFrameError(message: String) derives CanEqual
 
@@ -38,15 +39,17 @@ final class MepFrameDecoder private[mep] (
 
   def feed(bytes: Array[Byte]): MepFrameFeedOutcome =
     terminalError match
-      case Some(error) => MepFrameFeedOutcome(Vector.empty, Some(error))
+      case Some(error) => MepFrameFeedOutcome(Vector.empty, Present(error))
       case None        => MepFrameCodec.feed(this, bytes)
 
-  def finish: Either[MepFrameError, Unit] = terminalError.toLeft(()).flatMap { _ =>
-    state match
-      case ReadingHeader(_, 0) => Right(())
-      case _: ReadingHeader    => Left(MepFrameError("truncated frame header"))
-      case _: ReadingBody      => Left(MepFrameError("truncated frame body"))
-  }
+  def finish: Result[MepFrameError, Unit] =
+    terminalError match
+      case Some(error) => Result.fail(error)
+      case None        =>
+        state match
+          case ReadingHeader(_, 0) => Result.succeed(())
+          case _: ReadingHeader    => Result.fail(MepFrameError("truncated frame header"))
+          case _: ReadingBody      => Result.fail(MepFrameError("truncated frame body"))
 
   private[mep] def hasAllocatedBody: Boolean = state.isInstanceOf[ReadingBody]
 
@@ -111,7 +114,7 @@ object MepFrameCodec:
 
         case body @ ReadingBody(buffer, received) =>
           val copied = Math.min(buffer.length - received, input.length - offset)
-          System.arraycopy(input, offset, buffer, received, copied)
+          java.lang.System.arraycopy(input, offset, buffer, received, copied)
           offset += copied
           val nextReceived = received + copied
           if nextReceived == buffer.length then
@@ -121,7 +124,7 @@ object MepFrameCodec:
 
     decoder.update(state, allocations)
     failure.foreach(decoder.markTerminal)
-    MepFrameFeedOutcome(frames.result(), failure)
+    MepFrameFeedOutcome(frames.result(), Maybe.fromOption(failure))
 
   private def delimiterLengthAtEnd(bytes: Array[Byte], length: Int): Option[Int] =
     if length >= 4 && bytes(length - 4) == 13 && bytes(length - 3) == 10 && bytes(length - 2) == 13 &&

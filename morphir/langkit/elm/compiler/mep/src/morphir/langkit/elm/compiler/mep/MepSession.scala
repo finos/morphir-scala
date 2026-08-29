@@ -31,6 +31,9 @@ final case class MepSession private (state: SessionState, provider: ProviderMeta
       case Right(Json.Obj(fields)) if state == SessionState.Stopped =>
         val response = fields.toMap.get("id").map(id => error(id, -32600, "The MEP session is stopped").toJson)
         SessionTransition(this, response)
+      case Right(Json.Obj(fields)) if state == SessionState.AwaitExit =>
+        val response = fields.toMap.get("id").map(id => error(id, -32600, "The MEP session is awaiting exit").toJson)
+        SessionTransition(this, response)
       case Right(Json.Obj(fields))
           if fields.toMap.get("method") == Some(Json.Str("morphir.ping")) &&
             fields.toMap.get("params").forall(_.isInstanceOf[Json.Obj]) =>
@@ -55,7 +58,7 @@ final case class MepSession private (state: SessionState, provider: ProviderMeta
       SessionTransition(this, None)
     else if fields.get("method") == Some(Json.Str("morphir.shutdown")) && !fields.contains("id") &&
       fields.get("params").forall(_.isInstanceOf[Json.Obj])
-    then SessionTransition(copy(state = SessionState.Stopped), None)
+    then SessionTransition(copy(state = SessionState.AwaitExit), None)
     else if fields.get("method") == Some(Json.Str("morphir.shutdown")) && !fields.contains("id") then
       SessionTransition(this, None)
     else if fields.get("method") == Some(Json.Str("morphir.extension.info")) &&
@@ -81,7 +84,7 @@ final case class MepSession private (state: SessionState, provider: ProviderMeta
         case (Some(Json.Str("morphir.initialize")), Some(id)) =>
           SessionTransition(this, Some(error(id, -32600, "The MEP session is already initialized").toJson))
         case (Some(Json.Str("morphir.shutdown")), Some(id)) if fields.get("params").forall(_.isInstanceOf[Json.Obj]) =>
-          SessionTransition(copy(state = SessionState.Stopped), Some(success(id, Json.Obj()).toJson))
+          SessionTransition(copy(state = SessionState.AwaitExit), Some(success(id, Json.Obj()).toJson))
         case (Some(Json.Str("morphir.shutdown")), Some(id)) =>
           SessionTransition(this, Some(error(id, -32602, "morphir.shutdown parameters must be an object").toJson))
         case (Some(Json.Str("morphir.frontend.compile")), Some(id)) =>

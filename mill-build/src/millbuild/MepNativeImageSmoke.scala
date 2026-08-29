@@ -128,7 +128,8 @@ object MepNativeImageSmoke {
             |""".stripMargin
       )
     ),
-    request("shutdown", "morphir.shutdown", ujson.Obj())
+    request("shutdown", "morphir.shutdown", ujson.Obj()),
+    notification("morphir.exit")
   )
 
   private def request(id: String, method: String, params: ujson.Obj): ujson.Obj = ujson.Obj(
@@ -136,6 +137,11 @@ object MepNativeImageSmoke {
     "id"      -> id,
     "method"  -> method,
     "params"  -> params
+  )
+
+  private def notification(method: String): ujson.Obj = ujson.Obj(
+    "jsonrpc" -> "2.0",
+    "method"  -> method
   )
 
   private def compileParams(uri: String, module: String, source: String): ujson.Obj = ujson.Obj(

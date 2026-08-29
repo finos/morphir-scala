@@ -458,18 +458,18 @@ class MepSessionTests extends Test[Any]:
       assert(at(diagnostic, "location", "uri") == Some(Json.Str("file:///workspace/Example.elm")))
     }
 
-    "responds to shutdown and stops the process session" in {
+    "responds to shutdown and waits for exit" in {
       val transition = initializedSession.handle(
         """{"jsonrpc":"2.0","id":9,"method":"morphir.shutdown","params":{}}"""
       )
       val response = transition.response.flatMap(_.fromJson[Json].toOption).get
 
-      assert(transition.session.state == SessionState.Stopped)
+      assert(transition.session.state == SessionState.AwaitExit)
       assert(at(response, "result") == Some(Json.Obj()))
     }
 
-    "keeps reinitialize, compile, and unknown requests stopped after shutdown" in {
-      val stopped = initializedSession.handle(
+    "rejects reinitialize, compile, and unknown requests while awaiting exit" in {
+      val awaitingExit = initializedSession.handle(
         """{"jsonrpc":"2.0","id":9,"method":"morphir.shutdown","params":{}}"""
       ).session
       val requests = Vector(
@@ -477,19 +477,19 @@ class MepSessionTests extends Test[Any]:
         """{"jsonrpc":"2.0","id":31,"method":"morphir.frontend.compile","params":{}}""",
         """{"jsonrpc":"2.0","id":32,"method":"morphir.unknown","params":{}}"""
       )
-      val transitions = requests.map(stopped.handle)
+      val transitions = requests.map(awaitingExit.handle)
       val responses   = transitions.map(_.response.flatMap(_.fromJson[Json].toOption).get)
 
-      assert(transitions.forall(_.session.state == SessionState.Stopped))
+      assert(transitions.forall(_.session.state == SessionState.AwaitExit))
       assert(responses.forall(response => at(response, "error", "code") == Some(Json.Num(-32600))))
     }
 
     "accepts only an exit notification after shutdown without responding" in {
-      val stopped = initializedSession.handle(
+      val awaitingExit = initializedSession.handle(
         """{"jsonrpc":"2.0","id":9,"method":"morphir.shutdown","params":{}}"""
       ).session
 
-      val transition = stopped.handle("""{"jsonrpc":"2.0","method":"morphir.exit"}""")
+      val transition = awaitingExit.handle("""{"jsonrpc":"2.0","method":"morphir.exit"}""")
 
       assert(transition.session.state == SessionState.Stopped)
       assert(transition.response.isEmpty)
@@ -512,7 +512,7 @@ class MepSessionTests extends Test[Any]:
         """{"jsonrpc":"2.0","method":"morphir.shutdown"}"""
       )
 
-      assert(transition.session.state == SessionState.Stopped)
+      assert(transition.session.state == SessionState.AwaitExit)
       assert(transition.response.isEmpty)
     }
 

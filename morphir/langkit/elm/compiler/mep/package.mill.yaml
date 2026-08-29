@@ -6,7 +6,7 @@ object jvm:
   moduleDeps:
   - build.morphir.langkit.elm.compiler.ir.jvm
   - build.morphir.interop.zio.json.jvm
-  mvnDeps:
+  mvnDeps: !append
   - dev.zio::zio-json
   object test:
     extends: [ScalaTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps]

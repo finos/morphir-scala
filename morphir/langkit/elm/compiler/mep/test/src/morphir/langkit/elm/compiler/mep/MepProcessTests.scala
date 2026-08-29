@@ -1,21 +1,43 @@
 package morphir.langkit.elm.compiler.mep
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, PrintStream}
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, InputStream, PrintStream}
 import java.nio.charset.StandardCharsets.UTF_8
+import kyo.*
 import kyo.test.*
 import zio.json.*
 import zio.json.ast.Json
 
 class MepProcessTests extends Test[Any]:
 
+  private final class ChunkedInput(chunks: Vector[Array[Byte]]) extends InputStream:
+    private var index = 0
+    var chunksRead    = 0
+
+    override def read(): Int = throw UnsupportedOperationException("single-byte reads are not supported")
+
+    override def read(target: Array[Byte]): Int =
+      if index >= chunks.size then -1
+      else
+        val chunk = chunks(index)
+        java.lang.System.arraycopy(chunk, 0, target, 0, chunk.length)
+        index += 1
+        chunksRead += 1
+        chunk.length
+
   "MepProcess" - {
-    "writes only framed JSON-RPC to stdout and exits after shutdown" in {
+    "writes the shutdown response and waits for a later exit notification" in {
       val initialize =
         """{"jsonrpc":"2.0","id":1,"method":"morphir.initialize","params":{"protocolVersions":["0.1"],"host":{"name":"test-host","version":"1.0.0"}}}"""
       val shutdown = """{"jsonrpc":"2.0","id":2,"method":"morphir.shutdown","params":{}}"""
-      val stdin    = ByteArrayInputStream(MepFrameCodec.encodeJson(initialize) ++ MepFrameCodec.encodeJson(shutdown))
-      val stdout   = ByteArrayOutputStream()
-      val stderr   = ByteArrayOutputStream()
+      val exit     = """{"jsonrpc":"2.0","method":"morphir.exit"}"""
+      val stdin    = ChunkedInput(
+        Vector(
+          MepFrameCodec.encodeJson(initialize) ++ MepFrameCodec.encodeJson(shutdown),
+          MepFrameCodec.encodeJson(exit)
+        )
+      )
+      val stdout = ByteArrayOutputStream()
+      val stderr = ByteArrayOutputStream()
 
       val exitCode = MepProcess.run(stdin, stdout, PrintStream(stderr), ProviderMetadata.default)
       val decoder  = MepFrameCodec.decoder()
@@ -23,7 +45,8 @@ class MepProcessTests extends Test[Any]:
 
       assert(exitCode == 0)
       assert(decoded.frames.size == 2)
-      assert(decoder.finish == Right(()))
+      assert(stdin.chunksRead == 2)
+      assert(decoder.finish == Result.succeed(()))
       assert(decoded.frames.forall(frame => String(frame, UTF_8).startsWith("{\"jsonrpc\":\"2.0\"")))
       assert(stderr.size == 0)
     }
@@ -68,5 +91,19 @@ class MepProcessTests extends Test[Any]:
       assert(decoded.frames.size == 1)
       assert(String(decoded.frames.head, UTF_8).contains("\"protocolVersion\":\"0.1\""))
       assert(String(stderr.toByteArray, UTF_8).contains("invalid Content-Length"))
+    }
+
+    "reports EOF while awaiting the exit notification" in {
+      val initialize =
+        """{"jsonrpc":"2.0","id":1,"method":"morphir.initialize","params":{"protocolVersions":["0.1"],"host":{"name":"test-host","version":"1.0.0"}}}"""
+      val shutdown = """{"jsonrpc":"2.0","id":2,"method":"morphir.shutdown","params":{}}"""
+      val stdin    = ByteArrayInputStream(MepFrameCodec.encodeJson(initialize) ++ MepFrameCodec.encodeJson(shutdown))
+      val stdout   = ByteArrayOutputStream()
+      val stderr   = ByteArrayOutputStream()
+
+      val exitCode = MepProcess.run(stdin, stdout, PrintStream(stderr), ProviderMetadata.default)
+
+      assert(exitCode == 1)
+      assert(String(stderr.toByteArray, UTF_8).contains("EOF before morphir.exit"))
     }
   }
