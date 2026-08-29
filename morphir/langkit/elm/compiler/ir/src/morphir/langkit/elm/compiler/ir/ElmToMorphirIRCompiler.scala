@@ -10,6 +10,8 @@ import morphir.langkit.elm.parser.CstLowering
 import org.finos.morphir.codemodel as cm
 import org.finos.morphir.naming.*
 
+import scala.annotation.tailrec
+
 final case class CompileInput(
     source: String,
     packageName: PackageName,
@@ -324,7 +326,7 @@ object ElmToMorphirIRCompiler:
     declaration.typeAnnotation match
       case None      => Some("missing type annotation" -> declaration.span)
       case Some(tpe) =>
-        unsupportedType(tpe).orElse {
+        unsupportedTypeExpression(tpe).orElse {
           tpe match
             case ast.FunctionType(
                   ast.TypeReference(first),
@@ -333,13 +335,18 @@ object ElmToMorphirIRCompiler:
             case _ => Some("function signature" -> tpe.span)
         }
 
-  private def unsupportedType(tpe: ast.TypeExpression): Option[(String, Span)] =
-    tpe match
-      case reference @ ast.TypeReference(name) =>
-        if name.parts == List("Int") then None else Some(name.fullName -> reference.span)
-      case ast.FunctionType(from, to) =>
-        unsupportedType(from).orElse(unsupportedType(to))
-      case other => Some(typeKind(other) -> other.span)
+  private[ir] def unsupportedTypeExpression(tpe: ast.TypeExpression): Option[(String, Span)] =
+    @tailrec
+    def loop(remaining: List[ast.TypeExpression]): Option[(String, Span)] =
+      remaining match
+        case Nil                                           => None
+        case (reference @ ast.TypeReference(name)) :: tail =>
+          if name.parts == List("Int") then loop(tail)
+          else Some(name.fullName -> reference.span)
+        case ast.FunctionType(from, to) :: tail => loop(from :: to :: tail)
+        case other :: _                         => Some(typeKind(other) -> other.span)
+
+    loop(List(tpe))
 
   private def typeKind(tpe: ast.TypeExpression): String =
     tpe match

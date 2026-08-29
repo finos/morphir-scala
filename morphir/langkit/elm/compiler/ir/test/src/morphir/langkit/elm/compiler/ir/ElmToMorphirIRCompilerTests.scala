@@ -2,6 +2,8 @@ package morphir.langkit.elm.compiler.ir
 
 import kyo.*
 import kyo.test.*
+import morphir.langkit.core.Span
+import morphir.langkit.elm.ast
 import morphir.langkit.elm.ast.ModuleType
 import org.finos.morphir.codemodel as cm
 import org.finos.morphir.naming.*
@@ -238,6 +240,22 @@ class ElmToMorphirIRCompilerTests extends Test[Any]:
           assert(kind == "Float")
           assert(span.length >= "Float".length)
         case other => assert(false, s"expected unsupported type failure, got $other")
+    }
+
+    "rejects deeply nested unsupported Elm types without consuming the JVM stack" in {
+      val intSpan      = Span(0, 3)
+      val floatSpan    = Span(40_000, 5)
+      val intType      = ast.TypeReference(ast.QualifiedName(List("Int"))(intSpan))(intSpan)
+      val floatType    = ast.TypeReference(ast.QualifiedName(List("Float"))(floatSpan))(floatSpan)
+      val deeplyNested = List.fill(10_000)(()).foldLeft[ast.TypeExpression](floatType) { (result, _) =>
+        ast.FunctionType(intType, result)(Span(intSpan.offset, result.span.end - intSpan.offset))
+      }
+
+      ElmToMorphirIRCompiler.unsupportedTypeExpression(deeplyNested) match
+        case Some((kind, span)) =>
+          assert(kind == "Float")
+          assert(span == floatSpan)
+        case other => assert(false, s"expected deep unsupported type failure, got $other")
     }
 
     "rejects an annotation bound to a different declaration name" in {
