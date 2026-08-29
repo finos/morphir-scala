@@ -36,9 +36,6 @@ object MepProcess:
           case Result.Failure(frameError) =>
             error.println(frameError.message)
             1
-          case Result.Success(_) if session.state == SessionState.AwaitExit =>
-            error.println("EOF before morphir.exit")
-            1
           case Result.Success(_)   => 0
           case Result.Panic(cause) =>
             error.println(cause.getMessage)

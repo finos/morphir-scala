@@ -93,7 +93,7 @@ class MepProcessTests extends Test[Any]:
       assert(String(stderr.toByteArray, UTF_8).contains("invalid Content-Length"))
     }
 
-    "reports EOF while awaiting the exit notification" in {
+    "accepts EOF after the host acknowledges shutdown" in {
       val initialize =
         """{"jsonrpc":"2.0","id":1,"method":"morphir.initialize","params":{"protocolVersions":["0.1"],"host":{"name":"test-host","version":"1.0.0"}}}"""
       val shutdown = """{"jsonrpc":"2.0","id":2,"method":"morphir.shutdown","params":{}}"""
@@ -103,7 +103,7 @@ class MepProcessTests extends Test[Any]:
 
       val exitCode = MepProcess.run(stdin, stdout, PrintStream(stderr), ProviderMetadata.default)
 
-      assert(exitCode == 1)
-      assert(String(stderr.toByteArray, UTF_8).contains("EOF before morphir.exit"))
+      assert(exitCode == 0)
+      assert(stderr.size == 0)
     }
   }
