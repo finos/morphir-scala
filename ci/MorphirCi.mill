@@ -225,7 +225,7 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
     def packageNativeTransport(platform: String) = Task.Command(exclusive = true) {
       val selected       = nativeHost(platform, "packageNativeTransport")
       val releaseVersion = version()
-      val transport = CliRelease.packageNativeTransport(
+      val transport      = CliRelease.packageNativeTransport(
         selected,
         releaseVersion,
         os.Path(releaseDirPath()),
@@ -237,7 +237,7 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
     def extractNativeTransports(platforms: String = CliRelease.Platform.AllTokens) = Task.Command(exclusive = true) {
       val selected       = parsePlatforms(platforms)
       val releaseVersion = version()
-      val problems = selected.flatMap { platform =>
+      val problems       = selected.flatMap { platform =>
         val transport = os.Path(transportDirPath()) / CliRelease.nativeTransportName(platform, releaseVersion)
         CliRelease
           .extractNativeTransport(platform, releaseVersion, transport, os.Path(releaseDirPath()))
