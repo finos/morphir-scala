@@ -29,7 +29,7 @@ class MepElmFrontendTests extends Test[Any]:
     "classifies semantic request errors as invalid compile parameters" in {
       val result = MepElmFrontend.compile(Json.Obj())
 
-      assert(result == Left(MepCompileError.InvalidParams("languageId must be a string")))
+      assert(result == Result.fail(MepCompileError.InvalidParams("languageId must be a string")))
     }
 
     "maps invalid compile parameters to JSON-RPC invalid params" in {

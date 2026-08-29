@@ -1,5 +1,6 @@
 package morphir.langkit.elm.compiler.mep
 
+import kyo.*
 import kyo.test.*
 import org.finos.morphir.ir.MorphirIRFile
 import org.finos.morphir.ir.distribution.Distribution
@@ -31,14 +32,16 @@ class MepSessionTests extends Test[Any]:
     )
 
     (
-      initialize.response.flatMap(_.fromJson[Json].toOption).get,
-      info.response.flatMap(_.fromJson[Json].toOption).get
+      initialize.response.flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption)).get,
+      info.response.flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption)).get
     )
 
   "MepSession" - {
     "rejects non-object JSON-RPC envelopes as invalid requests" in {
       val session   = MepSession.loaded(ProviderMetadata.default)
-      val responses = Vector("[]", "1").map(session.handle(_).response.flatMap(_.fromJson[Json].toOption).get)
+      val responses = Vector("[]", "1").map(session.handle(_).response.flatMap(value =>
+        Maybe.fromOption(value.fromJson[Json].toOption)
+      ).get)
 
       assert(responses.forall(response => at(response, "id") == Some(Json.Null)))
       assert(responses.forall(response => at(response, "error", "code") == Some(Json.Num(-32600))))
@@ -50,7 +53,8 @@ class MepSessionTests extends Test[Any]:
         """{"id":"missing-version","method":"morphir.initialize","params":{}}""",
         """{"jsonrpc":"1.0","id":"wrong-version","method":"morphir.initialize","params":{}}"""
       )
-      val responses = requests.map(session.handle(_).response.flatMap(_.fromJson[Json].toOption).get)
+      val responses =
+        requests.map(session.handle(_).response.flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption)).get)
 
       assert(at(responses.head, "id") == Some(Json.Str("missing-version")))
       assert(at(responses.last, "id") == Some(Json.Str("wrong-version")))
@@ -63,7 +67,8 @@ class MepSessionTests extends Test[Any]:
         """{"jsonrpc":"2.0","id":20,"params":{}}""",
         """{"jsonrpc":"2.0","id":21,"method":1,"params":{}}"""
       )
-      val responses = requests.map(session.handle(_).response.flatMap(_.fromJson[Json].toOption).get)
+      val responses =
+        requests.map(session.handle(_).response.flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption)).get)
 
       assert(responses.forall(response => at(response, "error", "code") == Some(Json.Num(-32600))))
       assert(responses.forall(response =>
@@ -75,7 +80,7 @@ class MepSessionTests extends Test[Any]:
       val response = MepSession.loaded(ProviderMetadata.default)
         .handle("""{"jsonrpc":"2.0","id":"empty-method","method":"","params":{}}""")
         .response
-        .flatMap(_.fromJson[Json].toOption)
+        .flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption))
         .get
 
       assert(at(response, "id") == Some(Json.Str("empty-method")))
@@ -89,7 +94,7 @@ class MepSessionTests extends Test[Any]:
       val responses  = invalidIds.map { id =>
         session.handle(
           s"""{"jsonrpc":"2.0","id":$id,"method":"morphir.initialize","params":{"protocolVersions":["0.1"],"host":{"name":"test-host","version":"1.0.0"}}}"""
-        ).response.flatMap(_.fromJson[Json].toOption).get
+        ).response.flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption)).get
       }
 
       assert(responses.forall(response => at(response, "id") == Some(Json.Null)))
@@ -102,7 +107,7 @@ class MepSessionTests extends Test[Any]:
           """{"jsonrpc":"2.0","id":1.5,"method":"morphir.initialize","params":{"protocolVersions":["0.1"],"host":{"name":"test-host","version":"1.0.0"}}}"""
         )
         .response
-        .flatMap(_.fromJson[Json].toOption)
+        .flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption))
         .get
 
       assert(at(response, "id") == Some(Json.Null))
@@ -114,7 +119,7 @@ class MepSessionTests extends Test[Any]:
         """{"jsonrpc":"2.0","id":"init-1","method":"morphir.initialize","params":{"protocolVersions":["0.1"],"host":{"name":"test-host","version":"1.0.0"}}}"""
 
       val transition = MepSession.loaded(ProviderMetadata.default).handle(request)
-      val response   = transition.response.flatMap(_.fromJson[Json].toOption).get
+      val response   = transition.response.flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption)).get
 
       assert(transition.session.state == SessionState.Ready)
       assert(at(response, "id") == Some(Json.Str("init-1")))
@@ -156,7 +161,7 @@ class MepSessionTests extends Test[Any]:
       val response = MepSession.loaded(ProviderMetadata.default)
         .handle("""{"jsonrpc":"2.0","id":"ping-loaded","method":"morphir.ping","params":{}}""")
         .response
-        .flatMap(_.fromJson[Json].toOption)
+        .flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption))
         .get
 
       assert(at(response, "id") == Some(Json.Str("ping-loaded")))
@@ -167,7 +172,7 @@ class MepSessionTests extends Test[Any]:
       val response = MepSession.loaded(ProviderMetadata.default)
         .handle("""{"jsonrpc":"2.0","id":41,"method":"morphir.ping","params":null}""")
         .response
-        .flatMap(_.fromJson[Json].toOption)
+        .flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption))
         .get
 
       assert(at(response, "error", "code") == Some(Json.Num(-32602)))
@@ -188,7 +193,7 @@ class MepSessionTests extends Test[Any]:
         """{"jsonrpc":"2.0","id":7,"method":"morphir.initialize","params":{"protocolVersions":["9.0"],"host":{"name":"test-host","version":"1.0.0"}}}"""
 
       val transition = MepSession.loaded(ProviderMetadata.default).handle(request)
-      val response   = transition.response.flatMap(_.fromJson[Json].toOption).get
+      val response   = transition.response.flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption)).get
 
       assert(transition.session.state == SessionState.Loaded)
       assert(at(response, "id") == Some(Json.Num(7)))
@@ -199,7 +204,7 @@ class MepSessionTests extends Test[Any]:
       val transition = MepSession.loaded(ProviderMetadata.default).handle(
         """{"jsonrpc":"2.0","id":8,"method":"morphir.initialize","params":{"protocolVersions":["0.1"]}}"""
       )
-      val response = transition.response.flatMap(_.fromJson[Json].toOption).get
+      val response = transition.response.flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption)).get
 
       assert(transition.session.state == SessionState.Loaded)
       assert(at(response, "error", "code") == Some(Json.Num(-32602)))
@@ -209,7 +214,7 @@ class MepSessionTests extends Test[Any]:
       val transition = MepSession.loaded(ProviderMetadata.default).handle(
         """{"jsonrpc":"2.0","id":19,"method":"morphir.initialize","params":{"protocolVersions":["0.1",1],"host":{"name":"test-host","version":"1.0.0"}}}"""
       )
-      val response = transition.response.flatMap(_.fromJson[Json].toOption).get
+      val response = transition.response.flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption)).get
 
       assert(transition.session.state == SessionState.Loaded)
       assert(at(response, "error", "code") == Some(Json.Num(-32602)))
@@ -219,7 +224,7 @@ class MepSessionTests extends Test[Any]:
       val request = """{"jsonrpc":"2.0","id":1,"method":"morphir.frontend.compile","params":{}}"""
 
       val transition = MepSession.loaded(ProviderMetadata.default).handle(request)
-      val response   = transition.response.flatMap(_.fromJson[Json].toOption).get
+      val response   = transition.response.flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption)).get
 
       assert(at(response, "error", "code") == Some(Json.Num(-32600)))
       assert(at(response, "error", "message") == Some(Json.Str("The MEP session is not initialized")))
@@ -229,16 +234,17 @@ class MepSessionTests extends Test[Any]:
       val transition = initializedSession.handle(
         """{"jsonrpc":"2.0","method":"morphir.initialized","params":{}}"""
       )
+      val response: Maybe[String] = transition.response
 
       assert(transition.session.state == SessionState.Ready)
-      assert(transition.response.isEmpty)
+      assert(response == Absent)
     }
 
     "returns exact extension metadata after initialization" in {
       val response = initializedSession
         .handle("""{"jsonrpc":"2.0","id":"info","method":"morphir.extension.info","params":{}}""")
         .response
-        .flatMap(_.fromJson[Json].toOption)
+        .flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption))
         .get
 
       assert(at(response, "id") == Some(Json.Str("info")))
@@ -254,7 +260,7 @@ class MepSessionTests extends Test[Any]:
       val response = initializedSession
         .handle("""{"jsonrpc":"2.0","id":42,"method":"morphir.extension.capabilities","params":{}}""")
         .response
-        .flatMap(_.fromJson[Json].toOption)
+        .flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption))
         .get
 
       assert(at(response, "id") == Some(Json.Num(42)))
@@ -277,7 +283,7 @@ class MepSessionTests extends Test[Any]:
         initializedSession
           .handle(s"""{"jsonrpc":"2.0","id":${43 + index},"method":"$method","params":null}""")
           .response
-          .flatMap(_.fromJson[Json].toOption)
+          .flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption))
           .get
       }
 
@@ -301,7 +307,7 @@ class MepSessionTests extends Test[Any]:
       val transition = initializedSession.handle(
         """{"jsonrpc":"2.0","id":24,"method":"morphir.initialize","params":{"protocolVersions":["0.1"],"host":{"name":"test-host","version":"1.0.0"}}}"""
       )
-      val response = transition.response.flatMap(_.fromJson[Json].toOption).get
+      val response = transition.response.flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption)).get
 
       assert(transition.session.state == SessionState.Ready)
       assert(at(response, "error", "code") == Some(Json.Num(-32600)))
@@ -312,7 +318,7 @@ class MepSessionTests extends Test[Any]:
       val transition = initializedSession.handle(
         """{"jsonrpc":"2.0","id":"unknown-1","method":"morphir.unknown","params":{}}"""
       )
-      val response = transition.response.flatMap(_.fromJson[Json].toOption).get
+      val response = transition.response.flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption)).get
 
       assert(at(response, "error", "code") == Some(Json.Num(-32601)))
       assert(at(response, "error", "message") == Some(Json.Str("Method not found: morphir.unknown")))
@@ -331,7 +337,7 @@ class MepSessionTests extends Test[Any]:
       val transition = initializedSession.handle(
         """{"jsonrpc":"2.0","id":2,"method":"morphir.frontend.compile","params":{"languageId":"elm"}}"""
       )
-      val response = transition.response.flatMap(_.fromJson[Json].toOption).get
+      val response = transition.response.flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption)).get
 
       assert(at(response, "error", "code") == Some(Json.Num(-32602)))
       assert(at(response, "error", "message") == Some(Json.Str("Invalid morphir.frontend.compile parameters")))
@@ -354,7 +360,7 @@ class MepSessionTests extends Test[Any]:
         """{"jsonrpc":"2.0","id":"compile-1","method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":1,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right =\n    left + right\n"}],"package":{"name":"local/example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
 
       val transition = initializedSession.handle(request)
-      val response   = transition.response.flatMap(_.fromJson[Json].toOption).get
+      val response   = transition.response.flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption)).get
 
       assert(at(response, "result", "success") == Some(Json.Bool(true)))
       assert(at(response, "result", "irVersion") == Some(Json.Str("3")))
@@ -380,7 +386,9 @@ class MepSessionTests extends Test[Any]:
       val request =
         """{"jsonrpc":"2.0","id":39,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":1,"text":"{-\nmodule Fake exposing (fake)\n-}\nmodule Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
 
-      val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+      val response = initializedSession.handle(request).response.flatMap(value =>
+        Maybe.fromOption(value.fromJson[Json].toOption)
+      ).get
 
       assert(at(response, "result", "success") == Some(Json.Bool(true)))
       assert(at(response, "result", "modules") == Some(Json.Arr(Json.Str("Example"))))
@@ -390,7 +398,9 @@ class MepSessionTests extends Test[Any]:
       val request =
         """{"jsonrpc":"2.0","id":40,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/My_Module.elm","languageId":"elm","version":1,"text":"module My_Module exposing\n    ( add\n    )\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/example","exposedModules":["My_Module"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
 
-      val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+      val response = initializedSession.handle(request).response.flatMap(value =>
+        Maybe.fromOption(value.fromJson[Json].toOption)
+      ).get
 
       assert(at(response, "result", "success") == Some(Json.Bool(true)))
       assert(at(response, "result", "modules") == Some(Json.Arr(Json.Str("My_Module"))))
@@ -417,7 +427,7 @@ class MepSessionTests extends Test[Any]:
         """{"jsonrpc":"2.0","id":3,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Broken.elm","languageId":"elm","version":2,"text":"module Broken exposing (value)\n\nvalue : Int\nvalue =\n"}],"package":{"name":"local/broken","exposedModules":["Broken"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
 
       val transition = initializedSession.handle(request)
-      val response   = transition.response.flatMap(_.fromJson[Json].toOption).get
+      val response   = transition.response.flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption)).get
       val diagnostic = at(response, "result", "diagnostics").collect {
         case Json.Arr(values) if values.nonEmpty => values.head
       }.get
@@ -435,7 +445,9 @@ class MepSessionTests extends Test[Any]:
       val request =
         """{"jsonrpc":"2.0","id":4,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Malformed.elm","languageId":"elm","version":1,"text":"module Malformed\n\nvalue = 1\n"}],"package":{"name":"local/malformed","exposedModules":["Malformed"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
 
-      val response   = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+      val response = initializedSession.handle(request).response.flatMap(value =>
+        Maybe.fromOption(value.fromJson[Json].toOption)
+      ).get
       val diagnostic = at(response, "result", "diagnostics").collect {
         case Json.Arr(values) if values.nonEmpty => values.head
       }.get
@@ -448,7 +460,9 @@ class MepSessionTests extends Test[Any]:
       val request =
         """{"jsonrpc":"2.0","id":18,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":1,"text":"module Example exposing (value)\n\nvalue : Int\nvalue = missing\n"}],"package":{"name":"local/example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
 
-      val response   = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+      val response = initializedSession.handle(request).response.flatMap(value =>
+        Maybe.fromOption(value.fromJson[Json].toOption)
+      ).get
       val diagnostic = at(response, "result", "diagnostics").collect {
         case Json.Arr(values) if values.nonEmpty => values.head
       }.get
@@ -462,7 +476,7 @@ class MepSessionTests extends Test[Any]:
       val transition = initializedSession.handle(
         """{"jsonrpc":"2.0","id":9,"method":"morphir.shutdown","params":{}}"""
       )
-      val response = transition.response.flatMap(_.fromJson[Json].toOption).get
+      val response = transition.response.flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption)).get
 
       assert(transition.session.state == SessionState.AwaitExit)
       assert(at(response, "result") == Some(Json.Obj()))
@@ -478,7 +492,7 @@ class MepSessionTests extends Test[Any]:
         """{"jsonrpc":"2.0","id":32,"method":"morphir.unknown","params":{}}"""
       )
       val transitions = requests.map(awaitingExit.handle)
-      val responses   = transitions.map(_.response.flatMap(_.fromJson[Json].toOption).get)
+      val responses = transitions.map(_.response.flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption)).get)
 
       assert(transitions.forall(_.session.state == SessionState.AwaitExit))
       assert(responses.forall(response => at(response, "error", "code") == Some(Json.Num(-32600))))
@@ -501,7 +515,7 @@ class MepSessionTests extends Test[Any]:
         """{"jsonrpc":"2.0","id":23,"method":"morphir.shutdown","params":[]}"""
       )
       val transitions = requests.map(initializedSession.handle)
-      val responses   = transitions.map(_.response.flatMap(_.fromJson[Json].toOption).get)
+      val responses = transitions.map(_.response.flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption)).get)
 
       assert(transitions.forall(_.session.state == SessionState.Ready))
       assert(responses.forall(response => at(response, "error", "code") == Some(Json.Num(-32602))))
@@ -538,7 +552,7 @@ class MepSessionTests extends Test[Any]:
       val transition = initializedSession.handle(
         """{"jsonrpc":"2.0","id":25,"method":"morphir.exit","params":{}}"""
       )
-      val response = transition.response.flatMap(_.fromJson[Json].toOption).get
+      val response = transition.response.flatMap(value => Maybe.fromOption(value.fromJson[Json].toOption)).get
 
       assert(transition.session.state == SessionState.Ready)
       assert(at(response, "error", "code") == Some(Json.Num(-32600)))
@@ -549,7 +563,9 @@ class MepSessionTests extends Test[Any]:
       val request =
         """{"jsonrpc":"2.0","id":10,"method":"morphir.frontend.compile","params":{"languageId":"gleam","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":1,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
 
-      val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+      val response = initializedSession.handle(request).response.flatMap(value =>
+        Maybe.fromOption(value.fromJson[Json].toOption)
+      ).get
 
       assert(at(response, "error", "code") == Some(Json.Num(-32602)))
     }
@@ -560,7 +576,9 @@ class MepSessionTests extends Test[Any]:
       val request =
         s"""{"jsonrpc":"2.0","id":11,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[$document,$document],"package":{"name":"local/example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
 
-      val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+      val response = initializedSession.handle(request).response.flatMap(value =>
+        Maybe.fromOption(value.fromJson[Json].toOption)
+      ).get
 
       assert(at(response, "error", "code") == Some(Json.Num(-32602)))
     }
@@ -569,7 +587,9 @@ class MepSessionTests extends Test[Any]:
       val request =
         """{"jsonrpc":"2.0","id":12,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"gleam","version":1,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
 
-      val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+      val response = initializedSession.handle(request).response.flatMap(value =>
+        Maybe.fromOption(value.fromJson[Json].toOption)
+      ).get
 
       assert(at(response, "error", "code") == Some(Json.Num(-32602)))
     }
@@ -578,7 +598,9 @@ class MepSessionTests extends Test[Any]:
       val request =
         """{"jsonrpc":"2.0","id":17,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"","languageId":"elm","version":1,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
 
-      val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+      val response = initializedSession.handle(request).response.flatMap(value =>
+        Maybe.fromOption(value.fromJson[Json].toOption)
+      ).get
 
       assert(at(response, "error", "code") == Some(Json.Num(-32602)))
     }
@@ -587,7 +609,9 @@ class MepSessionTests extends Test[Any]:
       val request =
         """{"jsonrpc":"2.0","id":35,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":18446744073709551615,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
 
-      val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+      val response = initializedSession.handle(request).response.flatMap(value =>
+        Maybe.fromOption(value.fromJson[Json].toOption)
+      ).get
 
       assert(at(response, "result", "success") == Some(Json.Bool(true)))
     }
@@ -596,7 +620,9 @@ class MepSessionTests extends Test[Any]:
       val request =
         """{"jsonrpc":"2.0","id":36,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":1.5,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
 
-      val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+      val response = initializedSession.handle(request).response.flatMap(value =>
+        Maybe.fromOption(value.fromJson[Json].toOption)
+      ).get
 
       assert(at(response, "error", "code") == Some(Json.Num(-32602)))
     }
@@ -605,7 +631,9 @@ class MepSessionTests extends Test[Any]:
       val request =
         """{"jsonrpc":"2.0","id":37,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":18446744073709551616,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
 
-      val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+      val response = initializedSession.handle(request).response.flatMap(value =>
+        Maybe.fromOption(value.fromJson[Json].toOption)
+      ).get
 
       assert(at(response, "error", "code") == Some(Json.Num(-32602)))
     }
@@ -614,7 +642,9 @@ class MepSessionTests extends Test[Any]:
       val request =
         """{"jsonrpc":"2.0","id":38,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":-1,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
 
-      val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+      val response = initializedSession.handle(request).response.flatMap(value =>
+        Maybe.fromOption(value.fromJson[Json].toOption)
+      ).get
 
       assert(at(response, "error", "code") == Some(Json.Num(-32602)))
     }
@@ -623,7 +653,9 @@ class MepSessionTests extends Test[Any]:
       val request =
         """{"jsonrpc":"2.0","id":13,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":1,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"4"}}}"""
 
-      val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+      val response = initializedSession.handle(request).response.flatMap(value =>
+        Maybe.fromOption(value.fromJson[Json].toOption)
+      ).get
 
       assert(at(response, "error", "code") == Some(Json.Num(-32602)))
     }
@@ -632,7 +664,9 @@ class MepSessionTests extends Test[Any]:
       val request =
         """{"jsonrpc":"2.0","id":34,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":1,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":true,"irVersion":"3"}}}"""
 
-      val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+      val response = initializedSession.handle(request).response.flatMap(value =>
+        Maybe.fromOption(value.fromJson[Json].toOption)
+      ).get
 
       assert(at(response, "error", "code") == Some(Json.Num(-32602)))
     }
@@ -641,7 +675,9 @@ class MepSessionTests extends Test[Any]:
       val request =
         """{"jsonrpc":"2.0","id":14,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":1,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"Local/Example","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
 
-      val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+      val response = initializedSession.handle(request).response.flatMap(value =>
+        Maybe.fromOption(value.fromJson[Json].toOption)
+      ).get
 
       assert(at(response, "error", "code") == Some(Json.Num(-32602)))
     }
@@ -650,7 +686,9 @@ class MepSessionTests extends Test[Any]:
       val request =
         """{"jsonrpc":"2.0","id":26,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":1,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/foo2","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
 
-      val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+      val response = initializedSession.handle(request).response.flatMap(value =>
+        Maybe.fromOption(value.fromJson[Json].toOption)
+      ).get
 
       assert(at(response, "error", "code") == Some(Json.Num(-32602)))
     }
@@ -659,7 +697,9 @@ class MepSessionTests extends Test[Any]:
       val request =
         """{"jsonrpc":"2.0","id":27,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":1,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/foo--bar","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
 
-      val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+      val response = initializedSession.handle(request).response.flatMap(value =>
+        Maybe.fromOption(value.fromJson[Json].toOption)
+      ).get
 
       assert(at(response, "error", "code") == Some(Json.Num(-32602)))
     }
@@ -668,7 +708,9 @@ class MepSessionTests extends Test[Any]:
       val request =
         """{"jsonrpc":"2.0","id":28,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":1,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/example-","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
 
-      val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+      val response = initializedSession.handle(request).response.flatMap(value =>
+        Maybe.fromOption(value.fromJson[Json].toOption)
+      ).get
 
       assert(at(response, "error", "code") == Some(Json.Num(-32602)))
     }
@@ -679,7 +721,9 @@ class MepSessionTests extends Test[Any]:
         val request =
           raw"""{"jsonrpc":"2.0","id":${29 +
               index},"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":1,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"$packageName","exposedModules":["Example"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
-        initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+        initializedSession.handle(request).response.flatMap(value =>
+          Maybe.fromOption(value.fromJson[Json].toOption)
+        ).get
       }
 
       assert(responses.forall(response => at(response, "error", "code") == Some(Json.Num(-32602))))
@@ -689,7 +733,9 @@ class MepSessionTests extends Test[Any]:
       val request =
         """{"jsonrpc":"2.0","id":15,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":1,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/example","exposedModules":["Example","Other"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
 
-      val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+      val response = initializedSession.handle(request).response.flatMap(value =>
+        Maybe.fromOption(value.fromJson[Json].toOption)
+      ).get
 
       assert(at(response, "error", "code") == Some(Json.Num(-32602)))
     }
@@ -698,7 +744,9 @@ class MepSessionTests extends Test[Any]:
       val request =
         """{"jsonrpc":"2.0","id":16,"method":"morphir.frontend.compile","params":{"languageId":"elm","documents":[{"uri":"file:///workspace/Example.elm","languageId":"elm","version":1,"text":"module Example exposing (add)\n\nadd : Int -> Int -> Int\nadd left right = left + right\n"}],"package":{"name":"local/example","exposedModules":["Other"]},"dependencies":[],"options":{"typesOnly":false,"irVersion":"3"}}}"""
 
-      val response = initializedSession.handle(request).response.flatMap(_.fromJson[Json].toOption).get
+      val response = initializedSession.handle(request).response.flatMap(value =>
+        Maybe.fromOption(value.fromJson[Json].toOption)
+      ).get
 
       assert(at(response, "error", "code") == Some(Json.Num(-32602)))
     }

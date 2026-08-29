@@ -36,10 +36,13 @@ object MepElmFrontend:
     raw"(?:[a-z]+|[0-9]+)(?:-(?:[a-z]+|[0-9]+))*(?:/(?:[a-z]+|[0-9]+)(?:-(?:[a-z]+|[0-9]+))*)*".r
   private val ModuleIdentity = raw"[A-Z][A-Za-z0-9_]*(?:\.[A-Z][A-Za-z0-9_]*)*".r
 
-  def compile(params: Json): Either[MepCompileError, Json] =
-    parseRequest(params)
+  def compile(params: Json): Result[MepCompileError, Json] =
+    val result = parseRequest(params)
       .left.map(MepCompileError.InvalidParams.apply)
       .flatMap(compileRequest)
+    result match
+      case Right(value) => Result.succeed(value)
+      case Left(error)  => Result.fail(error)
 
   private[mep] def validateCompiledIR(
       ir: MorphirIRFile,
