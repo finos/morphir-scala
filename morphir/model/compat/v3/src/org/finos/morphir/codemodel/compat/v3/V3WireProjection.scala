@@ -7,6 +7,7 @@ import org.finos.morphir.naming.*
 
 import scala.annotation.tailrec
 import scala.math.Ordering.Implicits.seqOrdering
+import scala.util.control.TailCalls.{TailRec, done, tailcall}
 
 enum V3ProjectionError derives CanEqual:
   case UnsupportedDistribution(kind: String)
@@ -213,25 +214,33 @@ object V3WireProjection:
     }
 
   private def projectValueDefinitionBody(body: cm.ValueDefinitionBody, path: String): Projection[Value] =
+    projectValueDefinitionBodyLoop(body, path).result
+
+  private def projectValueDefinitionBodyLoop(
+      body: cm.ValueDefinitionBody,
+      path: String
+  ): TailRec[Projection[Value]] =
     body match
       case cm.ValueDefinitionBody.ExpressionBody(inputTypes, outputType, expression) =>
-        flatMapResult(projectParameters(inputTypes, s"$path.inputTypes", typed = true)) { inputs =>
-          flatMapResult(projectType(outputType, s"$path.outputType")) { output =>
-            mapResult(projectExpr(expression, s"$path.body")) { projectedBody =>
-              record(
-                "inputTypes" -> inputs,
-                "outputType" -> output,
-                "body"       -> projectedBody
+        flatMapTail(projectParameters(inputTypes, s"$path.inputTypes", typed = true)) { inputs =>
+          flatMapTail(projectType(outputType, s"$path.outputType")) { output =>
+            tailcall(projectExprLoop(expression, s"$path.body")).map { projectedBody =>
+              mapResult(projectedBody)(body =>
+                record(
+                  "inputTypes" -> inputs,
+                  "outputType" -> output,
+                  "body"       -> body
+                )
               )
             }
           }
         }
       case _: cm.ValueDefinitionBody.NativeBody =>
-        fail(V3ProjectionError.UnsupportedFeature(path, "NativeBody"))
+        done(fail(V3ProjectionError.UnsupportedFeature(path, "NativeBody")))
       case _: cm.ValueDefinitionBody.ExternalBody =>
-        fail(V3ProjectionError.UnsupportedFeature(path, "ExternalBody"))
+        done(fail(V3ProjectionError.UnsupportedFeature(path, "ExternalBody")))
       case _: cm.ValueDefinitionBody.IncompleteBody =>
-        fail(V3ProjectionError.UnsupportedFeature(path, "IncompleteBody"))
+        done(fail(V3ProjectionError.UnsupportedFeature(path, "IncompleteBody")))
 
   private def projectParameters(parameters: Chunk[cm.Parameter], path: String, typed: Boolean): Projection[Value] =
     mapResult(traverse(parameters.toList.zipWithIndex) { case (parameter, index) =>
@@ -290,93 +299,125 @@ object V3WireProjection:
       }
     })(values => sequence(values*))
 
-  private def projectExpr(expression: cm.Expr, path: String): Projection[Value] =
-    flatMapResult(projectValueAttributes(expression, path)) { attributes =>
+  private def projectExprLoop(expression: cm.Expr, path: String): TailRec[Projection[Value]] =
+    flatMapTail(projectValueAttributes(expression, path)) { attributes =>
       expression match
         case cm.Expr.Literal(_, literal) =>
-          mapResult(projectLiteral(literal, s"$path.literal"))(value =>
-            sequence(str("Literal"), attributes, value)
+          done(
+            mapResult(projectLiteral(literal, s"$path.literal"))(value =>
+              sequence(str("Literal"), attributes, value)
+            )
           )
         case cm.Expr.Constructor(_, reference) =>
-          succeed(sequence(str("Constructor"), attributes, fqName(reference)))
+          done(succeed(sequence(str("Constructor"), attributes, fqName(reference))))
         case cm.Expr.Tuple(_, elements) =>
-          mapResult(projectExpressions(elements, s"$path.elements"))(values =>
-            sequence(str("Tuple"), attributes, values)
+          tailcall(projectExpressionsLoop(elements, s"$path.elements")).map(result =>
+            mapResult(result)(values => sequence(str("Tuple"), attributes, values))
           )
         case cm.Expr.List(_, items) =>
-          mapResult(projectExpressions(items, s"$path.items"))(values =>
-            sequence(str("List"), attributes, values)
+          tailcall(projectExpressionsLoop(items, s"$path.items")).map(result =>
+            mapResult(result)(values => sequence(str("List"), attributes, values))
           )
         case cm.Expr.Record(_, fields) =>
-          mapResult(projectRecordFields(fields, s"$path.fields"))(values =>
-            sequence(str("Record"), attributes, values)
+          tailcall(projectRecordFieldsLoop(fields, s"$path.fields")).map(result =>
+            mapResult(result)(values => sequence(str("Record"), attributes, values))
           )
-        case cm.Expr.Unit(_)                   => succeed(sequence(str("Unit"), attributes))
+        case cm.Expr.Unit(_)                   => done(succeed(sequence(str("Unit"), attributes)))
         case cm.Expr.Variable(_, variableName) =>
-          succeed(sequence(str("Variable"), attributes, name(variableName)))
+          done(succeed(sequence(str("Variable"), attributes, name(variableName))))
         case cm.Expr.Reference(_, reference) =>
-          succeed(sequence(str("Reference"), attributes, fqName(reference)))
+          done(succeed(sequence(str("Reference"), attributes, fqName(reference))))
         case cm.Expr.Field(_, subject, fieldName) =>
-          mapResult(projectExpr(subject, s"$path.record"))(projected =>
-            sequence(str("Field"), attributes, projected, name(fieldName))
+          tailcall(projectExprLoop(subject, s"$path.record")).map(result =>
+            mapResult(result)(projected => sequence(str("Field"), attributes, projected, name(fieldName)))
           )
         case cm.Expr.FieldFunction(_, fieldName) =>
-          succeed(sequence(str("FieldFunction"), attributes, name(fieldName)))
+          done(succeed(sequence(str("FieldFunction"), attributes, name(fieldName))))
         case cm.Expr.Apply(_, function, argument) =>
-          flatMapResult(projectExpr(function, s"$path.function")) { projectedFunction =>
-            mapResult(projectExpr(argument, s"$path.argument")) { projectedArgument =>
-              sequence(str("Apply"), attributes, projectedFunction, projectedArgument)
+          tailcall(projectExprLoop(function, s"$path.function")).flatMap { functionResult =>
+            flatMapTail(functionResult) { projectedFunction =>
+              tailcall(projectExprLoop(argument, s"$path.argument")).map { argumentResult =>
+                mapResult(argumentResult)(projectedArgument =>
+                  sequence(str("Apply"), attributes, projectedFunction, projectedArgument)
+                )
+              }
             }
           }
         case cm.Expr.Lambda(_, argumentPattern, body) =>
-          flatMapResult(projectPattern(argumentPattern, s"$path.argumentPattern")) { pattern =>
-            mapResult(projectExpr(body, s"$path.body"))(projectedBody =>
-              sequence(str("Lambda"), attributes, pattern, projectedBody)
+          flatMapTail(projectPattern(argumentPattern, s"$path.argumentPattern")) { pattern =>
+            tailcall(projectExprLoop(body, s"$path.body")).map(result =>
+              mapResult(result)(projectedBody => sequence(str("Lambda"), attributes, pattern, projectedBody))
             )
           }
         case cm.Expr.LetDefinition(_, valueName, definition, inValue) =>
-          flatMapResult(projectValueDefinitionBody(definition, s"$path.definition")) { projectedDefinition =>
-            mapResult(projectExpr(inValue, s"$path.inValue"))(projectedInValue =>
-              sequence(str("LetDefinition"), attributes, name(valueName), projectedDefinition, projectedInValue)
-            )
+          tailcall(projectValueDefinitionBodyLoop(definition, s"$path.definition")).flatMap { definitionResult =>
+            flatMapTail(definitionResult) { projectedDefinition =>
+              tailcall(projectExprLoop(inValue, s"$path.inValue")).map(result =>
+                mapResult(result)(projectedInValue =>
+                  sequence(str("LetDefinition"), attributes, name(valueName), projectedDefinition, projectedInValue)
+                )
+              )
+            }
           }
         case cm.Expr.LetRecursion(_, bindings, inValue) =>
-          flatMapResult(projectBindings(bindings, s"$path.bindings")) { projectedBindings =>
-            mapResult(projectExpr(inValue, s"$path.inValue"))(projectedInValue =>
-              sequence(str("LetRecursion"), attributes, projectedBindings, projectedInValue)
-            )
+          tailcall(projectBindingsLoop(bindings, s"$path.bindings")).flatMap { bindingsResult =>
+            flatMapTail(bindingsResult) { projectedBindings =>
+              tailcall(projectExprLoop(inValue, s"$path.inValue")).map(result =>
+                mapResult(result)(projectedInValue =>
+                  sequence(str("LetRecursion"), attributes, projectedBindings, projectedInValue)
+                )
+              )
+            }
           }
         case cm.Expr.Destructure(_, pattern, valueToDestructure, inValue) =>
-          flatMapResult(projectPattern(pattern, s"$path.pattern")) { projectedPattern =>
-            flatMapResult(projectExpr(valueToDestructure, s"$path.value")) { projectedValue =>
-              mapResult(projectExpr(inValue, s"$path.inValue"))(projectedInValue =>
-                sequence(str("Destructure"), attributes, projectedPattern, projectedValue, projectedInValue)
-              )
+          flatMapTail(projectPattern(pattern, s"$path.pattern")) { projectedPattern =>
+            tailcall(projectExprLoop(valueToDestructure, s"$path.value")).flatMap { valueResult =>
+              flatMapTail(valueResult) { projectedValue =>
+                tailcall(projectExprLoop(inValue, s"$path.inValue")).map(result =>
+                  mapResult(result)(projectedInValue =>
+                    sequence(str("Destructure"), attributes, projectedPattern, projectedValue, projectedInValue)
+                  )
+                )
+              }
             }
           }
         case cm.Expr.IfThenElse(_, condition, thenBranch, elseBranch) =>
-          flatMapResult(projectExpr(condition, s"$path.condition")) { projectedCondition =>
-            flatMapResult(projectExpr(thenBranch, s"$path.then")) { projectedThen =>
-              mapResult(projectExpr(elseBranch, s"$path.else"))(projectedElse =>
-                sequence(str("IfThenElse"), attributes, projectedCondition, projectedThen, projectedElse)
-              )
+          tailcall(projectExprLoop(condition, s"$path.condition")).flatMap { conditionResult =>
+            flatMapTail(conditionResult) { projectedCondition =>
+              tailcall(projectExprLoop(thenBranch, s"$path.then")).flatMap { thenResult =>
+                flatMapTail(thenResult) { projectedThen =>
+                  tailcall(projectExprLoop(elseBranch, s"$path.else")).map(result =>
+                    mapResult(result)(projectedElse =>
+                      sequence(str("IfThenElse"), attributes, projectedCondition, projectedThen, projectedElse)
+                    )
+                  )
+                }
+              }
             }
           }
         case cm.Expr.PatternMatch(_, subject, cases) =>
-          flatMapResult(projectExpr(subject, s"$path.subject")) { projectedSubject =>
-            mapResult(projectMatchCases(cases, s"$path.cases"))(projectedCases =>
-              sequence(str("PatternMatch"), attributes, projectedSubject, projectedCases)
-            )
+          tailcall(projectExprLoop(subject, s"$path.subject")).flatMap { subjectResult =>
+            flatMapTail(subjectResult) { projectedSubject =>
+              tailcall(projectMatchCasesLoop(cases, s"$path.cases")).map(result =>
+                mapResult(result)(projectedCases =>
+                  sequence(str("PatternMatch"), attributes, projectedSubject, projectedCases)
+                )
+              )
+            }
           }
         case cm.Expr.UpdateRecord(_, recordValue, updates) =>
-          flatMapResult(projectExpr(recordValue, s"$path.record")) { projectedRecord =>
-            mapResult(projectRecordFields(updates, s"$path.updates"))(projectedUpdates =>
-              sequence(str("UpdateRecord"), attributes, projectedRecord, projectedUpdates)
-            )
+          tailcall(projectExprLoop(recordValue, s"$path.record")).flatMap { recordResult =>
+            flatMapTail(recordResult) { projectedRecord =>
+              tailcall(projectRecordFieldsLoop(updates, s"$path.updates")).map(result =>
+                mapResult(result)(projectedUpdates =>
+                  sequence(str("UpdateRecord"), attributes, projectedRecord, projectedUpdates)
+                )
+              )
+            }
           }
-        case _: cm.Expr.Hole     => fail(V3ProjectionError.UnsupportedFeature(path, "Hole"))
-        case _: cm.Expr.Native   => fail(V3ProjectionError.UnsupportedFeature(path, "Native"))
-        case _: cm.Expr.External => fail(V3ProjectionError.UnsupportedFeature(path, "External"))
+        case _: cm.Expr.Hole     => done(fail(V3ProjectionError.UnsupportedFeature(path, "Hole")))
+        case _: cm.Expr.Native   => done(fail(V3ProjectionError.UnsupportedFeature(path, "Native")))
+        case _: cm.Expr.External => done(fail(V3ProjectionError.UnsupportedFeature(path, "External")))
     }
 
   private def projectValueAttributes(expression: cm.Expr, path: String): Projection[Value] =
@@ -410,31 +451,45 @@ object V3WireProjection:
         case Some(inferredType) => projectType(inferredType, s"$path.inferredType")
         case None               => succeed(record())
 
-  private def projectExpressions(expressions: Chunk[cm.Expr], path: String): Projection[Value] =
-    mapResult(traverse(expressions.toList.zipWithIndex) { case (expression, index) =>
-      projectExpr(expression, s"$path[$index]")
-    })(values => sequence(values*))
+  private def projectExpressionsLoop(
+      expressions: Chunk[cm.Expr],
+      path: String
+  ): TailRec[Projection[Value]] =
+    traverseTail(expressions.toList.zipWithIndex) { case (expression, index) =>
+      tailcall(projectExprLoop(expression, s"$path[$index]"))
+    }.map(result => mapResult(result)(values => sequence(values*)))
 
-  private def projectRecordFields(fields: Chunk[cm.RecordField], path: String): Projection[Value] =
-    mapResult(traverse(fields.toList.zipWithIndex) { case (field, index) =>
-      mapResult(projectExpr(field.value, s"$path[$index].value"))(projected =>
-        sequence(name(field.name), projected)
+  private def projectRecordFieldsLoop(
+      fields: Chunk[cm.RecordField],
+      path: String
+  ): TailRec[Projection[Value]] =
+    traverseTail(fields.toList.zipWithIndex) { case (field, index) =>
+      tailcall(projectExprLoop(field.value, s"$path[$index].value")).map(result =>
+        mapResult(result)(projected => sequence(name(field.name), projected))
       )
-    })(values => sequence(values*))
+    }.map(result => mapResult(result)(values => sequence(values*)))
 
-  private def projectBindings(bindings: Chunk[cm.Binding], path: String): Projection[Value] =
-    mapResult(traverse(bindings.toList.zipWithIndex) { case (binding, index) =>
-      mapResult(projectValueDefinitionBody(binding.definition, s"$path[$index].definition"))(projected =>
-        sequence(name(binding.name), projected)
+  private def projectBindingsLoop(
+      bindings: Chunk[cm.Binding],
+      path: String
+  ): TailRec[Projection[Value]] =
+    traverseTail(bindings.toList.zipWithIndex) { case (binding, index) =>
+      tailcall(projectValueDefinitionBodyLoop(binding.definition, s"$path[$index].definition")).map(result =>
+        mapResult(result)(projected => sequence(name(binding.name), projected))
       )
-    })(values => sequence(values*))
+    }.map(result => mapResult(result)(values => sequence(values*)))
 
-  private def projectMatchCases(cases: Chunk[cm.MatchCase], path: String): Projection[Value] =
-    mapResult(traverse(cases.toList.zipWithIndex) { case (matchCase, index) =>
-      flatMapResult(projectPattern(matchCase.pattern, s"$path[$index].pattern")) { pattern =>
-        mapResult(projectExpr(matchCase.body, s"$path[$index].body"))(body => sequence(pattern, body))
+  private def projectMatchCasesLoop(
+      cases: Chunk[cm.MatchCase],
+      path: String
+  ): TailRec[Projection[Value]] =
+    traverseTail(cases.toList.zipWithIndex) { case (matchCase, index) =>
+      flatMapTail(projectPattern(matchCase.pattern, s"$path[$index].pattern")) { pattern =>
+        tailcall(projectExprLoop(matchCase.body, s"$path[$index].body")).map(result =>
+          mapResult(result)(body => sequence(pattern, body))
+        )
       }
-    })(values => sequence(values*))
+    }.map(result => mapResult(result)(values => sequence(values*)))
 
   private def projectPattern(pattern: cm.Pattern, path: String): Projection[Value] =
     flatMapResult(projectPatternAttributes(pattern, path)) { attributes =>
@@ -503,7 +558,8 @@ object V3WireProjection:
         succeed(sequence(str("FloatLiteral"), Structure.Value.Decimal(value)))
       case cm.Literal.FloatLiteral(_) =>
         fail(V3ProjectionError.UnsupportedFeature(path, "non-finite FloatLiteral"))
-      case cm.Literal.DecimalLiteral(value) => succeed(sequence(str("DecimalLiteral"), str(value.toString)))
+      case cm.Literal.DecimalLiteral(value) =>
+        succeed(sequence(str("DecimalLiteral"), str(value.bigDecimal.toPlainString)))
 
   private def access(value: cm.Access): Value = str(value match
     case cm.Access.Public  => "Public"
@@ -537,6 +593,27 @@ object V3WireProjection:
       case Result.Success(value) => f(value)
       case Result.Failure(error) => fail(error)
       case Result.Panic(cause)   => Result.panic(cause)
+
+  private def flatMapTail[A, B](
+      result: Projection[A]
+  )(f: A => TailRec[Projection[B]]): TailRec[Projection[B]] = result match
+    case Result.Success(value) => f(value)
+    case Result.Failure(error) => done(fail(error))
+    case Result.Panic(cause)   => done(Result.panic(cause))
+
+  private def traverseTail[A](
+      values: List[A]
+  )(projectValue: A => TailRec[Projection[Value]]): TailRec[Projection[List[Value]]] =
+    def loop(remaining: List[A], reversed: List[Value]): TailRec[Projection[List[Value]]] = remaining match
+      case Nil          => done(succeed(reversed.reverse))
+      case head :: tail =>
+        tailcall(projectValue(head)).flatMap {
+          case Result.Success(projected) => tailcall(loop(tail, projected :: reversed))
+          case Result.Failure(error)     => done(fail(error))
+          case Result.Panic(cause)       => done(Result.panic(cause))
+        }
+
+    loop(values, Nil)
 
   private def traverse[A](values: List[A])(projectValue: A => Projection[Value]): Projection[List[Value]] =
     @tailrec

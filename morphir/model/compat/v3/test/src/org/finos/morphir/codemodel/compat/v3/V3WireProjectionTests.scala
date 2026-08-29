@@ -173,6 +173,48 @@ class V3WireProjectionTests extends Test[Any]:
       case other             => assert(false, s"expected a successful wide projection, got $other")
   }
 
+  "projects deeply nested expressions without consuming the JVM stack" in {
+    val base   = cm.Expr.Reference(cm.ValueAttributes.empty, FQName.fqn("Morphir.SDK", "Basics", "identity"))
+    val nested = List.fill(10_000)(()).foldLeft(base) { (function, _) =>
+      cm.Expr.Apply(
+        cm.ValueAttributes.empty,
+        function,
+        cm.Expr.Unit(cm.ValueAttributes.empty)
+      )
+    }
+    val deepDefinition = cm.ValueDefinition(
+      cm.AccessControlled(
+        cm.Access.Public,
+        cm.ValueDefinitionBody.ExpressionBody(Chunk.empty, intType, nested)
+      )
+    )
+
+    V3WireProjection.project(libraryWith(deepDefinition)) match
+      case Result.Success(_) => assert(true)
+      case other             => assert(false, s"expected a successful deep projection, got $other")
+  }
+
+  "renders decimal literals in schema-compatible plain notation" in {
+    val decimalDefinition = cm.ValueDefinition(
+      cm.AccessControlled(
+        cm.Access.Public,
+        cm.ValueDefinitionBody.ExpressionBody(
+          Chunk.empty,
+          intType,
+          cm.Expr.Literal(
+            cm.ValueAttributes.empty,
+            cm.Literal.DecimalLiteral(BigDecimal("1E+10"))
+          )
+        )
+      )
+    )
+
+    V3WireProjection.encode(libraryWith(decimalDefinition)) match
+      case Result.Success(json) =>
+        assert(json.contains("[\"DecimalLiteral\",\"10000000000\"]"))
+      case other => assert(false, s"expected a successful decimal projection, got $other")
+  }
+
   "rejects distribution kinds that Morphir IR v3 cannot represent" in {
     val application = cm.Distribution.Application(
       cm.ApplicationDistribution(
