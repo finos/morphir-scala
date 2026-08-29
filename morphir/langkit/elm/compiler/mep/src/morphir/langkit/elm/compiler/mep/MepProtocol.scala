@@ -1,17 +1,20 @@
 package morphir.langkit.elm.compiler.mep
 
-final case class LanguageMetadata(id: String, fileExtensions: Vector[String]) derives CanEqual
+import kyo.*
+import kyo.schema.*
+
+final case class LanguageMetadata(id: String, fileExtensions: Chunk[String]) derives CanEqual, Schema
 
 final case class ProviderMetadata(
     id: String,
     name: String,
     version: String,
     protocolVersion: String,
-    types: Vector[String],
-    languages: Vector[LanguageMetadata],
-    irVersions: Vector[String],
+    types: Chunk[String],
+    languages: Chunk[LanguageMetadata],
+    irVersions: Chunk[String],
     compile: Boolean
-) derives CanEqual
+) derives CanEqual, Schema
 
 object ProviderMetadata:
   val default: ProviderMetadata = ProviderMetadata(
@@ -19,28 +22,84 @@ object ProviderMetadata:
     name = "Morphir Scala Elm frontend",
     version = "0.1.0",
     protocolVersion = "0.1",
-    types = Vector("frontend"),
-    languages = Vector(LanguageMetadata("elm", Vector(".elm"))),
-    irVersions = Vector("3"),
+    types = Chunk("frontend"),
+    languages = Chunk(LanguageMetadata("elm", Chunk(".elm"))),
+    irVersions = Chunk("3"),
     compile = true
   )
 
-final case class SourceDocument(uri: String, languageId: String, version: BigInt, text: String) derives CanEqual
+opaque type DocumentVersion = BigInt
 
-final case class CompilePackage(name: String, exposedModules: Vector[String]) derives CanEqual
+object DocumentVersion:
+  val Min: DocumentVersion = BigInt(0)
+  val Max: DocumentVersion = (BigInt(1) << 64) - 1
 
-final case class CompileOptions(typesOnly: Boolean, irVersion: String) derives CanEqual
+  def apply(value: Int): DocumentVersion    = BigInt(value)
+  def apply(value: Long): DocumentVersion   = BigInt(value)
+  def apply(value: BigInt): DocumentVersion = value
+
+  extension (version: DocumentVersion) def toBigInt: BigInt = version
+
+  given CanEqual[DocumentVersion, DocumentVersion] = CanEqual.derived
+
+  given Schema[DocumentVersion] = Schema.init[DocumentVersion](
+    writeFn = (version, writer) =>
+      if version.isValidLong then writer.long(version.longValue)
+      else writer.bigInt(version),
+    readFn = reader => DocumentVersion(reader.long()),
+    structure = Structure.Type.Primitive(
+      Structure.PrimitiveKind.BigInt,
+      Tag[DocumentVersion].asInstanceOf[Tag[Any]]
+    )
+  )
+
+final case class SourceDocument(uri: String, languageId: String, version: DocumentVersion, text: String)
+    derives CanEqual, Schema
+
+final case class CompilePackage(name: String, exposedModules: Chunk[String]) derives CanEqual, Schema
+
+final case class CompileOptions(typesOnly: Boolean, irVersion: String) derives CanEqual, Schema
 
 final case class CompileRequest(
     languageId: String,
-    documents: Vector[SourceDocument],
-    compilePackage: CompilePackage,
-    dependencies: Vector[JsonDependency],
+    documents: Chunk[SourceDocument],
+    @rename("package") compilePackage: CompilePackage,
+    dependencies: Chunk[JsonDependency],
     options: CompileOptions
-) derives CanEqual
+) derives CanEqual, Schema
 
-final case class JsonDependency(packageName: String, irVersion: String, distribution: zio.json.ast.Json)
-    derives CanEqual
+final case class JsonDependency(packageName: String, irVersion: String, distribution: Structure.Value)
+    derives CanEqual, Schema
+
+final case class HostMetadata(name: String, version: String) derives CanEqual, Schema
+
+final case class InitializeRequest(protocolVersions: Chunk[String], host: HostMetadata) derives CanEqual, Schema
+
+final case class ExtensionInfo(id: String, name: String, version: String, types: Chunk[String]) derives CanEqual, Schema
+
+final case class FrontendCapabilities(
+    languages: Chunk[LanguageMetadata],
+    irVersions: Chunk[String],
+    compile: Boolean,
+    incremental: Boolean,
+    fragments: Boolean
+) derives CanEqual, Schema
+
+final case class ExtensionCapabilities(
+    frontend: FrontendCapabilities,
+    streaming: Boolean,
+    incremental: Boolean,
+    cancellation: Boolean,
+    progress: Boolean
+) derives CanEqual, Schema
+
+final case class InitializationResult(
+    protocolVersion: String,
+    extension: ExtensionInfo,
+    capabilities: ExtensionCapabilities
+) derives CanEqual, Schema
+
+final case class PingResult(ok: Boolean) derives CanEqual, Schema
 
 enum SessionState derives CanEqual:
   case Loaded, Ready, AwaitExit, Stopped

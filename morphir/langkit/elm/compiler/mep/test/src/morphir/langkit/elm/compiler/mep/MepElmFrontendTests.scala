@@ -4,10 +4,8 @@ import kyo.*
 import kyo.test.*
 import morphir.langkit.core.Span as SourceSpan
 import morphir.langkit.elm.compiler.ir.{CompileDiagnostic, CompileFailure, CompileInput, ElmToMorphirIRCompiler}
-import org.finos.morphir.ir.{MorphirIRFile, MorphirIRVersion}
-import org.finos.morphir.ir.distribution.Distribution
+import org.finos.morphir.codemodel as cm
 import org.finos.morphir.naming.{ModuleName, Name, PackageName}
-import zio.json.ast.Json
 
 class MepElmFrontendTests extends Test[Any]:
   private val packageName = PackageName.fromString("local/example")
@@ -19,35 +17,29 @@ class MepElmFrontendTests extends Test[Any]:
       |add left right = left + right
       |""".stripMargin
 
-  private val validIr = ElmToMorphirIRCompiler.compile(
-    CompileInput(source, packageName, moduleName, Set(Name.fromString("add")), MorphirIRVersion.V3_0)
+  private val validModel = ElmToMorphirIRCompiler.compile(
+    CompileInput(source, packageName, moduleName, Set(Name.fromString("add")))
   ) match
-    case Result.Success(ir) => ir
-    case other              => throw AssertionError(s"test fixture did not compile: $other")
+    case Result.Success(model) => model
+    case other                 => throw AssertionError(s"test fixture did not compile: $other")
+
+  private def field(value: Structure.Value, name: String): Option[Structure.Value] = value match
+    case Structure.Value.Record(fields) => fields.iterator.toMap.get(name)
+    case _                              => None
 
   "MepCompileError" - {
-    "classifies semantic request errors as invalid compile parameters" in {
-      val result = MepElmFrontend.compile(Json.Obj())
+    "classifies malformed Kyo values as invalid compile parameters" in {
+      val result = MepElmFrontend.compile(Structure.Value.Record(Chunk.empty))
 
-      assert(result == Result.fail(MepCompileError.InvalidParams("languageId must be a string")))
+      assert(result match
+        case Result.Failure(_: MepCompileError.InvalidParams) => true
+        case _                                                => false)
     }
 
-    "maps invalid compile parameters to JSON-RPC invalid params" in {
-      val code = MepCompileError.jsonRpcCode(MepCompileError.InvalidParams("bad params"))
-
-      assert(code == -32602)
-    }
-
-    "maps invalid compiler output to JSON-RPC internal error" in {
-      val code = MepCompileError.jsonRpcCode(MepCompileError.InvalidCompilerOutput("bad IR"))
-
-      assert(code == -32603)
-    }
-
-    "maps IR serialization failure to JSON-RPC internal error" in {
-      val code = MepCompileError.jsonRpcCode(MepCompileError.IRSerializationFailure("bad JSON"))
-
-      assert(code == -32603)
+    "maps request and projection errors to their JSON-RPC categories" in {
+      assert(MepCompileError.jsonRpcCode(MepCompileError.InvalidParams("bad params")) == -32602)
+      assert(MepCompileError.jsonRpcCode(MepCompileError.InvalidCompilerOutput("bad model")) == -32603)
+      assert(MepCompileError.jsonRpcCode(MepCompileError.IRSerializationFailure("bad projection")) == -32603)
     }
   }
 
@@ -67,7 +59,7 @@ class MepElmFrontendTests extends Test[Any]:
 
   "MepElmFrontend.foldCompilerResult" - {
     "maps success and expected failure while preserving panic" in {
-      val document = SourceDocument("file:///workspace/Example.elm", "elm", BigInt(1), source)
+      val document = SourceDocument("file:///workspace/Example.elm", "elm", DocumentVersion(1), source)
       val failure  = CompileFailure(Chunk(CompileDiagnostic.UnsupportedExpression("lambda", SourceSpan.zero)))
       val panic    = IllegalStateException("synthetic compiler panic")
 
@@ -75,108 +67,83 @@ class MepElmFrontendTests extends Test[Any]:
         document,
         packageName,
         moduleName,
-        Vector("Example"),
-        Result.succeed(validIr)
+        Chunk("Example"),
+        Result.succeed(validModel)
       )
       val failed = MepElmFrontend.foldCompilerResult(
         document,
         packageName,
         moduleName,
-        Vector("Example"),
+        Chunk("Example"),
         Result.fail(failure)
       )
       val panicked = MepElmFrontend.foldCompilerResult(
         document,
         packageName,
         moduleName,
-        Vector("Example"),
+        Chunk("Example"),
         Result.panic(panic)
       )
 
       assert(succeeded match
-        case Result.Success(Json.Obj(fields)) => fields.toMap.get("success").contains(Json.Bool(true))
-        case _                                => false)
+        case Result.Success(value) => field(value, "success").contains(Structure.Value.Bool(true))
+        case _                     => false)
       assert(failed match
-        case Result.Success(Json.Obj(fields)) => fields.toMap.get("success").contains(Json.Bool(false))
-        case _                                => false)
+        case Result.Success(value) => field(value, "success").contains(Structure.Value.Bool(false))
+        case _                     => false)
       assert(panicked match
         case Result.Panic(cause) => cause eq panic
         case _                   => false)
     }
   }
 
-  "MepElmFrontend.validateCompiledIR" - {
-    "classifies invalid constructed IR as invalid compiler output" in {
-      val result = MepElmFrontend.validateCompilerOutput(
-        validIr.copy(version = MorphirIRVersion.V2_0),
-        packageName,
-        Set(moduleName)
-      )
+  "MepElmFrontend.validateCompiledModel" - {
+    "derives package and module metadata from the Kyo code model" in {
+      val validated = MepElmFrontend.validateCompiledModel(validModel, packageName, Set(moduleName)).toOption.get
 
-      assert(result ==
-        Left(MepCompileError.InvalidCompilerOutput("The compiler returned Morphir IR other than version 3")))
-    }
-
-    "rejects invalid constructed IR before encoding a successful compile result" in {
-      val result = MepElmFrontend.encodeCompilerOutput(
-        validIr.copy(version = MorphirIRVersion.V2_0),
-        packageName,
-        Set(moduleName)
-      )
-
-      assert(result ==
-        Left(MepCompileError.InvalidCompilerOutput("The compiler returned Morphir IR other than version 3")))
-    }
-
-    "derives the package and module metadata from valid IR" in {
-      val validated = MepElmFrontend.validateCompiledIR(validIr, packageName, Set(moduleName)).toOption.get
-
-      assert(validated.ir == validIr)
+      assert(validated.distribution == validModel)
       assert(validated.packageName == packageName)
       assert(validated.modules.toSet == Set(moduleName))
     }
 
-    "rejects a compiled IR version other than v3" in {
-      val result = MepElmFrontend.validateCompiledIR(
-        validIr.copy(version = MorphirIRVersion.V2_0),
-        packageName,
-        Set(moduleName)
+    "rejects a non-library distribution" in {
+      val library = validModel match
+        case cm.Distribution.Library(value) => value
+        case other                          => throw AssertionError(s"expected library fixture, got $other")
+      val specs = cm.Distribution.Specs(
+        cm.SpecsDistribution(library.packageInfo, cm.PackageSpecification(Map.empty), Map.empty)
       )
 
-      assert(result == Left("The compiler returned Morphir IR other than version 3"))
+      assert(
+        MepElmFrontend.validateCompiledModel(specs, packageName, Set(moduleName)) ==
+          Left("The compiler returned a non-library distribution")
+      )
     }
 
-    "rejects a compiled IR distribution that is not a library" in {
-      val result = MepElmFrontend.validateCompiledIR(
-        validIr.copy(distribution = Distribution.Bundle(Map.empty)),
-        packageName,
-        Set(moduleName)
+    "rejects package and module metadata that differ from the request" in {
+      val library = validModel match
+        case cm.Distribution.Library(value) => value
+        case other                          => throw AssertionError(s"expected library fixture, got $other")
+      val wrongPackage = cm.Distribution.Library(
+        library.copy(packageInfo = library.packageInfo.copy(name = PackageName.fromString("local/other")))
       )
 
-      assert(result == Left("The compiler returned a non-library distribution"))
+      assert(
+        MepElmFrontend.validateCompiledModel(wrongPackage, packageName, Set(moduleName)) ==
+          Left("The compiled model package does not match the requested package")
+      )
+      assert(
+        MepElmFrontend.validateCompiledModel(validModel, packageName, Set(ModuleName.fromString("Other"))) ==
+          Left("The compiled model modules do not match the requested modules")
+      )
     }
 
-    "rejects a compiled library whose package differs from the request" in {
-      val wrongPackage = PackageName.fromString("local/other")
-      val library      = validIr.distribution match
-        case value: Distribution.Library => value
-        case other                       => throw AssertionError(s"expected library fixture, got $other")
-      val result = MepElmFrontend.validateCompiledIR(
-        validIr.copy(distribution = library.copy(packageName = wrongPackage)),
-        packageName,
-        Set(moduleName)
-      )
+    "projects valid compiler output to an embedded Morphir IR v3 value" in {
+      val encoded = MepElmFrontend.encodeCompilerOutput(validModel, packageName, Set(moduleName), Chunk("Example"))
 
-      assert(result == Left("The compiled IR package does not match the requested package"))
-    }
-
-    "rejects compiled IR modules that differ from requested module metadata" in {
-      val result = MepElmFrontend.validateCompiledIR(
-        validIr,
-        packageName,
-        Set(ModuleName.fromString("Other"))
-      )
-
-      assert(result == Left("The compiled IR modules do not match the requested modules"))
+      assert(encoded.toOption.flatMap(field(_, "success")).contains(Structure.Value.Bool(true)))
+      assert(encoded.toOption.flatMap(field(_, "irVersion")).contains(Structure.Value.Str("3")))
+      assert(encoded.toOption.flatMap(field(_, "ir")).exists(_.isInstanceOf[Structure.Value.Record]))
     }
   }
+end MepElmFrontendTests

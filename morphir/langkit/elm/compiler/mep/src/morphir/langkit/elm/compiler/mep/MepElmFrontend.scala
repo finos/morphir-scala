@@ -5,19 +5,14 @@ import morphir.langkit.core.{SourceOffsets, Span}
 import morphir.langkit.elm.Elm
 import morphir.langkit.elm.ast.{ExposedValue, ExposingExplicit}
 import morphir.langkit.elm.compiler.ir.{CompileDiagnostic, CompileFailure, CompileInput, ElmToMorphirIRCompiler}
-import org.finos.morphir.ir.MorphirIRVersion
-import org.finos.morphir.ir.MorphirIRFile
-import org.finos.morphir.ir.distribution.Distribution
-import org.finos.morphir.ir.json.MorphirJsonSupport.*
+import org.finos.morphir.codemodel as cm
+import org.finos.morphir.codemodel.compat.v3.{V3ProjectionError, V3WireProjection}
 import org.finos.morphir.naming.{ModuleName, Name, PackageName}
-import scala.util.Try
-import zio.json.*
-import zio.json.ast.Json
 
-final case class ValidatedCompiledIR(
-    ir: MorphirIRFile,
+final case class ValidatedCompiledModel(
+    distribution: cm.Distribution,
     packageName: PackageName,
-    modules: Vector[ModuleName]
+    modules: Chunk[ModuleName]
 ) derives CanEqual
 
 enum MepCompileError(val message: String) derives CanEqual:
@@ -31,118 +26,118 @@ object MepCompileError:
     case _: MepCompileError.InvalidCompilerOutput | _: MepCompileError.IRSerializationFailure => -32603
 
 object MepElmFrontend:
-  private val MaxDocumentVersion = (BigInt(1) << 64) - 1
-  private val PackageIdentity    =
+  private type Value = Structure.Value
+
+  private val PackageIdentity =
     raw"(?:[a-z]+|[0-9]+)(?:-(?:[a-z]+|[0-9]+))*(?:/(?:[a-z]+|[0-9]+)(?:-(?:[a-z]+|[0-9]+))*)*".r
   private val ModuleIdentity = raw"[A-Z][A-Za-z0-9_]*(?:\.[A-Z][A-Za-z0-9_]*)*".r
 
-  def compile(params: Json): Result[MepCompileError, Json] =
+  def compile(params: Value): Result[MepCompileError, Value] =
     parseRequest(params) match
       case Right(request) => compileRequest(request)
       case Left(error)    => Result.fail(MepCompileError.InvalidParams(error))
 
-  private[mep] def validateCompiledIR(
-      ir: MorphirIRFile,
+  private[mep] def validateCompiledModel(
+      distribution: cm.Distribution,
       requestedPackage: PackageName,
       requestedModules: Set[ModuleName]
-  ): Either[String, ValidatedCompiledIR] =
-    if ir.version != MorphirIRVersion.V3_0 then Left("The compiler returned Morphir IR other than version 3")
-    else
-      ir.distribution match
-        case library: Distribution.Library if library.packageName != requestedPackage =>
-          Left("The compiled IR package does not match the requested package")
-        case library: Distribution.Library =>
-          val modules = library.packageDef.modules.keys.toVector.sortBy(_.toString)
-          if modules.toSet != requestedModules then
-            Left("The compiled IR modules do not match the requested modules")
-          else Right(ValidatedCompiledIR(ir, library.packageName, modules))
-        case _ => Left("The compiler returned a non-library distribution")
+  ): Either[String, ValidatedCompiledModel] =
+    distribution match
+      case cm.Distribution.Library(library) if library.packageInfo.name != requestedPackage =>
+        Left("The compiled model package does not match the requested package")
+      case cm.Distribution.Library(library) =>
+        val modules = Chunk.from(library.definition.modules.keys.toVector.sortBy(_.toString))
+        if modules.toSet != requestedModules then Left("The compiled model modules do not match the requested modules")
+        else Right(ValidatedCompiledModel(distribution, library.packageInfo.name, modules))
+      case _ => Left("The compiler returned a non-library distribution")
 
   private[mep] def validateCompilerOutput(
-      ir: MorphirIRFile,
+      distribution: cm.Distribution,
       requestedPackage: PackageName,
       requestedModules: Set[ModuleName]
-  ): Either[MepCompileError, ValidatedCompiledIR] =
-    validateCompiledIR(ir, requestedPackage, requestedModules).left.map(MepCompileError.InvalidCompilerOutput.apply)
+  ): Either[MepCompileError, ValidatedCompiledModel] =
+    validateCompiledModel(distribution, requestedPackage, requestedModules)
+      .left
+      .map(MepCompileError.InvalidCompilerOutput.apply)
 
   private[mep] def encodeCompilerOutput(
-      ir: MorphirIRFile,
+      distribution: cm.Distribution,
       requestedPackage: PackageName,
       requestedModules: Set[ModuleName],
-      moduleSpellings: Vector[String] = Vector.empty
-  ): Either[MepCompileError, Json] =
+      moduleSpellings: Chunk[String] = Chunk.empty
+  ): Either[MepCompileError, Value] =
     for
-      validated <- validateCompilerOutput(ir, requestedPackage, requestedModules)
-      irJson    <- validated.ir.toJsonAST.left.map(MepCompileError.IRSerializationFailure.apply)
-    yield Json.Obj(
-      "success"     -> Json.Bool(true),
-      "irVersion"   -> Json.Str("3"),
-      "ir"          -> irJson,
-      "diagnostics" -> Json.Arr(),
-      "modules"     -> Json.Arr(
-        Option.when(moduleSpellings.nonEmpty)(moduleSpellings)
-          .getOrElse(validated.modules.map(_.toString))
-          .map(Json.Str.apply)*
+      validated <- validateCompilerOutput(distribution, requestedPackage, requestedModules)
+      ir        <- projectV3(validated.distribution)
+    yield record(
+      "success"     -> bool(true),
+      "irVersion"   -> str("3"),
+      "ir"          -> ir,
+      "diagnostics" -> sequence(),
+      "modules"     -> sequence(
+        (if moduleSpellings.nonEmpty then moduleSpellings else validated.modules.map(_.toString)).map(str)*
       )
     )
 
-  private def compileRequest(request: CompileRequest): Result[MepCompileError, Json] =
-    request.documents.headOption match
-      case None => Result.fail(MepCompileError.InvalidParams("Morphir Scala Elm requires exactly one source document"))
-      case Some(document) =>
-        request.compilePackage.exposedModules.headOption match
-          case None         => Result.fail(MepCompileError.InvalidParams("Exactly one exposed module is required"))
-          case Some(module) =>
-            val exposedValues = sourceMetadata(document.text).map(_._2).getOrElse(Set.empty)
-            val input         = CompileInput(
-              source = document.text,
-              packageName = PackageName.fromString(request.compilePackage.name),
-              moduleName = ModuleName.fromString(module),
-              exposedValues = exposedValues,
-              irVersion = MorphirIRVersion.V3_0
-            )
-            foldCompilerResult(
-              document,
-              input.packageName,
-              input.moduleName,
-              request.compilePackage.exposedModules,
-              ElmToMorphirIRCompiler.compile(input)
-            )
+  private def projectV3(distribution: cm.Distribution): Either[MepCompileError, Value] =
+    V3WireProjection.project(distribution) match
+      case Result.Success(value) => Right(value)
+      case Result.Failure(error) => Left(MepCompileError.IRSerializationFailure(projectionMessage(error)))
+      case Result.Panic(cause)   => Left(MepCompileError.IRSerializationFailure(cause.getMessage))
+
+  private def projectionMessage(error: V3ProjectionError): String = error match
+    case V3ProjectionError.UnsupportedDistribution(kind)     => s"Unsupported v3 distribution: $kind"
+    case V3ProjectionError.UnsupportedFeature(path, feature) => s"Unsupported v3 feature at $path: $feature"
+    case V3ProjectionError.InvalidModel(path, details)       => s"Invalid model at $path: $details"
+
+  private def compileRequest(request: CompileRequest): Result[MepCompileError, Value] =
+    val document = request.documents.head
+    val module   = request.compilePackage.exposedModules.head
+    val input    = CompileInput(
+      source = document.text,
+      packageName = PackageName.fromString(request.compilePackage.name),
+      moduleName = ModuleName.fromString(module),
+      exposedValues = sourceMetadata(document.text).map(_._2).getOrElse(Set.empty)
+    )
+    foldCompilerResult(
+      document,
+      input.packageName,
+      input.moduleName,
+      request.compilePackage.exposedModules,
+      ElmToMorphirIRCompiler.compile(input)
+    )
 
   private[mep] def foldCompilerResult(
       document: SourceDocument,
       packageName: PackageName,
       moduleName: ModuleName,
-      moduleSpellings: Vector[String],
-      compilerResult: Result[CompileFailure, MorphirIRFile]
-  ): Result[MepCompileError, Json] =
+      moduleSpellings: Chunk[String],
+      compilerResult: Result[CompileFailure, cm.Distribution]
+  ): Result[MepCompileError, Value] =
     compilerResult match
-      case Result.Success(ir) =>
-        encodeCompilerOutput(ir, packageName, Set(moduleName), moduleSpellings) match
-          case Right(json) => Result.succeed(json)
-          case Left(error) => Result.fail(error)
+      case Result.Success(distribution) =>
+        encodeCompilerOutput(distribution, packageName, Set(moduleName), moduleSpellings) match
+          case Right(value) => Result.succeed(value)
+          case Left(error)  => Result.fail(error)
       case Result.Failure(failure) => Result.succeed(compileFailure(document, failure))
       case Result.Panic(cause)     => Result.panic(cause)
 
-  private def compileFailure(document: SourceDocument, failure: CompileFailure): Json =
-    Json.Obj(
-      "success"     -> Json.Bool(false),
-      "diagnostics" -> Json.Arr(failure.diagnostics.map(diagnosticJson(document, _))*),
-      "modules"     -> Json.Arr()
+  private def compileFailure(document: SourceDocument, failure: CompileFailure): Value =
+    record(
+      "success"     -> bool(false),
+      "diagnostics" -> sequence(failure.diagnostics.map(diagnosticValue(document, _))*),
+      "modules"     -> sequence()
     )
 
-  private def diagnosticJson(document: SourceDocument, diagnostic: CompileDiagnostic): Json =
+  private def diagnosticValue(document: SourceDocument, diagnostic: CompileDiagnostic): Value =
     val span = diagnosticSpan(diagnostic)
-    Json.Obj(
-      "severity" -> Json.Str("error"),
-      "code"     -> Json.Str(diagnostic match
+    record(
+      "severity" -> str("error"),
+      "code"     -> str(diagnostic match
         case _: CompileDiagnostic.ParserFailure | _: CompileDiagnostic.MalformedModuleHeader => "elm.parser"
         case other                                                                           => other.code),
-      "message"  -> Json.Str(diagnosticMessage(diagnostic)),
-      "location" -> Json.Obj(
-        "uri"   -> Json.Str(document.uri),
-        "range" -> sourceRange(document.text, span)
-      )
+      "message"  -> str(diagnosticMessage(diagnostic)),
+      "location" -> record("uri" -> str(document.uri), "range" -> sourceRange(document.text, span))
     )
 
   private[mep] def diagnosticMessage(diagnostic: CompileDiagnostic): String = diagnostic match
@@ -163,7 +158,6 @@ object MepElmFrontend:
       s"Expected Elm module $expected, but found $actual"
     case CompileDiagnostic.ExposedNameMismatch(expected, actual, _) =>
       s"Expected exposed values ${displayNames(expected)}, but found ${displayNames(actual)}"
-    case _: CompileDiagnostic.UnsupportedIRVersion      => "Unsupported Morphir IR version"
     case CompileDiagnostic.UnsupportedExposure(kind, _) => s"Unsupported Elm exposure: $kind"
     case CompileDiagnostic.AnnotationNameMismatch(annotationName, declarationName, _) =>
       s"Type annotation $annotationName does not match declaration $declarationName"
@@ -183,17 +177,16 @@ object MepElmFrontend:
     case CompileDiagnostic.UnsupportedPattern(_, span)        => span
     case CompileDiagnostic.ModuleNameMismatch(_, _, span)     => span
     case CompileDiagnostic.ExposedNameMismatch(_, _, span)    => span
-    case CompileDiagnostic.UnsupportedIRVersion(_)            => Span.zero
     case CompileDiagnostic.UnsupportedExposure(_, span)       => span
     case CompileDiagnostic.AnnotationNameMismatch(_, _, span) => span
     case CompileDiagnostic.DuplicateParameter(_, span)        => span
     case CompileDiagnostic.DuplicateExposedValue(_, span)     => span
 
-  private def sourceRange(source: String, span: Span): Json =
-    def position(offset: Int): Json =
+  private def sourceRange(source: String, span: Span): Value =
+    def position(offset: Int): Value =
       val (line, column) = SourceOffsets.lineColumnAt(source, offset)
-      Json.Obj("line" -> Json.Num(line - 1), "character" -> Json.Num(column - 1))
-    Json.Obj("start" -> position(span.start), "end" -> position(span.end))
+      record("line" -> integer(line - 1), "character" -> integer(column - 1))
+    record("start" -> position(span.start), "end" -> position(span.end))
 
   private def sourceMetadata(source: String): Option[(String, Set[Name])] =
     Elm.parseAst(source).toOption.map { module =>
@@ -203,89 +196,44 @@ object MepElmFrontend:
       module.name.fullName -> exposedValues
     }
 
-  private def parseRequest(value: Json): Either[String, CompileRequest] = value match
-    case Json.Obj(fields) =>
-      val values = fields.toMap
-      for
-        language  <- string(values, "languageId")
-        documents <- values.get("documents") match
-          case Some(Json.Arr(items)) =>
-            items.toVector.foldRight(Right(Vector.empty): Either[String, Vector[SourceDocument]]) {
-              (item, result) => for document <- parseDocument(item); tail <- result yield document +: tail
-            }
-          case _ => Left("documents must be an array")
-        compilePackage <- values.get("package").toRight("package is required").flatMap(parsePackage)
-        dependencies   <- values.get("dependencies") match
-          case Some(Json.Arr(items)) if items.isEmpty => Right(Vector.empty)
-          case Some(Json.Arr(_))                      => Left("dependencies are not supported")
-          case _                                      => Left("dependencies must be an array")
-        options <- values.get("options").toRight("options are required").flatMap(parseOptions)
-        _       <- Either.cond(language == "elm", (), "Morphir Scala Elm only compiles elm")
-        _       <- Either.cond(documents.size == 1, (), "Exactly one source document is required")
-        _       <- Either.cond(documents.head.languageId == "elm", (), "The source document language must be elm")
-        _       <- Either.cond(documents.head.uri.trim.nonEmpty, (), "The source document URI must not be empty")
-        _       <- Either.cond(options.irVersion == "3", (), "Morphir Scala Elm only emits Morphir IR version 3")
-        _       <- Either.cond(!options.typesOnly, (), "Types-only compilation is not supported")
-        _       <- Either.cond(PackageIdentity.matches(compilePackage.name), (), "Invalid package identity")
-        _       <- Either.cond(
-          compilePackage.exposedModules.size == 1 && ModuleIdentity.matches(compilePackage.exposedModules.head),
-          (),
-          "Invalid exposed module identity"
-        )
-        _ <- sourceMetadata(documents.head.text).map(_._1) match
-          case Some(sourceModule) =>
-            Either.cond(
-              sourceModule == compilePackage.exposedModules.head,
-              (),
-              "The exposed module does not match the source header"
-            )
-          case None => Right(())
-      yield CompileRequest(language, documents, compilePackage, dependencies, options)
-    case _ => Left("compile params must be an object")
+  private def parseRequest(value: Value): Either[String, CompileRequest] =
+    Structure.decode[CompileRequest](value) match
+      case Result.Success(request) => validateRequest(request)
+      case Result.Failure(error)   => Left(s"Invalid compile parameters: ${error.getMessage}")
+      case Result.Panic(error)     => Left(s"Invalid compile parameters: ${error.getMessage}")
 
-  private def parseDocument(value: Json): Either[String, SourceDocument] = value match
-    case Json.Obj(fields) =>
-      val values = fields.toMap
-      for
-        uri      <- string(values, "uri")
-        language <- string(values, "languageId")
-        version  <- unsignedInteger(values, "version")
-        text     <- string(values, "text")
-      yield SourceDocument(uri, language, version, text)
-    case _ => Left("document must be an object")
+  private def validateRequest(request: CompileRequest): Either[String, CompileRequest] =
+    val documents = request.documents
+    val modules   = request.compilePackage.exposedModules
+    for
+      _ <- Either.cond(request.languageId == "elm", (), "Morphir Scala Elm only compiles elm")
+      _ <- Either.cond(documents.size == 1, (), "Exactly one source document is required")
+      document = documents.head
+      _ <- Either.cond(document.languageId == "elm", (), "The source document language must be elm")
+      _ <- Either.cond(document.uri.trim.nonEmpty, (), "The source document URI must not be empty")
+      _ <- Either.cond(
+        document.version.toBigInt >= DocumentVersion.Min.toBigInt &&
+          document.version.toBigInt <= DocumentVersion.Max.toBigInt,
+        (),
+        "version must be a non-negative integer"
+      )
+      _ <- Either.cond(request.dependencies.isEmpty, (), "dependencies are not supported")
+      _ <- Either.cond(request.options.irVersion == "3", (), "Morphir Scala Elm only emits Morphir IR version 3")
+      _ <- Either.cond(!request.options.typesOnly, (), "Types-only compilation is not supported")
+      _ <- Either.cond(PackageIdentity.matches(request.compilePackage.name), (), "Invalid package identity")
+      _ <- Either.cond(
+        modules.size == 1 && ModuleIdentity.matches(modules.head),
+        (),
+        "Invalid exposed module identity"
+      )
+      _ <- sourceMetadata(document.text).map(_._1) match
+        case Some(sourceModule) =>
+          Either.cond(sourceModule == modules.head, (), "The exposed module does not match the source header")
+        case None => Right(())
+    yield request
 
-  private def parsePackage(value: Json): Either[String, CompilePackage] = value match
-    case Json.Obj(fields) =>
-      val values = fields.toMap
-      for
-        name    <- string(values, "name")
-        modules <- values.get("exposedModules") match
-          case Some(Json.Arr(items)) if items.forall(_.isInstanceOf[Json.Str]) =>
-            Right(items.collect { case Json.Str(module) => module }.toVector)
-          case _ => Left("exposedModules must contain strings")
-      yield CompilePackage(name, modules)
-    case _ => Left("package must be an object")
-
-  private def parseOptions(value: Json): Either[String, CompileOptions] = value match
-    case Json.Obj(fields) =>
-      val values = fields.toMap
-      for
-        typesOnly <- values.get("typesOnly") match
-          case Some(Json.Bool(value)) => Right(value)
-          case _                      => Left("typesOnly must be a boolean")
-        irVersion <- string(values, "irVersion")
-      yield CompileOptions(typesOnly, irVersion)
-    case _ => Left("options must be an object")
-
-  private def string(values: Map[String, Json], field: String): Either[String, String] =
-    values.get(field) match
-      case Some(Json.Str(value)) => Right(value)
-      case _                     => Left(s"$field must be a string")
-
-  private def unsignedInteger(values: Map[String, Json], field: String): Either[String, BigInt] =
-    values.get(field) match
-      case Some(Json.Num(value)) =>
-        Try(BigInt(value.toBigIntegerExact)).toOption
-          .filter(number => number.signum >= 0 && number <= MaxDocumentVersion)
-          .toRight(s"$field must be a non-negative integer")
-      case _ => Left(s"$field must be a non-negative integer")
+  private def str(value: String): Value               = Structure.Value.Str(value)
+  private def bool(value: Boolean): Value             = Structure.Value.Bool(value)
+  private def integer(value: Int): Value              = Structure.Value.Integer(value)
+  private def sequence(values: Value*): Value         = Structure.Value.Sequence(Chunk.from(values))
+  private def record(fields: (String, Value)*): Value = Structure.Value.Record(Chunk.from(fields))

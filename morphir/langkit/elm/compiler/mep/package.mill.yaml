@@ -1,12 +1,12 @@
 extends: Module
 
 object jvm:
-  extends: [build.MorphirJVMModule, build.MorphirKyoCoreMvnDeps, build.MorphirElmMepNativeImageSmoke]
+  extends: [build.MorphirJVMModule, build.MorphirKyoCoreMvnDeps, build.MorphirKyoSchemaJsonMvnDeps, build.MorphirElmMepNativeImageSmoke]
   mainClass: morphir.langkit.elm.compiler.mep.Main
   moduleDeps:
   - build.morphir.langkit.elm.compiler.ir.jvm
-  - build.morphir.interop.zio.json.jvm
+  - build.morphir.model.compat.v3.jvm
   mvnDeps: !append
-  - dev.zio::zio-json
+  - io.getkyo::kyo-jsonrpc
   object test:
-    extends: [ScalaTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps]
+    extends: [ScalaTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps, build.MorphirKyoSchemaJsonMvnDeps]

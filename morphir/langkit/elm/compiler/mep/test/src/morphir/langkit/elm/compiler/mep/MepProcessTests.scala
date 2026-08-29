@@ -4,8 +4,6 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream, InputStream, PrintS
 import java.nio.charset.StandardCharsets.UTF_8
 import kyo.*
 import kyo.test.*
-import zio.json.*
-import zio.json.ast.Json
 
 class MepProcessTests extends Test[Any]:
 
@@ -62,17 +60,19 @@ class MepProcessTests extends Test[Any]:
       val stdout = ByteArrayOutputStream()
       val stderr = ByteArrayOutputStream()
 
-      val exitCode  = MepProcess.run(stdin, stdout, PrintStream(stderr), ProviderMetadata.default)
-      val response  = MepFrameCodec.decoder().feed(stdout.toByteArray).frames.head
-      val json      = String(response, UTF_8).fromJson[Json].toOption.get
+      val exitCode = MepProcess.run(stdin, stdout, PrintStream(stderr), ProviderMetadata.default)
+      val response = MepFrameCodec.decoder().feed(stdout.toByteArray).frames.head
+      val json     = Json.decode[Structure.Value](String(response, UTF_8)) match
+        case Result.Success(value) => value
+        case other                 => throw AssertionError(s"response did not decode: $other")
       val errorCode = json match
-        case Json.Obj(fields) => fields.toMap.get("error").collect {
-            case Json.Obj(error) => error.toMap.get("code")
+        case Structure.Value.Record(fields) => fields.toMap.get("error").collect {
+            case Structure.Value.Record(error) => error.toMap.get("code")
           }.flatten
         case _ => None
 
       assert(exitCode == 0)
-      assert(errorCode == Some(Json.Num(-32700)))
+      assert(errorCode == Some(Structure.Value.Integer(-32700)))
       assert(stderr.size == 0)
     }
 
