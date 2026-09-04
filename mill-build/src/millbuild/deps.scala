@@ -175,18 +175,18 @@ object Deps {
       )
     }
     object bullet {
-      def `borer-core`(scalaVersion: String): Dep = mvn"io.bullet::borer-core::${Versions.borer(scalaVersion)}"
-      def `borer-core`(scalaVersionParts: Seq[String]): Dep =
-        mvn"io.bullet::borer-core::${Versions.borer(scalaVersionParts)}"
+1.18.0      def `borer-core`(scalaVersion: String): Dep = mvn"io.bullet::borer-core::${Versions.borer(scalaVersion)}"
+1.18.0      def `borer-core`(scalaVersionParts: Seq[String]): Dep =
+1.18.0        mvn"io.bullet::borer-core::${Versions.borer(scalaVersionParts)}"
 
-      def `borer-derivation`(scalaVersion: String): Dep =
-        mvn"io.bullet::borer-derivation::${Versions.borer(scalaVersion)}"
+1.18.0      def `borer-derivation`(scalaVersion: String): Dep =
+1.18.0        mvn"io.bullet::borer-derivation::${Versions.borer(scalaVersion)}"
 
-      def `borer-derivation`(scalaVersionParts: Seq[String]): Dep =
-        mvn"io.bullet::borer-derivation::${Versions.borer(scalaVersionParts)}"
+1.18.0      def `borer-derivation`(scalaVersionParts: Seq[String]): Dep =
+1.18.0        mvn"io.bullet::borer-derivation::${Versions.borer(scalaVersionParts)}"
 
       def managed: Seq[Dep] =
-        Seq(`borer-core`(ScalaVersions.scala3), `borer-derivation`(ScalaVersions.scala3))
+1.18.0        Seq(`borer-core`(ScalaVersions.scala3), `borer-derivation`(ScalaVersions.scala3))
     }
     object `get-coursier` {
       val coursier = mvn"io.get-coursier::coursier::${Versions.coursier}"
@@ -261,8 +261,8 @@ object Versions {
 
   val enumeratum = "1.9.8"
 
-  def borer(scalaVersion: String): String           = "1.17.0"
-  def borer(scalaVersionParts: Seq[String]): String = "1.17.0"
+1.18.0  def borer(scalaVersion: String): String           = "1.17.0"
+1.18.0  def borer(scalaVersionParts: Seq[String]): String = "1.17.0"
 
   val `buffer-and-slice` = "1.64.0"
 

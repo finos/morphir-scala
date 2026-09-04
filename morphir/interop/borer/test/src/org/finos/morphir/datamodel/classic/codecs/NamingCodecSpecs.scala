@@ -1,6 +1,6 @@
 package org.finos.morphir.datamodel.classic
 
-import io.bullet.borer._
+1.18.0import io.bullet.borer._
 import org.finos.morphir.naming._
 import org.finos.morphir.testing.MorphirBaseSpec
 import org.finos.morphir.datamodel.classic.codecs.NamingCodecs._
