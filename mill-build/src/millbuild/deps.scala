@@ -94,7 +94,7 @@ object Deps {
       val `zio-config`         = config()
       val `zio-interop-cats`   = mvn"dev.zio::zio-interop-cats::${Versions.`zio-interop-cats`}"
       val `zio-json`: Dep      = mvn"dev.zio::zio-json::${Versions.`zio-json`}"
-      val `zio-json-golden`    = mvn"dev.zio::zio-json-golden::${Versions.`zio-json`}"
+1.0.0      val `zio-json-golden`    = mvn"dev.zio::zio-json-golden::${Versions.`zio-json`}"
       val `zio-parser`         = mvn"dev.zio::zio-parser::${Versions.`zio-parser`}"
       val `zio-nio`            = mvn"dev.zio::zio-nio::${Versions.`zio-nio`}"
       val `zio-prelude`        = prelude()
@@ -131,7 +131,7 @@ object Deps {
 
       /** zio, zio-json, zio-prelude, zio-config and zio-schema are separate version pins. Each is a suite. */
       def managed: Seq[Dep] =
-        Seq(zio, `zio-streams`, `zio-test`, `zio-test-magnolia`, `zio-test-sbt`, `zio-json`, `zio-json-golden`) ++
+1.0.0        Seq(zio, `zio-streams`, `zio-test`, `zio-test-magnolia`, `zio-test-sbt`, `zio-json`, `zio-json-golden`) ++
           config.managed ++ prelude.managed ++ schema.managed
     }
   }
