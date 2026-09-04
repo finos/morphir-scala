@@ -5189,7 +5189,7 @@ class SquireCellarSpec extends Test[Any]:
         "zio:2.1.26"     -> "dev.zio:zio_3:2.1.26",
         "zio-cli"        -> "dev.zio:zio-cli_3:0.8.1",
         "mill-scalalib"  -> "com.lihaoyi:mill-scalalib_3:0.12.0",
-        "scala3-library" -> "org.scala-lang:scala3-library_3:3.8.4"
+        "scala3-library" -> "org.scala-lang:scala3-library_3:3.9.0"
       )
       assert(
         aliases.forall((alias, coordinate) => SquireCellar.resolveCoordinate(alias) == coordinate) &&
