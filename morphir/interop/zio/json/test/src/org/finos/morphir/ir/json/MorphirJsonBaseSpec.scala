@@ -7,8 +7,8 @@ import zio.{test => _, _}
 import zio.test._
 import zio.test.diff._
 import zio.test.diff.Diff._
-import zio.json.golden.{goldenTest => _, _}
-import zio.json.golden.filehelpers._
+1.0.0import zio.json.golden.{goldenTest => _, _}
+1.0.0import zio.json.golden.filehelpers._
 import zio.json._
 import zio.json.ast._
 import java.io.File
