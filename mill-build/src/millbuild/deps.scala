@@ -14,8 +14,8 @@ object Deps {
 
   object co {
     object fs2 {
-      val `fs2-core` = mvn"co.fs2::fs2-core::${Versions.fs2}"
-      val `fs2-io`   = mvn"co.fs2::fs2-io::${Versions.fs2}"
+      val `fs2-core`        = mvn"co.fs2::fs2-core::${Versions.fs2}"
+      val `fs2-io`          = mvn"co.fs2::fs2-io::${Versions.fs2}"
       def managed: Seq[Dep] = Seq(`fs2-core`, `fs2-io`)
     }
   }
@@ -34,11 +34,11 @@ object Deps {
 
     object geirsson {
       object metaconfig {
-        val core    = mvn"com.geirsson::metaconfig-core::${Versions.metaconfig}"
-        val docs    = mvn"com.geirsson::metaconfig-docs::${Versions.metaconfig}"
-        val json    = mvn"com.geirsson::metaconfig-json::${Versions.metaconfig}"
-        val pprint  = mvn"com.geirsson::metaconfig-pprint::${Versions.metaconfig}"
-        val sconfig = mvn"com.geirsson::metaconfig-sconfig::${Versions.metaconfig}"
+        val core              = mvn"com.geirsson::metaconfig-core::${Versions.metaconfig}"
+        val docs              = mvn"com.geirsson::metaconfig-docs::${Versions.metaconfig}"
+        val json              = mvn"com.geirsson::metaconfig-json::${Versions.metaconfig}"
+        val pprint            = mvn"com.geirsson::metaconfig-pprint::${Versions.metaconfig}"
+        val sconfig           = mvn"com.geirsson::metaconfig-sconfig::${Versions.metaconfig}"
         def managed: Seq[Dep] = Seq(core, docs, json, pprint, sconfig)
       }
     }
@@ -57,19 +57,19 @@ object Deps {
       }
     }
     object lihaoyi {
-      val castor         = mvn"com.lihaoyi::castor::${Versions.castor}"
-      val fansi          = mvn"com.lihaoyi::fansi::${Versions.fansi}"
-      val geny           = mvn"com.lihaoyi::geny::${Versions.geny}"
-      val mainargs       = mvn"com.lihaoyi::mainargs::${Versions.`mainargs`}"
-      val `os-lib`       = mvn"com.lihaoyi::os-lib::${Versions.`os-lib`}"
-      val osLibJvm       = mvn"com.lihaoyi:os-lib_3:${Versions.`os-lib`}"
-      val sourcecode     = mvn"com.lihaoyi::sourcecode::${Versions.sourcecode}"
-      val sourcecodeJvm  = mvn"com.lihaoyi::sourcecode:${Versions.sourcecode}"
-      val pprint         = mvn"com.lihaoyi::pprint::0.9.6"
-      val ujson          = mvn"com.lihaoyi::ujson::${Versions.upickle}"
-      val upickle        = mvn"com.lihaoyi::upickle::${Versions.upickle}"
-      val upickleJvm     = mvn"com.lihaoyi::upickle:${Versions.upickle}"
-      val `upickle-core` = mvn"com.lihaoyi::upickle-core::${Versions.upickle}"
+      val castor                   = mvn"com.lihaoyi::castor::${Versions.castor}"
+      val fansi                    = mvn"com.lihaoyi::fansi::${Versions.fansi}"
+      val geny                     = mvn"com.lihaoyi::geny::${Versions.geny}"
+      val mainargs                 = mvn"com.lihaoyi::mainargs::${Versions.`mainargs`}"
+      val `os-lib`                 = mvn"com.lihaoyi::os-lib::${Versions.`os-lib`}"
+      val osLibJvm                 = mvn"com.lihaoyi:os-lib_3:${Versions.`os-lib`}"
+      val sourcecode               = mvn"com.lihaoyi::sourcecode::${Versions.sourcecode}"
+      val sourcecodeJvm            = mvn"com.lihaoyi::sourcecode:${Versions.sourcecode}"
+      val pprint                   = mvn"com.lihaoyi::pprint::0.9.6"
+      val ujson                    = mvn"com.lihaoyi::ujson::${Versions.upickle}"
+      val upickle                  = mvn"com.lihaoyi::upickle::${Versions.upickle}"
+      val upickleJvm               = mvn"com.lihaoyi::upickle:${Versions.upickle}"
+      val `upickle-core`           = mvn"com.lihaoyi::upickle-core::${Versions.upickle}"
       def upickleManaged: Seq[Dep] = Seq(ujson, upickle, `upickle-core`)
     }
 
@@ -106,26 +106,26 @@ object Deps {
       val `zio-test-sbt`       = mvn"dev.zio::zio-test-sbt::${Versions.zio}"
 
       object config {
-        def apply(): Dep = mvn"dev.zio::zio-config::${Versions.`zio-config`}"
-        val magnolia     = mvn"dev.zio::zio-config-magnolia::${Versions.`zio-config`}"
-        val refined      = mvn"dev.zio::zio-config-refined::${Versions.`zio-config`}"
-        val typesafe     = mvn"dev.zio::zio-config-typesafe::${Versions.`zio-config`}"
+        def apply(): Dep      = mvn"dev.zio::zio-config::${Versions.`zio-config`}"
+        val magnolia          = mvn"dev.zio::zio-config-magnolia::${Versions.`zio-config`}"
+        val refined           = mvn"dev.zio::zio-config-refined::${Versions.`zio-config`}"
+        val typesafe          = mvn"dev.zio::zio-config-typesafe::${Versions.`zio-config`}"
         def managed: Seq[Dep] = Seq(apply(), magnolia, refined, typesafe)
       }
 
       object prelude {
-        def apply(): Dep = mvn"dev.zio::zio-prelude::${Versions.`zio-prelude`}"
-        val macros       = mvn"dev.zio::zio-prelude-macros::${Versions.`zio-prelude`}"
+        def apply(): Dep      = mvn"dev.zio::zio-prelude::${Versions.`zio-prelude`}"
+        val macros            = mvn"dev.zio::zio-prelude-macros::${Versions.`zio-prelude`}"
         def managed: Seq[Dep] = Seq(apply(), macros)
       }
 
       object schema {
-        val `avro`       = mvn"dev.zio::zio-schema-avro::${Versions.`zio-schema`}"
-        val `bson`       = mvn"dev.zio::zio-schema-bson::${Versions.`zio-schema`}"
-        val `core`       = mvn"dev.zio::zio-schema-core::${Versions.`zio-schema`}"
-        val `derivation` = mvn"dev.zio::zio-schema-derivation::${Versions.`zio-schema`}"
-        val `json`       = mvn"dev.zio::zio-schema-json::${Versions.`zio-schema`}"
-        val `msg-pack`   = mvn"dev.zio::zio-schema-msg-pack::${Versions.`zio-schema`}"
+        val `avro`            = mvn"dev.zio::zio-schema-avro::${Versions.`zio-schema`}"
+        val `bson`            = mvn"dev.zio::zio-schema-bson::${Versions.`zio-schema`}"
+        val `core`            = mvn"dev.zio::zio-schema-core::${Versions.`zio-schema`}"
+        val `derivation`      = mvn"dev.zio::zio-schema-derivation::${Versions.`zio-schema`}"
+        val `json`            = mvn"dev.zio::zio-schema-json::${Versions.`zio-schema`}"
+        val `msg-pack`        = mvn"dev.zio::zio-schema-msg-pack::${Versions.`zio-schema`}"
         def managed: Seq[Dep] = Seq(`avro`, `bson`, `core`, `derivation`, `json`, `msg-pack`)
       }
 
@@ -195,7 +195,7 @@ object Deps {
       object cquiroz {
         val `scala-java-time`      = mvn"io.github.cquiroz::scala-java-time::${Versions.`scala-java-time`}"
         val `scala-java-time-tzdb` = mvn"io.github.cquiroz::scala-java-time-tzdb::${Versions.`scala-java-time`}"
-        def managed: Seq[Dep] = Seq(`scala-java-time`, `scala-java-time-tzdb`)
+        def managed: Seq[Dep]      = Seq(`scala-java-time`, `scala-java-time-tzdb`)
       }
     }
     object lemonlabs {
@@ -240,9 +240,10 @@ object Deps {
     }
   }
 
-  /** Artifacts that share a [[Versions]] pin with at least one sibling. Mill `depManagement` applies this
-    * so YAML can omit those versions. When a suite gains a member, add it to that object's `managed`.
-    */
+  /**
+   * Artifacts that share a [[Versions]] pin with at least one sibling. Mill `depManagement` applies this so YAML can
+   * omit those versions. When a suite gains a member, add it to that object's `managed`.
+   */
   def managedSuites: Seq[Dep] =
     co.fs2.managed ++
       com.geirsson.metaconfig.managed ++
@@ -297,7 +298,7 @@ object Versions {
   val `zio-config`       = "4.0.8"
   val `zio-cli`          = "0.8.1"
   val `zio-interop-cats` = "23.1.0.13"
-  val `zio-json`         = "0.10.0"
+  val `zio-json`         = "1.0.0"
   val `zio-nio`          = "2.0.2"
   val `zio-parser`       = "0.1.11"
   val `zio-prelude`      = "1.0.0-RC48"
