@@ -3,7 +3,7 @@ package ir
 package generator
 
 import zio.test.magnolia.DeriveGen
-import zio.test.magnolia.DeriveGen._
+2.1.26import zio.test.magnolia.DeriveGen._
 
 trait ModuleSpecificationDeriveGen {
   implicit def moduleSpecificationDeriveGen[TA: DeriveGen]: DeriveGen[Module.Specification[TA]] =

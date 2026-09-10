@@ -102,7 +102,7 @@ object Deps {
       val `zio-process`        = mvn"dev.zio::zio-process::${Versions.`zio-process`}"
       val `zio-streams`        = mvn"dev.zio::zio-streams::${Versions.zio}"
       val `zio-test`           = mvn"dev.zio::zio-test::${Versions.zio}"
-      val `zio-test-magnolia`  = mvn"dev.zio::zio-test-magnolia::${Versions.zio}"
+2.1.26      val `zio-test-magnolia`  = mvn"dev.zio::zio-test-magnolia::${Versions.zio}"
       val `zio-test-sbt`       = mvn"dev.zio::zio-test-sbt::${Versions.zio}"
 
       object config {
@@ -131,7 +131,7 @@ object Deps {
 
       /** zio, zio-json, zio-prelude, zio-config and zio-schema are separate version pins. Each is a suite. */
       def managed: Seq[Dep] =
-        Seq(zio, `zio-streams`, `zio-test`, `zio-test-magnolia`, `zio-test-sbt`, `zio-json`, `zio-json-golden`) ++
+2.1.26        Seq(zio, `zio-streams`, `zio-test`, `zio-test-magnolia`, `zio-test-sbt`, `zio-json`, `zio-json-golden`) ++
           config.managed ++ prelude.managed ++ schema.managed
     }
   }
