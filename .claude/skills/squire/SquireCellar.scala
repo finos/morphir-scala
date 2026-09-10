@@ -81,7 +81,7 @@ object SquireCellar:
     "zio:2.1.26"     -> "dev.zio:zio_3:2.1.26",
     "zio-cli"        -> "dev.zio:zio-cli_3:0.8.1",
     "mill-scalalib"  -> "com.lihaoyi:mill-scalalib_3:0.12.0",
-    "scala3-library" -> "org.scala-lang:scala3-library_3:3.8.4"
+    "scala3-library" -> "org.scala-lang:scala3-library_3:3.9.0"
   )
 
   def loadSettings(root: Path): Result[SquireError, CellarSettings] =
@@ -113,7 +113,7 @@ object SquireCellar:
 
   def validateTempDirectory(value: Option[String]): Maybe[Path] < Abort[SquireError] =
     value match
-      case None => Absent
+      case None           => Absent
       case Some(rendered) =>
         val path = Path(rendered)
         if !path.toJava.isAbsolute then
@@ -140,16 +140,18 @@ object SquireCellar:
       executable: String,
       tempDirectory: Maybe[Path] = Absent
   ): ProcessRequest =
-    val repositories = repositoryFlags(settings)
+    val repositories  = repositoryFlags(settings)
     val nativeOptions = tempDirectory.map(path => Chunk(s"-Djava.io.tmpdir=$path")).getOrElse(Chunk.empty)
-    val argv         = action match
+    val argv          = action match
       case CellarAction.Get(coordinate, symbol, hideInherited, groupInherited, limit) =>
-        Chunk(executable) ++ nativeOptions ++ Chunk("get-external") ++ repositories ++ Chunk(resolveCoordinate(coordinate), symbol) ++
+        Chunk(executable) ++ nativeOptions ++ Chunk("get-external") ++ repositories ++
+          Chunk(resolveCoordinate(coordinate), symbol) ++
           optionFlag(hideInherited, "--hide-inherited") ++
           optionFlag(groupInherited, "--group-inherited") ++
           valueFlag(limit, "--limit")
       case CellarAction.Search(coordinate, query, limit) =>
-        Chunk(executable) ++ nativeOptions ++ Chunk("search-external") ++ repositories ++ Chunk(resolveCoordinate(coordinate), query) ++
+        Chunk(executable) ++ nativeOptions ++ Chunk("search-external") ++ repositories ++
+          Chunk(resolveCoordinate(coordinate), query) ++
           valueFlag(limit, "--limit")
       case CellarAction.Deps(coordinate) =>
         Chunk(executable) ++ nativeOptions ++ Chunk("deps") ++ repositories ++ Chunk(resolveCoordinate(coordinate))
