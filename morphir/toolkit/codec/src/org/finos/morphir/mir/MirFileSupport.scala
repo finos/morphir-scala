@@ -1,9 +1,9 @@
 package org.finos
 package morphir
 package mir
-import io.bullet.borer.{Cbor, Codec, Decoder, Encoder, Json}
+1.18.0import io.bullet.borer.{Cbor, Codec, Decoder, Encoder, Json}
 import io.bullet.borer.derivation.key
-import io.bullet.borer.derivation.ArrayBasedCodecs.*
+1.18.0import io.bullet.borer.derivation.ArrayBasedCodecs.*
 import mir.file.format.{MirFile, MirFileFormatVersion, MirFileHeader}
 import org.finos.morphir.ir.Module.QualifiedModuleName
 import org.finos.morphir.ir.Name
