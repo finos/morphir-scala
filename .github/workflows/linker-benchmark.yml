@@ -102,7 +102,7 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: "25"
+          java-version: "26.0.2+10"
 
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8

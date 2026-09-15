@@ -49,7 +49,7 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: "temurin"
-          java-version: "25"
+          java-version: "26.0.2+10"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
       - name: Lint code
@@ -96,7 +96,7 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: "temurin"
-          java-version: "25"
+          java-version: "26.0.2+10"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
       - name: Setup mise
@@ -120,7 +120,7 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: "temurin"
-          java-version: "25"
+          java-version: "26.0.2+10"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
       # The kb skill is a self-contained Mill script; it needs a JVM and nothing else.
@@ -152,7 +152,7 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: "temurin"
-          java-version: "25"
+          java-version: "26.0.2+10"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
       - name: Cache verified Morphir tool downloads
@@ -184,7 +184,7 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: "temurin"
-          java-version: "25"
+          java-version: "26.0.2+10"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
       - name: Cache verified Morphir tool downloads
@@ -216,7 +216,7 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: "temurin"
-          java-version: "25"
+          java-version: "26.0.2+10"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
       - name: Cache verified Morphir tool downloads
@@ -267,7 +267,7 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: "temurin"
-          java-version: "25"
+          java-version: "26.0.2+10"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
       - name: Cache verified Morphir tool downloads
@@ -303,7 +303,7 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: "temurin"
-          java-version: "25"
+          java-version: "26.0.2+10"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
       - name: Cache verified Morphir tool downloads
@@ -632,7 +632,7 @@ jobs:
 
       - uses: graalvm/setup-graalvm@v1
         with:
-          java-version: "25"
+          java-version: "26.0.2+10"
           distribution: graalvm-community
           github-token: ${{ secrets.GITHUB_TOKEN }}
           native-image-job-reports: "true"
@@ -701,7 +701,7 @@ jobs:
 
       - uses: actions/setup-java@v6
         with:
-          java-version: "25"
+          java-version: "26.0.2+10"
           distribution: temurin
 
       - name: Cache Scala dependencies
@@ -732,7 +732,7 @@ jobs:
 
       - uses: actions/setup-java@v6
         with:
-          java-version: "25"
+          java-version: "26.0.2+10"
           distribution: temurin
 
       - name: Cache Scala dependencies
@@ -783,7 +783,7 @@ jobs:
 
       - uses: actions/setup-java@v6
         with:
-          java-version: "25"
+          java-version: "26.0.2+10"
           distribution: temurin
 
       - name: Cache Scala dependencies
@@ -860,7 +860,7 @@ jobs:
 
       - uses: actions/setup-java@v6
         with:
-          java-version: "25"
+          java-version: "26.0.2+10"
           distribution: temurin
 
       - name: Cache scala dependencies
