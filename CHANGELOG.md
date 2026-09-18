@@ -17,9 +17,9 @@ a release.
   (#1043).
 
 ### Changed
-- CI, native packaging and release promotion run on Java 26 (Temurin and GraalVM Community
-  `26.0.2+10`). The native CLI and MEP executables in this release are built with GraalVM 26; earlier
-  releases used GraalVM 25. The test matrices moved from Java 25 to Java 26 with them (#1060).
+- CI and release promotion run on Java 26 (Temurin `26.0.2+10`), and the test matrices moved from
+  Java 25 to Java 26 with them (#1060). The native CLI and MEP executables still build with GraalVM
+  Community 25, because GraalVM Community has no JDK 26 release.
 
 ### Removed
 - The Morphir desktop application (the Electron shell hosting morphir-ui) and its `appkit-electron`

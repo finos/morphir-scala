@@ -142,7 +142,7 @@ To build the packages locally on Windows, use:
 ```
 
 On macOS or Linux, replace `.\mill.bat` with `./mill` and use the host token: `mac-aarch64`,
-`mac-amd64`, `linux-aarch64`, or `linux-amd64`. Native packaging requires GraalVM 26 with
+`mac-amd64`, `linux-aarch64`, or `linux-amd64`. Native packaging requires GraalVM 25 with
 `native-image` and the host C/C++ toolchain. The command deliberately refuses a target that does not
 match the running host.
 

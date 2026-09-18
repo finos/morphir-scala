@@ -17,6 +17,16 @@
       ],
       "allowedVersions": "!/^2\\.100\\.0$/",
       "description": "morphir-elm 2.100.0 crashes with a fatal EBADF fd-close-on-GC after successful generation (bead morphir-qki); later releases are welcome"
+    },
+    {
+      "matchPackageNames": [
+        "java-jdk"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "automerge": false,
+      "description": "A Java major update needs a person. One java-jdk value feeds both setup-java (Temurin) and setup-graalvm, and GraalVM Community does not release every JDK major: the update to 26 (#1060) gave setup-graalvm a Temurin build string it cannot download, and it merged while the ci gate was failing"
     }
   ]
 }
