@@ -142,7 +142,7 @@ To build the packages locally on Windows, use:
 ```
 
 On macOS or Linux, replace `.\mill.bat` with `./mill` and use the host token: `mac-aarch64`,
-`mac-amd64`, `linux-aarch64`, or `linux-amd64`. Native packaging requires GraalVM 25 with
+`mac-amd64`, `linux-aarch64`, or `linux-amd64`. Native packaging requires GraalVM 26 with
 `native-image` and the host C/C++ toolchain. The command deliberately refuses a target that does not
 match the running host.
 
@@ -152,7 +152,7 @@ before creating the asset. `ci.cli.verify` checks the archive and JAR sidecars a
 `checksums.txt`.
 
 Windows ARM64 has no GraalVM Native Image distribution. Contributors on that platform should use a
-native ARM64 Java 25 runtime and test the executable assembly:
+native ARM64 Java 26 runtime and test the executable assembly:
 
 ```powershell
 java -jar .dev\dist\cli\release\morphir-cli-jvm-<version>.jar server --help

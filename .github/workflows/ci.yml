@@ -346,7 +346,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: ["25"] # Note there is no need to actually run this for multiple JVM versions for JS
+        java: ["26"] # Note there is no need to actually run this for multiple JVM versions for JS
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v7.0.1
@@ -411,7 +411,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: ["25"] # Note there is no need to actually run this for multiple JVM versions for JS
+        java: ["26"] # Note there is no need to actually run this for multiple JVM versions for JS
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v7.0.1
@@ -473,7 +473,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: ["25"]
+        java: ["26"]
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v7.0.1
@@ -553,7 +553,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: ["25"]
+        java: ["26"]
     steps:
       - name: Checkout current branch
         uses: actions/checkout@v7.0.1
@@ -878,7 +878,7 @@ jobs:
         with:
           path: |
             out/morphir/**/jvm/
-          key: ${{ runner.os }}-mill-jvm-25-${{ github.sha }}
+          key: ${{ runner.os }}-mill-jvm-26-${{ github.sha }}
 
       - name: Restore JS Build Output From Cache (platform)
         # test-js and test-js-desktop (morphir-oyn) save under two distinct keys — see their own
@@ -887,14 +887,14 @@ jobs:
         with:
           path: |
             out/morphir/**/js/
-          key: ${{ runner.os }}-mill-js-platform-25-${{ github.sha }}
+          key: ${{ runner.os }}-mill-js-platform-26-${{ github.sha }}
 
       - name: Restore JS Build Output From Cache (desktop)
         uses: actions/cache/restore@v6
         with:
           path: |
             out/morphir/**/js/
-          key: ${{ runner.os }}-mill-js-desktop-25-${{ github.sha }}
+          key: ${{ runner.os }}-mill-js-desktop-26-${{ github.sha }}
 
       - name: Configure snapshot version
         if: github.ref == 'refs/heads/main'
