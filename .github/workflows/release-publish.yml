@@ -111,21 +111,21 @@ jobs:
         with:
           path: |
             out/morphir/**/jvm/
-          key: ${{ runner.os }}-mill-jvm-25-${{ github.sha }}
+          key: ${{ runner.os }}-mill-jvm-26-${{ github.sha }}
 
       - name: Restore JS Build Output From Cache (platform)
         uses: actions/cache/restore@v6
         with:
           path: |
             out/morphir/**/js/
-          key: ${{ runner.os }}-mill-js-platform-25-${{ github.sha }}
+          key: ${{ runner.os }}-mill-js-platform-26-${{ github.sha }}
 
       - name: Restore JS Build Output From Cache (desktop)
         uses: actions/cache/restore@v6
         with:
           path: |
             out/morphir/**/js/
-          key: ${{ runner.os }}-mill-js-desktop-25-${{ github.sha }}
+          key: ${{ runner.os }}-mill-js-desktop-26-${{ github.sha }}
 
       # The promotion gate re-proves the staged release before anything irreversible happens:
       # every CLI asset is downloaded fresh off the release and checked against its published

@@ -152,7 +152,7 @@ before creating the asset. `ci.cli.verify` checks the archive and JAR sidecars a
 `checksums.txt`.
 
 Windows ARM64 has no GraalVM Native Image distribution. Contributors on that platform should use a
-native ARM64 Java 25 runtime and test the executable assembly:
+native ARM64 Java 26 runtime and test the executable assembly:
 
 ```powershell
 java -jar .dev\dist\cli\release\morphir-cli-jvm-<version>.jar server --help

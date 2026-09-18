@@ -8,6 +8,19 @@ a release.
 
 ## [0.5.0-M06]
 
+### Added
+- The Elm MEP frontend executable `morphir-scala-elm` on the GitHub release: a GraalVM Native Image
+  for macOS ARM64 and x64, Linux ARM64 and x64, and Windows x64, each with a `.sha256` sidecar, staged
+  and verified with the CLI packages. It is a Morphir Extension Protocol 0.1 process that compiles the
+  supported single-file Elm subset to Morphir IR v3, and it reports the release version as its
+  provider version. The `morphir` CLI from finos/morphir runs it as the `morphir-scala-elm` extension
+  (#1043).
+
+### Changed
+- CI and release promotion run on Java 26 (Temurin `26.0.2+10`), and the test matrices moved from
+  Java 25 to Java 26 with them (#1060). The native CLI and MEP executables still build with GraalVM
+  Community 25, because GraalVM Community has no JDK 26 release.
+
 ### Removed
 - The Morphir desktop application (the Electron shell hosting morphir-ui) and its `appkit-electron`
   secret-storage integration. The Morphir desktop/web UI now lives at

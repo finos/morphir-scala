@@ -195,7 +195,7 @@ Only a root `v*` tag ref — pushed, or chosen for a manual dispatch — receive
 `contents: write` token.
 
 GraalVM does not provide Native Image for Windows ARM64. That platform uses the JVM package with a native
-ARM64 Java 25 runtime. An x64 Windows package can also run through Windows emulation, but it is not an
+ARM64 Java 26 runtime. An x64 Windows package can also run through Windows emulation, but it is not an
 ARM64 native image. `CliRelease.Platform.fromHost` rejects a claimed `win-aarch64` build so an emulated
 toolchain cannot be mislabeled.
 

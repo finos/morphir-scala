@@ -648,7 +648,10 @@ object SquireCiPolicy:
     expect(unquoteYamlScalar(scalar(checkout, "fetch-depth")) == "0", "checkout must fetch full history")
     val java = indentedBlock(job, "- name: Setup Scala and Java", 6)
     expect(unquoteYamlScalar(scalar(java, "distribution")) == "temurin", "setup-java must use Temurin")
-    expect(unquoteYamlScalar(scalar(java, "java-version")) == "25", "setup-java must use Java 25")
+    expect(
+      unquoteYamlScalar(scalar(java, "java-version")).takeWhile(_ != '.') == "26",
+      "setup-java must use Java 26"
+    )
 
     val artifactName = indentedBlock(job, "- name: Generate artifact name", 6)
     expect(
