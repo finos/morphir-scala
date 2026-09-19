@@ -106,13 +106,6 @@ jobs:
       # sha. The release event runs on the same tag ref, so the caches are visible; a manual
       # dispatch from a branch may miss and fall back to a cold compile, which is slower but not
       # a failure.
-      - name: Restore JVM Build Output From Cache
-        uses: actions/cache/restore@v6
-        with:
-          path: |
-            out/morphir/**/jvm/
-          key: ${{ runner.os }}-mill-jvm-26-${{ github.sha }}
-
       - name: Restore JS Build Output From Cache (platform)
         uses: actions/cache/restore@v6
         with:

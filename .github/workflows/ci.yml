@@ -52,6 +52,10 @@ jobs:
           java-version: "26.0.2+10"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
+        with:
+          # One cache for the jobs that resolve the same Mill and library dependencies. Keyed
+          # per job, each wrote its own ~550 MB copy, and the copies filled the 10 GB cache limit.
+          job: base
       - name: Lint code
         run: ./mill --ticker false -i ci.lint
 
@@ -99,6 +103,10 @@ jobs:
           java-version: "26.0.2+10"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
+        with:
+          # One cache for the jobs that resolve the same Mill and library dependencies. Keyed
+          # per job, each wrote its own ~550 MB copy, and the copies filled the 10 GB cache limit.
+          job: base
       - name: Setup mise
         uses: jdx/mise-action@v4
         with:
@@ -123,6 +131,10 @@ jobs:
           java-version: "26.0.2+10"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
+        with:
+          # One cache for the jobs that resolve the same Mill and library dependencies. Keyed
+          # per job, each wrote its own ~550 MB copy, and the copies filled the 10 GB cache limit.
+          job: base
       # The kb skill is a self-contained Mill script; it needs a JVM and nothing else.
       # Provenance checks are skipped: they compare against reference checkouts under
       # .refs/, which is gitignored and therefore absent on a runner.
@@ -155,6 +167,10 @@ jobs:
           java-version: "26.0.2+10"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
+        with:
+          # One cache for the jobs that resolve the same Mill and library dependencies. Keyed
+          # per job, each wrote its own ~550 MB copy, and the copies filled the 10 GB cache limit.
+          job: base
       - name: Cache verified Morphir tool downloads
         uses: actions/cache@v6
         with:
@@ -187,6 +203,10 @@ jobs:
           java-version: "26.0.2+10"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
+        with:
+          # One cache for the jobs that resolve the same Mill and library dependencies. Keyed
+          # per job, each wrote its own ~550 MB copy, and the copies filled the 10 GB cache limit.
+          job: base
       - name: Cache verified Morphir tool downloads
         uses: actions/cache@v6
         with:
@@ -219,6 +239,10 @@ jobs:
           java-version: "26.0.2+10"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
+        with:
+          # One cache for the jobs that resolve the same Mill and library dependencies. Keyed
+          # per job, each wrote its own ~550 MB copy, and the copies filled the 10 GB cache limit.
+          job: base
       - name: Cache verified Morphir tool downloads
         uses: actions/cache@v6
         with:
@@ -270,6 +294,10 @@ jobs:
           java-version: "26.0.2+10"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
+        with:
+          # One cache for the jobs that resolve the same Mill and library dependencies. Keyed
+          # per job, each wrote its own ~550 MB copy, and the copies filled the 10 GB cache limit.
+          job: base
       - name: Cache verified Morphir tool downloads
         uses: actions/cache@v6
         with:
@@ -306,6 +334,10 @@ jobs:
           java-version: "26.0.2+10"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
+        with:
+          # One cache for the jobs that resolve the same Mill and library dependencies. Keyed
+          # per job, each wrote its own ~550 MB copy, and the copies filled the 10 GB cache limit.
+          job: base
       - name: Cache verified Morphir tool downloads
         uses: actions/cache@v6
         with:
@@ -388,9 +420,9 @@ jobs:
       - name: Cache JS build output
         # when in master repo: all commits to main branch and all additional tags
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || startsWith(github.ref, 'refs/tags/')
-        # A cache save is an optimisation for the publish jobs, which restore it best-effort. It
-        # must never decide the ci gate: the JVM save takes about 17 minutes for a 177 MB cache,
-        # and with the tests before it the job passed its limit and staging for v0.5.0-M06 failed.
+        # A cache save is an optimisation for the publish jobs, which restore it best-effort, so it
+        # must never decide the ci gate. A JVM build-output save once took 17 to 25 minutes here
+        # and failed staging for v0.5.0-M06; it is gone, and these limits keep that from recurring.
         timeout-minutes: 25
         continue-on-error: true
         uses: actions/cache/save@v6
@@ -454,9 +486,9 @@ jobs:
       - name: Cache JS build output
         # when in master repo: all commits to main branch and all additional tags
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || startsWith(github.ref, 'refs/tags/')
-        # A cache save is an optimisation for the publish jobs, which restore it best-effort. It
-        # must never decide the ci gate: the JVM save takes about 17 minutes for a 177 MB cache,
-        # and with the tests before it the job passed its limit and staging for v0.5.0-M06 failed.
+        # A cache save is an optimisation for the publish jobs, which restore it best-effort, so it
+        # must never decide the ci gate. A JVM build-output save once took 17 to 25 minutes here
+        # and failed staging for v0.5.0-M06; it is gone, and these limits keep that from recurring.
         timeout-minutes: 25
         continue-on-error: true
         uses: actions/cache/save@v6
@@ -589,22 +621,6 @@ jobs:
 
       - name: Run JVM tests
         run: ./mill --ticker false -i ci.testJvm
-
-      - name: Cache JVM build output
-        # when in master repo: all commits to main branch and all additional tags
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || startsWith(github.ref, 'refs/tags/')
-        # A cache save is an optimisation for the publish jobs, which restore it best-effort. It
-        # must never decide the ci gate: the JVM save takes about 17 minutes for a 177 MB cache,
-        # and with the tests before it the job passed its limit and staging for v0.5.0-M06 failed.
-        timeout-minutes: 25
-        continue-on-error: true
-        uses: actions/cache/save@v6
-        with:
-          path: |
-            out/morphir/**/jvm/
-            out/morphir/build/
-          # See the JS job: the key deliberately does not hash `out`.
-          key: ${{ runner.os }}-mill-jvm-${{matrix.java}}-${{ github.sha }}
 
   cli-matrix:
     if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/v') || vars.MORPHIR_CI_PACKAGE_CLI != 'false')
@@ -894,13 +910,6 @@ jobs:
         # the backstop if retrying still cannot finish.
         timeout-minutes: 6
         run: .github/scripts/install-native-deps.sh
-
-      - name: Restore JVM Build Output From Cache
-        uses: actions/cache/restore@v6
-        with:
-          path: |
-            out/morphir/**/jvm/
-          key: ${{ runner.os }}-mill-jvm-26-${{ github.sha }}
 
       - name: Restore JS Build Output From Cache (platform)
         # test-js and test-js-desktop (morphir-oyn) save under two distinct keys — see their own
