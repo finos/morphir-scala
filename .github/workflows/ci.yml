@@ -386,6 +386,11 @@ jobs:
       - name: Cache JS build output
         # when in master repo: all commits to main branch and all additional tags
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || startsWith(github.ref, 'refs/tags/')
+        # A cache save is an optimisation for the publish jobs, which restore it best-effort. It
+        # must never decide the ci gate: the JVM save takes about 17 minutes for a 177 MB cache,
+        # and with the tests before it the job passed its limit and staging for v0.5.0-M06 failed.
+        timeout-minutes: 25
+        continue-on-error: true
         uses: actions/cache/save@v6
         with:
           path: |
@@ -445,6 +450,11 @@ jobs:
       - name: Cache JS build output
         # when in master repo: all commits to main branch and all additional tags
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || startsWith(github.ref, 'refs/tags/')
+        # A cache save is an optimisation for the publish jobs, which restore it best-effort. It
+        # must never decide the ci gate: the JVM save takes about 17 minutes for a 177 MB cache,
+        # and with the tests before it the job passed its limit and staging for v0.5.0-M06 failed.
+        timeout-minutes: 25
+        continue-on-error: true
         uses: actions/cache/save@v6
         with:
           path: |
@@ -549,7 +559,7 @@ jobs:
 
   test-jvm:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -579,6 +589,11 @@ jobs:
       - name: Cache JVM build output
         # when in master repo: all commits to main branch and all additional tags
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || startsWith(github.ref, 'refs/tags/')
+        # A cache save is an optimisation for the publish jobs, which restore it best-effort. It
+        # must never decide the ci gate: the JVM save takes about 17 minutes for a 177 MB cache,
+        # and with the tests before it the job passed its limit and staging for v0.5.0-M06 failed.
+        timeout-minutes: 25
+        continue-on-error: true
         uses: actions/cache/save@v6
         with:
           path: |
