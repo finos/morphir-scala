@@ -342,7 +342,9 @@ jobs:
     # timed-out job is reported as *cancelled*, which reads like an unrelated failure. Pull requests
     # always pay a cold build here: the JS build cache is keyed by the exact commit SHA and is only
     # saved on main, 0.4.x and tags, so a PR can never restore it.
-    timeout-minutes: 45
+    # Tests have needed more than 30 minutes here, and the cache save below may take 25. The job
+    # limit cancels the whole job, which continue-on-error on a step cannot prevent.
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -386,6 +388,11 @@ jobs:
       - name: Cache JS build output
         # when in master repo: all commits to main branch and all additional tags
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || startsWith(github.ref, 'refs/tags/')
+        # A cache save is an optimisation for the publish jobs, which restore it best-effort. It
+        # must never decide the ci gate: the JVM save takes about 17 minutes for a 177 MB cache,
+        # and with the tests before it the job passed its limit and staging for v0.5.0-M06 failed.
+        timeout-minutes: 25
+        continue-on-error: true
         uses: actions/cache/save@v6
         with:
           path: |
@@ -407,7 +414,9 @@ jobs:
   test-js-desktop:
     runs-on: ubuntu-latest
     # Kept in step with test-js's own reasoning for 45 rather than 30.
-    timeout-minutes: 45
+    # Tests have needed more than 30 minutes here, and the cache save below may take 25. The job
+    # limit cancels the whole job, which continue-on-error on a step cannot prevent.
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -445,6 +454,11 @@ jobs:
       - name: Cache JS build output
         # when in master repo: all commits to main branch and all additional tags
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || startsWith(github.ref, 'refs/tags/')
+        # A cache save is an optimisation for the publish jobs, which restore it best-effort. It
+        # must never decide the ci gate: the JVM save takes about 17 minutes for a 177 MB cache,
+        # and with the tests before it the job passed its limit and staging for v0.5.0-M06 failed.
+        timeout-minutes: 25
+        continue-on-error: true
         uses: actions/cache/save@v6
         with:
           path: |
@@ -549,7 +563,7 @@ jobs:
 
   test-jvm:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -579,6 +593,11 @@ jobs:
       - name: Cache JVM build output
         # when in master repo: all commits to main branch and all additional tags
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/0.4.x' || startsWith(github.ref, 'refs/tags/')
+        # A cache save is an optimisation for the publish jobs, which restore it best-effort. It
+        # must never decide the ci gate: the JVM save takes about 17 minutes for a 177 MB cache,
+        # and with the tests before it the job passed its limit and staging for v0.5.0-M06 failed.
+        timeout-minutes: 25
+        continue-on-error: true
         uses: actions/cache/save@v6
         with:
           path: |
