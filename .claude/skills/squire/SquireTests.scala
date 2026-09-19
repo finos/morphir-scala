@@ -495,7 +495,7 @@ object SquireCiPolicy:
     }
 
   def assertCachePolicy(workflow: String): Unit =
-    List("test-js:" -> "Cache JS build output", "test-jvm:" -> "Cache JVM build output").foreach {
+    List("test-js:" -> "Cache JS build output").foreach {
       case (jobName, stepName) =>
         val job       = indentedBlock(workflow, jobName, 2)
         val step      = indentedBlock(job, s"- name: $stepName", 6)
@@ -505,6 +505,14 @@ object SquireCiPolicy:
           s"$stepName has an unapproved condition: $condition"
         )
     }
+    // The JVM build output is not cached. Resolving its path glob across `out/` took 17 to 25
+    // minutes per main and tag run, and the restores listed fewer paths than the save, so no run
+    // ever restored it.
+    expect(!workflow.contains("Cache JVM build output"), "test-jvm must not save the JVM build output")
+    expect(
+      raw"-mill-jvm-(\$$\{\{|\d)".r.findFirstIn(workflow).isEmpty,
+      "no step may save or restore a JVM build-output cache"
+    )
 
   def assertReadOnlyPermissions(workflow: String): Unit =
     val permissions = indentedBlock(workflow, "permissions:", 0)
@@ -2354,7 +2362,7 @@ class SquireCiPolicySpec extends Test[Any]:
       assert(true)
     }
 
-    "retains every release ref on the JS and JVM cache saves" in {
+    "retains every release ref on the JS cache save and saves no JVM build output" in {
       assertCachePolicy(workflow)
       assert(true)
     }
@@ -2842,7 +2850,14 @@ class SquireCiPolicySpec extends Test[Any]:
       assert(mutations.forall((validator, mutation) => rejects(validator, mutation)))
     }
 
-    "rejects every required cache predicate removed from either cache job" in {
+    "rejects a JVM build-output cache save or restore" in {
+      val save = replaceInJob(workflow, "test-js:", "- name: Cache JS build output", "- name: Cache JVM build output")
+      val restore = workflow.replace("mill-js-platform-", "mill-jvm-")
+      assert(rejects(assertCachePolicy, save))
+      assert(rejects(assertCachePolicy, restore))
+    }
+
+    "rejects every required cache predicate removed from the JS cache job" in {
       val predicates = List(
         "github.ref == 'refs/heads/main'",
         "github.ref == 'refs/heads/0.4.x'",
@@ -2850,17 +2865,17 @@ class SquireCiPolicySpec extends Test[Any]:
       )
       val mutations =
         for
-          job       <- List("test-js:", "test-jvm:")
+          job       <- List("test-js:")
           predicate <- predicates
         yield replaceInJob(workflow, job, predicate, "false")
       assert(mutations.forall(rejects(assertCachePolicy, _)))
     }
 
-    "rejects disabled or broadened conditions on either cache job" in {
+    "rejects disabled or broadened conditions on the JS cache job" in {
       val conditions = List(s"false && ($CachePredicate)", s"($CachePredicate) || true")
       val mutations  =
         for
-          job       <- List("test-js:", "test-jvm:")
+          job       <- List("test-js:")
           condition <- conditions
         yield replaceInJob(workflow, job, CachePredicate, condition)
       assert(mutations.forall(rejects(assertCachePolicy, _)))
