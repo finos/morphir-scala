@@ -670,7 +670,7 @@ jobs:
       # CLI and MEP executables therefore build with GraalVM 25 while the JVM jobs run Temurin 26.
       - uses: graalvm/setup-graalvm@v1
         with:
-          java-version: "25"
+          java-version: "26"
           distribution: graalvm-community
           github-token: ${{ secrets.GITHUB_TOKEN }}
           native-image-job-reports: "true"
