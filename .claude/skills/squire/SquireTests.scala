@@ -467,6 +467,18 @@ object SquireCiPolicy:
         targets.contains("morphir.naming.jvm.publishSonatypeCentral"),
       "publish inventory must still cover morphir.jvm and morphir.naming.jvm"
     )
+    val logicPublishTargets = Set(
+      "morphir.knowledge.logic.jvm.publishSonatypeCentral",
+      "morphir.knowledge.logic.js.publishSonatypeCentral"
+    )
+    expect(
+      logicPublishTargets.subsetOf(targets),
+      "publish inventory must include both morphir.knowledge.logic artifacts"
+    )
+    expect(
+      !targets.exists(_.startsWith("morphir.contrib.knowledge.")),
+      "publish inventory must not include the retired contrib.knowledge artifacts"
+    )
     expect(targets.nonEmpty, "publish inventory must not be empty")
     expect(
       targets.forall(_.endsWith(".publishSonatypeCentral")),
@@ -2345,6 +2357,10 @@ class SquireCiPolicySpec extends Test[Any]:
         assertPublishTargetInventory(targets)
         val withoutPlugin = targets.filterNot(_.startsWith("mill-plugins.morphir.toolchain."))
         assert(scala.util.Try(assertPublishTargetInventory(withoutPlugin)).isFailure)
+        val withoutLogic = targets.filterNot(_.startsWith("morphir.knowledge.logic."))
+        assert(scala.util.Try(assertPublishTargetInventory(withoutLogic)).isFailure)
+        val withRetiredLogic = targets + "morphir.contrib.knowledge.jvm.publishSonatypeCentral"
+        assert(scala.util.Try(assertPublishTargetInventory(withRetiredLogic)).isFailure)
     }
 
     "scopes the exact snapshot configuration to main" in {
