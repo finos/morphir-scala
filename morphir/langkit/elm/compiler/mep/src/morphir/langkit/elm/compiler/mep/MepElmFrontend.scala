@@ -28,7 +28,7 @@ object MepCompileError:
 object MepElmFrontend:
   private type Value = Structure.Value
 
-  private val PackageIdentity =
+  private[mep] val PackageIdentity =
     raw"(?:[a-z]+|[0-9]+)(?:-(?:[a-z]+|[0-9]+))*(?:/(?:[a-z]+|[0-9]+)(?:-(?:[a-z]+|[0-9]+))*)*".r
   private val ModuleIdentity = raw"[A-Z][A-Za-z0-9_]*(?:\.[A-Z][A-Za-z0-9_]*)*".r
 
