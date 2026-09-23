@@ -312,7 +312,7 @@ private[mep] object MepWorkspace:
 
   /**
    * An explicit name comes only from the overlay's `project.name`. It must be a string that is not blank, and it is
-   * kept trimmed.
+   * kept trimmed of Unicode whitespace.
    */
   private def explicitProjectName(cliOverlay: Value, root: String): Either[Refusal, Option[String]] =
     val project = cliOverlay match
@@ -320,9 +320,9 @@ private[mep] object MepWorkspace:
       case _                              => None
     project match
       case Some(Structure.Value.Record(fields)) => fields.iterator.toMap.get("name") match
-          case None                                                  => Right(None)
-          case Some(Structure.Value.Str(name)) if name.trim.nonEmpty => Right(Some(name.trim))
-          case Some(Structure.Value.Str(_))                          =>
+          case None                                                        => Right(None)
+          case Some(Structure.Value.Str(name)) if trimSpace(name).nonEmpty => Right(Some(trimSpace(name)))
+          case Some(Structure.Value.Str(_))                                =>
             refuse(
               "workspace.project-name.empty",
               "CLI overlay `project.name` must not be empty or whitespace-only",
@@ -343,7 +343,7 @@ private[mep] object MepWorkspace:
    * always satisfies the compile request's package identity.
    */
   private def normalProjectName(name: String, root: String): Either[Refusal, String] =
-    val pieces = name.split("[/.]").iterator.map(_.trim).filter(_.nonEmpty).toSeq
+    val pieces = name.split("[/.]").iterator.map(trimSpace).filter(_.nonEmpty).toSeq
     val words  = pieces.map(piece => piece -> NameWord.findAllIn(piece).map(_.toLowerCase).toSeq)
     for
       _ <- check(pieces.nonEmpty)(
@@ -362,6 +362,17 @@ private[mep] object MepWorkspace:
           )
         case None => Right(())
     yield words.map(_._2.mkString("-")).mkString("/")
+
+  /**
+   * The text without leading and trailing whitespace, as Rust `str::trim` and JavaScript `String.prototype.trim` read
+   * it: the Unicode `White_Space` characters, and U+FEFF. `String.trim` would also strip the other control characters
+   * below U+0020, and `String.strip` would keep U+00A0.
+   */
+  private def trimSpace(text: String): String =
+    def isSpace(character: Char): Boolean = (character >= '\t' && character <= '\r') || character == '\u0085' ||
+      character == '\uFEFF' ||
+      Character.isSpaceChar(character)
+    text.dropWhile(isSpace).reverse.dropWhile(isSpace).reverse
 
   private def validateSelection(tree: FileTree, sources: SourceSelection): Either[Refusal, Unit] =
     val repeated    = sources.paths.diff(sources.paths.distinct).headOption

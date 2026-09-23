@@ -162,22 +162,26 @@ class MepWorkspaceTests extends Test[Any]:
 
     "reports the normal form of an explicit name as the project name" in {
       val cases = Seq(
-        "acme/widgets"             -> "acme/widgets",
-        "finos/morphir-sdk"        -> "finos/morphir-sdk",
-        "My.Package"               -> "my/package",
-        "My/Package"               -> "my/package",
-        "Documentation.Decoration" -> "documentation/decoration",
-        "Morphir.Reference.Model"  -> "morphir/reference/model",
-        "morphir/sdk.core"         -> "morphir/sdk/core",
-        "Acme/Widgets"             -> "acme/widgets",
-        "acme/my_widgets"          -> "acme/my-widgets",
-        "MyPackage"                -> "my-package",
-        "my-package"               -> "my-package",
-        "local/mywidget"           -> "local/mywidget",
-        "SDK/v2"                   -> "s-d-k/v-2",
-        "acme//widgets"            -> "acme/widgets",
-        " acme / widgets "         -> "acme/widgets",
-        "a.b/c"                    -> "a/b/c"
+        "acme/widgets"                         -> "acme/widgets",
+        "finos/morphir-sdk"                    -> "finos/morphir-sdk",
+        "My.Package"                           -> "my/package",
+        "My/Package"                           -> "my/package",
+        "Documentation.Decoration"             -> "documentation/decoration",
+        "Morphir.Reference.Model"              -> "morphir/reference/model",
+        "morphir/sdk.core"                     -> "morphir/sdk/core",
+        "Acme/Widgets"                         -> "acme/widgets",
+        "acme/my_widgets"                      -> "acme/my-widgets",
+        "MyPackage"                            -> "my-package",
+        "my-package"                           -> "my-package",
+        "local/mywidget"                       -> "local/mywidget",
+        "SDK/v2"                               -> "s-d-k/v-2",
+        "acme//widgets"                        -> "acme/widgets",
+        " acme / widgets "                     -> "acme/widgets",
+        "a.b/c"                                -> "a/b/c",
+        "acme/ /widgets"                       -> "acme/widgets",
+        "acme/\u00a0/widgets"                  -> "acme/widgets",
+        "\u3000acme\u2003/widgets\ufeff"       -> "acme/widgets",
+        "\u00a0acme\u0085.\u202fwidgets\u205f" -> "acme/widgets"
       )
 
       cases.foreach { (name, normal) =>
@@ -203,6 +207,14 @@ class MepWorkspaceTests extends Test[Any]:
         assert(at(response, "error", "path").contains(str("src")), s"for `$name`")
       }
       assert(failureOf(adHoc(cliOverlay = withName(""))) == ("workspace.project-name.empty" -> str("src")))
+      assert(failureOf(adHoc(cliOverlay = withName("\u00a0\u2009\ufeff"))) ==
+        ("workspace.project-name.empty" -> str("src")))
+      assert(
+        at(discover(adHoc(cliOverlay = withName("acme/\u001c"))), "error", "message").contains(
+          str("project name `acme/\u001c` is invalid: segment `\u001c` has no letters or digits")
+        ),
+        "U+001C is not Unicode White_Space"
+      )
       succeed
     }
 
