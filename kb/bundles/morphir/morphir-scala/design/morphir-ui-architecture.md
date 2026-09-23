@@ -12,8 +12,9 @@ generated:
 # morphir-ui architecture
 
 `morphir-ui` is the client surface for Morphir: kyo-ui views and the service contract they consume
-([intent 0029](../../../intent/0029-morphir-ui-kyo-ui-client-library.md)), mounted today by the
-local web host started by `morphir server` (`morphir/web/renderer`, `morphir/web/server`). It was
+([intent 0029](../../../intent/0029-morphir-ui-kyo-ui-client-library.md)). The reusable local web host
+(`morphir/web/renderer`, `morphir/web/server`) mounts it. Its Scala `morphir server` launcher retired under
+[decision 0018](/decisions/0018-consolidate-the-cli-in-finos-morphir.md). It was
 also shared, unchanged, by the Electron desktop app (`morphir/desktop`) until that app retired in
 favor of [finos/morphir-ui](https://github.com/finos/morphir-ui)
 ([intent 0039](../../../intent/0039-remove-the-electron-desktop-ui-in-favor-of-finos-morphir-ui.md)).
@@ -114,8 +115,8 @@ pseudo-elements, font smoothing). If Kyo grows the vocabulary, the quarantine sh
 
 ## Host boundary
 
-`morphir/web/renderer` mounts the shell in the browser; `morphir/web/server` is the JVM loopback host
-`morphir server` starts. Hosts adopt the theme by injecting `Theme.css`.
+`morphir/web/renderer` mounts the shell in the browser; `morphir/web/server` is the reusable JVM loopback host.
+The Scala `morphir server` launch command has retired. Hosts adopt the theme by injecting `Theme.css`.
 
 The retired Electron desktop app split the same way: `morphir/desktop/main` held testable services (no
 Electron types, so its test bundle never linked `require("electron")`), `morphir/desktop/boot` held

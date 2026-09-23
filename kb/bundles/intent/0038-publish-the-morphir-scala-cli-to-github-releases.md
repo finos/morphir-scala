@@ -2,11 +2,12 @@
 type: Intent
 title: Publish the morphir-scala CLI to GitHub Releases
 description: Publish GraalVM native CLI archives and a portable executable JVM assembly from the library release stream.
-state: InProgress
+state: Cancelled
 kind: build
 breaking: false
 created: 2026-08-26
-state_since: 2026-08-26
+state_since: 2026-09-23
+reason: "The Scala CLI distribution retired; native MEP extension packaging remains under intent 0037."
 tags: [cli, release, graalvm]
 ---
 
@@ -14,9 +15,18 @@ tags: [cli, release, graalvm]
 
 Publish GraalVM native CLI archives and a portable executable JVM assembly from the library release stream.
 
+## Disposition
+
+Cancelled on 2026-09-23 by the [CLI consolidation decision](../morphir/morphir-scala/decisions/0018-consolidate-the-cli-in-finos-morphir.md).
+The Rust CLI in `finos/morphir` owns human-facing commands. Scala no longer publishes general CLI archives or a
+portable CLI JVM assembly. The release machinery that still packages `morphir-scala-elm` serves
+[intent 0037](/0037-morphir-scala-elm-frontend-extension.md); its current behavior is documented in
+[Packaging and Release](../morphir/morphir-scala/packaging-and-release.md).
+The problem and approach below record the retired CLI distribution proposal, not current release instructions.
+
 ## Problem
 
-The CLI is published to Maven Central as `morphir-main_3`, with its Mill assembly available under an
+The Scala CLI was published to Maven Central as `morphir-main_3`, with its Mill assembly available under an
 `assembly` classifier. A user still needs Coursier or a JVM-aware Maven download to find it. GitHub Releases carry
 no morphir-scala CLI assets, and the project has no tested path for producing a native executable. This leaves the
 main Morphir distribution unable to acquire the Scala backend as a normal command-line tool.

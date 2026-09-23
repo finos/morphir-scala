@@ -1,5 +1,14 @@
 # Log
 
+## 2026-09-23
+
+* **Decision**: [Consolidate the human-facing CLI in finos/morphir](/decisions/0018-consolidate-the-cli-in-finos-morphir.md)
+  records retirement of the Scala CLI, its server launch command, dormant launcher, intelligence application,
+  and root installers. Reusable libraries and the `morphir-scala-elm` MEP provider remain.
+* **Update**: [Packaging and Release](/packaging-and-release.md) and
+  [Continuous Integration](/continuous-integration.md) now describe extension-only packaging through
+  `ci.extensions`, unchanged public MEP executable names, and the surviving `cli-*` required-check IDs.
+
 ## 2026-08-29
 
 * **Update**: The [Elm frontend extension Design Note](/design/elm-frontend-extension.md) records Kyo `1.0.0-RC6`'s signed 64-bit ceiling for self-describing JSON document versions. Full unsigned 64-bit wire support remains follow-on work tracked by Kyo PR 1920; the provider does not depend on an unpublished snapshot.

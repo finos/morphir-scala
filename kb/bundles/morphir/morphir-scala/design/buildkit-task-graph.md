@@ -178,7 +178,7 @@ flowchart TD
     I0009 -->|unblocks| I0015["0015 incremental builds and checkpoints"]
     I0010 -->|unblocks| I0011
     I0010 -->|unblocks| I0015
-    I0011 -->|unblocks| I0017["0017 CLI integration"]
+    I0011 -->|originally unblocked| I0017["0017 CLI integration: cancelled"]
 ```
 
 **Figure 2:** the intent dependencies inside this capability; everything flows from the core task graph.
@@ -199,7 +199,7 @@ the parallel executor must reproduce.
 | [0011](../../../intent/0011-buildkit-bdd-vertical-slice.md) | The end-to-end scenario that gates the Decision Record |
 | [0015](../../../intent/0015-incremental-builds-and-checkpoints.md) | Checkpoint reuse and invalidation |
 | [0016](../../../intent/0016-parallel-task-graph-executor.md) | Concurrency as a new interpreter, same observable contract |
-| [0017](../../../intent/0017-morphir-cli-buildkit-integration.md) | The CLI running on the pipeline |
+| [0017](../../../intent/0017-morphir-cli-buildkit-integration.md) | Cancelled after the Scala CLI retired; reusable pipeline work continues |
 
 ## Revisit conditions
 

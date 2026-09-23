@@ -1,8 +1,8 @@
 ---
 type: Capability
 title: Packaging and Release
-description: "CI publishes Scala libraries and Mill plugins to Sonatype Central, plus CLI packages to GitHub Releases."
-tags: [ci, release, packaging, cli]
+description: "CI publishes Scala libraries and Mill plugins to Sonatype Central, plus native MEP extensions to GitHub Releases."
+tags: [ci, release, packaging, mep]
 status: stable
 generated:
   by: human:damreev
@@ -21,12 +21,10 @@ why something did not show up where you expected it.
 | --- | --- | --- |
 | Scala libraries | Sonatype Central | `org.finos.morphir:*` |
 | Mill Morphir plugins | Sonatype Central | `org.finos.morphir.mill:*` |
-| Native CLI packages and checksums | GitHub Releases | `morphir-cli-<os>-<arch>-<version>.tar.gz` or `.zip` |
-| Executable JVM CLI and checksum | GitHub Releases | `morphir-cli-jvm-<version>.jar` |
-| CLI library | Sonatype Central and Coursier channel | `org.finos.morphir:morphir-main_3` |
+| Native MEP extension and checksums | GitHub Releases | `morphir-scala-elm-<platform>-<version>` with `.exe` on Windows, plus `.sha256` sidecars and `checksums.txt` |
 
 Two aggregate gates stand between a trigger and anything leaving the repository: `ci` for lint, tests
-and knowledge base checks, and `packaging` for the CLI build. Packaging runs on ordinary
+and knowledge base checks, and `packaging` for the extension build. Packaging runs on ordinary
 pushes and pull requests as well as release tags. A release itself runs in two phases across two
 workflows: a tag push *stages* a draft GitHub release through `ci.yml`, and publishing that draft
 *promotes* it to Maven Central through `release-publish.yml`. Figure 1 shows every path, end to end.
@@ -43,25 +41,22 @@ flowchart TD
 
     Gate --> CliMatrix[cli-matrix: five platforms on a v* tag; three-OS smoke matrix on a pull request or branch push]
     CliMatrix --> CliNative[cli-package-native: GraalVM Native Image]
-    CliMatrix --> CliJvm[cli-package-jvm: executable assembly]
     CliNative --> CliVerify[cli-verify: assets and SHA-256 checksums]
-    CliJvm --> CliVerify
     CliVerify --> Packaging[packaging gate]
     CliVerify -->|refs/tags/v* only| CliRelease[cli-release: create or reuse the draft release, upload assets, re-download and verify]
     CliRelease --> GhAssets[(Draft GitHub Release assets)]
 
     GhAssets -->|a human publishes the draft| RelPub[release-publish.yml: target resolves the tag]
-    RelPub -->|v*| PromoteLib[publish-libraries: verify CLI assets, then ci.sonatype.libraries]
+    RelPub -->|v*| PromoteLib[publish-libraries: verify extension assets, then ci.sonatype.libraries]
     RelPub -->|mill-plugins/v*| PromotePlugins[publish-plugins: ci.sonatype.plugins]
     PromoteLib --> Sonatype
     PromotePlugins --> Sonatype
 
-    Sonatype -.->|coursier resolves latest.release| Cli[CLI install]
 ```
 
 **Figure 1:** Two gates stand in the staging flow, and every path into `Sonatype` except the branch
 snapshot runs through the published-release promotion in `release-publish.yml`. Everything above
-`packaging` runs on ordinary pull requests and pushes, so broken CLI packaging surfaces
+`packaging` runs on ordinary pull requests and pushes, so broken extension packaging surfaces
 where it was introduced. The two promotion jobs are each guarded on their own tag namespace. See
 [Release routing](#release-routing) for why a single tag can never satisfy both of them. A third area
 and a third promotion job, `publish-desktop`, existed for the Electron desktop application; it retired
@@ -73,8 +68,8 @@ along with the app when the Electron desktop UI moved to
 
 | Event | GitHub Actions trigger | Condition | What runs |
 | --- | --- | --- | --- |
-| Pull request | `pull_request` | into `main`, `0.4.x` | `ci` gate; nothing publishes. CLI packaging runs one runner per operating system, unless its switch turns it off |
-| Branch push | `push` | to `main`, `0.4.x` | `ci` gate, then `publish` (`ci.publish`, every area) once it passes. CLI packaging runs its three-OS smoke matrix, unless its switch turns it off |
+| Pull request | `pull_request` | into `main`, `0.4.x` | `ci` gate; nothing publishes. Extension packaging runs one runner per operating system, unless its switch turns it off |
+| Branch push | `push` | to `main`, `0.4.x` | `ci` gate, then `publish` (`ci.publish`, every area) once it passes. Extension packaging runs its three-OS smoke matrix, unless its switch turns it off |
 | Tag push | `push` | tags `v*`, `mill-plugins/v*` | phase one of a release: `ci` gate, then full packaging and verification, then a **draft** GitHub release is created (or reused) with the assets attached. No Maven Central upload happens on a tag push |
 | Release published | `release`, `types: [published]` on `release-publish.yml` | any published release | phase two: the tag namespace routes to one promotion job, which re-verifies the staged assets and uploads to Sonatype — unless the Maven Central switches stand it down |
 | Manual dispatch of CI | `workflow_dispatch` on `ci.yml` | whichever ref is chosen | the same jobs that ref would otherwise trigger. Choosing a release tag re-runs that tag's staging phase (the retry path for a failed build or upload) |
@@ -118,7 +113,7 @@ that differs.
 
 | Tag shape | Stages (tag push, `ci.yml`) | Promotes (release published, `release-publish.yml`) |
 | --- | --- | --- |
-| `v0.6.0-M01` | CLI packages and checksums on a draft release, via `cli-release` → `ci.cli.githubRelease` | `publish-libraries`: verify the CLI assets, then `ci.sonatype.libraries` |
+| `v0.6.0-M01` | Extension executables and checksums on a draft release, via `cli-release` → `ci.extensions.githubRelease` | `publish-libraries`: verify the extension assets, then `ci.sonatype.libraries` |
 | `mill-plugins/v0.1.0` | Nothing beyond the `ci` gate — plugins carry no GitHub release assets | `publish-plugins`: `ci.sonatype.plugins` |
 | Anything else | Nothing, visibly: no job matches | Nothing: no promotion job matches |
 
@@ -158,52 +153,53 @@ stream's tag and the tag agrees with the changelog's release line. See
 [Continuous Integration](/continuous-integration.md) for the exact coordinate formats, which this page
 reuses rather than restating.
 
-## Publishing the CLI
+## Publishing the Elm extension
 
-The root library version stream also versions the CLI. A root `v*` tag stages six CLI packages on
-its draft release:
+`morphir-scala-elm` is a Morphir Extension Protocol (MEP) provider for the Scala Elm compiler.
+The [extension design](/design/elm-frontend-extension.md) defines its protocol and provider identity.
+The human-facing CLI lives in `finos/morphir`; [decision 0018](/decisions/0018-consolidate-the-cli-in-finos-morphir.md)
+records why Scala releases now carry only the extension executable.
 
-| Token | Runner | Package |
+The root library version stream also versions the extension. `ci.extensions` extends
+`MorphirVersionedModule`, and its `version` is `streamVersion`. A root `v*` tag stages five executables:
+
+| Token | Runner | Public asset |
 | --- | --- | --- |
-| `mac-aarch64` | `macos-14` | `morphir-cli-mac-aarch64-<version>.tar.gz` |
-| `mac-amd64` | `macos-15-intel` | `morphir-cli-mac-amd64-<version>.tar.gz` |
-| `linux-amd64` | `ubuntu-24.04` | `morphir-cli-linux-amd64-<version>.tar.gz` |
-| `linux-aarch64` | `ubuntu-24.04-arm` | `morphir-cli-linux-aarch64-<version>.tar.gz` |
-| `win-amd64` | `windows-latest` | `morphir-cli-win-amd64-<version>.zip` |
-| JVM, platform independent | `ubuntu-latest` | `morphir-cli-jvm-<version>.jar` |
+| `mac-aarch64` | `macos-14` | `morphir-scala-elm-mac-aarch64-<version>` |
+| `mac-amd64` | `macos-15-intel` | `morphir-scala-elm-mac-amd64-<version>` |
+| `linux-amd64` | `ubuntu-24.04` | `morphir-scala-elm-linux-amd64-<version>` |
+| `linux-aarch64` | `ubuntu-24.04-arm` | `morphir-scala-elm-linux-aarch64-<version>` |
+| `win-amd64` | `windows-latest` | `morphir-scala-elm-win-amd64-<version>.exe` |
 
-Each native runner uses GraalVM Native Image with `--no-fallback` and `-march=compatibility`. The Native
-Image classpath is the CLI assembly rather than its expanded dependency graph. This avoids the Windows
-command-line limit and ensures the native compiler sees the same application bytes as the JVM package.
-The Windows archive retains the DLLs emitted next to the executable. Unix archives mark `morphir` as
-executable.
+Each executable has a `.sha256` sidecar. There is no public JVM package or Windows ARM64 package.
+GraalVM builds on each target host. An x64 Windows build running under emulation retains `win-amd64`.
 
-The JVM package is Mill's assembly output. Mill adds a shell and batch launcher to the JAR, in the same
-style as Mill's own executable distribution, while it remains valid input to `java -jar`.
+| Task under `ci.extensions` | Responsibility |
+| --- | --- |
+| `writeMepVersionEnv` | Supply the version for the MEP executable build |
+| `packageMepNative` | Build and smoke-test the executable, then write its SHA-256 sidecar |
+| `packageNativeTransport` | Archive native assets for workflow transfer while preserving executable permissions |
+| `extractNativeTransports` | Restore transferred native assets for verification |
+| `verify` | Check the expected platform set and digests, reject unexpected files, and write `checksums.txt` |
+| `githubRelease` | Create or reuse the draft release and upload verified public assets |
+| `verifyRelease` | Download the release assets again and verify their digests |
 
-Every package command smoke-tests `version`, the top-level command list, and `server --help` before it
-writes an archive. `cli-verify` then checks the complete platform set, rejects missing, empty, unexpected,
-or corrupted assets, and writes `checksums.txt` from the per-asset SHA-256 sidecars. A root `v*` tag runs
-the verifier again before `ci.cli.githubRelease` creates the GitHub release as a **draft** when none
-exists yet (with generated notes, against the pushed tag) and uploads with `--clobber`, making a failed
-upload safe to retry by dispatching the workflow on the same tag. After the upload, `ci.cli.verifyRelease`
-downloads every asset fresh from the release and verifies it against the staged `checksums.txt`, so a
-truncated or mislabeled upload fails the staging run rather than a user's install; the same task runs
-again in `release-publish.yml` before the Maven Central upload, so promotion re-proves what staging
-proved. The workflow does not create or upload to a GitHub Release from a pull request or branch push.
-Only a root `v*` tag ref — pushed, or chosen for a manual dispatch — receives the job's
-`contents: write` token.
+The package smoke test checks MEP initialization, provider identity, and compile behavior. Public assets stage in
+`.dev/dist/extensions/release`, overridden by `MORPHIR_EXTENSION_RELEASE_DIR`. Private transport archives stage in
+`.dev/dist/extensions/transport`, overridden by `MORPHIR_EXTENSION_TRANSPORT_DIR`. Transport archives do not ship
+on the release. No task accepts the retired `includeJvm` option.
 
-GraalVM does not provide Native Image for Windows ARM64. That platform uses the JVM package with a native
-ARM64 Java 26 runtime. An x64 Windows package can also run through Windows emulation, but it is not an
-ARM64 native image. `CliRelease.Platform.fromHost` rejects a claimed `win-aarch64` build so an emulated
-toolchain cannot be mislabeled.
+The workflow keeps the `cli-matrix`, `cli-package-native`, `cli-verify`, and `cli-release` job IDs for required-check
+compatibility. Their tasks now live under `ci.extensions`; `cli-package-jvm` has retired. A root `v*` tag verifies
+the assets before upload, creates a draft if needed, and uploads with `--clobber` so staging can be retried.
+`ci.extensions.verifyRelease` downloads every attached release asset after upload and again before Maven Central
+promotion. It rejects unexpected assets, including stale Scala CLI archives or JARs left on a reused draft.
+Pull requests and branch pushes do not receive the release job's write token or publish assets.
 
-Ordinary CI uses `MORPHIR_CI_PACKAGE_CLI` as its switch. Unset, or any value other than `false`, enables
-the jobs. Pull requests and branch pushes exercise the three-OS smoke matrix — `linux-amd64`,
-`win-amd64`, and `mac-aarch64` — each leg covering toolchain machinery the others do not, while five
-GraalVM builds per ordinary merge would be paid for assets nothing publishes. A root `v*` tag always
-exercises all five and ignores the switch.
+`MORPHIR_CI_PACKAGE_EXTENSIONS` controls ordinary CI packaging. When unset or empty, the workflow falls back to
+`MORPHIR_CI_PACKAGE_CLI`. The effective value `false` disables packaging; other values enable it. Pull requests
+and branch pushes exercise `linux-amd64`, `win-amd64`, and `mac-aarch64`. Root `v*` tags always exercise all five
+hosts and ignore the switch.
 
 ## Publishing the desktop app (retired)
 
@@ -287,29 +283,14 @@ attempt publishes nothing and a retry starts from a clean slate.
 
 ## Installing the CLI
 
-For a native install, download the archive matching the operating system and architecture from the
-root GitHub Release, verify it against `checksums.txt`, extract it, and place `morphir` or `morphir.exe`
-on `PATH`.
+Install the Rust CLI from `finos/morphir` using the
+[official installation guide](https://morphir.finos.org/docs/getting-started/morphir-cli/).
+The Scala CLI, its root wrappers and installer, and its Coursier channels have retired. Check existing scripts
+against the Rust CLI's documented commands; this retirement does not establish command parity.
 
-The JVM package is the fallback for every supported operating system and the primary package for Windows
-ARM64. With Java 25 or newer installed, run:
-
-```text
-java -jar morphir-cli-jvm-<version>.jar version
-java -jar morphir-cli-jvm-<version>.jar server --help
-```
-
-On macOS or Linux, the same file can be made executable with `chmod +x` and invoked directly.
-
-The existing [Coursier](https://get-coursier.io/) channel remains available. `morphir-cli` resolves
-`org.finos.morphir:morphir-main_3:latest.release`, while `morphir-insiders-cli` also admits snapshots.
-`morphir-cli-install.sh` bootstraps that coordinate into the Coursier bin directory. This route consumes
-the Maven-published library; the GitHub Release packages are a separate distribution of the same CLI.
-
-Unverified: whether the `sonatype:releases` and `typesafe:ivy-releases` aliases in `coursier-channel.json`
-still resolve anything now that publishing targets Sonatype Central's portal directly rather than the
-legacy OSSRH staging repository `sonatype:releases` names. The `central` alias is enough on its own once
-an artifact reaches Maven Central.
+The `morphir-scala-elm` executable remains an independently acquired MEP provider. Its public filename, checksum
+contract, and protocol identity stay unchanged. The Scala `morphir server` command has retired, while the reusable
+web-host and UI modules remain in this repository.
 
 ## Where to go next
 

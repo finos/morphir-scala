@@ -23,7 +23,7 @@ ${CLAUDE_PLUGIN_ROOT}/squire ai env info --check var-folders
 ${CLAUDE_PLUGIN_ROOT}/squire ai env info --timeout 15
 ```
 
-From project shell scripts (Mise tasks, `morphir-local`), the launcher is called by
+From project shell scripts (Mise tasks), the launcher is called by
 its stable in-repo path rather than `${CLAUDE_PLUGIN_ROOT}` (that variable is only
 populated when Claude itself issues the command; plain shell scripts run
 independently of Claude, e.g. from a terminal or CI):
@@ -79,8 +79,7 @@ cached between calls.
 
 ## `scripts/lib/mill-flags.sh`
 
-A tiny POSIX-`sh` helper, sourced by `morphir-local` and the `lint` mise
-task, that turns the `jvm-network` check into the flag mill actually wants:
+A tiny POSIX-`sh` helper, sourced by the `lint` mise task, that turns the `jvm-network` check into the flag mill actually wants:
 
 ```sh
 . scripts/lib/mill-flags.sh

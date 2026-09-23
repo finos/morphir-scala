@@ -8,6 +8,13 @@ a release.
 
 ## [0.5.0-M09]
 
+### Removed
+- The Scala Morphir CLI, including `server`, the version-only `morphir-intelligence` executable,
+  legacy launchers, installers, and native/JVM CLI release packages. Use the Rust CLI from
+  [finos/morphir](https://github.com/finos/morphir). The `morphir-scala-elm` MEP executable remains
+  the process extension interface, with its existing release asset names and checksums. Reusable
+  tooling, web/UI libraries, and the intelligence SDK remain available.
+
 ## [0.5.0-M08] - 2026-09-23
 
 ### Changed

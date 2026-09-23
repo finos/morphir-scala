@@ -50,7 +50,7 @@ implementation can still refine details. The shared pipeline boundary remains in
 
 ## Shipped contract and observed gap
 
-The Morphir CLI now hosts MEP 0.1 processes, installs checksum-verified executable artifacts into a content-addressed
+The Rust Morphir CLI in `finos/morphir` hosts MEP 0.1 processes, installs checksum-verified executable artifacts into a content-addressed
 store, locks exact versions, and validates installed bytes again before activation. The `morphir-elm` provider is the
 reference implementation, and the host integration tests define a reusable single-file Elm compilation contract.
 
@@ -234,6 +234,10 @@ This policy permits the host's Rust 1.98 baseline and allows the Scala extension
 or GraalVM release needed for a safe process implementation. It does not permit unreviewed floating CI versions.
 
 ## Acceptance
+
+The Scala general CLI has retired under [decision 0018](/decisions/0018-consolidate-the-cli-in-finos-morphir.md).
+The MEP provider remains. Its public executable names, SHA-256 sidecars, and protocol identity are unchanged;
+[Packaging and Release](/packaging-and-release.md) describes the `ci.extensions` build and release path.
 
 The vertical slice is complete only when all of the following are repeatable:
 

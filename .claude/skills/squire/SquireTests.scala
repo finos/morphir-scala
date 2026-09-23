@@ -1000,7 +1000,6 @@ object SquireCiPolicy:
       nativeJob,
       List(
         "Resolve Elm MEP provider version",
-        "Package and smoke-test the native CLI",
         "Package and smoke-test the Elm MEP native image",
         "Archive native packages for artifact transport",
         "Upload native package transport"
@@ -1008,45 +1007,39 @@ object SquireCiPolicy:
       "cli-package-native"
     )
     expect(
-      count(nativeJob, "ci.cli.writeMepVersionEnv --path $env:GITHUB_ENV") == 2,
+      count(nativeJob, "ci.extensions.writeMepVersionEnv --path $env:GITHUB_ENV") == 2,
       "the single version-export step must cover exactly Windows and Unix"
     )
     expect(
-      count(nativeJob, "ci.cli.packageNative --platform \"${{ matrix.token }}\"") == 2,
-      "the CLI package step must cover exactly Windows and Unix"
-    )
-    expect(
-      count(nativeJob, "ci.cli.packageMepNative --platform \"${{ matrix.token }}\"") == 2,
+      count(nativeJob, "ci.extensions.packageMepNative --platform \"${{ matrix.token }}\"") == 2,
       "the MEP package step must cover exactly Windows and Unix"
     )
     expect(
-      count(nativeJob, "ci.cli.packageNativeTransport --platform \"${{ matrix.token }}\"") == 2,
+      count(nativeJob, "ci.extensions.packageNativeTransport --platform \"${{ matrix.token }}\"") == 2,
       "the transport archive step must cover exactly Windows and Unix"
     )
     expect(
-      nativeJob.contains("path: ${{ env.MORPHIR_CLI_TRANSPORT_DIR }}/*.tar"),
+      nativeJob.contains("path: ${{ env.MORPHIR_EXTENSION_TRANSPORT_DIR }}/*.tar"),
       "native artifact upload must carry only the mode-preserving transport tar"
     )
     val upload = indentedBlock(nativeJob, "- name: Upload native package transport", 6)
     expect(scalar(upload, "uses") == "actions/upload-artifact@v7", "native transport must use upload-artifact@v7")
     expect(
-      scalar(upload, "path") == "${{ env.MORPHIR_CLI_TRANSPORT_DIR }}/*.tar",
+      scalar(upload, "path") == "${{ env.MORPHIR_EXTENSION_TRANSPORT_DIR }}/*.tar",
       "native transport upload path must contain only tar archives"
     )
     expect(
-      ciScript.contains("CliRelease.packageMepNative("),
-      "ci.cli.packageMepNative must copy the Elm MEP executable into durable release staging"
+      ciScript.contains("ExtensionRelease.packageMepNative("),
+      "ci.extensions.packageMepNative must copy the Elm MEP executable into durable release staging"
     )
-    val cliCommandStart = ciScript.indexOf("    def packageNative(platform: String)")
-    val mepCommandStart = ciScript.indexOf("    def packageMepNative(platform: String)")
     expect(
-      cliCommandStart >= 0 && mepCommandStart > cliCommandStart,
-      "ci.cli must define the CLI package command before the separate MEP package command"
+      !ciScript.contains("morphirArea.main") && !ciScript.contains("def packageJvm(") &&
+        !ciScript.contains("def packageNative("),
+      "extension release tasks must be independent of the retired Scala CLI"
     )
-    val cliCommand = ciScript.substring(cliCommandStart, mepCommandStart)
     expect(
-      !cliCommand.contains("compiler.mep") && !cliCommand.contains("packageMepNative"),
-      "the CLI package command must not schedule the MEP native image concurrently"
+      !workflow.contains("cli-package-jvm") && !workflow.contains("Download JVM CLI package"),
+      "extension delivery must not schedule or depend on JVM CLI packaging"
     )
     expect(
       count(ciScript, "morphirArea.langkit.elm.compiler.mep.jvm.nativeImageSmoke()") == 1,
@@ -1061,44 +1054,41 @@ object SquireCiPolicy:
       "merged pre-staging verification must require Unix Elm MEP assets to remain executable"
     )
     expect(
-      ciScript.contains("\"morphir-scala-elm-*\""),
-      "published release verification must download Elm MEP assets"
+      !ciScript.contains("\"--pattern\""),
+      "published release verification must inspect every attached asset, including retired CLI files"
     )
 
     List("cli-verify:", "cli-release:").foreach { jobName =>
       val job = indentedBlock(workflow, jobName, 2)
       expect(
-        job.contains("MORPHIR_CLI_TRANSPORT_DIR: .dev/dist/cli/transport"),
+        job.contains("MORPHIR_EXTENSION_TRANSPORT_DIR: .dev/dist/extensions/transport"),
         s"$jobName must keep transport archives outside release staging"
       )
       requireOrderedOnce(
         job,
         List(
           "Download native package transports",
-          "Download JVM CLI package",
           "Extract native package transports",
-          if jobName == "cli-verify:" then "Verify CLI and Elm MEP packages and checksums"
-          else "Verify and stage CLI and Elm MEP packages on the draft release"
+          if jobName == "cli-verify:" then "Verify Elm MEP packages and checksums"
+          else "Verify and stage Elm MEP packages on the draft release"
         ),
         jobName.stripSuffix(":")
       )
       expect(
-        count(job, "ci.cli.extractNativeTransports --platforms \"${{ needs.cli-matrix.outputs.platforms }}\"") == 1,
+        count(
+          job,
+          "ci.extensions.extractNativeTransports --platforms \"${{ needs.cli-matrix.outputs.platforms }}\""
+        ) == 1,
         s"$jobName must extract native transports exactly once before verification"
       )
       val nativeDownload = indentedBlock(job, "- name: Download native package transports", 6)
       expect(
         scalar(nativeDownload, "uses") == "actions/download-artifact@v8" &&
           scalar(nativeDownload, "pattern") == "cli-native-*" &&
-          scalar(nativeDownload, "path") == "${{ env.MORPHIR_CLI_TRANSPORT_DIR }}",
+          scalar(nativeDownload, "path") == "${{ env.MORPHIR_EXTENSION_TRANSPORT_DIR }}",
         s"$jobName must download native transport artifacts into the transport directory"
       )
-      val jvmDownload = indentedBlock(job, "- name: Download JVM CLI package", 6)
-      expect(
-        scalar(jvmDownload, "pattern") == "cli-jvm" &&
-          scalar(jvmDownload, "path") == "${{ env.MORPHIR_CLI_RELEASE_DIR }}",
-        s"$jobName must download the JVM artifact directly into release staging"
-      )
+
     }
 
   def replaceInJob(workflow: String, jobName: String, oldValue: String, newValue: String): String =
@@ -2597,34 +2587,34 @@ class SquireCiPolicySpec extends Test[Any]:
         replaceInJob(
           workflow,
           "cli-package-native:",
-          "ci.cli.writeMepVersionEnv --path $env:GITHUB_ENV",
-          "ci.cli.version"
+          "ci.extensions.writeMepVersionEnv --path $env:GITHUB_ENV",
+          "ci.extensions.version"
         ),
         "cli-package-native:",
-        "ci.cli.writeMepVersionEnv --path $env:GITHUB_ENV",
-        "ci.cli.version"
+        "ci.extensions.writeMepVersionEnv --path $env:GITHUB_ENV",
+        "ci.extensions.version"
       )
       val missingPackageCopy = replaceOnce(
         sonatypePublishTask,
-        "CliRelease.packageMepNative(",
-        "CliRelease.packageNative("
+        "ExtensionRelease.packageMepNative(",
+        "ExtensionRelease.packageNative("
       )
-      val misnamedDownload = replaceOnce(
+      val filteredDownload = replaceOnce(
         sonatypePublishTask,
-        "\"morphir-scala-elm-*\"",
-        "\"morphir-elm-*\""
+        "            \"--dir\",",
+        "            \"--pattern\",\n            \"morphir-scala-elm-*\",\n            \"--dir\","
       )
       val reorderedPackages = replaceInJob(
         replaceInJob(
           replaceInJob(
             workflow,
             "cli-package-native:",
-            "- name: Package and smoke-test the native CLI",
+            "- name: Resolve Elm MEP provider version",
             "- name: package-order-swap"
           ),
           "cli-package-native:",
           "- name: Package and smoke-test the Elm MEP native image",
-          "- name: Package and smoke-test the native CLI"
+          "- name: Resolve Elm MEP provider version"
         ),
         "cli-package-native:",
         "- name: package-order-swap",
@@ -2633,14 +2623,14 @@ class SquireCiPolicySpec extends Test[Any]:
       val missingExtraction = replaceInJob(
         workflow,
         "cli-verify:",
-        "ci.cli.extractNativeTransports --platforms \"${{ needs.cli-matrix.outputs.platforms }}\"",
-        "ci.cli.verify --platforms \"${{ needs.cli-matrix.outputs.platforms }}\""
+        "ci.extensions.extractNativeTransports --platforms \"${{ needs.cli-matrix.outputs.platforms }}\"",
+        "ci.extensions.verify --platforms \"${{ needs.cli-matrix.outputs.platforms }}\""
       )
       val rawArtifactUpload = replaceInJob(
         workflow,
         "cli-package-native:",
-        "path: ${{ env.MORPHIR_CLI_TRANSPORT_DIR }}/*.tar",
-        "path: ${{ env.MORPHIR_CLI_RELEASE_DIR }}/*"
+        "path: ${{ env.MORPHIR_EXTENSION_TRANSPORT_DIR }}/*.tar",
+        "path: ${{ env.MORPHIR_EXTENSION_RELEASE_DIR }}/*"
       )
       val duplicateVersionStep = replaceInJob(
         workflow,
@@ -2651,7 +2641,7 @@ class SquireCiPolicySpec extends Test[Any]:
 
       assert(rejects(assertElmMepReleasePolicy(_, sonatypePublishTask), missingVersionInjection))
       assert(scala.util.Try(assertElmMepReleasePolicy(workflow, missingPackageCopy)).isFailure)
-      assert(scala.util.Try(assertElmMepReleasePolicy(workflow, misnamedDownload)).isFailure)
+      assert(scala.util.Try(assertElmMepReleasePolicy(workflow, filteredDownload)).isFailure)
       List(reorderedPackages, missingExtraction, rawArtifactUpload, duplicateVersionStep).zipWithIndex.foreach {
         case (mutation, index) =>
           assert(
@@ -6382,17 +6372,18 @@ class SquireDoctorSpec extends Test[Any]:
   }
 
   "project diagnostics" - {
-    "accepts Mill-owned setup YAML main class plugin wiring and effective JVM temp" in {
+    "accepts Mill-owned setup and the MEP main class without the retired CLI" in {
       for
         root <- SquireFixtures.scratch("doctor-project")
         _    <- Sync.defer {
           Files.createDirectories((root / ".config" / "mise" / "tasks").toJava)
-          Files.createDirectories((root / "morphir").toJava)
+          val mep = root / "morphir" / "langkit" / "elm" / "compiler" / "mep"
+          Files.createDirectories(mep.toJava)
           Files.writeString((root / ".config" / "mise" / "tasks" / "setup").toJava, "bun install --ignore-scripts\n")
           Files.writeString((root / "package.json").toJava, "{}\n")
           Files.writeString(
-            (root / "morphir" / "package.mill.yaml").toJava,
-            "mainClass: org.finos.morphir.Main\n"
+            (mep / "package.mill.yaml").toJava,
+            "object jvm:\n  mainClass: morphir.langkit.elm.compiler.mep.Main\n"
           )
           val plugin  = root / "mill-plugins" / "morphir"
           val modules = List("toolchain", "javascript", "elm-tooling", "core", "elm", "integration")

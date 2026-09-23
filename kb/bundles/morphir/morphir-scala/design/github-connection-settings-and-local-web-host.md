@@ -17,6 +17,11 @@ It builds on the shipped token-provider and secret-reader design in
 [GitHub token providers and appkit secrets](./github-token-providers-and-appkit-secrets.md). It follows the UI
 store, signal, and view rules in [morphir-ui architecture](./morphir-ui-architecture.md).
 
+The Scala CLI and its `morphir server` command retired under
+[decision 0018](/decisions/0018-consolidate-the-cli-in-finos-morphir.md). The reusable web-server, renderer, UI,
+connector, and appkit modules remain. The host design below describes those reusable contracts; it does not
+provide a current Scala CLI launch command or claim a replacement command in the Rust CLI.
+
 ## Context
 
 The GitHub connector already owns a redacted `Token` and named `TokenProvider` implementations. Appkit owns a
@@ -25,7 +30,7 @@ Electron `safeStorage`. None of these APIs accepts a token from the UI or writes
 
 The same `morphir-ui` value runs in a browser and in the Electron renderer. Those clients must submit a token once,
 because a pasted-token flow cannot avoid that transfer. They must not retain it after submission or make GitHub
-calls with it. The browser has a local backend launched from the Morphir CLI. Electron already has a main process and
+calls with it. The browser uses a local backend. Its former Scala CLI launcher has retired. Electron has a main process and
 an IPC-only JSON-RPC connection.
 
 The first release supports GitHub.com only. The live connector posts to `https://api.github.com/graphql`, so adding a
@@ -145,7 +150,6 @@ The work follows the module boundaries already established for the connector, UI
 | `morphir/ui` | Connection protocol, store, view, safe status, and errors |
 | `morphir/web/renderer` | Browser entry point that mounts the shared UI |
 | `morphir/web/server` | Loopback HTTP, sessions, static assets, JSON-RPC routes, and host services |
-| `morphir/main` | Pure Kyo `server` command and options |
 
 The UI module adds a JVM variant so the web server can use the same schema and route definitions as the Scala.js
 clients. The web modules form an unpublished application like `morphir/desktop`; the published libraries keep host
@@ -153,18 +157,18 @@ assembly and static assets out of their artifacts.
 
 ## Browser host
 
-The existing CLI entry point is a Kyo CaseApp dispatcher whose legacy commands call ZIO. `morphir server` is a pure
-Kyo command. It runs a new JVM web-host module directly and does not add another ZIO-to-Kyo adapter. This follows
+The JVM web-host module uses Kyo directly. Its former `morphir server` command and options have retired with
+`morphir/main`. Keeping the host in Kyo follows
 [Decision Record 0005](../decisions/0005-bridge-nothing-between-zio-and-kyo.md).
 
-The command binds `127.0.0.1` only. Its default port is selected by the operating system. It serves the compiled
-browser UI and JSON-RPC endpoint from one origin, then opens the browser. `--no-open` disables browser launch.
-Remote binding and multi-user sessions are outside the first release.
+The web host binds `127.0.0.1` only. Its default port is selected by the operating system. It serves the compiled
+browser UI and JSON-RPC endpoint from one origin. An embedding application owns browser launch.
+Remote binding and multi-user sessions remain outside this design.
 
-Each server launch creates an unguessable one-use launch credential. The CLI opens a URL that carries the credential
+Each server launch creates an unguessable one-use launch credential. The embedding application opens a URL that carries the credential
 in its fragment, which HTTP requests and server access logs do not receive. The UI exchanges it once for an
-`HttpOnly`, `SameSite=Strict` session cookie and removes the fragment with `history.replaceState`. The CLI does not
-print the credential.
+`HttpOnly`, `SameSite=Strict` session cookie and removes the fragment with `history.replaceState`. The embedding
+application must not print the credential.
 
 The server accepts API requests only when all of these conditions hold:
 
@@ -248,7 +252,7 @@ developer credential store.
   checks, absent CORS headers, cache policy, and session expiry.
 - Electron tests cover IPC routing, encryption availability, Linux weak-backend rejection, atomic blob replacement,
   deletion, corrupt blobs, and redacted output.
-- CLI tests cover command parsing, loopback defaults, automatic port selection, browser launch, and `--no-open`.
+- The Scala CLI command-parsing and browser-launch tests retired with its `server` command. Loopback host tests remain.
 - The desktop smoke test uses a test-only Scala.js DOM driver. Its single exported
   `runMorphirDesktopSmoke` function returns a flat contract of exactly 18 Boolean assertions. The scenario removes a
   rejected stored credential before connecting with a remembered token. It then disconnects, connects for the
