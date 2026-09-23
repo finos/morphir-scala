@@ -178,6 +178,7 @@ class MepWorkspaceTests extends Test[Any]:
         "acme//widgets"                        -> "acme/widgets",
         " acme / widgets "                     -> "acme/widgets",
         "a.b/c"                                -> "a/b/c",
+        "éa/pkg"                               -> "a/pkg",
         "acme/ /widgets"                       -> "acme/widgets",
         "acme/\u00a0/widgets"                  -> "acme/widgets",
         "\u3000acme\u2003/widgets\u2029"       -> "acme/widgets",
