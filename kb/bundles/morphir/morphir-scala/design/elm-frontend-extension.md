@@ -157,8 +157,11 @@ package name, and its exposed modules in selection order.
 
 The answer must be the same from every Elm provider, so this one ports the reference behaviour rather than designing
 its own. The checks run in the order of morphir-rust `discover_with_identity`, and the codes and messages match it and
-the morphir-elm extension. An explicit name comes only from the overlay's `project.name`, is trimmed, and must be a
-canonical Morphir package name, which is the contract `morphir.frontend.compile` enforces. An unnamed selection must
+the morphir-elm extension. An explicit name comes only from the overlay's `project.name` and is trimmed. It may use
+Elm or Morphir spelling: it splits into segments on `/` and `.`, each segment splits into words as morphir-elm
+`Name.fromString` does, and the snapshot reports the normal form, the words joined with `-` and the segments with `/`
+(finos/morphir#917). The normal form always satisfies the package identity that `morphir.frontend.compile` enforces.
+An unnamed selection must
 hold exactly one source and is named `local/<module lowercased, dots as dashes>`. A module name comes from the declared
 header, read lexically, then from the file stem, then `Main`. Manifest discovery stays with the host.
 

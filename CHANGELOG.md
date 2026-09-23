@@ -8,6 +8,13 @@ a release.
 
 ## [0.5.0-M08]
 
+### Changed
+- `morphir-scala-elm` workspace discovery accepts an explicit package name in Elm or Morphir spelling and reports its
+  normal form as the project name: the name splits into segments on `/` and `.`, each segment splits into words as
+  morphir-elm `Name.fromString` does, and the words join with `-`. `My.Package`, `My/Package` and `my/package` all
+  report `my/package`. A name that has no segments, or a segment that has no letters or digits, is refused with
+  `workspace.project-name.invalid`. This is the contract of finos/morphir#917, which the other Elm providers follow.
+
 ## [0.5.0-M07] - 2026-09-23
 
 ### Added
