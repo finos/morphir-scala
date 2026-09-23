@@ -622,15 +622,17 @@ jobs:
       - name: Run JVM tests
         run: ./mill --ticker false -i ci.testJvm
 
+  # Keep surviving job IDs stable for branch-protection checks. These jobs now package only MEP.
+  # The extension toggle takes precedence; the old CLI toggle remains a settings migration fallback.
   cli-matrix:
-    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/v') || vars.MORPHIR_CI_PACKAGE_CLI != 'false')
+    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/v') || (vars.MORPHIR_CI_PACKAGE_EXTENSIONS || vars.MORPHIR_CI_PACKAGE_CLI) != 'false')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
       platforms: ${{ steps.matrix.outputs.platforms }}
     steps:
-      - name: Compute the CLI packaging matrix
+      - name: Compute the extension packaging matrix
         id: matrix
         shell: bash
         # Only a v* tag — a release, however it is triggered — packages all five platforms. Branch
@@ -650,7 +652,7 @@ jobs:
           echo "platforms=$PLATFORMS" >> "$GITHUB_OUTPUT"
 
   cli-package-native:
-    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/v') || vars.MORPHIR_CI_PACKAGE_CLI != 'false')
+    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/v') || (vars.MORPHIR_CI_PACKAGE_EXTENSIONS || vars.MORPHIR_CI_PACKAGE_CLI) != 'false')
     needs: [ci, cli-matrix]
     timeout-minutes: 60
     strategy:
@@ -658,8 +660,8 @@ jobs:
       matrix: ${{ fromJSON(needs.cli-matrix.outputs.matrix) }}
     runs-on: ${{ matrix.runner }}
     env:
-      MORPHIR_CLI_RELEASE_DIR: .dev/dist/cli/release
-      MORPHIR_CLI_TRANSPORT_DIR: .dev/dist/cli/transport
+      MORPHIR_EXTENSION_RELEASE_DIR: .dev/dist/extensions/release
+      MORPHIR_EXTENSION_TRANSPORT_DIR: .dev/dist/extensions/transport
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -667,7 +669,7 @@ jobs:
 
       # GraalVM Community has no JDK 26 release: graalvm/graalvm-ce-builds stops at the 25 line.
       # "26.0.2+10" is a Temurin build string, and setup-graalvm cannot download it. The native
-      # CLI and MEP executables therefore build with GraalVM 25 while the JVM jobs run Temurin 26.
+      # MEP executable therefore builds with GraalVM 25 while the JVM jobs run Temurin 26.
       - uses: graalvm/setup-graalvm@v1
         with:
           java-version: "25"
@@ -682,19 +684,9 @@ jobs:
         shell: pwsh
         run: |
           if ($IsWindows) {
-            & ./mill.bat --ticker false -i ci.cli.writeMepVersionEnv --path $env:GITHUB_ENV
+            & ./mill.bat --ticker false -i ci.extensions.writeMepVersionEnv --path $env:GITHUB_ENV
           } else {
-            & ./mill --ticker false -i ci.cli.writeMepVersionEnv --path $env:GITHUB_ENV
-          }
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: Package and smoke-test the native CLI
-        shell: pwsh
-        run: |
-          if ($IsWindows) {
-            & ./mill.bat --ticker false -i ci.cli.packageNative --platform "${{ matrix.token }}"
-          } else {
-            & ./mill --ticker false -i ci.cli.packageNative --platform "${{ matrix.token }}"
+            & ./mill --ticker false -i ci.extensions.writeMepVersionEnv --path $env:GITHUB_ENV
           }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
@@ -702,9 +694,9 @@ jobs:
         shell: pwsh
         run: |
           if ($IsWindows) {
-            & ./mill.bat --ticker false -i ci.cli.packageMepNative --platform "${{ matrix.token }}"
+            & ./mill.bat --ticker false -i ci.extensions.packageMepNative --platform "${{ matrix.token }}"
           } else {
-            & ./mill --ticker false -i ci.cli.packageMepNative --platform "${{ matrix.token }}"
+            & ./mill --ticker false -i ci.extensions.packageMepNative --platform "${{ matrix.token }}"
           }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
@@ -712,9 +704,9 @@ jobs:
         shell: pwsh
         run: |
           if ($IsWindows) {
-            & ./mill.bat --ticker false -i ci.cli.packageNativeTransport --platform "${{ matrix.token }}"
+            & ./mill.bat --ticker false -i ci.extensions.packageNativeTransport --platform "${{ matrix.token }}"
           } else {
-            & ./mill --ticker false -i ci.cli.packageNativeTransport --platform "${{ matrix.token }}"
+            & ./mill --ticker false -i ci.extensions.packageNativeTransport --platform "${{ matrix.token }}"
           }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
@@ -722,47 +714,17 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: cli-native-${{ matrix.token }}
-          path: ${{ env.MORPHIR_CLI_TRANSPORT_DIR }}/*.tar
-          if-no-files-found: error
-
-  cli-package-jvm:
-    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/v') || vars.MORPHIR_CI_PACKAGE_CLI != 'false')
-    needs: [ci, cli-matrix]
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    env:
-      MORPHIR_CLI_RELEASE_DIR: .dev/dist/cli/release
-    steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-java@v6
-        with:
-          java-version: "26.0.2+10"
-          distribution: temurin
-
-      - name: Cache Scala dependencies
-        uses: coursier/cache-action@v8
-
-      - name: Package and smoke-test the executable JVM assembly
-        run: ./mill --ticker false -i ci.cli.packageJvm
-
-      - name: Upload JVM CLI package
-        uses: actions/upload-artifact@v7
-        with:
-          name: cli-jvm
-          path: ${{ env.MORPHIR_CLI_RELEASE_DIR }}/*
+          path: ${{ env.MORPHIR_EXTENSION_TRANSPORT_DIR }}/*.tar
           if-no-files-found: error
 
   cli-verify:
-    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/v') || vars.MORPHIR_CI_PACKAGE_CLI != 'false')
-    needs: [cli-matrix, cli-package-native, cli-package-jvm]
+    if: github.repository == 'finos/morphir-scala' && (startsWith(github.ref, 'refs/tags/v') || (vars.MORPHIR_CI_PACKAGE_EXTENSIONS || vars.MORPHIR_CI_PACKAGE_CLI) != 'false')
+    needs: [cli-matrix, cli-package-native]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      MORPHIR_CLI_RELEASE_DIR: .dev/dist/cli/release
-      MORPHIR_CLI_TRANSPORT_DIR: .dev/dist/cli/transport
+      MORPHIR_EXTENSION_RELEASE_DIR: .dev/dist/extensions/release
+      MORPHIR_EXTENSION_TRANSPORT_DIR: .dev/dist/extensions/transport
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -780,40 +742,33 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           pattern: cli-native-*
-          path: ${{ env.MORPHIR_CLI_TRANSPORT_DIR }}
-          merge-multiple: true
-
-      - name: Download JVM CLI package
-        uses: actions/download-artifact@v8
-        with:
-          pattern: cli-jvm
-          path: ${{ env.MORPHIR_CLI_RELEASE_DIR }}
+          path: ${{ env.MORPHIR_EXTENSION_TRANSPORT_DIR }}
           merge-multiple: true
 
       - name: Extract native package transports
-        run: ./mill --ticker false -i ci.cli.extractNativeTransports --platforms "${{ needs.cli-matrix.outputs.platforms }}"
+        run: ./mill --ticker false -i ci.extensions.extractNativeTransports --platforms "${{ needs.cli-matrix.outputs.platforms }}"
 
-      - name: Verify CLI and Elm MEP packages and checksums
-        run: ./mill --ticker false -i ci.cli.verify --platforms "${{ needs.cli-matrix.outputs.platforms }}"
+      - name: Verify Elm MEP packages and checksums
+        run: ./mill --ticker false -i ci.extensions.verify --platforms "${{ needs.cli-matrix.outputs.platforms }}"
 
   cli-release:
-    # Pull requests and branch pushes package and verify the CLI, but never receive a write token
+    # Pull requests and branch pushes package and verify extensions, but never receive a write token
     # or upload assets. Staging happens for a root v* tag — pushed bare, or chosen as the ref of a
-    # manual dispatch; github.ref carries the tag in both cases. ci.cli.githubRelease creates the
+    # manual dispatch; github.ref carries the tag in both cases. ci.extensions.githubRelease creates the
     # GitHub release as a *draft* when none exists yet and attaches the assets; publishing that
     # draft is the human promotion act, and it is what fires release-publish.yml for the Maven
     # Central side. Pushing a v* tag requires write access, which is the authorization this job
     # relies on; the tag namespace check keeps mill-plugins/v* tags out.
     if: github.repository == 'finos/morphir-scala' && startsWith(github.ref, 'refs/tags/v')
-    needs: [cli-matrix, cli-package-native, cli-package-jvm, cli-verify]
+    needs: [cli-matrix, cli-package-native, cli-verify]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: write
     concurrency: publish-cli-${{ github.sha }}
     env:
-      MORPHIR_CLI_RELEASE_DIR: .dev/dist/cli/release
-      MORPHIR_CLI_TRANSPORT_DIR: .dev/dist/cli/transport
+      MORPHIR_EXTENSION_RELEASE_DIR: .dev/dist/extensions/release
+      MORPHIR_EXTENSION_TRANSPORT_DIR: .dev/dist/extensions/transport
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -831,25 +786,18 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           pattern: cli-native-*
-          path: ${{ env.MORPHIR_CLI_TRANSPORT_DIR }}
-          merge-multiple: true
-
-      - name: Download JVM CLI package
-        uses: actions/download-artifact@v8
-        with:
-          pattern: cli-jvm
-          path: ${{ env.MORPHIR_CLI_RELEASE_DIR }}
+          path: ${{ env.MORPHIR_EXTENSION_TRANSPORT_DIR }}
           merge-multiple: true
 
       - name: Extract native package transports
-        run: ./mill --ticker false -i ci.cli.extractNativeTransports --platforms "${{ needs.cli-matrix.outputs.platforms }}"
+        run: ./mill --ticker false -i ci.extensions.extractNativeTransports --platforms "${{ needs.cli-matrix.outputs.platforms }}"
 
-      - name: Verify and stage CLI and Elm MEP packages on the draft release
+      - name: Verify and stage Elm MEP packages on the draft release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ./mill --ticker false -i ci.cli.verify --platforms "${{ needs.cli-matrix.outputs.platforms }}"
-          ./mill --ticker false -i ci.cli.githubRelease --tag "${{ github.ref_name }}"
+          ./mill --ticker false -i ci.extensions.verify --platforms "${{ needs.cli-matrix.outputs.platforms }}"
+          ./mill --ticker false -i ci.extensions.githubRelease --tag "${{ github.ref_name }}"
 
       # Staging is not done until the staged assets check out: download every asset fresh from the
       # release and verify it against the uploaded checksums.txt, so a truncated or mislabeled
@@ -857,7 +805,7 @@ jobs:
       - name: Verify the staged release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./mill --ticker false -i ci.cli.verifyRelease --tag "${{ github.ref_name }}" --platforms "${{ needs.cli-matrix.outputs.platforms }}"
+        run: ./mill --ticker false -i ci.extensions.verifyRelease --tag "${{ github.ref_name }}" --platforms "${{ needs.cli-matrix.outputs.platforms }}"
 
   publish:
     # Snapshots and branch milestones only: all commits to main (snapshot, both areas) and 0.4.x.
@@ -983,24 +931,23 @@ jobs:
 
   packaging:
     # Desktop packaging (desktop-matrix/-package/-verify) retired with the Electron UI — the
-    # desktop/web UI now lives at finos/morphir-ui — leaving this job as the CLI packaging
+    # desktop/web UI now lives at finos/morphir-ui — leaving this job as the extension packaging
     # aggregate alone.
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [cli-matrix, cli-package-native, cli-package-jvm, cli-verify]
+    needs: [cli-matrix, cli-package-native, cli-verify]
     steps:
-      - name: Verify CLI packaging jobs succeeded, or stood down together
+      - name: Verify extension packaging jobs succeeded, or stood down together
         run: |
           matrix='${{ needs.cli-matrix.result }}'
           native='${{ needs.cli-package-native.result }}'
-          jvm='${{ needs.cli-package-jvm.result }}'
           verify='${{ needs.cli-verify.result }}'
-          echo "cli-matrix=$matrix cli-package-native=$native cli-package-jvm=$jvm cli-verify=$verify"
+          echo "cli-matrix=$matrix cli-package-native=$native cli-verify=$verify"
           if [[ "$matrix" == "skipped" ]]; then
-            [[ "$native" == "skipped" && "$jvm" == "skipped" && "$verify" == "skipped" ]]
+            [[ "$native" == "skipped" && "$verify" == "skipped" ]]
           else
-            [[ "$matrix" == "success" && "$native" == "success" && "$jvm" == "success" && "$verify" == "success" ]]
+            [[ "$matrix" == "success" && "$native" == "success" && "$verify" == "success" ]]
           fi
       - name: Aggregate of release packaging
         run: echo "packaging passed"

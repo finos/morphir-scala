@@ -28,50 +28,21 @@ Provides Scala language bindings and JVM based tooling for Morphir.
 ## Desktop and web UI
 
 The Morphir desktop and web UI now lives at [finos/morphir-ui](https://github.com/finos/morphir-ui).
-`morphir-scala` continues as the Scala implementation and capability provider behind it — for
+`morphir-scala` continues as the Scala implementation and capability provider behind it, for
 example the Markdown tooling (`morphir/langkit/markdown`) and the GitHub connector
-(`morphir/connector/github`) — and as the shared `morphir-ui` library (`morphir/ui`) behind the
-local web host started by `morphir server`.
+(`morphir/connector/github`), the shared UI library (`morphir/ui`), and reusable web-host modules
+(`morphir/web`). The Scala CLI's `morphir server` launch command has retired.
 
 ## Installation
 
-You can install the `morphir-cli` in the following ways:
+The human-facing Morphir CLI is the Rust implementation in [finos/morphir](https://github.com/finos/morphir).
+Follow the [official CLI installation guide](https://morphir.finos.org/docs/getting-started/morphir-cli/).
+This repository's Scala CLI, root launchers, installer, and Coursier channels have retired. Existing scripts
+must be checked against the Rust CLI's documented commands; command parity is not assumed.
 
-**Using Coursier**
-
-```
-cs install --channel https://raw.githubusercontent.com/finos/morphir-scala/main/coursier-channel.json morphir-cli
-```
-
-Then run the CLI:
-
-```
-morphir-cli setup
-```
-
-We also offer an insiders channel that grants access to snapshot releases of the CLI.
-
-```
-cs install --channel https://raw.githubusercontent.com/finos/morphir-scala/main/coursier-channel.json morphir-insiders-cli
-```
-
-Then run the CLI:
-
-```
-morphir-cli setup
-```
-
-NOTE: The main channel above (non-insiders), also offers insiders builds under the name `morphir-insiders-cli`:
-
-```
-cs install --channel https://raw.githubusercontent.com/finos/morphir-scala/main/coursier-channel.json morphir-insiders-cli
-```
-
-Then run the CLI:
-
-```
-morphir-insiders-cli setup
-```
+This repository still provides Scala libraries and the `morphir-scala-elm` compiler extension. The extension
+is a Morphir Extension Protocol provider, installed and invoked by a compatible Morphir host.
+See [packaging and release](kb/bundles/morphir/morphir-scala/packaging-and-release.md) for its native artifacts.
 
 ---
 ## Development
@@ -214,7 +185,7 @@ Set-Content .mill-jvm-version system
 ```
 
 The last command must report `os.arch: aarch64`. See the
-[Windows ARM64 contributor setup](./CONTRIBUTING.md#windows-arm64) for the explanation and server command.
+[Windows ARM64 contributor setup](./CONTRIBUTING.md#windows-arm64) for the explanation.
 
 If you are using IntelliJ IDEA to edit morphir-scala's Scala code, you can create the
 IntelliJ project files via or use the **BSP Setup** option (BSP is the recommended approach):

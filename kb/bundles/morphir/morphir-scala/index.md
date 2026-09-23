@@ -33,11 +33,13 @@ Draft Design Notes and research are provisional.
 * [Continuous Integration](/continuous-integration.md) - GitHub Actions runs linting, cross-platform tests and knowledge base checks on pull requests targeting supported branches.
 * [Build System](/build-system.md) - Mill drives the build from per-directory package.mill.yaml files, with mise as the task runner.
 * [Cross-Platform Targets](/cross-platform-targets.md) - Modules compile to the JVM, ScalaJS, WebAssembly and Scala Native from one shared source layout.
-* [Packaging and Release](/packaging-and-release.md) - CI publishes Scala libraries and Mill plugins to Sonatype Central, plus CLI packages to GitHub Releases.
+* [Packaging and Release](/packaging-and-release.md) - CI publishes Scala libraries and Mill plugins to Sonatype Central, plus native MEP extensions to GitHub Releases.
 
 ## Decisions
 
 Full list, grouped, in [decisions/index.md](/decisions/index.md).
+
+* [Consolidate the human-facing CLI in finos/morphir](/decisions/0018-consolidate-the-cli-in-finos-morphir.md) - The Rust CLI in finos/morphir owns human-facing commands; morphir-scala retains reusable libraries and native MEP extensions.
 
 * [Released intent stays; capabilities are separate documents](/decisions/0001-released-intent-stays-capabilities-are-separate.md) - Intent records are never moved on release; a Released intent must link to a separate present-tense Capability document.
 * [Intent tooling lives in the kb skill](/decisions/0002-intent-tooling-lives-in-the-kb-skill.md) - Intent management is implemented as `kb intent …` subcommands inside the kb skill, not as a separate skill with its own code.

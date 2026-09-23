@@ -126,7 +126,7 @@ separately versioned siblings zio-json, zio-prelude, zio-config, zio-schema), fs
 and scala-java-time are suites. None of those publishers are imported as a Maven BOM; the pin is ours. Suite
 traits still *fetch* a bundle that always travels together: `MorphirKyoCoreMvnDeps` (kyo-core, kyo-prelude),
 `MorphirKyoTestMvnDeps` (those two plus kyo-test-api and kyo-test-runner), `MorphirKyoMvnDeps` (kyo-data,
-kyo-schema), `MorphirKyoSchemaMvnDeps`, `MorphirKyoSchemaJsonMvnDeps` and `MorphirKyoCaseAppMvnDeps`. Do not add
+kyo-schema), `MorphirKyoSchemaMvnDeps` and `MorphirKyoSchemaJsonMvnDeps`. Do not add
 a new trait for each extra artifact. A YAML block that also has non-suite deps declares them with
 `mvnDeps: !append` too, since a bare `mvnDeps:` replaces what the trait contributed rather than adding to it.
 

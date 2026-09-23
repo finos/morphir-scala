@@ -24,14 +24,17 @@ branches.
 | `test-native` | Mill `ci.testNativePrepare` followed by four `ci.testNative` shards. `millbuild.NativeTestSelectors` resolves and partitions every Native test target; the Mise launcher gives each shard a fresh daemonless Mill JVM. |
 | `publish` | Sonatype snapshot publication via Mill `ci.publish`, on `main` and `0.4.x` branch pushes only — release tags promote through `release-publish.yml` instead. The publish set is whatever Mill resolves for `__.publishSonatypeCentral`, including the Mill Morphir plugin family (`org.finos.morphir.mill`); the test-only `integration` module is not a publish module and is not uploaded. Destination tasks live under `ci.sonatype.*`. |
 | `cli-matrix` | Selects five native targets on a root `v*` tag, or a three-operating-system smoke matrix on pull requests and branch pushes. |
-| `cli-package-native` | Builds the CLI with GraalVM Native Image on each selected host, smoke-tests `version` and `server`, and uploads an archive plus SHA-256 sidecar. |
-| `cli-package-jvm` | Builds and smoke-tests Mill's executable assembly JAR, then uploads it with its SHA-256 sidecar. This is the Windows ARM64 distribution because GraalVM has no Native Image build for that platform. |
-| `cli-verify` | Downloads the native and JVM packages, verifies the expected set and digests, rejects extra files, and writes `checksums.txt`. |
-| `cli-release` | Repeats verification, creates the root `v*` GitHub Release as a draft when none exists, attaches the CLI packages and checksums, then re-downloads and re-verifies the staged assets. It runs only for a root `v*` tag ref; pull requests and branch pushes have no upload path or write token. Destination tasks live under `ci.cli.*`. |
+| `cli-package-native` | Builds the `morphir-scala-elm` MEP executable with GraalVM Native Image on each selected host, checks protocol initialization and compilation, and uploads a private transport archive containing the executable and SHA-256 sidecar. |
+| `cli-verify` | Extracts the native transport archives, verifies the expected executable set and digests, rejects extra files, and writes `checksums.txt`. |
+| `cli-release` | Repeats verification, creates the root `v*` GitHub Release as a draft when none exists, attaches extension executables and checksums, then re-downloads and re-verifies the staged assets. It runs only for a root `v*` tag ref; pull requests and branch pushes have no upload path or write token. Destination tasks live under `ci.extensions.*`. |
 | `ci` | Aggregate gate, depending on lint, knowledge-base and all four test jobs |
 
+The `cli-*` job IDs remain for required-check compatibility after the Scala CLI's retirement. The JVM packaging
+job has retired. Ordinary packaging uses `MORPHIR_CI_PACKAGE_EXTENSIONS`, falling back to
+`MORPHIR_CI_PACKAGE_CLI` when unset or empty. Root release tags ignore the switch and build all five hosts.
+
 See [Packaging and Release](/packaging-and-release.md) for what `publish`, `cli-package-native`,
-`cli-package-jvm`, and `cli-release` actually ship, the ordered steps each one runs, and the signing
+and `cli-release` ship, the ordered steps each one runs, and the signing
 keys involved. This page is the job inventory; that one is the release story. It also has the
 Electron desktop app's packaging and publish jobs, retired from this table when the Electron desktop
 UI moved to finos/morphir-ui.

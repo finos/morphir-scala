@@ -121,13 +121,13 @@ jobs:
           key: ${{ runner.os }}-mill-js-desktop-26-${{ github.sha }}
 
       # The promotion gate re-proves the staged release before anything irreversible happens:
-      # every CLI asset is downloaded fresh off the release and checked against its published
+      # every MEP asset is downloaded fresh off the release and checked against its published
       # checksums.txt. A release whose staging run never completed fails here, loudly, instead of
-      # publishing a library release whose CLI packages are missing or corrupt.
-      - name: Verify the release's CLI assets
+      # publishing a library release whose MEP executables are missing or corrupt.
+      - name: Verify the release's extension assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./mill --ticker false -i ci.cli.verifyRelease --tag "${{ needs.target.outputs.tag }}"
+        run: ./mill --ticker false -i ci.extensions.verifyRelease --tag "${{ needs.target.outputs.tag }}"
 
       - name: Publish libraries to Maven Central
         env:

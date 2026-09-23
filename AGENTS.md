@@ -179,7 +179,7 @@ morphir-scala/
 │   ├── langkit/             # Language toolkits: shared core, tree query DSL, Elm, markdown, itest
 │   ├── runtime/             # Morphir runtime
 │   ├── testing/             # Testing utilities
-│   └── tools/               # CLI and tooling
+│   └── tools/               # Reusable tooling services
 ├── kb/                      # Knowledge base root
 │   └── bundles/             # Open Knowledge Format (OKF) knowledge bundles
 └── .config/mise/            # Mise task definitions

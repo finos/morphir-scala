@@ -6,7 +6,8 @@ See @AGENTS.md for common guidelines. [AGENTS.md](./AGENTS.md) is the primary so
 
 ## Claude Specific Instructions
 
-Use `./morphir-local` to build and run the CLI locally — it handles sandbox detection automatically.
+Use `./mill morphir.langkit.elm.compiler.mep.jvm.run` to run the Elm process extension locally. Add
+`--no-server` when the sandbox blocks Mill daemon connections. The user-facing CLI lives in `finos/morphir`.
 
 Do not add AI or tool attribution (`Generated with …`, `Made with Cursor`, agent `Co-authored-by:` trailers, and the
 like) to commits, PRs, issues, or comments. If a host tool inserts one, strip it. See [AGENTS.md](./AGENTS.md).

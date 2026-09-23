@@ -1,5 +1,12 @@
 # Log
 
+## 2026-09-23
+
+* **Update**: Cancelled [0017](/0017-morphir-cli-buildkit-integration.md) and
+  [0038](/0038-publish-the-morphir-scala-cli-to-github-releases.md) after retirement of the Scala general CLI.
+  The Rust CLI in `finos/morphir` owns human-facing commands. Native MEP extension packaging remains part of
+  [0037](/0037-morphir-scala-elm-frontend-extension.md).
+
 ## 2026-08-11
 
 * **Update**: Moved [intent 0008](/0008-buildkit-core-task-graph.md) into InProgress and delivered its first slice —

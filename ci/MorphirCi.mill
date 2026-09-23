@@ -5,7 +5,9 @@ import build.{`mill-plugins` => millPlugins}
 import build.{morphir => morphirArea}
 import mill.*
 import mill.api.{BuildCtx, DefaultTaskModule, Evaluator, ModuleRef, Result, SelectMode, TaskCtx}
-import millbuild.{CliRelease, JsTestSelectors, LintSelectors, MepNativeImageSmoke, MillVersions, NativeTestSelectors}
+import millbuild.{
+  ExtensionRelease, JsTestSelectors, LintSelectors, MepNativeImageSmoke, MillVersions, NativeTestSelectors
+}
 import org.finos.morphir.mill.publish.{MillPublishEnvFile, MillSonatypeEnv, PgpSecret, PublishSelectors}
 
 /** One independently versioned area, as [[MorphirCiModule.releaseAreas]] reports it. */
@@ -156,28 +158,28 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
     }
   }
 
-  /** GitHub Release packaging for the morphir-scala command-line application. */
-  object cli extends Module {
+  /** GitHub Release packaging for Morphir process extensions. */
+  object extensions extends MorphirVersionedModule {
     def releaseDirPath = Task.Input {
       Task.env
-        .get("MORPHIR_CLI_RELEASE_DIR")
+        .get("MORPHIR_EXTENSION_RELEASE_DIR")
         .map(value => os.Path(value, BuildCtx.workspaceRoot))
-        .getOrElse(BuildCtx.workspaceRoot / ".dev" / "dist" / "cli" / "release")
+        .getOrElse(BuildCtx.workspaceRoot / ".dev" / "dist" / "extensions" / "release")
         .toString
     }
 
     def transportDirPath = Task.Input {
       Task.env
-        .get("MORPHIR_CLI_TRANSPORT_DIR")
+        .get("MORPHIR_EXTENSION_TRANSPORT_DIR")
         .map(value => os.Path(value, BuildCtx.workspaceRoot))
-        .getOrElse(BuildCtx.workspaceRoot / ".dev" / "dist" / "cli" / "transport")
+        .getOrElse(BuildCtx.workspaceRoot / ".dev" / "dist" / "extensions" / "transport")
         .toString
     }
 
-    def version = Task { morphirArea.main.publishVersion() }
+    def version = Task { streamVersion() }
 
     def writeMepVersionEnv(path: String) = Task.Command(exclusive = true) {
-      require(path.nonEmpty, "ci.cli.writeMepVersionEnv: --path is required")
+      require(path.nonEmpty, "ci.extensions.writeMepVersionEnv: --path is required")
       val releaseVersion = version()
       val destination    = os.Path(path, BuildCtx.workspaceRoot)
       os.write.append(
@@ -185,22 +187,7 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
         s"MORPHIR_ELM_MEP_VERSION=$releaseVersion\n",
         createFolders = true
       )
-      Task.log.info(s"ci.cli: exported Elm MEP provider version to $destination")
-    }
-
-    def packageNative(platform: String) = Task.Command(exclusive = true) {
-      val selected = nativeHost(platform, "packageNative")
-
-      val releaseVersion = version()
-      val executable     = morphirArea.main.nativeImage().path
-      verifyExecutable(executable, Seq.empty, releaseVersion)
-      val asset = CliRelease.packageNative(
-        selected,
-        releaseVersion,
-        executable,
-        os.Path(releaseDirPath())
-      )
-      Task.log.info(s"ci.cli: packaged ${asset.last}")
+      Task.log.info(s"ci.extensions: exported Elm MEP provider version to $destination")
     }
 
     def packageMepNative(platform: String) = Task.Command(exclusive = true) {
@@ -209,83 +196,71 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
       val mepProviderVersion = morphirArea.langkit.elm.compiler.mep.jvm.mepProviderVersion()
       if mepProviderVersion != releaseVersion then
         throw new Exception(
-          s"ci.cli.packageNative: Elm MEP provider version '$mepProviderVersion' does not match release version '$releaseVersion'"
+          s"ci.extensions.packageMepNative: Elm MEP provider version '$mepProviderVersion' does not match release version '$releaseVersion'"
         )
       morphirArea.langkit.elm.compiler.mep.jvm.nativeImageSmoke()
-      val mepAsset = CliRelease.packageMepNative(
+      val mepAsset = ExtensionRelease.packageMepNative(
         selected,
         releaseVersion,
         morphirArea.langkit.elm.compiler.mep.jvm.nativeImage().path,
         os.Path(releaseDirPath())
       )
       MepNativeImageSmoke.verify(mepAsset, releaseVersion)
-      Task.log.info(s"ci.cli: packaged ${mepAsset.last}")
+      Task.log.info(s"ci.extensions: packaged ${mepAsset.last}")
     }
 
     def packageNativeTransport(platform: String) = Task.Command(exclusive = true) {
       val selected       = nativeHost(platform, "packageNativeTransport")
       val releaseVersion = version()
-      val transport      = CliRelease.packageNativeTransport(
+      val transport      = ExtensionRelease.packageNativeTransport(
         selected,
         releaseVersion,
         os.Path(releaseDirPath()),
         os.Path(transportDirPath())
       )
-      Task.log.info(s"ci.cli: archived ${transport.last}")
+      Task.log.info(s"ci.extensions: archived ${transport.last}")
     }
 
-    def extractNativeTransports(platforms: String = CliRelease.Platform.AllTokens) = Task.Command(exclusive = true) {
-      val selected       = parsePlatforms(platforms)
-      val releaseVersion = version()
-      val problems       = selected.flatMap { platform =>
-        val transport = os.Path(transportDirPath()) / CliRelease.nativeTransportName(platform, releaseVersion)
-        CliRelease
-          .extractNativeTransport(platform, releaseVersion, transport, os.Path(releaseDirPath()))
-          .fold(identity, _ => Seq.empty)
+    def extractNativeTransports(platforms: String = ExtensionRelease.Platform.AllTokens) =
+      Task.Command(exclusive = true) {
+        val selected       = parsePlatforms(platforms)
+        val releaseVersion = version()
+        val problems       = selected.flatMap { platform =>
+          val transport = os.Path(transportDirPath()) / ExtensionRelease.nativeTransportName(platform, releaseVersion)
+          ExtensionRelease
+            .extractNativeTransport(platform, releaseVersion, transport, os.Path(releaseDirPath()))
+            .fold(identity, _ => Seq.empty)
+        }
+        if problems.nonEmpty then
+          throw new Exception(
+            s"ci.extensions.extractNativeTransports: ${problems.size} problem(s):\n" +
+              problems.map(problem => s"  - $problem").mkString("\n")
+          )
+        Task.log.info(s"ci.extensions: extracted ${selected.size} native package transports")
       }
-      if problems.nonEmpty then
-        throw new Exception(
-          s"ci.cli.extractNativeTransports: ${problems.size} problem(s):\n" +
-            problems.map(problem => s"  - $problem").mkString("\n")
-        )
-      Task.log.info(s"ci.cli: extracted ${selected.size} native package transports")
-    }
 
-    def packageJvm() = Task.Command(exclusive = true) {
-      val releaseVersion = version()
-      val assembly       = morphirArea.main.assembly().path
-      verifyExecutable(assembly, Seq("java", "-jar"), releaseVersion)
-      val asset = CliRelease.packageJvm(
-        releaseVersion,
-        assembly,
-        os.Path(releaseDirPath())
-      )
-      Task.log.info(s"ci.cli: packaged ${asset.last}")
-    }
-
-    def verify(platforms: String = CliRelease.Platform.AllTokens, includeJvm: Boolean = true) =
+    def verify(platforms: String = ExtensionRelease.Platform.AllTokens) =
       Task.Command(exclusive = true) {
         val selected = parsePlatforms(platforms)
-        CliRelease
+        ExtensionRelease
           .verifyAndWriteChecksums(
             os.Path(releaseDirPath()),
             version(),
             selected,
-            includeJvm,
             requireExecutable = true
           )
           .fold(
             problems =>
               throw new Exception(
-                s"ci.cli.verify: ${problems.size} problem(s):\n${problems.map(p => s"  - $p").mkString("\n")}"
+                s"ci.extensions.verify: ${problems.size} problem(s):\n${problems.map(p => s"  - $p").mkString("\n")}"
               ),
-            assets => Task.log.info(s"ci.cli: verified ${assets.size} release assets")
+            assets => Task.log.info(s"ci.extensions: verified ${assets.size} release assets")
           )
       }
 
     /**
-     * Stage every verified CLI asset on the GitHub release for `tag`, creating the release as a **draft** when none
-     * exists yet.
+     * Stage every verified extension asset on the GitHub release for `tag`, creating the release as a **draft** when
+     * none exists yet.
      *
      * The workflow runs this from a v* tag push (or a manual dispatch on that tag). The tag push stages; a human
      * publishes the draft, and that publication is what fires the release-publish workflow that promotes the release to
@@ -293,38 +268,38 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
      * failed run is safely retriable by dispatching the workflow on the same tag.
      */
     def githubRelease(tag: String) = Task.Command(exclusive = true) {
-      require(tag.nonEmpty, "ci.cli.githubRelease: --tag is required")
+      require(tag.nonEmpty, "ci.extensions.githubRelease: --tag is required")
       val release = os.Path(releaseDirPath())
       val assets  = os.list(release).filter(os.isFile).sortBy(_.last)
-      if assets.isEmpty then throw new Exception(s"ci.cli.githubRelease: no assets in $release")
+      if assets.isEmpty then throw new Exception(s"ci.extensions.githubRelease: no assets in $release")
       if !os.isFile(release / "checksums.txt") then
-        throw new Exception(s"ci.cli.githubRelease: missing checksums.txt; run ci.cli.verify first")
+        throw new Exception(s"ci.extensions.githubRelease: missing checksums.txt; run ci.extensions.verify first")
 
-      if dryRun then Task.log.info(s"DRY_RUN: would upload ${assets.size} CLI assets to release $tag")
+      if dryRun then Task.log.info(s"DRY_RUN: would upload ${assets.size} extension assets to release $tag")
       else
         val exists = os.proc("gh", "release", "view", tag)
           .call(cwd = BuildCtx.workspaceRoot, check = false)
           .exitCode == 0
         if !exists then
-          Task.log.info(s"ci.cli: no release for $tag — creating a draft")
+          Task.log.info(s"ci.extensions: no release for $tag — creating a draft")
           os.proc("gh", "release", "create", tag, "--draft", "--verify-tag", "--title", tag, "--generate-notes")
             .call(cwd = BuildCtx.workspaceRoot)
         os.proc("gh", "release", "upload", tag, assets.map(physicalPath), "--clobber")
           .call(cwd = BuildCtx.workspaceRoot)
-        Task.log.info(s"ci.cli: uploaded ${assets.size} assets to $tag")
+        Task.log.info(s"ci.extensions: uploaded ${assets.size} assets to $tag")
     }
 
     /**
-     * Prove the staged release, not the local staging directory: download every CLI asset fresh from the GitHub release
-     * for `tag` and run the same verifier over the download, then require the release's `checksums.txt` to match the
-     * one recomputed from the downloaded bytes. A truncated, corrupted or mislabeled upload fails here instead of a
-     * user's install. Runs against drafts and published releases alike — `gh` resolves both by tag — so phase one
-     * (staging) and phase two (promotion) each get the same proof.
+     * Prove the staged release, not the local staging directory: download every extension asset fresh from the GitHub
+     * release for `tag` and run the same verifier over the download, then require the release's `checksums.txt` to
+     * match the one recomputed from the downloaded bytes. A truncated, corrupted or mislabeled upload fails here
+     * instead of a user's install. Runs against drafts and published releases alike — `gh` resolves both by tag — so
+     * phase one (staging) and phase two (promotion) each get the same proof.
      */
-    def verifyRelease(tag: String, platforms: String = CliRelease.Platform.AllTokens, includeJvm: Boolean = true) =
+    def verifyRelease(tag: String, platforms: String = ExtensionRelease.Platform.AllTokens) =
       Task.Command(exclusive = true) {
-        require(tag.nonEmpty, "ci.cli.verifyRelease: --tag is required")
-        if dryRun then Task.log.info(s"DRY_RUN: would download and verify CLI assets on release $tag")
+        require(tag.nonEmpty, "ci.extensions.verifyRelease: --tag is required")
+        if dryRun then Task.log.info(s"DRY_RUN: would download and verify extension assets on release $tag")
         else
           val downloaded = Task.dest / "assets"
           os.makeDir.all(downloaded)
@@ -334,78 +309,53 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
             "download",
             tag,
             "--dir",
-            physicalPath(downloaded),
-            "--pattern",
-            "morphir-cli-*",
-            "--pattern",
-            "morphir-scala-elm-*",
-            "--pattern",
-            "checksums.txt"
+            physicalPath(downloaded)
           ).call(cwd = BuildCtx.workspaceRoot)
           val checksums = downloaded / "checksums.txt"
           if !os.isFile(checksums) then
-            throw new Exception(s"ci.cli.verifyRelease: release $tag carries no checksums.txt")
+            throw new Exception(s"ci.extensions.verifyRelease: release $tag carries no checksums.txt")
           val published = os.read(checksums)
-          CliRelease
-            .verifyAndWriteChecksums(downloaded, version(), parsePlatforms(platforms), includeJvm)
+          ExtensionRelease
+            .verifyAndWriteChecksums(downloaded, version(), parsePlatforms(platforms))
             .fold(
               problems =>
                 throw new Exception(
-                  s"ci.cli.verifyRelease: ${problems.size} problem(s) on release $tag:\n" +
+                  s"ci.extensions.verifyRelease: ${problems.size} problem(s) on release $tag:\n" +
                     problems.map(p => s"  - $p").mkString("\n")
                 ),
-              assets => Task.log.info(s"ci.cli: verified ${assets.size} published assets on $tag")
+              assets => Task.log.info(s"ci.extensions: verified ${assets.size} published assets on $tag")
             )
           val recomputed = os.read(checksums)
           if published != recomputed then
             throw new Exception(
-              s"ci.cli.verifyRelease: checksums.txt on release $tag does not match the downloaded assets"
+              s"ci.extensions.verifyRelease: checksums.txt on release $tag does not match the downloaded assets"
             )
       }
 
-    private def parsePlatforms(platforms: String): Seq[CliRelease.Platform] =
+    private def parsePlatforms(platforms: String): Seq[ExtensionRelease.Platform] =
       val tokens = platforms.split(",", -1).toSeq.map(_.trim)
       if tokens.isEmpty || tokens.exists(_.isEmpty) then
-        throw new Exception(s"ci.cli: platform list contains an empty token: '$platforms'")
+        throw new Exception(s"ci.extensions: platform list contains an empty token: '$platforms'")
       tokens.map { token =>
-        CliRelease.Platform
+        ExtensionRelease.Platform
           .fromToken(token)
-          .fold(message => throw new Exception(s"ci.cli: $message"), identity)
+          .fold(message => throw new Exception(s"ci.extensions: $message"), identity)
       }
 
-    private def nativeHost(platform: String, operation: String): CliRelease.Platform = {
-      val selected = CliRelease.Platform
+    private def nativeHost(platform: String, operation: String): ExtensionRelease.Platform = {
+      val selected = ExtensionRelease.Platform
         .fromToken(platform)
-        .fold(message => throw new Exception(s"ci.cli.$operation: $message"), identity)
-      val host = CliRelease.Platform
+        .fold(message => throw new Exception(s"ci.extensions.$operation: $message"), identity)
+      val host = ExtensionRelease.Platform
         .fromHost(System.getProperty("os.name"), System.getProperty("os.arch"))
-        .fold(message => throw new Exception(s"ci.cli.$operation: $message"), identity)
+        .fold(message => throw new Exception(s"ci.extensions.$operation: $message"), identity)
       if selected != host then
         throw new Exception(
-          s"ci.cli.$operation: requested ${selected.token}, but GraalVM is running for ${host.token}"
+          s"ci.extensions.$operation: requested ${selected.token}, but GraalVM is running for ${host.token}"
         )
       selected
     }
 
-    private def verifyExecutable(executable: os.Path, prefix: Seq[String], expectedVersion: String)(using
-        TaskCtx
-    ): Unit = {
-      val command         = prefix :+ physicalPath(executable)
-      val versionResult   = os.proc(command, "version").call(cwd = BuildCtx.workspaceRoot)
-      val reportedVersion = CliRelease.lastNonBlankLine(versionResult.out.text())
-      if (!reportedVersion.contains(expectedVersion))
-        throw new Exception(
-          s"ci.cli: packaged executable reports '${reportedVersion.getOrElse("<no output>")}', expected '$expectedVersion'"
-        )
-      val topLevelHelp = os.proc(command, "--help").call(cwd = BuildCtx.workspaceRoot).out.text()
-      if (!topLevelHelp.linesIterator.map(stripAnsi).exists(_.trim == "server"))
-        throw new Exception("ci.cli: packaged executable omits the server command")
-      os.proc(command, "server", "--help").call(cwd = BuildCtx.workspaceRoot)
-      Task.log.info(s"ci.cli: smoke-tested ${executable.last}")
-    }
-
-    private def stripAnsi(value: String): String =
-      value.replaceAll("\\u001b\\[[;\\d]*m", "")
   }
 
   /**
