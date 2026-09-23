@@ -114,7 +114,7 @@ depends on had not been released. It is now on `1.0.0-RC6`, which carries them, 
 and the `MorphirSnapshotRepos` trait that added it are both gone.
 
 At the same time, eight modules that hardcoded a kyo version literal in their `package.mill.yaml` - `langkit/core`,
-`langkit/trees`, `langkit/elm/core`, `langkit/elm/compiler/api`, `kit/kyo`, `contrib/knowledge`, `intelligence` and
+`langkit/trees`, `langkit/elm/core`, `langkit/elm/compiler/api`, `kit/kyo`, `knowledge/logic`, `intelligence` and
 `intelligence/sdk` - moved onto the `Morphir*MvnDeps` traits in `build.mill`, which source their version from
 `Versions.kyo` alone. That is what keeps the guarantee: Coursier resolves a single version per artifact coordinate
 across the whole build, so a second literal anywhere is a silent version unification waiting for the first module

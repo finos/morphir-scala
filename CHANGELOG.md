@@ -8,6 +8,10 @@ a release.
 
 ## [0.5.0-M09]
 
+### Changed
+- The MicroKanren library moved from `morphir-contrib-knowledge` to `morphir-knowledge-logic` on JVM and Scala.js.
+  Its public Scala package remains `morphir.knowledge.logic`; consumers need to update the dependency coordinate.
+
 ### Removed
 - The Scala Morphir CLI, including `server`, the version-only `morphir-intelligence` executable,
   legacy launchers, installers, and native/JVM CLI release packages. Use the Rust CLI from
