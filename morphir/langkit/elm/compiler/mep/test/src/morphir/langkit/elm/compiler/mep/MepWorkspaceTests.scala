@@ -221,6 +221,22 @@ class MepWorkspaceTests extends Test[Any]:
         ),
         "U+FEFF is not Unicode White_Space"
       )
+      assert(
+        at(discover(adHoc(cliOverlay = withName("acme/\ufeff/widgets"))), "error", "message").contains(
+          str("project name `acme/\ufeff/widgets` is invalid: segment `\ufeff` has no letters or digits")
+        ),
+        "a U+FEFF segment between segments"
+      )
+      assert(
+        at(discover(adHoc(cliOverlay = withName("\ufeff"))), "error").contains(
+          obj(
+            "code"    -> str("workspace.project-name.invalid"),
+            "message" -> str("project name `\ufeff` is invalid: segment `\ufeff` has no letters or digits"),
+            "path"    -> str("src")
+          )
+        ),
+        "an all-U+FEFF name is not blank"
+      )
       succeed
     }
 
