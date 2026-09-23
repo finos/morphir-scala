@@ -126,14 +126,14 @@ object SquireCiPolicy:
    */
   val JvmCompileSelectors = List(
     "morphir.jvm.__.compile",
-    "morphir.{appkit,benchmarks,buildkit.core,connector.github,contrib.knowledge,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.compiler.ir,langkit.elm.compiler.mep,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,lib.interop,model,model.compat.v3,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools,ui,web.server}.jvm.__.compile"
+    "morphir.{appkit,benchmarks,buildkit.core,connector.github,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.logic,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.compiler.ir,langkit.elm.compiler.mep,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,lib.interop,model,model.compat.v3,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools,ui,web.server}.jvm.__.compile"
   )
   val JvmPublishSelectors = List(
     "morphir.jvm.publishArtifacts",
-    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,extensibility,interop.borer,interop.zio.json,knowledge.okf,langkit.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,lib.interop,model,model.compat.v3,model.lowering,naming,prelude,tests,tools,ui}.jvm.publishArtifacts"
+    "morphir.{appkit,buildkit.core,connector.github,extensibility,interop.borer,interop.zio.json,knowledge.logic,knowledge.okf,langkit.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,lib.interop,model,model.compat.v3,model.lowering,naming,prelude,tests,tools,ui}.jvm.publishArtifacts"
   )
   val JvmTestSelectors = List(
-    "morphir.{appkit,buildkit.core,connector.github,contrib.knowledge,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.compiler.ir,langkit.elm.compiler.mep,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,model,model.compat.v3,model.lowering,prelude,tests,ui,web.server}.jvm.test"
+    "morphir.{appkit,buildkit.core,connector.github,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.logic,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.compiler.ir,langkit.elm.compiler.mep,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,model,model.compat.v3,model.lowering,prelude,tests,ui,web.server}.jvm.test"
   )
 
   /** The Cucumber-style integration suite, which is not a `.jvm` module and so is not in the census. */
@@ -466,6 +466,18 @@ object SquireCiPolicy:
       targets.contains("morphir.jvm.publishSonatypeCentral") &&
         targets.contains("morphir.naming.jvm.publishSonatypeCentral"),
       "publish inventory must still cover morphir.jvm and morphir.naming.jvm"
+    )
+    val logicPublishTargets = Set(
+      "morphir.knowledge.logic.jvm.publishSonatypeCentral",
+      "morphir.knowledge.logic.js.publishSonatypeCentral"
+    )
+    expect(
+      logicPublishTargets.subsetOf(targets),
+      "publish inventory must include both morphir.knowledge.logic artifacts"
+    )
+    expect(
+      !targets.exists(_.startsWith("morphir.contrib.knowledge.")),
+      "publish inventory must not include the retired contrib.knowledge artifacts"
     )
     expect(targets.nonEmpty, "publish inventory must not be empty")
     expect(
@@ -2345,6 +2357,10 @@ class SquireCiPolicySpec extends Test[Any]:
         assertPublishTargetInventory(targets)
         val withoutPlugin = targets.filterNot(_.startsWith("mill-plugins.morphir.toolchain."))
         assert(scala.util.Try(assertPublishTargetInventory(withoutPlugin)).isFailure)
+        val withoutLogic = targets.filterNot(_.startsWith("morphir.knowledge.logic."))
+        assert(scala.util.Try(assertPublishTargetInventory(withoutLogic)).isFailure)
+        val withRetiredLogic = targets + "morphir.contrib.knowledge.jvm.publishSonatypeCentral"
+        assert(scala.util.Try(assertPublishTargetInventory(withRetiredLogic)).isFailure)
     }
 
     "scopes the exact snapshot configuration to main" in {

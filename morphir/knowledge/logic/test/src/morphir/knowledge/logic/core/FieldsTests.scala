@@ -2,7 +2,7 @@ package morphir.knowledge.logic.core
 
 import kyo.test.*
 
-class FieldsSpec extends Test[Any]:
+class FieldsTests extends Test[Any]:
   "valueOf" - {
     "should return the value when the substitution directly contains the value" in {
       val nameField = Field.define[String]("name")
@@ -64,4 +64,4 @@ class FieldsSpec extends Test[Any]:
       assert(actual == Fields.init(nameField -> "John Doe"))
     }
   }
-end FieldsSpec
+end FieldsTests

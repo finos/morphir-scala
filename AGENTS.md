@@ -170,12 +170,11 @@ morphir-scala/
 │   ├── native/src/          # Scala Native-specific sources
 │   ├── buildkit/            # Frontend-neutral buildkit core: the pipeline Stage and typed task graph
 │   ├── prelude/             # Shared package-morphir types (MorphirException, Zippable) at the dependency bottom
-│   ├── contrib/             # Contributed modules
 │   ├── interop/             # Interoperability modules (borer, zio-json)
 │   ├── kit/                 # Kits: extensions and bridges per upstream library (e.g. kit/kyo)
 │   ├── connector/           # External-system clients (e.g. connector/github)
 │   ├── appkit/              # Host-application integrations (SecretStore; electron and codeium later)
-│   ├── knowledge/           # Knowledge encodings (okf); not contrib/knowledge
+│   ├── knowledge/           # Knowledge libraries: logic programming and OKF
 │   ├── langkit/             # Language toolkits: shared core, tree query DSL, Elm, markdown, itest
 │   ├── runtime/             # Morphir runtime
 │   ├── testing/             # Testing utilities
@@ -297,7 +296,7 @@ Two-platform directory names are sorted and shared by both targets. See
   - Prefer newtypes via opaque types over stringly typed or non-intention-revealing primitives
   - Use named tuples, especially where they make public signatures easier to read
 - In Kyo-based modules — those whose Mill config extends a `MorphirKyo*MvnDeps` trait (currently `langkit`, `kit`,
-  `connector`, `knowledge`, `buildkit`, `prelude`, `model`, `intelligence`, and `contrib/knowledge`):
+  `connector`, `knowledge`, `buildkit`, `prelude`, `model`, and `intelligence`):
   - Prefer `kyo.Maybe` over `Option` in public APIs. ZIO-side modules do not carry `Maybe` and are out of scope.
   - Prefer `kyo.Result` over `Either` in public APIs. `Result[E, A]` is unboxed, carries panics as a third arm
     alongside success and typed failure, and integrates with `Abort`; `Either` remains for boundaries that demand

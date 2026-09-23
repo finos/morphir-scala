@@ -32,3 +32,4 @@ intent does not perform that move.
 OKF work goes to `morphir/knowledge/okf` under [0022](/0022-okf-knowledge-library.md).
 
 The family rule is [decision 0013](../morphir/morphir-scala/decisions/0013-published-library-families.md).
+The MicroKanren migration is [intent 0040](0040-move-microkanren-library-to-knowledge-logic.md).

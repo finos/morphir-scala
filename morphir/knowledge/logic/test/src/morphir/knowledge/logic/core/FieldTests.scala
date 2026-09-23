@@ -2,7 +2,7 @@ package morphir.knowledge.logic.core
 
 import kyo.test.*
 
-class FieldSpec extends Test[Any]:
+class FieldTests extends Test[Any]:
   "define is able to get the name from the variable it is being defined on" in {
     val snoop   = Field.define[String]
     val marshal = Field.define[Int]
@@ -11,4 +11,4 @@ class FieldSpec extends Test[Any]:
     assert(marshal.name == "marshal")
     assert(dre.name == "dre")
   }
-end FieldSpec
+end FieldTests

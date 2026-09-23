@@ -5,7 +5,7 @@ import mk._
 import kyo.Chunk
 import kyo.test.*
 
-class MicrokanrenSpec extends Test[Any]:
+class MicrokanrenTests extends Test[Any]:
   "equal" - {
     "When 2 values are equal we should get back the initial state" in {
       val value1 = BigDecimal(19.99)
@@ -82,4 +82,4 @@ class MicrokanrenSpec extends Test[Any]:
       assert(results == Chunk.empty)
     }
   }
-end MicrokanrenSpec
+end MicrokanrenTests

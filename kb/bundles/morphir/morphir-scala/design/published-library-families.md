@@ -112,7 +112,9 @@ The shared sources hold the OKF model (bundle, concept, frontmatter) and depend 
 
 The library takes `DocKind`, frontmatter split, and the bundle shape from the kb skill (`KbModel` / `KbStore`). Frontmatter decoding uses Kyo `kyo-schema-yaml`, not a handwritten parser or SnakeYAML. Optional fields use `Maybe`. Snake-case OKF keys such as `okf_version` map onto camelCase fields via `@rename`. `-Yretain-trees` is off by default (opt in with `MorphirRetainTrees`) so `Tag[Maybe[A]]` works; see https://github.com/getkyo/kyo/issues/1883. The library does not take commonmark-java or the check engine. The kb skill does not move in this pass. Switching the skill onto the published library is a later intent.
 
-`morphir/contrib/knowledge` (microkanren) stays where it is.
+The MicroKanren-style library now lives at `morphir/knowledge/logic` and publishes as
+`org.finos.morphir::morphir-knowledge-logic` for JVM and Scala.js. Its Scala package remains
+`morphir.knowledge.logic`.
 
 ### `morphir/appkit`
 

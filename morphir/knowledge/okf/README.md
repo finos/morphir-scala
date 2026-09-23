@@ -12,7 +12,7 @@ commonmark-java. Frontmatter is decoded with Kyo `kyo-schema` and `kyo-schema-ya
 Snake-case OKF keys (`okf_version`, `stale_after`) map onto camelCase fields via `@rename`. `-Yretain-trees` is off by
 default (opt in with `MorphirRetainTrees`) so `Tag[Maybe[A]]` works (https://github.com/getkyo/kyo/issues/1883).
 
-`morphir/contrib/knowledge` is microkanren and is unrelated.
+The sibling `morphir/knowledge/logic` module provides MicroKanren-style logic programming and is unrelated to OKF.
 
 ## Artifact
 
