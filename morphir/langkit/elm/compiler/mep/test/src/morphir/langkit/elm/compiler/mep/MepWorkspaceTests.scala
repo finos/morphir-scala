@@ -180,7 +180,7 @@ class MepWorkspaceTests extends Test[Any]:
         "a.b/c"                                -> "a/b/c",
         "acme/ /widgets"                       -> "acme/widgets",
         "acme/\u00a0/widgets"                  -> "acme/widgets",
-        "\u3000acme\u2003/widgets\ufeff"       -> "acme/widgets",
+        "\u3000acme\u2003/widgets\u2029"       -> "acme/widgets",
         "\u00a0acme\u0085.\u202fwidgets\u205f" -> "acme/widgets"
       )
 
@@ -207,13 +207,19 @@ class MepWorkspaceTests extends Test[Any]:
         assert(at(response, "error", "path").contains(str("src")), s"for `$name`")
       }
       assert(failureOf(adHoc(cliOverlay = withName(""))) == ("workspace.project-name.empty" -> str("src")))
-      assert(failureOf(adHoc(cliOverlay = withName("\u00a0\u2009\ufeff"))) ==
+      assert(failureOf(adHoc(cliOverlay = withName("\u00a0\u2009\u3000\u0085"))) ==
         ("workspace.project-name.empty" -> str("src")))
       assert(
         at(discover(adHoc(cliOverlay = withName("acme/\u001c"))), "error", "message").contains(
           str("project name `acme/\u001c` is invalid: segment `\u001c` has no letters or digits")
         ),
         "U+001C is not Unicode White_Space"
+      )
+      assert(
+        at(discover(adHoc(cliOverlay = withName("acme/\ufeff"))), "error", "message").contains(
+          str("project name `acme/\ufeff` is invalid: segment `\ufeff` has no letters or digits")
+        ),
+        "U+FEFF is not Unicode White_Space"
       )
       succeed
     }

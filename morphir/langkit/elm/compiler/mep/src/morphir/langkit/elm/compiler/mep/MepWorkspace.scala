@@ -364,14 +364,13 @@ private[mep] object MepWorkspace:
     yield words.map(_._2.mkString("-")).mkString("/")
 
   /**
-   * The text without leading and trailing whitespace, as Rust `str::trim` and JavaScript `String.prototype.trim` read
-   * it: the Unicode `White_Space` characters, and U+FEFF. `String.trim` would also strip the other control characters
-   * below U+0020, and `String.strip` would keep U+00A0.
+   * The text without leading and trailing whitespace, as Rust `str::trim` reads it: exactly the Unicode `White_Space`
+   * characters, which `Character.isSpaceChar` covers apart from U+0009..U+000D and U+0085. `String.trim` would also
+   * strip the other control characters below U+0020, and `String.strip` would keep U+00A0. U+FEFF is not whitespace.
    */
   private def trimSpace(text: String): String =
-    def isSpace(character: Char): Boolean = (character >= '\t' && character <= '\r') || character == '\u0085' ||
-      character == '\uFEFF' ||
-      Character.isSpaceChar(character)
+    def isSpace(character: Char): Boolean =
+      (character >= '\t' && character <= '\r') || character == '\u0085' || Character.isSpaceChar(character)
     text.dropWhile(isSpace).reverse.dropWhile(isSpace).reverse
 
   private def validateSelection(tree: FileTree, sources: SourceSelection): Either[Refusal, Unit] =
