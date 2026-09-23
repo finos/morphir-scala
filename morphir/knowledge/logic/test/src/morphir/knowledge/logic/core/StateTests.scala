@@ -2,7 +2,7 @@ package morphir.knowledge.logic.core
 
 import kyo.test.*
 
-class StateSpec extends Test[Any]:
+class StateTests extends Test[Any]:
   "addConstraint adds a constraint to an empty state" in {
     val field      = Field.define[String]
     val constraint = FieldConstraint.unconstrained
@@ -81,4 +81,4 @@ class StateSpec extends Test[Any]:
 
     assert(actual == expected)
   }
-end StateSpec
+end StateTests
