@@ -10,7 +10,7 @@ import scala.annotation.tailrec
  * finos/morphir-elm (`cli2/mep/elm-names.ts`). A real parser would reject sources those scanners name, so it is not
  * used here.
  */
-object ElmSourceNames:
+private[mep] object ElmSourceNames:
   /** The module a source declares in a `module`, `port module` or `effect module` header, if it has one. */
   def declaredModuleName(source: String): Option[String] =
     for

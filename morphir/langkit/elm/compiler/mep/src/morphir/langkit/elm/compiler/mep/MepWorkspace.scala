@@ -13,7 +13,7 @@ import kyo.*
  * so a host gets the same answer from every Elm provider. Only the ad-hoc-sources purpose is served; the host discovers
  * manifest projects itself.
  */
-object MepWorkspace:
+private[mep] object MepWorkspace:
   private type Value = Structure.Value
 
   /**
