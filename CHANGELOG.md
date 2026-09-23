@@ -9,6 +9,8 @@ a release.
 ## [0.5.0-M09]
 
 ### Changed
+- `morphir-scala-elm` accepts the `sources` compile envelope as well as legacy `documents`. Requests carrying both
+  envelopes are refused as invalid parameters.
 - The MicroKanren library moved from `morphir-contrib-knowledge` to `morphir-knowledge-logic` on JVM and Scala.js.
   Its public Scala package remains `morphir.knowledge.logic`; consumers need to update the dependency coordinate.
 

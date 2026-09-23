@@ -77,6 +77,36 @@ final case class CompileRequest(
     options: CompileOptions
 ) derives CanEqual, Schema
 
+object CompileRequest:
+  /** Decode either compile envelope into the document-based request used by the compiler. */
+  def decode(value: Structure.Value): Result[String, CompileRequest] =
+    normalize(value).flatMap { normalized =>
+      Structure.decode[CompileRequest](normalized) match
+        case Result.Success(request) => Result.succeed(request)
+        case Result.Failure(error)   => Result.fail(s"Invalid compile parameters: ${error.getMessage}")
+        case Result.Panic(error)     => Result.fail(s"Invalid compile parameters: ${error.getMessage}")
+    }
+
+  private def normalize(value: Structure.Value): Result[String, Structure.Value] = value match
+    case Structure.Value.Record(fields) =>
+      val members = fields.iterator.toMap
+      (members.contains("sources"), members.contains("documents")) match
+        case (true, true) =>
+          Result.fail("Ambiguous morphir.frontend.compile parameters: provide either sources or documents, not both")
+        case (false, false) =>
+          Result.fail("Invalid morphir.frontend.compile parameters: missing sources or documents")
+        case (false, true) => Result.succeed(value)
+        case (true, false) => members("sources") match
+            case Structure.Value.Record(sources) =>
+              if sources.exists { case (name, root) => name == "root" && !root.isInstanceOf[Structure.Value.Str] } then
+                Result.fail("Invalid morphir.frontend.compile parameters: sources.root must be a string")
+              else
+                Result.succeed(Structure.Value.Record(
+                  fields.filter(_._1 != "sources") ++ sources.filter(_._1 == "documents")
+                ))
+            case _ => Result.fail("Invalid morphir.frontend.compile parameters: sources must be an object")
+    case _ => Result.succeed(value)
+
 final case class JsonDependency(packageName: String, irVersion: String, distribution: Structure.Value)
     derives CanEqual, Schema
 

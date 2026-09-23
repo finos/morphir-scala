@@ -197,9 +197,9 @@ object MepElmFrontend:
     }
 
   private def parseRequest(value: Value): Either[String, CompileRequest] =
-    Structure.decode[CompileRequest](value) match
+    CompileRequest.decode(value) match
       case Result.Success(request) => validateRequest(request)
-      case Result.Failure(error)   => Left(s"Invalid compile parameters: ${error.getMessage}")
+      case Result.Failure(error)   => Left(error)
       case Result.Panic(error)     => Left(s"Invalid compile parameters: ${error.getMessage}")
 
   private def validateRequest(request: CompileRequest): Either[String, CompileRequest] =
