@@ -1,6 +1,7 @@
 package morphir.langkit.elm.compiler.mep
 
 import java.nio.charset.StandardCharsets.UTF_8
+import java.util.Locale
 
 import kyo.*
 
@@ -344,7 +345,7 @@ private[mep] object MepWorkspace:
    */
   private def normalProjectName(name: String, root: String): Either[Refusal, String] =
     val pieces = name.split("[/.]").iterator.map(trimSpace).filter(_.nonEmpty).toSeq
-    val words  = pieces.map(piece => piece -> NameWord.findAllIn(piece).map(_.toLowerCase).toSeq)
+    val words  = pieces.map(piece => piece -> NameWord.findAllIn(piece).map(_.toLowerCase(Locale.ROOT)).toSeq)
     for
       _ <- check(pieces.nonEmpty)(
         refuse(
