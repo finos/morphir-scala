@@ -1,6 +1,7 @@
 package morphir.langkit.elm.compiler.mep
 
 import java.nio.charset.StandardCharsets.UTF_8
+import java.util.Locale
 
 import kyo.*
 
@@ -56,6 +57,9 @@ private[mep] object MepWorkspace:
 
   private val SemVer =
     raw"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?".r
+
+  /** A word of an Elm name, as morphir-elm `Name.fromString` reads it. */
+  private val NameWord = raw"[a-zA-Z][a-z]*|[0-9]+".r
 
   private val DriveLetter = raw"[A-Za-z]:.*".r
 
@@ -267,17 +271,10 @@ private[mep] object MepWorkspace:
             )
           yield ()
         case ProjectSource.Synthesized => Right(())
-      _ <- validateSelection(request.developmentRoot, sources)
-      _ <- explicitName match
-        case Some(name) =>
-          check(MepElmFrontend.PackageIdentity.matches(name))(
-            refuse(
-              "workspace.project-name.invalid",
-              s"project name `$name` is invalid: it is not a canonical Morphir package name",
-              Some(root)
-            )
-          )
-        case None =>
+      _          <- validateSelection(request.developmentRoot, sources)
+      normalName <- explicitName match
+        case Some(name) => normalProjectName(name, root).map(Some(_))
+        case None       =>
           check(sources.paths.size == 1)(
             refuse(
               "workspace.selection.name-required",
@@ -285,7 +282,7 @@ private[mep] object MepWorkspace:
                 "an unnamed synthesized selection must select exactly one source",
               Some(root)
             )
-          )
+          ).map(_ => None)
       modules <- selectedModules(request.developmentRoot, sources.paths)
     yield record(
       "protocolVersion" -> str(ProtocolVersion),
@@ -294,7 +291,7 @@ private[mep] object MepWorkspace:
       "state"           -> str("open"),
       "projects"        -> sequence(
         record(
-          "name"         -> str(explicitName.getOrElse(synthesizedPackageName(modules.head))),
+          "name"         -> str(normalName.getOrElse(synthesizedPackageName(modules.head))),
           "version"      -> Structure.Value.Null,
           "relativePath" -> str(root),
           "configAnchor" -> optional(project match
@@ -316,7 +313,7 @@ private[mep] object MepWorkspace:
 
   /**
    * An explicit name comes only from the overlay's `project.name`. It must be a string that is not blank, and it is
-   * kept trimmed.
+   * kept trimmed of Unicode whitespace.
    */
   private def explicitProjectName(cliOverlay: Value, root: String): Either[Refusal, Option[String]] =
     val project = cliOverlay match
@@ -324,9 +321,9 @@ private[mep] object MepWorkspace:
       case _                              => None
     project match
       case Some(Structure.Value.Record(fields)) => fields.iterator.toMap.get("name") match
-          case None                                                  => Right(None)
-          case Some(Structure.Value.Str(name)) if name.trim.nonEmpty => Right(Some(name.trim))
-          case Some(Structure.Value.Str(_))                          =>
+          case None                                                        => Right(None)
+          case Some(Structure.Value.Str(name)) if trimSpace(name).nonEmpty => Right(Some(trimSpace(name)))
+          case Some(Structure.Value.Str(_))                                =>
             refuse(
               "workspace.project-name.empty",
               "CLI overlay `project.name` must not be empty or whitespace-only",
@@ -339,6 +336,43 @@ private[mep] object MepWorkspace:
               Some(root)
             )
       case _ => Right(None)
+
+  /**
+   * The normal form of an explicit name. The name splits into package path segments on both `/` and `.`, each segment
+   * splits into words as morphir-elm `Name.fromString` does, and the normal form joins the words with `-` and the
+   * segments with `/`. `My.Package`, `My/Package` and `my/package` thus name the same package, and the normal form
+   * always satisfies the compile request's package identity.
+   */
+  private def normalProjectName(name: String, root: String): Either[Refusal, String] =
+    val pieces = name.split("[/.]").iterator.map(trimSpace).filter(_.nonEmpty).toSeq
+    val words  = pieces.map(piece => piece -> NameWord.findAllIn(piece).map(_.toLowerCase(Locale.ROOT)).toSeq)
+    for
+      _ <- check(pieces.nonEmpty)(
+        refuse(
+          "workspace.project-name.invalid",
+          s"project name `$name` is invalid: it names no package path segments",
+          Some(root)
+        )
+      )
+      _ <- words.collectFirst { case (piece, Seq()) => piece } match
+        case Some(piece) =>
+          refuse(
+            "workspace.project-name.invalid",
+            s"project name `$name` is invalid: segment `$piece` has no letters or digits",
+            Some(root)
+          )
+        case None => Right(())
+    yield words.map(_._2.mkString("-")).mkString("/")
+
+  /**
+   * The text without leading and trailing whitespace, as Rust `str::trim` reads it: exactly the Unicode `White_Space`
+   * characters, which `Character.isSpaceChar` covers apart from U+0009..U+000D and U+0085. `String.trim` would also
+   * strip the other control characters below U+0020, and `String.strip` would keep U+00A0. U+FEFF is not whitespace.
+   */
+  private def trimSpace(text: String): String =
+    def isSpace(character: Char): Boolean =
+      (character >= '\t' && character <= '\r') || character == '\u0085' || Character.isSpaceChar(character)
+    text.dropWhile(isSpace).reverse.dropWhile(isSpace).reverse
 
   private def validateSelection(tree: FileTree, sources: SourceSelection): Either[Refusal, Unit] =
     val repeated    = sources.paths.diff(sources.paths.distinct).headOption

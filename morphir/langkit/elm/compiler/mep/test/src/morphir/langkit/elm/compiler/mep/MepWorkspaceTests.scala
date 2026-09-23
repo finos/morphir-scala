@@ -160,6 +160,109 @@ class MepWorkspaceTests extends Test[Any]:
       assert(at(named, "exposedModules").contains(strs("Acme.Widget")))
     }
 
+    "reports the normal form of an explicit name as the project name" in {
+      val cases = Seq(
+        "acme/widgets"                         -> "acme/widgets",
+        "finos/morphir-sdk"                    -> "finos/morphir-sdk",
+        "My.Package"                           -> "my/package",
+        "My/Package"                           -> "my/package",
+        "Documentation.Decoration"             -> "documentation/decoration",
+        "Morphir.Reference.Model"              -> "morphir/reference/model",
+        "morphir/sdk.core"                     -> "morphir/sdk/core",
+        "Acme/Widgets"                         -> "acme/widgets",
+        "acme/my_widgets"                      -> "acme/my-widgets",
+        "MyPackage"                            -> "my-package",
+        "my-package"                           -> "my-package",
+        "local/mywidget"                       -> "local/mywidget",
+        "SDK/v2"                               -> "s-d-k/v-2",
+        "acme//widgets"                        -> "acme/widgets",
+        " acme / widgets "                     -> "acme/widgets",
+        "a.b/c"                                -> "a/b/c",
+        "éa/pkg"                               -> "a/pkg",
+        "acme/ /widgets"                       -> "acme/widgets",
+        "acme/\u00a0/widgets"                  -> "acme/widgets",
+        "\u3000acme\u2003/widgets\u2029"       -> "acme/widgets",
+        "\u00a0acme\u0085.\u202fwidgets\u205f" -> "acme/widgets"
+      )
+
+      cases.foreach { (name, normal) =>
+        assert(at(project(adHoc(cliOverlay = withName(name))), "name").contains(str(normal)), s"for `$name`")
+        assert(at(project(adHoc(cliOverlay = withName(normal))), "name").contains(str(normal)), s"again for `$normal`")
+        assert(MepElmFrontend.PackageIdentity.matches(normal), s"compile identity of `$normal`")
+      }
+      succeed
+    }
+
+    "refuses an explicit name that names no package path, or a segment without words" in {
+      val cases = Seq(
+        "/./"      -> "project name `/./` is invalid: it names no package path segments",
+        "acme/_"   -> "project name `acme/_` is invalid: segment `_` has no letters or digits",
+        "acme/-/x" -> "project name `acme/-/x` is invalid: segment `-` has no letters or digits",
+        "_/-"      -> "project name `_/-` is invalid: segment `_` has no letters or digits"
+      )
+
+      cases.foreach { (name, message) =>
+        val response = discover(adHoc(cliOverlay = withName(name)))
+        assert(at(response, "error", "code").contains(str("workspace.project-name.invalid")), s"for `$name`")
+        assert(at(response, "error", "message").contains(str(message)), s"for `$name`")
+        assert(at(response, "error", "path").contains(str("src")), s"for `$name`")
+      }
+      assert(failureOf(adHoc(cliOverlay = withName(""))) == ("workspace.project-name.empty" -> str("src")))
+      assert(failureOf(adHoc(cliOverlay = withName("\u00a0\u2009\u3000\u0085"))) ==
+        ("workspace.project-name.empty" -> str("src")))
+      assert(
+        at(discover(adHoc(cliOverlay = withName("acme/\u001c"))), "error", "message").contains(
+          str("project name `acme/\u001c` is invalid: segment `\u001c` has no letters or digits")
+        ),
+        "U+001C is not Unicode White_Space"
+      )
+      assert(
+        at(discover(adHoc(cliOverlay = withName("acme/\ufeff"))), "error", "message").contains(
+          str("project name `acme/\ufeff` is invalid: segment `\ufeff` has no letters or digits")
+        ),
+        "U+FEFF is not Unicode White_Space"
+      )
+      assert(
+        at(discover(adHoc(cliOverlay = withName("acme/\ufeff/widgets"))), "error", "message").contains(
+          str("project name `acme/\ufeff/widgets` is invalid: segment `\ufeff` has no letters or digits")
+        ),
+        "a U+FEFF segment between segments"
+      )
+      assert(
+        at(discover(adHoc(cliOverlay = withName("\ufeff"))), "error").contains(
+          obj(
+            "code"    -> str("workspace.project-name.invalid"),
+            "message" -> str("project name `\ufeff` is invalid: segment `\ufeff` has no letters or digits"),
+            "path"    -> str("src")
+          )
+        ),
+        "an all-U+FEFF name is not blank"
+      )
+      succeed
+    }
+
+    "normalizes the explicit name of a two-source selection and keeps its modules" in {
+      val named = project(
+        adHoc(
+          entries = files("src/Widget.elm" -> widget, "src/Gadget.elm" -> gadget),
+          paths = Seq("src/Widget.elm", "src/Gadget.elm"),
+          cliOverlay = withName("My.Package")
+        )
+      )
+
+      assert(at(named, "name").contains(str("my/package")))
+      assert(at(named, "exposedModules").contains(strs("Acme.Widget", "Acme.Gadget")))
+      assert(
+        failureOf(
+          adHoc(
+            entries = files("src/Widget.elm" -> widget, "src/Copy.elm" -> widget),
+            paths = Seq("src/Widget.elm", "src/Copy.elm"),
+            cliOverlay = withName("My.Package")
+          )
+        ) == ("workspace.selection.module-collision" -> str("src/Copy.elm"))
+      )
+    }
+
     "exposes every module of a named selection in selection order" in {
       val named = project(
         adHoc(
@@ -307,8 +410,8 @@ class MepWorkspaceTests extends Test[Any]:
         ),
         ("a missing path", adHoc(entries = files()), "workspace.selection.invalid", str("src/Widget.elm")),
         (
-          "an explicit name outside the Elm package contract",
-          adHoc(cliOverlay = withName("Acme/Widgets")),
+          "an explicit name with a segment that has no words",
+          adHoc(cliOverlay = withName("acme/_")),
           "workspace.project-name.invalid",
           str("src")
         ),
@@ -390,7 +493,7 @@ class MepWorkspaceTests extends Test[Any]:
         ),
         (
           "not a file before the package contract",
-          adHoc(paths = Seq("src/Missing.elm"), cliOverlay = withName("Not Canonical")),
+          adHoc(paths = Seq("src/Missing.elm"), cliOverlay = withName("acme/_")),
           "workspace.selection.invalid"
         ),
         (
@@ -398,7 +501,7 @@ class MepWorkspaceTests extends Test[Any]:
           adHoc(
             entries = twoCopies,
             paths = Seq("src/Widget.elm", "src/Copy.elm"),
-            cliOverlay = withName("Not Canonical")
+            cliOverlay = withName("acme/_")
           ),
           "workspace.project-name.invalid"
         ),
@@ -435,8 +538,8 @@ class MepWorkspaceTests extends Test[Any]:
       val messages = Seq(
         adHoc(protocolVersion = str("0.1.0")) ->
           "unsupported workspace discovery protocol 0.1.0; supported version is 0.1.0-draft.1",
-        adHoc(cliOverlay = withName("Acme/Widgets")) ->
-          "project name `Acme/Widgets` is invalid: it is not a canonical Morphir package name",
+        adHoc(cliOverlay = withName("acme/_")) ->
+          "project name `acme/_` is invalid: segment `_` has no letters or digits",
         adHoc(
           entries = files("src/Widget.elm" -> widget, "src/Gadget.elm" -> gadget),
           paths = Seq("src/Widget.elm", "src/Gadget.elm")
