@@ -28,12 +28,26 @@ object MepNativeImageSmoke {
     }
 
     val responses = decodeFrames(output).map(bytes => ujson.read(bytes))
-    require(responses.size == 6, s"expected 6 framed MEP responses, received ${responses.size}")
+    require(responses.size == 7, s"expected 7 framed MEP responses, received ${responses.size}")
     val byId = responses.map(response => response("id").str -> response).toMap
 
     verifyMetadata(byId("init")("result")("extension"), expectedVersion, runtimeVersion)
     verifyMetadata(byId("info")("result"), expectedVersion, runtimeVersion)
     require(byId("caps")("result")("frontend")("compile").bool, "frontend compile capability is false")
+    require(
+      byId("caps")("result")("workspace") ==
+        ujson.Obj("protocolVersions" -> ujson.Arr("0.1.0-draft.1"), "discover" -> true),
+      s"unexpected workspace capability: ${byId("caps")("result")}"
+    )
+
+    val discovered = byId("discover")("result")
+    require(discovered("status").str == "success", s"ad-hoc discovery failed: $discovered")
+    val project = discovered("snapshot")("projects")(0)
+    require(project("name").str == "local/example", s"unexpected synthesized project name: ${project("name")}")
+    require(
+      project("exposedModules").arr.map(_.str) == Seq("Example"),
+      s"unexpected synthesized exposed modules: ${project("exposedModules")}"
+    )
 
     val valid = byId("valid")("result")
     require(valid("success").bool, "valid Elm source did not compile")
@@ -102,6 +116,24 @@ object MepNativeImageSmoke {
     ),
     request("info", "morphir.extension.info", ujson.Obj()),
     request("caps", "morphir.extension.capabilities", ujson.Obj()),
+    request(
+      "discover",
+      "morphir.workspace.discover",
+      ujson.Obj(
+        "protocolVersion" -> "0.1.0-draft.1",
+        "developmentRoot" -> ujson.Obj("entries" -> ujson.Obj(
+          "."           -> ujson.Obj("kind" -> "directory"),
+          "Example.elm" -> ujson.Obj("kind" -> "file", "text" -> "module Example exposing (add)\n")
+        )),
+        "cliOverlay" -> ujson.Obj(),
+        "purpose"    -> ujson.Obj(
+          "kind"       -> "ad-hoc-sources",
+          "project"    -> ujson.Obj("kind" -> "synthesized"),
+          "sources"    -> ujson.Obj("root" -> ".", "paths" -> ujson.Arr("Example.elm")),
+          "languageId" -> "elm"
+        )
+      )
+    ),
     request(
       "valid",
       "morphir.frontend.compile",

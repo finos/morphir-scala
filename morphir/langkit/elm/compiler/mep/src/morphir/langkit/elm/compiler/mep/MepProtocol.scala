@@ -22,7 +22,7 @@ object ProviderMetadata:
     name = "Morphir Scala Elm frontend",
     version = "0.1.0",
     protocolVersion = "0.1",
-    types = Chunk("frontend"),
+    types = Chunk("frontend", "workspace"),
     languages = Chunk(LanguageMetadata("elm", Chunk(".elm"))),
     irVersions = Chunk("3"),
     compile = true
@@ -91,11 +91,15 @@ final case class FrontendCapabilities(
     irVersions: Chunk[String],
     compile: Boolean,
     incremental: Boolean,
-    fragments: Boolean
+    fragments: Boolean,
+    multiDocument: Boolean
 ) derives CanEqual, Schema
+
+final case class WorkspaceCapabilities(protocolVersions: Chunk[String], discover: Boolean) derives CanEqual, Schema
 
 final case class ExtensionCapabilities(
     frontend: FrontendCapabilities,
+    workspace: WorkspaceCapabilities,
     streaming: Boolean,
     incremental: Boolean,
     cancellation: Boolean,

@@ -112,6 +112,7 @@ final case class MepSession private (
         respondSuccess(call.id, Structure.Value.Record(Chunk.empty), copy(state = SessionState.AwaitExit))
       else respond(call.id)(errorFor(_, -32602, "morphir.shutdown parameters must be an object"))
     case "morphir.frontend.compile"          => compile(call)
+    case "morphir.workspace.discover"        => discover(call)
     case "morphir.exit" if call.id.isRequest =>
       respond(call.id)(errorFor(_, -32600, "morphir.exit is a notification"))
     case _ if call.id.isMissing => SessionTransition(this, Absent)
@@ -128,6 +129,11 @@ final case class MepSession private (
         case Result.Failure(failure) => respond(call.id)(id => compileErrorResponse(id, failure))
         case Result.Panic(_)         =>
           respond(call.id)(id => compileErrorResponse(id, MepCompileError.InvalidCompilerOutput("compiler panic")))
+
+  private def discover(call: IncomingCall): SessionTransition =
+    MepWorkspace.parseRequest(call.params) match
+      case Right(request) => respondSuccess(call.id, MepWorkspace.discover(request))
+      case Left(message)  => respond(call.id)(errorFor(_, -32602, message))
 
   private def initialize(call: IncomingCall): SessionTransition =
     if call.method != "morphir.initialize" then
@@ -170,8 +176,10 @@ final case class MepSession private (
         provider.irVersions,
         provider.compile,
         incremental = false,
-        fragments = false
+        fragments = false,
+        multiDocument = false
       ),
+      WorkspaceCapabilities(Chunk(MepWorkspace.ProtocolVersion), discover = true),
       streaming = false,
       incremental = false,
       cancellation = false,

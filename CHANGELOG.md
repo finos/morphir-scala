@@ -8,6 +8,14 @@ a release.
 
 ## [0.5.0-M07]
 
+### Added
+- `morphir-scala-elm` serves workspace discovery, so `morphir compile --input Example.elm --extension
+  morphir-scala-elm` works with the one compile route of the `morphir` CLI. It declares the `workspace` capability with
+  protocol `0.1.0-draft.1` and answers `morphir.workspace.discover` for a selection of Elm files with the same project
+  name, exposed modules and failure codes as the other Elm providers. An extension index record for this release must
+  list the `workspace` capability, because the host refuses a session whose capabilities differ from the record
+  (#1070).
+
 ## [0.5.0-M06] - 2026-09-19
 
 ### Added

@@ -123,6 +123,50 @@ class MepSessionTests extends Test[Any]:
       assert(at(capabilities, "result", "streaming").contains(Structure.Value.Bool(false)))
     }
 
+    "declares workspace discovery and a single-document frontend" in {
+      val initialized = initializedSession()
+      val initialize  = value(MepSession.loaded(ProviderMetadata.default).handle(
+        request(JsonRpcId("init"), "morphir.initialize", initializeParams)
+      ))
+      val info         = value(initialized.handle(request(JsonRpcId("info"), "morphir.extension.info")))
+      val capabilities = value(initialized.handle(request(JsonRpcId("caps"), "morphir.extension.capabilities")))
+      val workspace    = record(
+        "protocolVersions" -> Structure.Value.Sequence(Chunk(Structure.Value.Str("0.1.0-draft.1"))),
+        "discover"         -> Structure.Value.Bool(true)
+      )
+      val types = Structure.Value.Sequence(Chunk(Structure.Value.Str("frontend"), Structure.Value.Str("workspace")))
+
+      assert(at(initialize, "result", "extension", "types").contains(types))
+      assert(at(info, "result", "types").contains(types))
+      assert(at(initialize, "result", "capabilities", "workspace").contains(workspace))
+      assert(at(capabilities, "result", "workspace").contains(workspace))
+      assert(at(capabilities, "result", "frontend", "multiDocument").contains(Structure.Value.Bool(false)))
+    }
+
+    "answers workspace discovery for an ad-hoc selection" in {
+      val params = Json.decode[Value](
+        """{"protocolVersion":"0.1.0-draft.1","developmentRoot":{"entries":{".":{"kind":"directory"},""" +
+          """"Example.elm":{"kind":"file","text":"module Example exposing (add)\n"}}},"cliOverlay":{},""" +
+          """"purpose":{"kind":"ad-hoc-sources","project":{"kind":"synthesized"},""" +
+          """"sources":{"root":".","paths":["Example.elm"]},"languageId":"elm"}}"""
+      ).getOrThrow
+      val ready    = initializedSession()
+      val response = value(ready.handle(request(JsonRpcId("discover"), "morphir.workspace.discover", params)))
+      val refused  = value(ready.handle(request(JsonRpcId(2), "morphir.workspace.discover", record())))
+      val early    = value(MepSession.loaded(ProviderMetadata.default).handle(
+        request(JsonRpcId(3), "morphir.workspace.discover", params)
+      ))
+      val project = at(response, "result", "snapshot", "projects").collect {
+        case Structure.Value.Sequence(Chunk(project)) => project
+      }
+
+      assert(at(response, "result", "status").contains(Structure.Value.Str("success")))
+      assert(project.flatMap(at(_, "name")).contains(Structure.Value.Str("local/example")))
+      assert(at(refused, "error", "code").contains(Structure.Value.Integer(-32602)))
+      assert(at(early, "error", "code").contains(Structure.Value.Integer(-32600)))
+      assert(ready.handle(notification("morphir.workspace.discover", params)).response.isEmpty)
+    }
+
     "responds to ping before initialization and validates object parameters" in {
       val session = MepSession.loaded(ProviderMetadata.default)
       val pong    = value(session.handle(request(JsonRpcId("ping"), "morphir.ping")))

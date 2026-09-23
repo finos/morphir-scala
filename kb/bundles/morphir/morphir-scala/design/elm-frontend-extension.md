@@ -24,6 +24,12 @@ sources:
   - id: scala-compiler-api
     title: morphir-scala Elm compiler API
     resource: https://github.com/finos/morphir-scala/tree/43439fcccec3da5f78b4a314f19f8919912fefc1/morphir/langkit/elm/compiler/api
+  - id: rust-workspace-discovery
+    title: Portable workspace discovery and its Elm policy in morphir-rust
+    resource: https://github.com/finos/morphir-rust/tree/4b74c992c6c9c1168e2a880fc25d0992a51ef984/crates/morphir-workspace/src/discovery
+  - id: elm-workspace-discovery
+    title: morphir-elm MEP ad-hoc workspace discovery
+    resource: https://github.com/finos/morphir-elm/blob/66460ace1f60f64a0d3c4806b17e5eebada562c9/cli2/mep/workspace.ts
   - id: kyo-bignum-json
     title: Kyo arbitrary-precision Structure number follow-on
     resource: https://github.com/getkyo/kyo/pull/1920
@@ -126,20 +132,38 @@ stateDiagram-v2
     AwaitInitialize --> Running: morphir.initialize / compatible 0.1
     Running --> Running: morphir.initialized
     Running --> Running: morphir.frontend.compile
+    Running --> Running: morphir.workspace.discover
     Running --> AwaitExit: morphir.shutdown
     AwaitExit --> [*]: exit
 ```
 
 **Figure 2:** The first executable implements the complete MEP lifecycle around a stateless compiler.
 
-Initialization advertises protocol `0.1`, capability `frontend`, language `elm`, extension `.elm`, IR version `3`,
-and compile support. The response identity must exactly match the acquired index record. Compilation failures are
+Initialization advertises protocol `0.1`, capabilities `frontend` and `workspace`, language `elm`, extension `.elm`,
+IR version `3`, compile support, and workspace discovery protocol `0.1.0-draft.1`. The response identity must exactly match the acquired index record. Compilation failures are
 normal MEP results. Invalid framing, invalid lifecycle transitions, unsupported protocol requests, and internal
 failures are JSON-RPC errors.
 
 Framing and decoding are bounded. The process rejects missing, duplicate, malformed, or oversized Content-Length
 headers before allocating a body. EOF during a frame is an error. Unknown JSON fields remain forward-compatible where
 MEP allows them, but required identity and compilation fields are validated before compiler invocation.
+
+### Workspace discovery for a selection of files
+
+The Morphir CLI compiles a selection of files, such as `morphir compile --input Example.elm`, as a project that the
+provider synthesizes. It asks the provider with `morphir.workspace.discover` and the `ad-hoc-sources` purpose, and it
+refuses a provider that does not declare the `workspace` capability. The provider answers with one project: its
+package name, and its exposed modules in selection order.
+
+The answer must be the same from every Elm provider, so this one ports the reference behaviour rather than designing
+its own. The checks run in the order of morphir-rust `discover_with_identity`, and the codes and messages match it and
+the morphir-elm extension. An explicit name comes only from the overlay's `project.name`, is trimmed, and must be a
+canonical Morphir package name, which is the contract `morphir.frontend.compile` enforces. An unnamed selection must
+hold exactly one source and is named `local/<module lowercased, dots as dashes>`. A module name comes from the declared
+header, read lexically, then from the file stem, then `Main`. Manifest discovery stays with the host.
+
+The frontend compiles exactly one document per request, so it declares `frontend.multiDocument` as `false`. A named
+selection of more than one file passes discovery, and the host then refuses it before compile.
 
 ### Known document-version gap
 
@@ -179,7 +203,7 @@ activate it.
 Each supported operating-system and architecture pair has an immutable index artifact with:
 
 - schema version 1, extension ID `morphir-scala-elm`, and one exact semantic version;
-- channel membership, MEP version `0.1`, and capability `frontend`;
+- channel membership, MEP version `0.1`, and capabilities `frontend` and `workspace`;
 - runtime `process`, exact operating system and architecture, portable filename, and executable flag; and
 - immutable source location plus SHA-256 digest.
 
