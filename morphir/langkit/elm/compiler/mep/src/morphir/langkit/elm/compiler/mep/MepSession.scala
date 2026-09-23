@@ -207,8 +207,8 @@ final case class MepSession private (
 
   private def compileErrorResponse(id: ResponseId, compileFailure: MepCompileError): String =
     val message = compileFailure match
-      case _: MepCompileError.InvalidParams => "Invalid morphir.frontend.compile parameters"
-      case _                                => "Internal error"
+      case MepCompileError.InvalidParams(details) => details
+      case _                                      => "Internal error"
     errorFor(id, MepCompileError.jsonRpcCode(compileFailure), message)
 
   private def errorFor(

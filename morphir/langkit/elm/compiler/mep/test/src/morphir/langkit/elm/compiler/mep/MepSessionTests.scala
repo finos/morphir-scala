@@ -228,6 +228,49 @@ class MepSessionTests extends Test[Any]:
       assert(at(response, "result", "ir", "formatVersion").contains(Structure.Value.Integer(3)))
     }
 
+    "compiles modern sources with or without a root exactly like legacy documents" in {
+      val ready  = initializedSession()
+      val legacy = value(ready.handle(request(JsonRpcId(20), "morphir.frontend.compile", compileParams)))
+      val Structure.Value.Record(fields) = compileParams: @unchecked
+      val documents                      = at(compileParams, "documents").get
+      val roots = Chunk(Chunk.empty[(String, Value)], Chunk("root" -> Structure.Value.Str("file:///another-root/")))
+
+      assert(at(legacy, "result", "success").contains(Structure.Value.Bool(true)))
+      roots.foreach { rootFields =>
+        val sources  = Structure.Value.Record(rootFields.append("documents" -> documents))
+        val modern   = Structure.Value.Record(fields.filter(_._1 != "documents").append("sources" -> sources))
+        val response = value(ready.handle(request(JsonRpcId(21), "morphir.frontend.compile", modern)))
+        assert(at(response, "result") == at(legacy, "result"))
+      }
+    }
+
+    "rejects ambiguous and missing compile envelopes with invalid params" in {
+      val Structure.Value.Record(fields) = compileParams: @unchecked
+      val both                           =
+        Structure.Value.Record(fields.append("sources" -> record("documents" -> at(compileParams, "documents").get)))
+      val neither = Structure.Value.Record(fields.filter(_._1 != "documents"))
+      val cases   = Chunk(
+        both    -> "Ambiguous morphir.frontend.compile parameters: provide either sources or documents, not both",
+        neither -> "Invalid morphir.frontend.compile parameters: missing sources or documents"
+      )
+      cases.foreach { case (params, message) =>
+        val response = value(initializedSession().handle(request(JsonRpcId(22), "morphir.frontend.compile", params)))
+        assert(at(response, "error", "code").contains(Structure.Value.Integer(-32602)))
+        assert(at(response, "error", "message").contains(Structure.Value.Str(message)))
+      }
+    }
+
+    "rejects non-string compile source roots with invalid params" in {
+      val Structure.Value.Record(fields) = compileParams: @unchecked
+      val invalidRoots = Chunk(Structure.Value.Integer(1), Structure.Value.Null, Structure.Value.Bool(false), record())
+      invalidRoots.foreach { root =>
+        val sources  = record("root" -> root, "documents" -> at(compileParams, "documents").get)
+        val params   = Structure.Value.Record(fields.filter(_._1 != "documents").append("sources" -> sources))
+        val response = value(initializedSession().handle(request(JsonRpcId(23), "morphir.frontend.compile", params)))
+        assert(at(response, "error", "code").contains(Structure.Value.Integer(-32602)))
+      }
+    }
+
     "returns compiler diagnostics as normal compile results with caller locations" in {
       val badSource = "module Example exposing (add)\n\nadd = \\value -> value\n"
       val badParams = Structure.encode(
