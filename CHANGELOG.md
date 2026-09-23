@@ -6,7 +6,9 @@ the shape of the next release, and it is what CI stamps on every build. Dated he
 `## [Unreleased]` is optional and carries no build meaning; use it for entries not yet assigned to
 a release.
 
-## [0.5.0-M07]
+## [0.5.0-M08]
+
+## [0.5.0-M07] - 2026-09-23
 
 ### Added
 - `morphir-scala-elm` serves workspace discovery, so `morphir compile --input Example.elm --extension
