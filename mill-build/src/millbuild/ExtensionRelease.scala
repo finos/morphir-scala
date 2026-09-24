@@ -6,7 +6,7 @@ import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 import org.apache.commons.compress.archivers.tar.{TarArchiveEntry, TarArchiveInputStream, TarArchiveOutputStream}
-import morphir.langkit.elm.compiler.mep.internal.ExtensionDefinition
+import morphir.langkit.elm.compiler.mep.BuildExtensionDefinition as ExtensionDefinition
 
 /** Host-native release packaging for the Scala Elm MEP extension. */
 object ExtensionRelease:

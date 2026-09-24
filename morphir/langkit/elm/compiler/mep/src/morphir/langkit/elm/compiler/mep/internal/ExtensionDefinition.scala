@@ -1,7 +1,7 @@
 package morphir.langkit.elm.compiler.mep.internal
 
 /** Compiled by both the provider and the release build; no runtime-specific JSON dependency. */
-object ExtensionDefinition:
+private[mep] object ExtensionDefinition:
   val Id                       = "morphir-scala-elm"
   val ShortId                  = "scala-elm"
   val Name                     = "Morphir Scala Elm frontend"
