@@ -438,8 +438,8 @@ trait MorphirElmMepBuildInfo extends BuildInfo with ScalaModule {
 
   def buildInfoMembers = Task {
     Seq(
-      BuildInfo.Value("providerId", "morphir-scala-elm"),
-      BuildInfo.Value("providerName", "Morphir Scala Elm frontend"),
+      BuildInfo.Value("providerId", _root_.morphir.langkit.elm.compiler.mep.BuildExtensionDefinition.Id),
+      BuildInfo.Value("providerName", _root_.morphir.langkit.elm.compiler.mep.BuildExtensionDefinition.Name),
       BuildInfo.Value("providerVersion", mepProviderVersion())
     )
   }
@@ -956,6 +956,10 @@ trait MorphirMillbuildHelpersModule extends ScalaModule with ScalafmtModule {
     helpersRoot / "MepNativeImageSmoke.scala",
     helpersRoot / "ElmExtensionArchitecture.scala",
     helpersRoot / "ExtensionRelease.scala",
+    mill.api.BuildCtx.workspaceRoot /
+      "morphir/langkit/elm/compiler/mep/src/morphir/langkit/elm/compiler/mep/internal/ExtensionDefinition.scala",
+    mill.api.BuildCtx.workspaceRoot /
+      "mill-build/src/morphir/langkit/elm/compiler/mep/BuildExtensionDefinition.scala",
     helpersRoot / "LinkerBenchmark.scala",
     helpersRoot / "LinkerBenchmarkProcess.scala"
   )

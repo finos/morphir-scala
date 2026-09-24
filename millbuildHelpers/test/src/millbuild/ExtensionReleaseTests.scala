@@ -153,9 +153,138 @@ object ExtensionReleaseTests extends TestSuite:
       assert(os.read.lines(root / "release" / "checksums.txt").toSeq ==
         assets.sortBy(_.last).map(asset => os.read(os.Path(asset.toString + ".sha256")).trim))
 
+    test("writes a version 2 bundle with claims and hashes of each raw executable"):
+      val (root, executable) = fixture()
+      val platforms          = ExtensionRelease.Platform.values.toSeq
+      val release            = root / "release"
+      platforms.zipWithIndex.foreach { (platform, index) =>
+        os.write.over(executable, Array[Byte](1, 2, index.toByte))
+        ExtensionRelease.packageMepNative(platform, version, executable, release)
+      }
+      assert(ExtensionRelease.verifyAndWriteChecksums(release, version, platforms).isRight)
+      assert(os.isFile(release / "release.json"))
+      val descriptor = ujson.read(os.read(release / "release.json"))
+      assert(descriptor.obj.keySet.toSet ==
+        Set("schemaVersion", "extensionId", "shortId", "version", "platformDifferences", "artifacts"))
+      assert(descriptor("schemaVersion").str == "2.0.0-draft.2")
+      assert(descriptor("extensionId").str == "morphir-scala-elm")
+      assert(descriptor("shortId").str == "scala-elm")
+      assert(descriptor("version").str == version)
+      assert(descriptor("platformDifferences").str == "none")
+      val triples = Seq(
+        "aarch64-apple-darwin",
+        "x86_64-apple-darwin",
+        "x86_64-unknown-linux-gnu",
+        "aarch64-unknown-linux-gnu",
+        "x86_64-pc-windows-msvc"
+      )
+      val artifacts = descriptor("artifacts").arr.toSeq
+      assert(artifacts.size == platforms.size)
+      artifacts.zip(platforms.zip(triples).sortBy(_._2)).foreach { (artifact, platformAndTriple) =>
+        val (platform, triple) = platformAndTriple
+        val filename           = ExtensionRelease.mepAssetName(platform, version)
+        assert(artifact.obj.keySet.toSet == Set("platform", "runtime", "filename", "sha256", "claims"))
+        assert(artifact("platform").str == triple)
+        assert(artifact("runtime").str == "process")
+        assert(artifact("filename").str == filename)
+        val digest = java.security.MessageDigest.getInstance("SHA-256").digest(os.read.bytes(release / filename))
+          .map(byte => f"${byte & 0xff}%02x").mkString
+        assert(artifact("sha256").str == digest)
+        assert(os.read(release / s"$filename.sha256") == s"$digest  $filename\n")
+        val claims = artifact("claims")
+        assert(claims("claimsVersion").str == "0.1.0-draft.2")
+        assert(claims("protocolVersions") == ujson.Arr("0.1"))
+        assert(claims("extension") == ujson.Obj(
+          "id"      -> "morphir-scala-elm",
+          "name"    -> "Morphir Scala Elm frontend",
+          "version" -> version,
+          "types"   -> ujson.Arr("frontend", "workspace")
+        ))
+        assert(claims == artifacts.head("claims"))
+        val expectedCapabilities = ujson.read(
+          """{"frontend":{"languages":[{"id":"elm","fileExtensions":[".elm"]}],"irVersions":["3"],"compile":true,"incremental":false,"fragments":false,"multiDocument":false},"workspace":{"protocolVersions":["0.1.0-draft.1"],"discover":true},"streaming":false,"incremental":false,"cancellation":false,"progress":false}"""
+        )
+        assert(claims("capabilities") == expectedCapabilities)
+      }
+      val original = os.read(release / "release.json")
+      assert(ExtensionRelease.verifyAndWriteChecksums(release, version, platforms).isRight)
+      assert(os.read(release / "release.json") == original)
+
+    test("platform order does not change the descriptor or downloaded bundle verification"):
+      val (root, executable) = fixture()
+      val platforms          = ExtensionRelease.Platform.values.toSeq
+      val release            = root / "release"
+      platforms.foreach(ExtensionRelease.packageMepNative(_, version, executable, release))
+      assert(ExtensionRelease.verifyAndWriteChecksums(release, version, platforms).isRight)
+      val original   = os.read(release / "release.json")
+      val uploads    = ExtensionRelease.githubReleaseAssets(release, version, root / "upload")
+      val downloaded = root / "downloaded"
+      uploads.foreach(path => os.copy(path, downloaded / path.last, createFolders = true))
+
+      Seq(platforms.reverse, platforms.tail :+ platforms.head).foreach { reordered =>
+        assert(ExtensionRelease.verifyAndWriteChecksums(release, version, reordered).isRight)
+        assert(os.read(release / "release.json") == original)
+        assert(ExtensionRelease.verifyAndWriteChecksums(downloaded, version, reordered).isRight)
+        assert(os.read(downloaded / "release.json") == original)
+      }
+
+    test("stages the descriptor under a unique release asset name and verifies the downloaded bundle"):
+      val (root, executable) = fixture()
+      val release            = root / "release"
+      val asset              = ExtensionRelease.packageMepNative(linux, version, executable, release)
+      assertThrows[IllegalArgumentException](ExtensionRelease.githubReleaseAssets(release, version, root / "upload"))
+      assert(ExtensionRelease.verifyAndWriteChecksums(release, version, Seq(linux)).isRight)
+      val uploads        = ExtensionRelease.githubReleaseAssets(release, version, root / "upload")
+      val descriptorName = "morphir-scala-elm-0.6.0-M01.bundle.release.json"
+      assert(uploads.map(_.last).toSet == Set(asset.last, s"${asset.last}.sha256", "checksums.txt", descriptorName))
+      assert(os.read(root / "upload" / descriptorName) == os.read(release / "release.json"))
+      val downloaded = root / "downloaded"
+      uploads.foreach(path => os.copy(path, downloaded / path.last, createFolders = true))
+      assert(ExtensionRelease.verifyAndWriteChecksums(downloaded, version, Seq(linux)).isRight)
+      val descriptor  = ujson.read(os.read(downloaded / descriptorName))
+      val corruptions = Seq(
+        "{",
+        ujson.write(descriptor.obj.toSeq.foldLeft(ujson.Obj()) { case (obj, (key, value)) =>
+          obj(key) = (if key == "version" then ujson.Str("other") else value)
+          obj
+        })
+      )
+      corruptions.foreach { content =>
+        os.write.over(downloaded / descriptorName, content)
+        val refused = ExtensionRelease.verifyAndWriteChecksums(downloaded, version, Seq(linux))
+        assert(refused.left.exists(_.contains(s"bundle descriptor mismatch: $descriptorName")))
+        assert(os.read(downloaded / descriptorName) == content)
+      }
+
+    test("does not write a descriptor for corrupt executable bytes"):
+      val (root, executable) = fixture()
+      val release            = root / "release"
+      val asset              = ExtensionRelease.packageMepNative(linux, version, executable, release)
+      os.write.append(asset, Array[Byte](9))
+      assert(ExtensionRelease.verifyAndWriteChecksums(release, version, Seq(linux)).isLeft)
+      assert(!os.exists(release / "release.json"))
+
+    test("regenerates the local descriptor after repackaging the same version"):
+      val (root, executable) = fixture()
+      val release            = root / "release"
+      ExtensionRelease.packageMepNative(linux, version, executable, release)
+      assert(ExtensionRelease.verifyAndWriteChecksums(release, version, Seq(linux)).isRight)
+      val original = ujson.read(os.read(release / "release.json"))
+      os.write.append(executable, Array[Byte](9))
+      val asset = ExtensionRelease.packageMepNative(linux, version, executable, release)
+      assert(ExtensionRelease.verifyAndWriteChecksums(release, version, Seq(linux)).isRight)
+      val rebuilt = ujson.read(os.read(release / "release.json"))
+      assert(rebuilt("artifacts")(0)("sha256") != original("artifacts")(0)("sha256"))
+      assert(os.read(release / s"${asset.last}.sha256").startsWith(rebuilt("artifacts")(0)("sha256").str))
+
     test("verification rejects an empty platform selection"):
       val (root, _) = fixture()
       assert(ExtensionRelease.verifyAndWriteChecksums(root / "release", version, Seq.empty).isLeft)
+
+    test("verification rejects duplicate platforms"):
+      val (root, executable) = fixture()
+      ExtensionRelease.packageMepNative(linux, version, executable, root / "release")
+      assert(ExtensionRelease.verifyAndWriteChecksums(root / "release", version, Seq(linux, linux)).isLeft)
 
     test("verification rejects an omitted or misnamed MEP executable"):
       val (root, _) = fixture()

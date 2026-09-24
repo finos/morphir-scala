@@ -13,21 +13,25 @@ object MepNativeImageSmoke {
     require(os.isFile(executable), s"MEP native executable does not exist: $executable")
     val runtimeVersion = s"$expectedVersion-runtime-must-not-win"
 
-    val process = runProcess(
-      command = Seq(commandPath(executable)),
-      input = requests.iterator.flatMap(frame).toArray,
-      environment = Map(MepProviderVersion.EnvironmentVariable -> runtimeVersion),
-      timeoutMillis = TimeoutMillis
+    val describeResponses = runRequests(
+      executable,
+      Seq(
+        request("describe", "morphir.extension.describe", ujson.Obj("protocolVersions" -> ujson.Arr("0.1"))),
+        notification("morphir.exit")
+      ),
+      runtimeVersion
     )
-    val output = process match {
-      case ProcessResult.Completed(0, stdout, _)        => stdout
-      case ProcessResult.Completed(exitCode, _, stderr) =>
-        throw new IllegalStateException(s"MEP native smoke exited $exitCode: ${String(stderr, UTF_8)}")
-      case ProcessResult.TimedOut(timeoutMillis) =>
-        throw new IllegalStateException(s"MEP native smoke timed out after $timeoutMillis ms")
-    }
+    require(describeResponses.size == 1, s"expected one describe response, received ${describeResponses.size}")
+    require(
+      describeResponses.head == ujson.Obj(
+        "jsonrpc" -> "2.0",
+        "id"      -> "describe",
+        "result"  -> ExtensionRelease.bundleClaims(expectedVersion)
+      ),
+      s"describe response does not match release bundle claims: ${describeResponses.head}"
+    )
 
-    val responses = decodeFrames(output).map(bytes => ujson.read(bytes))
+    val responses = runRequests(executable, requests, runtimeVersion)
     require(responses.size == 7, s"expected 7 framed MEP responses, received ${responses.size}")
     val byId = responses.map(response => response("id").str -> response).toMap
 
@@ -63,6 +67,27 @@ object MepNativeImageSmoke {
       s"invalid Elm compile did not return elm.parser: ${invalid("diagnostics")}"
     )
     require(byId("shutdown")("result") == ujson.Obj(), s"unexpected shutdown result: ${byId("shutdown")}")
+  }
+
+  private def runRequests(
+      executable: os.Path,
+      requests: Seq[ujson.Value],
+      runtimeVersion: String
+  ): Vector[ujson.Value] = {
+    val process = runProcess(
+      command = Seq(commandPath(executable)),
+      input = requests.iterator.flatMap(frame).toArray,
+      environment = Map(MepProviderVersion.EnvironmentVariable -> runtimeVersion),
+      timeoutMillis = TimeoutMillis
+    )
+    val output = process match {
+      case ProcessResult.Completed(0, stdout, _)        => stdout
+      case ProcessResult.Completed(exitCode, _, stderr) =>
+        throw new IllegalStateException(s"MEP native smoke exited $exitCode: ${String(stderr, UTF_8)}")
+      case ProcessResult.TimedOut(timeoutMillis) =>
+        throw new IllegalStateException(s"MEP native smoke timed out after $timeoutMillis ms")
+    }
+    decodeFrames(output).map(bytes => ujson.read(bytes))
   }
 
   private[millbuild] def commandPath(executable: os.Path): String =

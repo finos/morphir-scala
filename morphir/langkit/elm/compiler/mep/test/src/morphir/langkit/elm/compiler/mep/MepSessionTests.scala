@@ -61,6 +61,85 @@ class MepSessionTests extends Test[Any]:
     MepSession.loaded(provider).handle(request(JsonRpcId(1), "morphir.initialize", initializeParams)).session
 
   "MepSession" - {
+    "preserves the exact initialize and capabilities wire output" in {
+      val caps =
+        """{"frontend":{"languages":[{"id":"elm","fileExtensions":[".elm"]}],"irVersions":["3"],"compile":true,"incremental":false,"fragments":false,"multiDocument":false},"workspace":{"protocolVersions":["0.1.0-draft.1"],"discover":true},"streaming":false,"incremental":false,"cancellation":false,"progress":false}"""
+      val identity =
+        """{"id":"morphir-scala-elm","name":"Morphir Scala Elm frontend","version":"9.8.7","types":["frontend","workspace"]}"""
+      val initialized = MepSession.loaded(ProviderMetadata.default.copy(version = "9.8.7"))
+        .handle(request(JsonRpcId(1), "morphir.initialize", initializeParams))
+      assert(initialized.response.get ==
+        s"""{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"0.1","extension":$identity,"capabilities":$caps}}""")
+      assert(initialized.session.handle(request(JsonRpcId(2), "morphir.extension.capabilities")).response.get ==
+        s"""{"jsonrpc":"2.0","id":2,"result":$caps}""")
+    }
+
+    "describes without changing state and agrees with all four session rules" in {
+      val loaded      = MepSession.loaded(ProviderMetadata.default.copy(version = "9.8.7"))
+      val params      = record("protocolVersions" -> Structure.Value.Sequence(Chunk(Structure.Value.Str("0.1"))))
+      val described   = loaded.handle(request(JsonRpcId(1), "morphir.extension.describe", params))
+      val initialized = loaded.handle(request(JsonRpcId(2), "morphir.initialize", initializeParams))
+      val claims      = at(value(described), "result").get
+      val session     = at(value(initialized), "result").get
+      val later       = initialized.session.handle(request(JsonRpcId(3), "morphir.extension.describe", params))
+
+      def containsMembers(claimed: Value, reported: Value): Boolean = (claimed, reported) match
+        case (Structure.Value.Record(claims), Structure.Value.Record(members)) =>
+          members.forall { case (key, member) => claims.toMap.get(key).exists(containsMembers(_, member)) }
+        case _ => claimed == reported
+
+      assert(described.session eq loaded)
+      assert(later.session eq initialized.session)
+      assert(at(value(later), "result").contains(claims))
+      assert(at(claims, "claimsVersion").contains(Structure.Value.Str("0.1.0-draft.2")))
+      Chunk("id", "name", "version").foreach { field =>
+        assert(at(session, "extension", field) == at(claims, "extension", field))
+      }
+      val Structure.Value.Sequence(protocols) = at(claims, "protocolVersions").get: @unchecked
+      assert(protocols.contains(at(session, "protocolVersion").get))
+      val Structure.Value.Sequence(types)         = at(claims, "extension", "types").get: @unchecked
+      val Structure.Value.Sequence(reportedTypes) = at(session, "extension", "types").get: @unchecked
+      assert(reportedTypes.forall(types.contains))
+      assert(containsMembers(at(claims, "capabilities").get, at(session, "capabilities").get))
+      assert(loaded.handle(notification("morphir.extension.describe", params)).session eq loaded)
+      assert(loaded.handle(notification("morphir.extension.describe", params)).response.isEmpty)
+    }
+
+    "validates describe parameters and uses the initialize protocol mismatch error" in {
+      val loaded      = MepSession.loaded(ProviderMetadata.default)
+      val unsupported = record("protocolVersions" -> Structure.Value.Sequence(Chunk(Structure.Value.Str("9.0"))))
+      val refused     = loaded.handle(request(JsonRpcId(1), "morphir.extension.describe", unsupported))
+      val init        = loaded.handle(request(
+        JsonRpcId(1),
+        "morphir.initialize",
+        Structure.encode(InitializeRequest(Chunk("9.0"), HostMetadata("test", "1")))
+      ))
+      assert(at(value(refused), "error") == at(value(init), "error"))
+      assert(refused.session eq loaded)
+      val empty = loaded.handle(request(
+        JsonRpcId(1),
+        "morphir.extension.describe",
+        record("protocolVersions" -> Structure.Value.Sequence(Chunk.empty))
+      ))
+      assert(at(value(empty), "error", "code").contains(Structure.Value.Integer(-32011)))
+      Chunk(
+        record(),
+        Structure.Value.Null,
+        record("protocolVersions" -> Structure.Value.Str("0.1")),
+        record("protocolVersions" -> Structure.Value.Sequence(Chunk(Structure.Value.Integer(1))))
+      ).foreach { params =>
+        val bad = loaded.handle(request(JsonRpcId(1), "morphir.extension.describe", params))
+        assert(at(value(bad), "error", "code").contains(Structure.Value.Integer(-32602)))
+        assert(bad.session eq loaded)
+      }
+      val missing = loaded.handle("""{"jsonrpc":"2.0","id":1,"method":"morphir.extension.describe"}""")
+      assert(at(value(missing), "error", "code").contains(Structure.Value.Integer(-32602)))
+      val shutdown = initializedSession().handle(request(JsonRpcId(2), "morphir.shutdown")).session
+      val after    = shutdown.handle(request(JsonRpcId(3), "morphir.extension.describe", unsupported))
+      assert(at(value(after), "error", "code").contains(Structure.Value.Integer(-32014)))
+      assert(after.session eq shutdown)
+    }
+
     "uses Kyo JSON-RPC envelopes and rejects malformed wire shapes" in {
       val session = MepSession.loaded(ProviderMetadata.default)
       val bodies  = Vector(
@@ -163,7 +242,7 @@ class MepSessionTests extends Test[Any]:
       assert(at(response, "result", "status").contains(Structure.Value.Str("success")))
       assert(project.flatMap(at(_, "name")).contains(Structure.Value.Str("local/example")))
       assert(at(refused, "error", "code").contains(Structure.Value.Integer(-32602)))
-      assert(at(early, "error", "code").contains(Structure.Value.Integer(-32600)))
+      assert(at(early, "error", "code").contains(Structure.Value.Integer(-32014)))
       assert(ready.handle(notification("morphir.workspace.discover", params)).response.isEmpty)
     }
 
@@ -205,7 +284,7 @@ class MepSessionTests extends Test[Any]:
       val repeat  = value(ready.handle(request(JsonRpcId(2), "morphir.initialize", initializeParams)))
       val unknown = value(ready.handle(request(JsonRpcId(3), "morphir.unknown")))
 
-      assert(at(before, "error", "code").contains(Structure.Value.Integer(-32600)))
+      assert(at(before, "error", "code").contains(Structure.Value.Integer(-32014)))
       assert(at(repeat, "error", "message").contains(Structure.Value.Str("The MEP session is already initialized")))
       assert(at(unknown, "error", "code").contains(Structure.Value.Integer(-32601)))
       assert(ready.handle(notification("morphir.initialized")).response.isEmpty)
@@ -330,13 +409,13 @@ class MepSessionTests extends Test[Any]:
 
       assert(shutdown.session.state == SessionState.AwaitExit)
       assert(at(value(shutdown), "result").contains(record()))
-      assert(at(value(rejected), "error", "code").contains(Structure.Value.Integer(-32600)))
+      assert(at(value(rejected), "error", "code").contains(Structure.Value.Integer(-32014)))
       assert(terminated.session.state == SessionState.Stopped)
       assert(terminated.response.isEmpty)
     }
 
     "rejects exit before shutdown and request-shaped exit calls" in {
-      val loaded      = MepSession.loaded(ProviderMetadata.default)
+      val loaded      = initializedSession()
       val terminated  = loaded.handle(notification("morphir.exit"))
       val exitRequest = value(initializedSession().handle(request(JsonRpcId(14), "morphir.exit")))
 

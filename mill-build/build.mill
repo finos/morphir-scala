@@ -12,7 +12,12 @@ object `package` extends MillBuildRootModule {
     moduleDir / os.up / "mill-plugins" / "morphir" / "elm" / "src"
   )
 
+  def extensionDefinitionSource = Task.Sources(
+    moduleDir / os.up /
+      "morphir/langkit/elm/compiler/mep/src/morphir/langkit/elm/compiler/mep/internal/ExtensionDefinition.scala"
+  )
+
   override def sources = Task {
-    super.sources() ++ pluginSources()
+    super.sources() ++ pluginSources() ++ extensionDefinitionSource()
   }
 }

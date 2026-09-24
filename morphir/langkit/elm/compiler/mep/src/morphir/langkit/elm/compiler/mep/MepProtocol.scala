@@ -2,6 +2,7 @@ package morphir.langkit.elm.compiler.mep
 
 import kyo.*
 import kyo.schema.*
+import morphir.langkit.elm.compiler.mep.internal.ExtensionDefinition
 
 final case class LanguageMetadata(id: String, fileExtensions: Chunk[String]) derives CanEqual, Schema
 
@@ -17,15 +18,18 @@ final case class ProviderMetadata(
 ) derives CanEqual, Schema
 
 object ProviderMetadata:
+  private[mep] val defaultCapabilities: ExtensionCapabilities =
+    Json.decode[ExtensionCapabilities](ExtensionDefinition.CapabilitiesJson).getOrThrow
+
   val default: ProviderMetadata = ProviderMetadata(
-    id = "morphir-scala-elm",
-    name = "Morphir Scala Elm frontend",
-    version = "0.1.0",
-    protocolVersion = "0.1",
-    types = Chunk("frontend", "workspace"),
-    languages = Chunk(LanguageMetadata("elm", Chunk(".elm"))),
-    irVersions = Chunk("3"),
-    compile = true
+    id = ExtensionDefinition.Id,
+    name = ExtensionDefinition.Name,
+    version = ExtensionDefinition.DefaultVersion,
+    protocolVersion = ExtensionDefinition.ProtocolVersion,
+    types = Chunk.from(ExtensionDefinition.Types),
+    languages = defaultCapabilities.frontend.languages,
+    irVersions = defaultCapabilities.frontend.irVersions,
+    compile = defaultCapabilities.frontend.compile
   )
 
 opaque type DocumentVersion = BigInt
@@ -113,6 +117,15 @@ final case class JsonDependency(packageName: String, irVersion: String, distribu
 final case class HostMetadata(name: String, version: String) derives CanEqual, Schema
 
 final case class InitializeRequest(protocolVersions: Chunk[String], host: HostMetadata) derives CanEqual, Schema
+
+final case class DescribeRequest(protocolVersions: Chunk[String]) derives CanEqual, Schema
+
+final case class ExtensionClaims(
+    claimsVersion: String,
+    protocolVersions: Chunk[String],
+    extension: ExtensionInfo,
+    capabilities: ExtensionCapabilities
+) derives CanEqual, Schema
 
 final case class ExtensionInfo(id: String, name: String, version: String, types: Chunk[String]) derives CanEqual, Schema
 
