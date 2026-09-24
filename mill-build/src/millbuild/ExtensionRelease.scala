@@ -6,15 +6,16 @@ import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 import org.apache.commons.compress.archivers.tar.{TarArchiveEntry, TarArchiveInputStream, TarArchiveOutputStream}
+import morphir.langkit.elm.compiler.mep.internal.ExtensionDefinition
 
 /** Host-native release packaging for the Scala Elm MEP extension. */
 object ExtensionRelease:
-  enum Platform(val token: String):
-    case MacAarch64   extends Platform("mac-aarch64")
-    case MacAmd64     extends Platform("mac-amd64")
-    case LinuxAmd64   extends Platform("linux-amd64")
-    case LinuxAarch64 extends Platform("linux-aarch64")
-    case WinAmd64     extends Platform("win-amd64")
+  enum Platform(val token: String, val triple: String):
+    case MacAarch64   extends Platform("mac-aarch64", "aarch64-apple-darwin")
+    case MacAmd64     extends Platform("mac-amd64", "x86_64-apple-darwin")
+    case LinuxAmd64   extends Platform("linux-amd64", "x86_64-unknown-linux-gnu")
+    case LinuxAarch64 extends Platform("linux-aarch64", "aarch64-unknown-linux-gnu")
+    case WinAmd64     extends Platform("win-amd64", "x86_64-pc-windows-msvc")
 
   object Platform:
     val AllTokens: String = values.map(_.token).mkString(",")
@@ -44,8 +45,54 @@ object ExtensionRelease:
           case _ => Left(s"unsupported extension native-image host: $osName / $osArch")
 
   def mepAssetName(platform: Platform, version: String): String =
-    s"morphir-scala-elm-${platform.token}-${safeVersion(version)}" +
+    s"${ExtensionDefinition.Id}-${platform.token}-${safeVersion(version)}" +
       (if platform == Platform.WinAmd64 then ".exe" else "")
+
+  def bundleAssetName(version: String): String =
+    s"${ExtensionDefinition.Id}-${safeVersion(version)}.bundle.release.json"
+
+  /** Keep release.json in the local bundle, but upload it under an extension-specific asset name. */
+  def githubReleaseAssets(releaseDir: os.Path, version: String, stagingDir: os.Path): Seq[os.Path] =
+    val descriptor = releaseDir / "release.json"
+    require(os.isFile(descriptor), "missing release.json; run ci.extensions.verify first")
+    val staged = stagingDir / bundleAssetName(version)
+    os.copy.over(descriptor, staged, createFolders = true)
+    (os.list(releaseDir).filter(os.isFile).filterNot(path =>
+      path.last == "release.json" || path.last == bundleAssetName(version)
+    ).toSeq :+ staged).sortBy(_.last)
+
+  private[millbuild] def bundleClaims(version: String): ujson.Value =
+    ujson.Obj(
+      "claimsVersion"    -> ExtensionDefinition.ClaimsVersion,
+      "protocolVersions" -> ujson.Arr(ExtensionDefinition.ProtocolVersion),
+      "extension"        -> ujson.Obj(
+        "id"      -> ExtensionDefinition.Id,
+        "name"    -> ExtensionDefinition.Name,
+        "version" -> version,
+        "types"   -> ujson.Arr.from(ExtensionDefinition.Types)
+      ),
+      "capabilities" -> ujson.read(ExtensionDefinition.CapabilitiesJson)
+    )
+
+  private def bundleDescriptor(releaseDir: os.Path, version: String, platforms: Seq[Platform]): ujson.Value =
+    val claims = bundleClaims(version)
+    ujson.Obj(
+      "schemaVersion"       -> "2.0.0-draft.2",
+      "extensionId"         -> ExtensionDefinition.Id,
+      "shortId"             -> ExtensionDefinition.ShortId,
+      "version"             -> version,
+      "platformDifferences" -> "none",
+      "artifacts"           -> ujson.Arr.from(platforms.sortBy(_.triple).map { platform =>
+        val name = mepAssetName(platform, version)
+        ujson.Obj(
+          "platform" -> platform.triple,
+          "runtime"  -> "process",
+          "filename" -> name,
+          "sha256"   -> sha256(releaseDir / name),
+          "claims"   -> claims
+        )
+      })
+    )
 
   def nativeTransportName(platform: Platform, version: String): String =
     s"morphir-native-transport-${platform.token}-${safeVersion(version)}.tar"
@@ -124,11 +171,14 @@ object ExtensionRelease:
       requireExecutable: Boolean = false
   ): Either[Seq[String], Seq[String]] =
     if platforms.isEmpty then Left(Seq("no extension release assets requested"))
+    else if platforms.distinct.size != platforms.size then Left(Seq("duplicate extension release platforms"))
     else
-      val assetNames    = platforms.map(mepAssetName(_, version))
-      val unixMepNames  = platforms.filterNot(_ == Platform.WinAmd64).map(mepAssetName(_, version)).toSet
-      val expectedFiles = assetNames.flatMap(name => Seq(name, s"$name.sha256")).toSet + "checksums.txt"
-      val presentFiles  =
+      val assetNames      = platforms.map(mepAssetName(_, version))
+      val unixMepNames    = platforms.filterNot(_ == Platform.WinAmd64).map(mepAssetName(_, version)).toSet
+      val descriptorNames = Seq("release.json", bundleAssetName(version))
+      val expectedFiles   = assetNames.flatMap(name => Seq(name, s"$name.sha256")).toSet ++ descriptorNames +
+        "checksums.txt"
+      val presentFiles =
         if os.isDir(releaseDir) then os.list(releaseDir).filter(os.isFile).map(_.last).toSet else Set.empty[String]
       val unexpected = (presentFiles -- expectedFiles).toSeq.sorted.map(name => s"unexpected release file: $name")
       val problems   = assetNames.flatMap { name =>
@@ -147,9 +197,18 @@ object ExtensionRelease:
 
       if problems.nonEmpty then Left(problems)
       else
-        val lines = assetNames.sorted.map(name => os.read(releaseDir / s"$name.sha256").trim)
-        os.write.over(releaseDir / "checksums.txt", lines.mkString("", "\n", "\n"))
-        Right(assetNames)
+        val descriptor = bundleDescriptor(releaseDir, version, platforms)
+        // Local release.json is generated output; a downloaded, named descriptor is an input to verify.
+        val descriptorProblems = Seq(bundleAssetName(version)).filter(presentFiles).flatMap { name =>
+          val matches = scala.util.Try(ujson.read(os.read(releaseDir / name)) == descriptor).getOrElse(false)
+          if matches then Seq.empty else Seq(s"bundle descriptor mismatch: $name")
+        }
+        if descriptorProblems.nonEmpty then Left(descriptorProblems)
+        else
+          val lines = assetNames.sorted.map(name => os.read(releaseDir / s"$name.sha256").trim)
+          os.write.over(releaseDir / "checksums.txt", lines.mkString("", "\n", "\n"))
+          os.write.over(releaseDir / "release.json", ujson.write(descriptor, indent = 2) + "\n")
+          Right(assetNames)
 
   private def nativeReleaseNames(platform: Platform, version: String): Seq[String] =
     val mep = mepAssetName(platform, version)

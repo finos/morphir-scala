@@ -1,6 +1,7 @@
 package morphir.langkit.elm.compiler.mep
 
 import kyo.*
+import morphir.langkit.elm.compiler.mep.internal.ExtensionDefinition
 
 final case class SessionTransition(session: MepSession, response: Maybe[String]) derives CanEqual
 
@@ -82,12 +83,14 @@ final case class MepSession private (
 
   private def dispatch(call: IncomingCall): SessionTransition =
     if call.method == "morphir.exit" && call.id.isMissing then
-      if state == SessionState.AwaitExit then SessionTransition(copy(state = SessionState.Stopped), Absent)
+      if state == SessionState.AwaitExit || state == SessionState.Loaded then
+        SessionTransition(copy(state = SessionState.Stopped), Absent)
       else SessionTransition(copy(state = SessionState.Failed), Absent)
     else if state == SessionState.Stopped || state == SessionState.Failed then
-      respond(call.id)(errorFor(_, -32600, "The MEP session is stopped"))
+      respond(call.id)(errorFor(_, -32014, "The MEP session is stopped"))
     else if state == SessionState.AwaitExit then
-      respond(call.id)(errorFor(_, -32600, "The MEP session is awaiting exit"))
+      respond(call.id)(errorFor(_, -32014, "The MEP session is awaiting exit"))
+    else if call.method == "morphir.extension.describe" then describe(call)
     else if call.method == "morphir.ping" then
       if objectParams(call.params) then respondSuccess(call.id, Structure.encode(PingResult(ok = true)))
       else respond(call.id)(errorFor(_, -32602, "morphir.ping parameters must be an object"))
@@ -137,7 +140,7 @@ final case class MepSession private (
 
   private def initialize(call: IncomingCall): SessionTransition =
     if call.method != "morphir.initialize" then
-      respond(call.id)(errorFor(_, -32600, "The MEP session is not initialized"))
+      respond(call.id)(errorFor(_, -32014, "The MEP session is not initialized"))
     else
       val transition = call.params match
         case Some(params) => Structure.decode[InitializeRequest](params) match
@@ -148,16 +151,37 @@ final case class MepSession private (
                 copy(state = SessionState.Ready)
               )
             case Result.Success(request) =>
-              val data = Structure.Value.Record(
-                Chunk(
-                  "hostVersions" -> Structure.Value.Sequence(request.protocolVersions.map(Structure.Value.Str.apply)),
-                  "extensionVersions" -> Structure.Value.Sequence(Chunk(Structure.Value.Str(provider.protocolVersion)))
-                )
-              )
-              respond(call.id)(errorFor(_, -32011, "No compatible Morphir Extension Protocol version", Present(data)))
+              protocolMismatch(call.id, request.protocolVersions)
             case _ => respond(call.id)(errorFor(_, -32602, "Invalid morphir.initialize parameters"))
         case None => respond(call.id)(errorFor(_, -32602, "Invalid morphir.initialize parameters"))
       if call.id.isRequest then transition else transition.copy(response = Absent)
+
+  private def describe(call: IncomingCall): SessionTransition = call.params match
+    case Some(params) => Structure.decode[DescribeRequest](params) match
+        case Result.Success(request) if request.protocolVersions.contains(provider.protocolVersion) =>
+          respondSuccess(
+            call.id,
+            Structure.encode(
+              ExtensionClaims(
+                ExtensionDefinition.ClaimsVersion,
+                Chunk(provider.protocolVersion),
+                extensionInfoValue,
+                capabilitiesValue
+              )
+            )
+          )
+        case Result.Success(request) => protocolMismatch(call.id, request.protocolVersions)
+        case _ => respond(call.id)(errorFor(_, -32602, "Invalid morphir.extension.describe parameters"))
+    case None => respond(call.id)(errorFor(_, -32602, "Invalid morphir.extension.describe parameters"))
+
+  private def protocolMismatch(id: IncomingId, hostVersions: Chunk[String]): SessionTransition =
+    val data = Structure.Value.Record(
+      Chunk(
+        "hostVersions"      -> Structure.Value.Sequence(hostVersions.map(Structure.Value.Str.apply)),
+        "extensionVersions" -> Structure.Value.Sequence(Chunk(Structure.Value.Str(provider.protocolVersion)))
+      )
+    )
+    respond(id)(errorFor(_, -32011, "No compatible Morphir Extension Protocol version", Present(data)))
 
   private def objectParams(params: Option[Structure.Value]): Boolean = params match
     case None | Some(Structure.Value.Record(_)) => true
@@ -170,20 +194,12 @@ final case class MepSession private (
     ExtensionInfo(provider.id, provider.name, provider.version, provider.types)
 
   private def capabilitiesValue: ExtensionCapabilities =
-    ExtensionCapabilities(
-      FrontendCapabilities(
-        provider.languages,
-        provider.irVersions,
-        provider.compile,
-        incremental = false,
-        fragments = false,
-        multiDocument = false
-      ),
-      WorkspaceCapabilities(Chunk(MepWorkspace.ProtocolVersion), discover = true),
-      streaming = false,
-      incremental = false,
-      cancellation = false,
-      progress = false
+    ProviderMetadata.defaultCapabilities.copy(
+      frontend = ProviderMetadata.defaultCapabilities.frontend.copy(
+        languages = provider.languages,
+        irVersions = provider.irVersions,
+        compile = provider.compile
+      )
     )
 
   private def extensionInfo: Structure.Value = Structure.encode(extensionInfoValue)

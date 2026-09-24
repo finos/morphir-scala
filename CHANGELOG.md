@@ -8,6 +8,17 @@ a release.
 
 ## [0.5.0-M10]
 
+### Added
+- `morphir-scala-elm` answers `morphir.extension.describe` before or after initialization with its capability claims.
+  A host can read the claims and exit without starting a session.
+- Releases include a version-2 bundle descriptor, `morphir-scala-elm-<version>.bundle.release.json`, alongside the
+  existing executables and checksums. Before `morphir extension repository publish --bundle`, put exactly these
+  files in the bundle directory: the descriptor renamed to `release.json`, all five executables, and their five
+  `.sha256` files. Leave `checksums.txt` out. This requires Morphir CLI `0.4.0-beta.7` or later.
+
+### Changed
+- MEP lifecycle refusals before initialization or after shutdown use `-32014`; malformed requests still use `-32600`.
+
 ## [0.5.0-M09] - 2026-09-23
 
 ### Changed

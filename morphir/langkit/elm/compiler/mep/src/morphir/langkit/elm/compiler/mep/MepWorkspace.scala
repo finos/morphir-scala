@@ -21,7 +21,7 @@ private[mep] object MepWorkspace:
    * The workspace discovery protocol version this provider writes, a SemVer string. The protocol is a draft, so a
    * reader names the exact draft it speaks: a prerelease matches only exactly.
    */
-  val ProtocolVersion: String = "0.1.0-draft.1"
+  val ProtocolVersion: String = morphir.langkit.elm.compiler.mep.internal.ExtensionDefinition.WorkspaceProtocolVersion
 
   enum FileEntry derives CanEqual:
     case Directory

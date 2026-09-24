@@ -23,6 +23,22 @@ class MepProcessTests extends Test[Any]:
         chunk.length
 
   "MepProcess" - {
+    "answers describe then exits cleanly without creating a session" in {
+      val describe =
+        """{"jsonrpc":"2.0","id":1,"method":"morphir.extension.describe","params":{"protocolVersions":["0.1"]}}"""
+      val exit   = """{"jsonrpc":"2.0","method":"morphir.exit"}"""
+      val stdin  = ChunkedInput(Vector(MepFrameCodec.encodeJson(describe), MepFrameCodec.encodeJson(exit)))
+      val stdout = ByteArrayOutputStream()
+      val stderr = ByteArrayOutputStream()
+      val code   = MepProcess.run(stdin, stdout, PrintStream(stderr), ProviderMetadata.default)
+      val frames = MepFrameCodec.decoder().feed(stdout.toByteArray).frames
+      assert(code == 0)
+      assert(frames.size == 1)
+      assert(String(frames.head, UTF_8).contains("\"claimsVersion\":\"0.1.0-draft.2\""))
+      assert(stdin.chunksRead == 2)
+      assert(stderr.size == 0)
+    }
+
     "writes the shutdown response and waits for a later exit notification" in {
       val initialize =
         """{"jsonrpc":"2.0","id":1,"method":"morphir.initialize","params":{"protocolVersions":["0.1"],"host":{"name":"test-host","version":"1.0.0"}}}"""
@@ -107,7 +123,7 @@ class MepProcessTests extends Test[Any]:
       assert(String(stderr.toByteArray, UTF_8).contains("morphir.exit"))
     }
 
-    "rejects exit before shutdown" in {
+    "allows exit before initialization" in {
       val exit   = """{"jsonrpc":"2.0","method":"morphir.exit"}"""
       val stdin  = ByteArrayInputStream(MepFrameCodec.encodeJson(exit))
       val stdout = ByteArrayOutputStream()
@@ -115,8 +131,8 @@ class MepProcessTests extends Test[Any]:
 
       val exitCode = MepProcess.run(stdin, stdout, PrintStream(stderr), ProviderMetadata.default)
 
-      assert(exitCode == 1)
+      assert(exitCode == 0)
       assert(stdout.size == 0)
-      assert(String(stderr.toByteArray, UTF_8).contains("before morphir.shutdown"))
+      assert(stderr.size == 0)
     }
   }
