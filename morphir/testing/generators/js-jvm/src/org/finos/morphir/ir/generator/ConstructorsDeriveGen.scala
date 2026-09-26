@@ -4,7 +4,7 @@ package generator
 
 import org.finos.morphir.ir.Type.Constructors
 import zio.test.magnolia.DeriveGen
-import zio.test.magnolia.DeriveGen._
+2.1.26import zio.test.magnolia.DeriveGen._
 
 trait ConstructorsDeriveGen {
   implicit def constructorsDeriveGen[A: DeriveGen]: DeriveGen[Constructors[A]] =

@@ -4,7 +4,7 @@ package generator
 
 import org.finos.morphir.ir.Type.Definition
 import zio.test.magnolia.DeriveGen
-import zio.test.magnolia.DeriveGen._
+2.1.26import zio.test.magnolia.DeriveGen._
 
 trait TypeDefinitionDeriveGen {
   implicit def typeAliasDefinitionDeriveGen[A: DeriveGen]: DeriveGen[Definition.TypeAlias[A]] =

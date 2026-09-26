@@ -4,7 +4,7 @@ package generator
 
 import org.finos.morphir.ir.Type.Field
 import zio.test.magnolia.DeriveGen
-import zio.test.magnolia.DeriveGen._
+2.1.26import zio.test.magnolia.DeriveGen._
 
 trait FieldDeriveGen {
   implicit def fieldDeriveGen[A: DeriveGen]: DeriveGen[Field[A]] =

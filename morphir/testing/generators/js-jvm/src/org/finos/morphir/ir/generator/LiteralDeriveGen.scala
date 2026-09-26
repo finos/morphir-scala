@@ -4,7 +4,7 @@ package generator
 
 import org.finos.morphir.ir.Literal.Literal
 import zio.test.magnolia.DeriveGen
-import zio.test.magnolia.DeriveGen._
+2.1.26import zio.test.magnolia.DeriveGen._
 
 trait LiteralDeriveGen {
   implicit val boolLiteralDeriveGen: DeriveGen[Literal.BoolLiteral] = DeriveGen.instance(LiteralGen.boolLiteral)
