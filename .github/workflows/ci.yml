@@ -108,7 +108,7 @@ jobs:
           # per job, each wrote its own ~550 MB copy, and the copies filled the 10 GB cache limit.
           job: base
       - name: Setup mise
-        uses: jdx/mise-action@v4
+        uses: jdx/mise-action@v5
         with:
           experimental: true
       - name: Test Squire and release policy
@@ -536,7 +536,7 @@ jobs:
         uses: coursier/cache-action@v8
 
       - name: Setup mise
-        uses: jdx/mise-action@v4
+        uses: jdx/mise-action@v5
         with:
           experimental: true
 
@@ -615,7 +615,7 @@ jobs:
         uses: coursier/cache-action@v8
 
       - name: Setup mise
-        uses: jdx/mise-action@v4
+        uses: jdx/mise-action@v5
         with:
           experimental: true
 
