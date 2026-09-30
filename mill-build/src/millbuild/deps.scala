@@ -273,7 +273,7 @@ object Versions {
   val geny                       = "1.1.1"
   val `izumi-reflect`            = "3.0.9"
   val jmh                        = "1.37"
-  val kyo                        = "1.0.0-RC6"
+  val kyo                        = "1.0.0-RC7"
   val caliban                    = "3.1.5"
   val metaconfig                 = "0.12.0"
   val mainargs                   = "0.7.8"
