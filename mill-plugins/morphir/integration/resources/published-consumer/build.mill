@@ -40,7 +40,7 @@ trait PublishedElmConsumerDependencies extends MorphirModule {
 }
 
 trait PublishedScalaConsumer extends MorphirScalaModule {
-  def scalaVersion = "3.8.4"
+  def scalaVersion = "3.9.0"
 
   override def generatedMorphirSources = Task {
     val artifact                = build.`elm-consumer`.morphirIR()
