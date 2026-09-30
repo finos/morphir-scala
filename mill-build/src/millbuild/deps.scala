@@ -82,7 +82,7 @@ object Deps {
       }
 
       object magnolia_3 {
-        val magnolia = mvn"com.softwaremill.magnolia1_3::magnolia::1.3.23"
+        val magnolia = mvn"com.softwaremill.magnolia1_3::magnolia::1.3.24"
       }
     }
   }
