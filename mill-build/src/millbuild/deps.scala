@@ -271,7 +271,7 @@ object Versions {
   val fansi                      = "0.5.1"
   val fs2                        = "3.13.0"
   val geny                       = "1.1.1"
-  val `izumi-reflect`            = "3.0.9"
+  val `izumi-reflect`            = "3.0.10"
   val jmh                        = "1.37"
   val kyo                        = "1.0.0-RC6"
   val caliban                    = "3.1.5"
