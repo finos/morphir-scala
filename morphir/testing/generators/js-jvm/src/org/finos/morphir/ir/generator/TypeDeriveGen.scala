@@ -4,7 +4,7 @@ package generator
 
 import org.finos.morphir.ir.Type.Type
 import zio.test.magnolia.DeriveGen
-import zio.test.magnolia.DeriveGen._
+2.1.26import zio.test.magnolia.DeriveGen._
 
 trait TypeDeriveGen {
   implicit def extensibleRecordTypeDeriveGen[A: DeriveGen]: DeriveGen[Type.ExtensibleRecord[A]] =
