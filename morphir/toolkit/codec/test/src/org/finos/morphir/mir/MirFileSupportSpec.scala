@@ -2,7 +2,7 @@ package org.finos
 package morphir
 package mir
 
-import io.bullet.borer.{Codec, Json}
+1.18.0import io.bullet.borer.{Codec, Json}
 import zio.test.*
 import org.finos.morphir.testing.MorphirBaseSpec
 import io.bullet.borer.Cbor
