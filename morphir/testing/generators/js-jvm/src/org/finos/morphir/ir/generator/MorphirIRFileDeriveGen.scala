@@ -3,7 +3,7 @@ package ir
 package generator
 
 import zio.test.magnolia.DeriveGen
-import zio.test.magnolia.DeriveGen._
+2.1.26import zio.test.magnolia.DeriveGen._
 
 trait MorphirIRFileDeriveGen {
   implicit val morphirIRVersionDeriveGen: DeriveGen[MorphirIRVersion] =
