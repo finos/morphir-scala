@@ -49,7 +49,7 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: "temurin"
-          java-version: "26.0.2+10"
+          java-version: "27.0.0+35"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
         with:
@@ -100,7 +100,7 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: "temurin"
-          java-version: "26.0.2+10"
+          java-version: "27.0.0+35"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
         with:
@@ -128,7 +128,7 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: "temurin"
-          java-version: "26.0.2+10"
+          java-version: "27.0.0+35"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
         with:
@@ -164,7 +164,7 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: "temurin"
-          java-version: "26.0.2+10"
+          java-version: "27.0.0+35"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
         with:
@@ -200,7 +200,7 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: "temurin"
-          java-version: "26.0.2+10"
+          java-version: "27.0.0+35"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
         with:
@@ -236,7 +236,7 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: "temurin"
-          java-version: "26.0.2+10"
+          java-version: "27.0.0+35"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
         with:
@@ -291,7 +291,7 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: "temurin"
-          java-version: "26.0.2+10"
+          java-version: "27.0.0+35"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
         with:
@@ -331,7 +331,7 @@ jobs:
         uses: actions/setup-java@v6
         with:
           distribution: "temurin"
-          java-version: "26.0.2+10"
+          java-version: "27.0.0+35"
       - name: Cache scala dependencies
         uses: coursier/cache-action@v8
         with:
@@ -672,7 +672,7 @@ jobs:
       # MEP executable therefore builds with GraalVM 25 while the JVM jobs run Temurin 26.
       - uses: graalvm/setup-graalvm@v1
         with:
-          java-version: "25"
+          java-version: "27"
           distribution: graalvm-community
           github-token: ${{ secrets.GITHUB_TOKEN }}
           native-image-job-reports: "true"
@@ -732,7 +732,7 @@ jobs:
 
       - uses: actions/setup-java@v6
         with:
-          java-version: "26.0.2+10"
+          java-version: "27.0.0+35"
           distribution: temurin
 
       - name: Cache Scala dependencies
@@ -776,7 +776,7 @@ jobs:
 
       - uses: actions/setup-java@v6
         with:
-          java-version: "26.0.2+10"
+          java-version: "27.0.0+35"
           distribution: temurin
 
       - name: Cache Scala dependencies
@@ -846,7 +846,7 @@ jobs:
 
       - uses: actions/setup-java@v6
         with:
-          java-version: "26.0.2+10"
+          java-version: "27.0.0+35"
           distribution: temurin
 
       - name: Cache scala dependencies

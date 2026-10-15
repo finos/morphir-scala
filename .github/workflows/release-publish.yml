@@ -90,7 +90,7 @@ jobs:
 
       - uses: actions/setup-java@v6
         with:
-          java-version: "26.0.2+10"
+          java-version: "27.0.0+35"
           distribution: temurin
 
       - name: Cache scala dependencies
@@ -170,7 +170,7 @@ jobs:
 
       - uses: actions/setup-java@v6
         with:
-          java-version: "26.0.2+10"
+          java-version: "27.0.0+35"
           distribution: temurin
 
       - name: Cache scala dependencies
