@@ -376,9 +376,9 @@ trait MorphirWasmTests extends mill.scalajslib.config.TestScalaJSConfigModule wi
 /**
  * Turns Scala.js source maps off for a test link.
  *
- * Mill's `ScalaJSModule` defaults `scalaJSSourceMap` to `true` (verified against the pinned Mill 1.2.0-RC1-46-16168f
- * sources), and `ScalaJSTests` does not override it — a test object gets its own `true` independent of the module it
- * tests. CI's `test-js` job OOM'd inside the source-map printer itself:
+ * Mill's `ScalaJSModule` defaults `scalaJSSourceMap` to `true` (verified against the pinned Mill 1.3.0 sources), and
+ * `ScalaJSTests` does not override it — a test object gets its own `true` independent of the module it tests. CI's
+ * `test-js` job OOM'd inside the source-map printer itself:
  * `org.scalajs.linker.backend.javascript.Printers$JSTreePrinterWithSourceMap.print`, called from
  * `ByteArrayWriter.ensureCapacity` (morphir-oyn). Nothing in CI reads a test link's source map, so turning it off there
  * removes real linker work rather than trading one failure for another.
