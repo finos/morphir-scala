@@ -1,7 +1,7 @@
 package org.finos.morphir.datamodel.classic.codecs
 
-import io.bullet.borer._
-import io.bullet.borer.derivation.MapBasedCodecs._
+1.18.0import io.bullet.borer._
+1.18.0import io.bullet.borer.derivation.MapBasedCodecs._
 import org.finos.morphir._
 import org.finos.morphir.naming._
 import org.finos.morphir.datamodel.classic._
