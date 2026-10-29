@@ -955,18 +955,38 @@ object SquireCiPolicy:
     val headers    = policy.linesIterator.collect {
       case line if line.startsWith("      - name: ") => line.stripPrefix("      - name: ")
     }.toList
-    expect(stepStarts.size == 6, s"unexpected squire-policy step count: ${stepStarts.size}")
+    expect(stepStarts.size == 8, s"unexpected squire-policy step count: ${stepStarts.size}")
     expect(
       headers == List(
         "Checkout current branch",
         "Setup Scala and Java",
         "Cache scala dependencies",
         "Setup mise",
+        "Complete the pinned MoonBit SDK for the shared OpenSpec tool",
+        "Check the shared OpenSpec workflow",
         stepName,
         changelogStepName
       ),
       s"unexpected squire-policy steps: $headers"
     )
+    val sdkStep = indentedBlock(policy, "- name: Complete the pinned MoonBit SDK for the shared OpenSpec tool", 6)
+    expect(
+      sdkStep.contains("https://cli.moonbitlang.com/install/unix.sh") &&
+        sdkStep.contains("$(mise where http:moonbit)") && sdkStep.contains("$(mise current http:moonbit)"),
+      "OpenSpec must complete the SDK selected by the repository pin"
+    )
+    expect(sdkStep.contains("mise exec -- moon update"), "a fresh OpenSpec tool home needs its registry index")
+    val extensionStep     = indentedBlock(policy, "- name: Check the shared OpenSpec workflow", 6)
+    val extensionCommands = extensionStep.linesIterator.map(_.trim).filter(_.startsWith("mise run ")).toList
+    expect(
+      extensionCommands == List("mise run openspec:check", "mise run openspec:validate", "mise run openspec:test"),
+      "OpenSpec must run snapshot, schema and workflow checks in order"
+    )
+    List(sdkStep, extensionStep).foreach { step =>
+      expect(!hasYamlKey(step, "if"), "OpenSpec assurance must not be conditionally skipped")
+      expect(!hasYamlKey(step, "continue-on-error"), "OpenSpec assurance failures must block CI")
+    }
+
     expect(!hasYamlKey(policy, "needs"), "squire-policy must run in parallel")
     expect(!hasYamlKey(policy, "fetch-depth"), "squire-policy must use the default shallow checkout")
 
@@ -2702,6 +2722,18 @@ class SquireCiPolicySpec extends Test[Any]:
           replaceOnce(workflow, changelogStep, ""),
           "      - name: Lint code\n        run: ./mill --ticker false -i ci.lint",
           "      - name: Lint code\n        run: ./mill --ticker false -i ci.lint\n" + changelogStep
+        ),
+        "registry bootstrap removed"  -> replaceOnce(workflow, "          mise exec -- moon update\n", ""),
+        "OpenSpec validation removed" -> replaceOnce(workflow, "          mise run openspec:validate\n", ""),
+        "OpenSpec check skipped"      -> replaceOnce(
+          workflow,
+          "      - name: Check the shared OpenSpec workflow\n",
+          "      - name: Check the shared OpenSpec workflow\n        if: false\n"
+        ),
+        "OpenSpec failure ignored" -> replaceOnce(
+          workflow,
+          "      - name: Check the shared OpenSpec workflow\n",
+          "      - name: Check the shared OpenSpec workflow\n        continue-on-error: true\n"
         ),
         "changelog check command changed" -> {
           val changedPolicy =
