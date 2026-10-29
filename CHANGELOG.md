@@ -8,6 +8,9 @@ a release.
 
 ## [0.5.0-M11]
 
+### Added
+- Shared OpenSpec html-design extension, core agent skills, locked templates, Mill-backed development tasks and CI validation.
+
 ## [0.5.0-M10] - 2026-09-24
 
 ### Added

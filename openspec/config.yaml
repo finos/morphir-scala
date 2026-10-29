@@ -1,0 +1,17 @@
+schema: html-design
+githubCopilot:
+  cloudAgent: false
+context: |
+  morphir-scala provides Scala bindings and JVM tooling for the FINOS Morphir IR.
+  Mill owns builds and repository automation. Scala is the implementation
+  language; modules include JVM, Scala.js, WebAssembly and selected Native targets.
+  Use AGENTS.md and the relevant module CONTRIBUTING.md for coding conventions.
+  Follow CONTRIBUTING.md for GitHub issues, pull requests, review and FINOS CLA.
+  Resolve optional task tracking through squire and docs/task-tracking.md;
+  do not assume beads is enabled or publish tracker data without authorization.
+  Keep scratch implementation plans and handoffs in the ignored .dev/ tree.
+  OpenSpec change artifacts are maintained workflow records; keep durable
+  architectural rationale in the existing kb/ knowledge-base registers.
+  New designs use the shared standalone HTML template with inline CSS and SVG.
+  Preserve existing schemas and designs on existing changes. Keep local policy
+  here and in AGENTS.md rather than editing the managed schema templates.

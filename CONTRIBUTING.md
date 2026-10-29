@@ -205,6 +205,48 @@ request's merge commit to be an ancestor of `origin/main`. It therefore refuses 
 after the matching pull request. The only remote update it can make is protected by `--force-with-lease`; it never
 uses or recommends unconditional force.
 
+## OpenSpec proposals
+
+This repository uses Mission Control's shared `html-design` extension. Its committed
+schema, templates and SHA-256 ownership lock work without a sibling checkout or an
+unpublished registry dependency. The six core skills are available for
+Codex/universal agents, Claude, Copilot, Cursor, Grok, Gemini and OpenCode.
+
+Run `mise install` for pinned development tools. The shared checker is an upstream
+MoonBit tool; Mill remains the entry point for repository automation. On a fresh
+Linux/macOS machine, complete the pinned SDK once:
+
+```sh
+curl -fsSL https://cli.moonbitlang.com/install/unix.sh | \
+  MOON_HOME="$(mise where http:moonbit)" bash -s -- "$(mise current http:moonbit)"
+mise exec -- moon update
+```
+
+On Windows, use the matching official installer:
+
+```powershell
+$env:MOON_HOME = mise where http:moonbit
+$env:MOONBIT_INSTALL_VERSION = mise current http:moonbit
+Invoke-RestMethod https://cli.moonbitlang.com/install/powershell.ps1 | Invoke-Expression
+mise exec -- moon update
+```
+
+| Mise command | Mill command | Purpose |
+|---|---|---|
+| `mise run openspec:check` | `./mill openspec.check` | Detect missing or edited managed files |
+| `mise run openspec:validate` | `./mill openspec.validate` | Validate the schema and change/spec artifacts |
+| `mise run openspec:test` | `./mill openspec.test` | Run shared workflow and setup-isolation tests |
+| `mise run openspec:setup` | `./mill openspec.setup` | Regenerate core agent skills with isolated preferences |
+
+Start with `openspec-propose`. New designs are standalone HTML with inline CSS/SVG.
+Keep project context and governance in `openspec/config.yaml` and AGENTS.md; keep
+scratch plans in `.dev/` and durable architectural rationale in `kb/`.
+
+To update the bundle, run the selected Mission Control installer from its checkout
+and commit the resulting managed files and lock. The `openspec-ext` module awaits
+publication; do not add an unpublished registry dependency. The `squire-policy` CI
+category checks the snapshot, schema and shared workflow alongside repository policy.
+
 ## Formatting
 
 Mill owns formatting for Scala (scalafmt, including `.mill` build files) and Elm (elm-format). Prefer a narrow selection when you know what changed; use a full sweep before push or when drift is unknown.

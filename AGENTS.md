@@ -194,6 +194,30 @@ hatch for what YAML cannot express (currently the plugin `Cross[...]` declaratio
 Anything needing a `Task` — computed source paths, `forkArgs`, BuildInfo members — belongs in a named trait in
 the metabuild or in `build.mill` that the YAML then names in its `extends:`.
 
+## OpenSpec workflow
+
+New changes use the shared `html-design` schema in `openspec/`. Begin with
+`openspec-propose`; the core skills also cover exploration, applying and updating
+changes, syncing specs, and archiving. New design artifacts are standalone
+`design.html` files with inline CSS and SVG.
+
+OpenSpec change artifacts are maintained workflow records and are the scoped
+exception to the scratch-plan rule above. One-off implementation plans, review
+packages and handoffs still stay under `.dev/`. Durable architectural rationale
+belongs in the existing knowledge-base registers. Track implementation work using
+this repository's optional tracking mode, not an assumed external tracker policy.
+
+The extension lock, schema, templates, checker and Gherkin feature are exact
+snapshots from `moonrockz/mission-control`'s `apps/openspec-ext`. Update them through
+that installer. The upstream checker uses a pinned MoonBit SDK as a development
+tool dependency; it is not a new language for repository-authored automation.
+Local orchestration remains Scala in `openspec.mill`, exposed by Mill and thin mise
+launchers. See CONTRIBUTING.md for the SDK setup and commands.
+
+Run `mise run openspec:check`, `mise run openspec:validate`, and
+`mise run openspec:test` after changing OpenSpec artifacts. Regenerate core skills
+with `mise run openspec:setup`, which isolates personal OpenSpec preferences.
+
 ## Build System
 
 ### Running Commands
