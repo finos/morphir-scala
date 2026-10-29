@@ -116,6 +116,7 @@ jobs:
           set -euo pipefail
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | \
             MOON_HOME="$(mise where http:moonbit)" bash -s -- "$(mise current http:moonbit)"
+          mise exec -- moon update
       - name: Check the shared OpenSpec workflow
         run: |
           mise run openspec:check
