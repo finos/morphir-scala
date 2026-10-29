@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Verify the shared OpenSpec ownership lock"
+set -euo pipefail
+
+exec ./mill --ticker false -i openspec.check "$@"

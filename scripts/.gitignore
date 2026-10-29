@@ -49,3 +49,6 @@ nosetests.xml
 .ipynb_checkpoints/
 profile_default/
 ipython_config.py
+
+# Standalone shared OpenSpec checker build cache
+/_build/

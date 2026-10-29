@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Validate the OpenSpec schema and change artifacts"
+set -euo pipefail
+
+exec ./mill --ticker false -i openspec.validate "$@"

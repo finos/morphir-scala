@@ -55,6 +55,8 @@ def showBuildSettings() = Task.Command {
   ()
 }
 
+object openspec extends MorphirOpenSpecModule
+
 object scoverage extends ScoverageReport {
   // While the plugin doesn't seem to support multiple scala versions, that doesn't seem to impact the coverage
   // For overall coverage report, just specifying Scala 3

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Regenerate isolated core OpenSpec skills"
+set -euo pipefail
+
+exec ./mill --ticker false -i openspec.setup "$@"

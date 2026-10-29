@@ -15,5 +15,20 @@ node = "26.13.0"
 # maintainer noticed.
 jsonschema = "latest"
 
+# Shared OpenSpec workflow; Node keeps the repository's existing pin.
+"npm:@fission-ai/openspec" = "1.14.3"
+
+# The shared snapshot checker is a standalone MoonBit development tool.
+[tools."http:moonbit"]
+version = "0.10.15+943464bfa"
+bin_path = "bin"
+
+[tools."http:moonbit".platforms]
+linux-x64 = { url = "https://cli.moonbitlang.com/binaries/0.10.15%2B943464bfa/moonbit-linux-x86_64.tar.gz" }
+linux-arm64 = { url = "https://cli.moonbitlang.com/binaries/0.10.15%2B943464bfa/moonbit-linux-aarch64.tar.gz" }
+macos-arm64 = { url = "https://cli.moonbitlang.com/binaries/0.10.15%2B943464bfa/moonbit-darwin-aarch64.tar.gz" }
+macos-x64 = { url = "https://cli.moonbitlang.com/binaries/0.10.15%2B943464bfa/moonbit-darwin-x86_64.tar.gz" }
+windows-x64 = { url = "https://cli.moonbitlang.com/binaries/0.10.15%2B943464bfa/moonbit-windows-x86_64.zip", format = "zip" }
+
 [env]
 _.path = ["./node_modules/.bin"]

@@ -1,0 +1,36 @@
+package build
+
+import mill.*
+import mill.api.BuildCtx
+
+/** Mill entry points for the versioned upstream OpenSpec extension. */
+trait MorphirOpenSpecModule extends Module {
+  private def run(args: Seq[String], environment: Map[String, String]): Unit = {
+    os.proc(Seq("mise", "exec", "--") ++ args).call(
+      cwd = BuildCtx.workspaceRoot,
+      env = environment,
+      stdout = os.Inherit,
+      stderr = os.Inherit
+    )
+    ()
+  }
+
+  /** Re-read the ownership lock and files on every invocation so edits cannot use stale evidence. */
+  def check() = Task.Command {
+    run(Seq("moon", "run", "-q", "--target", "wasm", "scripts/openspec-ext.mbtx", "--", "check"), Task.env)
+  }
+
+  /** Keep personal OpenSpec profiles and delivery preferences out of project setup. */
+  def setup() = Task.Command {
+    run(Seq("moon", "run", "-q", "--target", "wasm", "scripts/openspec-ext.mbtx", "--", "setup"), Task.env)
+  }
+
+  def validate() = Task.Command {
+    run(Seq("openspec", "schema", "validate", "html-design"), Task.env)
+    run(Seq("openspec", "validate", "--all", "--strict"), Task.env)
+  }
+
+  def test() = Task.Command {
+    run(Seq("moon", "test", "--deny-warn", "--target", "wasm", "scripts/openspec-ext.mbtx"), Task.env)
+  }
+}
