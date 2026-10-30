@@ -6,7 +6,14 @@ the shape of the next release, and it is what CI stamps on every build. Dated he
 `## [Unreleased]` is optional and carries no build meaning; use it for entries not yet assigned to
 a release.
 
-## [0.5.0-M11]
+## [0.5.0-M12]
+
+### Fixed
+- The release upload checks every publishable POM before it sends one to Maven Central. In 0.5.0-M11 the check ran
+  on pull requests and in `ci.publish`, but not in `ci.sonatype.libraries` and `ci.sonatype.plugins`, which the
+  release workflow uses.
+
+## [0.5.0-M11] - 2026-10-30
 
 ### Added
 - Shared OpenSpec html-design extension, core agent skills, locked templates, Mill-backed development tasks and CI validation.
@@ -21,7 +28,7 @@ a release.
 - Scala.js and Scala Native artifacts of `morphir-connector-github`, `morphir-ui`, `morphir-langkit-markdown-kyo-ui`
   and `morphir-knowledge-okf` reach Maven Central. From 0.5.0-M05 to 0.5.0-M10 their POMs named versionless Kyo
   dependencies as JVM artifacts with no version, and Central did not accept them although the upload reported
-  success. CI now checks every publishable POM before upload.
+  success. CI now checks every publishable POM on pull requests and when it builds publish artifacts.
 
 ## [0.5.0-M10] - 2026-09-24
 

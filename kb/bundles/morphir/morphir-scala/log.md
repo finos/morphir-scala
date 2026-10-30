@@ -2,6 +2,10 @@
 
 ## 2026-10-30
 
+* **Update**: 0.5.0-M11 put the Scala.js and Scala Native artifacts of `morphir-connector-github`, `morphir-ui`,
+  `morphir-langkit-markdown-kyo-ui` and `morphir-knowledge-okf` on Maven Central, so
+  [Published library families](/design/published-library-families.md) drops that open item and the
+  [GitHub GraphQL Connector](/github-graphql-connector.md) Capability states all three artifacts.
 * **Creation**: Added the [GitHub GraphQL Connector](/github-graphql-connector.md) and
   [Elm MEP frontend provider](/elm-mep-frontend.md) Capabilities, describing what each ships today.
 * **Update**: [Published library families](/design/published-library-families.md) records that the Scala.js and Scala
