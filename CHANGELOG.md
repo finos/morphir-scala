@@ -17,6 +17,12 @@ a release.
 - The `morphir` library jars publish their scaladoc again. Scala `3.9.0` fixes the JDK 25 scaladoc crash that made
   them publish an empty doc jar.
 
+### Fixed
+- Scala.js and Scala Native artifacts of `morphir-connector-github`, `morphir-ui`, `morphir-langkit-markdown-kyo-ui`
+  and `morphir-knowledge-okf` reach Maven Central. From 0.5.0-M05 to 0.5.0-M10 their POMs named versionless Kyo
+  dependencies as JVM artifacts with no version, and Central did not accept them although the upload reported
+  success. CI now checks every publishable POM before upload.
+
 ## [0.5.0-M10] - 2026-09-24
 
 ### Added

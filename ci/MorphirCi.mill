@@ -6,7 +6,7 @@ import build.{morphir => morphirArea}
 import mill.*
 import mill.api.{BuildCtx, DefaultTaskModule, Evaluator, ModuleRef, Result, SelectMode, TaskCtx}
 import millbuild.{
-  ExtensionRelease, JsTestSelectors, LintSelectors, MepNativeImageSmoke, MillVersions, NativeTestSelectors
+  ExtensionRelease, JsTestSelectors, LintSelectors, MepNativeImageSmoke, MillVersions, NativeTestSelectors, PomCheck
 }
 import org.finos.morphir.mill.publish.{MillPublishEnvFile, MillSonatypeEnv, PgpSecret, PublishSelectors}
 
@@ -432,6 +432,7 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
     val resolved = resolveTargets(evaluator, NativeTestSelectors.prepareSelectors)
     Task.log.info(s"ci.testNativePrepare: evaluating ${resolved.size} targets")
     evaluateAll(evaluator, resolved, "ci.testNativePrepare")
+    checkPoms(evaluator, publishedModules(resolved), "ci.testNativePrepare")
   }
 
   /**
@@ -490,6 +491,7 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
     }
     Task.log.info(s"$what: evaluating ${kept.size} targets (group=$group)")
     evaluateAll(evaluator, kept, s"$what (group=$group)")
+    checkPoms(evaluator, publishedModules(kept), what)
   }
 
   private def resolveTargets(evaluator: Evaluator, selectors: Seq[String]): Seq[String] =
@@ -525,7 +527,10 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
     val selectors = resolvePublishModules(evaluator, kind, cfg).map(m => s"$m.publishArtifacts")
     Task.log.info(s"ci.sonatype: building ${selectors.size} publishArtifacts ($kind)")
     if dryRun then Task.log.info(s"DRY_RUN: would evaluate ${selectors.mkString(" + ")}")
-    else evaluateAll(evaluator, selectors, s"publishArtifacts ($kind)")
+    else {
+      evaluateAll(evaluator, selectors, s"publishArtifacts ($kind)")
+      checkPoms(evaluator, resolvePublishModules(evaluator, kind, cfg), s"ci.sonatype ($kind)")
+    }
   }
 
   private def runUploadPhase(
@@ -635,6 +640,28 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
         },
       cfg.excludedModuleSubstrings
     )
+
+  /** The modules whose `publishArtifacts` appear in `targets`. */
+  private def publishedModules(targets: Seq[String]): Seq[String] =
+    targets.collect { case t if t.endsWith(".publishArtifacts") => t.stripSuffix(".publishArtifacts") }
+
+  /**
+   * Fail when a module's generated POM would not survive Maven Central's validation; see [[millbuild.PomCheck]]. The
+   * upload itself reports success for such a POM, so this is the only place the defect is visible before a release.
+   */
+  private def checkPoms(evaluator: Evaluator, modules: Seq[String], what: String)(using TaskCtx): Unit = {
+    val problems = modules.flatMap { module =>
+      val result = unwrap(evaluator.evaluate(Seq(s"$module.pom"), SelectMode.Multi), s"$module.pom")
+      result.values.toEither match {
+        case Right(Seq(pom: PathRef)) =>
+          PomCheck.problems(os.read(pom.path), PomCheck.Platform.of(module)).map(p => s"$module: $p")
+        case other => throw new Exception(s"$what: $module.pom returned $other")
+      }
+    }
+    if problems.nonEmpty then
+      throw new Exception(s"$what: ${problems.size} POM problem(s):\n${problems.mkString("\n")}")
+    Task.log.info(s"$what: ${modules.size} POM(s) checked")
+  }
 
   private def evaluateAll(
       evaluator: Evaluator,

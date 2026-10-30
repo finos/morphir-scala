@@ -258,6 +258,17 @@ trait MorphirJSModule extends MorphirCommonCrossModule with ScalaJSModule {
   override def bindDependency: Task[Dep => BoundDep] = Task.Anon { (dep: Dep) =>
     super.bindDependency()(platformScalaDep(dep))
   }
+
+  /**
+   * The POM path does not go through [[bindDependency]]: Mill's `publishXmlDeps` hands the raw coords to this task.
+   * Without the same bind, a versionless YAML coord is written as the JVM artifact (`kyo-config_3`) with no version,
+   * and the `dependencyManagement` pin, keyed by the platformed name, never supplies one. No Scala.js artifact with
+   * such a coord reached Maven Central from 0.5.0-M05 to 0.5.0-M10, although every upload reported success.
+   */
+  override def resolvePublishDependency: Task[Dep => mill.javalib.publish.Dependency] = Task.Anon {
+    val resolve = super.resolvePublishDependency()
+    (dep: Dep) => resolve(platformScalaDep(dep))
+  }
   override def resolvedDepsWarnNonPlatform: T[Boolean] = Task { false }
 }
 
@@ -291,6 +302,12 @@ trait MorphirNativeModule extends MorphirCommonCrossModule with ScalaNativeModul
   /** Same as [[MorphirJSModule.bindDependency]]: versionless YAML Scala coords must bind as platformed. */
   override def bindDependency: Task[Dep => BoundDep] = Task.Anon { (dep: Dep) =>
     super.bindDependency()(platformScalaDep(dep))
+  }
+
+  /** Same as [[MorphirJSModule.resolvePublishDependency]]: the POM must name the platformed artifact too. */
+  override def resolvePublishDependency: Task[Dep => mill.javalib.publish.Dependency] = Task.Anon {
+    val resolve = super.resolvePublishDependency()
+    (dep: Dep) => resolve(platformScalaDep(dep))
   }
   override def resolvedDepsWarnNonPlatform: T[Boolean] = Task { false }
 }
@@ -939,6 +956,7 @@ trait MorphirMillbuildHelpersModule extends ScalaModule with ScalafmtModule {
     helpersRoot / "MepNativeImageSmoke.scala",
     helpersRoot / "ElmExtensionArchitecture.scala",
     helpersRoot / "ExtensionRelease.scala",
+    helpersRoot / "PomCheck.scala",
     mill.api.BuildCtx.workspaceRoot /
       "morphir/langkit/elm/compiler/mep/src/morphir/langkit/elm/compiler/mep/internal/ExtensionDefinition.scala",
     mill.api.BuildCtx.workspaceRoot /
