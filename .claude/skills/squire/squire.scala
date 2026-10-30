@@ -1,8 +1,8 @@
-//| scalaVersion: 3.8.4
+//| scalaVersion: 3.9.0
 //| mainClass: SquireApp
 //| moduleDeps: [SquireModel.scala, SquireProcess.scala, SquireEnv.scala, SquireDoctor.scala, SquireCellar.scala, SquireRepo.scala, SquireBranch.scala, SquireTracking.scala, SquireSchemas.scala, SquireSpec.scala, SquireChangelog.scala]
 //| mvnDeps:
-//| - io.getkyo::kyo-case-app:1.0.0-RC6
+//| - io.getkyo::kyo-case-app:1.0.0-RC7
 
 import caseapp.*
 import caseapp.core.app.CommandsEntryPoint

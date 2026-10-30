@@ -1,4 +1,4 @@
-//| scalaVersion: 3.8.4
+//| scalaVersion: 3.9.0
 //| moduleDeps: [SquireModel.scala, SquireProcess.scala]
 
 import java.nio.charset.StandardCharsets
@@ -85,7 +85,7 @@ object SquireSchemas:
             SchemaOutcome(fileRelativeTo(file, documents), "skipped", Present("not a complete Morphir IR document"))
           case Some(major) =>
             val schema = generatedSchemas / s"morphir-ir-v$major.json"
-            schema.exists.flatMap { exists =>
+            SquirePaths.exists(schema).flatMap { exists =>
               if !exists then
                 SchemaOutcome(
                   fileRelativeTo(file, documents),

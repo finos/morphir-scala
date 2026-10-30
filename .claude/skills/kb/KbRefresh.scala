@@ -1,7 +1,7 @@
-//| scalaVersion: 3.8.4
+//| scalaVersion: 3.9.0
 //| moduleDeps: [KbScaffold.scala, KbIndex.scala, KbIntentEdit.scala]
 //| mvnDeps:
-//| - io.getkyo::kyo-core:1.0.0-RC6
+//| - io.getkyo::kyo-core:1.0.0-RC7
 
 /** Bringing derived state back in line with the markdown.
   *
@@ -78,29 +78,31 @@ object KbRefresh:
       yield fixes ++ missing
 
   private def fixIndex(kb: Kb, b: Bundle, idx: Doc, dryRun: Boolean): Chunk[RefreshAction] < (Sync & Abort[Throwable]) =
-    idx.file.read.map { text =>
-      val lines = text.replace("\r\n", "\n").linesIterator.toVector
-      val actions = collection.mutable.ArrayBuffer.empty[RefreshAction]
-      val updated = lines.zipWithIndex.map { (line, i) =>
-        KbMarkdown.IndexEntry.findFirstMatchIn(line) match
-          case Some(m) =>
-            val dest = m.group(3)
-            val current = Option(m.group(4)).map(_.trim).getOrElse("")
-            if !dest.startsWith("/") then line
-            else
-              b.conceptAt(dest.takeWhile(_ != '#')).flatMap(_.fm.description).map(_.trim) match
-                case Some(want) if normalize(current) != normalize(want) =>
-                  actions += RefreshAction(
-                    RefreshKind.DescriptionFixed,
-                    s"${kb.rel(idx.file)}:${i + 1}",
-                    s"$dest — was ${if current.isEmpty then "(no description)" else s"\"$current\""}"
-                  )
-                  s"${m.group(1)} - $want"
-                case _ => line
-          case None => line
+    Path.run {
+      idx.file.read.map { text =>
+        val lines = text.replace("\r\n", "\n").linesIterator.toVector
+        val actions = collection.mutable.ArrayBuffer.empty[RefreshAction]
+        val updated = lines.zipWithIndex.map { (line, i) =>
+          KbMarkdown.IndexEntry.findFirstMatchIn(line) match
+            case Some(m) =>
+              val dest = m.group(3)
+              val current = Option(m.group(4)).map(_.trim).getOrElse("")
+              if !dest.startsWith("/") then line
+              else
+                b.conceptAt(dest.takeWhile(_ != '#')).flatMap(_.fm.description).map(_.trim) match
+                  case Some(want) if normalize(current) != normalize(want) =>
+                    actions += RefreshAction(
+                      RefreshKind.DescriptionFixed,
+                      s"${kb.rel(idx.file)}:${i + 1}",
+                      s"$dest — was ${if current.isEmpty then "(no description)" else s"\"$current\""}"
+                    )
+                    s"${m.group(1)} - $want"
+                  case _ => line
+            case None => line
+        }
+        if actions.isEmpty || dryRun then Chunk.from(actions.toSeq)
+        else idx.file.write(updated.mkString("\n").stripTrailing() + "\n").andThen(Chunk.from(actions.toSeq))
       }
-      if actions.isEmpty || dryRun then Chunk.from(actions.toSeq)
-      else idx.file.write(updated.mkString("\n").stripTrailing() + "\n").andThen(Chunk.from(actions.toSeq))
     }
 
   /** Concepts no index links to. Reported always; appended only when `addMissing` is set. */

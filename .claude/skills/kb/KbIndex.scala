@@ -1,7 +1,7 @@
-//| scalaVersion: 3.8.4
+//| scalaVersion: 3.9.0
 //| moduleDeps: [KbStore.scala]
 //| mvnDeps:
-//| - io.getkyo::kyo-core:1.0.0-RC6
+//| - io.getkyo::kyo-core:1.0.0-RC7
 //| - org.xerial:sqlite-jdbc:3.53.2.1
 
 /** A SQLite index over the knowledge base.
@@ -193,14 +193,16 @@ object KbIndex:
 
   /** Rebuilds the index from scratch. The database file is replaced, so a stale schema can never linger. */
   def build(kb: Kb, db: Path): IndexStats < (Sync & Abort[Throwable]) =
-    val parent = Path(db.parts.dropRight(1)*)
-    // WAL leaves siblings behind; a rebuild that kept them would resurrect pages from the old database.
-    val siblings = Seq(db) ++ Seq("-wal", "-shm").map(sfx => Path((db.parts.dropRight(1) :+ (db.parts.last + sfx))*))
-    for
-      _ <- Sync.defer(java.io.File(KbPath.render(parent)).mkdirs())
-      _ <- Kyo.foreachDiscard(Chunk.from(siblings))(p => p.exists.map(if _ then p.remove else ()))
-      stats <- Sync.defer(writeAll(kb, db))
-    yield stats
+    Path.run {
+      val parent = Path(db.parts.dropRight(1)*)
+      // WAL leaves siblings behind; a rebuild that kept them would resurrect pages from the old database.
+      val siblings = Seq(db) ++ Seq("-wal", "-shm").map(sfx => Path((db.parts.dropRight(1) :+ (db.parts.last + sfx))*))
+      for
+        _ <- Sync.defer(java.io.File(KbPath.render(parent)).mkdirs())
+        _ <- Kyo.foreachDiscard(Chunk.from(siblings))(p => p.exists.map(if _ then p.remove else ()))
+        stats <- Sync.defer(writeAll(kb, db))
+      yield stats
+    }
 
   private def writeAll(kb: Kb, db: Path): IndexStats =
     val conn = connect(db)
@@ -378,24 +380,26 @@ object KbIndex:
     * not a way to mutate derived state behind the builder's back.
     */
   def query(db: Path, sql: String): Either[String, Rows] < (Sync & Abort[Throwable]) =
-    val trimmed = sql.trim.stripSuffix(";").trim
-    val head = trimmed.takeWhile(c => !c.isWhitespace).toLowerCase
-    if !Set("select", "with", "pragma", "explain").contains(head) then
-      (Left(s"refusing to run `$head`: kb query is read-only (SELECT, WITH, PRAGMA, EXPLAIN)"): Either[String, Rows] < (Sync & Abort[Throwable]))
-    else
-      db.exists.map {
-        case false => Left(s"no index at ${KbPath.render(db)} — run `kb index` first")
-        case true =>
-          Sync.defer {
-            val conn = connect(db)
-            try
-              val st = conn.createStatement()
-              val rs = st.executeQuery(trimmed)
-              Right(readAll(rs))
-            catch case e: Exception => Left(Option(e.getMessage).getOrElse(e.toString))
-            finally conn.close()
-          }
-      }
+    Path.runReadOnly {
+      val trimmed = sql.trim.stripSuffix(";").trim
+      val head = trimmed.takeWhile(c => !c.isWhitespace).toLowerCase
+      if !Set("select", "with", "pragma", "explain").contains(head) then
+        (Left(s"refusing to run `$head`: kb query is read-only (SELECT, WITH, PRAGMA, EXPLAIN)"): Either[String, Rows] < (Sync & Abort[Throwable]))
+      else
+        db.exists.map {
+          case false => Left(s"no index at ${KbPath.render(db)} — run `kb index` first")
+          case true =>
+            Sync.defer {
+              val conn = connect(db)
+              try
+                val st = conn.createStatement()
+                val rs = st.executeQuery(trimmed)
+                Right(readAll(rs))
+              catch case e: Exception => Left(Option(e.getMessage).getOrElse(e.toString))
+              finally conn.close()
+            }
+        }
+    }
 
   private def readAll(rs: ResultSet): Rows =
     val md = rs.getMetaData
@@ -424,47 +428,51 @@ object KbIndex:
 
   /** When the index was built, and whether any markdown file has changed since. */
   def status(db: Path, kb: Kb): Either[String, (String, Int, Seq[String])] < (Sync & Abort[Throwable]) =
-    db.exists.map {
-      case false => Left(s"no index at ${KbPath.render(db)}")
-      case true =>
-        for
-          built <- Sync.defer {
-            val conn = connect(db)
-            try
-              val rs = conn.createStatement().executeQuery("SELECT value FROM meta WHERE key = 'built_at'")
-              if rs.next() then Option(rs.getString(1)) else None
-            catch case _: Exception => None
-            finally conn.close()
-          }
-          indexed <- Sync.defer {
-            val conn = connect(db)
-            try
-              val rs = conn.createStatement().executeQuery("SELECT count(*) FROM doc")
-              if rs.next() then Some(rs.getInt(1)) else None
-            catch case _: Exception => None
-            finally conn.close()
-          }
-          stale <- staleFiles(kb, built.map(Instant.parse))
-        yield
-          val current = kb.bundles.map(_.allDocs.size).sum
-          // Modification times only speak for files that still exist. A deleted document leaves no mtime to compare,
-          // so without a count check the index would keep serving it as though it were still there.
-          val counts = indexed.filterNot(_ == current).toSeq.map { n =>
-            val verb = if n > current then s"${n - current} document(s) removed since" else s"${current - n} document(s) added since"
-            s"($verb the build)"
-          }
-          built match
-            case None => Left("index has no built_at — rebuild it")
-            case Some(b) => Right((b, current, stale ++ counts))
+    Path.runReadOnly {
+      db.exists.map {
+        case false => Left(s"no index at ${KbPath.render(db)}")
+        case true =>
+          for
+            built <- Sync.defer {
+              val conn = connect(db)
+              try
+                val rs = conn.createStatement().executeQuery("SELECT value FROM meta WHERE key = 'built_at'")
+                if rs.next() then Option(rs.getString(1)) else None
+              catch case _: Exception => None
+              finally conn.close()
+            }
+            indexed <- Sync.defer {
+              val conn = connect(db)
+              try
+                val rs = conn.createStatement().executeQuery("SELECT count(*) FROM doc")
+                if rs.next() then Some(rs.getInt(1)) else None
+              catch case _: Exception => None
+              finally conn.close()
+            }
+            stale <- staleFiles(kb, built.map(Instant.parse))
+          yield
+            val current = kb.bundles.map(_.allDocs.size).sum
+            // Modification times only speak for files that still exist. A deleted document leaves no mtime to compare,
+            // so without a count check the index would keep serving it as though it were still there.
+            val counts = indexed.filterNot(_ == current).toSeq.map { n =>
+              val verb = if n > current then s"${n - current} document(s) removed since" else s"${current - n} document(s) added since"
+              s"($verb the build)"
+            }
+            built match
+              case None => Left("index has no built_at — rebuild it")
+              case Some(b) => Right((b, current, stale ++ counts))
+      }
     }
 
   private def staleFiles(kb: Kb, builtAt: Option[Instant]): Seq[String] < (Sync & Abort[Throwable]) =
-    builtAt match
-      case None => (Seq.empty[String]: Seq[String] < (Sync & Abort[Throwable]))
-      case Some(at) =>
-        Kyo.foreach(Chunk.from(kb.bundles.flatMap(_.allDocs))) { d =>
-          d.file.stat.map(st => Option.when(Instant.ofEpochMilli(st.lastModifiedMs).isAfter(at))(kb.rel(d.file)))
-        }.map(_.flatten.toSeq.sortBy(identity[String]))
+    Path.runReadOnly {
+      builtAt match
+        case None => (Seq.empty[String]: Seq[String] < (Sync & Abort[Throwable]))
+        case Some(at) =>
+          Kyo.foreach(Chunk.from(kb.bundles.flatMap(_.allDocs))) { d =>
+            d.file.stat.map(st => Option.when(Instant.ofEpochMilli(st.lastModifiedMs).isAfter(at))(kb.rel(d.file)))
+          }.map(_.flatten.toSeq.sortBy(identity[String]))
+    }
 
   // -------------------------------------------------------------- rendering
 

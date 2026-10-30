@@ -1,5 +1,16 @@
 # Log
 
+## 2026-10-29
+
+* **Update**: Moved [Kyo effect handlers and typed halting](/kyo-effect-handlers-and-typed-halting.md) from Kyo
+  1.0.0-RC6 to 1.0.0-RC7 after re-checking every claim against the RC7 tag. The kernel rewrite broke the handler
+  table, the soft-halt shape, the multi-arity `handle`, the `handleFirst` scheduler note, the multi-shot default, the
+  `Tag`-on-pending pitfall and the cross-thread note; each now states the RC7 behaviour. Added a `verified` entry.
+* **Update**: Moved the [Scala 3 and Kyo implementation notes](/scala-3-and-kyo-implementation-notes.md) to Scala
+  3.9.0 and Kyo 1.0.0-RC7. Its Kyo claims held; the `Stage` variance and composition claims now follow the buildkit
+  `Stage[-I, +O, E, S]`. Repinned both documents' morphir-scala URLs to commit `925c2db1` and added a `verified`
+  entry.
+
 ## 2026-08-13
 
 * **Creation**: Added [Task-graph comparative survey](/task-graph-comparative-survey.md).

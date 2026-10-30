@@ -72,10 +72,10 @@ scope-relativity of node identity in
 **Typed-halting research (2026-08).** The design question for the first executor is whether it can be one Kyo
 `ArrowEffect` handler with halting typed. The verified answer is yes:
 [Kyo effect handlers and typed halting](../../../programming-language-tooling/kyo-effect-handlers-and-typed-halting.md)
-pins, at Kyo 1.0.0-RC6, the handler variants, the four halting shapes, and selective halting through union
+pins, at Kyo 1.0.0-RC7, the handler variants, the three halting shapes, and selective halting through union
 error types. It also pins the pitfalls that constrain the design: the executor's state handler must sit
-outside the halting handler for partial progress to survive, a halting effect must not provide isolation, and
-continuations are multi-shot. The [Scala 3 and Kyo implementation notes](../../../programming-language-tooling/scala-3-and-kyo-implementation-notes.md)
+outside the halting handler for partial progress to survive, a halting effect must not provide isolation, and a
+continuation resumes at most once unless the handler is `handleContRepeated`. The [Scala 3 and Kyo implementation notes](../../../programming-language-tooling/scala-3-and-kyo-implementation-notes.md)
 sit at the same pin and add the rule that Kyo concurrency must not define graph semantics. The in-repo
 exemplars are `ElmParse` (single domain effect, one-`Frame` implicit bill, second-interpreter test) and
 `QueryLogic` (stacked stock effects, seven-parameter implicit bill); the trade between them is a design

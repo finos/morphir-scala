@@ -1,4 +1,4 @@
-//| scalaVersion: 3.8.4
+//| scalaVersion: 3.9.0
 //| moduleDeps: [SquireModel.scala, SquireProcess.scala, SquireCellar.scala]
 
 import java.nio.file.attribute.BasicFileAttributes

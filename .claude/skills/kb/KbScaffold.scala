@@ -1,7 +1,7 @@
-//| scalaVersion: 3.8.4
+//| scalaVersion: 3.9.0
 //| moduleDeps: [KbStore.scala]
 //| mvnDeps:
-//| - io.getkyo::kyo-core:1.0.0-RC6
+//| - io.getkyo::kyo-core:1.0.0-RC7
 
 /** Creating bundles and concepts, and keeping indexes and logs in step.
   *
@@ -38,27 +38,29 @@ object KbScaffold:
       okfVersion: String,
       today: LocalDate
   ): Either[String, ScaffoldResult] < (Sync & Abort[Throwable]) =
-    val slug = slugify(name)
-    val dir = group.map(g => descend(kbRoot / "bundles", g) / slug).getOrElse(kbRoot / "bundles" / slug)
-    dir.exists.map {
-      case true => Left(s"${KbPath.render(dir)} already exists")
-      case false =>
-        val index = dir / "index.md"
-        val log = dir / "log.md"
-        val groupDir = group.map(g => descend(kbRoot / "bundles", g))
-        for
-          _ <- index.write(indexTemplate(okfVersion, title, description))
-          _ <- log.write(logTemplate(today))
-          groupReadmeMissing <- groupDir match
-            case None => (false: Boolean < (Sync & Abort[Throwable]))
-            case Some(g) => (g / "README.md").exists.map(!_)
-        yield Right(ScaffoldResult(
-          created = Seq(index, log),
-          updated = Nil,
-          notes =
-            Option.when(groupReadmeMissing)(s"grouping directory has no README.md yet: ${groupDir.map(KbPath.render).getOrElse("")}").toSeq ++
-              Seq(s"add the bundle to the Bundles table in ${KbPath.render(kbRoot / "README.md")}")
-        ))
+    Path.run {
+      val slug = slugify(name)
+      val dir = group.map(g => descend(kbRoot / "bundles", g) / slug).getOrElse(kbRoot / "bundles" / slug)
+      dir.exists.map {
+        case true => Left(s"${KbPath.render(dir)} already exists")
+        case false =>
+          val index = dir / "index.md"
+          val log = dir / "log.md"
+          val groupDir = group.map(g => descend(kbRoot / "bundles", g))
+          for
+            _ <- index.write(indexTemplate(okfVersion, title, description))
+            _ <- log.write(logTemplate(today))
+            groupReadmeMissing <- groupDir match
+              case None => (false: Boolean < (Sync & Abort[Throwable]))
+              case Some(g) => (g / "README.md").exists.map(!_)
+          yield Right(ScaffoldResult(
+            created = Seq(index, log),
+            updated = Nil,
+            notes =
+              Option.when(groupReadmeMissing)(s"grouping directory has no README.md yet: ${groupDir.map(KbPath.render).getOrElse("")}").toSeq ++
+                Seq(s"add the bundle to the Bundles table in ${KbPath.render(kbRoot / "README.md")}")
+          ))
+      }
     }
 
   private def indexTemplate(okfVersion: String, title: String, description: String): String =
@@ -99,39 +101,41 @@ object KbScaffold:
       generatedBy: Option[String],
       today: LocalDate
   ): Either[String, ScaffoldResult] < (Sync & Abort[Throwable]) =
-    val raw = if relPath.endsWith(".md") then relPath else relPath + ".md"
-    val relSegs = raw.split('/').filter(_.nonEmpty).toSeq
-    val leaf = relSegs.lastOption.getOrElse("")
-    // A concept path names a location *inside* the bundle. Without this, `--path ../escaped.md` writes outside it
-    // while still adding a bundle-relative index entry pointing at nothing.
-    if raw.startsWith("/") || relSegs.exists(seg => seg == ".." || seg == ".") then
-      (Left(s"`$relPath` must stay inside the bundle — no leading /, `.` or `..` segments"): Either[String, ScaffoldResult] < (Sync & Abort[Throwable]))
-    else if relSegs.isEmpty then
-      (Left("give a path within the bundle"): Either[String, ScaffoldResult] < (Sync & Abort[Throwable]))
-    else if leaf == "index.md" || leaf == "log.md" then
-      (Left(s"$leaf is a reserved OKF filename"): Either[String, ScaffoldResult] < (Sync & Abort[Throwable]))
-    else
-      val target = relSegs.foldLeft(bundle.root)(_ / _)
-      target.exists.map {
-        case true => Left(s"${KbPath.render(target)} already exists")
-        case false =>
-          val bundlePath = relSegs.mkString("/", "/", "")
-          // A concept in a subdirectory belongs in that subdirectory's index when one exists.
-          val idxDoc = bundle.subIndexes
-            .find(i => relSegs.length > 1 && i.rel.dropRight(1) == relSegs.dropRight(1))
-            .getOrElse(bundle.index)
-          for
-            _ <- target.write(conceptTemplate(conceptType, title, description, tags, status, sources, generatedBy, today))
-            _ <- insertIndexEntry(idxDoc.file, section, title, bundlePath, description)
-            _ <- bundle.log match
-              case None => ((): Unit < (Sync & Abort[Throwable]))
-              case Some(l) => appendLogEntry(l.file, today, s"**Creation**: Added [$title]($bundlePath).")
-          yield Right(ScaffoldResult(
-            created = Seq(target),
-            updated = Seq(idxDoc.file) ++ bundle.log.map(_.file),
-            notes = Option.when(bundle.log.isEmpty)("bundle has no log.md — creation was not recorded").toSeq
-          ))
-      }
+    Path.run {
+      val raw = if relPath.endsWith(".md") then relPath else relPath + ".md"
+      val relSegs = raw.split('/').filter(_.nonEmpty).toSeq
+      val leaf = relSegs.lastOption.getOrElse("")
+      // A concept path names a location *inside* the bundle. Without this, `--path ../escaped.md` writes outside it
+      // while still adding a bundle-relative index entry pointing at nothing.
+      if raw.startsWith("/") || relSegs.exists(seg => seg == ".." || seg == ".") then
+        (Left(s"`$relPath` must stay inside the bundle — no leading /, `.` or `..` segments"): Either[String, ScaffoldResult] < (Sync & Abort[Throwable]))
+      else if relSegs.isEmpty then
+        (Left("give a path within the bundle"): Either[String, ScaffoldResult] < (Sync & Abort[Throwable]))
+      else if leaf == "index.md" || leaf == "log.md" then
+        (Left(s"$leaf is a reserved OKF filename"): Either[String, ScaffoldResult] < (Sync & Abort[Throwable]))
+      else
+        val target = relSegs.foldLeft(bundle.root)(_ / _)
+        target.exists.map {
+          case true => Left(s"${KbPath.render(target)} already exists")
+          case false =>
+            val bundlePath = relSegs.mkString("/", "/", "")
+            // A concept in a subdirectory belongs in that subdirectory's index when one exists.
+            val idxDoc = bundle.subIndexes
+              .find(i => relSegs.length > 1 && i.rel.dropRight(1) == relSegs.dropRight(1))
+              .getOrElse(bundle.index)
+            for
+              _ <- target.write(conceptTemplate(conceptType, title, description, tags, status, sources, generatedBy, today))
+              _ <- insertIndexEntry(idxDoc.file, section, title, bundlePath, description)
+              _ <- bundle.log match
+                case None => ((): Unit < (Sync & Abort[Throwable]))
+                case Some(l) => appendLogEntry(l.file, today, s"**Creation**: Added [$title]($bundlePath).")
+            yield Right(ScaffoldResult(
+              created = Seq(target),
+              updated = Seq(idxDoc.file) ++ bundle.log.map(_.file),
+              notes = Option.when(bundle.log.isEmpty)("bundle has no log.md — creation was not recorded").toSeq
+            ))
+        }
+    }
 
   private def conceptTemplate(
       conceptType: String,
@@ -171,45 +175,49 @@ object KbScaffold:
 
   /** Adds `* [title](path) - description` under `## section`, creating the section if it is absent. */
   def insertIndexEntry(index: Path, section: String, title: String, bundlePath: String, description: String): Unit < (Sync & Abort[Throwable]) =
-    index.read.map { text =>
-      val entry = s"* [$title]($bundlePath) - ${description.trim}"
-      val lines = text.replace("\r\n", "\n").linesIterator.toVector
-      val headIdx = lines.indexWhere(_.trim.equalsIgnoreCase(s"## $section"))
-      val updated =
-        if headIdx < 0 then
-          lines.reverse.dropWhile(_.trim.isEmpty).reverse ++ Vector("", s"## $section", "", entry)
-        else
-          // Append after the last bullet of that section, before the next heading.
-          val nextHead = lines.indexWhere(_.startsWith("## "), headIdx + 1) match
-            case -1 => lines.length
-            case n => n
-          val body = lines.slice(headIdx + 1, nextHead)
-          val lastBullet = body.lastIndexWhere(l => l.trim.startsWith("*") || l.trim.startsWith("-"))
-          // With no bullets yet, land at the end of the section so the blank line after the heading survives.
-          val at = if lastBullet < 0 then nextHead else headIdx + 1 + lastBullet + 1
-          lines.take(at) ++ Vector(entry) ++ lines.drop(at)
-      index.write(updated.mkString("\n").stripTrailing() + "\n")
+    Path.run {
+      index.read.map { text =>
+        val entry = s"* [$title]($bundlePath) - ${description.trim}"
+        val lines = text.replace("\r\n", "\n").linesIterator.toVector
+        val headIdx = lines.indexWhere(_.trim.equalsIgnoreCase(s"## $section"))
+        val updated =
+          if headIdx < 0 then
+            lines.reverse.dropWhile(_.trim.isEmpty).reverse ++ Vector("", s"## $section", "", entry)
+          else
+            // Append after the last bullet of that section, before the next heading.
+            val nextHead = lines.indexWhere(_.startsWith("## "), headIdx + 1) match
+              case -1 => lines.length
+              case n => n
+            val body = lines.slice(headIdx + 1, nextHead)
+            val lastBullet = body.lastIndexWhere(l => l.trim.startsWith("*") || l.trim.startsWith("-"))
+            // With no bullets yet, land at the end of the section so the blank line after the heading survives.
+            val at = if lastBullet < 0 then nextHead else headIdx + 1 + lastBullet + 1
+            lines.take(at) ++ Vector(entry) ++ lines.drop(at)
+        index.write(updated.mkString("\n").stripTrailing() + "\n")
+      }
     }
 
   /** Adds a bullet under `## <today>`, creating that date section at the top (newest first) when absent. */
   def appendLogEntry(log: Path, today: LocalDate, entry: String): Unit < (Sync & Abort[Throwable]) =
-    log.read.map { text =>
-      val lines = text.replace("\r\n", "\n").linesIterator.toVector
-      val bullet = s"* $entry"
-      val dateHead = s"## $today"
-      val idx = lines.indexWhere(_.trim == dateHead)
-      val updated =
-        if idx >= 0 then
-          val nextHead = lines.indexWhere(_.startsWith("## "), idx + 1) match
-            case -1 => lines.length
-            case n => n
-          val lastBullet = lines.slice(idx + 1, nextHead).lastIndexWhere(_.trim.startsWith("*"))
-          val at = if lastBullet < 0 then nextHead else idx + 1 + lastBullet + 1
-          lines.take(at) ++ Vector(bullet) ++ lines.drop(at)
-        else
-          val firstHead = lines.indexWhere(_.startsWith("## "))
-          val at = if firstHead < 0 then lines.length else firstHead
-          val prefix = lines.take(at).reverse.dropWhile(_.trim.isEmpty).reverse
-          prefix ++ Vector("", dateHead, "", bullet, "") ++ lines.drop(at)
-      log.write(updated.mkString("\n").stripTrailing() + "\n")
+    Path.run {
+      log.read.map { text =>
+        val lines = text.replace("\r\n", "\n").linesIterator.toVector
+        val bullet = s"* $entry"
+        val dateHead = s"## $today"
+        val idx = lines.indexWhere(_.trim == dateHead)
+        val updated =
+          if idx >= 0 then
+            val nextHead = lines.indexWhere(_.startsWith("## "), idx + 1) match
+              case -1 => lines.length
+              case n => n
+            val lastBullet = lines.slice(idx + 1, nextHead).lastIndexWhere(_.trim.startsWith("*"))
+            val at = if lastBullet < 0 then nextHead else idx + 1 + lastBullet + 1
+            lines.take(at) ++ Vector(bullet) ++ lines.drop(at)
+          else
+            val firstHead = lines.indexWhere(_.startsWith("## "))
+            val at = if firstHead < 0 then lines.length else firstHead
+            val prefix = lines.take(at).reverse.dropWhile(_.trim.isEmpty).reverse
+            prefix ++ Vector("", dateHead, "", bullet, "") ++ lines.drop(at)
+        log.write(updated.mkString("\n").stripTrailing() + "\n")
+      }
     }

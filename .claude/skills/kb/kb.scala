@@ -1,8 +1,8 @@
-//| scalaVersion: 3.8.4
+//| scalaVersion: 3.9.0
 //| mainClass: KbApp
 //| moduleDeps: [KbCheck.scala, KbScaffold.scala, KbRender.scala, KbIndex.scala, KbRefresh.scala, KbIntentEdit.scala, KbSync.scala]
 //| mvnDeps:
-//| - io.getkyo::kyo-case-app:1.0.0-RC6
+//| - io.getkyo::kyo-case-app:1.0.0-RC7
 
 /** `kb` — knowledge base management for the Morphir knowledge base under `kb/`.
   *
@@ -272,13 +272,15 @@ object KbCli:
       case Some(p) => (at(p): Path < (Sync & Abort[Throwable]))
       case None =>
         def climb(parts: Seq[String]): Path < (Sync & Abort[Throwable]) =
-          if parts.isEmpty then Abort.fail(RuntimeException("could not locate a kb/ directory — pass --kb"))
-          else
-            val here = Path(parts*)
-            (here / "kb" / "bundles").exists.map {
-              case true => (here / "kb": Path < (Sync & Abort[Throwable]))
-              case false => climb(parts.dropRight(1))
-            }
+          Path.runReadOnly {
+            if parts.isEmpty then Abort.fail(RuntimeException("could not locate a kb/ directory — pass --kb"))
+            else
+              val here = Path(parts*)
+              (here / "kb" / "bundles").exists.map {
+                case true => (here / "kb": Path < (Sync & Abort[Throwable]))
+                case false => climb(parts.dropRight(1))
+              }
+          }
         climb(workspace.parts.toSeq)
 
   /** The index is derived state, so it lives under `.dev/` with the rest of the tooling output. */
@@ -297,11 +299,13 @@ object KbCli:
       case None => Abort.fail(RuntimeException(s"no bundle `$label`; known: ${kb.bundles.map(_.label).mkString(", ")}"))
 
   def emit(text: String, out: Option[String]): Unit < (Sync & Abort[Throwable]) =
-    out match
-      case None => Console.print(text)
-      case Some(p) =>
-        val path = at(p)
-        path.write(text).andThen(Console.printLine(s"wrote ${KbPath.render(path)}"))
+    Path.run {
+      out match
+        case None => Console.print(text)
+        case Some(p) =>
+          val path = at(p)
+          path.write(text).andThen(Console.printLine(s"wrote ${KbPath.render(path)}"))
+    }
 
   /** `id=URL`, `id=URL=Title`, or a bare URL. */
   def parseSource(s: String): (Option[String], String, Option[String]) =
@@ -380,8 +384,10 @@ object KbCli:
 
   /** The upstream checkout a sync bundle reads from, when it is present on disk. */
   def upstreamRoot(refs: Path, sb: SyncBundle): Option[Path] < (Sync & Abort[Throwable]) =
-    val candidate = sb.manifest.refsPath.split("/").filter(_.nonEmpty).foldLeft(refs)(_ / _)
-    candidate.exists.map(Option.when(_)(candidate))
+    Path.runReadOnly {
+      val candidate = sb.manifest.refsPath.split("/").filter(_.nonEmpty).foldLeft(refs)(_ / _)
+      candidate.exists.map(Option.when(_)(candidate))
+    }
 
   /** Sync findings for every bundle that mirrors something, folded into `kb check` alongside the rest. */
   def allSyncFindings(kb: Kb, refs: Path, useUpstream: Boolean): Seq[Finding] < (Sync & Abort[Throwable]) =

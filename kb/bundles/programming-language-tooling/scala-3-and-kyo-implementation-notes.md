@@ -4,36 +4,38 @@ title: Scala 3 and Kyo implementation notes
 description: Record versioned Scala 3 and Kyo implementation techniques that materially support typed language-tooling designs.
 tags: [scala-3, kyo, implementation]
 status: draft
-stale_after: 2026-11-12
+stale_after: 2027-01-29
 verified:
-  by: claude/fable-5
-  at: 2026-08-12T00:00:00Z
+  - by: claude/fable-5
+    at: 2026-08-12T00:00:00Z
+  - by: claude/opus-5.5
+    at: 2026-10-29T00:00:00Z
 implementation_baselines:
-  scala: 3.8.4
+  scala: 3.9.0
   kyo:
-    version: 1.0.0-RC6
-    ref: 2e58c0550b209317b85a30fc5787c24b7e4dd63c
+    version: 1.0.0-RC7
+    ref: 1d54c02a3842a5792814a9d1abc7df2fb629eb3e
 sources:
   - id: project-dependencies
-    resource: https://github.com/finos/morphir-scala/blob/dbf53136888fd7810b70a51e7f4622c5f519d18a/mill-build/src/millbuild/deps.scala
+    resource: https://github.com/finos/morphir-scala/blob/925c2db18b3a0d9ed4d239e63d1b00b72fba8485/mill-build/src/millbuild/deps.scala
     title: morphir-scala dependency versions
   - id: scala-reference
     resource: https://docs.scala-lang.org/scala3/reference/
-    title: Scala 3.8.4 Reference
-  - id: kyo-rc6
-    resource: https://github.com/getkyo/kyo/tree/2e58c0550b209317b85a30fc5787c24b7e4dd63c
-    title: Kyo 1.0.0-RC6
+    title: Scala 3 Reference (unversioned; read for Scala 3.9.0)
+  - id: kyo-rc7
+    resource: https://github.com/getkyo/kyo/tree/1d54c02a3842a5792814a9d1abc7df2fb629eb3e
+    title: Kyo 1.0.0-RC7
   - id: kyo-pending
-    resource: https://github.com/getkyo/kyo/blob/2e58c0550b209317b85a30fc5787c24b7e4dd63c/kyo-kernel/shared/src/main/scala/kyo/kernel/Pending.scala
-    title: Kyo pending type at 1.0.0-RC6
+    resource: https://github.com/getkyo/kyo/blob/1d54c02a3842a5792814a9d1abc7df2fb629eb3e/kyo-kernel/shared/src/main/scala/kyo/kernel/Pending.scala
+    title: Kyo pending type at 1.0.0-RC7
   - id: morphir-stage
-    resource: https://github.com/finos/morphir-scala/blob/dbf53136888fd7810b70a51e7f4622c5f519d18a/morphir/langkit/elm/compiler/api/src/morphir/langkit/elm/compiler/Stage.scala
-    title: morphir-scala typed Stage
+    resource: https://github.com/finos/morphir-scala/blob/925c2db18b3a0d9ed4d239e63d1b00b72fba8485/morphir/buildkit/core/src/morphir/buildkit/Stage.scala
+    title: morphir-scala buildkit Stage
   - id: morphir-kyo-visitor
-    resource: https://github.com/finos/morphir-scala/blob/dbf53136888fd7810b70a51e7f4622c5f519d18a/morphir/langkit/trees/src/morphir/langkit/trees/query/KyoQueryVisitor.scala
+    resource: https://github.com/finos/morphir-scala/blob/925c2db18b3a0d9ed4d239e63d1b00b72fba8485/morphir/langkit/trees/src/morphir/langkit/trees/query/KyoQueryVisitor.scala
     title: morphir-scala KyoQueryVisitor
   - id: morphir-elm-parse
-    resource: https://github.com/finos/morphir-scala/blob/dbf53136888fd7810b70a51e7f4622c5f519d18a/morphir/langkit/elm/core/src/morphir/langkit/elm/ElmParse.scala
+    resource: https://github.com/finos/morphir-scala/blob/925c2db18b3a0d9ed4d239e63d1b00b72fba8485/morphir/langkit/elm/core/src/morphir/langkit/elm/ElmParse.scala
     title: morphir-scala ElmParse effect
 ---
 
@@ -50,9 +52,9 @@ their architectural arguments.
 
 | Component | Baseline used here | Source of truth |
 | --- | --- | --- |
-| Scala | `3.8.4` | `ScalaVersions.scala3` in `mill-build/src/millbuild/deps.scala`[^project-dependencies] |
-| Kyo | `1.0.0-RC6` | `Versions.kyo` in the same file[^project-dependencies] |
-| Kyo source | commit `2e58c0550b209317b85a30fc5787c24b7e4dd63c` | annotated tag `v1.0.0-RC6`[^kyo-rc6] |
+| Scala | `3.9.0` | `ScalaVersions.scala3` in `mill-build/src/millbuild/deps.scala`[^project-dependencies] |
+| Kyo | `1.0.0-RC7` | `Versions.kyo` in the same file[^project-dependencies] |
+| Kyo source | commit `1d54c02a3842a5792814a9d1abc7df2fb629eb3e` | annotated tag `v1.0.0-RC7`[^kyo-rc7] |
 
 The Kyo claims below apply to that commit. If the project Kyo version changes, treat them as provisional immediately,
 even before `stale_after`. Recheck signatures and semantics against the new tag, update the pinned reference, then
@@ -129,17 +131,25 @@ valid-looking but incorrect locations.
 
 ### Variance for stage boundaries
 
-Morphir-scala declares `Stage[-I, +O, S]`: input is contravariant and output covariant.[^morphir-stage]
+Morphir-scala's buildkit declares `enum Stage[-I, +O, E, S]`: input is contravariant and output covariant. The
+declared error `E` and the effect row `S` are invariant, because `run` returns `O < (Abort[E] & S)`; the `Stage`
+scaladoc gives the variance argument.[^morphir-stage]
 
 Value: a stage that accepts a broader input can serve where a caller expects a narrower input. A stage that
-produces a narrower output can satisfy a broader output requirement. Effect type `S` remains explicit rather than
-hidden in inheritance.
+produces a narrower output can satisfy a broader output requirement. The declared error `E` and effect row `S`
+remain explicit rather than hidden in inheritance.
 
 ### Intersection types for capability accumulation
 
-Scala 3 intersection types provide the syntax used by Kyo effect rows and by stage composition. The illustrative
-shape below renames for readability; the pinned `Stage` spells the operator `>>>` with signature
-`final def >>>[O2, S2](next: Stage[O, O2, S2]): Stage[I, O2, S & S2]`.[^morphir-stage]
+Scala 3 intersection types provide the syntax used by Kyo effect rows and by stage composition. The pinned `Stage`
+composes with `andThen`, which `>>>` aliases. It joins effect rows as an intersection and declared errors as a
+union:[^morphir-stage]
+
+```scala
+infix def andThen[O2, E2, S2](next: Stage[O, O2, E2, S2]): Stage[I, O2, E | E2, S & S2]
+```
+
+The illustrative shape below drops the declared-error parameter for readability:
 
 ```scala
 trait Stage[-Input, +Output, Effect]:
@@ -396,7 +406,7 @@ single cardinality descriptor. With separate `OptionalKey` and `ManyKey`, overlo
 `Vector[A]` directly. An additional match-type algebra would be clever machinery without caller value. Prefer
 ordinary types until a measured API burden justifies more.
 
-## Kyo features at `1.0.0-RC6`
+## Kyo features at `1.0.0-RC7`
 
 ### The pending type keeps requirements in signatures
 
@@ -491,7 +501,7 @@ object AttributionProduction:
 
 An ordinary Scala `using` value scopes the `AttributionContext` at the stage or run boundary. That is enough
 to keep snapshot, producer, and layer out of every method argument and out of IR nodes; it makes no claim about a
-Kyo environment effect at RC6. A caller can supply callbacks whose handlers collect facts, validate and index them,
+Kyo environment effect at RC7. A caller can supply callbacks whose handlers collect facts, validate and index them,
 serialize selected facts, or discard them. Treat a future direct `Emit`-style implementation as an interchangeable
 handler choice only after verifying its exact pinned API.
 
@@ -527,10 +537,10 @@ evidence that graph construction should expose scheduler primitives or that the 
 The absence of a Kyo value in a row is deliberate. Pure data and pure transformations should remain independent of an
 effect library when Kyo adds no required capability.
 
-[^project-dependencies]: morphir-scala dependency versions at commit `dbf53136`.
-[^scala-reference]: Scala 3.8.4 Reference.
-[^kyo-rc6]: Kyo `v1.0.0-RC6` at commit `2e58c055`.
-[^kyo-pending]: Kyo pending type at `1.0.0-RC6`.
-[^morphir-stage]: morphir-scala typed Stage.
+[^project-dependencies]: morphir-scala dependency versions at commit `925c2db1`.
+[^scala-reference]: Scala 3 Reference (unversioned). The illustrative Scala and Kyo samples on this page compiled under Scala 3.9.0 with Kyo 1.0.0-RC7 in a local check.
+[^kyo-rc7]: Kyo `v1.0.0-RC7` at commit `1d54c02a`.
+[^kyo-pending]: Kyo pending type at `1.0.0-RC7`.
+[^morphir-stage]: morphir-scala buildkit `Stage`, `morphir/buildkit/core/src/morphir/buildkit/Stage.scala`.
 [^morphir-kyo-visitor]: morphir-scala KyoQueryVisitor.
 [^morphir-elm-parse]: morphir-scala ElmParse effect.

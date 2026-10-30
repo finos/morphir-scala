@@ -9,7 +9,7 @@ echo "Running JS tests..."
 # separate daemonless Mill JVMs, matching hosted CI's split while releasing each in-process Scala.js linker worker
 # before the next group starts.
 #
-# `-j 4` rather than `-j 0`. Every Scala.js link runs inside the single Mill
+# `-j 2` rather than `-j 0`. Every Scala.js link runs inside the single Mill
 # daemon JVM and holds a full linker working set, so the constraint is that
 # daemon's heap, not the core count. `-j 0` on a many-core developer machine
 # schedules one link per core and exhausts it outright; the failure surfaces as
@@ -23,10 +23,12 @@ echo "Running JS tests..."
 # therefore at `-Xmx8g`, which fits GitHub's 16 GB runners. Treat `-j` and
 # `-Xmx` as one setting: lowering the heap means lowering this too.
 #
-# `-j 4` is this task's own default, tuned for a developer machine with headroom to spare. Hosted CI runs at `-j 2`
-# instead; its runners are smaller, so they need a lower cap even after morphir-oyn split the desktop/UI load.
-./mill -i -k -j 4 ci.testJs --group platform
-./mill -i -k -j 4 ci.testJs --group desktop
+# `-j 2` matches hosted CI. This task used to run at `-j 4` on a developer machine, but after Kyo 1.0.0-RC7 and
+# Scala 3.9.0 two concurrent test links (`morphir.tests.js.test` and `morphir.web.renderer.js.test`) exhausted the 8 GB
+# heap in the Scala.js optimizer at `-j 4`, then hung instead of failing. The heap is a property of the Mill JVM, not
+# of the machine, so a larger developer machine does not buy back the extra links.
+./mill -i -k -j 2 ci.testJs --group platform
+./mill -i -k -j 2 ci.testJs --group desktop
 
 # The Wasm `fullLinkJS` tasks link one at a time. Each holds the largest working set in this task,
 # and running several concurrently exhausted the daemon heap inside the linker's BinaryWriter

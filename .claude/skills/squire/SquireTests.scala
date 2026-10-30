@@ -1,10 +1,10 @@
-//| scalaVersion: 3.8.4
+//| scalaVersion: 3.9.0
 //| mainClass: kyo.test.runner.Cli
 //| resources: [test-resources]
 //| moduleDeps: [squire.scala, SquireCellar.scala, SquireRepo.scala, SquireTracking.scala, SquireChangelog.scala, SquireVersionCorpus.scala]
 //| mvnDeps:
-//| - io.getkyo::kyo-test-api:1.0.0-RC6
-//| - io.getkyo::kyo-test-runner:1.0.0-RC6
+//| - io.getkyo::kyo-test-api:1.0.0-RC7
+//| - io.getkyo::kyo-test-runner:1.0.0-RC7
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
@@ -3496,7 +3496,7 @@ class SquireBranchSpec extends Test[Any]:
               !runner.requests.exists(_.argv.headOption.contains("gh")) && neverPushed(runner)
           )
         }
-      }
+      }.unit
     }
 
     "validates an exact target head with a reachable merge without push" in {
@@ -3542,7 +3542,7 @@ class SquireBranchSpec extends Test[Any]:
               neverPushed(runner)
           )
         }
-      }
+      }.unit
     }
 
     "rejects unreachable merge ancestry before push" in {
@@ -4758,9 +4758,9 @@ class SquireProcessSpec extends Test[Any]:
       for
         root <- SquireFixtures.scratch("process")
         source = root / "ProcessProbe.java"
-        _ <- source.write(
+        _ <- Path.run(source.write(
           s"class ProcessProbe { public static void main(String[] a) { String out = \"o\".repeat($outputBytes); String err = \"e\".repeat($outputBytes); System.out.print(out); System.err.print(err); System.exit(7); } }"
-        )
+        ))
         outcome <- Abort.run[SquireError | Timeout](
           Async.timeout(5.seconds)(
             LiveProcessRunner.run(ProcessRequest(Chunk(SquireFixtures.javaExecutable, SquirePaths.render(source))))
@@ -5796,11 +5796,11 @@ class SquireRepoSpec extends Test[Any]:
         entry = SquireRepoFixtures.repo("mill")
         _ <- SquireRepo.saveManifest(root, ReferenceManifest(List(entry)))
         _ <- SquireRepo.remove("mill", keepFiles = true, root, RuleRunner(SquireRepoFixtures.ok), TestSquirePlatform())
-        kept <- dest.exists
+        kept <- SquirePaths.exists(dest)
         _    <- SquireRepo.saveManifest(root, ReferenceManifest(List(entry)))
         _ <- SquireRepo.remove("mill", keepFiles = false, root, RuleRunner(SquireRepoFixtures.ok), TestSquirePlatform())
-        deleted <- dest.exists
-        parent  <- (root / ".refs" / "finos").exists
+        deleted <- SquirePaths.exists(dest)
+        parent  <- SquirePaths.exists(root / ".refs" / "finos")
       yield assert(kept && !deleted && !parent)
     }
 
@@ -5819,7 +5819,7 @@ class SquireRepoSpec extends Test[Any]:
         _ <- SquireRepo.saveManifest(root, ReferenceManifest(List(keptEntry)))
         _ <-
           SquireRepo.remove("missing", keepFiles = true, root, RuleRunner(SquireRepoFixtures.ok), TestSquirePlatform())
-        emptyParentKept <- emptyParent.exists
+        emptyParentKept <- SquirePaths.exists(emptyParent)
         escapedEntry = SquireRepoFixtures.repo(
           "outside-link",
           path = "../outside-link",
@@ -5853,8 +5853,8 @@ class SquireRepoSpec extends Test[Any]:
         symlinkEntry = SquireRepoFixtures.repo("link", strategy = "symlink", source = Some(outside.toString))
         _ <- SquireRepo.saveManifest(root, ReferenceManifest(List(symlinkEntry)))
         _ <- SquireRepo.remove("link", keepFiles = false, root, RuleRunner(SquireRepoFixtures.ok), TestSquirePlatform())
-        targetKept <- (outside / "keep.txt").exists
-        linkGone   <- link.exists(followLinks = false).map(!_)
+        targetKept <- SquirePaths.exists(outside / "keep.txt")
+        linkGone   <- Path.runReadOnly(link.exists(followLinks = false)).map(!_)
         _          <- Sync.defer {
           Files.createDirectories(link.parent.get.toJava)
           Files.createSymbolicLink(link.toJava, outside.toJava)
@@ -5868,7 +5868,7 @@ class SquireRepoSpec extends Test[Any]:
           RuleRunner(SquireRepoFixtures.ok),
           TestSquirePlatform()
         ))
-        targetStillKept <- (outside / "keep.txt").exists
+        targetStillKept <- SquirePaths.exists(outside / "keep.txt")
       yield assert(targetKept && linkGone && escaped.isFailure && targetStillKept && Files.isSymbolicLink(link.toJava))
     }
 
@@ -6009,7 +6009,7 @@ class SquireRepoSpec extends Test[Any]:
           ProcessResult(request, 0, "", "")
         }
         _      <- SquireRepo.remove("v4", keepFiles = false, root, runner, TestSquirePlatform())
-        parent <- (root / ".refs" / "finos").exists
+        parent <- SquirePaths.exists(root / ".refs" / "finos")
       yield assert(
         runner.requests.head.argv ==
           Chunk("git", "-C", source.toString, "worktree", "remove", "--force", dest.toString) && !parent

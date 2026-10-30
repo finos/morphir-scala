@@ -1,7 +1,7 @@
-//| scalaVersion: 3.8.4
+//| scalaVersion: 3.9.0
 //| moduleDeps: [KbIntent.scala]
 //| mvnDeps:
-//| - io.getkyo::kyo-core:1.0.0-RC6
+//| - io.getkyo::kyo-core:1.0.0-RC7
 
 /** Writing intent: creating records, moving them between states, and regenerating the grouped index.
   *
@@ -21,32 +21,34 @@ object KbIntentEdit:
     * Only column-zero `key:` lines are considered, so nested structures (`generated:`, `sources:`) are never touched.
     */
   def setKeys(file: Path, updates: Seq[(String, Option[String])]): Unit < (Sync & Abort[Throwable]) =
-    file.read.map { text =>
-      val (rawFm, body) = KbStore.splitFrontmatter(text)
-      rawFm match
-        case None => Abort.fail(RuntimeException(s"${KbPath.render(file)} has no frontmatter to edit"))
-        case Some(fm) =>
-          val lines = fm.split("\n", -1).toVector
-          var out = lines
-          updates.foreach { (key, value) =>
-            val idx = out.indexWhere(l => l.startsWith(s"$key:"))
-            (idx, value) match
-              case (-1, Some(v)) =>
-                // Append at the very end. Anchoring on "the last top-level line" looked tidier but was wrong: when
-                // frontmatter ends in a block such as `sources:`, that line *is* the block header, and the new key
-                // landed between it and its indented children — corrupting the YAML and the provenance with it.
-                val at = out.lastIndexWhere(_.trim.nonEmpty) + 1
-                out = out.take(at) ++ Vector(s"$key: $v") ++ out.drop(at)
-              case (-1, None) => ()
-              case (i, Some(v)) => out = out.updated(i, s"$key: $v")
-              case (i, None) =>
-                // Drop the key and any indented continuation beneath it.
-                val end = out.indexWhere(l => l.nonEmpty && !l.startsWith(" "), i + 1) match
-                  case -1 => out.length
-                  case n => n
-                out = out.take(i) ++ out.drop(end)
-          }
-          file.write(s"---\n${out.mkString("\n").stripTrailing()}\n---\n$body")
+    Path.run {
+      file.read.map { text =>
+        val (rawFm, body) = KbStore.splitFrontmatter(text)
+        rawFm match
+          case None => Abort.fail(RuntimeException(s"${KbPath.render(file)} has no frontmatter to edit"))
+          case Some(fm) =>
+            val lines = fm.split("\n", -1).toVector
+            var out = lines
+            updates.foreach { (key, value) =>
+              val idx = out.indexWhere(l => l.startsWith(s"$key:"))
+              (idx, value) match
+                case (-1, Some(v)) =>
+                  // Append at the very end. Anchoring on "the last top-level line" looked tidier but was wrong: when
+                  // frontmatter ends in a block such as `sources:`, that line *is* the block header, and the new key
+                  // landed between it and its indented children — corrupting the YAML and the provenance with it.
+                  val at = out.lastIndexWhere(_.trim.nonEmpty) + 1
+                  out = out.take(at) ++ Vector(s"$key: $v") ++ out.drop(at)
+                case (-1, None) => ()
+                case (i, Some(v)) => out = out.updated(i, s"$key: $v")
+                case (i, None) =>
+                  // Drop the key and any indented continuation beneath it.
+                  val end = out.indexWhere(l => l.nonEmpty && !l.startsWith(" "), i + 1) match
+                    case -1 => out.length
+                    case n => n
+                  out = out.take(i) ++ out.drop(end)
+            }
+            file.write(s"---\n${out.mkString("\n").stripTrailing()}\n---\n$body")
+      }
     }
 
   private def yamlStr(s: String): String =
@@ -65,30 +67,32 @@ object KbIntentEdit:
       tags: Seq[String],
       today: LocalDate
   ): Either[String, Path] < (Sync & Abort[Throwable]) =
-    val id = KbIntent.nextId(b)
-    val slug = KbScaffold.slugify(title)
-    val file = b.root / s"$id-$slug.md"
-    file.exists.map {
-      case true => Left(s"${KbPath.render(file)} already exists")
-      case false =>
-        val sb = StringBuilder()
-        sb ++= "---\n"
-        sb ++= "type: Intent\n"
-        sb ++= s"title: ${yamlStr(title)}\n"
-        sb ++= s"description: ${yamlStr(description)}\n"
-        sb ++= s"state: ${IntentState.Backlog}\n"
-        sb ++= s"kind: ${kind.label}\n"
-        sb ++= s"breaking: $breaking\n"
-        sb ++= s"created: $today\n"
-        sb ++= s"state_since: $today\n"
-        issue.foreach(x => sb ++= s"issue: ${x.stripPrefix("#")}\n")
-        if tags.nonEmpty then sb ++= s"tags: [${tags.map(KbScaffold.slugify).mkString(", ")}]\n"
-        sb ++= "---\n\n"
-        sb ++= s"# $id — $title\n\n"
-        sb ++= s"$description\n\n"
-        sb ++= "## Problem\n\n<!-- TODO: what problem is this solving? Resist describing a solution here. -->\n\n"
-        sb ++= "## Approach\n\n<!-- TODO: fill in during Refinement. Delete if it stays trivial. -->\n"
-        file.write(sb.toString).andThen(Right(file))
+    Path.run {
+      val id = KbIntent.nextId(b)
+      val slug = KbScaffold.slugify(title)
+      val file = b.root / s"$id-$slug.md"
+      file.exists.map {
+        case true => Left(s"${KbPath.render(file)} already exists")
+        case false =>
+          val sb = StringBuilder()
+          sb ++= "---\n"
+          sb ++= "type: Intent\n"
+          sb ++= s"title: ${yamlStr(title)}\n"
+          sb ++= s"description: ${yamlStr(description)}\n"
+          sb ++= s"state: ${IntentState.Backlog}\n"
+          sb ++= s"kind: ${kind.label}\n"
+          sb ++= s"breaking: $breaking\n"
+          sb ++= s"created: $today\n"
+          sb ++= s"state_since: $today\n"
+          issue.foreach(x => sb ++= s"issue: ${x.stripPrefix("#")}\n")
+          if tags.nonEmpty then sb ++= s"tags: [${tags.map(KbScaffold.slugify).mkString(", ")}]\n"
+          sb ++= "---\n\n"
+          sb ++= s"# $id — $title\n\n"
+          sb ++= s"$description\n\n"
+          sb ++= "## Problem\n\n<!-- TODO: what problem is this solving? Resist describing a solution here. -->\n\n"
+          sb ++= "## Approach\n\n<!-- TODO: fill in during Refinement. Delete if it stays trivial. -->\n"
+          file.write(sb.toString).andThen(Right(file))
+      }
     }
 
   // ------------------------------------------------------------- transitions
@@ -152,16 +156,18 @@ object KbIntentEdit:
     * "what is pending, in flight, and no longer valid".
     */
   def generateIndex(b: Bundle, today: LocalDate): Boolean < (Sync & Abort[Throwable]) =
-    b.index.file.read.map { text =>
-      val normalized = text.replace("\r\n", "\n")
-      val markerAt = normalized.indexOf(KbIntent.Marker)
-      val preamble =
-        if markerAt >= 0 then normalized.take(markerAt + KbIntent.Marker.length)
-        else normalized.stripTrailing() + "\n\n" + KbIntent.Marker
-      val generated = renderSections(KbIntent.intents(b), today)
-      val updated = preamble + "\n\n" + generated
-      if updated == normalized then false
-      else b.index.file.write(updated).andThen(true)
+    Path.run {
+      b.index.file.read.map { text =>
+        val normalized = text.replace("\r\n", "\n")
+        val markerAt = normalized.indexOf(KbIntent.Marker)
+        val preamble =
+          if markerAt >= 0 then normalized.take(markerAt + KbIntent.Marker.length)
+          else normalized.stripTrailing() + "\n\n" + KbIntent.Marker
+        val generated = renderSections(KbIntent.intents(b), today)
+        val updated = preamble + "\n\n" + generated
+        if updated == normalized then false
+        else b.index.file.write(updated).andThen(true)
+      }
     }
 
   private def renderSections(items: Seq[Intent], today: LocalDate): String =
@@ -205,30 +211,32 @@ object KbIntentEdit:
       staleAfterDays: Int,
       today: LocalDate
   ): Either[String, Seq[Path]] < (Sync & Abort[Throwable]) =
-    val dir = kbRoot / "bundles" / KbScaffold.slugify(name)
-    dir.exists.map {
-      case true => Left(s"${KbPath.render(dir)} already exists")
-      case false =>
-        val index = dir / "index.md"
-        val log = dir / "log.md"
-        val sb = StringBuilder()
-        sb ++= "---\n"
-        sb ++= "okf_version: \"0.2\"\n"
-        sb ++= "title: Intent\n"
-        sb ++= "description: \"Work this project means to do, is doing, or has done — with the reasoning behind it.\"\n"
-        sb ++= "intent: true\n"
-        system.foreach(s => sb ++= s"system: $s\n")
-        capabilityBundle.foreach(c => sb ++= s"capability_bundle: $c\n")
-        sb ++= s"stale_after_days: $staleAfterDays\n"
-        sb ++= "---\n\n"
-        sb ++= "# Intent\n\n"
-        sb ++= "Work this project means to do, is doing, or has done — with the reasoning behind it.\n\n"
-        sb ++= "Each entry is an Intent: future-tense, with a lifecycle. What the system actually *does* today lives\n"
-        sb ++= "in the capability bundle, in the present tense. Releasing an Intent requires linking the Capability it\n"
-        sb ++= "produced, which is what keeps the two in step.\n\n"
-        sb ++= s"${KbIntent.Marker}\n"
-        for
-          _ <- index.write(sb.toString)
-          _ <- log.write(s"# Log\n\n## $today\n\n* **Creation**: Intent bundle created.\n")
-        yield Right(Seq(index, log))
+    Path.run {
+      val dir = kbRoot / "bundles" / KbScaffold.slugify(name)
+      dir.exists.map {
+        case true => Left(s"${KbPath.render(dir)} already exists")
+        case false =>
+          val index = dir / "index.md"
+          val log = dir / "log.md"
+          val sb = StringBuilder()
+          sb ++= "---\n"
+          sb ++= "okf_version: \"0.2\"\n"
+          sb ++= "title: Intent\n"
+          sb ++= "description: \"Work this project means to do, is doing, or has done — with the reasoning behind it.\"\n"
+          sb ++= "intent: true\n"
+          system.foreach(s => sb ++= s"system: $s\n")
+          capabilityBundle.foreach(c => sb ++= s"capability_bundle: $c\n")
+          sb ++= s"stale_after_days: $staleAfterDays\n"
+          sb ++= "---\n\n"
+          sb ++= "# Intent\n\n"
+          sb ++= "Work this project means to do, is doing, or has done — with the reasoning behind it.\n\n"
+          sb ++= "Each entry is an Intent: future-tense, with a lifecycle. What the system actually *does* today lives\n"
+          sb ++= "in the capability bundle, in the present tense. Releasing an Intent requires linking the Capability it\n"
+          sb ++= "produced, which is what keeps the two in step.\n\n"
+          sb ++= s"${KbIntent.Marker}\n"
+          for
+            _ <- index.write(sb.toString)
+            _ <- log.write(s"# Log\n\n## $today\n\n* **Creation**: Intent bundle created.\n")
+          yield Right(Seq(index, log))
+      }
     }

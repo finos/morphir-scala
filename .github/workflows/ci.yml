@@ -412,9 +412,9 @@ jobs:
         uses: coursier/cache-action@v8
 
       - name: Run JS tests
-        # Kept in step with .config/mise/tasks/test/js for the underlying selectors, but `-j 2`
-        # rather than that task's `-j 4` default: a GitHub-hosted runner is smaller than a developer
-        # machine and shares its 8 GB daemon heap (.mill-jvm-opts) with everything else on the box.
+        # Kept in step with .config/mise/tasks/test/js for the underlying selectors and its `-j 2`
+        # cap: every Scala.js link shares the 8 GB daemon heap (.mill-jvm-opts), and since Kyo
+        # 1.0.0-RC7 more concurrent links than that exhaust it on a developer machine as well.
         # ci.testJs partitions the shared wildcard by millbuild.JsTestSelectors; "platform" is every
         # JS/Wasm test module except morphir.ui, which test-js-desktop covers instead.
         run: |
