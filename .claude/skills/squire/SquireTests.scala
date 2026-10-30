@@ -5242,7 +5242,7 @@ class SquireCellarSpec extends Test[Any]:
         "kyo-case-app"   -> "io.getkyo:kyo-case-app_3:1.0.0-RC5",
         "kyo-schema"     -> "io.getkyo:kyo-schema_3:1.0.0-RC5",
         "kyo-zio"        -> "io.getkyo:kyo-zio_3:1.0.0-RC5",
-        "zio:2.1.26"     -> "dev.zio:zio_3:2.1.26",
+        "zio:2.1.27"     -> "dev.zio:zio_3:2.1.26",
         "zio-cli"        -> "dev.zio:zio-cli_3:0.8.1",
         "mill-scalalib"  -> "com.lihaoyi:mill-scalalib_3:0.12.0",
         "scala3-library" -> "org.scala-lang:scala3-library_3:3.8.4"
@@ -5294,7 +5294,7 @@ class SquireCellarSpec extends Test[Any]:
         ) &&
           SquireCellar.command(CellarAction.Search("zio:2.1.26", "provide", Some(7)), settings, "cellar") ==
           ProcessRequest(Chunk("cellar", "search-external") ++ flags ++
-            Chunk("dev.zio:zio_3:2.1.26", "provide", "--limit", "7")) &&
+            Chunk("dev.zio:zio_3:2.1.27", "provide", "--limit", "7")) &&
           SquireCellar.command(CellarAction.Deps("mill-scalalib"), CellarSettings(), "cellar") ==
           ProcessRequest(Chunk("cellar", "deps", "com.lihaoyi:mill-scalalib_3:0.12.0"))
       )
