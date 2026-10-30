@@ -279,7 +279,7 @@ object Versions {
   val caliban                    = "3.1.5"
   val metaconfig                 = "0.12.0"
   val mainargs                   = "0.7.8"
-  val `os-lib`                   = "0.11.8"
+  val `os-lib`                   = "0.11.10"
   val paiges                     = "0.4.4"
   val `scala-java-time`          = "2.7.0"
   val `scala-native-crypto`      = "0.0.4"
