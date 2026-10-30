@@ -2,11 +2,11 @@
 type: Intent
 title: morphir-scala Elm frontend extension
 description: "Ship morphir-scala's Elm source-to-IR compiler as an independently selectable Morphir Extension Protocol provider."
-state: InProgress
+state: Backlog
 kind: feature
 breaking: false
 created: 2026-08-26
-state_since: 2026-08-28
+state_since: 2026-10-30
 tags: [elm, extension-protocol, langkit]
 sources:
   - id: morphir-host
@@ -129,6 +129,26 @@ The initial slice is complete when a Morphir CLI host can install and explicitly
 diagnostics for an invalid module. The same conformance fixtures must pass against the reference Elm sidecar and the
 Scala extension. Offline activation must succeed from the verified content-addressed store, and tampered installed
 bytes must be rejected before process launch.
+
+## Where this stands
+
+Moved back to Backlog on 2026-10-30: nobody is working on the remaining criteria, and the record had sat in
+InProgress past the bundle's stale threshold.
+
+What shipped is described by the [Elm MEP frontend Capability](../morphir/morphir-scala/elm-mep-frontend.md):
+`morphir-scala-elm` is released as a native executable for five platforms, serves the MEP 0.1 lifecycle, describe,
+workspace discovery and `morphir.frontend.compile`, and compiles one shape of module: a single `Int -> Int -> Int`
+value whose body adds its two parameters.
+
+The vertical slice is not complete by the
+[Design Note's acceptance criteria](../morphir/morphir-scala/design/elm-frontend-extension.md#acceptance):
+
+- the native executable is not shown to pass the `elm_extension` integration suite that `morphir-elm` passes; that
+  suite lives in `finos/morphir` and does not run in this repository's CI;
+- no test validates the emitted IR against the Morphir IR schema;
+- no test compares the normalized semantic IR with the reference provider's.
+
+Resuming this intent means closing those three gaps, together with the questions under Unresolved.
 
 ## Unresolved
 

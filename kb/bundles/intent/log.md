@@ -2,6 +2,13 @@
 
 ## 2026-10-30
 
+* **Creation**: [0041](/0041-live-github-http-on-scala-native.md), live GitHub HTTP on Scala Native, split out of
+  [0020](/0020-github-graphql-connector.md). It waits on a Kyo Native artifact with working kqueue bindings.
+* **Update**: Moved [0037](/0037-morphir-scala-elm-frontend-extension.md) back to Backlog. The provider shipped,
+  but three acceptance criteria are unmet: the `elm_extension` host suite, schema validation and IR equivalence with
+  `morphir-elm`.
+* **Update**: Kept [0020](/0020-github-graphql-connector.md) InProgress. Its Scala.js and Scala Native artifacts never
+  reached Maven Central; it releases once a milestone publishes them.
 * **Update**: Moved the Kyo 1.0.0-RC6 claims in [0020](/0020-github-graphql-connector.md),
   [0033](/0033-markdown-compilation.md) and [0037](/0037-morphir-scala-elm-frontend-extension.md) to RC7 after
   re-checking them. The 0037 document-version gap is closed by Kyo PR 1920, released in RC7.
