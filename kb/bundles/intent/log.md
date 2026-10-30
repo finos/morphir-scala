@@ -2,6 +2,9 @@
 
 ## 2026-10-30
 
+* **Update**: Released [0020](/0020-github-graphql-connector.md) in 0.5.0-M11, linking the
+  [GitHub GraphQL Connector](../morphir/morphir-scala/github-graphql-connector.md) Capability. M11 is the first
+  milestone with its Scala.js and Scala Native artifacts on Maven Central.
 * **Creation**: [0041](/0041-live-github-http-on-scala-native.md), live GitHub HTTP on Scala Native, split out of
   [0020](/0020-github-graphql-connector.md). It waits on a Kyo Native artifact with working kqueue bindings.
 * **Update**: Moved [0037](/0037-morphir-scala-elm-frontend-extension.md) back to Backlog. The provider shipped,

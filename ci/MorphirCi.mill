@@ -546,6 +546,7 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
     )
     if dryRun then Task.log.info(s"DRY_RUN: would evaluate ${selectors.mkString(" + ")}")
     else {
+      checkPoms(evaluator, resolvePublishModules(evaluator, kind, cfg), s"ci.sonatype upload ($kind)")
       ensureMillPublishEnv()
       if jobs == 1 then
         selectors.foreach { selector =>

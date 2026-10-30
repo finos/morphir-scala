@@ -43,10 +43,8 @@ home is the [published library families](/design/published-library-families.md) 
 Verified against commit `4626f467` (Kyo 1.0.0-RC7). Module source: `morphir/connector/github`, package
 `morphir.connector.github`. All three platform variants extend `MorphirPublishModule` ([build](https://github.com/finos/morphir-scala/blob/4626f4676e3b30f92adc4791fc69c6920277e28d/morphir/connector/github/package.mill.yaml)),
 with artifact ids `morphir-connector-github_3`, `morphir-connector-github_sjs1_3` and
-`morphir-connector-github_native0.5_3`. Only the JVM artifact is on Maven Central (0.5.0-M05 through 0.5.0-M10). The
-Scala.js and Scala Native artifacts are built and uploaded on release but have never reached Central; their POMs
-name the versionless Kyo dependencies as JVM artifacts with no version. Until a fixed release ships, use them from a
-local build. [Intent 0020](../../intent/0020-github-graphql-connector.md) tracks the gap.
+`morphir-connector-github_native0.5_3`. All three are on Maven Central from 0.5.0-M11. Before that, only the JVM
+artifact reached Central (0.5.0-M05 through 0.5.0-M10).
 
 ## Clients
 

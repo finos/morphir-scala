@@ -2,12 +2,14 @@
 type: Intent
 title: GitHub GraphQL connector
 description: "Publish a Kyo GitHub GraphQL client as morphir-connector-github, with no Morphir types, on JVM, JS, and Native."
-state: InProgress
+state: Released
 kind: feature
 breaking: false
 created: 2026-08-14
-state_since: 2026-08-14
+state_since: 2026-10-30
 tags: [connector, github, kyo]
+capability: morphir/morphir-scala:/github-graphql-connector.md
+artifacts: [pkg:maven/org.finos.morphir/morphir-connector-github_3@0.5.0-M11, pkg:maven/org.finos.morphir/morphir-connector-github_sjs1_3@0.5.0-M11, pkg:maven/org.finos.morphir/morphir-connector-github_native0.5_3@0.5.0-M11]
 ---
 
 # 0020 — GitHub GraphQL connector
@@ -69,15 +71,12 @@ is the [published library families Design Note](../morphir/morphir-scala/design/
 
 ## Where this stands
 
-The connector is built and tested on all three platforms, and the
+Released on 2026-10-30 in 0.5.0-M11, the first milestone with all three artifacts on Maven Central:
+`morphir-connector-github_3`, `_sjs1_3` and `_native0.5_3`. From 0.5.0-M05 to 0.5.0-M10 only the JVM artifact reached
+Central, because the Scala.js and Scala Native POMs named versionless Kyo dependencies as JVM artifacts with no
+version; the build fix in 0.5.0-M11 corrected that, and CI now checks every POM. The
 [GitHub GraphQL connector Capability](../morphir/morphir-scala/github-graphql-connector.md) describes what it does
 today. Beyond this intent's issues, pull requests and discussions, it also reads gists and verifies tokens.
 
-Two things keep this intent open:
-
-- Only the JVM artifact, `morphir-connector-github_3`, is on Maven Central (0.5.0-M05 through 0.5.0-M10). The Scala.js
-  and Scala Native artifacts never reached Central, although the publish log reported success. Their POMs name the
-  versionless Kyo dependencies as JVM artifacts with no version, which is the likely cause. The build fix ships first; this intent
-  releases once a milestone puts the JS and Native artifacts on Central.
-- Live HTTP on Scala Native is [0041](/0041-live-github-http-on-scala-native.md), which waits on a Kyo Native artifact
-  with working kqueue bindings. It does not block the release: the stubbed Native client is the documented behaviour.
+Live HTTP on Scala Native is [0041](/0041-live-github-http-on-scala-native.md), which waits on a Kyo Native artifact
+with working kqueue bindings. The stubbed Native client is the documented behaviour.
