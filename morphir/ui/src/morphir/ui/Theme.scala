@@ -9,7 +9,7 @@ import morphir.ui.theme.{Base, Tokens}
 /**
  * The morphir client theme, aggregated for hosts: the typed stylesheets of the theme and layout packages rendered to
  * one string, plus two raw blocks. `legacyCss` holds the component rules still awaiting migration; `quarantineCss`
- * holds only properties the typed vocabulary cannot express at RC6 and is meant to stay tiny.
+ * holds only properties the typed vocabulary cannot express at RC7 and is meant to stay tiny.
  */
 object Theme:
 
@@ -25,7 +25,7 @@ object Theme:
       |/* -webkit-app-region: no typed property (frameless-window drag regions). */
       |.titlebar { -webkit-app-region: drag; }
       |.icon-btn, .nav-item, .chip { -webkit-app-region: no-drag; }
-      |/* CSS grid: no typed vocabulary at RC6. */
+      |/* CSS grid: no typed vocabulary at RC7. */
       |.content {
       |  flex: 1; overflow: auto; padding: 22px;
       |  display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 16px;

@@ -4,16 +4,15 @@ package internal
 import kyo.*
 
 /**
- * Scala Native does not take `kyo-http` at kyo 1.0.0-RC6. The published `kyo-net` Native artifact was generated on a
- * Linux host: `KqueueBindingsImpl` is a throwing stub (`sys/event.h` unavailable), and `EpollBindingsImpl` still
- * references Linux `epoll` / `eventfd` / `io_uring` symbols that macOS cannot link. OpenSSL flags alone do not fix
- * that. `GithubClient.live` still exists so the public API is the same; listing fails with
- * [[GitHubException.Transport]] rather than posting.
+ * Scala Native does not take `kyo-http` at kyo 1.0.0-RC7. The published `kyo-net` Native artifact was generated on a
+ * Linux host, so `KqueueBindingsImpl` is a throwing stub (`sys/event.h` unavailable). RC7 fixed the macOS link failure
+ * (getkyo/kyo#1896), but a macOS binary would find no I/O backend below that stub. `GithubClient.live` still exists so
+ * the public API is the same; listing fails with [[GitHubException.Transport]] rather than posting.
  */
 private[github] object PlatformLive:
 
   private val detail =
-    "Live GitHub HTTP is not linked on Scala Native at kyo 1.0.0-RC6"
+    "Live GitHub HTTP is not linked on Scala Native at kyo 1.0.0-RC7"
 
   def make(token: Token): GithubClient =
     val _ = token

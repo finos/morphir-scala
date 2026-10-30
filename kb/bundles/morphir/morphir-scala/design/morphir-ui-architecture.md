@@ -53,10 +53,13 @@ retired with `morphir/desktop` (see [Desktop smoke boundary](#desktop-smoke-boun
 
 ## Animation and other DOM-level work
 
-Some behaviour cannot be expressed as a pure `UI` value. Pointer drags have no kyo-ui events at RC6, and animation
-runs into a sharper limit: a reactive `style` binding re-creates the element on every emission, so the browser never
-sees a start value and a CSS transition cannot play. Both therefore live in small adapters under
-`morphir.ui.internal`, hidden with `private[ui]` and reached through one public entry (`AppShell.attachShellDom`).
+Some behaviour cannot be expressed as a pure `UI` value. Panel resizing is one case. Kyo 1.0.0-RC7 added
+drag-and-drop events (`onDragStart` through `onDrop`, configured by `Drag.Source` and `Drag.Target`), but they move
+items onto drop targets, and kyo-ui still has no pointer-down or pointer-move event. Whether the drag-and-drop events
+can drive a resize is untried. Animation runs into a sharper limit: a reactive `style` binding re-creates the
+element on every emission, so the browser never sees a start value and a CSS transition cannot play. Both
+therefore live in small adapters under `morphir.ui.internal`, hidden with `private[ui]` and reached through one
+public entry (`AppShell.attachShellDom`).
 
 The rule that keeps them honest: **an adapter reads the store and writes the DOM; it never owns state.**
 `PointerResize` turns drags into `resize*` commands, and `PanelMotion` subscribes to the store's extent signals and
@@ -109,7 +112,7 @@ the surface. `System` follows the host: kyo types `prefers-color-scheme: dark` o
 and the media query puts the dark one back.
 
 Raw CSS survives only in a quarantine block, one comment per rule naming the missing vocabulary.
-At Kyo 1.0.0-RC6 that is: `-webkit-app-region` (frameless-window drag regions), CSS grid,
+At Kyo 1.0.0-RC7 that is: `-webkit-app-region` (frameless-window drag regions), CSS grid,
 inset `box-shadow`, `background-clip: text`, and the global resets (universal selector, scrollbar
 pseudo-elements, font smoothing). If Kyo grows the vocabulary, the quarantine shrinks.
 

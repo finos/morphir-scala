@@ -10,11 +10,14 @@ state_since: 2026-08-20
 tags: [langkit, markdown, compiler, kyo-ui, scalatags, commonmark]
 sources:
   - id: kyo-ui-jvm
-    resource: https://repo1.maven.org/maven2/io/getkyo/kyo-ui_3/1.0.0-RC6/
-    title: kyo-ui 1.0.0-RC6, JVM artifact
+    resource: https://repo1.maven.org/maven2/io/getkyo/kyo-ui_3/1.0.0-RC7/
+    title: kyo-ui 1.0.0-RC7, JVM artifact
+  - id: kyo-ui-sjs
+    resource: https://repo1.maven.org/maven2/io/getkyo/kyo-ui_sjs1_3/1.0.0-RC7/
+    title: kyo-ui 1.0.0-RC7, Scala.js artifact
   - id: kyo-ui-native
-    resource: https://repo1.maven.org/maven2/io/getkyo/kyo-ui_native0.5_3/1.0.0-RC6/
-    title: kyo-ui 1.0.0-RC6, Scala Native artifact
+    resource: https://repo1.maven.org/maven2/io/getkyo/kyo-ui_native0.5_3/1.0.0-RC7/
+    title: kyo-ui 1.0.0-RC7, Scala Native artifact
   - id: unified
     resource: https://github.com/unifiedjs/unified/blob/ba1af683ba597228b736566752668e7132295d38/readme.md
     title: unified processor documentation
@@ -100,8 +103,9 @@ algebra. [Two writers, one algebra](#two-writers-one-algebra) sets out the measu
 
 `kyo-ui` publishes for JVM, Scala.js, and Scala Native at the version the build pins in
 `ScalaVersions`/`Versions`, and its HTML renderer lives in shared sources, so the same call works on every
-platform the langkit targets. These two claims were checked by resolving the published `1.0.0-RC6` artifacts and
-reading their contents, not from documentation; the API signatures quoted above come from the same inspection.
+platform the langkit targets. These two claims were checked by resolving the published `1.0.0-RC7` artifacts and
+reading their contents, not from documentation. The API signatures quoted above were checked against the
+`v1.0.0-RC7` source tag.
 Those artifacts are compiled for Java 25, so every consumer of the kyo-ui writer needs that runtime. The
 ScalaTags writer does not depend on kyo-ui, so the conformance suite does not inherit that floor.
 
@@ -275,8 +279,8 @@ a `span` with a class because kyo-ui has no `em` or `strong`. Settled either by 
 a canonicalizing measure that scores it on the divergences that are not cosmetic.
 
 **Do the kyo-ui platform claims hold at the pinned version?** The JVM, Scala.js, and Scala Native artifacts were
-read at `1.0.0-RC6`. A version bump could move the HTML renderer out of shared sources or change the
-`runRender` signature. Re-reading the artifacts on each kyo bump settles it.
+read at `1.0.0-RC7`, the version the build pins. A version bump could move the HTML renderer out of shared
+sources or change the `runRender` signature. Re-reading the artifacts on each kyo bump settles it.
 
 ## Relationships
 

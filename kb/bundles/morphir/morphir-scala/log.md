@@ -1,5 +1,14 @@
 # Log
 
+## 2026-10-30
+
+* **Update**: Moved the remaining Kyo 1.0.0-RC6 claims to RC7 after checking each against the RC7 tag and the
+  published artifacts. [Published library families](/design/published-library-families.md): kyo-http platform and
+  Node-only claims hold; RC7 fixes the macOS Native link failure, but the kqueue binding is still a throwing stub.
+  [Morphir UI architecture](/design/morphir-ui-architecture.md): RC7 adds drag-and-drop events but still no pointer
+  tracking; the raw-CSS list holds. [Elm frontend extension](/design/elm-frontend-extension.md): RC7 keeps integers
+  above `Long.MaxValue` exactly, so the full unsigned 64-bit document-version range crosses the JSON layer.
+
 ## 2026-09-23
 
 * **Decision**: [Consolidate the human-facing CLI in finos/morphir](/decisions/0018-consolidate-the-cli-in-finos-morphir.md)

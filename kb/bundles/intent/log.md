@@ -1,5 +1,11 @@
 # Log
 
+## 2026-10-30
+
+* **Update**: Moved the Kyo 1.0.0-RC6 claims in [0020](/0020-github-graphql-connector.md),
+  [0033](/0033-markdown-compilation.md) and [0037](/0037-morphir-scala-elm-frontend-extension.md) to RC7 after
+  re-checking them. The 0037 document-version gap is closed by Kyo PR 1920, released in RC7.
+
 ## 2026-09-23
 
 * **Update**: Cancelled [0017](/0017-morphir-cli-buildkit-integration.md) and

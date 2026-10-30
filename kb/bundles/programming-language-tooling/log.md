@@ -1,5 +1,12 @@
 # Log
 
+## 2026-10-30
+
+* **Update**: Settled the `Tag`-on-pending pitfall in
+  [Kyo effect handlers and typed halting](/kyo-effect-handlers-and-typed-halting.md) with a probe on RC5, RC6 and
+  RC7. RC5 and RC6 derived the tag but dropped the arguments of `<`, so sources of different element types shared one
+  tag; RC7 keeps them. The `MatchError` that motivated `FluxEngine.Boxed` did not reproduce.
+
 ## 2026-10-29
 
 * **Update**: Moved [Kyo effect handlers and typed halting](/kyo-effect-handlers-and-typed-halting.md) from Kyo
