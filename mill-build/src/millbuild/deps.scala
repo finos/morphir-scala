@@ -145,6 +145,7 @@ object Deps {
       val `kyo-schema`        = mvn"io.getkyo::kyo-schema::${Versions.kyo}"
       val `kyo-schema-json`   = mvn"io.getkyo::kyo-schema-json::${Versions.kyo}"
       val `kyo-schema-yaml`   = mvn"io.getkyo::kyo-schema-yaml::${Versions.kyo}"
+      val `kyo-system`        = mvn"io.getkyo::kyo-system::${Versions.kyo}"
       val `kyo-ui`            = mvn"io.getkyo::kyo-ui::${Versions.kyo}"
       val `kyo-zio`           = mvn"io.getkyo::kyo-zio::${Versions.kyo}"
       val `kyo-test-api`      = mvn"io.getkyo::kyo-test-api::${Versions.kyo}"
@@ -163,6 +164,7 @@ object Deps {
         `kyo-schema`,
         `kyo-schema-json`,
         `kyo-schema-yaml`,
+        `kyo-system`,
         `kyo-ui`,
         `kyo-zio`,
         `kyo-test-api`,
@@ -273,7 +275,7 @@ object Versions {
   val geny                       = "1.1.1"
   val `izumi-reflect`            = "3.0.9"
   val jmh                        = "1.37"
-  val kyo                        = "1.0.0-RC6"
+  val kyo                        = "1.0.0-RC7"
   val caliban                    = "3.1.5"
   val metaconfig                 = "0.12.0"
   val mainargs                   = "0.7.8"
@@ -303,11 +305,16 @@ object Versions {
 }
 
 object ScalaVersions {
-  val scala3 = "3.8.4"
+  val scala3 = "3.9.0"
 
   def scalaJSVersion     = "1.22.0"
   def scalaNativeVersion = "0.5.12"
-  def millScalaVersion   = scala3
+
+  /**
+   * The Scala version Mill itself is built with. Mill plugins compile with this, not [[scala3]]: a plugin compiled with
+   * a newer Scala emits TASTy that the consumer's Mill metabuild compiler cannot read. Move it with `.mill-version`.
+   */
+  def millScalaVersion = "3.8.4"
 
   // Backwards compatibility aliases
   def scala3x = scala3

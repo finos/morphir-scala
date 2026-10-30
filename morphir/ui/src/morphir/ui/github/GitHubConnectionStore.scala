@@ -1,7 +1,6 @@
 package morphir.ui.github
 
 import kyo.*
-import kyo.kernel.Effect
 import morphir.ui.services.*
 
 final class GitHubConnectionStore private (
@@ -46,9 +45,7 @@ final class GitHubConnectionStore private (
   private def attempt[A](
       operation: => A < (Async & Abort[GitHubConnectionError])
   ): Result[GitHubConnectionError, A] < Async =
-    Effect.catching(Abort.run[GitHubConnectionError](operation)) { (error: Throwable) =>
-      Result.Panic(error): Result[GitHubConnectionError, A]
-    }
+    Abort.run[GitHubConnectionError](operation)
 
 object GitHubConnectionStore:
 

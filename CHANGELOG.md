@@ -11,6 +11,12 @@ a release.
 ### Added
 - Shared OpenSpec html-design extension, core agent skills, locked templates, Mill-backed development tasks and CI validation.
 
+### Changed
+- Kyo moves to `1.0.0-RC7` and Scala to `3.9.0`, the version Kyo RC7 is built with. Consumers of the libraries need
+  Scala `3.9.0` or later. The Mill plugins still compile with Mill's own Scala, `3.8.4`.
+- The `morphir` library jars publish their scaladoc again. Scala `3.9.0` fixes the JDK 25 scaladoc crash that made
+  them publish an empty doc jar.
+
 ## [0.5.0-M10] - 2026-09-24
 
 ### Added

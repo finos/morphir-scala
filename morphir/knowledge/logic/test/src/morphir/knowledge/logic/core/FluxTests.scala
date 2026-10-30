@@ -27,4 +27,9 @@ class FluxTests extends Test[Any]:
     val res    = merged.runCollectN(12)
     assert(res == Chunk('a', 'b', 'c', 'd', 'a', 'b', 'c', 'd', 'a', 'b', 'c', 'd'))
   }
+
+  "A suspended recursive branch does not starve its sibling" in {
+    def xs: Flux[Int] = Flux.suspend(xs).merge(Flux.succeed(1))
+    assert(xs.runCollectN(3) == Chunk(1, 1, 1))
+  }
 end FluxTests

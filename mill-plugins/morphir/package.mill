@@ -13,7 +13,7 @@ trait MorphirMillPlugin extends Cross.Module[String] with ScalaModule with Scala
     with MorphirMillPublishModule {
   def millVersion = crossValue
 
-  def scalaVersion            = ScalaVers.scala3
+  def scalaVersion            = ScalaVers.millScalaVersion
   override def platformSuffix = MillVersions.platformSuffix
   override def compileMvnDeps = super.compileMvnDeps() ++ Seq(
     mvn"com.lihaoyi::mill-libs-scalalib:$millVersion"
@@ -179,7 +179,7 @@ trait ElmPlugin extends MorphirMillPlugin {
 }
 
 object integration extends ScalaModule with ScalafmtModule {
-  def scalaVersion = ScalaVers.scala3
+  def scalaVersion = ScalaVers.millScalaVersion
   def moduleDeps   = Seq(core(MillVersions.oldest))
 
   object millExecutable extends JavaModule {

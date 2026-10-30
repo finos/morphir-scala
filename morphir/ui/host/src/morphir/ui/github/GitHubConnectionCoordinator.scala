@@ -148,7 +148,7 @@ final class GitHubConnectionCoordinator private (
   private def commit[A](
       effect: => A < (Async & Abort[GitHubConnectionError])
   ): A < (Async & Abort[GitHubConnectionError]) =
-    Async.mask(effect)
+    Async.uninterruptible(effect)
 
   private def writeStored(secretVault: SecretVault, secret: Secret): Unit < (Async & Abort[GitHubConnectionError]) =
     mutateStored(

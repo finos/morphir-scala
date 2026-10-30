@@ -1,62 +1,62 @@
 package morphir.knowledge.logic.core
 
 import kyo.*
-import kyo.kernel.*
 import scala.collection.immutable.{Queue => ScalaQueue}
 
 /**
- * Low-level round-robin (breadth-first) stream engine backing [[Flux]], built on the kyo-prelude `Emit` effect and the
- * kyo-kernel `ArrowEffect.handleFirst` pull primitive.
+ * Low-level round-robin (breadth-first) stream engine backing [[Flux]].
  *
- * A source is a pure Emit computation of chunks of `Option[A]`, where `None` is a yield-point "tick" used to interleave
- * fairly across concurrently-pending sources (mirrors the original `ZStream[Any, Nothing, Option[A]]` representation).
+ * A source is a pure, lazily unfolded sequence of chunks of `Option[A]`, where `None` is a yield-point "tick" used to
+ * interleave fairly across concurrently-pending sources (mirrors the original `ZStream[Any, Nothing, Option[A]]`
+ * representation).
+ *
+ * The engine pulls one chunk at a time and parks the remainder of each source in a queue. Through Kyo 1.0.0-RC6 a
+ * source was a `kyo.Emit` computation pulled with `ArrowEffect.handleFirst`; RC7 made that primitive `private[kyo]` and
+ * marks every public continuation `Region.NoEscape`, so a remainder can no longer be stored. The sources here own no
+ * resources, so a plain lazy step type carries them without loss.
  */
 private[core] object FluxEngine {
 
-  type Src[A] = Unit < Emit[Chunk[Option[A]]]
-
-  // ---- Pull primitive: peel exactly ONE emitted chunk, WITHOUT resuming ----
-  // (the analogue of ZStream#toPull)
-  private enum Pulled[+A]:
+  /**
+   * One step of a source: done, a chunk followed by the rest, or a source not yet built. Nothing after the current
+   * chunk is built until that source is pulled again, so a source that refers to itself through [[suspend]] parks
+   * instead of unfolding while a sibling waits.
+   */
+  enum Src[+A]:
     case Halt
-    case Emitted(chunk: Chunk[Option[A]], rest: Src[A])
+    case Emitted(chunk: Chunk[Option[A]], rest: () => Src[A])
+    case Deferred(src: () => Src[A])
 
-  private def pullChunk[A](src: Src[A])(using tag: Tag[Emit[Chunk[Option[A]]]], frame: Frame): Pulled[A] =
-    ArrowEffect.handleFirst(tag, src)(
-      handle = [C] => (chunk: Chunk[Option[A]], cont) => (Pulled.Emitted(chunk, cont(())): Pulled[A]),
-      done = (_: Unit) => (Pulled.Halt: Pulled[A])
-    ).eval
+  private def emit[A](chunk: Chunk[Option[A]])(rest: => Src[A]): Src[A] = Src.Emitted(chunk, () => rest)
 
   private enum Step[+A]:
     case Halt
     case One(elem: Option[A], rest: Src[A])
 
-  private def pull1[A](src: Src[A])(using Tag[Emit[Chunk[Option[A]]]], Frame): Step[A] =
-    pullChunk(src) match
-      case Pulled.Halt                 => Step.Halt
-      case Pulled.Emitted(chunk, rest) =>
-        if chunk.isEmpty then pull1(rest)
+  @annotation.tailrec
+  private def pull1[A](src: Src[A]): Step[A] =
+    src match
+      case Src.Halt                 => Step.Halt
+      case Src.Deferred(src)        => pull1(src())
+      case Src.Emitted(chunk, rest) =>
+        if chunk.isEmpty then pull1(rest())
         else
-          val head          = chunk.head
-          val tail          = chunk.tail
-          val rest2: Src[A] = if tail.isEmpty then rest else Emit.value(tail).andThen(rest)
-          Step.One(head, rest2)
+          val tail = chunk.tail
+          Step.One(chunk.head, if tail.isEmpty then Src.Deferred(rest) else Src.Emitted(tail, rest))
 
   // ---- Constructors ----
-  def empty[A](using Tag[Emit[Chunk[Option[A]]]], Frame): Src[A] = ()
+  def empty[A]: Src[A] = Src.Halt
 
-  def succeed[A](a: A)(using Tag[Emit[Chunk[Option[A]]]], Frame): Src[A] =
-    Emit.value(Chunk(Some(a): Option[A]))
+  def succeed[A](a: A): Src[A] =
+    emit(Chunk(Some(a): Option[A]))(Src.Halt)
 
-  def repeat[A](a: A)(using Tag[Emit[Chunk[Option[A]]]], Frame): Src[A] =
+  def repeat[A](a: A): Src[A] =
     def r: Src[A] =
-      Emit.value(Chunk(Some(a): Option[A]))
-        .andThen(Emit.value(Chunk(None: Option[A])))
-        .andThen(r)
+      emit(Chunk(Some(a): Option[A]))(emit(Chunk(None: Option[A]))(r))
     r
 
-  def suspend[A](src: => Src[A])(using Tag[Emit[Chunk[Option[A]]]], Frame): Src[A] =
-    Emit.value(Chunk(None: Option[A])).andThen(src)
+  def suspend[A](src: => Src[A]): Src[A] =
+    emit(Chunk(None: Option[A]))(src)
 
   // ---- The core BFS flatMap (faithful port of the ZIO ZStreamCompat state machine) ----
   private enum Item[+A, +B]:
@@ -70,11 +70,7 @@ private[core] object FluxEngine {
       queue: ScalaQueue[Item[A, B]]
   )
 
-  def flatMap[A, B](src: Src[A])(f: A => Src[B])(using
-      ta: Tag[Emit[Chunk[Option[A]]]],
-      tb: Tag[Emit[Chunk[Option[B]]]],
-      frame: Frame
-  ): Src[B] =
+  def flatMap[A, B](src: Src[A])(f: A => Src[B]): Src[B] =
     def loop(st: St[A, B]): Src[B] =
       st.current match
         case Some(inner) =>
@@ -84,23 +80,22 @@ private[core] object FluxEngine {
               loop(st.copy(current = None))
             case Step.One(Some(b), next) =>
               // emit the value, stay on this inner (consume its whole Some-run)
-              Emit.value(Chunk(Some(b): Option[B])).andThen(loop(st.copy(current = Some(next))))
+              emit(Chunk(Some(b): Option[B]))(loop(st.copy(current = Some(next))))
             case Step.One(None, next) =>
               // inner tick: NO output tick, just rotate this inner to the back
               loop(st.copy(current = None, queue = st.queue.enqueue(Item.Inner(next))))
         case None =>
           st.queue.headOption match
             case None =>
-              () // nothing left at all
+              Src.Halt // nothing left at all
             case Some(Item.Inner(innerSrc)) =>
               loop(st.copy(current = Some(innerSrc), queue = st.queue.tail))
             case Some(Item.Outer) =>
               if st.outerDone then
-                if st.queue.size == 1 then ()
+                if st.queue.size == 1 then Src.Halt
                 else
                   // one output tick per full cycle, then rotate Outer to the back
-                  Emit.value(Chunk(None: Option[B]))
-                    .andThen(loop(st.copy(queue = st.queue.tail.enqueue(Item.Outer))))
+                  emit(Chunk(None: Option[B]))(loop(st.copy(queue = st.queue.tail.enqueue(Item.Outer))))
               else
                 pull1(st.outer) match
                   case Step.Halt =>
@@ -110,38 +105,33 @@ private[core] object FluxEngine {
                     loop(st.copy(outer = nextOuter, current = Some(f(a))))
                   case Step.One(None, nextOuter) =>
                     // outer tick: emit an output tick and rotate Outer to the back
-                    Emit.value(Chunk(None: Option[B]))
-                      .andThen(loop(st.copy(outer = nextOuter, queue = st.queue.tail.enqueue(Item.Outer))))
+                    emit(Chunk(None: Option[B]))(
+                      loop(st.copy(outer = nextOuter, queue = st.queue.tail.enqueue(Item.Outer)))
+                    )
 
     loop(St(outerDone = false, outer = src, current = None, queue = ScalaQueue(Item.Outer)))
   end flatMap
 
-  // A plain (non-Kyo) wrapper around a source. Emit requires a Tag for its element
-  // type; the Kyo pending-computation type `Src[A]` is not Tag-derivable (the Tag
-  // macro hits an HKTypeLambda MatchError on `<`/`Kyo`), so we box it in an ordinary
-  // case class whose Tag needs only `Tag[A]`.
-  final private case class Boxed[A](src: Src[A])
+  def merge[A](left: Src[A], right: Src[A]): Src[A] =
+    flatMap(emit(Chunk(Some(left): Option[Src[A]], Some(right): Option[Src[A]]))(Src.Halt))(identity)
 
-  def merge[A: Tag](left: Src[A], right: Src[A])(using frame: Frame): Src[A] =
-    val outer: Src[Boxed[A]] =
-      Emit.value(Chunk(Some(Boxed(left)): Option[Boxed[A]], Some(Boxed(right)): Option[Boxed[A]]))
-    flatMap[Boxed[A], A](outer)(_.src)
-
-  def runCollect[A](src: Src[A])(using Tag[Emit[Chunk[Option[A]]]], Frame): Chunk[A] =
-    def go(s: Src[A], acc: Chunk[A]): Chunk[A] =
+  def runCollect[A](src: Src[A]): Chunk[A] =
+    @annotation.tailrec
+    def loop(s: Src[A], acc: Chunk[A]): Chunk[A] =
       pull1(s) match
         case Step.Halt               => acc
-        case Step.One(None, next)    => go(next, acc)
-        case Step.One(Some(a), next) => go(next, acc.append(a))
-    go(src, Chunk.empty)
+        case Step.One(None, next)    => loop(next, acc)
+        case Step.One(Some(a), next) => loop(next, acc.append(a))
+    loop(src, Chunk.empty)
 
-  def runCollectN[A](src: Src[A], n: Long)(using Tag[Emit[Chunk[Option[A]]]], Frame): Chunk[A] =
-    def go(s: Src[A], acc: Chunk[A]): Chunk[A] =
+  def runCollectN[A](src: Src[A], n: Long): Chunk[A] =
+    @annotation.tailrec
+    def loop(s: Src[A], acc: Chunk[A]): Chunk[A] =
       if acc.size >= n then acc
       else
         pull1(s) match
           case Step.Halt               => acc
-          case Step.One(None, next)    => go(next, acc)
-          case Step.One(Some(a), next) => go(next, acc.append(a))
-    go(src, Chunk.empty)
+          case Step.One(None, next)    => loop(next, acc)
+          case Step.One(Some(a), next) => loop(next, acc.append(a))
+    loop(src, Chunk.empty)
 }

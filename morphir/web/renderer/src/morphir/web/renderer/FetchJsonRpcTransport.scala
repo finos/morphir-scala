@@ -158,7 +158,7 @@ object FetchJsonRpcTransport:
         else ()
       }
 
-    private def closeState(cause: Maybe[TerminalCause])(using Frame): Boolean < Sync =
+    private def closeState(cause: Maybe[TerminalCause])(using Frame): Boolean < Async =
       closed.compareAndSet(false, true).map { first =>
         if first then
           cause.fold(Kyo.unit)(value => terminalCauseRef.set(Present(value))).andThen {
