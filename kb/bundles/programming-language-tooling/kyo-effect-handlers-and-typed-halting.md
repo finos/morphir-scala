@@ -1,69 +1,87 @@
 ---
 type: Reference
 title: Kyo effect handlers and typed halting
-description: "Record verified Kyo 1.0.0-RC6 ArrowEffect handler variants, typed-halting shapes, and executor-relevant pitfalls for task-graph interpreter design."
+description: "Record verified Kyo 1.0.0-RC7 ArrowEffect handler variants, typed-halting shapes, and executor-relevant pitfalls for task-graph interpreter design."
 tags: [kyo, effects, pipeline]
 status: draft
 verified:
-  by: claude/fable-5
-  at: 2026-08-12T00:00:00Z
+  - by: claude/fable-5
+    at: 2026-08-12T00:00:00Z
+  - by: claude/opus-5.5
+    at: 2026-10-29T00:00:00Z
 sources:
-  - id: kyo-rc6
-    resource: https://github.com/getkyo/kyo/tree/2e58c0550b209317b85a30fc5787c24b7e4dd63c
-    title: Kyo 1.0.0-RC6
+  - id: kyo-rc7
+    resource: https://github.com/getkyo/kyo/tree/1d54c02a3842a5792814a9d1abc7df2fb629eb3e
+    title: Kyo 1.0.0-RC7
+  - id: kyo-kernel-rewrite
+    resource: https://github.com/getkyo/kyo/commit/645a6095a8c87708925c177d2994891bd6fb5aca
+    title: "Kyo kernel rewrite (getkyo/kyo#1988), breaking-change notes"
   - id: kyo-arrow-effect
-    resource: https://github.com/getkyo/kyo/blob/2e58c0550b209317b85a30fc5787c24b7e4dd63c/kyo-kernel/shared/src/main/scala/kyo/kernel/ArrowEffect.scala
-    title: ArrowEffect at 1.0.0-RC6
+    resource: https://github.com/getkyo/kyo/blob/1d54c02a3842a5792814a9d1abc7df2fb629eb3e/kyo-kernel/shared/src/main/scala/kyo/kernel/ArrowEffect.scala
+    title: ArrowEffect at 1.0.0-RC7
+  - id: kyo-region
+    resource: https://github.com/getkyo/kyo/blob/1d54c02a3842a5792814a9d1abc7df2fb629eb3e/kyo-kernel/shared/src/main/scala/kyo/kernel/Region.scala
+    title: Region at 1.0.0-RC7
+  - id: kyo-loop
+    resource: https://github.com/getkyo/kyo/blob/1d54c02a3842a5792814a9d1abc7df2fb629eb3e/kyo-kernel/shared/src/main/scala/kyo/kernel/Loop.scala
+    title: Loop at 1.0.0-RC7
   - id: kyo-abort
-    resource: https://github.com/getkyo/kyo/blob/2e58c0550b209317b85a30fc5787c24b7e4dd63c/kyo-prelude/shared/src/main/scala/kyo/Abort.scala
-    title: Abort at 1.0.0-RC6
+    resource: https://github.com/getkyo/kyo/blob/1d54c02a3842a5792814a9d1abc7df2fb629eb3e/kyo-prelude/shared/src/main/scala/kyo/Abort.scala
+    title: Abort at 1.0.0-RC7
+  - id: kyo-is-fatal
+    resource: https://github.com/getkyo/kyo/blob/1d54c02a3842a5792814a9d1abc7df2fb629eb3e/kyo-data/shared/src/main/scala/kyo/IsFatal.scala
+    title: IsFatal at 1.0.0-RC7
   - id: kyo-contributing
-    resource: https://github.com/getkyo/kyo/blob/2e58c0550b209317b85a30fc5787c24b7e4dd63c/CONTRIBUTING.md
+    resource: https://github.com/getkyo/kyo/blob/1d54c02a3842a5792814a9d1abc7df2fb629eb3e/CONTRIBUTING.md
     title: Kyo effect implementation reference
   - id: kyo-emit
-    resource: https://github.com/getkyo/kyo/blob/2e58c0550b209317b85a30fc5787c24b7e4dd63c/kyo-prelude/shared/src/main/scala/kyo/Emit.scala
-    title: Emit at 1.0.0-RC6
+    resource: https://github.com/getkyo/kyo/blob/1d54c02a3842a5792814a9d1abc7df2fb629eb3e/kyo-prelude/shared/src/main/scala/kyo/Emit.scala
+    title: Emit at 1.0.0-RC7
   - id: kyo-stream
-    resource: https://github.com/getkyo/kyo/blob/2e58c0550b209317b85a30fc5787c24b7e4dd63c/kyo-prelude/shared/src/main/scala/kyo/Stream.scala
-    title: Stream at 1.0.0-RC6
+    resource: https://github.com/getkyo/kyo/blob/1d54c02a3842a5792814a9d1abc7df2fb629eb3e/kyo-prelude/shared/src/main/scala/kyo/Stream.scala
+    title: Stream at 1.0.0-RC7
   - id: kyo-choice
-    resource: https://github.com/getkyo/kyo/blob/2e58c0550b209317b85a30fc5787c24b7e4dd63c/kyo-prelude/shared/src/main/scala/kyo/Choice.scala
-    title: Choice at 1.0.0-RC6
+    resource: https://github.com/getkyo/kyo/blob/1d54c02a3842a5792814a9d1abc7df2fb629eb3e/kyo-prelude/shared/src/main/scala/kyo/Choice.scala
+    title: Choice at 1.0.0-RC7
   - id: kyo-isolate
-    resource: https://github.com/getkyo/kyo/blob/2e58c0550b209317b85a30fc5787c24b7e4dd63c/kyo-kernel/shared/src/main/scala/kyo/kernel/Isolate.scala
-    title: Isolate at 1.0.0-RC6
+    resource: https://github.com/getkyo/kyo/blob/1d54c02a3842a5792814a9d1abc7df2fb629eb3e/kyo-kernel/shared/src/main/scala/kyo/kernel/Isolate.scala
+    title: Isolate at 1.0.0-RC7
   - id: kyo-var
-    resource: https://github.com/getkyo/kyo/blob/2e58c0550b209317b85a30fc5787c24b7e4dd63c/kyo-prelude/shared/src/main/scala/kyo/Var.scala
-    title: Var at 1.0.0-RC6
+    resource: https://github.com/getkyo/kyo/blob/1d54c02a3842a5792814a9d1abc7df2fb629eb3e/kyo-prelude/shared/src/main/scala/kyo/Var.scala
+    title: Var at 1.0.0-RC7
   - id: kyo-llm
-    resource: https://github.com/getkyo/kyo/blob/2e58c0550b209317b85a30fc5787c24b7e4dd63c/kyo-ai/shared/src/main/scala/kyo/LLM.scala
-    title: LLM effect at 1.0.0-RC6
+    resource: https://github.com/getkyo/kyo/blob/1d54c02a3842a5792814a9d1abc7df2fb629eb3e/kyo-ai/shared/src/main/scala/kyo/LLM.scala
+    title: LLM effect at 1.0.0-RC7
   - id: kyo-readme
-    resource: https://github.com/getkyo/kyo/blob/2e58c0550b209317b85a30fc5787c24b7e4dd63c/README.md
+    resource: https://github.com/getkyo/kyo/blob/1d54c02a3842a5792814a9d1abc7df2fb629eb3e/README.md
     title: Kyo README effect-ordering example
   - id: kyo-kernel-readme
-    resource: https://github.com/getkyo/kyo/blob/2e58c0550b209317b85a30fc5787c24b7e4dd63c/kyo-kernel/README.md
+    resource: https://github.com/getkyo/kyo/blob/1d54c02a3842a5792814a9d1abc7df2fb629eb3e/kyo-kernel/README.md
     title: Kyo kernel README
+  - id: kyo-kernel-contributing
+    resource: https://github.com/getkyo/kyo/blob/1d54c02a3842a5792814a9d1abc7df2fb629eb3e/kyo-kernel/CONTRIBUTING.md
+    title: Kyo kernel contributing guide, tunable flags
   - id: morphir-elm-parse
-    resource: https://github.com/finos/morphir-scala/blob/dbf53136888fd7810b70a51e7f4622c5f519d18a/morphir/langkit/elm/core/src/morphir/langkit/elm/ElmParse.scala
+    resource: https://github.com/finos/morphir-scala/blob/925c2db18b3a0d9ed4d239e63d1b00b72fba8485/morphir/langkit/elm/core/src/morphir/langkit/elm/ElmParse.scala
     title: morphir-scala ElmParse effect
   - id: morphir-flux-engine
-    resource: https://github.com/finos/morphir-scala/blob/dbf53136888fd7810b70a51e7f4622c5f519d18a/morphir/contrib/knowledge/src/morphir/kb/logic/core/FluxEngine.scala
+    resource: https://github.com/finos/morphir-scala/blob/925c2db18b3a0d9ed4d239e63d1b00b72fba8485/morphir/knowledge/logic/src/morphir/knowledge/logic/core/FluxEngine.scala
     title: morphir-scala FluxEngine
   - id: morphir-query-logic
-    resource: https://github.com/finos/morphir-scala/blob/dbf53136888fd7810b70a51e7f4622c5f519d18a/morphir/langkit/trees/src/morphir/langkit/trees/query/QueryLogic.scala
+    resource: https://github.com/finos/morphir-scala/blob/925c2db18b3a0d9ed4d239e63d1b00b72fba8485/morphir/langkit/trees/src/morphir/langkit/trees/query/QueryLogic.scala
     title: morphir-scala QueryLogic
 ---
 
 # Kyo effect handlers and typed halting
 
 At the pinned Kyo baseline, an interpreter for a domain effect (including a task-graph executor) is one
-`ArrowEffect` handler. Halting is not a special API: a handler halts by producing a value of the handled
-computation's final result type instead of calling the continuation. The result type therefore fixes the set of
-halt outcomes the interpreter can express. That is where "typed halting" comes from.[^kyo-arrow-effect]
+`ArrowEffect` handler. Halting is not a special API: a handler halts by answering with a value of the handled
+computation's final result type instead of resuming. A `handleCont` clause returns that value without applying the
+continuation; a loop clause returns `Loop.done(result)`. The result type therefore fixes the set of halt outcomes
+the interpreter can express. That is where "typed halting" comes from.[^kyo-arrow-effect]
 
 This document is a companion to [Scala 3 and Kyo implementation notes](/scala-3-and-kyo-implementation-notes.md),
-which pins the same `1.0.0-RC6` baseline. Each document carries its own `verified` entry recording who checked its
+which pins the same `1.0.0-RC7` baseline. Each document carries its own `verified` entry recording who checked its
 claims against that pin, and when. When the project's Kyo version moves again, both documents need their own
 re-verification; neither vouches for the other.
 
@@ -71,11 +89,16 @@ re-verification; neither vouches for the other.
 
 | Component | Baseline used here | Source of truth |
 | --- | --- | --- |
-| Kyo | `1.0.0-RC6` | `Versions.kyo` in `mill-build/src/millbuild/deps.scala` |
-| Kyo source | commit `2e58c0550b209317b85a30fc5787c24b7e4dd63c` | annotated tag `v1.0.0-RC6`[^kyo-rc6] |
+| Kyo | `1.0.0-RC7` | `Versions.kyo` in `mill-build/src/millbuild/deps.scala` |
+| Kyo source | commit `1d54c02a3842a5792814a9d1abc7df2fb629eb3e` | annotated tag `v1.0.0-RC7`[^kyo-rc7] |
 
 If the project's Kyo version moves, treat every claim here as provisional immediately: recheck the cited signatures
 against the new tag, then move this pin.
+
+RC7 replaced the kernel (getkyo/kyo#1988). It removed `ArrowEffect.handle`, `handleCatching`, `handlePartial`,
+`Effect.catching`, `ContextEffect.Noninheritable` and the `Safepoint` parameters. The public handler surface is now
+`handleCont`, `handleContRepeated`, `handleLoop` and `handleLoopState`.[^kyo-kernel-rewrite] Code written against
+the RC6 handler table does not compile at RC7.
 
 ## Declaring an effect
 
@@ -94,62 +117,80 @@ Operations suspend through `ArrowEffect.suspend` (request only) or `suspendWith`
 the answer). Two encodings exist for a multi-operation effect:
 
 - An indexed GADT `Op[A]` with `Output = Id`. Each case fixes its own answer type, the compiler checks the handler
-  match for exhaustiveness, and the continuation needs no cast beyond the standard `asInstanceOf[C]` idiom. Kyo's
+  match for exhaustiveness, and the answer needs no cast beyond the standard `asInstanceOf[C]` idiom. Kyo's
   own `LLM` effect[^kyo-llm] and morphir-scala's `ElmParse`[^morphir-elm-parse] both use this.
 - An untagged union `Op[V]` disambiguated by runtime match, as `Var` does.[^kyo-var] The match is order-dependent
   and unchecked; the GADT is the safer default for new effects.
 
 An operation that must never resume declares its answer type as `Nothing`. `Abort.error` is the template: the
-suspend site returns `Nothing < Abort[E]` with an unreachable transform. This is legitimate precisely because the
-only handler for that operation never calls the continuation.[^kyo-abort] morphir-scala's `ElmParseOp.Halt
+suspend site returns `Nothing < Abort[E]` with an unreachable transform. This is legitimate because the only
+handler for that operation never applies the continuation.[^kyo-abort] morphir-scala's `ElmParseOp.Halt
 extends ElmParseOp[Nothing]` is the same idiom.[^morphir-elm-parse]
 
 ## Handler variants
 
-All variants sit in `ArrowEffect`'s companion.[^kyo-arrow-effect] Every variant takes the effect's `Tag`, the
-computation, and a polymorphic handler function receiving the operation input and the continuation.
+All variants sit in `ArrowEffect`'s companion and handle one effect.[^kyo-arrow-effect] Every variant takes the
+effect's `Tag` and the computation. The variants differ in what the clause (the polymorphic handler function)
+receives.
 
-| Variant | State | Fits |
+| Variant | Clause receives | Fits |
 | --- | --- | --- |
-| `handle` (1 effect) | none | Uniform per-occurrence interpretation |
-| `handle` (2–4 effects) | none | Interleaving several effects in one loop, when nesting would fix an ordering you do not want |
-| `handleFirst` | none | Peel exactly one occurrence and get the continuation back **as a value**; the caller owns the driving loop |
-| `handleLoop` | optional `State`, optional `done` | The interpreter workhorse: thread private state across resumptions, fold `(State, A)` into a report type in `done` |
+| `handleCont` | input and continuation; applied at most once | Per-occurrence interpretation that resumes once or drops the rest |
+| `handleContRepeated` | input and continuation; may be applied many times | Multi-shot interpretation: backtracking, non-determinism (`Choice.run`) |
+| `handleLoop` | input only; returns `Loop.Outcome` | Answer or stop, with no private state |
+| `handleLoopState` | state and input; returns `Loop.Outcome2` | The interpreter workhorse: thread private state across occurrences, fold `(State, A)` into a report type in `done` |
 
-The `handleLoop` body returns `Loop.continue(state, cont(answer))` to resume or `Loop.done(finalValue)` to stop the
-loop and discard the rest of the computation. `Loop.Outcome` is an unboxed union, so `done` allocates nothing.
-`handleFirst` matters for schedulers: it reifies "the rest of the computation" into an ordinary value the caller can
-queue, interleave, or drop. morphir-scala's `FluxEngine` uses it as a pull primitive over
-`Emit`.[^morphir-flux-engine]
+Each variant has overloads that add a `done` arm (transform the final value) and a `recover` arm
+(`Throwable => Maybe[B < S]`, offered a failure of the handled computation). Fused `handleContWith`,
+`handleLoopWith` and `handleLoopStateWith` forms take the caller's next step as an extra argument.[^kyo-arrow-effect]
+
+A `handleLoopState` clause returns `Loop.continue(nextState, answer)` to resume or `Loop.done(result)` to stop the
+loop and discard the rest of the computation. `handleLoop` uses the same pair without the state. `Loop.Outcome` is
+an opaque union (`O | Continue[A]`), so `done` allocates nothing.[^kyo-loop] The clause never holds the
+continuation, so each occurrence is answered once or not at all.
+
+No public variant hands out "the rest of the computation" as a value. RC6's `handleFirst` did; at RC7 it and
+`handleFirstRepeated` are `private[kyo]`. Every public clause's continuation carries `Region.NoEscape`, a phantom
+marker in its effect row. Storing it, returning it, or moving it to another fiber does not compile.[^kyo-region] A
+scheduler that needs to queue or interleave remainders must model them as its own data. morphir-scala's `FluxEngine`
+did this on the move to RC7: an `Emit` source pulled through `handleFirst` became a plain lazy step
+type.[^morphir-flux-engine]
 
 ## The halting shapes
 
 | Shape | How | Kyo exemplar |
 | --- | --- | --- |
-| Hard halt | ignore the continuation, return a value of the result type | `Abort.run`: `handle = [C] => (input, _) => input`, well-typed because `Error[E] <: Result[E, A]`[^kyo-abort] |
-| Loop-level halt | `Loop.done(finalValue)` from a `handleLoop` body | `Stream` short-circuits; `ElmParse.run` on `Halt`[^morphir-elm-parse] |
-| Soft halt (drain) | keep looping but substitute a trivial continuation | `Stream.take` continues with `Kyo.unit` once exhausted[^kyo-stream] |
-| Prune (multi-shot) | call the continuation zero-to-n times over a collection | `Choice.run`; `Choice.drop` suspends an empty `Seq`, so pruning falls out of the input encoding[^kyo-choice] |
+| Hard halt | a `handleCont` clause ignores the continuation and returns a value of the result type | `Abort.run`: `[C] => (input, _) => input`, well-typed because `Error[E] <: Result[E, A]`[^kyo-abort] |
+| Loop-level halt | `Loop.done(result)` from a `handleLoop` or `handleLoopState` clause | `Stream.take` once `n` elements have passed[^kyo-stream]; `ElmParse.run` on `Halt`[^morphir-elm-parse] |
+| Prune (multi-shot) | a `handleContRepeated` clause applies the continuation zero-to-n times over a collection | `Choice.run`; `Choice.drop` suspends an empty `Seq`, so pruning falls out of the input encoding[^kyo-choice] |
+
+RC6 had a fourth shape, the soft halt (drain): keep looping but resume with a trivial continuation. `Stream.take`
+continued with `Kyo.unit` once exhausted. At RC7 a loop clause no longer receives the continuation, so the shape has
+no direct form, and `Stream.take` ends with `Loop.done(())` instead.[^kyo-stream]
 
 Two further facts make halting *selectively* typed:
 
 - `Abort`'s error channel distinguishes `Failure[E]` (expected, participates in `E`) from `Panic` (a defect carrying
   a `Throwable`, outside `E`). `Abort.runPartial` discharges failures while re-raising panics.[^kyo-abort] This maps
-  directly onto the pipeline requirement that domain failures stay typed values while interpreter defects use a
-  separate channel ([Transformation pipelines](/transformation-pipelines.md)).
+  onto the pipeline requirement that domain failures stay typed values while interpreter defects use a separate
+  channel ([Transformation pipelines](/transformation-pipelines.md)). At RC7 a handler sees a throw through its
+  `recover` arm. `Abort.run` uses that arm to turn a non-fatal throw into `Result.Panic`, and `Abort.catching` is
+  built from a private `Catching` marker effect plus a `recover` arm. Fatal means `kyo.IsFatal`:
+  `VirtualMachineError` or `ControlThrowable`.[^kyo-abort][^kyo-is-fatal]
 - A handler can discharge a union error type (`Abort[NodeSkipped | PipelineAborted]`) one member at a time:
   `Abort.run[E]` requires `ConcreteTag[E]` and a `Reducible` on the remainder, so one boundary can absorb
-  `NodeSkipped` while `PipelineAborted` passes through to an outer boundary. Internally this is an `accept`
-  predicate on the private `handleCatching`; publicly it is the `ConcreteTag` + `Reducible` pattern.[^kyo-abort]
+  `NodeSkipped` while `PipelineAborted` passes through to an outer boundary. Internally `Abort.run` handles every
+  `Abort` under one erased tag, and its `done` arm re-raises any error that `ConcreteTag[E]` does not accept.
+  Publicly it is the `ConcreteTag` + `Reducible` pattern.[^kyo-abort]
 
 ## Progress and state
 
-`Emit[V]` is the stock shape for structured progress events: suspend a value, answer `Unit`. Its six runners
-(`run` collecting a `Chunk`, `runFold`, `runDiscard`, `runForeach`, `runWhile`, `runFirst`) mean the *caller*
-picks the sink (live logging, a replayable trace, or an aggregate) without the emitting code
-changing.[^kyo-emit]
+`Emit[V]` is the stock shape for structured progress events: suspend a value, answer `Unit`. Its five public
+runners (`run` collecting a `Chunk`, `runFold`, `runDiscard`, `runForeach`, `runWhile`) mean the *caller* picks the
+sink (live logging, a replayable trace, or an aggregate) without the emitting code changing. RC6's sixth runner,
+`runFirst`, is `private[kyo]` at RC7.[^kyo-emit]
 
-For interpreter-private state, prefer the `State` parameter of `handleLoop` over a `Var`: state inside the handler
+For interpreter-private state, prefer the state of `handleLoopState` over a `Var`: state inside the handler
 is invisible to user code, and user code cannot corrupt it. Reserve `Var` for state the interpreted computation is
 *meant* to read and write.
 
@@ -159,8 +200,10 @@ is invisible to user code, and user code cannot corrupt it. Reserve `Var` for st
   abort; the reverse loses it.[^kyo-readme] The same mechanism extends to `Emit` versus `Abort`: events emitted
   before a failure survive only if the emit handler is outside the abort handler, which is the nesting
   morphir-scala's `QueryLogic` runner uses.[^morphir-query-logic] An interpreter that must report partial progress
-  across a halt therefore sits **outside** `Abort.run`. When no nesting expresses the ordering needed, the
-  2–4-arity `handle` interleaves the effects in one loop.
+  across a halt therefore sits **outside** `Abort.run`. RC6's 2–4-arity `ArrowEffect.handle`, which interleaved
+  several effects in one loop, is gone at RC7, so nesting is the only public way to order handlers. The `.handle(...)`
+  method on a computation is a left-to-right pipeline of nested handlers, not an interleaving
+  handler.[^kyo-kernel-rewrite][^kyo-kernel-readme]
 
   ```mermaid
   flowchart LR
@@ -177,24 +220,31 @@ is invisible to user code, and user code cannot corrupt it. Reserve `Var` for st
 - Short-circuiting effects must not provide `Isolate` instances. Kyo's own documentation says automatic isolation
   derivation over an effect that can halt produces order-dependent results. Provide isolation for the `Var`/`Emit`
   parts of a row only.[^kyo-isolate]
-- Continuations are multi-shot. A handler may invoke the continuation any number of times; if the interpreted code
-  performs `Sync`, each invocation re-runs those side effects. Keep an executor handler single-shot unless
-  re-execution (retry, speculation) is the point.[^kyo-arrow-effect]
+- Continuations are single-shot unless you ask for more. A `handleCont` clause applies its continuation at most
+  once; a second application is refused at the first region it re-enters, as a use after release. A clause that
+  resumes more than once uses `handleContRepeated`, as `Choice.run` does.[^kyo-arrow-effect][^kyo-choice] If the
+  interpreted code performs `Sync`, each resumption re-runs those side effects. Keep an executor handler on
+  `handleCont` or the loop family unless re-execution (retry, speculation) is the point.
 - `Tag` erasure bites union-parameterised effects. Kyo mints `Tag[Abort[E]]` for arbitrary `E` by casting
   `Tag[Abort[Any]]`, and recovers precision at runtime via `ConcreteTag`. A too-wide tag swallows occurrences meant
   for an outer handler, because handler dispatch is subtype-checking on tags.[^kyo-abort]
-- Pending computations are not `Tag`-derivable. The `Tag` macro fails on the `<` type constructor, so box a value
-  holding `A < S` in an ordinary case class before anything needs its `Tag`. `FluxEngine.Boxed` exists for exactly
-  this reason; a pipeline node type holding stage computations hits the same wall.[^morphir-flux-engine]
-- Stack safety is periodic re-suspension, not magic. The kernel suspends every `maxStackDepth` frames and the
-  `handleLoop` loops re-suspend safely, but a handler body's own non-Kyo recursion is unprotected; use `Loop.*` for
-  explicit iteration. Resuming a computation on a different thread than built it forces re-entry through the
-  suspension machinery, which matters if a planner thread builds node computations another thread
-  runs.[^kyo-kernel-readme]
+- Pending computations are `Tag`-derivable at RC7. A local compile probe against RC7 derived
+  `Tag[Unit < Emit[Chunk[Option[Int]]]]` with its type arguments, both for that concrete type and under an abstract
+  `A: Tag`. The same probe at RC6 compiled but produced a tag with no type arguments, and morphir-scala boxed pending
+  values (`FluxEngine.Boxed`) to avoid a `Tag` macro failure. That box is gone with the move to a plain step
+  type.[^morphir-flux-engine] The probe covered those two shapes only; other pending types, and the RC6 failure
+  itself, are unverified here.
+- Stack safety comes from periodic re-suspension. Fusion runs on the caller's stack under a per-thread budget (the
+  safepoint, default `maxStackDepth` of 256).[^kyo-kernel-contributing] When the budget runs out, the evaluator
+  takes the chain over, so a deep synchronous chain pays its depth in heap.[^kyo-kernel-rewrite][^kyo-kernel-readme]
+  A handler body's own
+  non-Kyo recursion is unprotected; use `Loop.*` for explicit iteration. RC6's safepoint also checked thread
+  identity, so a computation resumed on another thread took the suspension path. That check is gone at RC7: a
+  computation is an immutable value that one thread can build and another can run. A continuation still cannot
+  cross, because `Region.NoEscape` refuses the `Isolate` a crossing needs.[^kyo-kernel-rewrite][^kyo-region]
 - Kyo's house conventions for handlers: one canonical `runWith(...)(f)` from which the public `run`/`runTuple`
   variants derive; `inline` on suspend sites and kernel entry points, while public runners such as `Abort.run` are
-  deliberately not inline; effect types as `trait`, everything else `abstract class` or
-  `final class`.[^kyo-contributing]
+  not inline; effect types as `trait`, everything else `abstract class` or `final class`.[^kyo-contributing]
 
 ## In-repo contrast: one effect versus a stacked row
 
@@ -219,18 +269,23 @@ executor (outcome type, halt mechanism, skip propagation, stop-or-continue polic
 not here. This reference serves the buildkit task-graph capability; its narrative home is the
 [buildkit task-graph design note](../morphir/morphir-scala/design/buildkit-task-graph.md).
 
-[^kyo-rc6]: Kyo 1.0.0-RC6 source tree.
-[^kyo-arrow-effect]: `kyo-kernel/shared/src/main/scala/kyo/kernel/ArrowEffect.scala` at 1.0.0-RC6.
-[^kyo-abort]: `kyo-prelude/shared/src/main/scala/kyo/Abort.scala` at 1.0.0-RC6.
-[^kyo-emit]: `kyo-prelude/shared/src/main/scala/kyo/Emit.scala` at 1.0.0-RC6.
-[^kyo-var]: `kyo-prelude/shared/src/main/scala/kyo/Var.scala` at 1.0.0-RC6.
-[^kyo-llm]: `kyo-ai/shared/src/main/scala/kyo/LLM.scala` at 1.0.0-RC6.
-[^kyo-stream]: `kyo-prelude/shared/src/main/scala/kyo/Stream.scala` at 1.0.0-RC6.
-[^kyo-choice]: `kyo-prelude/shared/src/main/scala/kyo/Choice.scala` at 1.0.0-RC6.
-[^kyo-isolate]: `kyo-kernel/shared/src/main/scala/kyo/kernel/Isolate.scala` scaladoc at 1.0.0-RC6.
-[^kyo-readme]: Kyo `README.md`, the worked `Var` and `Abort` ordering example.
-[^kyo-kernel-readme]: `kyo-kernel/README.md`, stack-depth and cross-thread notes.
-[^kyo-contributing]: Kyo `CONTRIBUTING.md`, "Effect Implementation Reference".
+[^kyo-rc7]: Kyo 1.0.0-RC7 source tree.
+[^kyo-kernel-rewrite]: Kyo commit `645a6095a`, "New kernel" (getkyo/kyo#1988): the breaking-change, safepoint and fusion notes in its message.
+[^kyo-arrow-effect]: `kyo-kernel/shared/src/main/scala/kyo/kernel/ArrowEffect.scala` at 1.0.0-RC7.
+[^kyo-region]: `kyo-kernel/shared/src/main/scala/kyo/kernel/Region.scala` scaladoc at 1.0.0-RC7.
+[^kyo-loop]: `kyo-kernel/shared/src/main/scala/kyo/kernel/Loop.scala` at 1.0.0-RC7.
+[^kyo-abort]: `kyo-prelude/shared/src/main/scala/kyo/Abort.scala` at 1.0.0-RC7.
+[^kyo-is-fatal]: `kyo-data/shared/src/main/scala/kyo/IsFatal.scala` at 1.0.0-RC7.
+[^kyo-emit]: `kyo-prelude/shared/src/main/scala/kyo/Emit.scala` at 1.0.0-RC7.
+[^kyo-var]: `kyo-prelude/shared/src/main/scala/kyo/Var.scala` at 1.0.0-RC7.
+[^kyo-llm]: `kyo-ai/shared/src/main/scala/kyo/LLM.scala` at 1.0.0-RC7.
+[^kyo-stream]: `kyo-prelude/shared/src/main/scala/kyo/Stream.scala` at 1.0.0-RC7; `take` at RC6 for the drain shape.
+[^kyo-choice]: `kyo-prelude/shared/src/main/scala/kyo/Choice.scala` at 1.0.0-RC7.
+[^kyo-isolate]: `kyo-kernel/shared/src/main/scala/kyo/kernel/Isolate.scala` scaladoc at 1.0.0-RC7.
+[^kyo-readme]: Kyo `README.md` at 1.0.0-RC7, the worked `Var` and `Abort` ordering example.
+[^kyo-kernel-readme]: `kyo-kernel/README.md` at 1.0.0-RC7: the `handle` pipeline and iteration sections.
+[^kyo-kernel-contributing]: `kyo-kernel/CONTRIBUTING.md` at 1.0.0-RC7, the `Safepoint.period` row (default `maxStackDepth`, 256).
+[^kyo-contributing]: Kyo `CONTRIBUTING.md` at 1.0.0-RC7, "Effect Implementation Reference" and "Inline Guidelines".
 [^morphir-elm-parse]: `morphir/langkit/elm/core/src/morphir/langkit/elm/ElmParse.scala` and `ParseEffectSpec.scala`.
-[^morphir-flux-engine]: `morphir/contrib/knowledge/src/morphir/kb/logic/core/FluxEngine.scala`.
+[^morphir-flux-engine]: `morphir/knowledge/logic/src/morphir/knowledge/logic/core/FluxEngine.scala`, its scaladoc on the RC7 move.
 [^morphir-query-logic]: `morphir/langkit/trees/src/morphir/langkit/trees/query/QueryLogic.scala`.

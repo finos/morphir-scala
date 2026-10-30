@@ -1,7 +1,7 @@
-//| scalaVersion: 3.8.4
+//| scalaVersion: 3.9.0
 //| moduleDeps: [KbModel.scala]
 //| mvnDeps:
-//| - io.getkyo::kyo-core:1.0.0-RC6
+//| - io.getkyo::kyo-core:1.0.0-RC7
 //| - org.yaml:snakeyaml:2.6
 //| - org.commonmark:commonmark:0.29.0
 
@@ -127,35 +127,41 @@ object KbStore:
   def isMarkdown(p: Path): Boolean = p.parts.lastOption.exists(_.endsWith(".md"))
 
   def loadDoc(file: Path, bundleRoot: Path): Doc < (Sync & Abort[Throwable]) =
-    file.read.map(parseDoc(file, bundleRoot, _))
+    Path.runReadOnly {
+      file.read.map(parseDoc(file, bundleRoot, _))
+    }
 
   private def isBundleRoot(dir: Path): Boolean < (Sync & Abort[Throwable]) =
-    val idx = dir / "index.md"
-    idx.exists.map {
-      case false => false
-      case true =>
-        idx.read.map { text =>
-          splitFrontmatter(text)._1.flatMap(parseFrontmatter(_).toOption).exists(_.has("okf_version"))
-        }
+    Path.runReadOnly {
+      val idx = dir / "index.md"
+      idx.exists.map {
+        case false => false
+        case true =>
+          idx.read.map { text =>
+            splitFrontmatter(text)._1.flatMap(parseFrontmatter(_).toOption).exists(_.has("okf_version"))
+          }
+      }
     }
 
   /** Finds bundle roots under `start`, not descending into a bundle once one is found. */
   def findBundleRoots(start: Path): Chunk[Path] < (Sync & Abort[Throwable]) =
-    start.exists.map {
-      case false => Chunk.empty[Path]
-      case true =>
-        isBundleRoot(start).map {
-          case true => Chunk(start)
-          case false =>
-            start.list.map { entries =>
-              Kyo.foreach(entries) { e =>
-                e.isDirectory.map {
-                  case true => findBundleRoots(e)
-                  case false => Chunk.empty[Path]
-                }
-              }.map(_.flattenChunk)
-            }
-        }
+    Path.runReadOnly {
+      start.exists.map {
+        case false => Chunk.empty[Path]
+        case true =>
+          isBundleRoot(start).map {
+            case true => Chunk(start)
+            case false =>
+              start.list.map { entries =>
+                Kyo.foreach(entries) { e =>
+                  e.isDirectory.map {
+                    case true => findBundleRoots(e)
+                    case false => Chunk.empty[Path]
+                  }
+                }.map(_.flattenChunk)
+              }
+          }
+      }
     }
 
   /** Every markdown file at or below `dir`.
@@ -164,28 +170,32 @@ object KbStore:
     * effect row, which buys nothing for directory trees this small.
     */
   def markdownUnder(dir: Path): Chunk[Path] < (Sync & Abort[Throwable]) =
-    dir.list.map { entries =>
-      Kyo.foreach(entries) { e =>
-        e.isDirectory.map {
-          case true => markdownUnder(e)
-          case false => if isMarkdown(e) then Chunk(e) else Chunk.empty[Path]
-        }
-      }.map(_.flattenChunk)
+    Path.runReadOnly {
+      dir.list.map { entries =>
+        Kyo.foreach(entries) { e =>
+          e.isDirectory.map {
+            case true => markdownUnder(e)
+            case false => if isMarkdown(e) then Chunk(e) else Chunk.empty[Path]
+          }
+        }.map(_.flattenChunk)
+      }
     }
 
   /** Every file at or below `dir` that is *not* markdown — the mirrored assets of a sync bundle. */
   def nonMarkdownUnder(dir: Path): Chunk[Path] < (Sync & Abort[Throwable]) =
-    dir.exists.map {
-      case false => Chunk.empty[Path]
-      case true =>
-        dir.list.map { entries =>
-          Kyo.foreach(entries) { e =>
-            e.isDirectory.map {
-              case true => nonMarkdownUnder(e)
-              case false => if isMarkdown(e) then Chunk.empty[Path] else Chunk(e)
-            }
-          }.map(_.flattenChunk)
-        }
+    Path.runReadOnly {
+      dir.exists.map {
+        case false => Chunk.empty[Path]
+        case true =>
+          dir.list.map { entries =>
+            Kyo.foreach(entries) { e =>
+              e.isDirectory.map {
+                case true => nonMarkdownUnder(e)
+                case false => if isMarkdown(e) then Chunk.empty[Path] else Chunk(e)
+              }
+            }.map(_.flattenChunk)
+          }
+      }
     }
 
   /** The `root:` of a bundle's `sync.yaml`, as path segments, when the bundle mirrors an upstream repository.
@@ -194,20 +204,22 @@ object KbStore:
     * and KbSync sits downstream of this file.
     */
   def mirrorSegments(bundleRoot: Path): Option[Seq[String]] < (Sync & Abort[Throwable]) =
-    val manifest = bundleRoot / "sync.yaml"
-    manifest.exists.map {
-      case false => (None: Option[Seq[String]])
-      case true =>
-        manifest.read.map { raw =>
-          val root =
-            try
-              newYaml().load[Object](raw) match
-                case m: java.util.Map[?, ?] =>
-                  m.asScala.toMap.map((k, v) => k.toString -> v).get("root").collect { case s: String => s }
-                case _ => None
-            catch case _: Exception => None
-          Some(root.getOrElse("sources").split("/").filter(_.nonEmpty).toSeq)
-        }
+    Path.runReadOnly {
+      val manifest = bundleRoot / "sync.yaml"
+      manifest.exists.map {
+        case false => (None: Option[Seq[String]])
+        case true =>
+          manifest.read.map { raw =>
+            val root =
+              try
+                newYaml().load[Object](raw) match
+                  case m: java.util.Map[?, ?] =>
+                    m.asScala.toMap.map((k, v) => k.toString -> v).get("root").collect { case s: String => s }
+                  case _ => None
+              catch case _: Exception => None
+            Some(root.getOrElse("sources").split("/").filter(_.nonEmpty).toSeq)
+          }
+      }
     }
 
   def loadBundle(root: Path, kbRoot: Path): Bundle < (Sync & Abort[Throwable]) =
@@ -245,20 +257,22 @@ object KbStore:
 
   /** Loads the whole knowledge base rooted at `kbRoot` — the directory holding `bundles/`. */
   def load(kbRoot: Path): Kb < (Sync & Abort[Throwable]) =
-    val bundlesDir = kbRoot / "bundles"
-    for
-      roots <- findBundleRoots(bundlesDir)
-      bundles <- Kyo.foreach(roots.sortBy(_.parts.mkString("/")))(loadBundle(_, kbRoot))
-      present <- bundlesDir.exists
-      allMd <- if present then markdownUnder(bundlesDir) else (Chunk.empty[Path]: Chunk[Path] < (Sync & Abort[Throwable]))
-    yield
-      val claimed = bundles.map(_.root)
-      // A README.md in a grouping directory is expected and correct — it is how a group announces itself without
-      // being mistaken for a bundle root.
-      val strays = allMd
-        .filterNot(p => claimed.exists(r => KbPath.isUnder(p, r)))
-        .filterNot(_.parts.lastOption.contains("README.md"))
-      Kb(kbRoot, bundles.toSeq, strays.toSeq)
+    Path.runReadOnly {
+      val bundlesDir = kbRoot / "bundles"
+      for
+        roots <- findBundleRoots(bundlesDir)
+        bundles <- Kyo.foreach(roots.sortBy(_.parts.mkString("/")))(loadBundle(_, kbRoot))
+        present <- bundlesDir.exists
+        allMd <- if present then markdownUnder(bundlesDir) else (Chunk.empty[Path]: Chunk[Path] < (Sync & Abort[Throwable]))
+      yield
+        val claimed = bundles.map(_.root)
+        // A README.md in a grouping directory is expected and correct — it is how a group announces itself without
+        // being mistaken for a bundle root.
+        val strays = allMd
+          .filterNot(p => claimed.exists(r => KbPath.isUnder(p, r)))
+          .filterNot(_.parts.lastOption.contains("README.md"))
+        Kb(kbRoot, bundles.toSeq, strays.toSeq)
+    }
 
   /** Resolves a link destination to a path, or None when it is external or an anchor. */
   def resolveLink(doc: Doc, link: LinkRef): Option[Path] =

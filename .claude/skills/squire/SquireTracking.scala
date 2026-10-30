@@ -1,4 +1,4 @@
-//| scalaVersion: 3.8.4
+//| scalaVersion: 3.9.0
 //| moduleDeps: [SquireModel.scala, SquireProcess.scala, SquireCellar.scala]
 
 import java.nio.charset.StandardCharsets
@@ -50,7 +50,7 @@ trait TrackingFileSystem:
   def children(path: Path): Chunk[Path] < Sync
 
 object LiveTrackingFileSystem extends TrackingFileSystem:
-  def exists(path: Path): Boolean < Sync = path.exists
+  def exists(path: Path): Boolean < Sync = SquirePaths.exists(path)
   def read(path: Path): String < Sync = Sync.defer {
     val input = Files.newInputStream(path.toJava, StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS)
     try new String(input.readAllBytes(), StandardCharsets.UTF_8)

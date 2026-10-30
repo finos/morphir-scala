@@ -1,4 +1,4 @@
-//| scalaVersion: 3.8.4
+//| scalaVersion: 3.9.0
 //| moduleDeps: [SquireEnv.scala, SquireProcess.scala]
 
 import java.nio.file.{Files, LinkOption}

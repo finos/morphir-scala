@@ -1,6 +1,7 @@
-//| scalaVersion: 3.8.4
+//| scalaVersion: 3.9.0
 //| mvnDeps:
-//| - io.getkyo::kyo-core:1.0.0-RC6
+//| - io.getkyo::kyo-core:1.0.0-RC7
+//| - io.getkyo::kyo-system:1.0.0-RC7
 //| - org.yaml:snakeyaml:2.6
 
 /** Domain model for an Open Knowledge Format knowledge base.

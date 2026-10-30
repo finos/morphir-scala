@@ -1,4 +1,4 @@
-//| scalaVersion: 3.8.4
+//| scalaVersion: 3.9.0
 //| moduleDeps: [SquireModel.scala, SquireProcess.scala]
 
 import kyo.*
@@ -157,7 +157,7 @@ object LiveChangelogFileSystem extends ChangelogFileSystem:
   import java.nio.charset.StandardCharsets
   import java.nio.file.{Files, LinkOption, StandardOpenOption}
 
-  def exists(path: Path): Boolean < Sync = path.exists
+  def exists(path: Path): Boolean < Sync = SquirePaths.exists(path)
   def read(path: Path): String < Sync = Sync.defer {
     val input = Files.newInputStream(path.toJava, StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS)
     try new String(input.readAllBytes(), StandardCharsets.UTF_8)

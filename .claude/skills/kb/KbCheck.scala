@@ -1,7 +1,7 @@
-//| scalaVersion: 3.8.4
+//| scalaVersion: 3.9.0
 //| moduleDeps: [KbStore.scala, KbDecision.scala]
 //| mvnDeps:
-//| - io.getkyo::kyo-core:1.0.0-RC6
+//| - io.getkyo::kyo-core:1.0.0-RC7
 
 /** Conformance and drift checks over a knowledge base.
   *
@@ -225,39 +225,41 @@ object KbCheck:
     * OKF's lenient stance for a knowledge base that genuinely links forward to unwritten work.
     */
   private def linkFindings(kb: Kb, b: Bundle, d: Doc, allowDangling: Boolean): Chunk[Finding] < (Sync & Abort[Throwable]) =
-    // A mirrored document's links are written for the *upstream site*, where `../migration-guide/` and
-    // `/schemas/x.yaml` are routes rather than paths on disk. Resolving those needs the site's own configuration,
-    // which a domain-neutral tool cannot know — so only relative links that name an actual file are checked, and the
-    // rest are left to whatever link checker upstream runs. Reporting routes as rot would bury the real findings.
-    val resolveOne: LinkRef => Option[Path] =
-      if d.vendored then
-        link =>
-          val target = link.dest.takeWhile(_ != '#')
-          val last = target.split("/").filter(_.nonEmpty).lastOption
-          val namesAFile = last.exists(s => s.contains('.') && s != "." && s != "..")
-          Option.when(namesAFile && !link.isBundleRelative)(link).flatMap(KbStore.resolveLink(d, _))
-      else link => KbStore.resolveLink(d, link)
+    Path.runReadOnly {
+      // A mirrored document's links are written for the *upstream site*, where `../migration-guide/` and
+      // `/schemas/x.yaml` are routes rather than paths on disk. Resolving those needs the site's own configuration,
+      // which a domain-neutral tool cannot know — so only relative links that name an actual file are checked, and the
+      // rest are left to whatever link checker upstream runs. Reporting routes as rot would bury the real findings.
+      val resolveOne: LinkRef => Option[Path] =
+        if d.vendored then
+          link =>
+            val target = link.dest.takeWhile(_ != '#')
+            val last = target.split("/").filter(_.nonEmpty).lastOption
+            val namesAFile = last.exists(s => s.contains('.') && s != "." && s != "..")
+            Option.when(namesAFile && !link.isBundleRelative)(link).flatMap(KbStore.resolveLink(d, _))
+        else link => KbStore.resolveLink(d, link)
 
-    val severity =
-      if d.vendored || allowDangling then Severity.Warn else Severity.Error
-    val rule = if d.vendored then "link-broken-upstream" else "link-broken"
+      val severity =
+        if d.vendored || allowDangling then Severity.Warn else Severity.Error
+      val rule = if d.vendored then "link-broken-upstream" else "link-broken"
 
-    val resolvable = d.links.flatMap(l => resolveOne(l).map(l -> _))
-    Kyo.foreach(Chunk.from(resolvable)) { (link, target) =>
-      target.exists.map {
-        case true => Chunk.empty[Finding]
-        case false =>
-          Chunk(Finding(
-            severity,
-            rule,
-            kb.rel(d.file),
-            Some(link.line),
-            s"link target does not exist: ${link.dest}",
-            if d.vendored then Some("upstream's own link; fix it there and export, or leave it")
-            else Option.when(link.isBundleRelative)("bundle-relative paths start at the bundle root, not the kb root")
-          ))
-      }
-    }.map(_.flattenChunk)
+      val resolvable = d.links.flatMap(l => resolveOne(l).map(l -> _))
+      Kyo.foreach(Chunk.from(resolvable)) { (link, target) =>
+        target.exists.map {
+          case true => Chunk.empty[Finding]
+          case false =>
+            Chunk(Finding(
+              severity,
+              rule,
+              kb.rel(d.file),
+              Some(link.line),
+              s"link target does not exist: ${link.dest}",
+              if d.vendored then Some("upstream's own link; fix it there and export, or leave it")
+              else Option.when(link.isBundleRelative)("bundle-relative paths start at the bundle root, not the kb root")
+            ))
+        }
+      }.map(_.flattenChunk)
+    }
 
   /** Every concept should be reachable from an index in its own bundle. */
   private def indexCoverage(kb: Kb, b: Bundle): Seq[Finding] =
@@ -339,53 +341,55 @@ object KbCheck:
 
   /** Compares each commit-pinned GitHub source against the matching checkout under `.refs/<org>/<repo>`. */
   private def sourceFindings(kb: Kb, d: Doc, refsRoot: Path): Chunk[Finding] < (Async & Abort[Throwable]) =
-    val where = kb.rel(d.file)
-    val refsName = refsRoot.parts.lastOption.getOrElse(".refs")
-    Kyo.foreach(Chunk.from(d.fm.sources)) { src =>
-      src.resource match
-        case GitHubUrl(org, repo, sha, path) =>
-          val checkout = refsRoot / org / repo
-          checkout.exists.map {
-            case false =>
-              Chunk(Finding(
-                Severity.Info,
-                "source-ref-missing",
-                where,
-                None,
-                s"no reference checkout for $org/$repo under $refsName/",
-                Some("add one so provenance can be verified: /squire reference repo add")
-              ))
-            case true =>
-              val cleanPath = path.takeWhile(_ != '#')
-              for
-                head <- gitHead(checkout)
-                pathOk <- if cleanPath.isEmpty then (true: Boolean < (Async & Abort[Throwable])) else (checkout / cleanPath).exists
-              yield
-                val drift = head.filter(h => !h.startsWith(sha) && !sha.startsWith(h.take(sha.length))).toSeq.map { h =>
-                  Finding(
-                    Severity.Warn,
-                    "source-commit-drift",
-                    where,
-                    None,
-                    s"source pinned at ${sha.take(8)} but $refsName/$org/$repo is at ${h.take(8)}",
-                    Some("re-read the source and update the concept, or leave the pin and accept it is historical")
-                  )
-                }
-                val missing =
-                  if pathOk then Nil
-                  else
-                    Seq(Finding(
+    Path.runReadOnly {
+      val where = kb.rel(d.file)
+      val refsName = refsRoot.parts.lastOption.getOrElse(".refs")
+      Kyo.foreach(Chunk.from(d.fm.sources)) { src =>
+        src.resource match
+          case GitHubUrl(org, repo, sha, path) =>
+            val checkout = refsRoot / org / repo
+            checkout.exists.map {
+              case false =>
+                Chunk(Finding(
+                  Severity.Info,
+                  "source-ref-missing",
+                  where,
+                  None,
+                  s"no reference checkout for $org/$repo under $refsName/",
+                  Some("add one so provenance can be verified: /squire reference repo add")
+                ))
+              case true =>
+                val cleanPath = path.takeWhile(_ != '#')
+                for
+                  head <- gitHead(checkout)
+                  pathOk <- if cleanPath.isEmpty then (true: Boolean < (Async & Abort[Throwable])) else (checkout / cleanPath).exists
+                yield
+                  val drift = head.filter(h => !h.startsWith(sha) && !sha.startsWith(h.take(sha.length))).toSeq.map { h =>
+                    Finding(
                       Severity.Warn,
-                      "source-path-missing",
+                      "source-commit-drift",
                       where,
                       None,
-                      s"source path no longer present at the checkout's HEAD: $cleanPath",
-                      Some("the file moved or was deleted upstream; the pinned URL still resolves on GitHub")
-                    ))
-                Chunk.from(drift ++ missing)
-          }
-        case _ => (Chunk.empty[Finding]: Chunk[Finding] < (Async & Abort[Throwable]))
-    }.map(_.flattenChunk)
+                      s"source pinned at ${sha.take(8)} but $refsName/$org/$repo is at ${h.take(8)}",
+                      Some("re-read the source and update the concept, or leave the pin and accept it is historical")
+                    )
+                  }
+                  val missing =
+                    if pathOk then Nil
+                    else
+                      Seq(Finding(
+                        Severity.Warn,
+                        "source-path-missing",
+                        where,
+                        None,
+                        s"source path no longer present at the checkout's HEAD: $cleanPath",
+                        Some("the file moved or was deleted upstream; the pinned URL still resolves on GitHub")
+                      ))
+                  Chunk.from(drift ++ missing)
+            }
+          case _ => (Chunk.empty[Finding]: Chunk[Finding] < (Async & Abort[Throwable]))
+      }.map(_.flattenChunk)
+    }
 
   // ---------------------------------------------------------------- rendering
 

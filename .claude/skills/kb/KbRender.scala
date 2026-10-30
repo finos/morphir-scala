@@ -1,7 +1,7 @@
-//| scalaVersion: 3.8.4
+//| scalaVersion: 3.9.0
 //| moduleDeps: [KbStore.scala, KbScaffold.scala]
 //| mvnDeps:
-//| - io.getkyo::kyo-core:1.0.0-RC6
+//| - io.getkyo::kyo-core:1.0.0-RC7
 
 /** Rendering for the `kb` commands — text for humans, JSON for machines.
   *

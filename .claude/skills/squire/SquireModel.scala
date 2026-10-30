@@ -1,8 +1,9 @@
-//| scalaVersion: 3.8.4
+//| scalaVersion: 3.9.0
 //| mvnDeps:
-//| - io.getkyo::kyo-core:1.0.0-RC6
-//| - io.getkyo::kyo-schema-json:1.0.0-RC6
-//| - io.getkyo::kyo-schema-yaml:1.0.0-RC6
+//| - io.getkyo::kyo-core:1.0.0-RC7
+//| - io.getkyo::kyo-schema-json:1.0.0-RC7
+//| - io.getkyo::kyo-schema-yaml:1.0.0-RC7
+//| - io.getkyo::kyo-system:1.0.0-RC7
 
 import kyo.*
 
@@ -94,9 +95,13 @@ object SquirePaths:
   private def pathEscapeFailure: Result[SquireError, Path] =
     Result.Failure(SquireError.Failure("path", "path escapes its configured base"))
 
+  /** `Path.exists` outside a capability runner. An inaccessible path already reads as absent, so a filesystem failure does too. */
+  def exists(path: Path): Boolean < Sync =
+    Abort.recover[FileSystemException](_ => false)(Path.runReadOnly(path.exists))
+
   def findRepoRoot(from: Path): Maybe[Path] < Sync =
     def loop(path: Path): Maybe[Path] < Sync =
-      (path / ".git").exists.flatMap { exists =>
+      exists(path / ".git").flatMap { exists =>
         if exists then Present(path)
         else
           path.parent match

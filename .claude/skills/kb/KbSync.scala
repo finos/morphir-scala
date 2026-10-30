@@ -1,7 +1,7 @@
-//| scalaVersion: 3.8.4
+//| scalaVersion: 3.9.0
 //| moduleDeps: [KbScaffold.scala, KbCheck.scala]
 //| mvnDeps:
-//| - io.getkyo::kyo-core:1.0.0-RC6
+//| - io.getkyo::kyo-core:1.0.0-RC7
 //| - org.yaml:snakeyaml:2.6
 
 /** Vendoring external documents into a bundle, and projecting them back out.
@@ -446,21 +446,25 @@ object KbSync:
 
   /** Every file at or below `dir`, as `/`-separated paths relative to it. */
   def relativeFilesUnder(dir: Path): Chunk[String] < (Sync & Abort[Throwable]) =
-    def walk(d: Path, prefix: String): Chunk[String] < (Sync & Abort[Throwable]) =
-      d.list.map { entries =>
-        Kyo.foreach(entries) { e =>
-          val name = e.parts.lastOption.getOrElse("")
-          val rel = if prefix.isEmpty then name else s"$prefix/$name"
-          e.isDirectory.map {
-            // `.git` is never content, and walking it on a full checkout costs seconds.
-            case true => if name == ".git" then Chunk.empty[String] else walk(e, rel)
-            case false => Chunk(rel)
+    Path.runReadOnly {
+      def walk(d: Path, prefix: String): Chunk[String] < (Sync & Abort[Throwable]) =
+        Path.runReadOnly {
+          d.list.map { entries =>
+            Kyo.foreach(entries) { e =>
+              val name = e.parts.lastOption.getOrElse("")
+              val rel = if prefix.isEmpty then name else s"$prefix/$name"
+              e.isDirectory.map {
+                // `.git` is never content, and walking it on a full checkout costs seconds.
+                case true => if name == ".git" then Chunk.empty[String] else walk(e, rel)
+                case false => Chunk(rel)
+              }
+            }.map(_.flattenChunk)
           }
-        }.map(_.flattenChunk)
+        }
+      dir.exists.map {
+        case false => Chunk.empty[String]
+        case true => walk(dir, "")
       }
-    dir.exists.map {
-      case false => Chunk.empty[String]
-      case true => walk(dir, "")
     }
 
   def resolve(root: Path, rel: String): Path =
@@ -481,19 +485,21 @@ object KbSync:
       case None => kb.bundles.find(_.index.fm.str("sync").exists(v => v == "true" || v == "yes"))
 
   def load(b: Bundle): Either[String, SyncBundle] < (Sync & Abort[Throwable]) =
-    val mf = b.root / ManifestName
-    val lf = b.root / LockName
-    mf.exists.map {
-      case false => Left(s"${b.label} has no $ManifestName")
-      case true =>
-        for
-          rawM <- mf.read
-          hasLock <- lf.exists
-          rawL <- if hasLock then lf.read else ("": String < (Sync & Abort[Throwable]))
-        yield parseManifest(rawM).flatMap { m =>
-          val lock = if hasLock then parseLock(rawL) else Right(SyncLock.Empty)
-          lock.map(SyncBundle(b, m, _))
-        }
+    Path.runReadOnly {
+      val mf = b.root / ManifestName
+      val lf = b.root / LockName
+      mf.exists.map {
+        case false => Left(s"${b.label} has no $ManifestName")
+        case true =>
+          for
+            rawM <- mf.read
+            hasLock <- lf.exists
+            rawL <- if hasLock then lf.read else ("": String < (Sync & Abort[Throwable]))
+          yield parseManifest(rawM).flatMap { m =>
+            val lock = if hasLock then parseLock(rawL) else Right(SyncLock.Empty)
+            lock.map(SyncBundle(b, m, _))
+          }
+      }
     }
 
   // ------------------------------------------------------------------ status
@@ -533,17 +539,19 @@ object KbSync:
   /** Reads a mirrored file into its [[LocalCopy]], or None when the mirror does not have it. */
   private def localCopyOf(sb: SyncBundle, rel: String, kind: SyncKind)
       : Option[LocalCopy] < (Sync & Abort[Throwable]) =
-    val f = sb.localFile(rel)
-    f.exists.map {
-      case false => (None: Option[LocalCopy])
-      case true =>
-        readBytes(f).map { bytes =>
-          Some(kind match
-            case SyncKind.Concept =>
-              val text = String(bytes, "UTF-8")
-              LocalCopy(project(text).map(_.getBytes("UTF-8")), Some(text))
-            case SyncKind.Asset => LocalCopy(Right(bytes), None))
-        }
+    Path.runReadOnly {
+      val f = sb.localFile(rel)
+      f.exists.map {
+        case false => (None: Option[LocalCopy])
+        case true =>
+          readBytes(f).map { bytes =>
+            Some(kind match
+              case SyncKind.Concept =>
+                val text = String(bytes, "UTF-8")
+                LocalCopy(project(text).map(_.getBytes("UTF-8")), Some(text))
+              case SyncKind.Asset => LocalCopy(Right(bytes), None))
+          }
+      }
     }
 
   private def upstreamFormOf(sb: SyncBundle, rel: String, kind: SyncKind)
@@ -600,17 +608,19 @@ object KbSync:
     */
   private def reinjectIfStale(sb: SyncBundle, st: FileStatus, dryRun: Boolean)
       : Option[SyncAction] < (Sync & Abort[Throwable]) =
-    if !st.injectionStale then (None: Option[SyncAction] < (Sync & Abort[Throwable]))
-    else
-      sb.localFile(st.path).read.map { text =>
-        reinjected(sb.manifest, st.path, text) match
-          case Left(_) => (None: Option[SyncAction] < (Sync & Abort[Throwable]))
-          case Right(out) =>
-            val write =
-              if dryRun then ((): Unit < (Sync & Abort[Throwable]))
-              else writeBytes(sb.localFile(st.path), out.getBytes("UTF-8"))
-            write.andThen(Some(SyncAction("re-injected", st.path, "the manifest implies different keys")))
-      }
+    Path.runReadOnly {
+      if !st.injectionStale then (None: Option[SyncAction] < (Sync & Abort[Throwable]))
+      else
+        sb.localFile(st.path).read.map { text =>
+          reinjected(sb.manifest, st.path, text) match
+            case Left(_) => (None: Option[SyncAction] < (Sync & Abort[Throwable]))
+            case Right(out) =>
+              val write =
+                if dryRun then ((): Unit < (Sync & Abort[Throwable]))
+                else writeBytes(sb.localFile(st.path), out.getBytes("UTF-8"))
+              write.andThen(Some(SyncAction("re-injected", st.path, "the manifest implies different keys")))
+        }
+    }
 
   def pull(
       sb: SyncBundle,
@@ -700,11 +710,13 @@ object KbSync:
     * lockfile, which turns `git status` into noise and trains people to commit it without looking.
     */
   def writeLock(sb: SyncBundle, lock: SyncLock): SyncLock < (Sync & Abort[Throwable]) =
-    val same =
-      sb.lock.baseCommit == lock.baseCommit &&
-        sb.lock.files.sortBy(_.path) == lock.files.sortBy(_.path)
-    val toWrite = if same && sb.lock.importedAt.nonEmpty then lock.copy(importedAt = sb.lock.importedAt) else lock
-    (sb.bundle.root / LockName).write(renderLock(toWrite)).andThen(toWrite)
+    Path.run {
+      val same =
+        sb.lock.baseCommit == lock.baseCommit &&
+          sb.lock.files.sortBy(_.path) == lock.files.sortBy(_.path)
+      val toWrite = if same && sb.lock.importedAt.nonEmpty then lock.copy(importedAt = sb.lock.importedAt) else lock
+      (sb.bundle.root / LockName).write(renderLock(toWrite)).andThen(toWrite)
+    }
 
   // -------------------------------------------------------------------- push
 
@@ -754,15 +766,17 @@ object KbSync:
     * Generated because forty hand-written bullets rot on the first `pull`.
     */
   def generateIndex(sb: SyncBundle, lock: SyncLock, today: LocalDate): Boolean < (Sync & Abort[Throwable]) =
-    val file = sb.bundle.index.file
-    file.read.map { text =>
-      val normalized = text.replace("\r\n", "\n")
-      val at = normalized.indexOf(IndexMarker)
-      val preamble =
-        if at >= 0 then normalized.take(at + IndexMarker.length)
-        else normalized.stripTrailing() + "\n\n" + IndexMarker
-      val updated = preamble + "\n\n" + renderIndexBody(sb, lock, today)
-      if updated == normalized then false else file.write(updated).andThen(true)
+    Path.run {
+      val file = sb.bundle.index.file
+      file.read.map { text =>
+        val normalized = text.replace("\r\n", "\n")
+        val at = normalized.indexOf(IndexMarker)
+        val preamble =
+          if at >= 0 then normalized.take(at + IndexMarker.length)
+          else normalized.stripTrailing() + "\n\n" + IndexMarker
+        val updated = preamble + "\n\n" + renderIndexBody(sb, lock, today)
+        if updated == normalized then false else file.write(updated).andThen(true)
+      }
     }
 
   private def renderIndexBody(sb: SyncBundle, lock: SyncLock, today: LocalDate): String =
