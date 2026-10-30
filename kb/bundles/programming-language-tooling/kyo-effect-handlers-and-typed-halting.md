@@ -228,12 +228,14 @@ is invisible to user code, and user code cannot corrupt it. Reserve `Var` for st
 - `Tag` erasure bites union-parameterised effects. Kyo mints `Tag[Abort[E]]` for arbitrary `E` by casting
   `Tag[Abort[Any]]`, and recovers precision at runtime via `ConcreteTag`. A too-wide tag swallows occurrences meant
   for an outer handler, because handler dispatch is subtype-checking on tags.[^kyo-abort]
-- Pending computations are `Tag`-derivable at RC7. A local compile probe against RC7 derived
-  `Tag[Unit < Emit[Chunk[Option[Int]]]]` with its type arguments, both for that concrete type and under an abstract
-  `A: Tag`. The same probe at RC6 compiled but produced a tag with no type arguments, and morphir-scala boxed pending
-  values (`FluxEngine.Boxed`) to avoid a `Tag` macro failure. That box is gone with the move to a plain step
-  type.[^morphir-flux-engine] The probe covered those two shapes only; other pending types, and the RC6 failure
-  itself, are unverified here.
+- Pending computations get a full `Tag` at RC7. A compile probe derived `Tag[Unit < Emit[Chunk[Option[Int]]]]`, and
+  `Tag[Emit[Chunk[Option[Unit < Emit[Chunk[Option[A]]]]]]]` under an abstract `A: Tag`, on RC5, RC6 and RC7. All
+  three compiled. On RC5 and RC6 the tag dropped the arguments of `<`, so the tag for an `Int` source equalled the
+  tag for a `String` source (`=:=` answered `true`), and an `Emit` of pending sources could not be told apart by
+  element type. On RC7 the arguments are kept and the two tags differ. morphir-scala boxed pending values
+  (`FluxEngine.Boxed`, added on RC5) on the stated grounds of a `Tag` macro `MatchError`; that error did not
+  reproduce on RC5 or RC6 in the shape `FluxEngine` used. The box is gone with the move to a plain step
+  type.[^morphir-flux-engine]
 - Stack safety comes from periodic re-suspension. Fusion runs on the caller's stack under a per-thread budget (the
   safepoint, default `maxStackDepth` of 256).[^kyo-kernel-contributing] When the budget runs out, the evaluator
   takes the chain over, so a deep synchronous chain pays its depth in heap.[^kyo-kernel-rewrite][^kyo-kernel-readme]

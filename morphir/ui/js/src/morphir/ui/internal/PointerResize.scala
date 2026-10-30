@@ -7,10 +7,11 @@ import scala.scalajs.js
 /**
  * Turns pointer drags on the shell's resize strips into store commands.
  *
- * kyo-ui carries no pointer-down/move events at RC6, so this is DOM work: one delegated `mousedown` listener on the
- * document decides which strip was grabbed, then move and up listeners run the matching [[ShellState]] resize command.
- * Delegation rather than per-element binding, because the regions are re-created whenever they collapse or expand. The
- * store still owns the sizes and their bounds; this adapter only reports pointer positions.
+ * kyo-ui carries no pointer-down/move events at RC7 (its drag-and-drop events do not track the pointer), so this is DOM
+ * work: one delegated `mousedown` listener on the document decides which strip was grabbed, then move and up listeners
+ * run the matching [[ShellState]] resize command. Delegation rather than per-element binding, because the regions are
+ * re-created whenever they collapse or expand. The store still owns the sizes and their bounds; this adapter only
+ * reports pointer positions.
  */
 private[ui] object PointerResize:
 

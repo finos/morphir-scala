@@ -31,7 +31,7 @@ sources:
     title: morphir-elm MEP ad-hoc workspace discovery
     resource: https://github.com/finos/morphir-elm/blob/66460ace1f60f64a0d3c4806b17e5eebada562c9/cli2/mep/workspace.ts
   - id: kyo-bignum-json
-    title: Kyo arbitrary-precision Structure number follow-on
+    title: Kyo arbitrary-precision Structure numbers, released in 1.0.0-RC7
     resource: https://github.com/getkyo/kyo/pull/1920
 ---
 
@@ -168,18 +168,19 @@ header, read lexically, then from the file stem, then `Main`. Manifest discovery
 The frontend compiles exactly one document per request, so it declares `frontend.multiDocument` as `false`. A named
 selection of more than one file passes discovery, and the host then refuses it before compile.
 
-### Known document-version gap
+### Document-version range
 
 MEP 0.1 defines a source document version as an unsigned 64-bit integer. The Scala `DocumentVersion` domain type
-retains that range, including validation at zero and `18446744073709551615`. Kyo `1.0.0-RC6`, the published version
-used by this provider, reads self-describing JSON integers through signed `Long`. The executable therefore accepts
-numeric document versions from zero through `9223372036854775807`. Larger valid MEP values cannot cross the RC6 JSON
-boundary.
+retains that range, including validation at zero and `18446744073709551615`. Kyo `1.0.0-RC7`, the published version
+used by this provider, includes Kyo [PR 1920](https://github.com/getkyo/kyo/pull/1920). Its self-describing JSON
+reader keeps an integral number inside the signed `Long` range as `Structure.Value.Integer` and reads a larger one as
+an exact `Structure.Value.BigNum`. The session decodes each message to a `Structure.Value` before it decodes the
+request, so the executable accepts numeric document versions from zero through `18446744073709551615`. The
+`DocumentVersion` schema reads the number as an exact integer and rejects negative, fractional, and larger values.
 
-Kyo [PR 1920](https://github.com/getkyo/kyo/pull/1920) adds exact arbitrary-precision numbers to the self-describing
-JSON path. Morphir-scala will adopt that behavior after it appears in a reviewed, published Kyo version. The current
-extension does not pin the PR commit, use a local snapshot, encode protocol numbers as strings, or add a second JSON
-library.
+`MepProtocolTests` pins the maximum and the rejection of larger values at the `Structure` level. No repository test
+yet sends a version above `9223372036854775807` through the JSON reader. That path was checked against RC7 with a
+probe outside the test suite. The extension uses no local Kyo snapshot and no second JSON library.
 
 ## Provider identity and host selection
 

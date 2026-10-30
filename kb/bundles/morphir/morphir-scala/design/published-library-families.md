@@ -71,14 +71,14 @@ schema will change slowly enough that a checked-in file is reviewable. A Mill co
 regeneration becomes frequent. The subset schema itself is vendored in the module. Caliban's generator API is ZIO;
 that stays inside the script. The published module uses `caliban-client` (no ZIO compile dependency) plus `kyo-http`.
 
-**HTTP stack (checked, split).** `kyo-http` 1.0.0-RC6 Scala sources compile on JVM, JS, and Native.
+**HTTP stack (checked, split).** `kyo-http` 1.0.0-RC7 Scala sources compile on JVM, JS, and Native.
 
 Live POST is wired on the JVM and on Node.js. The github JS module mixes `MorphirJSNodeModule`, which sets
 `ModuleKind.CommonJSModule`. Without that, Scala.js `NoModule` cannot import `node:fs` / `node:net` / `node:tls`.
 kyo-http's JS backend is Node-only. A browser consumer whose link reaches `GithubClient.live` inherits that
 requirement.
 
-**Browsers (settled).** There is no `fetch` floor in kyo-http 1.0.0-RC6, and this module will not add one. A Scala.js
+**Browsers (settled).** There is no `fetch` floor in kyo-http 1.0.0-RC7, and this module will not add one. A Scala.js
 `fetch` transport could POST JSON, but authenticated calls to `api.github.com/graphql` from a page origin fail CORS.
 GitHub does not make that a supported client-side pattern. The token would also sit in the page. A web app that needs
 live GitHub data goes through a same-origin proxy, not `GithubClient.live`. Electron ([0025](../../../intent/0025-electron-appkit.md))
@@ -86,10 +86,16 @@ is a browser-shaped host with Node, so it uses the Node backend already wired. R
 usable without posting. Splitting a Node-free JS artifact is later work, only if a page must load this module without
 Node.
 
-Scala Native does not take `kyo-http`. The published `kyo-net_native0.5_3-1.0.0-RC6` artifact was generated on a Linux
-host. `KqueueBindingsImpl` is a throwing stub (`sys/event.h` unavailable). `EpollBindingsImpl` still references Linux
-`epoll` / `eventfd` / `io_uring` symbols. OpenSSL link flags would not fix that. `GithubClient.live` exists on Native
-and listing fails with `GitHubException.Transport`.
+Scala Native does not take `kyo-http`. Kyo 1.0.0-RC7 fixes the macOS link failure that blocked it at RC6
+([kyo#1896](https://github.com/getkyo/kyo/pull/1896)). The epoll and io_uring bindings now call `kyo_*` symbols that
+kyo-net defines in its bundled C, and off Linux those return `ENOSYS`. The published
+`kyo-net_native0.5_3-1.0.0-RC7` artifact was still generated on a Linux host, so `KqueueBindingsImpl` is still a
+throwing stub ("Required header(s) [sys/event.h] not available on this platform."). Kqueue is the only Native backend
+that macOS can select, and Native has no fallback below it. A macOS binary should therefore link and then fail
+backend selection with `NetBackendUnavailableException`. That outcome comes from reading the kyo source and the jar;
+it is unverified, because no build here has linked the connector against `kyo-http` on Native. The link would also
+need the system OpenSSL (`MorphirNativeOpenSsl` in `build.mill`). `GithubClient.live` exists on Native and listing
+fails with `GitHubException.Transport`.
 
 Recorded GraphQL fixtures run on all three. Tests do not call `api.github.com`. Live listing builds GraphQL
 documents from the generated `caliban-client` helpers.
@@ -141,7 +147,7 @@ Intent 0004 (project intent outward as GitHub issues) stays Cancelled. GitHub in
 
 ## Unresolved
 
-1. **Live HTTP on Native.** `kyo-http` 1.0.0-RC6 live POST is wired on the JVM and on Node.js. Scala Native stays stubbed because the published kyo-net Native artifact at that version does not link kqueue on macOS. Linux Native is untested. A later kyo RC that ships Darwin codegen would reopen this.
+1. **Live HTTP on Native.** `kyo-http` 1.0.0-RC7 live POST is wired on the JVM and on Node.js. Scala Native stays stubbed. RC7 removed the macOS link failure, but the published kyo-net Native artifact still carries a throwing kqueue stub, so a macOS binary has no I/O backend (unverified, read from source). Linux Native is untested. A kyo release whose published Native artifact has working kqueue bindings would reopen this.
 2. **Markdown parser.** Full CommonMark (inlines, nested lists, Setext headings) and whether a third-party engine replaces the Morphir-owned subset. The subset is the current production parser, not a compile stub.
 3. **Markdown output fidelity.** Whether kyo-ui's HTML matches the CommonMark fixtures byte for byte, given how exact they are about whitespace, void-tag spelling and entity escaping. Unverified until the spike in [0033](../../../intent/0033-markdown-compilation.md) runs. A large structural divergence would force a spec-exact writer and defeat the single-output-path design.
 4. **Caliban subset workflow.** How the GitHub schema is cut down before codegen (hand-edited SDL, a documents file, or an external subset tool). The first subset is small enough to edit by hand. A tool is not required until the operation set grows.

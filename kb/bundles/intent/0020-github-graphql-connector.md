@@ -53,12 +53,12 @@ The client consumes GitHub's GraphQL API. `kyo-caliban` is a GraphQL server and 
 comes from `caliban-client` against a vendored **subset** of GitHub's schema, checked in and produced by the Mill
 script `morphir/connector/github/schema/gen-client.scala`. REST is used only for endpoints GraphQL lacks.
 
-`kyo-http` 1.0.0-RC6 is the HTTP stack. Live POST runs on the JVM and on Node.js. The github JS module sets
+`kyo-http` 1.0.0-RC7 is the HTTP stack. Live POST runs on the JVM and on Node.js. The github JS module sets
 `ModuleKind.CommonJSModule` so Scala.js can import Node builtins (`node:fs`, `node:net`, `node:tls`). kyo-http on JS
 is Node-only. A browser `fetch` backend is out of scope: kyo-http has no fetch floor, and GitHub GraphQL from a page
-origin is a CORS and token problem. Electron uses the Node backend. Scala Native stays stubbed: the published kyo-net
-1.0.0-RC6 Native artifact was generated on Linux, so kqueue is a throwing stub and epoll/io_uring do not link on
-macOS. Tests replay recorded GraphQL fixtures and do not call `api.github.com`. The check lives in the
+origin is a CORS and token problem. Electron uses the Node backend. Scala Native stays stubbed. Kyo 1.0.0-RC7 fixes the epoll and
+io_uring link failure on macOS, but the published kyo-net 1.0.0-RC7 Native artifact was still generated on Linux.
+Its kqueue binding is still a throwing stub, so a macOS binary would have no I/O backend (unverified). Tests replay recorded GraphQL fixtures and do not call `api.github.com`. The check lives in the
 [published library families Design Note](../morphir/morphir-scala/design/published-library-families.md).
 
 The `gh` CLI is [0024](/0024-github-cli-connector.md), a sibling module, not a package here.

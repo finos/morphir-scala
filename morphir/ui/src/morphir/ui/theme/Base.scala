@@ -7,7 +7,7 @@ import kyo.Style.FontFamily
 /**
  * Document-level base rules. Typed where the `Style` vocabulary reaches; the true global resets (universal box-sizing,
  * selection, scrollbar chrome) live in [[rawCss]] because `Style` has no universal-selector or scrollbar vocabulary at
- * RC6.
+ * RC7.
  */
 object Base:
 

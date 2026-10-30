@@ -12,8 +12,8 @@ import morphir.connector.github.internal.PlatformLive
  * [[GithubClient.recorded]] replays GraphQL JSON envelopes. [[GithubClient.fixture]] replays already-decoded values.
  * [[GithubClient.live]] posts to GitHub over `kyo-http` on the JVM and on Node.js. Pass a [[Token]] or take
  * [[TokenProvider]] from [[kyo.Env]]. On Scala Native, reads fail with [[GitHubException.Transport]] because the
- * published kyo-net Native artifact at 1.0.0-RC6 does not link kqueue on macOS. Tests use recorded or fixture clients
- * and do not call `api.github.com`.
+ * published kyo-net Native artifact at 1.0.0-RC7 ships only a throwing kqueue binding. Tests use recorded or fixture
+ * clients and do not call `api.github.com`.
  */
 trait GithubClient:
   def listIssues(
