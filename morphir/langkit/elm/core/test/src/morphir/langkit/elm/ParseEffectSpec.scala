@@ -90,12 +90,12 @@ class ParseEffectSpec extends Test[Any]:
     def keepTheTree[A](options: ElmParseOptions)(pipeline: A < ElmParse)(using
         Frame
     ): (Chunk[Reported[ParseDiagnostic]], Option[A]) =
-      ArrowEffect.handleLoop(Tag[ElmParse], Chunk.empty[Reported[ParseDiagnostic]], pipeline)(
+      ArrowEffect.handleLoopState(Tag[ElmParse], Chunk.empty[Reported[ParseDiagnostic]], pipeline)(
         handle = [C] =>
-          (input, state, cont) =>
+          (state, input) =>
             input match
-              case ElmParseOp.Options          => Loop.continue(state, cont(options.asInstanceOf[C]))
-              case ElmParseOp.Report(reported) => Loop.continue(state.append(reported), cont(().asInstanceOf[C]))
+              case ElmParseOp.Options          => Loop.continue(state, options.asInstanceOf[C])
+              case ElmParseOp.Report(reported) => Loop.continue(state.append(reported), ().asInstanceOf[C])
               case ElmParseOp.Halt(diagnostic) =>
                 Loop.done((Chunk(Reported.error(diagnostic)), None: Option[A])),
         done = (state, value) => (state, Some(value))

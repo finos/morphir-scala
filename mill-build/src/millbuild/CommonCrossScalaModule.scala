@@ -118,7 +118,8 @@ trait CommonScalaModule extends ScalaModule with CommonCoursierModule {
       "-Wconf:msg=Implicit parameters should be provided with a `using` clause:s", // implicit -> using migration
       "-Wconf:msg=with as a type operator has been deprecated.*:s",                // with -> & migration
       "-Wconf:msg=The syntax.*_\\*.*is no longer supported.*:s",                   // x: _* -> x* migration
-      "-Wconf:msg=.*is not declared infix.*:s"                                     // infix type notation
+      "-Wconf:msg=.*is not declared infix.*:s",                                    // infix type notation
+      "-Wconf:msg=Skipping coverage instrumentation.*:s"                           // large derived codecs (3.9)
     )
 
     val optionsWithTarget = options ++ targetScalacOptions

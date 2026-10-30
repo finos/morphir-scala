@@ -55,7 +55,7 @@ object DocumentVersion:
     readFn = reader => decode(reader.bigDecimal())(using reader.frame),
     structure = Structure.Type.Primitive(
       Structure.PrimitiveKind.BigInt,
-      Tag[DocumentVersion].asInstanceOf[Tag[Any]]
+      Tag.derive[DocumentVersion].asInstanceOf[Tag[Any]]
     )
   )
 

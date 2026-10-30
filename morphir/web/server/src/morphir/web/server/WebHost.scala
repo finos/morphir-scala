@@ -2,7 +2,6 @@ package morphir.web.server
 
 import java.nio.charset.StandardCharsets
 import kyo.*
-import kyo.kernel.Effect
 import morphir.appkit.SecretVault
 import morphir.connector.github.GitHubTokenVerifier
 import morphir.ui.github.GitHubConnectionCoordinator
@@ -83,10 +82,10 @@ object WebHost:
     }
 
   private def openBrowser(browserLauncher: String => Boolean < Async, url: String)(using Frame): Boolean < Async =
-    Effect.catching(browserLauncher(url))((_: Throwable) => false)
+    Abort.run[Throwable](browserLauncher(url)).map(_.getOrElse(false))
 
   private[server] def releaseBridge(close: => Unit < Async)(using Frame): Unit < (Async & Abort[Throwable]) =
-    Async.mask(close)
+    Async.uninterruptible(close)
 
   private def validate(config: Config)(using Frame): Unit < Abort[WebHostError] =
     if config.port < 0 || config.port > 65535 then Abort.fail(WebHostError.InvalidPort())

@@ -188,7 +188,7 @@ private[buildkit] object Sealing:
         .collect { case Result.Success(id) => id.render }
         .toSet
 
-    val (_, assigned): (Set[String], Chunk[Result[SealError, NodeId]]) =
+    val assigned: Chunk[Result[SealError, NodeId]] =
       summaries.zipWithIndex.foldLeft((reserved, Chunk.empty[Result[SealError, NodeId]])) {
         case ((taken, acc), ((explicit, meta, _), index)) =>
           explicit match
@@ -197,7 +197,7 @@ private[buildkit] object Sealing:
               val base = meta.map(_.label).flatMap(slugify).getOrElse(s"node-$index")
               val name = freshName(base, taken)
               (taken + name, acc :+ Result.succeed(NodeId.unsafe(Chunk(name))))
-      }
+      }._2
 
     val segmentErrors = assigned.collect { case Result.Failure(error) => error }
     val ids           = assigned.collect { case Result.Success(id) => id }

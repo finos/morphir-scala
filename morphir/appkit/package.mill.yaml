@@ -5,18 +5,23 @@ object jvm:
   moduleDeps: [build.morphir.prelude.jvm]
   mvnDeps: !append
   - com.github.javakeyring:java-keyring:1.0.4
+  - io.getkyo::kyo-system
   object test:
     extends: [ScalaTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps]
 
 object js:
   extends: [build.MorphirJSModule, build.MorphirJSNodeModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps]
   moduleDeps: [build.morphir.prelude.js]
+  mvnDeps: !append
+  - io.getkyo::kyo-system
   object test:
     extends: [ScalaJSTests, build.MorphirJSTestNoSourceMap, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps]
 
 object native:
   extends: [build.MorphirNativeModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps]
   moduleDeps: [build.morphir.prelude.native]
+  mvnDeps: !append
+  - io.getkyo::kyo-system
   object test:
     extends: [ScalaNativeTests, millbuild.KyoTestNative, build.MorphirKyoTestMvnDeps]
     mvnDeps: !append

@@ -471,7 +471,7 @@ class PipelineTests extends Test[Any]:
       // absorbs the panic into a `Result.Panic` value before `Emit.run` ever needs to observe a short-circuit, so
       // the events accumulated up to the panic survive. `Abort.run` catches a raw panic regardless of the `E` it
       // was asked to run — that is what "the panic keeps propagating" means here: nothing between the stage's own
-      // `bracketed` rethrow, `execute`'s own outer `Effect.catching` rethrow, and this outer boundary silently
+      // `bracketed` rethrow, `execute`'s own outer recovery rethrow, and this outer boundary silently
       // swallowed it.
       val (events, outcome) = Emit.run(Abort.run[Nothing](plan.execute(1))).eval
       outcome match
@@ -495,8 +495,8 @@ class PipelineTests extends Test[Any]:
       assert(outcome == Result.Failure("boom"))
     }
     // Closing `boom`'s own `NodeStarted` on a typed `Abort[E]` short-circuit cannot reuse the panic mechanism: a
-    // typed abort is not a JVM `throw`, so `kyo.kernel.Effect.catching` (which `bracketed` wraps every node with)
-    // never sees it — see `SealedPipeline#closeOpenNodes`'s own doc. `execute`'s single `Abort.tapError[E]`, wrapping
+    // typed abort is not a JVM `throw`, so the recovering region `bracketed` wraps every node with never
+    // sees it — see `SealedPipeline#closeOpenNodes`'s own doc. `execute`'s single `Abort.tapError[E]`, wrapping
     // the whole chain, closes every id the tracking `Var` still holds open before re-raising the same failure.
     "a stage whose typed Abort short-circuits still closes its NodeStarted with NodeFinished(Failed)" in {
       val boom: Stage[Int, Int, String, Any] = Stage((_: Int) => Abort.fail("boom")).named("boom")

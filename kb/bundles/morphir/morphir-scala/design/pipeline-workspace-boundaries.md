@@ -130,7 +130,7 @@ The graph shapes landed as structured combinators rather than a general DAG: `pa
 Zippable tuple-flattening (package `morphir`), `fanOut` runs a nested sealed pipeline per element of a runtime
 Chunk with element-indexed id paths, and `branch`/`when` conditionals emit `Skipped` for the untaken arm's nodes.
 Joins are ordinary stages consuming the tuple or Chunk a shape yields. The sequential executor now guarantees
-event balance via `kyo.kernel.Effect.catching`: every `NodeStarted` closes with a `NodeFinished`, for non-fatal
+event balance with a recovering handler region: every `NodeStarted` closes with a `NodeFinished`, for non-fatal
 panics and normal completion alike, and every node on an untaken arm emits a standalone `Skipped` without ever
 starting. Sealed pipelines render deterministic mermaid flowcharts through `toMermaid`. Typed halting is now
 closed by the report executor on this branch; parallel execution remains open.

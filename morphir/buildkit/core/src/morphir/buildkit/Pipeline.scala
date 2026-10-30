@@ -1,7 +1,6 @@
 package morphir.buildkit
 
 import kyo.*
-import kyo.kernel.Effect
 import morphir.Zippable
 import morphir.buildkit.internal.*
 
@@ -356,12 +355,11 @@ final class SealedPipeline[-I, +O, E, S] private[buildkit] (
    * mechanisms cooperate to guarantee this:
    *
    *   - '''Panics.''' Every bracketing node (a `StageNode`'s own run, a `FanOutNode`'s whole per-element loop, a
-   *     `BranchNode`'s decision and taken arm) is wrapped with `kyo.kernel.Effect.catching`
-   *     ([[SealedPipeline.bracketed]]): a raw thrown non-fatal `Throwable` (`scala.util.control.NonFatal`, which
-   *     `Effect.catching` itself filters on) is caught, `NodeFinished(id, NodeStatus.Failed)` is emitted, and the
-   *     exception is rethrown so the panic keeps propagating outward. Nesting composes: a panic deep inside a
-   *     `BranchNode`'s taken arm unwinds through every enclosing bracket in turn, each one closing its own id on the
-   *     way out.
+   *     `BranchNode`'s decision and taken arm) is wrapped with a recovering handler region
+   *     ([[SealedPipeline.bracketed]], through `internal.OnPanic`): a raw thrown `Throwable` that `kyo.IsFatal` does
+   *     not count as fatal is caught, `NodeFinished(id, NodeStatus.Failed)` is emitted, and the exception is rethrown
+   *     so the panic keeps propagating outward. Nesting composes: a panic deep inside a `BranchNode`'s taken arm
+   *     unwinds through every enclosing bracket in turn, each one closing its own id on the way out.
    *   - '''A typed `Abort[E]`, or a panic once it reaches this boundary.''' Unlike a panic still inside a `bracketed`
    *     call, a typed abort is not a JVM `throw` — it resumes through Kyo's own suspend/resume protocol, so none of the
    *     nested `bracketed` calls close on it by themselves, and a *dynamically scoped* mechanism (a `Local`) can't
@@ -396,11 +394,11 @@ final class SealedPipeline[-I, +O, E, S] private[buildkit] (
    * `closeOpenNodes`/`RunFinished(false)` run first, so the event stream stays balanced; a hidden abort now surfaces as
    * a contained panic rather than an unhandled row effect.
    *
-   * '''Known gap: a fatal `Throwable` still leaves its `NodeStarted` unclosed.''' `Effect.catching`, used by
-   * `bracketed`'s own per-node panic handling, filters on `scala.util.control.NonFatal`, so `InterruptedException`,
-   * `VirtualMachineError`, `LinkageError`, and `ControlThrowable` are not caught there, and they are not typed
-   * `Abort[E]` failures either, so [[SealedPipeline.executeIntercepted]] does not observe them. See bead morphir-zdy.2
-   * for the fuller history of this row's evolution.
+   * '''Known gap: a fatal `Throwable` still leaves its `NodeStarted` unclosed.''' Kyo's handler recovery, used by
+   * `bracketed`'s own per-node panic handling, filters on `kyo.IsFatal`, so `VirtualMachineError` and
+   * `ControlThrowable` are not caught there, and they are not typed `Abort[E]` failures either, so
+   * [[SealedPipeline.executeIntercepted]] does not observe them. See bead morphir-zdy.2 for the fuller history of this
+   * row's evolution.
    */
   def execute(input: I)(using ConcreteTag[E], Frame): O < (Abort[E] & S & Emit[PipelineEvent]) =
     Var.run(SealedPipeline.OpenNodes(Chunk.empty)) {
@@ -419,9 +417,9 @@ final class SealedPipeline[-I, +O, E, S] private[buildkit] (
    * result row — this is where the typed interception happens, which is why `ConcreteTag[E]` (what `Abort.run` needs to
    * recognize an `E` at runtime) surfaces once, here.
    *
-   * '''Per node.''' The node body runs under [[SealedPipeline.attempt]], wrapped in `kyo.kernel.Effect.catching` so a
-   * raw non-fatal throw during the body's own eager evaluation is folded in too. The three-way `Result` folds to:
-   * `Success` → `Succeeded(Provenance.Executed)`, `Failure(e)` → `Failed(Result.Failure(e))`, `Panic(t)` →
+   * '''Per node.''' The node body runs under [[SealedPipeline.attempt]], and `Abort.run` forces the body under its own
+   * recovery, so a raw non-fatal throw during the body's own eager evaluation is folded in too. The three-way `Result`
+   * folds to: `Success` → `Succeeded(Provenance.Executed)`, `Failure(e)` → `Failed(Result.Failure(e))`, `Panic(t)` →
    * `Failed(Result.Panic(t))`. A fatal `Throwable` still tears the run — the same gap [[execute]] documents, unchanged
    * here. An `Abort` a stage hid inside its own `S` rather than its declared `E` is '''contained, not tearing the
    * run''': `attempt` claims every `Abort` reaching it (`ConcreteTag[Any]` accepts anything, and Kyo dispatches every
@@ -597,19 +595,17 @@ object SealedPipeline:
   /**
    * Run `v` — a bracketing node's own value-producing work — so that a raw non-fatal panic pops `eventId` from the
    * open-node `Var` (see [[SealedPipeline.closeOpenNodes]]) and closes its `NodeStarted` with
-   * `NodeFinished(id, Failed)` before continuing to propagate. `kyo.kernel.Effect.catching` is the one Kyo RC6
-   * primitive that observes an arbitrary, statically unknown effect row's panic without needing to know anything about
-   * that row: its own `S2` is fixed here to `Emit[PipelineEvent] & Var[OpenNodes]`, which `v`'s row already carries, so
-   * wrapping is row-neutral — no change to the caller's own declared type. It filters on `scala.util.control.NonFatal`
-   * (a raw thrown non-fatal `Throwable`), so it does '''not''' see a fatal `Throwable` (`InterruptedException`,
-   * `VirtualMachineError`, `LinkageError`, `ControlThrowable`) — that gap is documented on [[SealedPipeline#execute]].
-   * A typed `Abort[E]` closes through a different mechanism entirely, also documented there — this method plays no part
-   * in it.
+   * `NodeFinished(id, Failed)` before continuing to propagate. [[morphir.buildkit.internal.OnPanic]] observes a panic
+   * from an arbitrary, statically unknown effect row without needing to know anything about that row, and its own row
+   * is discharged before the value leaves, so wrapping is row-neutral — no change to the caller's own declared type. It
+   * filters on `kyo.IsFatal`, so it does '''not''' see a fatal `Throwable` (`VirtualMachineError`, `ControlThrowable`)
+   * — that gap is documented on [[SealedPipeline#execute]]. A typed `Abort[E]` closes through a different mechanism
+   * entirely, also documented there — this method plays no part in it.
    */
   private def bracketed[A, S3](eventId: NodeId)(
       v: => A < (S3 & Emit[PipelineEvent] & Var[OpenNodes])
   ): A < (S3 & Emit[PipelineEvent] & Var[OpenNodes]) =
-    Effect.catching(v) { (ex: Throwable) =>
+    OnPanic(v) { (ex: Throwable) =>
       Var.updateDiscard[OpenNodes](s => OpenNodes(s.ids.filterNot(_ == eventId))).andThen(
         Emit.value(PipelineEvent.NodeFinished(eventId, NodeStatus.Failed)).map(_ => throw ex)
       )
@@ -650,9 +646,9 @@ object SealedPipeline:
    * Scala function supplied by a pipeline author, so a synchronous throw from it (a bug in the key function, not a Kyo
    * effect) must fold into `Result.Panic` here rather than escape as a raw exception. Rendering happens ''before'' any
    * Kyo effect is constructed, so neither executor's own per-node interception reaches it on its own — `bracketed`'s
-   * `Effect.catching` in [[executeElem]] only wraps the computation `key` already finished producing, and `attempt`'s
-   * `Effect.catching` in [[reportStage]] guards a stage body, not this fan-out's own key-rendering step. This is the
-   * shared choke point both [[executeElem]] and [[reportFanOutKeyed]] route every key through instead, the same reason
+   * recovery in [[executeElem]] only wraps the computation `key` already finished producing, and `attempt`'s
+   * `Abort.run` in [[reportStage]] guards a stage body, not this fan-out's own key-rendering step. This is the shared
+   * choke point both [[executeElem]] and [[reportFanOutKeyed]] route every key through instead, the same reason
    * [[validateKeys]] itself is shared: the two executors can never diverge on either step.
    */
   private def renderAndValidateKeys[A](
@@ -847,15 +843,14 @@ object SealedPipeline:
    * `Abort.run[E]` used to render it directly; one it rejects came from a hidden `Abort` and becomes
    * `Result.Panic(UndeclaredAbortException(..))` instead of escaping through `S` unhandled — the gap
    * [[SealedPipeline#runReport]]'s own scaladoc used to document. `ConcreteTag[E].unapply` does the narrowing itself
-   * (an internal, already-tag-checked cast on kyo's side), so no cast is needed here. The `Effect.catching` wrapper
-   * covers what `Abort.run` alone cannot: `body` is forced ''while constructing'' the computation (a `Stage.Run`'s own
-   * function is applied eagerly), so a raw non-fatal throw from that application would otherwise escape the handler
-   * entirely and tear the run. Both paths land on the same `Result.Panic`, and the caller folds one shape. Fatal
-   * throwables remain uncaught — `Effect.catching` filters on `scala.util.control.NonFatal`, the gap
+   * (an internal, already-tag-checked cast on kyo's side), so no cast is needed here. `body` is forced ''while
+   * constructing'' the computation (a `Stage.Run`'s own function is applied eagerly); `Abort.run` forces it under its
+   * own recovery, so a raw non-fatal throw from that application lands on the same `Result.Panic` as one raised later,
+   * and the caller folds one shape. Fatal throwables remain uncaught — Kyo's recovery filters on `kyo.IsFatal`, the gap
    * [[SealedPipeline#execute]] documents.
    */
   private def attempt[A, E, S](body: => A < (Abort[E] & S))(using tag: ConcreteTag[E], frame: Frame): Result[E, A] < S =
-    Effect.catching(Abort.run[Any](body))((ex: Throwable) => Result.Panic(ex): Result[Any, A]).map {
+    Abort.run[Any](body).map {
       case Result.Success(a) => Result.Success(a)
       case Result.Panic(ex)  => Result.Panic(ex)
       case Result.Failure(e) =>
@@ -955,13 +950,14 @@ object SealedPipeline:
               case Present(meta) => Pipeline.provenanceLocal.update(_.append(meta))(stage.run(value))
               case Absent        => stage.run(value)
           }.map { ran =>
-            val (outcome, out): (NodeOutcome[E], Gate[B]) = ran match
+            val outcomeAndGate: (NodeOutcome[E], Gate[B]) = ran match
               case Result.Success(produced) =>
                 (NodeOutcome.Succeeded(Provenance.Executed), Gate.Live(produced, Chunk(eventId)))
               case Result.Failure(error) =>
                 (NodeOutcome.Failed(Result.Failure(error)), Gate.Blocked(Chunk(eventId), Chunk(eventId)))
               case Result.Panic(ex) =>
                 (NodeOutcome.Failed(Result.Panic(ex)), Gate.Blocked(Chunk(eventId), Chunk(eventId)))
+            val (outcome, out) = outcomeAndGate
             closing(eventId, ordinal, outcome, out)
           }
         }

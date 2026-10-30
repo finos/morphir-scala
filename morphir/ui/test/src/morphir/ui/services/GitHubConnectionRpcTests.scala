@@ -179,11 +179,8 @@ class GitHubConnectionRpcTests extends Test[Any]:
             ).map {
               case Result.Failure(error: JsonRpcImplementationError) =>
                 assert(error.code == -32002)
-                assert(error.label == "Application error (-32002): GitHub connection error")
-                assert(
-                  error.message ==
-                    "Server error (-32002): Application error (-32002): GitHub connection error"
-                )
+                assert(error.label == "GitHub connection error")
+                assert(error.message == "GitHub connection error")
                 assert(!error.toString.contains(sentinel))
                 assert(!Json.encode[JsonRpcError](error).contains(sentinel))
                 error.data match

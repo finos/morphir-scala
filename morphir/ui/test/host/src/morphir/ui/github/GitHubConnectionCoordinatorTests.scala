@@ -361,8 +361,8 @@ class GitHubConnectionCoordinatorTests extends Test[Any]:
                           awaitWithin(connectionFiber.getResult).map { interrupted =>
                             assert(
                               interrupted match
-                                case Result.Panic(_: Interrupted) => true
-                                case _                            => false
+                                case Result.Success(Result.Panic(_: Interrupted)) => true
+                                case _                                            => false
                             )
                             val expected =
                               GitHubConnectionStatus.Connected(grace.value, ConnectionPersistence.Device)
@@ -652,8 +652,8 @@ class GitHubConnectionCoordinatorTests extends Test[Any]:
                           awaitWithin(disconnectFiber.getResult).map { interrupted =>
                             assert(
                               interrupted match
-                                case Result.Panic(_: Interrupted) => true
-                                case _                            => false
+                                case Result.Success(Result.Panic(_: Interrupted)) => true
+                                case _                                            => false
                             )
                             awaitWithin(awaitStatus(coordinator, GitHubConnectionStatus.Disconnected)).map {
                               completed =>

@@ -133,10 +133,10 @@ state. A removal failure leaves the old state intact and prevents the replacemen
 session connection that appears successful while the older device credential remains ready for the next startup.
 
 Connection transitions use one Kyo mutex. Lock acquisition, token parsing, GitHub verification, and coordinator state
-reads remain interruptible. Once those steps have selected a commit, `Async.mask` narrowly covers the vault mutation
-and coordinator state write. Kyo keeps the transition mutex held while that masked commit finishes. An interruption
-therefore cannot leave a newly written credential without its matching active provider, or remove a credential without
-clearing its provider.
+reads remain interruptible. Once those steps have selected a commit, `Async.uninterruptible` narrowly covers the vault
+mutation and coordinator state write. Kyo keeps the transition mutex held while that protected commit finishes. An
+interruption therefore cannot leave a newly written credential without its matching active provider, or remove a
+credential without clearing its provider.
 
 ## Module placement
 

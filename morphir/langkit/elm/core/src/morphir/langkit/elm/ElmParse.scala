@@ -158,14 +158,14 @@ object ElmParse:
    * to hand on.
    */
   def run[A](options: ElmParseOptions)(pipeline: A < ElmParse)(using Frame): Outcome[A] =
-    ArrowEffect.handleLoop(Tag[ElmParse], Chunk.empty[Report], pipeline)(
+    ArrowEffect.handleLoopState(Tag[ElmParse], Chunk.empty[Report], pipeline)(
       handle = [C] =>
-        (input, state, cont) =>
+        (state, input) =>
           input match
             case ElmParseOp.Options =>
-              Loop.continue(state, cont(options.asInstanceOf[C]))
+              Loop.continue(state, options.asInstanceOf[C])
             case ElmParseOp.Report(reported) =>
-              Loop.continue(state.append(reported), cont(().asInstanceOf[C]))
+              Loop.continue(state.append(reported), ().asInstanceOf[C])
             case ElmParseOp.Halt(diagnostic) =>
               Loop.done(Outcome[A](state.append(Reported.error(diagnostic)), None)),
       done = (state, value) =>

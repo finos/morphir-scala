@@ -65,7 +65,7 @@ object Sidebar:
           .padding(0.px, 10.px)
           .fontWeight(_.w700)
           .fontSize(17.px)
-          .letterSpacing(-0.01.em)
+          .letterSpacing((-0.01).em)
       )
       .rule(
         Css.brandSub,
