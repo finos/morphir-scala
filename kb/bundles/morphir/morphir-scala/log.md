@@ -2,6 +2,10 @@
 
 ## 2026-10-30
 
+* **Creation**: Added the [GitHub GraphQL Connector](/github-graphql-connector.md) and
+  [Elm MEP frontend provider](/elm-mep-frontend.md) Capabilities, describing what each ships today.
+* **Update**: [Published library families](/design/published-library-families.md) records that the Scala.js and Scala
+  Native artifacts of modules with versionless suite dependencies have never reached Maven Central.
 * **Update**: Moved the remaining Kyo 1.0.0-RC6 claims to RC7 after checking each against the RC7 tag and the
   published artifacts. [Published library families](/design/published-library-families.md): kyo-http platform and
   Node-only claims hold; RC7 fixes the macOS Native link failure, but the kqueue binding is still a throwing stub.

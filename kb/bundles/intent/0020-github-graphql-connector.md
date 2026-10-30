@@ -58,10 +58,26 @@ script `morphir/connector/github/schema/gen-client.scala`. REST is used only for
 is Node-only. A browser `fetch` backend is out of scope: kyo-http has no fetch floor, and GitHub GraphQL from a page
 origin is a CORS and token problem. Electron uses the Node backend. Scala Native stays stubbed. Kyo 1.0.0-RC7 fixes the epoll and
 io_uring link failure on macOS, but the published kyo-net 1.0.0-RC7 Native artifact was still generated on Linux.
-Its kqueue binding is still a throwing stub, so a macOS binary would have no I/O backend (unverified). Tests replay recorded GraphQL fixtures and do not call `api.github.com`. The check lives in the
+Its kqueue binding is still a throwing stub, so a macOS binary would have no I/O backend (unverified). Live HTTP
+on Native is [0041](/0041-live-github-http-on-scala-native.md). Tests replay recorded GraphQL fixtures and do not call `api.github.com`. The check lives in the
 [published library families Design Note](../morphir/morphir-scala/design/published-library-families.md).
 
 The `gh` CLI is [0024](/0024-github-cli-connector.md), a sibling module, not a package here.
 
 Depends on [decision 0013](../morphir/morphir-scala/decisions/0013-published-library-families.md). The narrative home
 is the [published library families Design Note](../morphir/morphir-scala/design/published-library-families.md).
+
+## Where this stands
+
+The connector is built and tested on all three platforms, and the
+[GitHub GraphQL connector Capability](../morphir/morphir-scala/github-graphql-connector.md) describes what it does
+today. Beyond this intent's issues, pull requests and discussions, it also reads gists and verifies tokens.
+
+Two things keep this intent open:
+
+- Only the JVM artifact, `morphir-connector-github_3`, is on Maven Central (0.5.0-M05 through 0.5.0-M10). The Scala.js
+  and Scala Native artifacts never reached Central, although the publish log reported success. Their POMs name the
+  versionless Kyo dependencies as JVM artifacts with no version, which is the likely cause. The build fix ships first; this intent
+  releases once a milestone puts the JS and Native artifacts on Central.
+- Live HTTP on Scala Native is [0041](/0041-live-github-http-on-scala-native.md), which waits on a Kyo Native artifact
+  with working kqueue bindings. It does not block the release: the stubbed Native client is the documented behaviour.
