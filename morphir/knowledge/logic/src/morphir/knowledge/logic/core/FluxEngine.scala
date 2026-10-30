@@ -17,10 +17,15 @@ import scala.collection.immutable.{Queue => ScalaQueue}
  */
 private[core] object FluxEngine {
 
-  /** One step of a source: done, or a chunk followed by the rest, which is not built until it is pulled. */
+  /**
+   * One step of a source: done, a chunk followed by the rest, or a source not yet built. Nothing after the current
+   * chunk is built until that source is pulled again, so a source that refers to itself through [[suspend]] parks
+   * instead of unfolding while a sibling waits.
+   */
   enum Src[+A]:
     case Halt
     case Emitted(chunk: Chunk[Option[A]], rest: () => Src[A])
+    case Deferred(src: () => Src[A])
 
   private def emit[A](chunk: Chunk[Option[A]])(rest: => Src[A]): Src[A] = Src.Emitted(chunk, () => rest)
 
@@ -32,11 +37,12 @@ private[core] object FluxEngine {
   private def pull1[A](src: Src[A]): Step[A] =
     src match
       case Src.Halt                 => Step.Halt
+      case Src.Deferred(src)        => pull1(src())
       case Src.Emitted(chunk, rest) =>
         if chunk.isEmpty then pull1(rest())
         else
           val tail = chunk.tail
-          Step.One(chunk.head, if tail.isEmpty then rest() else Src.Emitted(tail, rest))
+          Step.One(chunk.head, if tail.isEmpty then Src.Deferred(rest) else Src.Emitted(tail, rest))
 
   // ---- Constructors ----
   def empty[A]: Src[A] = Src.Halt
