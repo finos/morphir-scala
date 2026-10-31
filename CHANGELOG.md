@@ -8,6 +8,10 @@ a release.
 
 ## [0.5.0-M14]
 
+### Changed
+- The OpenSpec checker uses MoonBit `0.10.18+6c83a7f62`. `mise install` now completes the SDK (core and `moonx`)
+  on Linux, Apple Silicon macOS and Windows; Intel macOS is no longer supported because no archive is published.
+
 ## [0.5.0-M13] - 2026-10-31
 
 ### Removed
