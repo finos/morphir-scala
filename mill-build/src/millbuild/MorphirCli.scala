@@ -234,10 +234,22 @@ trait MorphirMckRunner extends JavaModule {
       os.remove(report)
       os.remove(html)
       // Inside a task an os.Path renders relative to Mill's daemon directory; a child process needs it absolute.
-      def host(path: os.Path): String      = path.toNIO.toAbsolutePath.normalize.toString
+      def host(path: os.Path): String = path.toNIO.toAbsolutePath.normalize.toString
+      // The adapter answers on stdout, and anything else written there breaks the protocol. CI sets
+      // JDK_JAVA_OPTIONS=-XX:+PrintCommandLineFlags, which makes every JVM, the adapter included, print its flags to
+      // stdout, so the CLI and the adapter it starts get the variable without that flag.
+      val jdkOptions = Task.env.get("JDK_JAVA_OPTIONS").map { options =>
+        options.split("\\s+").filter(o => o.nonEmpty && !o.startsWith("-XX:+PrintCommandLineFlags")).mkString(" ")
+      }
       def morphir(arguments: String*): Int =
         os.proc(host(cli) +: arguments)
-          .call(cwd = Task.dest, check = false, stdout = os.Inherit, stderr = os.Inherit)
+          .call(
+            cwd = Task.dest,
+            env = jdkOptions.map(o => Map("JDK_JAVA_OPTIONS" -> o)).getOrElse(Map.empty),
+            check = false,
+            stdout = os.Inherit,
+            stderr = os.Inherit
+          )
           .exitCode
       // Mill's launcher is a combined sh and batch script with no `#!` line. The CLI starts the adapter with a direct exec,
       // which Linux refuses for such a file (ENOEXEC, "Exec format error"), so on Unix it runs under /bin/sh.
