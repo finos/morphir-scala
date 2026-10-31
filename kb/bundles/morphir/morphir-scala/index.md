@@ -31,6 +31,7 @@ Draft Design Notes and research are provisional.
 * [Markdown GFM Profile](/markdown-gfm-profile.md) - morphir-langkit-markdown parses CommonMark 0.31.2 and, behind MdProfile.gfm, GitHub Flavored Markdown's five extensions, with a conformance-measured writer.
 * [GitHub GraphQL Connector](/github-graphql-connector.md) - morphir-connector-github reads GitHub issues, pull requests, discussions, gists and their comments over GraphQL on the JVM and Node.js; on Scala Native its live client fails every call.
 * [Elm MEP frontend provider](/elm-mep-frontend.md) - morphir-scala-elm is a native MEP 0.1 process that compiles one single-function Elm module to Morphir IR v3 and answers ad-hoc workspace discovery.
+* [v3 IR Reading](/v3-ir-reading.md) - morphir-model-compat-v3 reads the v3 morphir-ir.json that morphir-elm writes straight into the Kyo code model, with no classic library or ZIO, on the JVM and Scala.js.
 * [Knowledge Base Tooling](/knowledge-base-tooling.md) - The kb skill manages the OKF knowledge base and the intent recorded in it, from the command line.
 * [Continuous Integration](/continuous-integration.md) - GitHub Actions runs linting, cross-platform tests and knowledge base checks on pull requests targeting supported branches.
 * [Build System](/build-system.md) - Mill drives the build from per-directory package.mill.yaml files, with mise as the task runner.
