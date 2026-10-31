@@ -39,7 +39,7 @@ flowchart TD
     Gate -->|branch push only: every area snapshots or milestones together, each from its own changelog| PublishAll[publish: ci.publish]
     PublishAll -->|serial upload, one module at a time| Sonatype[(Sonatype Central)]
 
-    Gate --> CliMatrix[cli-matrix: five platforms on a v* tag; three-OS smoke matrix on a pull request or branch push]
+    Gate --> CliMatrix[cli-matrix: five platforms on a v* tag; Linux and Windows smoke matrix on a pull request or branch push]
     CliMatrix --> CliNative[cli-package-native: GraalVM Native Image]
     CliNative --> CliVerify[cli-verify: assets and SHA-256 checksums]
     CliVerify --> Packaging[packaging gate]
@@ -69,7 +69,7 @@ along with the app when the Electron desktop UI moved to
 | Event | GitHub Actions trigger | Condition | What runs |
 | --- | --- | --- | --- |
 | Pull request | `pull_request` | into `main`, `0.4.x` | `ci` gate; nothing publishes. Extension packaging runs one runner per operating system, unless its switch turns it off |
-| Branch push | `push` | to `main`, `0.4.x` | `ci` gate, then `publish` (`ci.publish`, every area) once it passes. Extension packaging runs its three-OS smoke matrix, unless its switch turns it off |
+| Branch push | `push` | to `main`, `0.4.x` | `ci` gate, then `publish` (`ci.publish`, every area) once it passes. Extension packaging runs its Linux and Windows smoke matrix, unless its switch turns it off |
 | Tag push | `push` | tags `v*`, `mill-plugins/v*` | phase one of a release: `ci` gate, then full packaging and verification, then a **draft** GitHub release is created (or reused) with the assets attached. No Maven Central upload happens on a tag push |
 | Release published | `release`, `types: [published]` on `release-publish.yml` | any published release | phase two: the tag namespace routes to one promotion job, which re-verifies the staged assets and uploads to Sonatype — unless the Maven Central switches stand it down |
 | Manual dispatch of CI | `workflow_dispatch` on `ci.yml` | whichever ref is chosen | the same jobs that ref would otherwise trigger. Choosing a release tag re-runs that tag's staging phase (the retry path for a failed build or upload) |
@@ -165,7 +165,7 @@ The root library version stream also versions the extension. `ci.extensions` ext
 
 | Token | Runner | Public asset |
 | --- | --- | --- |
-| `mac-aarch64` | `macos-14` | `morphir-scala-elm-mac-aarch64-<version>` |
+| `mac-aarch64` | `macos-15` | `morphir-scala-elm-mac-aarch64-<version>` |
 | `mac-amd64` | `macos-15-intel` | `morphir-scala-elm-mac-amd64-<version>` |
 | `linux-amd64` | `ubuntu-24.04` | `morphir-scala-elm-linux-amd64-<version>` |
 | `linux-aarch64` | `ubuntu-24.04-arm` | `morphir-scala-elm-linux-aarch64-<version>` |
