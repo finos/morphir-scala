@@ -1,0 +1,4 @@
+{
+  "$comment": "Case ids the v3 reader is known to fail. morphir mck report check requires the failing cases to equal this list exactly.",
+  "cases": []
+}

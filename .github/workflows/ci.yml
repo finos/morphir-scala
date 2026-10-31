@@ -633,6 +633,44 @@ jobs:
       - name: Run JVM tests
         run: ./mill --ticker false -i ci.testJvm
 
+  # Runs the Morphir Compatibility Kit IR suite, embedded in the pinned morphir CLI, against the v3
+  # reader's adapter, and gates on `morphir mck report check`. Same command as `mise run mck:run`.
+  mck-ir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Setup Scala and Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: "temurin"
+          java-version: "26.0.2+10"
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v8
+        with:
+          # One cache for the jobs that resolve the same Mill and library dependencies. Keyed
+          # per job, each wrote its own ~550 MB copy, and the copies filled the 10 GB cache limit.
+          job: base
+      - name: Cache verified Morphir CLI download
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/morphir-scala
+          key: ${{ runner.os }}-morphir-cli-${{ hashFiles('mill-build/src/millbuild/MorphirCli.scala') }}
+      - name: Run MCK IR suite
+        run: ./mill --ticker false -i morphir.model.compat.v3.mck.mckRun
+      - name: Upload MCK reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mck-ir-report
+          path: |
+            .dev/mck/report.json
+            .dev/mck/report.html
+          if-no-files-found: warn
+
   # Keep surviving job IDs stable for branch-protection checks. These jobs now package only MEP.
   # The extension toggle takes precedence; the old CLI toggle remains a settings migration fallback.
   cli-matrix:
@@ -920,7 +958,7 @@ jobs:
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [commit-authorship, lint, squire-policy, knowledge-base, test-js, test-js-desktop, test-jvm, test-native, mill-morphir-unit, mill-morphir-integration, morphir-elm-projects, runtime-generated-fixtures, runtime-tests]
+    needs: [commit-authorship, lint, squire-policy, knowledge-base, test-js, test-js-desktop, test-jvm, test-native, mill-morphir-unit, mill-morphir-integration, morphir-elm-projects, runtime-generated-fixtures, runtime-tests, mck-ir]
     steps:
       - name: Verify required CI jobs succeeded
         run: |
@@ -937,6 +975,7 @@ jobs:
           test "${{ needs.morphir-elm-projects.result }}" = "success"
           test "${{ needs.runtime-generated-fixtures.result }}" = "success"
           test "${{ needs.runtime-tests.result }}" = "success"
+          test "${{ needs.mck-ir.result }}" = "success"
       - name: Aggregate of lint, and all tests
         run: echo "ci passed"
 

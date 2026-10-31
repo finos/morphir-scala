@@ -2,6 +2,7 @@ extends: Module
 
 object jvm:
   extends: [build.MorphirJVMModule, build.MorphirPublishModule, build.MorphirScoverage]
+  packageDescription: "Deprecated: zio-json codecs for the classic IR and datamodel. Use morphir-model (v4 JSON) and morphir-model-compat-v3 (v3 morphir-ir.json) instead."
   moduleDeps: [build.morphir.jvm]
   mvnDeps:
   - dev.zio::zio-json
@@ -18,6 +19,7 @@ object jvm:
 
 object js:
   extends: [build.MorphirJSModule, build.MorphirPublishModule]
+  packageDescription: "Deprecated: zio-json codecs for the classic IR and datamodel. Use morphir-model (v4 JSON) and morphir-model-compat-v3 (v3 morphir-ir.json) instead."
   moduleDeps: [build.morphir.js]
   mvnDeps:
   - dev.zio::zio-json

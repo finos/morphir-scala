@@ -7,7 +7,8 @@ echo "Running JVM tests..."
 
 # `morphir.langkit.itest` is named separately: it is a plain JVM module rather
 # than a `<module>.jvm` one, so the `morphir.__.jvm.__` glob never matches it.
-# It also exposes `testCached` rather than `test`.
+# It also exposes `testCached` rather than `test`. `morphir.model.compat.v3.mck`, the
+# MCK adapter, is a plain JVM module for the same reason.
 
 ./mill -i -k -j 0 \
     "morphir.__.jvm.__.compile" \
@@ -16,6 +17,8 @@ echo "Running JVM tests..."
     + \
     "morphir.__.jvm.__.test" \
     + \
-    "morphir.langkit.itest.testCached"
+    "morphir.langkit.itest.testCached" \
+    + \
+    "morphir.model.compat.v3.mck.test"
 
 echo "JVM tests completed successfully"

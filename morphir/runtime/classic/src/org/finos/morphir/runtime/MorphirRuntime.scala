@@ -10,6 +10,10 @@ import org.finos.morphir.runtime.exports.RTAction
 import org.finos.morphir.runtime.quick.QuickMorphirRuntime
 import org.finos.morphir.runtime.MorphirRuntimeError.*
 
+/**
+ * **Deprecated.** The classic Morphir IR evaluator is deprecated and will stop being published. Scala evaluation of
+ * Morphir IR has no replacement yet.
+ */
 trait MorphirRuntime {
   type TypeAttribs
   type ValueAttribs

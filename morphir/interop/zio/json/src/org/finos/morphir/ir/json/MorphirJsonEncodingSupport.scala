@@ -26,6 +26,10 @@ import org.finos.morphir.ir.Value.{Definition => ValueDefinition, Specification 
 import org.finos.morphir.ir.Value.{Value, _}
 import org.finos.morphir.ir.module.{Definition => ModuleDefinition, Specification => ModuleSpecification}
 
+/**
+ * **Deprecated.** These zio-json codecs for the classic IR are deprecated. To write v3 `morphir-ir.json`, use
+ * `V3WireProjection` in `morphir-model-compat-v3`; for v4 JSON use `morphir-model`.
+ */
 trait MorphirJsonEncodingSupport extends JsonEncodingHelpers {
   implicit val unitEncoder: JsonEncoder[Unit] = Json.encoder.contramap(_ => Json.Obj())
   implicit val nameEncoder: JsonEncoder[Name] = JsonEncoder.list[String].contramap(name => name.toList)

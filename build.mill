@@ -198,24 +198,27 @@ trait MorphirPublishBase extends PublishModule with SonatypeCentralPublishModule
   /** The area's own stream version. See [[MorphirVersionedModule]]. */
   def publishVersion = Task { streamVersion() }
 
-  def packageDescription: String = s"The $artifactName package"
-  def pomSettings                = PomSettings(
-    description = packageDescription,
-    organization = "org.finos.morphir",
-    url = "https://github.com/finos/morphir-scala",
-    licenses = Seq(License.`Apache-2.0`),
-    versionControl = VersionControl.github("finos", "morphir-scala"),
-    developers = Seq(
-      Developer("DamianReeves", "Damian Reeves", "https://github.com/damianreeves")
+  /** The POM description. A task, so a module's YAML can set it (`packageDescription: "…"`). */
+  def packageDescription: T[String] = Task { s"The ${artifactName()} package" }
+  def pomSettings                   = Task {
+    PomSettings(
+      description = packageDescription(),
+      organization = "org.finos.morphir",
+      url = "https://github.com/finos/morphir-scala",
+      licenses = Seq(License.`Apache-2.0`),
+      versionControl = VersionControl.github("finos", "morphir-scala"),
+      developers = Seq(
+        Developer("DamianReeves", "Damian Reeves", "https://github.com/damianreeves")
+      )
     )
-  )
+  }
 }
 
 trait MorphirPublishModule extends MorphirPublishBase with JavaModule with Mima
 
 trait MorphirMillPublishModule extends MorphirPublishModule {
   import mill.scalalib.publish.*
-  override def pomSettings = super.pomSettings().copy(organization = "org.finos.morphir.mill")
+  override def pomSettings = Task { super.pomSettings().copy(organization = "org.finos.morphir.mill") }
 }
 
 trait MorphirCommonModule extends ScalaModule with CommonScalaModule with MorphirSuiteBom {
@@ -1028,6 +1031,7 @@ object MyAliases extends Aliases {
     "morphir.{appkit,buildkit.core,connector.github,extensibility,interop.borer,interop.zio.json,knowledge.logic,knowledge.okf,langkit.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,lib.interop,model,model.compat.v3,model.lowering,naming,prelude,tests,tools,ui}.jvm.publishArtifacts",
     "morphir.{appkit,buildkit.core,connector.github,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.logic,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.compiler.ir,langkit.elm.compiler.mep,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,model,model.compat.v3,model.lowering,prelude,tests,ui,web.server}.jvm.test",
     "morphir.langkit.itest.testCached",
+    "morphir.model.compat.v3.mck.test",
     "millbuildHelpers.elmExtensionArchitectureCheck",
     "millbuildHelpers.test"
   )

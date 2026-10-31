@@ -15,6 +15,9 @@ import org.finos.morphir.ir.distribution.Distribution as V3Distribution
 import scala.math.Ordering.Implicits.seqOrdering
 
 /**
+ * **Deprecated.** This module is deprecated. Use `V3Reader` in `morphir-model-compat-v3`, which reads `morphir-ir.json`
+ * straight into the code model without the classic library.
+ *
  * Lowers the v3 IR (`org.finos.morphir.ir`, `morphir-ir.json`) to the code model (`org.finos.morphir.codemodel`, the v4
  * IR).
  *

@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>retire-classic-zio-morphir: design</title>
+<meta name="color-scheme" content="light dark">
+<style>
+:root { color-scheme: light dark; --bg: #fafafa; --fg: #18212f; --muted: #526071;
+  --line: #cbd5e1; --panel: #eef2f6; --link: #075caa; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #111827; --fg: #e5e7eb; --muted: #b0bdce;
+    --line: #475569; --panel: #1e293b; --link: #8cc8ff; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg);
+  font: 1rem/1.6 system-ui, sans-serif; }
+main { max-width: 70rem; margin: auto; padding: clamp(1rem, 4vw, 3rem); }
+h1, h2, h3 { line-height: 1.25; overflow-wrap: anywhere; }
+h2 { margin-top: 2rem; border-bottom: 1px solid var(--line); padding-bottom: .4rem; }
+a { color: var(--link); }
+a:focus-visible { outline: 3px solid var(--link); outline-offset: 3px; }
+.meta { color: var(--muted); }
+.toc, pre, details { background: var(--panel); border: 1px solid var(--line);
+  border-radius: .4rem; padding: 1rem; }
+code { font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
+pre { overflow-x: auto; } pre code { overflow-wrap: normal; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid var(--line); padding: .6rem; text-align: left;
+  overflow-wrap: anywhere; }
+svg { max-width: 100%; height: auto; }
+svg text { fill: currentColor; font: 13px system-ui, sans-serif; }
+svg .box { fill: var(--panel); stroke: var(--line); }
+svg .edge { stroke: var(--muted); fill: none; }
+@media print { main { max-width: none; padding: 0; } pre, tr { break-inside: avoid; } }
+</style>
+</head>
+<body>
+<main>
+<h1>retire-classic-zio-morphir: design</h1>
+<p class="meta">OpenSpec change | 2026-10-30 | proposed (revised: MCK replaces local fixture tests)</p>
+
+<nav class="toc" aria-label="Contents">
+<ul>
+<li><a href="#context">Context</a></li>
+<li><a href="#goals">Goals and non-goals</a></li>
+<li><a href="#decisions">Decisions</a></li>
+<li><a href="#risks">Risks and trade-offs</a></li>
+<li><a href="#migration">Migration plan</a></li>
+</ul>
+</nav>
+
+<h2 id="context">Context</h2>
+<p>See <a href="proposal.md">proposal.md</a> for why. Requirements are in
+<a href="specs/ir-v3-ingestion/spec.md">ir-v3-ingestion</a> and
+<a href="specs/published-library-families/spec.md">published-library-families</a>.</p>
+<p>What the code shows today:</p>
+<ul>
+<li>The classic family is the root <code>morphir</code> module (238 source files) plus <code>interop.zio.json</code>,
+<code>interop.borer</code>, <code>model.lowering</code>, <code>runtime.classic</code>, <code>tools</code>,
+<code>tests</code>, <code>testing.zio</code> and <code>testing.generators</code>. Seven of them publish for the JVM and
+Scala.js: 14 artifacts.</li>
+<li>Outside the family, only <code>knowledge.logic</code> depends on it, and only nominally: it compiles and tests
+without the root module.</li>
+<li>v3 <code>morphir-ir.json</code> reaches the Kyo code model in two steps: the classic ZIO JSON decoders build classic
+IR objects (format versions 1, 2 and 3), then <code>V3Lowering</code> converts those to the code model. Nothing else
+calls <code>V3Lowering</code>.</li>
+<li>The pinned kit (Morphir CLI v0.4.0-beta.10) already holds twelve <code>@version:3</code> cases, including
+<code>"3.1.0"</code> <code>Specs</code> documents, module documentation and <code>DerivedTypeSpecification</code>.</li>
+<li>The Kyo side already writes v3 (<code>model.compat.v3</code>, <code>V3WireProjection</code>, JVM only) and reads and
+writes v4 (<code>CodeModelCodecs</code>, a derived layout). It has no v3 reader and no evaluator.</li>
+<li><code>examples/morphir-elm-projects</code> builds real morphir-elm IR through the Mill Elm plugin. Only the classic
+runtime fixtures (<code>ClassicRuntimeTestFixtures</code>) consume it.</li>
+<li>finos/morphir ships the Morphir Compatibility Kit (MCK). <code>morphir mck run --suite ir --adapter &lt;exe&gt;</code>
+drives an implementation's adapter through a JSON request/response protocol (<code>capabilities</code>,
+<code>decode</code>, <code>readTree</code>, <code>writeTree</code>, <code>exit</code>), compares its canonical output
+with the cases in <code>spec/ir/mck</code>, skips cases for versions or node kinds the adapter does not claim, and
+writes a report that <code>morphir mck report check</code> gates. The kit is mostly v4; it has only a handful of
+<code>@version:3</code> cases. This repository does not acquire the <code>morphir</code> CLI anywhere today.</li>
+</ul>
+
+<svg viewBox="0 0 900 200" role="img" aria-labelledby="fig1">
+<title id="fig1">Figure 1: v3 reading today, and how the new reader is checked</title>
+<rect class="box" x="10" y="20" width="150" height="40" rx="6"/><text x="22" y="45">morphir-ir.json (v3)</text>
+<rect class="box" x="230" y="20" width="200" height="40" rx="6"/><text x="242" y="45">classic ZIO JSON decoders</text>
+<rect class="box" x="500" y="20" width="160" height="40" rx="6"/><text x="512" y="45">V3Lowering</text>
+<rect class="box" x="730" y="60" width="160" height="40" rx="6"/><text x="742" y="85">code model</text>
+<path class="edge" d="M160 40 H230 M430 40 H500 M660 40 Q700 40 730 75"/>
+<rect class="box" x="230" y="110" width="430" height="40" rx="6"/><text x="242" y="135">model.compat.v3 reader (Kyo JSON, no ZIO)</text>
+<path class="edge" d="M85 60 V130 H230 M660 130 Q700 130 730 90"/>
+<rect class="box" x="10" y="150" width="200" height="40" rx="6"/><text x="22" y="175">morphir mck run --suite ir</text>
+<rect class="box" x="300" y="160" width="230" height="30" rx="6"/><text x="312" y="180">MCK adapter (JVM launcher)</text>
+<path class="edge" d="M210 170 H300 M415 160 V150"/>
+<text x="560" y="185">Top: today, removed in Phase 2.</text>
+</svg>
+
+<h2 id="goals">Goals and non-goals</h2>
+<p><strong>Goals:</strong> a v3 reader that needs nothing from the classic family; held to the shared MCK contract
+rather than to a local fixture set; v3 reading cases that every Morphir binding shares; a removal that leaves no ZIO in
+any published module.</p>
+<p><strong>Non-goals:</strong> a Kyo evaluator for Morphir IR; reading format versions 1 and 2; v4 conformance of
+<code>CodeModelCodecs</code> (a follow-up: claiming v4 in the adapter); Scala Native for the reader (the code model has
+no Native build); migrating consumers' code; changing the v3 write projection beyond what canonical output needs.</p>
+
+<h2 id="decisions">Decisions</h2>
+
+<h3 id="v3-1">V3-1. Put the reader in <code>model.compat.v3</code>, built for JVM and Scala.js</h3>
+<p><code>model.compat.v3</code> already owns the v3 wire format in the write direction, and decision 0017 treats
+deprecated IR formats as wire projections at the edge of the code model. Reading the same format belongs in the same
+module, so v3 knowledge lives in one place. The module gains a Scala.js variant because the classic JSON codecs it
+replaces also published for Scala.js.</p>
+<p>Alternatives: port <code>model.lowering</code> onto Kyo and keep its name (the name describes lowering classic objects,
+which will no longer exist); a new <code>model.ingest.v3</code> module (splits one format across two modules).</p>
+
+<h3 id="v3-2">V3-2. Decode straight into the code model, with no intermediate v3 model</h3>
+<p>The reader parses with Kyo JSON into a generic JSON tree and walks v3's tagged-array encoding
+(<code>["Library", …]</code>, <code>["Reference", …]</code>) directly into code-model values, applying
+<code>V3Lowering</code>'s rules as it goes: attributes erased, a typed value's type kept as its inferred type,
+constructors and bundle packages sorted by name, the package version left at the existing placeholder. The node tags
+and field layouts come from the classic v3 decoder while it exists; the MCK cases are the contract afterwards.</p>
+<p>Alternatives: port the classic v3 IR types to Kyo and keep two-step decoding (a second IR model to maintain, which is
+what this change removes); schema-derived codecs (v3 is a positional, tag-in-array encoding that derivation does not
+produce).</p>
+
+<h3 id="v3-3">V3-3. Typed errors with a location; v3 format versions as the specification defines them</h3>
+<p>Decoding returns a <code>Result</code> with a typed error carrying a JSON path to the fault; no exception escapes.
+Format versions follow finos/morphir's <code>docs/spec/ir/format-version.md</code>: <code>formatVersion</code> is the
+integer 3 or a release string <code>"3.minor.patch"</code>, normalised to a release and checked against the support
+table <code>[3.0.0,3.2.0)</code>, which includes the 3.1.x <code>Specs</code> distribution. A rejection uses that
+specification's codes (<code>invalid_format_version_type</code>, <code>invalid_format_version_syntax</code>,
+<code>format_version_out_of_range</code>, <code>unsupported_format_version_major</code> for the historical integers 1 and
+2, <code>unsupported_format_version_minor</code>), and <code>version_mismatch</code> when a document of another major
+family is read as v3, per <code>docs/spec/ir/schemas/v3/document-tree-files.md</code>. Structural faults use the codes
+the kit's v3 cases name. The decoded release is returned with the distributions so a writer can echo it canonically:
+the integer 3 for <code>3.0.0</code>, the exact string otherwise.</p>
+<p>The first draft of this design accepted only the integer 3. The kit's existing <code>@version:3</code> cases showed
+that is not what the specification allows.</p>
+
+<h3 id="mod-1">MOD-1. Give code-model modules their documentation</h3>
+<p>morphir-elm writes a <code>doc</code> member on every module, and v3.1 <code>Specs</code> documents carry text in it. The
+code model had nowhere to keep it, so the classic path dropped it and a round trip could not match the kit.
+<code>ModuleDefinition</code> and <code>ModuleSpecification</code> gain an optional <code>doc</code>, empty by default, so
+existing construction compiles unchanged; the v3 projection always writes the member, <code>null</code> when empty. The
+derived v4 JSON gains the optional field too. This is a binary change to <code>morphir-model</code>, acceptable on the
+0.x milestone line and recorded in the CHANGELOG.</p>
+
+<h3 id="mck-1">MCK-1. An unpublished JVM adapter module, started through its Mill launcher</h3>
+<p>A small JVM module (<code>morphir.model.compat.v3.mck</code>, not published) speaks the IR adapter transport that finos/morphir
+defines in <code>spec/mck/cli-contract.md</code>: newline-delimited JSON requests on standard input, one response line
+each on standard output. <code>capabilities</code> claims version 3, the
+<code>json</code> profile, the <code>single</code> layout and the node kinds the reader supports. <code>decode</code>
+decodes with the v3 reader and answers with canonical v3 JSON written through <code>V3WireProjection</code>.
+<code>readTree</code> and <code>writeTree</code> are not claimed. The runner starts it through the script Mill's
+<code>launcher</code> task produces, so no assembly or Native image is needed. Unit tests for the protocol handling run
+in <code>test-jvm</code> like any other module.</p>
+<p>Alternatives: an adapter inside the published module (puts a CLI entry point into a library); a Scala.js adapter on
+Node (adds a runtime to the job for no extra coverage of shared code).</p>
+
+<h3 id="mck-2">MCK-2. Add the v3 reading cases to the kit upstream</h3>
+<p>The <code>@version:3</code> cases that hold a reader to real morphir-elm output belong in finos/morphir's
+<code>spec/ir/mck</code>, where every binding's v3 reader is measured against them, not in a fixture set private to
+this repository. A finos/morphir PR adds them: per-node <code>@semantic</code> and <code>@spelling</code> cases in the
+topic files, and whole-library documents under <code>documents/</code> generated by morphir-elm from the projects in
+<code>examples/morphir-elm-projects</code> (generated once, before Phase 2 deletes those projects). Case IDs and prose
+follow the kit's authoring rules, and <code>morphir mck check spec/ir/mck</code> must pass upstream.</p>
+<p>Alternative: keep the cases local (shared bindings would not benefit, and morphir-scala would maintain a second
+runner and report format).</p>
+
+<h3 id="mck-3">MCK-3. Acquire a pinned Morphir CLI and run MCK in its own CI job</h3>
+<p>The <code>morphir</code> CLI is downloaded at a pinned version and verified against a pinned SHA-256 through the
+repository's existing toolchain acquisition, cached like the other verified tools. A new <code>mck-ir</code> job builds
+the adapter launcher, runs <code>morphir mck run --suite ir</code> with the CLI's embedded kit, writes the JSON and HTML
+reports as job artifacts, and gates on <code>morphir mck report check</code>. It does not pass <code>--strict</code>: that
+fails a run for any skipped case, and every v4 case is skipped for a v3-only adapter, so a strict run could never
+pass. The <code>ci</code>
+aggregate gate requires it. The reader's unit tests stay in <code>test-jvm</code>, which needs no Node and no Morphir
+CLI. A <code>mck:run</code> mise task runs the same steps locally.</p>
+<p>Phase 1 pins the current CLI, whose kit has few v3 cases. Phase 2 cannot start until the pin moves to a release that
+ships the <a href="#mck-2">MCK-2</a> cases and the job passes them.</p>
+<p>Alternatives: running MCK inside <code>test-jvm</code> (adds a CLI download and a second process to the main JVM
+gate); a vendored kit snapshot via <code>--kit</code> (two things to keep in step instead of one pin).</p>
+
+<h3 id="dep-1">DEP-1. Deprecate through documentation and metadata, not <code>@deprecated</code></h3>
+<p>The deprecation milestone changes the CHANGELOG, each classic module's README text and entry-point scaladoc, and the
+POM description (prefixed with "Deprecated:", which Maven Central shows on the artifact page). It does not annotate
+classes with <code>@deprecated</code>: the build runs with <code>-Werror</code>, so annotating ~490 files would break
+every internal use and its tests for no benefit to consumers who read the notice anyway.</p>
+<p>Alternative: <code>@deprecated</code> on entry points with a <code>-Wconf</code> exemption inside the classic modules
+(more change for the same consumer-facing signal).</p>
+
+<h3 id="rem-1">REM-1. Phase 2 removes by dependency, including the example projects</h3>
+<p>Removal deletes the classic module directories, the classic-only build wiring (<code>MorphirRootMvnDeps</code>,
+<code>MorphirTestsTestMvnDeps*</code>, the classic fixture and discovery traits and <code>RuntimeTestDiscovery</code>),
+the <code>runtime-generated-fixtures</code>, <code>runtime-tests</code> and <code>morphir-elm-projects</code> jobs and
+their entries in the <code>ci</code> aggregate gate, the <code>test:runtime-jvm</code>, <code>build:elm</code> and
+<code>build:morphir-elm</code> tasks and their lines in <code>ci:local</code>, <code>examples/morphir-elm-projects</code>,
+and the ZIO suites and version pins once a full resolve shows nothing else uses them. <code>morphir-elm/sdks</code>
+goes too unless the Mill plugin tests that name <code>morphir-unit-test</code> need the repository module. The publish
+set shrinks on its own, because it selects modules by path prefix. The unwired classic leftovers
+(<code>morphir/meta</code>, <code>morphir/elm/facade</code>, <code>morphir/toolkit</code>) go too, which absorbs intent
+0028.</p>
+
+<h3 id="rem-2">REM-2. Cut <code>knowledge.logic</code> loose in Phase 1</h3>
+<p>Its dependency on the root module is unused, so it goes in Phase 1 rather than waiting. This removes ZIO from a
+Kyo-side library one milestone early and keeps the removal PR to deletions only.</p>
+
+<h3 id="doc-1">DOC-1. Record the retirement in the knowledge base, and update the guidance that assumes ZIO</h3>
+<p>Phase 1 adds a <code>kind: deprecation</code> intent and a <code>kind: removal</code> intent; the removal intent
+supersedes 0028. Phase 2 updates AGENTS.md (the testing section's "ZIO Test elsewhere", "Prefer ZIO or Kyo
+libraries", the CI job list), module CONTRIBUTING files, and the Capability and Design Note pages that describe the
+classic library, and releases both intents with links to the Capability that describes v3 reading.</p>
+
+<h2 id="risks">Risks and trade-offs</h2>
+<table>
+<thead><tr><th>Risk</th><th>Mitigation</th></tr></thead>
+<tbody>
+<tr><td>Phase 2 waits on an upstream PR and a Morphir CLI release that this repository does not control.</td>
+<td>Phase 1 ships and deprecates without it. The upstream PR is opened during Phase 1, so it has the deprecation
+milestone's lifetime to land.</td></tr>
+<tr><td>The kit's v3 cases miss a node shape, so the reader diverges on input nobody tested.</td>
+<td>The upstream documents are whole morphir-elm libraries, including <code>evaluator-tests</code>, which was written to
+drive the classic evaluator through its expression forms. Per-tag unit tests ported from the classic decoder run in
+<code>test-jvm</code>. An unknown tag fails with a typed error naming it, not a wrong result.</td></tr>
+<tr><td>Canonical v3 output differs from the kit's spelling byte for byte (key order, spacing).</td>
+<td>The adapter writes through <code>V3WireProjection</code> and a canonical printer; the kit allows one trailing
+newline and nothing else, so mismatches surface as named failing cases in the report.</td></tr>
+<tr><td>Consumers of the classic evaluator lose it, and the Kyo side has no replacement.</td>
+<td>The deprecation milestone says so explicitly; those consumers can stay on the last classic release. A Kyo
+evaluator is separate work.</td></tr>
+<tr><td>Rejecting v3 format versions 1 and 2 breaks someone holding old IR.</td>
+<td>The error names the version and the fix (regenerate with current morphir-elm).</td></tr>
+<tr><td>Removing the ZIO pins breaks a module that resolves ZIO transitively for another reason.</td>
+<td>Phase 2 runs the classpath check from the published-library-families spec across every module before deleting
+the pins.</td></tr>
+</tbody>
+</table>
+
+<h2 id="migration">Migration plan</h2>
+<ol>
+<li><strong>Phase 1</strong> (one or two PRs): the reader and its unit tests (<a href="#v3-1">V3-1</a> to
+<a href="#v3-3">V3-3</a>), the module documentation field (<a href="#mod-1">MOD-1</a>), the adapter and the <code>mck-ir</code> job (<a href="#mck-1">MCK-1</a>,
+<a href="#mck-3">MCK-3</a>), <a href="#rem-2">REM-2</a>, the deprecation notices (<a href="#dep-1">DEP-1</a>) and
+the two intents. Released as the next milestone, 0.5.0-M12. In parallel, the upstream PR for
+<a href="#mck-2">MCK-2</a>.</li>
+<li><strong>Gate</strong>: the deprecation milestone is on Maven Central, and the pinned Morphir CLI ships the upstream
+v3 cases with the adapter passing them.</li>
+<li><strong>Phase 2</strong> (one PR): <a href="#rem-1">REM-1</a> and <a href="#doc-1">DOC-1</a>. Released as a later
+milestone, labelled breaking.</li>
+<li><strong>Rollback.</strong> Before release, revert the Phase 2 merge. After release, consumers pin the last milestone
+that published the classic artifacts; nothing on Maven Central is removed or changed.</li>
+</ol>
+
+</main>
+</body>
+</html>

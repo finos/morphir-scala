@@ -1,7 +1,7 @@
 package org.finos.morphir.codemodel
 
 import kyo.test.*
-import kyo.{Chunk, Result}
+import kyo.{Absent, Chunk, Present, Result}
 import kyo.Json.given_Json
 import org.finos.morphir.naming.*
 
@@ -140,6 +140,18 @@ class CodeModelCodecsSpec extends Test[Any]:
   "round-trips a Distribution.Application, including Name-keyed entry points" in {
     val json = CodeModelCodecs.encodeDistribution(applicationDist)
     assert(CodeModelCodecs.decodeDistribution(json) == Result.succeed(applicationDist))
+  }
+
+  "writes a module's documentation only when it has some, and reads a module without it" in {
+    val schema     = summon[kyo.Schema[ModuleSpecification]]
+    val documented =
+      moduleSpec.copy(types = Map.empty, values = Map.empty, doc = Present(Documentation(Chunk("Basics."))))
+    assert(schema.encodeString(moduleSpec.copy(types = Map.empty, values = Map.empty)) ==
+      """{"types":[],"values":[]}""")
+    assert(schema.encodeString(documented) == """{"types":[],"values":[],"doc":{"lines":["Basics."]}}""")
+    assert(schema.decodeString("""{"types":[],"values":[]}""") ==
+      Result.succeed(ModuleSpecification(Map.empty, Map.empty)))
+    assert(schema.decodeString(schema.encodeString(documented)) == Result.succeed(documented))
   }
 
 end CodeModelCodecsSpec

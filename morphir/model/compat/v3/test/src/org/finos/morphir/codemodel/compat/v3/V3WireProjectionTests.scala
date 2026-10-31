@@ -128,7 +128,8 @@ class V3WireProjectionTests extends Test[Any]:
                       )
                     )
                   )
-                )
+                ),
+                "doc" -> Structure.Value.Null
               )
             )
           )

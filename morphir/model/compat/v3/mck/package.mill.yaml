@@ -1,0 +1,7 @@
+# Morphir Compatibility Kit adapter for the v3 reader. JVM only and unpublished: the runner starts it through the
+# script `launcher` produces. `mckRun` runs the kit's IR suite against it with the pinned morphir CLI.
+extends: [build.MorphirCommonModule, build.MorphirKyoCoreMvnDeps, build.MorphirKyoSchemaJsonMvnDeps, millbuild.MorphirMckRunner]
+mainClass: org.finos.morphir.codemodel.compat.v3.mck.Main
+moduleDeps: [build.morphir.model.compat.v3.jvm]
+object test:
+  extends: [ScalaTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps, build.MorphirKyoSchemaJsonMvnDeps]

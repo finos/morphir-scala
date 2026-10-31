@@ -12,6 +12,52 @@ directories, so none of it is visible from a checkout of this repository. The it
 record so the follow-up work is findable by anyone who doesn't have the original session. Each is a candidate for a
 tracked issue; none is fixed by this commit unless said otherwise.
 
+## Running the Morphir Compatibility Kit against the v3 reader
+
+The Morphir Compatibility Kit (MCK) from finos/morphir holds the cases that a conforming IR reader must pass. The
+`morphir` CLI contains the kit. `morphir/model/compat/v3/mck` is an adapter that connects the kit to the v3 reader. It
+claims IR version 3, the `json` profile and the `single` layout. The kit skips every case that needs a different
+version, profile, layout or node kind.
+
+Run the IR suite:
+
+```sh
+mise run mck:run
+```
+
+The task runs `./mill --ticker false -i morphir.model.compat.v3.mck.mckRun`. This command:
+
+1. builds the adapter launcher;
+2. downloads the pinned `morphir` CLI and verifies its SHA-256 (one time; the file stays in the machine cache);
+3. runs `morphir mck run --suite ir` with the kit in the CLI;
+4. writes `.dev/mck/report.json` and `.dev/mck/report.html`;
+5. runs `morphir mck report check` against `morphir/model/compat/v3/mck/allowed-failing.json`.
+
+Step 5 is the gate. It fails when a case fails that the baseline does not list, when the baseline lists a case that
+passes, or when no case passes. Open `report.html` to see each case. To write the reports to a different directory,
+give it to the command: `./mill --ticker false -i morphir.model.compat.v3.mck.mckRun --reportDir .dev/mck-other`.
+
+To run cases that the pinned CLI does not have yet, give the command a kit directory with `--kit`, for example a
+finos/morphir checkout's `spec/ir/mck`:
+`./mill --ticker false -i morphir.model.compat.v3.mck.mckRun --reportDir .dev/mck-next --kit <checkout>/spec/ir/mck`.
+The run and the report check both use that kit. The CLI resolves the kit's `text` fences against the checkout, and the
+report check reads other files of the checkout as well (`spec/mck`, `website/static/schemas`), so give it a whole
+checkout, not a copy of `spec/ir/mck` alone.
+
+The run does not use `--strict`. That flag fails the run for every skip, and every v4 case is a skip for this adapter.
+
+To send requests to the adapter yourself, build the launcher and write one JSON request on each line:
+
+```sh
+./mill --ticker false morphir.model.compat.v3.mck.launcher
+printf '%s\n' '{"id":1,"op":"capabilities"}' '{"id":2,"op":"exit"}' | out/morphir/model/compat/v3/mck/launcher.dest/run
+```
+
+The CLI version and the checksum of each platform's archive are in `mill-build/src/millbuild/MorphirCli.scala`. The
+kit version changes with the CLI version. To move to a new release, change `Version` and all six checksums together.
+`MORPHIR_TOOLS_CACHE` sets a different machine cache. `MORPHIR_TOOLS_OFFLINE=1`, or Mill's `--offline`, stops the
+download.
+
 ## Known follow-ups
 
 ### 1. The classic runtime's test suite does not run (resolved)
