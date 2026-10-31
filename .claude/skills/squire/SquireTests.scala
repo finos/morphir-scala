@@ -139,6 +139,9 @@ object SquireCiPolicy:
   /** The Cucumber-style integration suite, which is not a `.jvm` module and so is not in the census. */
   val JvmItestSelector = "morphir.langkit.itest.testCached"
 
+  /** The v3 reader's MCK adapter protocol tests: a plain JVM module, not a `.jvm` one, so also outside the census. */
+  val MckAdapterTestSelector = "morphir.model.compat.v3.mck.test"
+
   /** The source and manifest guard for the Elm extension's Kyo architecture boundary. */
   val ElmExtensionArchitectureSelector = "millbuildHelpers.elmExtensionArchitectureCheck"
 
@@ -148,7 +151,7 @@ object SquireCiPolicy:
   /** Exactly what `testJVMPlatform` must name, in order. */
   val JvmPlatformAliasMembers: List[String] =
     JvmCompileSelectors ::: JvmPublishSelectors ::: JvmTestSelectors :::
-      List(JvmItestSelector, ElmExtensionArchitectureSelector, MillbuildHelpersTestSelector)
+      List(JvmItestSelector, MckAdapterTestSelector, ElmExtensionArchitectureSelector, MillbuildHelpersTestSelector)
 
   val SnapshotCommands = List(
     "echo \"MORPHIR_PUBLISH_MODE=snapshot\" >> \"$GITHUB_ENV\"",

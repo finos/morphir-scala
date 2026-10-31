@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# MISE description="Run the Morphir Compatibility Kit IR suite against the v3 reader's adapter"
+
+set -euo pipefail
+
+# The Mill command builds the adapter launcher, acquires the pinned morphir CLI, runs
+# `morphir mck run --suite ir` with the CLI's embedded kit, writes .dev/mck/report.json and
+# .dev/mck/report.html, and gates on `morphir mck report check`.
+./mill --ticker false -i morphir.model.compat.v3.mck.mckRun "$@"
