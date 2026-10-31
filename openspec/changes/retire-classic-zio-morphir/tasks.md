@@ -6,10 +6,10 @@ cases. Design references (`V3-1`, `MCK-2`, …) point to [design.html](design.ht
 
 ## 1. Cut `knowledge.logic` loose from the classic root (REM-2)
 
-- [ ] 1.1 Remove `moduleDeps: [build.morphir.jvm]` and `[build.morphir.js]` from
+- [x] 1.1 Remove `moduleDeps: [build.morphir.jvm]` and `[build.morphir.js]` from
   `morphir/knowledge/logic/package.mill.yaml`; verify `morphir.knowledge.logic.{jvm,js}` main and test compile and
   `morphir.knowledge.logic.{jvm,js}.test` pass.
-- [ ] 1.2 Verify `./mill show morphir.knowledge.logic.{jvm,js}.runClasspath` contains no `dev/zio` path and the
+- [x] 1.2 Verify `./mill show morphir.knowledge.logic.{jvm,js}.runClasspath` contains no `dev/zio` path and the
   module's POM no longer lists `morphir_3` / `morphir_sjs1_3`.
 
 ## 2. Give `model.compat.v3` a Scala.js variant and a reader entry point (V3-1, V3-3)
