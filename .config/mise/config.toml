@@ -16,7 +16,7 @@ node = "26.13.0"
 jsonschema = "latest"
 
 # Shared OpenSpec workflow; Node keeps the repository's existing pin.
-"npm:@fission-ai/openspec" = "1.15.0"
+"npm:@fission-ai/openspec" = "1.16.0"
 
 # The shared snapshot checker is a standalone MoonBit development tool.
 [tools."http:moonbit"]
