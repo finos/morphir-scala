@@ -14,10 +14,10 @@ cases. Design references (`V3-1`, `MCK-2`, …) point to [design.html](design.ht
 
 ## 2. Give `model.compat.v3` a Scala.js variant and a reader entry point (V3-1, V3-3)
 
-- [ ] 2.1 Add `object js` to `morphir/model/compat/v3/package.mill.yaml` (depending on `morphir.model.js`, with a
+- [x] 2.1 Add `object js` to `morphir/model/compat/v3/package.mill.yaml` (depending on `morphir.model.js`, with a
   kyo-test test module); verify `morphir.model.compat.v3.js.compile` and the existing `V3WireProjection` tests pass on
   both platforms.
-- [ ] 2.2 Add the reader's public entry point (decode a `morphir-ir.json` string to a `Result` of code-model
+- [x] 2.2 Add the reader's public entry point (decode a `morphir-ir.json` string to a `Result` of code-model
   distributions) and its error type (malformed JSON, unknown tag, wrong shape, unsupported format version, each with
   a JSON path and an optional MCK diagnostic code); verify unit tests for each error case and for `formatVersion` 1 and
   2 being rejected with the version named.

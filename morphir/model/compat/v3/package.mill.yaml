@@ -5,3 +5,10 @@ object jvm:
   moduleDeps: [build.morphir.model.jvm]
   object test:
     extends: [ScalaTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps, build.MorphirKyoSchemaJsonMvnDeps]
+
+object js:
+  extends: [build.MorphirJSModule, build.MorphirPublishModule, build.MorphirKyoCoreMvnDeps, build.MorphirKyoSchemaJsonMvnDeps]
+  moduleDeps: [build.morphir.model.js]
+  object test:
+    extends: [ScalaJSTests, build.MorphirJSTestNoSourceMap, millbuild.KyoTestJS, build.MorphirKyoTestMvnDeps, build.MorphirKyoSchemaJsonMvnDeps]
+    moduleKind: CommonJSModule
