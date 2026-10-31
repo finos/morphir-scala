@@ -27,7 +27,8 @@ trait MorphirRootFormatModule extends Module, DefaultTaskModule {
    * Format or check according to kind and selection flags.
    *
    * Dispatch: `--paths` / `--changed` → route by extension; else `--sources` → scalafmt selector; else full sweep
-   * (`__.sources` + build `.mill` + Elm roots).
+   * (`__.sources` + build `.mill`). A full sweep formats no Elm: the tracked `.elm` files are test fixtures, so Elm is
+   * formatted only for the paths given.
    */
   def format(
       evaluator: Evaluator,
@@ -84,16 +85,7 @@ trait MorphirRootFormatModule extends Module, DefaultTaskModule {
           else ScalafmtWorkerModule.worker().reformat(refs, cfg)
         }
       }
-      if FormatSelection.elmExtensions(parsed) then {
-        val elmFiles = discoverElmSourceFiles(workspace)
-        if elmFiles.nonEmpty then {
-          Task.log.info(
-            s"format: ${if checkMode then "checking" else "formatting"} ${elmFiles.size} Elm file(s)"
-          )
-          val command = elmFormatTool.elmFormatExecutable()
-          invokeElmFormat(command.executable.path, command.arguments, elmFiles, checkMode)
-        }
-      }
+      if parsed == FormatKind.Elm then Task.log.info(NoElmSweep)
     }
   }
 
@@ -160,21 +152,12 @@ trait MorphirRootFormatModule extends Module, DefaultTaskModule {
         val command = elmFormatTool.elmFormatExecutable()
         invokeElmFormat(command.executable.path, command.arguments, elmExisting, checkMode)
       }
-    } else {
-      val elmFiles = discoverElmSourceFiles(BuildCtx.workspaceRoot)
-      if elmFiles.nonEmpty then {
-        Task.log.info(
-          s"format: ${if checkMode then "checking" else "formatting"} ${elmFiles.size} Elm file(s)"
-        )
-        val command = elmFormatTool.elmFormatExecutable()
-        invokeElmFormat(command.executable.path, command.arguments, elmFiles, checkMode)
-      }
-    }
+    } else Task.log.info(NoElmSweep)
   }
 
   /**
-   * Full-repo check (scala sources + build `.mill` + Elm). Prefer [[checkBuildAndElm]] from `ci.lint` when scala
-   * modules are already checked with `--exclude`.
+   * Full-repo check (scala sources + build `.mill`). Prefer [[checkBuildAndElm]] from `ci.lint` when scala modules are
+   * already checked with `--exclude`.
    */
   def checkAll(evaluator: Evaluator) = Task.Command(exclusive = true) {
     val workspace = BuildCtx.workspaceRoot
@@ -190,20 +173,15 @@ trait MorphirRootFormatModule extends Module, DefaultTaskModule {
         case Left(error) => throw new Exception(error)
       }
     }
-    val elmFiles = discoverElmSourceFiles(workspace)
-    if elmFiles.nonEmpty then {
-      Task.log.info(s"format: checking ${elmFiles.size} Elm file(s)")
-      val command = elmFormatTool.elmFormatExecutable()
-      invokeElmFormat(command.executable.path, command.arguments, elmFiles, checkMode = true)
-    }
   }
 
   /**
-   * Check build `.mill` files and Elm sources only (same sets as full `./mill format --check`). Used by `ci.lint`
-   * after the scala `checkFormatAll` loop so `--exclude` stays scala-only and scala is not double-checked.
+   * Check build `.mill` files only (the set a full `./mill format --check` adds to `__.sources`). Used by `ci.lint`
+   * after the scala `checkFormatAll` loop so `--exclude` stays scala-only and scala is not double-checked. The name
+   * predates the removal of the Elm sweep; `ci.lint` calls it by that name.
    *
-   * Mill requires `ScalafmtWorkerModule.worker()` / `elmFormatExecutable()` lexically inside this command body —
-   * do not factor those calls into a shared helper.
+   * Mill requires `ScalafmtWorkerModule.worker()` lexically inside this command body — do not factor that call into a
+   * shared helper.
    */
   def checkBuildAndElm() = Task.Command(exclusive = true) {
     val workspace = BuildCtx.workspaceRoot
@@ -218,13 +196,10 @@ trait MorphirRootFormatModule extends Module, DefaultTaskModule {
         case Left(error) => throw new Exception(error)
       }
     }
-    val elmFiles = discoverElmSourceFiles(workspace)
-    if elmFiles.nonEmpty then {
-      Task.log.info(s"format: checking ${elmFiles.size} Elm file(s)")
-      val command = elmFormatTool.elmFormatExecutable()
-      invokeElmFormat(command.executable.path, command.arguments, elmFiles, checkMode = true)
-    }
   }
+
+  private val NoElmSweep =
+    "format: no Elm sources are swept; the tracked .elm files are test fixtures. Pass --paths to format Elm."
 
   private def selectPathModeFiles(
       kind: FormatKind,
@@ -365,23 +340,6 @@ trait MorphirRootFormatModule extends Module, DefaultTaskModule {
       else if extensions.contains(abs.ext) then Seq(abs)
       else Seq.empty
     }.distinct
-
-  private def discoverElmSourceFiles(workspace: os.Path): Seq[os.Path] = {
-    val roots = Seq(
-      workspace / "examples" / "morphir-elm-projects",
-      workspace / "morphir-elm"
-    )
-    roots
-      .filter(os.isDir)
-      .flatMap { root =>
-        os.walk(
-          root,
-          skip = p => p.last == "elm-stuff" || p.last == "node_modules" || p.last == "out"
-        ).filter(p => os.isFile(p) && p.ext == "elm")
-      }
-      .distinct
-      .sorted
-  }
 
   private def unwrap[T](result: Result[T], what: String): T =
     result.toEither match {

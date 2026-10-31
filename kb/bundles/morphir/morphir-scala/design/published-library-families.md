@@ -38,10 +38,17 @@ The first skeletons exist so GitHub, markdown, and OKF work can proceed in paral
 
 ## Constraints that stay
 
-New code is Kyo. Existing ZIO modules are left untouched. No ZIO-to-Kyo adapter.
+Published libraries are Kyo. No published module has ZIO on its runtime classpath. No ZIO-to-Kyo adapter.
 See [decision 0005](/decisions/0005-bridge-nothing-between-zio-and-kyo.md).
 
-Root `morphir`, `runtime.classic`, `interop/zio`, and `testing/zio` do not grow this work. `contrib/` is not a destination. `morphir/toolkit` is not a namespace to revive.
+The classic ZIO family (root `morphir`, `interop/zio`, `interop/borer`, `model/lowering`, `runtime.classic`, `tools`
+and `tests`) is gone. 0.5.0-M12 published it with a deprecation notice
+([intent 0042](../../../intent/0042-deprecate-the-classic-zio-based-morphir-library.md)), and 0.5.0-M13 stopped
+publishing it ([intent 0043](../../../intent/0043-remove-the-classic-zio-based-morphir-library.md)). Versions already
+on Maven Central stay there. A family retires in that order: a deprecation notice in one released milestone, then
+removal in a later one.
+
+`contrib/` is not a destination. `morphir/toolkit` was removed with the classic family and is not a namespace to revive.
 
 Public APIs in the new modules use `kyo.Maybe` and typed failure. Pure decode uses `kyo.Result`. Effectful listing uses `Abort` and `Async`. Types that must not exist are `Option` and `Either` in those signatures. Tests use kyo-test. Case classes are `final`.
 
@@ -104,7 +111,7 @@ documents from the generated `caliban-client` helpers.
 
 Artifact `org.finos.morphir::morphir-langkit-markdown`. Package `morphir.langkit.markdown`. JVM, JS, and Native. Depends on `langkit.core` for `Span`. A `QueryableTree` instance is later work and depends on `langkit.trees`.
 
-[Intent 0033](../../../intent/0033-markdown-compilation.md) proposes adding two writer artifacts beneath this one, and nothing below has been built yet. `morphir-langkit-markdown` is not renamed: it keeps its coordinate and its package, and gains a `Compiler[Out]` fold algebra beside the CST, the AST, the transformers and the parser. `morphir/langkit/markdown` becomes a published module that is also a parent directory — the shape `morphir/model` already has, publishing as `morphir-model` while `morphir/model/lowering` publishes as `morphir-model-lowering`. Two writers sit under it: `morphir-langkit-markdown-scalatags`, the CommonMark conformance oracle, and `morphir-langkit-markdown-kyo-ui`, the browser path and the only one that takes `kyo-ui`. Their nesting gives `morphir/<family>/<leaf>` from [decision 0013](/decisions/0013-published-library-families.md) its first multi-segment leaves, spelled `markdown-scalatags` and `markdown-kyo-ui`; the coordinate rule `morphir-<family>-<leaf>` is unchanged, and the `kyo/ui` directory split is what produces the hyphen. The stage names follow unified's parser, transformers, compiler pipeline, whose unist tree shape this repository already implements in `morphir.langkit.trees.unist`.
+[Intent 0033](../../../intent/0033-markdown-compilation.md) proposes adding two writer artifacts beneath this one, and nothing below has been built yet. `morphir-langkit-markdown` is not renamed: it keeps its coordinate and its package, and gains a `Compiler[Out]` fold algebra beside the CST, the AST, the transformers and the parser. `morphir/langkit/markdown` becomes a published module that is also a parent directory. `morphir/model` already has that shape: it publishes as `morphir-model`, while `morphir/model/compat/v3` publishes as `morphir-model-compat-v3`. Two writers sit under it: `morphir-langkit-markdown-scalatags`, the CommonMark conformance oracle, and `morphir-langkit-markdown-kyo-ui`, the browser path and the only one that takes `kyo-ui`. Their nesting gives `morphir/<family>/<leaf>` from [decision 0013](/decisions/0013-published-library-families.md) its first multi-segment leaves, spelled `markdown-scalatags` and `markdown-kyo-ui`; the coordinate rule `morphir-<family>-<leaf>` is unchanged, and the `kyo/ui` directory split is what produces the hyphen. The stage names follow unified's parser, transformers, compiler pipeline, whose unist tree shape this repository already implements in `morphir.langkit.trees.unist`.
 
 `langkit.core` mixes `MorphirPublishModule` so a published markdown module can depend on it. Mill's `PublishModule` will not take an unpublished `moduleDep`.
 
@@ -141,7 +148,9 @@ The intent bundle records the work. This note is the narrative they serve.
 | [0025 Electron appkit](../../../intent/0025-electron-appkit.md) | Host-app integration, later |
 | [0026 Codeium appkit](../../../intent/0026-codeium-appkit.md) | Host-app integration, later |
 | [0027 Stop using contrib for first-class work](../../../intent/0027-stop-using-contrib-for-first-class-work.md) | Deprecation of the parking lot |
-| [0028 Remove or absorb morphir/toolkit](../../../intent/0028-remove-or-absorb-morphir-toolkit.md) | Removal of the unwired directory |
+| [0028 Remove or absorb morphir/toolkit](../../../intent/0028-remove-or-absorb-morphir-toolkit.md) | Removal of the unwired directory; superseded by 0043 |
+| [0042 Deprecate the classic ZIO-based library](../../../intent/0042-deprecate-the-classic-zio-based-morphir-library.md) | Deprecation notice for the classic family |
+| [0043 Remove the classic ZIO-based library](../../../intent/0043-remove-the-classic-zio-based-morphir-library.md) | Removal of the classic family, `morphir/toolkit` included |
 
 Intent 0004 (project intent outward as GitHub issues) stays Cancelled. GitHub in this story is a source, not an output.
 

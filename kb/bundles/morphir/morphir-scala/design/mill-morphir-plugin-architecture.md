@@ -26,11 +26,13 @@ Morphir build integration is a family of publishable Mill plugins under `org.fin
 acquire their own tools, expose typed compilation tasks, and compose generated code with the host language instead of
 replacing its compiler lifecycle.
 
-This is an evolving design. The current slice restores Elm-to-Morphir IR generation and runtime tests. The same
-boundaries leave room for other frontends and code-generation backends. The broader transformation model remains in
-the [pipeline and workspace Design Note](/design/pipeline-workspace-boundaries.md). Package identity and source
-materialization remain in the
-[Package URL package-management Design Note](/design/package-url-package-management.md).
+This is an evolving design. The current slice restores Elm-to-Morphir IR generation. The classic runtime tests that
+consumed the generated IR, and the example Elm projects that fed them, were removed with the classic library
+([intent 0043](../../../intent/0043-remove-the-classic-zio-based-morphir-library.md)). The plugins' own tests and
+the published-consumer acceptance build now exercise generation. The same boundaries leave room for other frontends
+and code-generation backends. The broader transformation model remains in the
+[pipeline and workspace Design Note](/design/pipeline-workspace-boundaries.md). Package identity and source
+materialization remain in the [Package URL package-management Design Note](/design/package-url-package-management.md).
 
 This work advances the
 [multi-frontend pipeline intent](../../../intent/0007-multi-frontend-morphir-transformation-pipeline.md) and its
@@ -211,9 +213,7 @@ Required acceptance cases include:
 - a used source dependency that is not published to Elm's package manager; and
 - generated Scala discovered through `generatedSources`, compiled normally, and invalidated by same-path IR changes.
 
-Focused CI jobs are `mill-morphir-unit`, `mill-morphir-integration`, `morphir-elm-projects`,
-`runtime-generated-fixtures`, and `runtime-tests`. Runtime verification asserts required test-class discovery so a
-green job cannot hide suites that Mill no longer discovers.
+Focused CI jobs are `mill-morphir-unit` and `mill-morphir-integration`.
 
 ## Guidance and evolution
 

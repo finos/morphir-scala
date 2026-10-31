@@ -104,6 +104,6 @@ object V3ReadError:
     val VersionMismatch               = "version_mismatch"
     val SpecsBefore31                 = "specs_before_3_1"
 
-    /** A node that is not the classic JSON of its kind: an unknown tag or a wrong shape. */
+    /** A node that is not the v3 JSON of its kind: an unknown tag or a wrong shape. */
     val InvalidType = "invalid_type"
 end V3ReadError

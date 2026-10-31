@@ -24,8 +24,8 @@ echo "Running JS tests..."
 # `-Xmx` as one setting: lowering the heap means lowering this too.
 #
 # `-j 2` matches hosted CI. This task used to run at `-j 4` on a developer machine, but after Kyo 1.0.0-RC7 and
-# Scala 3.9.0 two concurrent test links (`morphir.tests.js.test` and `morphir.web.renderer.js.test`) exhausted the 8 GB
-# heap in the Scala.js optimizer at `-j 4`, then hung instead of failing. The heap is a property of the Mill JVM, not
+# Scala 3.9.0 two concurrent test links exhausted the 8 GB heap in the Scala.js optimizer at `-j 4`, then hung instead
+# of failing. One of those links belonged to a module removed since; any two large links can still meet the same limit. The heap is a property of the Mill JVM, not
 # of the machine, so a larger developer machine does not buy back the extra links.
 ./mill -i -k -j 2 ci.testJs --group platform
 ./mill -i -k -j 2 ci.testJs --group desktop
