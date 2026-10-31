@@ -51,12 +51,14 @@ final case class PackageSpecification(
 // Module types
 final case class ModuleDefinition(
     types: Map[Name, AccessControlled[Documented[TypeDefinition]]],
-    values: Map[Name, AccessControlled[Documented[ValueDefinition]]]
+    values: Map[Name, AccessControlled[Documented[ValueDefinition]]],
+    doc: Option[Documentation] = None
 ) derives Schema
 
 final case class ModuleSpecification(
     types: Map[Name, Documented[TypeSpecification]],
-    values: Map[Name, Documented[ValueSpecification]]
+    values: Map[Name, Documented[ValueSpecification]],
+    doc: Option[Documentation] = None
 ) derives Schema
 
 // Entry Point types
