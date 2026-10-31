@@ -110,7 +110,7 @@ cases. Design references (`V3-1`, `MCK-2`, …) point to [design.html](design.ht
   evaluation has no replacement; label the PR breaking; verify `mise run lint`.
 - [x] 8.3 Release the deprecation and removal intents with the v3-reading Capability linked; verify
   `kb intent check` reports no errors.
-- [ ] 8.4 Integration check: verify on the Phase 2 PR that every CI job passes, including `mck-ir`, the publish dry
+- [x] 8.4 Integration check: verify on the Phase 2 PR that every CI job passes, including `mck-ir`, the publish dry
   run selects no classic module, and no published module's runtime classpath contains ZIO.
 
 ## Workflow follow-up
