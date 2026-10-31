@@ -208,22 +208,31 @@ unpublished registry dependency. The six core skills are available for
 Codex/universal agents, Claude, Copilot, Cursor, Grok, Gemini and OpenCode.
 
 Run `mise install` for pinned development tools. The shared checker is an upstream
-MoonBit tool; Mill remains the entry point for repository automation. On a fresh
-Linux/macOS machine, complete the pinned SDK once:
+MoonBit tool; Mill remains the entry point for repository automation. The MoonBit
+archive has no core library and no `moonx`, so the mise postinstall hook completes
+the SDK inside mise's tool directory. On Linux and macOS (Apple Silicon only; no
+0.10.18 Intel macOS archive is published) the hook runs the upstream `unix.sh`
+installer. On Windows it runs `tools/bootstrap-moonbit-windows.ps1` with `pwsh`,
+which checks the core archive against `tools/moonbit-core-pin.json`. Windows on Arm
+uses the x64 build under emulation. Both files are copies from finos/morphir-moonbit.
+Then fetch the registry index once:
+
+```sh
+mise exec -- moon update
+```
+
+If the hook failed and the tool directory has no `lib/core`, complete it by hand on
+Linux/macOS:
 
 ```sh
 curl -fsSL https://cli.moonbitlang.com/install/unix.sh | \
   MOON_HOME="$(mise where http:moonbit)" bash -s -- "$(mise current http:moonbit)"
-mise exec -- moon update
 ```
 
-On Windows, use the matching official installer:
+On Windows, run the same helper that the hook runs:
 
 ```powershell
-$env:MOON_HOME = mise where http:moonbit
-$env:MOONBIT_INSTALL_VERSION = mise current http:moonbit
-Invoke-RestMethod https://cli.moonbitlang.com/install/powershell.ps1 | Invoke-Expression
-mise exec -- moon update
+pwsh -NoProfile -File tools/bootstrap-moonbit-windows.ps1 -ToolchainHome (mise where http:moonbit)
 ```
 
 | Mise command | Mill command | Purpose |
