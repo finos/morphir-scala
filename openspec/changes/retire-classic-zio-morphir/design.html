@@ -65,6 +65,8 @@ without the root module.</li>
 <li>v3 <code>morphir-ir.json</code> reaches the Kyo code model in two steps: the classic ZIO JSON decoders build classic
 IR objects (format versions 1, 2 and 3), then <code>V3Lowering</code> converts those to the code model. Nothing else
 calls <code>V3Lowering</code>.</li>
+<li>The pinned kit (Morphir CLI v0.4.0-beta.10) already holds twelve <code>@version:3</code> cases, including
+<code>"3.1.0"</code> <code>Specs</code> documents, module documentation and <code>DerivedTypeSpecification</code>.</li>
 <li>The Kyo side already writes v3 (<code>model.compat.v3</code>, <code>V3WireProjection</code>, JVM only) and reads and
 writes v4 (<code>CodeModelCodecs</code>, a derived layout). It has no v3 reader and no evaluator.</li>
 <li><code>examples/morphir-elm-projects</code> builds real morphir-elm IR through the Mill Elm plugin. Only the classic
@@ -96,7 +98,7 @@ writes a report that <code>morphir mck report check</code> gates. The kit is mos
 <p><strong>Goals:</strong> a v3 reader that needs nothing from the classic family; held to the shared MCK contract
 rather than to a local fixture set; v3 reading cases that every Morphir binding shares; a removal that leaves no ZIO in
 any published module.</p>
-<p><strong>Non-goals:</strong> a Kyo evaluator for Morphir IR; reading v3 format versions 1 and 2; v4 conformance of
+<p><strong>Non-goals:</strong> a Kyo evaluator for Morphir IR; reading format versions 1 and 2; v4 conformance of
 <code>CodeModelCodecs</code> (a follow-up: claiming v4 in the adapter); Scala Native for the reader (the code model has
 no Native build); migrating consumers' code; changing the v3 write projection beyond what canonical output needs.</p>
 
@@ -120,15 +122,27 @@ and field layouts come from the classic v3 decoder while it exists; the MCK case
 what this change removes); schema-derived codecs (v3 is a positional, tag-in-array encoding that derivation does not
 produce).</p>
 
-<h3 id="v3-3">V3-3. Typed errors with a location and the kit's codes; format version 3 only</h3>
-<p>Decoding returns a <code>Result</code> with a small error type: malformed JSON, unknown tag, wrong shape, and
-unsupported format version, each carrying a JSON path to the fault. The MCK protocol carries a diagnostic code as a free
-string, and each kit case names the code it expects (<code>rejects with &lt;code&gt;</code>). Today's kit names only YAML
-codes; the upstream v3 cases (<a href="#mck-2">MCK-2</a>) define the v3 ones, and the reader's errors carry those codes so
-the adapter answers a rejection case without translation. No exception escapes. Only <code>formatVersion</code> 3 is accepted,
-because current morphir-elm writes it.</p>
-<p>Accepting versions 1 and 2 would mean porting two more decoders for input no known consumer produces; a consumer
-holding v1 or v2 IR can regenerate it with current morphir-elm.</p>
+<h3 id="v3-3">V3-3. Typed errors with a location; v3 format versions as the specification defines them</h3>
+<p>Decoding returns a <code>Result</code> with a typed error carrying a JSON path to the fault; no exception escapes.
+Format versions follow finos/morphir's <code>docs/spec/ir/format-version.md</code>: <code>formatVersion</code> is the
+integer 3 or a release string <code>"3.minor.patch"</code>, normalised to a release and checked against the support
+table <code>[3.0.0,3.2.0)</code>, which includes the 3.1.x <code>Specs</code> distribution. A rejection uses that
+specification's codes (<code>invalid_format_version_type</code>, <code>invalid_format_version_syntax</code>,
+<code>format_version_out_of_range</code>, <code>unsupported_format_version_major</code> for the historical integers 1 and
+2, <code>unsupported_format_version_minor</code>), and <code>version_mismatch</code> when a document of another major
+family is read as v3, per <code>docs/spec/ir/schemas/v3/document-tree-files.md</code>. Structural faults use the codes
+the kit's v3 cases name. The decoded release is returned with the distributions so a writer can echo it canonically:
+the integer 3 for <code>3.0.0</code>, the exact string otherwise.</p>
+<p>The first draft of this design accepted only the integer 3. The kit's existing <code>@version:3</code> cases showed
+that is not what the specification allows.</p>
+
+<h3 id="mod-1">MOD-1. Give code-model modules their documentation</h3>
+<p>morphir-elm writes a <code>doc</code> member on every module, and v3.1 <code>Specs</code> documents carry text in it. The
+code model had nowhere to keep it, so the classic path dropped it and a round trip could not match the kit.
+<code>ModuleDefinition</code> and <code>ModuleSpecification</code> gain an optional <code>doc</code>, empty by default, so
+existing construction compiles unchanged; the v3 projection always writes the member, <code>null</code> when empty. The
+derived v4 JSON gains the optional field too. This is a binary change to <code>morphir-model</code>, acceptable on the
+0.x milestone line and recorded in the CHANGELOG.</p>
 
 <h3 id="mck-1">MCK-1. An unpublished JVM adapter module, started through its Mill launcher</h3>
 <p>A small JVM module (<code>morphir.model.compat.v3.mck</code>, not published) speaks the IR adapter transport that finos/morphir
@@ -155,8 +169,10 @@ runner and report format).</p>
 <h3 id="mck-3">MCK-3. Acquire a pinned Morphir CLI and run MCK in its own CI job</h3>
 <p>The <code>morphir</code> CLI is downloaded at a pinned version and verified against a pinned SHA-256 through the
 repository's existing toolchain acquisition, cached like the other verified tools. A new <code>mck-ir</code> job builds
-the adapter launcher, runs <code>morphir mck run --suite ir --strict</code> with the CLI's embedded kit, writes the
-JSON and HTML reports as job artifacts, and gates on <code>morphir mck report check</code>. The <code>ci</code>
+the adapter launcher, runs <code>morphir mck run --suite ir</code> with the CLI's embedded kit, writes the JSON and HTML
+reports as job artifacts, and gates on <code>morphir mck report check</code>. It does not pass <code>--strict</code>: that
+fails a run for any skipped case, and every v4 case is skipped for a v3-only adapter, so a strict run could never
+pass. The <code>ci</code>
 aggregate gate requires it. The reader's unit tests stay in <code>test-jvm</code>, which needs no Node and no Morphir
 CLI. A <code>mck:run</code> mise task runs the same steps locally.</p>
 <p>Phase 1 pins the current CLI, whose kit has few v3 cases. Phase 2 cannot start until the pin moves to a release that
@@ -222,7 +238,7 @@ the pins.</td></tr>
 <h2 id="migration">Migration plan</h2>
 <ol>
 <li><strong>Phase 1</strong> (one or two PRs): the reader and its unit tests (<a href="#v3-1">V3-1</a> to
-<a href="#v3-3">V3-3</a>), the adapter and the <code>mck-ir</code> job (<a href="#mck-1">MCK-1</a>,
+<a href="#v3-3">V3-3</a>), the module documentation field (<a href="#mod-1">MOD-1</a>), the adapter and the <code>mck-ir</code> job (<a href="#mck-1">MCK-1</a>,
 <a href="#mck-3">MCK-3</a>), <a href="#rem-2">REM-2</a>, the deprecation notices (<a href="#dep-1">DEP-1</a>) and
 the two intents. Released as the next milestone, 0.5.0-M12. In parallel, the upstream PR for
 <a href="#mck-2">MCK-2</a>.</li>
