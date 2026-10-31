@@ -239,6 +239,11 @@ trait MorphirMckRunner extends JavaModule {
         os.proc(host(cli) +: arguments)
           .call(cwd = Task.dest, check = false, stdout = os.Inherit, stderr = os.Inherit)
           .exitCode
+      // Mill's launcher is a combined sh and batch script with no `#!` line. The CLI starts the adapter with a direct exec,
+      // which Linux refuses for such a file (ENOEXEC, "Exec format error"), so on Unix it runs under /bin/sh.
+      def adapterArguments(launcher: String): List[String] =
+        if scala.util.Properties.isWin then List("--adapter", launcher)
+        else List("--adapter", "/bin/sh", "--adapter-arg", launcher)
       // A kit other than the embedded one, such as a finos/morphir checkout's spec/ir/mck; its `text` fences resolve
       // against the checkout, which the CLI infers from a path ending in spec/ir/mck.
       val kitArguments = Option(kit).filter(_.nonEmpty).toList.flatMap { directory =>
@@ -250,9 +255,8 @@ trait MorphirMckRunner extends JavaModule {
           "run",
           "--no-banner",
           "--suite",
-          "ir",
-          "--adapter",
-          host(adapter),
+          "ir"
+        ) ++ adapterArguments(host(adapter)) ++ List(
           "--report",
           host(report),
           "--html",

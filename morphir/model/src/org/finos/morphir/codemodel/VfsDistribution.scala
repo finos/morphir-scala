@@ -1,7 +1,9 @@
 package org.finos.morphir.codemodel
 
 import org.finos.morphir.naming._
+import kyo.Absent
 import kyo.Chunk
+import kyo.Maybe
 import kyo.Schema
 
 // Documentation types
@@ -52,13 +54,13 @@ final case class PackageSpecification(
 final case class ModuleDefinition(
     types: Map[Name, AccessControlled[Documented[TypeDefinition]]],
     values: Map[Name, AccessControlled[Documented[ValueDefinition]]],
-    doc: Option[Documentation] = None
+    doc: Maybe[Documentation] = Absent
 ) derives Schema
 
 final case class ModuleSpecification(
     types: Map[Name, Documented[TypeSpecification]],
     values: Map[Name, Documented[ValueSpecification]],
-    doc: Option[Documentation] = None
+    doc: Maybe[Documentation] = Absent
 ) derives Schema
 
 // Entry Point types

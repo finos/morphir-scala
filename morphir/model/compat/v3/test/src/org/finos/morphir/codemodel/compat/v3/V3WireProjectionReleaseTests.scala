@@ -17,7 +17,7 @@ class V3WireProjectionReleaseTests extends Test[Any]:
   private val packageName = PackageName.fromString("local/example")
   private val moduleName  = ModuleName.fromString("Example")
 
-  private def specsWith(doc: Option[cm.Documentation]) = cm.Distribution.Specs(
+  private def specsWith(doc: Maybe[cm.Documentation]) = cm.Distribution.Specs(
     cm.SpecsDistribution(
       cm.PackageInfo(packageName, ""),
       cm.PackageSpecification(Map(moduleName -> cm.ModuleSpecification(Map.empty, Map.empty, doc))),
@@ -38,7 +38,7 @@ class V3WireProjectionReleaseTests extends Test[Any]:
   "a Specs distribution" - {
     "is written at 3.1.0, the lowest release that has it, with its module documentation" in
       assert(
-        encoded(V3WireProjection.project(specsWith(Some(cm.Documentation(Chunk("Basics."))))))
+        encoded(V3WireProjection.project(specsWith(Present(cm.Documentation(Chunk("Basics."))))))
           == Present(
             """{"formatVersion":"3.1.0","distribution":["Specs",[["local"],["example"]],[],""" +
               """{"modules":[[[["example"]],{"types":[],"values":[],"doc":"Basics."}]]}]}"""
@@ -46,7 +46,7 @@ class V3WireProjectionReleaseTests extends Test[Any]:
       )
     "is refused at a release below 3.1.0" in
       assert(
-        V3WireProjection.project(specsWith(None), V3AttributeMode.InferredTypes, V3Release.Baseline) ==
+        V3WireProjection.project(specsWith(Absent), V3AttributeMode.InferredTypes, V3Release.Baseline) ==
           Result.fail(V3ProjectionError.UnsupportedDistribution("Specs at format version 3.0.0, below 3.1.0"))
       )
   }
@@ -60,7 +60,7 @@ class V3WireProjectionReleaseTests extends Test[Any]:
         )
       )
     "joins its documentation lines with a line break" in {
-      val spec = cm.ModuleSpecification(Map.empty, Map.empty, Some(cm.Documentation(Chunk("one", "two"))))
+      val spec = cm.ModuleSpecification(Map.empty, Map.empty, Present(cm.Documentation(Chunk("one", "two"))))
       assert(
         encoded(V3WireProjection.Nodes.moduleSpecification(spec)) ==
           Present("""{"types":[],"values":[],"doc":"one\ntwo"}""")

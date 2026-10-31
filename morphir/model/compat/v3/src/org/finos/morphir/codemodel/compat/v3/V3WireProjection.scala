@@ -160,7 +160,7 @@ object V3WireProjection:
     }
 
   /** A module's `doc`, which morphir-elm always writes: `null` without documentation, otherwise its lines joined. */
-  private def moduleDoc(doc: Option[cm.Documentation]): Value =
+  private def moduleDoc(doc: Maybe[cm.Documentation]): Value =
     doc.fold(Structure.Value.Null)(documentation => str(documentation.lines.mkString("\n")))
 
   private def projectTypeDefinitions(

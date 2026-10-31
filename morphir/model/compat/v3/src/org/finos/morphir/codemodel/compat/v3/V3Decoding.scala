@@ -156,8 +156,10 @@ private[v3] object V3Decoding:
    * A module's optional `doc`: a string, or `null` or absent for none, as morphir-elm writes it. The string is kept
    * line by line; unlike an entry's doc, an empty string stays documentation, so that `""` and `null` read back apart.
    */
-  private def moduleDoc(members: Members): Read[Option[cm.Documentation]] =
-    members.readOptional("doc")(string).map(_.map(text => cm.Documentation(Chunk.from(text.linesIterator.toSeq))))
+  private def moduleDoc(members: Members): Read[Maybe[cm.Documentation]] =
+    members.readOptional("doc")(string).map { text =>
+      Maybe.fromOption(text).map(doc => cm.Documentation(Chunk.from(doc.linesIterator.toSeq)))
+    }
 
   private def valueEntry(value: Value, path: String)(using
       V3AttributeRule

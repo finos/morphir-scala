@@ -168,7 +168,7 @@ class V3DistributionDecodingTests extends Test[Any]:
       val specs = cm.Distribution.Specs(
         cm.SpecsDistribution(
           cm.PackageInfo(sdk, ""),
-          cm.PackageSpecification(Map(orgSrc -> moduleSpec.copy(doc = Some(cm.Documentation(Chunk("Basics.")))))),
+          cm.PackageSpecification(Map(orgSrc -> moduleSpec.copy(doc = Present(cm.Documentation(Chunk("Basics.")))))),
           Map.empty
         )
       )
@@ -180,23 +180,23 @@ class V3DistributionDecodingTests extends Test[Any]:
   }
 
   "module documentation" - {
-    def docOf(doc: String): Maybe[Option[cm.Documentation]] =
+    def docOf(doc: String): Maybe[Maybe[cm.Documentation]] =
       success(V3Reader.decodeModuleSpecification(s"""{"types":[],"values":[]$doc}""")).map(_.doc)
 
     "is none when the doc member is null or absent" in {
-      assert(docOf(""","doc":null""") == Present(None))
-      assert(docOf("") == Present(None))
+      assert(docOf(""","doc":null""") == Present(Absent))
+      assert(docOf("") == Present(Absent))
     }
     "keeps a doc string line by line" in {
-      assert(docOf(""","doc":"Basics."""") == Present(Some(cm.Documentation(Chunk("Basics.")))))
-      assert(docOf(""","doc":"one\ntwo"""") == Present(Some(cm.Documentation(Chunk("one", "two")))))
+      assert(docOf(""","doc":"Basics."""") == Present(Present(cm.Documentation(Chunk("Basics.")))))
+      assert(docOf(""","doc":"one\ntwo"""") == Present(Present(cm.Documentation(Chunk("one", "two")))))
     }
     "keeps an empty doc string apart from a missing one" in
-      assert(docOf(""","doc":""""") == Present(Some(cm.Documentation(Chunk.empty))))
+      assert(docOf(""","doc":""""") == Present(Present(cm.Documentation(Chunk.empty))))
     "is read on a module definition too" in {
       val json = """{"types":[],"values":[],"doc":"Domain."}"""
       assert(success(V3Reader.decodeModuleDefinition(json)).map(_.doc) ==
-        Present(Some(cm.Documentation(Chunk("Domain.")))))
+        Present(Present(cm.Documentation(Chunk("Domain.")))))
     }
     "rejects a doc that is not a string" in
       assert(
@@ -217,7 +217,7 @@ class V3DistributionDecodingTests extends Test[Any]:
             mod(n("basics")) -> cm.ModuleSpecification(
               Map(n("int") -> cm.Documented(None, cm.TypeSpecification.OpaqueTypeSpecification(Chunk.empty))),
               Map.empty,
-              Some(cm.Documentation(Chunk("Basics.")))
+              Present(cm.Documentation(Chunk("Basics.")))
             )
           )
         ),
