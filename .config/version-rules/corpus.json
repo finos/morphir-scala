@@ -341,7 +341,7 @@
       "namespace": null,
       "changelogPath": "CHANGELOG.md",
       "startingVersion": "0.5.0-M04",
-      "millSelector": "morphir.jvm"
+      "millSelector": "morphir.naming.jvm"
     },
     {
       "name": "mill-plugins",

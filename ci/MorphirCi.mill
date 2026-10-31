@@ -68,7 +68,7 @@ trait MorphirCiModule extends Module, LinkerBenchmarkModule {
    */
   def releaseAreas: T[Seq[ReleaseAreaRow]] = Task {
     Seq(
-      releaseAreaRow("libraries", morphirArea.jvm)(),
+      releaseAreaRow("libraries", morphirArea.naming.jvm)(),
       releaseAreaRow("mill-plugins", millPlugins.morphir.core(MillVersions.oldest))()
     )
   }

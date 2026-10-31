@@ -8,4 +8,3 @@ export SQUIRE_MISE_BIN
 ./mill --ticker false mill-build/test/NodeToolchainTests.scala
 ./mill --ticker false mill-build/test/MorphirElmToolTests.scala
 ./mill --ticker false mill-build/test/MorphirElmProjectSandboxTests.scala
-./mill --ticker false mill-build/test/RuntimeTestDiscoveryTests.scala

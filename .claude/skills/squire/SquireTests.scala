@@ -125,15 +125,13 @@ object SquireCiPolicy:
    * artifacts.
    */
   val JvmCompileSelectors = List(
-    "morphir.jvm.__.compile",
-    "morphir.{appkit,benchmarks,buildkit.core,connector.github,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.logic,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.compiler.ir,langkit.elm.compiler.mep,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,lib.interop,model,model.compat.v3,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools,ui,web.server}.jvm.__.compile"
+    "morphir.{appkit,benchmarks,buildkit.core,connector.github,extensibility,intelligence.sdk,kit.kyo,knowledge.logic,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.compiler.ir,langkit.elm.compiler.mep,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,lib.interop,model,model.compat.v3,naming,prelude,ui,web.server}.jvm.__.compile"
   )
   val JvmPublishSelectors = List(
-    "morphir.jvm.publishArtifacts",
-    "morphir.{appkit,buildkit.core,connector.github,extensibility,interop.borer,interop.zio.json,knowledge.logic,knowledge.okf,langkit.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,lib.interop,model,model.compat.v3,model.lowering,naming,prelude,tests,tools,ui}.jvm.publishArtifacts"
+    "morphir.{appkit,buildkit.core,connector.github,extensibility,knowledge.logic,knowledge.okf,langkit.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,lib.interop,model,model.compat.v3,naming,prelude,ui}.jvm.publishArtifacts"
   )
   val JvmTestSelectors = List(
-    "morphir.{appkit,buildkit.core,connector.github,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.logic,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.compiler.ir,langkit.elm.compiler.mep,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,model,model.compat.v3,model.lowering,prelude,tests,ui,web.server}.jvm.test"
+    "morphir.{appkit,buildkit.core,connector.github,intelligence.sdk,kit.kyo,knowledge.logic,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.compiler.ir,langkit.elm.compiler.mep,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,model,model.compat.v3,prelude,ui,web.server}.jvm.test"
   )
 
   /** The Cucumber-style integration suite, which is not a `.jvm` module and so is not in the census. */
@@ -466,9 +464,9 @@ object SquireCiPolicy:
       "publish inventory must exclude mill-plugins.morphir.integration"
     )
     expect(
-      targets.contains("morphir.jvm.publishSonatypeCentral") &&
+      targets.contains("morphir.model.jvm.publishSonatypeCentral") &&
         targets.contains("morphir.naming.jvm.publishSonatypeCentral"),
-      "publish inventory must still cover morphir.jvm and morphir.naming.jvm"
+      "publish inventory must still cover morphir.model.jvm and morphir.naming.jvm"
     )
     val logicPublishTargets = Set(
       "morphir.knowledge.logic.jvm.publishSonatypeCentral",
@@ -859,27 +857,17 @@ object SquireCiPolicy:
     expect(members == JvmPlatformAliasMembers, s"unexpected testJVMPlatform members: $members")
 
   def assertJvmTargetInventory(inventory: Map[String, Set[String]]): Unit =
-    val classicPrefix = "morphir.runtime.classic.jvm"
-
     def targets(selector: String): Set[String] =
       inventory.getOrElse(selector, fail(s"missing resolved JVM selector: $selector"))
 
     def selected(selectors: List[String]): Set[String] = selectors.iterator.flatMap(targets).toSet
 
     def assertParity(kind: String, broadSelector: String, selectors: List[String]): Unit =
-      val broad    = targets(broadSelector)
-      val expected = broad.filterNot(_.startsWith(classicPrefix))
-      val actual   = selected(selectors)
-      expect(actual == expected, s"JVM $kind selectors differ from current non-classic targets")
-      expect(!actual.exists(_.startsWith(classicPrefix)), s"JVM $kind selectors must exclude classic runtime")
+      expect(selected(selectors) == targets(broadSelector), s"JVM $kind selectors differ from current targets")
 
     assertParity("compile", "morphir.__.jvm.__.compile", JvmCompileSelectors)
     assertParity("publish", "morphir.__.jvm.publishArtifacts", JvmPublishSelectors)
     assertParity("test", "morphir.__.jvm.__.test", JvmTestSelectors)
-    expect(
-      targets("morphir.__.jvm.__.test").contains("morphir.runtime.classic.jvm.test"),
-      "broad JVM test inventory must include the separately gated classic runtime target"
-    )
 
   def assertMorphirCachePolicy(workflow: String): Unit =
     val pluginOutputs = List(
@@ -2443,7 +2431,7 @@ class SquireCiPolicySpec extends Test[Any]:
 
       val missingPublishAliasMutation = replaceOnce(
         buildMill,
-        "    \"morphir.jvm.publishArtifacts\",\n",
+        s"    \"${JvmPublishSelectors.head}\",\n",
         ""
       )
       val addedAliasMutation = replaceOnce(
@@ -2455,13 +2443,8 @@ class SquireCiPolicySpec extends Test[Any]:
       // "mutation target not found", which reads as a broken test rather than as the widened alias it actually is.
       val reorderedAliasMutation = replaceOnce(
         buildMill,
-        s"    \"${JvmCompileSelectors(0)}\",\n    \"${JvmCompileSelectors(1)}\",",
-        s"    \"${JvmCompileSelectors(1)}\",\n    \"${JvmCompileSelectors(0)}\","
-      )
-      val runtimeAliasMutation = replaceOnce(
-        buildMill,
-        "\"morphir.langkit.itest.testCached\"",
-        "\"morphir.langkit.itest.testCached\", \"morphir.runtime.classic.jvm.test\""
+        s"    \"${JvmCompileSelectors.head}\",\n    \"${JvmPublishSelectors.head}\",",
+        s"    \"${JvmPublishSelectors.head}\",\n    \"${JvmCompileSelectors.head}\","
       )
       val taskMutation = replaceOnce(
         jvmPlatformTask,
@@ -2471,8 +2454,7 @@ class SquireCiPolicySpec extends Test[Any]:
       val aliasMutations = List(
         missingPublishAliasMutation,
         addedAliasMutation,
-        reorderedAliasMutation,
-        runtimeAliasMutation
+        reorderedAliasMutation
       )
       aliasMutations.zipWithIndex.foreach { case (mutation, index) =>
         assert(
@@ -2484,7 +2466,7 @@ class SquireCiPolicySpec extends Test[Any]:
     }
 
     "resolves every current non-classic JVM compile publish and test target" in {
-      val selectedCompile = jvmTargetSelectors(2)
+      val selectedCompile = JvmCompileSelectors.head
       val broadCompile    = jvmTargetSelectors.head
       for
         inventory <- resolveJvmTargetInventory
