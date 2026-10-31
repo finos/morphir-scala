@@ -230,9 +230,7 @@ mise run lint           # Check code formatting (`./mill --ticker false -i ci.li
 mise run test:jvm       # Run JVM tests (includes langkit.itest)
 mise run test:js        # Run JS tests (includes the wasm link variants)
 mise run test:native    # Run Scala Native tests
-mise run test:runtime-jvm # Run the classic JVM runtime tests backed by generated Elm IR
-mise run build:morphir-elm # Generate the evaluator Morphir IR through Mill
-mise run build:elm      # Generate all Morphir Elm project IR through Mill
+mise run mck:run        # Run the Morphir Compatibility Kit IR suite against the v3 reader
 mise run ci:local       # Run full local CI
 mise run kb:check       # Check the knowledge base and its intent records
 mise run kb:sync        # Check the mirrored upstream sources against their lockfile
@@ -243,16 +241,13 @@ mise run schemas:check  # Validate the mirrored v4 documents against those schem
 Or use Mill directly:
 
 ```bash
-./mill morphir.jvm.compile
+./mill morphir.model.jvm.compile
 ./mill --ticker false -i ci.lint
 ./mill format --changed   # or --paths …; see CONTRIBUTING.md Formatting
-./mill morphir.tests.jvm.test
+./mill morphir.model.jvm.test
 ./mill -i -k 'mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test'
 ./mill mill-plugins.morphir.integration.test
-./mill -i -k 'examples.morphir-elm-projects.__.morphirIR' + 'morphir-elm.sdks.__.morphirIR'
-./mill morphir.runtime.classic.jvm.test.generatedRuntimeFixtures
-./mill morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery
-./mill morphir.runtime.classic.jvm.test
+./mill --ticker false -i morphir.model.compat.v3.mck.mckRun
 ```
 
 ### Windows ARM64 build JVM
@@ -483,9 +478,7 @@ The project uses GitHub Actions for CI:
 - `knowledge-base` - KB tests, validation, intent checks and mirror checks
 - `mill-morphir-unit` - Fast Scala tests for the Mill Morphir plugin family
 - `mill-morphir-integration` - Fresh-consumer tests using locally published SNAPSHOT plugins
-- `morphir-elm-projects` - Generate the Morphir IR for each Elm project
-- `runtime-generated-fixtures` - Build typed runtime fixture sources from generated IR
-- `runtime-tests` - Verify classic runtime test discovery and run those tests
+- `mck-ir` - Morphir Compatibility Kit IR suite against the v3 reader, gated by `morphir mck report check`
 - `test-jvm` - JVM tests, including `langkit.itest`
 - `test-js` - ScalaJS tests, including the wasm link variants
 - `test-native` - Scala Native tests
