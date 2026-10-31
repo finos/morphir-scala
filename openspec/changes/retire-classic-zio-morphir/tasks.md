@@ -45,7 +45,7 @@ cases. Design references (`V3-1`, `MCK-2`, …) point to [design.html](design.ht
 - [x] 4.2 Pin the `morphir` CLI version and SHA-256 and acquire it through the repository's verified toolchain
   acquisition; add a `mck:run` mise task that builds the launcher, runs `morphir mck run --suite ir` (not `--strict`, which fails on the v4 cases a v3-only adapter skips), writes
   the JSON and HTML reports under `.dev/` and runs `morphir mck report check`; verify the task passes locally.
-- [ ] 4.3 Add an `mck-ir` CI job running the same steps, uploading both reports as artifacts, and add it to the `ci`
+- [x] 4.3 Add an `mck-ir` CI job running the same steps, uploading both reports as artifacts, and add it to the `ci`
   aggregate gate's `needs` and result checks; verify on the PR that the job runs, skips unclaimed cases and passes.
 - [x] 4.4 Open a finos/morphir PR adding `@version:3` reading cases to `spec/ir/mck`: per-node `@semantic` and
   `@spelling` cases, rejection cases with named diagnostic codes, and whole-library documents under `documents/`
@@ -75,40 +75,40 @@ cases. Design references (`V3-1`, `MCK-2`, …) point to [design.html](design.ht
 
 ## 6. Remove the classic modules (REM-1)
 
-- [ ] 6.1 Confirm the gate: the deprecation milestone's classic artifacts are on Maven Central with the
+- [x] 6.1 Confirm the gate: the deprecation milestone's classic artifacts are on Maven Central with the
   "Deprecated:" POM description, the upstream MCK PR is merged, and the pinned `morphir` CLI is moved to a release
   whose kit contains its v3 cases with `mck-ir` passing them; record all three in the removal intent.
-- [ ] 6.2 Delete `morphir/src`, `morphir/src-3`, the root `package.mill.yaml` objects and the module directories of
+- [x] 6.2 Delete `morphir/src`, `morphir/src-3`, the root `package.mill.yaml` objects and the module directories of
   `interop/zio/json`, `interop/borer`, `model/lowering`, `runtime/classic`, `tools`, `tests`, `testing/zio` and
   `testing/generators`; delete `morphir/meta`, `morphir/elm/facade` and `morphir/toolkit`; verify
   `./mill resolve __` succeeds and `./mill __.compile` passes on every platform.
-- [ ] 6.3 Delete `examples/morphir-elm-projects`, and `morphir-elm/sdks` unless the Mill plugin tests that name
+- [x] 6.3 Delete `examples/morphir-elm-projects`, and `morphir-elm/sdks` unless the Mill plugin tests that name
   `morphir-unit-test` need the repository module; move the 3.4 round-trip test onto MCK documents or drop it if the
   kit covers it; verify the Mill plugin unit and integration tests pass.
-- [ ] 6.4 Remove classic-only build wiring (`MorphirRootMvnDeps`, `MorphirTestsTestMvnDeps*`, the classic fixture and
+- [x] 6.4 Remove classic-only build wiring (`MorphirRootMvnDeps`, `MorphirTestsTestMvnDeps*`, the classic fixture and
   discovery traits, `RuntimeTestDiscovery` and its test script); verify `millbuildHelpers.test` and `test:squire`
   pass.
-- [ ] 6.5 Run `./mill show 'morphir.__.runClasspath'` and confirm no module resolves a `dev/zio` artifact, then remove
+- [x] 6.5 Run `./mill show 'morphir.__.runClasspath'` and confirm no module resolves a `dev/zio` artifact, then remove
   the ZIO suites, the `MorphirSuiteBom` entries and the ZIO version pins from `mill-build/src/millbuild/deps.scala`;
   verify `./mill __.compile` and the publish dry run (`DRY_RUN=1 ./mill -i ci.publish`) list no classic module.
 
 ## 7. Remove classic-only CI and tasks (REM-1)
 
-- [ ] 7.1 Remove the `runtime-generated-fixtures`, `runtime-tests` and `morphir-elm-projects` jobs from
+- [x] 7.1 Remove the `runtime-generated-fixtures`, `runtime-tests` and `morphir-elm-projects` jobs from
   `.github/workflows/ci.yml` and from the `ci` aggregate gate's `needs` and result checks; verify with `actionlint`
   if available and on the PR's CI.
-- [ ] 7.2 Delete `.config/mise/tasks/test/runtime-jvm`, `build/elm`, `build/morphir-elm` and the matching lines in
+- [x] 7.2 Delete `.config/mise/tasks/test/runtime-jvm`, `build/elm`, `build/morphir-elm` and the matching lines in
   `ci/local`; update the `mise run` list in AGENTS.md; verify `mise tasks` lists none of them and `mise run ci:local`
   resolves.
 
 ## 8. Update guidance and close the retirement (DOC-1)
 
-- [ ] 8.1 Update AGENTS.md (testing frameworks, "Prefer ZIO or Kyo", project structure, CI job list), module
+- [x] 8.1 Update AGENTS.md (testing frameworks, "Prefer ZIO or Kyo", project structure, CI job list), module
   CONTRIBUTING files and the knowledge-base pages that describe the classic library; verify `mise run kb:check` and
   `git grep -n -i "zio" AGENTS.md CONTRIBUTING.md` returns only historical mentions.
-- [ ] 8.2 Add a `### Removed` CHANGELOG entry naming each artifact no longer published and noting that Scala
+- [x] 8.2 Add a `### Removed` CHANGELOG entry naming each artifact no longer published and noting that Scala
   evaluation has no replacement; label the PR breaking; verify `mise run lint`.
-- [ ] 8.3 Release the deprecation and removal intents with the v3-reading Capability linked; verify
+- [x] 8.3 Release the deprecation and removal intents with the v3-reading Capability linked; verify
   `kb intent check` reports no errors.
 - [ ] 8.4 Integration check: verify on the Phase 2 PR that every CI job passes, including `mck-ir`, the publish dry
   run selects no classic module, and no published module's runtime classpath contains ZIO.
