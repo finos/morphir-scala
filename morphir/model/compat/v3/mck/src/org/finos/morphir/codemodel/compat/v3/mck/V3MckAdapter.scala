@@ -41,13 +41,14 @@ object V3MckAdapter:
     "ModuleDefinition",
     "ModuleSpecification",
     "IRFile",
-    "Distribution"
+    "Distribution",
+    "FormatVersion"
   )
 
   /**
    * The v3 releases the reader reads, as a canonical support table (finos/morphir `docs/spec/ir/format-version.md`).
    */
-  val formatVersions = "[3.0.0,3.1.0)"
+  val formatVersions: String = V3Reader.SupportTable
 
   private val capabilities = Capabilities(
     binding = "morphir-scala",
@@ -138,8 +139,13 @@ object V3MckAdapter:
         answer(V3Reader.decodeModuleDefinition(input))(_ => "ModuleDefinition", Nodes.moduleDefinition(_, attributes))
       case "ModuleSpecification" =>
         answer(V3Reader.decodeModuleSpecification(input))(_ => "ModuleSpecification", Nodes.moduleSpecification)
+      case "FormatVersion" =>
+        answer(V3Reader.decodeFormatVersion(input))(
+          _ => "FormatVersion",
+          release => Result.succeed(V3WireProjection.formatVersion(release))
+        )
       // The kit names a whole document `Distribution` as well as `IRFile`; both carry the formatVersion envelope.
-      case _ => answer(V3Reader.decodeIRFile(input))(distributionKind, document(_, attributes))
+      case _ => answer(V3Reader.decodeIRDocument(input))(distributionKind, document(_, attributes))
 
   private def answer[A](read: V3Reader.Read[A])(
       kind: A => String,
@@ -156,14 +162,15 @@ object V3MckAdapter:
 
   /** A `Bundle` reads as one library per package, which has no single-library v3 spelling to write back. */
   private def document(
-      distributions: Chunk[cm.Distribution],
+      read: V3Document,
       attributes: V3AttributeMode
   ): Result[V3ProjectionError, Structure.Value] =
-    if distributions.size == 1 then V3WireProjection.project(distributions.head, attributes)
+    val distributions = read.distributions
+    if distributions.size == 1 then V3WireProjection.project(distributions.head, attributes, read.release)
     else Result.fail(V3ProjectionError.UnsupportedDistribution(s"Bundle of ${distributions.size} packages"))
 
-  private def distributionKind(distributions: Chunk[cm.Distribution]): String =
-    if distributions.size == 1 then variant(distributions.head) else "Bundle"
+  private def distributionKind(read: V3Document): String =
+    if read.distributions.size == 1 then variant(read.distributions.head) else "Bundle"
 
   private def literalKind(literal: cm.Literal): String =
     literal match

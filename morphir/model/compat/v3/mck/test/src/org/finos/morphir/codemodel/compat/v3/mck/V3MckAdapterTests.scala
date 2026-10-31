@@ -16,12 +16,17 @@ class V3MckAdapterTests extends Test[Any]:
 
   private val nodes =
     """["Name", "Path", "FQName", "Type", "Literal", "Pattern", "Value", "TypeSpecification", "TypeDefinition", """ +
-      """"ValueSpecification", "ValueDefinition", "ModuleDefinition", "ModuleSpecification", "IRFile", "Distribution"]"""
+      """"ValueSpecification", "ValueDefinition", "ModuleDefinition", "ModuleSpecification", "IRFile", "Distribution", "FormatVersion"]"""
 
   private def capabilities(id: Int, contract: String): String =
     s"""{ "id": $id, "contractVersion": $contract, "binding": "morphir-scala", "language": "scala", """ +
-      s""""formatVersions": "[3.0.0,3.1.0)", "versions": [3], "profiles": ["json"], "layouts": ["single"], """ +
+      s""""formatVersions": "[3.0.0,3.2.0)", "versions": [3], "profiles": ["json"], "layouts": ["single"], """ +
       s""""paths": ["current"], "nodes": $nodes }"""
+
+  /** A successful decode answer whose canonical JSON is `json`. */
+  private def canonical(id: Int, kind: String, json: String): String =
+    val escaped = json.replace("\\", "\\\\").replace("\"", "\\\"")
+    s"""{ "id": $id, "ok": true, "kind": "$kind", "canonical": { "json": "$escaped\\n" }, "warnings": [] }"""
 
   private def protocolError(id: String, message: String): String =
     s"""{ "id": $id, "ok": false, "diagnostic": { "code": "protocol_error", "cursor": "/", "message": "$message" } }"""
@@ -101,16 +106,83 @@ class V3MckAdapterTests extends Test[Any]:
       val line = decode(5, "IRFile", """{"formatVersion":1,"distribution":["Library",[],[],{}]}""")
       assert(
         answer(line) ==
-          """{ "id": 5, "ok": false, "diagnostic": { "code": "unsupported_format_version", "cursor": "/formatVersion", """ +
-          """"message": "formatVersion 1 is not supported; only 3 is. Regenerate the IR with current morphir-elm." } }"""
+          """{ "id": 5, "ok": false, "diagnostic": { "code": "unsupported_format_version_major", """ +
+          """"cursor": "/formatVersion", "message": "formatVersion 1 is not supported; this reader supports """ +
+          """[3.0.0,3.2.0). Regenerate the IR with current morphir-elm." } }"""
       )
     }
     "reads a whole document for the Distribution node too" in {
       val line = decode(6, "Distribution", """{"formatVersion":2,"distribution":["Library",[],[],{}]}""")
-      assert(answer(line).contains(""""code": "unsupported_format_version""""))
+      assert(answer(line).contains(""""code": "unsupported_format_version_major""""))
     }
     "reports malformed input as invalid_json" in
       assert(answer(decode(7, "IRFile", """{"formatVersion":3,""")).contains(""""code": "invalid_json""""))
+  }
+
+  "format versions" - {
+    val specs =
+      """["Specs",[["my"],["pkg"]],[],{"modules":[[[["basics"]],{"types":[],"values":[],"doc":"Basics."}]]}]"""
+
+    "echo a 3.1.0 document's release as its string (distributions-0011)" in
+      assert(
+        answer(decode(8, "Distribution", s"""{"formatVersion":"3.1.0","distribution":$specs}""")) ==
+          canonical(
+            8,
+            "Specs",
+            """{ "formatVersion": "3.1.0", "distribution": ["Specs", [["my"], ["pkg"]], [], { "modules": """ +
+              """[[[["basics"]], { "types": [], "values": [], "doc": "Basics." }]] }] }"""
+          )
+      )
+    "write the 3.0.0 baseline as the integer 3" in
+      assert(
+        answer(decode(
+          9,
+          "IRFile",
+          """{"formatVersion":"3.0.0","distribution":["Library",[["p"]],[],{"modules":[]}]}"""
+        )) ==
+          canonical(
+            9,
+            "Library",
+            """{ "formatVersion": 3, "distribution": ["Library", [["p"]], [], { "modules": [] }] }"""
+          )
+      )
+    "read a FormatVersion node on its own (versions-0009)" in
+      assert(answer(decode(10, "FormatVersion", "\"3.1.0\"")) == canonical(10, "FormatVersion", "\"3.1.0\""))
+    "refuse a later version 3 minor (versions-0010)" in
+      assert(answer(decode(
+        11,
+        "FormatVersion",
+        "\"3.2.0\""
+      )).contains(""""code": "unsupported_format_version_minor""""))
+    "refuse a version 4 document with version_mismatch (document-tree-0016)" in
+      assert(
+        answer(decode(12, "Distribution", """{"formatVersion":"4.0.0","name":"user"}"""))
+          .contains(""""code": "version_mismatch", "cursor": "/formatVersion"""")
+      )
+    "refuse a Specs distribution that declares 3.0.0" in
+      assert(
+        answer(decode(13, "Distribution", s"""{"formatVersion":3,"distribution":$specs}"""))
+          .contains(""""code": "specs_before_3_1"""")
+      )
+  }
+
+  "typed libraries" - {
+    "refuse an untyped value inside a Library with invalid_type (distributions-0013)" in {
+      val document =
+        """{"formatVersion":3,"distribution":["Library",[["my"],["pkg"]],[],{"modules":[[[["m"]],{"access":"Public",""" +
+          """"value":{"types":[],"values":[[["one"],{"access":"Public","value":{"doc":"","value":{"inputTypes":[],""" +
+          """"outputType":["Unit",{}],"body":["Unit",{}]}}}]],"doc":null}}]]}]}"""
+      assert(
+        answer(decode(14, "Distribution", document)).contains(
+          """"code": "invalid_type", "cursor": "/distribution/3/modules/0/1/value/values/0/1/value/value/body/1""""
+        )
+      )
+    }
+    "accept an untyped value read on its own (versions-0031)" in
+      assert(
+        answer(decode(15, "Value", """["Variable",{},["x"]]""")) ==
+          canonical(15, "Variable", """["Variable", {}, ["x"]]""")
+      )
   }
 
   "a session" - {
