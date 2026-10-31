@@ -30,6 +30,6 @@ the unwired leftovers under `morphir/meta`, `morphir/elm/facade` and `morphir/to
 [0028](/0028-remove-or-absorb-morphir-toolkit.md)). Released versions stay on Maven Central.
 
 It starts only when two more conditions hold: the shared `@version:3` reading cases are in the Morphir
-Compatibility Kit upstream in finos/morphir, and the pinned Morphir CLI ships them with morphir-scala's adapter
+Compatibility Kit upstream in finos/morphir ([finos/morphir#1116](https://github.com/finos/morphir/pull/1116)), and the pinned Morphir CLI ships them with morphir-scala's adapter
 passing. Scala evaluation of Morphir IR has no replacement and ends here. The plan of record is the OpenSpec change
 `retire-classic-zio-morphir`.
