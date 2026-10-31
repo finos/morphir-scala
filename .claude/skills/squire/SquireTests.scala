@@ -131,7 +131,7 @@ object SquireCiPolicy:
     "morphir.{appkit,buildkit.core,connector.github,extensibility,knowledge.logic,knowledge.okf,langkit.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,lib.interop,model,model.compat.v3,naming,prelude,ui}.jvm.publishArtifacts"
   )
   val JvmTestSelectors = List(
-    "morphir.{appkit,buildkit.core,connector.github,intelligence.sdk,kit.kyo,knowledge.logic,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.compiler.ir,langkit.elm.compiler.mep,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,model,model.compat.v3,prelude,ui,web.server}.jvm.test"
+    "morphir.{appkit,buildkit.core,connector.github,intelligence.sdk,kit.kyo,knowledge.logic,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.compiler.ir,langkit.elm.compiler.mep,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,model,model.compat.v3,naming,prelude,ui,web.server}.jvm.test"
   )
 
   /** The Cucumber-style integration suite, which is not a `.jvm` module and so is not in the census. */
