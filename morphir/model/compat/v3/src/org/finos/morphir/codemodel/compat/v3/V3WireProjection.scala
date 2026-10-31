@@ -14,11 +14,23 @@ enum V3ProjectionError derives CanEqual:
   case UnsupportedFeature(path: String, feature: String)
   case InvalidModel(path: String, details: String)
 
+/** What a projection writes into the attribute slot of a v3 value, pattern or value-definition input. */
+enum V3AttributeMode derives CanEqual:
+  /** The inferred type, as morphir-elm writes typed IR. */
+  case InferredTypes
+
+  /** Nothing: every attribute slot is `{}`, which is how two spellings are compared on meaning alone. */
+  case Erased
+
 object V3WireProjection:
   private type Projection[A] = Result[V3ProjectionError, A]
   private type Value         = Structure.Value
 
   def project(distribution: cm.Distribution): Projection[Value] =
+    project(distribution, V3AttributeMode.InferredTypes)
+
+  def project(distribution: cm.Distribution, attributes: V3AttributeMode): Projection[Value] =
+    given V3AttributeMode = attributes
     distribution match
       case cm.Distribution.Library(library) =>
         mapResult(projectLibrary(library)) { projected =>
@@ -33,7 +45,38 @@ object V3WireProjection:
   def encode(distribution: cm.Distribution): Projection[String] =
     mapResult(project(distribution))(Json.encode(_))
 
-  private def projectLibrary(library: cm.LibraryDistribution): Projection[Value] =
+  /**
+   * Projects one node on its own, without the `formatVersion` envelope of a whole document, to the wire tree a v3
+   * document holds at that node's position. A Morphir Compatibility Kit adapter answers a per-node `decode` with these.
+   */
+  object Nodes:
+    def name(value: Name): Value                                          = V3WireProjection.name(value)
+    def path(value: org.finos.morphir.naming.Path): Value                 = namingPath(value)
+    def fqName(value: FQName): Value                                      = V3WireProjection.fqName(value)
+    def literal(value: cm.Literal): Projection[Value]                     = projectLiteral(value, "$")
+    def tpe(value: cm.Type): Projection[Value]                            = projectType(value, "$")
+    def typeDefinition(value: cm.TypeDefinition): Projection[Value]       = projectTypeDefinition(value, "$")
+    def typeSpecification(value: cm.TypeSpecification): Projection[Value] =
+      projectTypeSpecification(value, "$")
+    def valueSpecification(value: cm.ValueSpecification): Projection[Value] =
+      projectValueSpecification(value, "$")
+    def moduleSpecification(value: cm.ModuleSpecification): Projection[Value] =
+      projectModuleSpecification(value, "$")
+
+    def pattern(value: cm.Pattern, attributes: V3AttributeMode): Projection[Value] =
+      projectPatternLoop(value, "$")(using attributes).result
+    def value(value: cm.Expr, attributes: V3AttributeMode): Projection[Value] =
+      projectExprLoop(value, "$")(using attributes).result
+
+    /** A value definition is its body: v3 keeps the access marker on the enclosing module entry. */
+    def valueDefinition(value: cm.ValueDefinition, attributes: V3AttributeMode): Projection[Value] =
+      projectValueDefinitionBody(value.body.value, "$")(using attributes)
+
+    def moduleDefinition(value: cm.ModuleDefinition, attributes: V3AttributeMode): Projection[Value] =
+      projectModuleDefinition(value, "$")(using attributes)
+  end Nodes
+
+  private def projectLibrary(library: cm.LibraryDistribution)(using V3AttributeMode): Projection[Value] =
     flatMapResult(projectDependencies(library.dependencies, "distribution.dependencies")) { dependencies =>
       mapResult(projectPackageDefinition(library.definition, "distribution.definition")) { definition =>
         sequence(
@@ -56,7 +99,9 @@ object V3WireProjection:
       }
     })(values => sequence(values*))
 
-  private def projectPackageDefinition(definition: cm.PackageDefinition, path: String): Projection[Value] =
+  private def projectPackageDefinition(definition: cm.PackageDefinition, path: String)(using
+      V3AttributeMode
+  ): Projection[Value] =
     val modules = definition.modules.toList.sortBy(_._1.toPath.segments.toList.map(_.toList))
     mapResult(traverse(modules) { case (module, accessControlled) =>
       mapResult(projectAccessControlled(accessControlled, s"$path.modules.${module.toString}")(
@@ -74,7 +119,9 @@ object V3WireProjection:
       }
     })(projected => record("modules" -> sequence(projected*)))
 
-  private def projectModuleDefinition(definition: cm.ModuleDefinition, path: String): Projection[Value] =
+  private def projectModuleDefinition(definition: cm.ModuleDefinition, path: String)(using
+      V3AttributeMode
+  ): Projection[Value] =
     flatMapResult(projectTypeDefinitions(definition.types, s"$path.types")) { types =>
       mapResult(projectValueDefinitions(definition.values, s"$path.values")) { values =>
         record("types" -> types, "values" -> values)
@@ -104,7 +151,7 @@ object V3WireProjection:
   private def projectValueDefinitions(
       definitions: Map[Name, cm.AccessControlled[cm.Documented[cm.ValueDefinition]]],
       path: String
-  ): Projection[Value] =
+  )(using V3AttributeMode): Projection[Value] =
     val entries = definitions.toList.sortBy(_._1.toList)
     mapResult(traverse(entries) { case (definitionName, accessControlled) =>
       val itemPath = s"$path.${definitionName.toString}"
@@ -201,28 +248,30 @@ object V3WireProjection:
 
   private def projectConstructors(constructors: Chunk[cm.Constructor], path: String): Projection[Value] =
     mapResult(traverse(constructors.toList.zipWithIndex) { case (constructor, index) =>
-      mapResult(projectParameters(constructor.args, s"$path[$index].args", typed = false)) { args =>
+      mapResult(projectParameters(constructor.args, s"$path[$index].args")) { args =>
         sequence(name(constructor.name), args)
       }
     })(values => sequence(values*))
 
   private def projectValueSpecification(specification: cm.ValueSpecification, path: String): Projection[Value] =
-    flatMapResult(projectParameters(specification.inputs, s"$path.inputs", typed = false)) { inputs =>
+    flatMapResult(projectParameters(specification.inputs, s"$path.inputs")) { inputs =>
       mapResult(projectType(specification.output, s"$path.output")) { output =>
         record("inputs" -> inputs, "output" -> output)
       }
     }
 
-  private def projectValueDefinitionBody(body: cm.ValueDefinitionBody, path: String): Projection[Value] =
+  private def projectValueDefinitionBody(body: cm.ValueDefinitionBody, path: String)(using
+      V3AttributeMode
+  ): Projection[Value] =
     projectValueDefinitionBodyLoop(body, path).result
 
   private def projectValueDefinitionBodyLoop(
       body: cm.ValueDefinitionBody,
       path: String
-  ): TailRec[Projection[Value]] =
+  )(using V3AttributeMode): TailRec[Projection[Value]] =
     body match
       case cm.ValueDefinitionBody.ExpressionBody(inputTypes, outputType, expression) =>
-        flatMapTail(projectParameters(inputTypes, s"$path.inputTypes", typed = true)) { inputs =>
+        flatMapTail(projectInputTypes(inputTypes, s"$path.inputTypes")) { inputs =>
           flatMapTail(projectType(outputType, s"$path.outputType")) { output =>
             tailcall(projectExprLoop(expression, s"$path.body")).map { projectedBody =>
               mapResult(projectedBody)(body =>
@@ -242,11 +291,23 @@ object V3WireProjection:
       case _: cm.ValueDefinitionBody.IncompleteBody =>
         done(fail(V3ProjectionError.UnsupportedFeature(path, "IncompleteBody")))
 
-  private def projectParameters(parameters: Chunk[cm.Parameter], path: String, typed: Boolean): Projection[Value] =
+  private def projectParameters(parameters: Chunk[cm.Parameter], path: String): Projection[Value] =
     mapResult(traverse(parameters.toList.zipWithIndex) { case (parameter, index) =>
       mapResult(projectType(parameter.tpe, s"$path[$index].type")) { projectedType =>
-        if typed then sequence(name(parameter.name), projectedType, projectedType)
-        else sequence(name(parameter.name), projectedType)
+        sequence(name(parameter.name), projectedType)
+      }
+    })(values => sequence(values*))
+
+  /** A value definition's inputs, `[name, attributes, type]`: a typed input's attributes are its own type. */
+  private def projectInputTypes(parameters: Chunk[cm.Parameter], path: String)(using
+      attributes: V3AttributeMode
+  ): Projection[Value] =
+    mapResult(traverse(parameters.toList.zipWithIndex) { case (parameter, index) =>
+      mapResult(projectType(parameter.tpe, s"$path[$index].type")) { projectedType =>
+        val slot = attributes match
+          case V3AttributeMode.InferredTypes => projectedType
+          case V3AttributeMode.Erased        => record()
+        sequence(name(parameter.name), slot, projectedType)
       }
     })(values => sequence(values*))
 
@@ -312,7 +373,9 @@ object V3WireProjection:
       )
     }.map(result => mapResult(result)(values => sequence(values*)))
 
-  private def projectExprLoop(expression: cm.Expr, path: String): TailRec[Projection[Value]] =
+  private def projectExprLoop(expression: cm.Expr, path: String)(using
+      V3AttributeMode
+  ): TailRec[Projection[Value]] =
     flatMapTail(projectValueAttributes(expression, path)) { attributes =>
       expression match
         case cm.Expr.Literal(_, literal) =>
@@ -437,7 +500,13 @@ object V3WireProjection:
         case _: cm.Expr.External => done(fail(V3ProjectionError.UnsupportedFeature(path, "External")))
     }
 
-  private def projectValueAttributes(expression: cm.Expr, path: String): Projection[Value] =
+  private def projectValueAttributes(expression: cm.Expr, path: String)(using
+      mode: V3AttributeMode
+  ): Projection[Value] =
+    if mode == V3AttributeMode.Erased then succeed(record())
+    else projectTypedValueAttributes(expression, path)
+
+  private def projectTypedValueAttributes(expression: cm.Expr, path: String): Projection[Value] =
     val attributes = expression match
       case cm.Expr.Literal(value, _)             => value
       case cm.Expr.Constructor(value, _)         => value
@@ -471,7 +540,7 @@ object V3WireProjection:
   private def projectExpressionsLoop(
       expressions: Chunk[cm.Expr],
       path: String
-  ): TailRec[Projection[Value]] =
+  )(using V3AttributeMode): TailRec[Projection[Value]] =
     traverseTail(expressions.toList.zipWithIndex) { case (expression, index) =>
       tailcall(projectExprLoop(expression, s"$path[$index]"))
     }.map(result => mapResult(result)(values => sequence(values*)))
@@ -479,7 +548,7 @@ object V3WireProjection:
   private def projectRecordFieldsLoop(
       fields: Chunk[cm.RecordField],
       path: String
-  ): TailRec[Projection[Value]] =
+  )(using V3AttributeMode): TailRec[Projection[Value]] =
     traverseTail(fields.toList.zipWithIndex) { case (field, index) =>
       tailcall(projectExprLoop(field.value, s"$path[$index].value")).map(result =>
         mapResult(result)(projected => sequence(name(field.name), projected))
@@ -489,7 +558,7 @@ object V3WireProjection:
   private def projectBindingsLoop(
       bindings: Chunk[cm.Binding],
       path: String
-  ): TailRec[Projection[Value]] =
+  )(using V3AttributeMode): TailRec[Projection[Value]] =
     traverseTail(bindings.toList.zipWithIndex) { case (binding, index) =>
       tailcall(projectValueDefinitionBodyLoop(binding.definition, s"$path[$index].definition")).map(result =>
         mapResult(result)(projected => sequence(name(binding.name), projected))
@@ -499,7 +568,7 @@ object V3WireProjection:
   private def projectMatchCasesLoop(
       cases: Chunk[cm.MatchCase],
       path: String
-  ): TailRec[Projection[Value]] =
+  )(using V3AttributeMode): TailRec[Projection[Value]] =
     traverseTail(cases.toList.zipWithIndex) { case (matchCase, index) =>
       tailcall(projectPatternLoop(matchCase.pattern, s"$path[$index].pattern")).flatMap { patternResult =>
         flatMapTail(patternResult) { pattern =>
@@ -510,7 +579,9 @@ object V3WireProjection:
       }
     }.map(result => mapResult(result)(values => sequence(values*)))
 
-  private def projectPatternLoop(pattern: cm.Pattern, path: String): TailRec[Projection[Value]] =
+  private def projectPatternLoop(pattern: cm.Pattern, path: String)(using
+      V3AttributeMode
+  ): TailRec[Projection[Value]] =
     flatMapTail(projectPatternAttributes(pattern, path)) { attributes =>
       pattern match
         case cm.Pattern.WildcardPattern(_)                => done(succeed(sequence(str("WildcardPattern"), attributes)))
@@ -548,7 +619,13 @@ object V3WireProjection:
         case cm.Pattern.UnitPattern(_) => done(succeed(sequence(str("UnitPattern"), attributes)))
     }
 
-  private def projectPatternAttributes(pattern: cm.Pattern, path: String): Projection[Value] =
+  private def projectPatternAttributes(pattern: cm.Pattern, path: String)(using
+      mode: V3AttributeMode
+  ): Projection[Value] =
+    if mode == V3AttributeMode.Erased then succeed(record())
+    else projectTypedPatternAttributes(pattern, path)
+
+  private def projectTypedPatternAttributes(pattern: cm.Pattern, path: String): Projection[Value] =
     val attributes = pattern match
       case cm.Pattern.WildcardPattern(value)          => value
       case cm.Pattern.AsPattern(value, _, _)          => value
@@ -565,7 +642,9 @@ object V3WireProjection:
         case Some(inferredType) => projectType(inferredType, s"$path.inferredType")
         case None               => succeed(record())
 
-  private def projectPatternsLoop(patterns: Chunk[cm.Pattern], path: String): TailRec[Projection[Value]] =
+  private def projectPatternsLoop(patterns: Chunk[cm.Pattern], path: String)(using
+      V3AttributeMode
+  ): TailRec[Projection[Value]] =
     traverseTail(patterns.toList.zipWithIndex) { case (pattern, index) =>
       tailcall(projectPatternLoop(pattern, s"$path[$index]"))
     }.map(result => mapResult(result)(values => sequence(values*)))
