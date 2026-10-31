@@ -51,7 +51,7 @@ jobs:
           distribution: "temurin"
           java-version: "26.0.2+10"
       - name: Cache scala dependencies
-        uses: coursier/cache-action@v8
+        uses: coursier/cache-action@v9
         with:
           # One cache for the jobs that resolve the same Mill and library dependencies. Keyed
           # per job, each wrote its own ~550 MB copy, and the copies filled the 10 GB cache limit.
@@ -102,7 +102,7 @@ jobs:
           distribution: "temurin"
           java-version: "26.0.2+10"
       - name: Cache scala dependencies
-        uses: coursier/cache-action@v8
+        uses: coursier/cache-action@v9
         with:
           # One cache for the jobs that resolve the same Mill and library dependencies. Keyed
           # per job, each wrote its own ~550 MB copy, and the copies filled the 10 GB cache limit.
@@ -141,7 +141,7 @@ jobs:
           distribution: "temurin"
           java-version: "26.0.2+10"
       - name: Cache scala dependencies
-        uses: coursier/cache-action@v8
+        uses: coursier/cache-action@v9
         with:
           # One cache for the jobs that resolve the same Mill and library dependencies. Keyed
           # per job, each wrote its own ~550 MB copy, and the copies filled the 10 GB cache limit.
@@ -177,7 +177,7 @@ jobs:
           distribution: "temurin"
           java-version: "26.0.2+10"
       - name: Cache scala dependencies
-        uses: coursier/cache-action@v8
+        uses: coursier/cache-action@v9
         with:
           # One cache for the jobs that resolve the same Mill and library dependencies. Keyed
           # per job, each wrote its own ~550 MB copy, and the copies filled the 10 GB cache limit.
@@ -213,7 +213,7 @@ jobs:
           distribution: "temurin"
           java-version: "26.0.2+10"
       - name: Cache scala dependencies
-        uses: coursier/cache-action@v8
+        uses: coursier/cache-action@v9
         with:
           # One cache for the jobs that resolve the same Mill and library dependencies. Keyed
           # per job, each wrote its own ~550 MB copy, and the copies filled the 10 GB cache limit.
@@ -272,7 +272,7 @@ jobs:
           distribution: "temurin"
           java-version: ${{ matrix.java }}
       - name: Cache scala dependencies
-        uses: coursier/cache-action@v8
+        uses: coursier/cache-action@v9
 
       - name: Run JS tests
         # Kept in step with .config/mise/tasks/test/js for the underlying selectors and its `-j 2`
@@ -344,7 +344,7 @@ jobs:
           distribution: "temurin"
           java-version: ${{ matrix.java }}
       - name: Cache scala dependencies
-        uses: coursier/cache-action@v8
+        uses: coursier/cache-action@v9
 
       - name: Run JS tests (desktop/UI)
         # See test-js's "Run JS tests" step for the `-j 2` reasoning. "desktop" is morphir.ui, the
@@ -407,7 +407,7 @@ jobs:
           java-version: ${{ matrix.java }}
 
       - name: Cache scala dependencies
-        uses: coursier/cache-action@v8
+        uses: coursier/cache-action@v9
 
       - name: Setup mise
         uses: jdx/mise-action@v5
@@ -486,7 +486,7 @@ jobs:
           distribution: "temurin"
           java-version: ${{ matrix.java }}
       - name: Cache scala dependencies
-        uses: coursier/cache-action@v8
+        uses: coursier/cache-action@v9
 
       - name: Setup mise
         uses: jdx/mise-action@v5
@@ -512,7 +512,7 @@ jobs:
           distribution: "temurin"
           java-version: "26.0.2+10"
       - name: Cache scala dependencies
-        uses: coursier/cache-action@v8
+        uses: coursier/cache-action@v9
         with:
           # One cache for the jobs that resolve the same Mill and library dependencies. Keyed
           # per job, each wrote its own ~550 MB copy, and the copies filled the 10 GB cache limit.
@@ -590,7 +590,7 @@ jobs:
           native-image-job-reports: "true"
 
       - name: Cache Scala dependencies
-        uses: coursier/cache-action@v8
+        uses: coursier/cache-action@v9
 
       - name: Resolve Elm MEP provider version
         shell: pwsh
@@ -648,7 +648,7 @@ jobs:
           distribution: temurin
 
       - name: Cache Scala dependencies
-        uses: coursier/cache-action@v8
+        uses: coursier/cache-action@v9
 
       - name: Download native package transports
         uses: actions/download-artifact@v8
@@ -692,7 +692,7 @@ jobs:
           distribution: temurin
 
       - name: Cache Scala dependencies
-        uses: coursier/cache-action@v8
+        uses: coursier/cache-action@v9
 
       - name: Download native package transports
         uses: actions/download-artifact@v8
@@ -762,7 +762,7 @@ jobs:
           distribution: temurin
 
       - name: Cache scala dependencies
-        uses: coursier/cache-action@v8
+        uses: coursier/cache-action@v9
 
       - name: Install native dependencies
         # Bounded: run 32158142566 spent this job's entire 60-minute budget inside `apt-get update`
