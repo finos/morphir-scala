@@ -1,6 +1,9 @@
 package org.finos.morphir.codemodel.compat.v3
 
+import kyo.Absent
 import kyo.Chunk
+import kyo.Maybe
+import kyo.Present
 import kyo.Result
 import kyo.Structure
 import org.finos.morphir.codemodel as cm
@@ -24,21 +27,29 @@ private[v3] object V3Decoding:
   /** The package version a decoded library gets: v3 records none, and the v3 lowering leaves it empty too. */
   val unknownPackageVersion: String = ""
 
-  def irFile(value: Value, path: String): Read[Chunk[cm.Distribution]] =
+  /**
+   * A whole document, `{"formatVersion": …, "distribution": …}`, in either member order. The `formatVersion` is read
+   * and checked before anything else, so an unsupported document fails with a format-version fault rather than with
+   * whatever its distribution would have caused.
+   */
+  def irDocument(value: Value, path: String): Read[V3Document] =
     value match
       case Structure.Value.Record(fields) =>
-        val byName = fields.toMap
-        byName.get("formatVersion") match
-          case None                             => wrongShape(member(path, "formatVersion"), "a formatVersion member")
-          case Some(Structure.Value.Integer(3)) =>
-            byName.get("distribution") match
-              case Some(distributionValue) => distribution(distributionValue, member(path, "distribution"))
-              case None                    => wrongShape(member(path, "distribution"), "a distribution member")
-          case Some(other) => Result.fail(V3ReadError.UnsupportedFormatVersion(render(other)))
+        V3FormatVersion.ofRoot(fields).flatMap { release =>
+          fields.find(_._1 == "distribution") match
+            case Some((_, distributionValue)) =>
+              distribution(distributionValue, member(path, "distribution"), Present(release))
+                .map(V3Document(release, _))
+            case None => wrongShape(member(path, "distribution"), "a distribution member")
+        }
       case _ => wrongShape(path, "an object with formatVersion and distribution")
 
-  /** `["Library", packageName, dependencies, packageDefinition]`, or `["Bundle", [[packageName, library], …]]`. */
-  def distribution(value: Value, path: String): Read[Chunk[cm.Distribution]] =
+  /**
+   * `["Library", packageName, dependencies, packageDefinition]`, `["Specs", packageName, dependencies,
+   * packageSpecification]`, or `["Bundle", [[packageName, library], …]]`. With the document's `release` known, a
+   * `Specs` distribution must declare 3.1.0 or later.
+   */
+  def distribution(value: Value, path: String, release: Maybe[V3Release]): Read[Chunk[cm.Distribution]] =
     tagged(value, path) { (tag, args) =>
       def arg(index: Int): String = at(path, index + 1)
       tag match
@@ -50,6 +61,21 @@ private[v3] object V3Decoding:
               definition  <- packageDefinition(args(2), arg(2))
             yield Chunk(library(libraryName, deps, definition))
           }
+        case "Specs" =>
+          release.filter(!_.hasSpecs) match
+            case Present(early) => Result.fail(V3ReadError.SpecsBefore31(early.canonicalJson))
+            case _              =>
+              arguments(tag, args, 3, path) {
+                for
+                  specsName     <- V3NamingDecoding.packageName(args(0), arg(0))
+                  deps          <- dependencies(args(1), arg(1))
+                  specification <- packageSpecification(args(2), arg(2))
+                yield Chunk(
+                  cm.Distribution.Specs(
+                    cm.SpecsDistribution(cm.PackageInfo(specsName, unknownPackageVersion), specification, deps)
+                  )
+                )
+              }
         case "Bundle" =>
           arguments(tag, args, 1, path) {
             list(args(0), arg(0))((entry, entryPath) =>
@@ -95,7 +121,10 @@ private[v3] object V3Decoding:
   def packageDefinition(value: Value, path: String): Read[cm.PackageDefinition] =
     obj(value, path, "an object with modules") { members =>
       members
-        .read("modules")(entries(_, _)(V3NamingDecoding.moduleName, accessControlled(_, _)(moduleDefinition)))
+        .read("modules")(entries(
+          _,
+          _
+        )(V3NamingDecoding.moduleName, accessControlled(_, _)(moduleDefinition(_, _, V3AttributeRule.TypeRequired))))
         .map(cm.PackageDefinition(_))
     }
 
@@ -108,21 +137,31 @@ private[v3] object V3Decoding:
     }
 
   /**
-   * `{"types": [[name, {"access": …, "value": {"doc": …, "value": typeDefinition}}], …], "values": […]}`. A value's
-   * entry access is also the access of its definition body, as in the v3 lowering. Other members, such as the module
-   * `doc` morphir-elm writes, are ignored.
+   * `{"types": [[name, {"access": …, "value": {"doc": …, "value": typeDefinition}}], …], "values": […], "doc": …}`. A
+   * value's entry access is also the access of its definition body, as in the v3 lowering. Other members are ignored.
    */
-  def moduleDefinition(value: Value, path: String): Read[cm.ModuleDefinition] =
+  def moduleDefinition(value: Value, path: String, rule: V3AttributeRule): Read[cm.ModuleDefinition] =
+    given V3AttributeRule = rule
     obj(value, path, "an object with types and values") { members =>
       for
         types <- members.read("types")(
           entries(_, _)(V3NamingDecoding.name, accessControlled(_, _)(documented(_, _)(typeDefinition)))
         )
         values <- members.read("values")(entries(_, _)(V3NamingDecoding.name, valueEntry))
-      yield cm.ModuleDefinition(types, values)
+        doc    <- moduleDoc(members)
+      yield cm.ModuleDefinition(types, values, doc)
     }
 
-  private def valueEntry(value: Value, path: String): Read[cm.AccessControlled[cm.Documented[cm.ValueDefinition]]] =
+  /**
+   * A module's optional `doc`: a string, or `null` or absent for none, as morphir-elm writes it. The string is kept
+   * line by line; unlike an entry's doc, an empty string stays documentation, so that `""` and `null` read back apart.
+   */
+  private def moduleDoc(members: Members): Read[Option[cm.Documentation]] =
+    members.readOptional("doc")(string).map(_.map(text => cm.Documentation(Chunk.from(text.linesIterator.toSeq))))
+
+  private def valueEntry(value: Value, path: String)(using
+      V3AttributeRule
+  ): Read[cm.AccessControlled[cm.Documented[cm.ValueDefinition]]] =
     obj(value, path, "an object with access and value") { members =>
       for
         level      <- members.read("access")(access)
@@ -130,13 +169,14 @@ private[v3] object V3Decoding:
       yield cm.AccessControlled(level, definition)
     }
 
-  /** `{"types": [[name, {"doc": …, "value": typeSpecification}], …], "values": […]}` */
+  /** `{"types": [[name, {"doc": …, "value": typeSpecification}], …], "values": […], "doc": …}` */
   def moduleSpecification(value: Value, path: String): Read[cm.ModuleSpecification] =
     obj(value, path, "an object with types and values") { members =>
       for
         types  <- members.read("types")(entries(_, _)(V3NamingDecoding.name, documented(_, _)(typeSpecification)))
         values <- members.read("values")(entries(_, _)(V3NamingDecoding.name, documented(_, _)(valueSpecification)))
-      yield cm.ModuleSpecification(types, values)
+        doc    <- moduleDoc(members)
+      yield cm.ModuleSpecification(types, values, doc)
     }
 
   /** A v3 map, written as an array of `[key, value]` pairs; a repeated key keeps its last entry. */
@@ -151,21 +191,20 @@ private[v3] object V3Decoding:
   def fqName(value: Value, path: String): Read[FQName]                      = V3NamingDecoding.fqName(value, path)
   def literal(value: Value, path: String): Read[cm.Literal]                 = V3NamingDecoding.literal(value, path)
   def tpe(value: Value, path: String): Read[cm.Type]                        = V3TypeDecoding.tpe(value, path)
-  def pattern(value: Value, path: String): Read[cm.Pattern]                 = V3ValueDecoding.pattern(value, path)
-  def value(value: Value, path: String): Read[cm.Expr]                      = V3ValueDecoding.expr(value, path)
-  def typeDefinition(value: Value, path: String): Read[cm.TypeDefinition]   = V3TypeDecoding.typeDefinition(value, path)
+  def pattern(value: Value, path: String): Read[cm.Pattern]                 =
+    V3ValueDecoding.pattern(value, path)(using V3AttributeRule.TypeOptional)
+  def value(value: Value, path: String): Read[cm.Expr] =
+    V3ValueDecoding.expr(value, path)(using V3AttributeRule.TypeOptional)
+  def typeDefinition(value: Value, path: String): Read[cm.TypeDefinition] = V3TypeDecoding.typeDefinition(value, path)
   def typeSpecification(value: Value, path: String): Read[cm.TypeSpecification] =
     V3TypeDecoding.typeSpecification(value, path)
 
   /** A bare v3 value definition carries no access of its own; it decodes as public. */
   def valueDefinition(value: Value, path: String): Read[cm.ValueDefinition] =
-    V3ValueDecoding.valueDefinition(cm.Access.Public)(value, path)
+    V3ValueDecoding.valueDefinition(cm.Access.Public)(value, path)(using V3AttributeRule.TypeOptional)
 
   def valueSpecification(value: Value, path: String): Read[cm.ValueSpecification] =
     V3ValueDecoding.valueSpecification(value, path)
 
-  private def render(value: Value): String = value match
-    case Structure.Value.Integer(n) => n.toString
-    case Structure.Value.Str(s)     => s"\"$s\""
-    case other                      => other.toString
+  def formatVersion(value: Value, path: String): Read[V3Release] = V3FormatVersion.release(value)
 end V3Decoding

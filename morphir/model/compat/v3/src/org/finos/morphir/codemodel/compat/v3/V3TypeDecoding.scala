@@ -101,7 +101,24 @@ private[v3] object V3TypeDecoding:
               ctors  <- constructors(args(1), arg(1))
             yield cm.TypeSpecification.CustomTypeSpecification(params, ctors)
           }
+        case "DerivedTypeSpecification" =>
+          arguments(tag, args, 2, path) {
+            for
+              params  <- typeParameters(args(0), arg(0))
+              details <- derivedDetails(args(1), arg(1))
+            yield cm.TypeSpecification.DerivedTypeSpecification(params, details)
+          }
         case other => unknownTag(path, other)
+    }
+
+  /** A derived type's details: `{"baseType": type, "fromBaseType": fqName, "toBaseType": fqName}`. */
+  private def derivedDetails(value: Value, path: String): Read[cm.DerivedTypeSpecificationDetails] =
+    obj(value, path, "an object with baseType, fromBaseType and toBaseType") { members =>
+      for
+        baseType     <- members.read("baseType")(tpe)
+        fromBaseType <- members.read("fromBaseType")(fqName)
+        toBaseType   <- members.read("toBaseType")(fqName)
+      yield cm.DerivedTypeSpecificationDetails(baseType, fromBaseType, toBaseType)
     }
 
   /**

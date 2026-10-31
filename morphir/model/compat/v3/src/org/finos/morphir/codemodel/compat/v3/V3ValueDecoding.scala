@@ -8,13 +8,21 @@ import org.finos.morphir.naming.Name
 import scala.math.Ordering.Implicits.seqOrdering
 
 /**
+ * Whether a value's, pattern's or value-definition input's attribute must be a type. morphir-elm's `Library` holds
+ * typed IR - `Package.Definition () (Type ())` - so inside one every such attribute is a type; a node read on its own
+ * may be untyped.
+ */
+private[v3] enum V3AttributeRule derives CanEqual:
+  case TypeRequired, TypeOptional
+
+/**
  * Decoders for v3 patterns, values, value definitions and value specifications.
  *
  * A value's or pattern's attribute (argument zero of each tagged node) follows the v3 lowering: a typed value carries a
  * v3 type there, which becomes the code-model node's `inferredType`; any other attribute - morphir-elm writes `{}` for
- * an untyped value - is erased to `ValueAttributes.empty`. An attribute is taken to be a type when it is a non-empty
- * array that starts with a tag string, and is then decoded as one, so a malformed type is a fault rather than silently
- * dropped.
+ * an untyped value - is erased to `ValueAttributes.empty`, unless the [[V3AttributeRule]] requires a type. An attribute
+ * is taken to be a type when it is a non-empty array that starts with a tag string, and is then decoded as one, so a
+ * malformed type is a fault rather than silently dropped.
  */
 private[v3] object V3ValueDecoding:
   import V3JsonShape.*
@@ -22,18 +30,27 @@ private[v3] object V3ValueDecoding:
   import V3TypeDecoding.*
   import V3Reader.Read
 
-  def valueAttributes(value: Value, path: String): Read[cm.ValueAttributes] =
+  def valueAttributes(value: Value, path: String)(using rule: V3AttributeRule): Read[cm.ValueAttributes] =
     value match
-      case Structure.Value.Sequence(items) if items.nonEmpty && isTag(items.head) =>
+      case attribute if isType(attribute) =>
         tpe(value, path).map(inferred => cm.ValueAttributes.empty.copy(inferredType = Some(inferred)))
-      case _ => succeed(cm.ValueAttributes.empty)
+      case _ if rule == V3AttributeRule.TypeRequired => wrongShape(path, TypedAttribute)
+      case _                                         => succeed(cm.ValueAttributes.empty)
+
+  private val TypedAttribute = "a type as the attribute, since every value in a Library is typed"
+
+  /** An attribute is taken to be a type when it is a non-empty array that starts with a tag string. */
+  private def isType(attribute: Value): Boolean =
+    attribute match
+      case Structure.Value.Sequence(items) => items.nonEmpty && isTag(items.head)
+      case _                               => false
 
   private def isTag(value: Value): Boolean =
     value match
       case Structure.Value.Str(_) => true
       case _                      => false
 
-  def pattern(value: Value, path: String): Read[cm.Pattern] =
+  def pattern(value: Value, path: String)(using V3AttributeRule): Read[cm.Pattern] =
     tagged(value, path) { (tag, args) =>
       def arg(index: Int): String                                                           = at(path, index + 1)
       def node(arity: Int)(build: cm.ValueAttributes => Read[cm.Pattern]): Read[cm.Pattern] =
@@ -70,7 +87,7 @@ private[v3] object V3ValueDecoding:
         case other         => unknownTag(path, other)
     }
 
-  def expr(value: Value, path: String): Read[cm.Expr] =
+  def expr(value: Value, path: String)(using V3AttributeRule): Read[cm.Expr] =
     tagged(value, path) { (tag, args) =>
       def arg(index: Int): String                                                     = at(path, index + 1)
       def node(arity: Int)(build: cm.ValueAttributes => Read[cm.Expr]): Read[cm.Expr] =
@@ -179,17 +196,23 @@ private[v3] object V3ValueDecoding:
     Chunk.from(entries.toMap.toSeq.sortBy(_._1.toList))
 
   /** A record literal's field, `[name, value]`; record literals keep their order and any repeated name. */
-  private def recordField(value: Value, path: String): Read[cm.RecordField] =
+  private def recordField(value: Value, path: String)(using V3AttributeRule): Read[cm.RecordField] =
     pair(value, path)(name, expr).map((fieldName, fieldValue) => cm.RecordField(fieldName, fieldValue))
 
-  private def matchCase(value: Value, path: String): Read[cm.MatchCase] =
+  private def matchCase(value: Value, path: String)(using V3AttributeRule): Read[cm.MatchCase] =
     pair(value, path)(pattern, expr).map((casePattern, body) => cm.MatchCase(casePattern, body))
 
   /**
-   * A v3 value definition, `{"inputTypes": [[name, attribute, type], …], "outputType": …, "body": …}`. Each input's
-   * attribute is erased, as in the v3 lowering; v3 bodies are always expressions.
+   * A v3 value definition, `{"inputTypes": [[name, attribute, type], …], "outputType": …, "body": …}`; v3 bodies are
+   * always expressions.
+   *
+   * The code model holds one type per input, so an input's attribute has no slot of its own: the declared type is kept
+   * and the attribute is checked (it must be a type inside a `Library`) but not kept, as in the v3 lowering. In typed
+   * IR the attribute is usually the declared type again, which a writer of typed IR writes back. It is not always:
+   * where the declared type is an alias, morphir-elm writes the alias's expansion as the attribute, and that expansion
+   * is lost.
    */
-  def valueDefinitionBody(value: Value, path: String): Read[cm.ValueDefinitionBody] =
+  def valueDefinitionBody(value: Value, path: String)(using V3AttributeRule): Read[cm.ValueDefinitionBody] =
     obj(value, path, "an object with inputTypes, outputType and body") { members =>
       for
         inputs <- members.read("inputTypes")((inputTypes, inputsPath) => list(inputTypes, inputsPath)(inputType))
@@ -198,10 +221,11 @@ private[v3] object V3ValueDecoding:
       yield cm.ValueDefinitionBody.ExpressionBody(inputs, output, body)
     }
 
-  private def inputType(value: Value, path: String): Read[cm.Parameter] =
+  private def inputType(value: Value, path: String)(using V3AttributeRule): Read[cm.Parameter] =
     tuple(value, path, 3).flatMap { parts =>
       for
         inputName <- name(parts(0), at(path, 0))
+        _         <- valueAttributes(parts(1), at(path, 1)) // checked, not kept: see valueDefinitionBody
         inputType <- tpe(parts(2), at(path, 2))
       yield cm.Parameter(inputName, inputType)
     }
@@ -210,7 +234,7 @@ private[v3] object V3ValueDecoding:
    * A value definition under the given access. v3 records access once, on the module's entry for the value; the code
    * model also wraps the body in its own access, which takes the same level, as in the v3 lowering.
    */
-  def valueDefinition(access: cm.Access)(value: Value, path: String): Read[cm.ValueDefinition] =
+  def valueDefinition(access: cm.Access)(value: Value, path: String)(using V3AttributeRule): Read[cm.ValueDefinition] =
     valueDefinitionBody(value, path).map(body => cm.ValueDefinition(cm.AccessControlled(access, body)))
 
   /** A v3 value specification, `{"inputs": [[name, type], …], "output": …}`. */

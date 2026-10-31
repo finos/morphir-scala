@@ -29,18 +29,35 @@ object V3WireProjection:
   def project(distribution: cm.Distribution): Projection[Value] =
     project(distribution, V3AttributeMode.InferredTypes)
 
+  /**
+   * Projects a whole document at the lowest release that can hold `distribution`, as the v3 version rules ask: 3.0.0
+   * (written `3`) for a `Library`, 3.1.0 for a `Specs` distribution.
+   */
   def project(distribution: cm.Distribution, attributes: V3AttributeMode): Projection[Value] =
+    project(distribution, attributes, lowestRelease(distribution))
+
+  /**
+   * Projects a whole document declaring `release`, spelled canonically: the integer `3` for 3.0.0, the release string
+   * otherwise. A `Specs` distribution needs 3.1.0 or later.
+   */
+  def project(distribution: cm.Distribution, attributes: V3AttributeMode, release: V3Release): Projection[Value] =
     given V3AttributeMode = attributes
+    val envelope = (projected: Value) => record("formatVersion" -> formatVersion(release), "distribution" -> projected)
     distribution match
-      case cm.Distribution.Library(library) =>
-        mapResult(projectLibrary(library)) { projected =>
-          record(
-            "formatVersion" -> integer(3),
-            "distribution"  -> projected
-          )
-        }
-      case _: cm.Distribution.Specs       => fail(V3ProjectionError.UnsupportedDistribution("Specs"))
+      case cm.Distribution.Library(library)                 => mapResult(projectLibrary(library))(envelope)
+      case cm.Distribution.Specs(specs) if release.hasSpecs => mapResult(projectSpecs(specs))(envelope)
+      case _: cm.Distribution.Specs                         =>
+        fail(V3ProjectionError.UnsupportedDistribution(s"Specs at format version $release, below 3.1.0"))
       case _: cm.Distribution.Application => fail(V3ProjectionError.UnsupportedDistribution("Application"))
+
+  private def lowestRelease(distribution: cm.Distribution): V3Release =
+    distribution match
+      case _: cm.Distribution.Specs => V3Release.Specs
+      case _                        => V3Release.Baseline
+
+  /** The canonical `formatVersion`: the integer `3` for 3.0.0, the release string otherwise. */
+  def formatVersion(release: V3Release): Value =
+    if release.isBaseline then integer(3) else str(release.toString)
 
   def encode(distribution: cm.Distribution): Projection[String] =
     mapResult(project(distribution))(Json.encode(_))
@@ -88,6 +105,13 @@ object V3WireProjection:
       }
     }
 
+  private def projectSpecs(specs: cm.SpecsDistribution): Projection[Value] =
+    flatMapResult(projectDependencies(specs.dependencies, "distribution.dependencies")) { dependencies =>
+      mapResult(projectPackageSpecification(specs.specification, "distribution.specification")) { specification =>
+        sequence(str("Specs"), packageName(specs.packageInfo.name), dependencies, specification)
+      }
+    }
+
   private def projectDependencies(
       dependencies: Map[PackageName, cm.PackageSpecification],
       path: String
@@ -124,16 +148,20 @@ object V3WireProjection:
   ): Projection[Value] =
     flatMapResult(projectTypeDefinitions(definition.types, s"$path.types")) { types =>
       mapResult(projectValueDefinitions(definition.values, s"$path.values")) { values =>
-        record("types" -> types, "values" -> values)
+        record("types" -> types, "values" -> values, "doc" -> moduleDoc(definition.doc))
       }
     }
 
   private def projectModuleSpecification(specification: cm.ModuleSpecification, path: String): Projection[Value] =
     flatMapResult(projectTypeSpecifications(specification.types, s"$path.types")) { types =>
       mapResult(projectValueSpecifications(specification.values, s"$path.values")) { values =>
-        record("types" -> types, "values" -> values)
+        record("types" -> types, "values" -> values, "doc" -> moduleDoc(specification.doc))
       }
     }
+
+  /** A module's `doc`, which morphir-elm always writes: `null` without documentation, otherwise its lines joined. */
+  private def moduleDoc(doc: Option[cm.Documentation]): Value =
+    doc.fold(Structure.Value.Null)(documentation => str(documentation.lines.mkString("\n")))
 
   private def projectTypeDefinitions(
       definitions: Map[Name, cm.AccessControlled[cm.Documented[cm.TypeDefinition]]],
@@ -243,8 +271,18 @@ object V3WireProjection:
         mapResult(projectConstructors(constructors, s"$path.constructors")) { projectedConstructors =>
           sequence(str("CustomTypeSpecification"), sequence(params.map(name)*), projectedConstructors)
         }
-      case _: cm.TypeSpecification.DerivedTypeSpecification =>
-        fail(V3ProjectionError.UnsupportedFeature(path, "DerivedTypeSpecification"))
+      case cm.TypeSpecification.DerivedTypeSpecification(params, details) =>
+        mapResult(projectType(details.baseType, s"$path.baseType")) { baseType =>
+          sequence(
+            str("DerivedTypeSpecification"),
+            sequence(params.map(name)*),
+            record(
+              "baseType"     -> baseType,
+              "fromBaseType" -> fqName(details.fromBaseType),
+              "toBaseType"   -> fqName(details.toBaseType)
+            )
+          )
+        }
 
   private def projectConstructors(constructors: Chunk[cm.Constructor], path: String): Projection[Value] =
     mapResult(traverse(constructors.toList.zipWithIndex) { case (constructor, index) =>

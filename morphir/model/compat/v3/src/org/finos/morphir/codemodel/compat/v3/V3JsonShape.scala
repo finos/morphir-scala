@@ -88,6 +88,12 @@ private[v3] object V3JsonShape:
     def read[A](name: String)(decode: (Value, String) => Read[A]): Read[A] =
       required(name).flatMap(value => decode(value, member(path, name)))
 
+    /** Reads the member `name` with `decode` when it is present and not `null`. */
+    def readOptional[A](name: String)(decode: (Value, String) => Read[A]): Read[Option[A]] =
+      fields.find(_._1 == name) match
+        case None | Some((_, Structure.Value.Null)) => succeed(None)
+        case Some((_, value))                       => decode(value, member(path, name)).map(Some(_))
+
   def string(value: Value, path: String): Read[String] =
     value match
       case Structure.Value.Str(text) => succeed(text)
