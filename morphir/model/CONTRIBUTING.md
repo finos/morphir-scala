@@ -37,6 +37,13 @@ Step 5 is the gate. It fails when a case fails that the baseline does not list, 
 passes, or when no case passes. Open `report.html` to see each case. To write the reports to a different directory,
 give it to the command: `./mill --ticker false -i morphir.model.compat.v3.mck.mckRun --reportDir .dev/mck-other`.
 
+To run cases that the pinned CLI does not have yet, give the command a kit directory with `--kit`, for example a
+finos/morphir checkout's `spec/ir/mck`:
+`./mill --ticker false -i morphir.model.compat.v3.mck.mckRun --reportDir .dev/mck-next --kit <checkout>/spec/ir/mck`.
+The run and the report check both use that kit. The CLI resolves the kit's `text` fences against the checkout, and the
+report check reads other files of the checkout as well (`spec/mck`, `website/static/schemas`), so give it a whole
+checkout, not a copy of `spec/ir/mck` alone.
+
 The run does not use `--strict`. That flag fails the run for every skip, and every v4 case is a skip for this adapter.
 
 To send requests to the adapter yourself, build the launcher and write one JSON request on each line:

@@ -214,11 +214,14 @@ trait MorphirMckRunner extends JavaModule {
    * `report.json` and `report.html` under `reportDir` (relative to the workspace), then gates on `morphir mck report
    * check` against [[mckAllowedFailing]].
    *
+   * `kit` (relative to the workspace, or absolute) runs and checks against another kit instead, such as a finos/morphir
+   * checkout's `spec/ir/mck` carrying cases the pinned CLI does not have yet.
+   *
    * The run is not `--strict`: a v3-only adapter has every v4 case skipped for its capabilities, and `--strict` fails
    * on any skip. `report check` is the gate. It verifies the record inventory against the kit, that every skip has a
    * capability or `pending` reason, that the failing cases are exactly the baseline, and that at least one case passed.
    */
-  def mckRun(reportDir: String = ".dev/mck") = Task.Command {
+  def mckRun(reportDir: String = ".dev/mck", kit: String = "") = Task.Command {
     val cli      = morphirCli().path
     val adapter  = launcher().path
     val baseline = mckAllowedFailing().path
@@ -236,26 +239,35 @@ trait MorphirMckRunner extends JavaModule {
         os.proc(host(cli) +: arguments)
           .call(cwd = Task.dest, check = false, stdout = os.Inherit, stderr = os.Inherit)
           .exitCode
+      // A kit other than the embedded one, such as a finos/morphir checkout's spec/ir/mck; its `text` fences resolve
+      // against the checkout, which the CLI infers from a path ending in spec/ir/mck.
+      val kitArguments = Option(kit).filter(_.nonEmpty).toList.flatMap { directory =>
+        List("--kit", host(os.Path(directory, BuildCtx.workspaceRoot)))
+      }
       val runExit = morphir(
-        "mck",
-        "run",
-        "--no-banner",
-        "--suite",
-        "ir",
-        "--adapter",
-        host(adapter),
-        "--report",
-        host(report),
-        "--html",
-        host(html),
-        "--out-dir",
-        host(outDir)
+        (List(
+          "mck",
+          "run",
+          "--no-banner",
+          "--suite",
+          "ir",
+          "--adapter",
+          host(adapter),
+          "--report",
+          host(report),
+          "--html",
+          host(html),
+          "--out-dir",
+          host(outDir)
+        ) ++ kitArguments)*
       )
       Task.log.info(s"morphir mck run exited $runExit; reports in $reportDir")
       if (runExit == 2 || !os.exists(report))
         throw new Exception(s"morphir mck run did not produce a report (exit $runExit)")
-      val checkExit =
-        morphir("mck", "report", "check", "--no-banner", "--out-dir", host(outDir), host(report), host(baseline))
+      val checkExit = morphir(
+        (List("mck", "report", "check", "--no-banner", "--out-dir", host(outDir)) ++ kitArguments ++
+          List(host(report), host(baseline)))*
+      )
       if (checkExit != 0)
         throw new Exception(s"morphir mck report check failed (exit $checkExit); see $reportDir/report.html")
       s"$reportDir/report.json"
