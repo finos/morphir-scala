@@ -6,7 +6,7 @@ import org.finos.morphir.naming.*
 
 /**
  * Reads Morphir IR written in format version 3 - the `morphir-ir.json` that morphir-elm produces - straight into the
- * code model, without the classic `org.finos.morphir.ir` library.
+ * code model, without the classic ZIO-based IR library.
  *
  * A document's `formatVersion` is read first, by finos/morphir `docs/spec/ir/format-version.md`. The reader supports
  * [[SupportTable]], `[3.0.0,3.2.0)`: the integer `3` and the release strings from `"3.0.0"` up to, not including,
