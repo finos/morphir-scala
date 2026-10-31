@@ -125,15 +125,13 @@ object SquireCiPolicy:
    * artifacts.
    */
   val JvmCompileSelectors = List(
-    "morphir.jvm.__.compile",
-    "morphir.{appkit,benchmarks,buildkit.core,connector.github,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.logic,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.compiler.ir,langkit.elm.compiler.mep,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,lib.interop,model,model.compat.v3,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools,ui,web.server}.jvm.__.compile"
+    "morphir.{appkit,benchmarks,buildkit.core,connector.github,extensibility,intelligence.sdk,kit.kyo,knowledge.logic,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.compiler.ir,langkit.elm.compiler.mep,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,lib.interop,model,model.compat.v3,naming,prelude,ui,web.server}.jvm.__.compile"
   )
   val JvmPublishSelectors = List(
-    "morphir.jvm.publishArtifacts",
-    "morphir.{appkit,buildkit.core,connector.github,extensibility,interop.borer,interop.zio.json,knowledge.logic,knowledge.okf,langkit.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,lib.interop,model,model.compat.v3,model.lowering,naming,prelude,tests,tools,ui}.jvm.publishArtifacts"
+    "morphir.{appkit,buildkit.core,connector.github,extensibility,knowledge.logic,knowledge.okf,langkit.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,lib.interop,model,model.compat.v3,naming,prelude,ui}.jvm.publishArtifacts"
   )
   val JvmTestSelectors = List(
-    "morphir.{appkit,buildkit.core,connector.github,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.logic,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.compiler.ir,langkit.elm.compiler.mep,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,model,model.compat.v3,model.lowering,prelude,tests,ui,web.server}.jvm.test"
+    "morphir.{appkit,buildkit.core,connector.github,intelligence.sdk,kit.kyo,knowledge.logic,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.compiler.ir,langkit.elm.compiler.mep,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,model,model.compat.v3,naming,prelude,ui,web.server}.jvm.test"
   )
 
   /** The Cucumber-style integration suite, which is not a `.jvm` module and so is not in the census. */
@@ -466,9 +464,9 @@ object SquireCiPolicy:
       "publish inventory must exclude mill-plugins.morphir.integration"
     )
     expect(
-      targets.contains("morphir.jvm.publishSonatypeCentral") &&
+      targets.contains("morphir.model.jvm.publishSonatypeCentral") &&
         targets.contains("morphir.naming.jvm.publishSonatypeCentral"),
-      "publish inventory must still cover morphir.jvm and morphir.naming.jvm"
+      "publish inventory must still cover morphir.model.jvm and morphir.naming.jvm"
     )
     val logicPublishTargets = Set(
       "morphir.knowledge.logic.jvm.publishSonatypeCentral",
@@ -807,10 +805,7 @@ object SquireCiPolicy:
   def assertMorphirCapabilityPolicy(workflow: String): Unit =
     val commands = List(
       "mill-morphir-unit:"          -> "'mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test'",
-      "mill-morphir-integration:"   -> "mill-plugins.morphir.integration.test",
-      "morphir-elm-projects:"       -> "examples.morphir-elm-projects.__.morphirIR",
-      "runtime-generated-fixtures:" -> "morphir.runtime.classic.jvm.test.generatedRuntimeFixtures",
-      "runtime-tests:"              -> "morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery"
+      "mill-morphir-integration:"   -> "mill-plugins.morphir.integration.test"
     )
     commands.foreach { case (job, command) =>
       val block = indentedBlock(workflow, job, 2)
@@ -819,10 +814,7 @@ object SquireCiPolicy:
     val unit = indentedBlock(workflow, "mill-morphir-unit:", 2)
     expect(!unit.contains("mill-plugins.morphir.integration"), "unit selector must exclude integration")
     List(
-      "mill-morphir-integration:"   -> "[mill-morphir-unit]",
-      "morphir-elm-projects:"       -> "[mill-morphir-unit]",
-      "runtime-generated-fixtures:" -> "[morphir-elm-projects]",
-      "runtime-tests:"              -> "[runtime-generated-fixtures]"
+      "mill-morphir-integration:" -> "[mill-morphir-unit]"
     ).foreach { case (job, dependency) =>
       expect(
         scalar(indentedBlock(workflow, job, 2), "needs") == dependency,
@@ -859,27 +851,17 @@ object SquireCiPolicy:
     expect(members == JvmPlatformAliasMembers, s"unexpected testJVMPlatform members: $members")
 
   def assertJvmTargetInventory(inventory: Map[String, Set[String]]): Unit =
-    val classicPrefix = "morphir.runtime.classic.jvm"
-
     def targets(selector: String): Set[String] =
       inventory.getOrElse(selector, fail(s"missing resolved JVM selector: $selector"))
 
     def selected(selectors: List[String]): Set[String] = selectors.iterator.flatMap(targets).toSet
 
     def assertParity(kind: String, broadSelector: String, selectors: List[String]): Unit =
-      val broad    = targets(broadSelector)
-      val expected = broad.filterNot(_.startsWith(classicPrefix))
-      val actual   = selected(selectors)
-      expect(actual == expected, s"JVM $kind selectors differ from current non-classic targets")
-      expect(!actual.exists(_.startsWith(classicPrefix)), s"JVM $kind selectors must exclude classic runtime")
+      expect(selected(selectors) == targets(broadSelector), s"JVM $kind selectors differ from current targets")
 
     assertParity("compile", "morphir.__.jvm.__.compile", JvmCompileSelectors)
     assertParity("publish", "morphir.__.jvm.publishArtifacts", JvmPublishSelectors)
     assertParity("test", "morphir.__.jvm.__.test", JvmTestSelectors)
-    expect(
-      targets("morphir.__.jvm.__.test").contains("morphir.runtime.classic.jvm.test"),
-      "broad JVM test inventory must include the separately gated classic runtime target"
-    )
 
   def assertMorphirCachePolicy(workflow: String): Unit =
     val pluginOutputs = List(
@@ -887,9 +869,7 @@ object SquireCiPolicy:
       "!out/mill-plugins/morphir/**/testForked.dest/**",
       "!out/mill-plugins/morphir/**/testOnly.dest/**"
     )
-    val generatedOutputs = List("out/examples/morphir-elm-projects/", "out/morphir-elm/")
-    val runtimeOutputs   = List("out/morphir/runtime/classic/jvm/test/")
-    val expected         = List(
+    val expected = List(
       "mill-morphir-unit:" -> List(
         "Cache verified Morphir tool downloads" -> List("~/.cache/morphir-scala"),
         "Cache Mill capability outputs"         -> pluginOutputs
@@ -897,21 +877,6 @@ object SquireCiPolicy:
       "mill-morphir-integration:" -> List(
         "Cache verified Morphir tool downloads" -> List("~/.cache/morphir-scala"),
         "Cache Mill capability outputs"         -> pluginOutputs
-      ),
-      "morphir-elm-projects:" -> List(
-        "Cache verified Morphir tool downloads" -> List("~/.cache/morphir-scala"),
-        "Restore Mill plugin outputs"           -> List("out/mill-plugins/morphir/"),
-        "Cache Mill capability outputs"         -> generatedOutputs
-      ),
-      "runtime-generated-fixtures:" -> List(
-        "Cache verified Morphir tool downloads" -> List("~/.cache/morphir-scala"),
-        "Restore generated Morphir IR outputs"  -> generatedOutputs,
-        "Cache Mill capability outputs"         -> runtimeOutputs
-      ),
-      "runtime-tests:" -> List(
-        "Cache verified Morphir tool downloads" -> List("~/.cache/morphir-scala"),
-        "Restore generated Morphir IR outputs"  -> generatedOutputs,
-        "Cache Mill capability outputs"         -> runtimeOutputs
       )
     )
     expected.foreach { case (jobName, expectedSteps) =>
@@ -2427,12 +2392,6 @@ class SquireCiPolicySpec extends Test[Any]:
           "mill-morphir-integration:",
           "needs: [mill-morphir-unit]",
           "needs: []"
-        ),
-        assertMorphirCapabilityPolicy -> replaceInJob(
-          workflow,
-          "runtime-tests:",
-          "needs: [runtime-generated-fixtures]",
-          "needs: [test-jvm]"
         )
       )
       assert(capabilityMutations.forall((validator, mutation) => rejects(validator, mutation)))
@@ -2443,7 +2402,7 @@ class SquireCiPolicySpec extends Test[Any]:
 
       val missingPublishAliasMutation = replaceOnce(
         buildMill,
-        "    \"morphir.jvm.publishArtifacts\",\n",
+        s"    \"${JvmPublishSelectors.head}\",\n",
         ""
       )
       val addedAliasMutation = replaceOnce(
@@ -2455,13 +2414,8 @@ class SquireCiPolicySpec extends Test[Any]:
       // "mutation target not found", which reads as a broken test rather than as the widened alias it actually is.
       val reorderedAliasMutation = replaceOnce(
         buildMill,
-        s"    \"${JvmCompileSelectors(0)}\",\n    \"${JvmCompileSelectors(1)}\",",
-        s"    \"${JvmCompileSelectors(1)}\",\n    \"${JvmCompileSelectors(0)}\","
-      )
-      val runtimeAliasMutation = replaceOnce(
-        buildMill,
-        "\"morphir.langkit.itest.testCached\"",
-        "\"morphir.langkit.itest.testCached\", \"morphir.runtime.classic.jvm.test\""
+        s"    \"${JvmCompileSelectors.head}\",\n    \"${JvmPublishSelectors.head}\",",
+        s"    \"${JvmPublishSelectors.head}\",\n    \"${JvmCompileSelectors.head}\","
       )
       val taskMutation = replaceOnce(
         jvmPlatformTask,
@@ -2471,8 +2425,7 @@ class SquireCiPolicySpec extends Test[Any]:
       val aliasMutations = List(
         missingPublishAliasMutation,
         addedAliasMutation,
-        reorderedAliasMutation,
-        runtimeAliasMutation
+        reorderedAliasMutation
       )
       aliasMutations.zipWithIndex.foreach { case (mutation, index) =>
         assert(
@@ -2484,7 +2437,7 @@ class SquireCiPolicySpec extends Test[Any]:
     }
 
     "resolves every current non-classic JVM compile publish and test target" in {
-      val selectedCompile = jvmTargetSelectors(2)
+      val selectedCompile = JvmCompileSelectors.head
       val broadCompile    = jvmTargetSelectors.head
       for
         inventory <- resolveJvmTargetInventory
@@ -2508,10 +2461,7 @@ class SquireCiPolicySpec extends Test[Any]:
 
       val morphirJobs = List(
         "mill-morphir-unit:",
-        "mill-morphir-integration:",
-        "morphir-elm-projects:",
-        "runtime-generated-fixtures:",
-        "runtime-tests:"
+        "mill-morphir-integration:"
       )
       val downloadCacheMutations = morphirJobs.map { job =>
         replaceInJob(workflow, job, "path: ~/.cache/morphir-scala", "path: ~/.cache/unverified-morphir")
@@ -2526,56 +2476,11 @@ class SquireCiPolicySpec extends Test[Any]:
             "      - name: Run capability"
         )
       }
-      val movedRuntimeOutput = replaceInJob(
-        replaceInJob(
-          workflow,
-          "runtime-generated-fixtures:",
-          "path: out/morphir/runtime/classic/jvm/test/",
-          "path: out/morphir/runtime/classic/jvm/test-fixtures/"
-        ),
-        "morphir-elm-projects:",
-        "out/morphir-elm/",
-        "out/morphir-elm/\n            out/morphir/runtime/classic/jvm/test/"
-      )
       val integrationExtraOutput = replaceInJob(
         workflow,
         "mill-morphir-integration:",
         "            out/mill-plugins/morphir/\n",
         "            out/mill-plugins/morphir/\n            out/\n"
-      )
-      val runtimeGeneratedExtraOutput = replaceInJob(
-        workflow,
-        "runtime-generated-fixtures:",
-        "path: out/morphir/runtime/classic/jvm/test/",
-        "path: |\n            out/morphir/runtime/classic/jvm/test/\n            out/"
-      )
-      val runtimeTestsExtraOutput = replaceInJob(
-        workflow,
-        "runtime-tests:",
-        "path: out/morphir/runtime/classic/jvm/test/",
-        "path: |\n            out/morphir/runtime/classic/jvm/test/\n            out/"
-      )
-      val runtimeGeneratedOutputOutsideStep = replaceInJob(
-        replaceInJob(
-          workflow,
-          "runtime-generated-fixtures:",
-          "path: out/morphir/runtime/classic/jvm/test/",
-          "path: out/"
-        ),
-        "runtime-generated-fixtures:",
-        "run: ./mill --ticker false -i morphir.runtime.classic.jvm.test.generatedRuntimeFixtures",
-        "run: |\n          echo out/morphir/runtime/classic/jvm/test/\n          ./mill --ticker false -i morphir.runtime.classic.jvm.test.generatedRuntimeFixtures"
-      )
-      val runtimeTestsOutputOutsideStep = replaceInJob(
-        replaceInJob(
-          workflow,
-          "runtime-tests:",
-          "path: out/morphir/runtime/classic/jvm/test/",
-          "path: out/"
-        ),
-        "runtime-tests:",
-        "./mill --ticker false -i morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery",
-        "echo out/morphir/runtime/classic/jvm/test/\n          ./mill --ticker false -i morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery"
       )
       val unnamedCacheAction = replaceInJob(
         workflow,
@@ -2589,7 +2494,7 @@ class SquireCiPolicySpec extends Test[Any]:
       )
       val unnamedRestoreAction = replaceInJob(
         workflow,
-        "morphir-elm-projects:",
+        "mill-morphir-unit:",
         "- name: Run capability",
         "- uses: actions/cache/restore@v6\n" +
           "        with:\n" +
@@ -2601,14 +2506,7 @@ class SquireCiPolicySpec extends Test[Any]:
         replaceInJob(workflow, "mill-morphir-unit:", "out/mill-plugins/morphir/", "out/"),
         replaceInJob(workflow, "mill-morphir-unit:", "!out/mill-plugins/morphir/**/testForked.dest/**\n", ""),
         replaceInJob(workflow, "mill-morphir-unit:", "!out/mill-plugins/morphir/**/testOnly.dest/**\n", ""),
-        replaceInJob(workflow, "morphir-elm-projects:", "out/examples/morphir-elm-projects/", "out/examples/"),
-        replaceInJob(workflow, "morphir-elm-projects:", "out/morphir-elm/", "out/"),
-        integrationExtraOutput,
-        runtimeGeneratedExtraOutput,
-        runtimeTestsExtraOutput,
-        runtimeGeneratedOutputOutsideStep,
-        runtimeTestsOutputOutsideStep,
-        movedRuntimeOutput
+        integrationExtraOutput
       )
       cacheMutations.zipWithIndex.foreach { case (mutation, index) =>
         assert(rejects(assertMorphirCachePolicy, mutation), s"cache mutation $index must be rejected")
@@ -2825,19 +2723,13 @@ class SquireCiPolicySpec extends Test[Any]:
       }
     }
 
-    "keeps Mill Morphir dogfood and generated-runtime work in ordered CI jobs" in {
+    "keeps Mill Morphir dogfood work in ordered CI jobs" in {
       val required = List(
-        "mill-morphir-unit:"          -> "mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test",
-        "mill-morphir-integration:"   -> "mill-plugins.morphir.integration.test",
-        "morphir-elm-projects:"       -> "examples.morphir-elm-projects.__.morphirIR",
-        "runtime-generated-fixtures:" -> "morphir.runtime.classic.jvm.test.generatedRuntimeFixtures",
-        "runtime-tests:"              -> "morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery"
+        "mill-morphir-unit:"        -> "mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test",
+        "mill-morphir-integration:" -> "mill-plugins.morphir.integration.test"
       )
       val dependencies = List(
-        "mill-morphir-integration:"   -> "needs: [mill-morphir-unit]",
-        "morphir-elm-projects:"       -> "needs: [mill-morphir-unit]",
-        "runtime-generated-fixtures:" -> "needs: [morphir-elm-projects]",
-        "runtime-tests:"              -> "needs: [runtime-generated-fixtures]"
+        "mill-morphir-integration:" -> "needs: [mill-morphir-unit]"
       )
       assert(
         required.forall((job, command) => indentedBlock(workflow, job, 2).contains(command)) &&
@@ -2927,8 +2819,6 @@ class SquireMisePolicySpec extends Test[Any]:
   private val skillDirectory = Path(java.lang.System.getProperty("user.dir"))
   private val repositoryRoot = skillDirectory / ".." / ".." / ".."
   private val miseExecutable = Option(java.lang.System.getenv("SQUIRE_MISE_BIN")).filter(_.nonEmpty).getOrElse("mise")
-  private val buildElmScript = repositoryRoot / ".config" / "mise" / "tasks" / "build" / "elm"
-  private val buildEvaluatorScript = repositoryRoot / ".config" / "mise" / "tasks" / "build" / "morphir-elm"
   private val setupScript          = repositoryRoot / ".config" / "mise" / "tasks" / "setup"
   private val localCiScript        = repositoryRoot / ".config" / "mise" / "tasks" / "ci" / "local"
   private val expectedDependencies = List(
@@ -2938,39 +2828,13 @@ class SquireMisePolicySpec extends Test[Any]:
     "test:js",
     "test:native"
   )
-  private val expectedBuildElm = Chunk(
-    TaskInvocation(
-      "mill",
-      Chunk(
-        "--ticker",
-        "false",
-        "-k",
-        "examples.morphir-elm-projects.__.morphirIR",
-        "+",
-        "morphir-elm.sdks.__.morphirIR"
-      )
-    )
-  )
-  private val expectedBuildEvaluator = Chunk(
-    TaskInvocation(
-      "mill",
-      Chunk("--ticker", "false", "examples.morphir-elm-projects.evaluator-tests.morphirIR")
-    )
-  )
   private val expectedSetup   = Chunk(TaskInvocation("bun", Chunk("install", "--ignore-scripts")))
   private val expectedLocalCi = Chunk(
     TaskInvocation(
       "mill",
       Chunk("-i", "-k", "mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test")
     ),
-    TaskInvocation("mill", Chunk("-i", "mill-plugins.morphir.integration.test")),
-    TaskInvocation(
-      "mill",
-      Chunk("-i", "-k", "examples.morphir-elm-projects.__.morphirIR", "+", "morphir-elm.sdks.__.morphirIR")
-    ),
-    TaskInvocation("mill", Chunk("-i", "morphir.runtime.classic.jvm.test.generatedRuntimeFixtures")),
-    TaskInvocation("mill", Chunk("-i", "morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery")),
-    TaskInvocation("mill", Chunk("-i", "morphir.runtime.classic.jvm.test"))
+    TaskInvocation("mill", Chunk("-i", "mill-plugins.morphir.integration.test"))
   )
 
   private def runMise(arguments: String*): ProcessResult < (Async & Abort[SquireError]) =
@@ -3136,15 +3000,7 @@ esac
         .map(path => Path(path.toString)).toSet
     finally stream.close()
 
-  private def morphirElmManifests: List[Path] =
-    val examples = repositoryRoot / "examples" / "morphir-elm-projects"
-    val stream   = Files.walk(examples.toJava)
-    try
-      (repositoryRoot / "package.json") :: stream.iterator.asScala
-        .filter(path => path.getFileName.toString == "package.json")
-        .map(path => Path(path.toString))
-        .toList
-    finally stream.close()
+  private def morphirElmManifests: List[Path] = List(repositoryRoot / "package.json")
 
   private def packageManifestIsSafe(json: String): Boolean =
     SquireJson.decode[Structure.Value](json) match
@@ -3185,20 +3041,9 @@ esac
       )
     }
 
-    "runs Elm build and setup scripts through only their approved tools" in {
-      for
-        buildElm <- runTaskScript(
-          buildElmScript,
-          Files.readString(buildElmScript.toJava, StandardCharsets.UTF_8),
-          Set("mill")
-        )
-        buildEvaluator <- runTaskScript(
-          buildEvaluatorScript,
-          Files.readString(buildEvaluatorScript.toJava, StandardCharsets.UTF_8),
-          Set("mill")
-        )
-        setup <- runTaskScript(setupScript, Files.readString(setupScript.toJava, StandardCharsets.UTF_8), Set("bun"))
-      yield assert(buildElm == expectedBuildElm && buildEvaluator == expectedBuildEvaluator && setup == expectedSetup)
+    "runs the setup script through only its approved tool" in {
+      runTaskScript(setupScript, Files.readString(setupScript.toJava, StandardCharsets.UTF_8), Set("bun"))
+        .map(setup => assert(setup == expectedSetup))
     }
 
     "runs every local-CI Morphir capability through its dedicated Mill invocation" in
@@ -3209,33 +3054,25 @@ esac
       ).map(invocations => assert(invocations == expectedLocalCi))
 
     "rejects executed task mutations that add package tooling or change the approved invocation sequences" in {
-      val buildElmText = Files.readString(buildElmScript.toJava, StandardCharsets.UTF_8)
-      val setupText    = Files.readString(setupScript.toJava, StandardCharsets.UTF_8)
-      val localCiText  = Files.readString(localCiScript.toJava, StandardCharsets.UTF_8)
-      val addBun       = buildElmText + "\nbun install\n"
-      val addNpm       = buildElmText + "\nnpm install\n"
-      val removeSdk    = buildElmText.replace("    + \"morphir-elm.sdks.__.morphirIR\"\n", "")
-      val broadUnit    = localCiText.replace(
+      val setupText   = Files.readString(setupScript.toJava, StandardCharsets.UTF_8)
+      val localCiText = Files.readString(localCiScript.toJava, StandardCharsets.UTF_8)
+      val addBun      = localCiText + "\nbun install\n"
+      val addNpm      = localCiText + "\nnpm install\n"
+      val broadUnit   = localCiText.replace(
         "mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test",
         "mill-plugins.morphir.__.test"
       )
-      val collapseLocal = localCiText.replace(
-        "./mill -i morphir.runtime.classic.jvm.test.generatedRuntimeFixtures\n" +
-          "./mill -i morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery\n",
-        "./mill -i morphir.runtime.classic.jvm.test\n"
-      )
-      val enableHooks = setupText.replace(" --ignore-scripts", "")
+      val collapseLocal = localCiText.replace("./mill -i mill-plugins.morphir.integration.test\n", "")
+      val enableHooks   = setupText.replace(" --ignore-scripts", "")
       for
-        bunResult            <- Abort.run[SquireError](runTaskScript(buildElmScript, addBun, Set("mill")))
-        npmResult            <- Abort.run[SquireError](runTaskScript(buildElmScript, addNpm, Set("mill")))
-        withoutSdk           <- runTaskScript(buildElmScript, removeSdk, Set("mill"))
+        bunResult            <- Abort.run[SquireError](runTaskScript(localCiScript, addBun, Set("mill")))
+        npmResult            <- Abort.run[SquireError](runTaskScript(localCiScript, addNpm, Set("mill")))
         broadUnitInvocations <- runTaskScript(localCiScript, broadUnit, Set("mill"))
         collapsedInvocations <- runTaskScript(localCiScript, collapseLocal, Set("mill"))
         hooksEnabled         <- runTaskScript(setupScript, enableHooks, Set("bun"))
       yield assert(
         failureContains(bunResult, "unapproved program", "bun") &&
           failureContains(npmResult, "unapproved program", "npm") &&
-          withoutSdk != expectedBuildElm &&
           broadUnitInvocations != expectedLocalCi &&
           collapsedInvocations != expectedLocalCi &&
           hooksEnabled != expectedSetup

@@ -70,8 +70,7 @@ morphir-scala provides Scala language bindings and JVM-based tooling for Morphir
 
 - **Scala 3** - Primary language
 - **Mill** - Build tool
-- **ZIO** - Effect system and testing
-- **Kyo** - Effect system used by the newer modules (kyo-core, kyo-prelude, kyo-test, kyo-case-app, kyo-schema, kyo-zio)
+- **Kyo** - Effect system and test framework for the library modules (kyo-core, kyo-prelude, kyo-test, kyo-case-app, kyo-schema)
 - **ScalaJS** - JavaScript compilation target, plus a WebAssembly link variant
 - **Scala Native** - Native compilation target, currently scoped to the `langkit`, `kit`, `connector`, `knowledge`, `buildkit` and `prelude` modules
 
@@ -161,25 +160,16 @@ morphir-scala/
 │   ├── core/                # Frontend-neutral tasks, typed artifacts and Scala source composition
 │   ├── elm/                 # Morphir Elm project-to-IR compilation
 │   └── integration/         # Test-only published-SNAPSHOT consumer acceptance
-├── examples/
-│   └── morphir-elm-projects/ # Elm projects used to generate runtime fixtures
-├── morphir-elm/             # Morphir Elm SDK projects built through the plugins
-├── morphir/                 # Main Morphir library modules
-│   ├── src/                 # Shared sources (all platforms)
-│   ├── jvm/src/             # JVM-specific sources
-│   ├── js/src/              # ScalaJS-specific sources
-│   ├── native/src/          # Scala Native-specific sources
+├── morphir/                 # Morphir library modules
+│   ├── naming/              # Names, paths and qualified names, with no other dependency
+│   ├── model/               # Code model, datamodel and v4 JSON; compat/v3 reads and writes v3 morphir-ir.json
 │   ├── buildkit/            # Frontend-neutral buildkit core: the pipeline Stage and typed task graph
 │   ├── prelude/             # Shared package-morphir types (MorphirException, Zippable) at the dependency bottom
-│   ├── interop/             # Interoperability modules (borer, zio-json)
 │   ├── kit/                 # Kits: extensions and bridges per upstream library (e.g. kit/kyo)
 │   ├── connector/           # External-system clients (e.g. connector/github)
 │   ├── appkit/              # Host-application integrations (SecretStore; electron and codeium later)
 │   ├── knowledge/           # Knowledge libraries: logic programming and OKF
-│   ├── langkit/             # Language toolkits: shared core, tree query DSL, Elm, markdown, itest
-│   ├── runtime/             # Morphir runtime
-│   ├── testing/             # Testing utilities
-│   └── tools/               # Reusable tooling services
+│   └── langkit/             # Language toolkits: shared core, tree query DSL, Elm, markdown, itest
 ├── kb/                      # Knowledge base root
 │   └── bundles/             # Open Knowledge Format (OKF) knowledge bundles
 └── .config/mise/            # Mise task definitions
@@ -230,9 +220,7 @@ mise run lint           # Check code formatting (`./mill --ticker false -i ci.li
 mise run test:jvm       # Run JVM tests (includes langkit.itest)
 mise run test:js        # Run JS tests (includes the wasm link variants)
 mise run test:native    # Run Scala Native tests
-mise run test:runtime-jvm # Run the classic JVM runtime tests backed by generated Elm IR
-mise run build:morphir-elm # Generate the evaluator Morphir IR through Mill
-mise run build:elm      # Generate all Morphir Elm project IR through Mill
+mise run mck:run        # Run the Morphir Compatibility Kit IR suite against the v3 reader
 mise run ci:local       # Run full local CI
 mise run kb:check       # Check the knowledge base and its intent records
 mise run kb:sync        # Check the mirrored upstream sources against their lockfile
@@ -243,16 +231,13 @@ mise run schemas:check  # Validate the mirrored v4 documents against those schem
 Or use Mill directly:
 
 ```bash
-./mill morphir.jvm.compile
+./mill morphir.model.jvm.compile
 ./mill --ticker false -i ci.lint
 ./mill format --changed   # or --paths …; see CONTRIBUTING.md Formatting
-./mill morphir.tests.jvm.test
+./mill morphir.model.jvm.test
 ./mill -i -k 'mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test'
 ./mill mill-plugins.morphir.integration.test
-./mill -i -k 'examples.morphir-elm-projects.__.morphirIR' + 'morphir-elm.sdks.__.morphirIR'
-./mill morphir.runtime.classic.jvm.test.generatedRuntimeFixtures
-./mill morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery
-./mill morphir.runtime.classic.jvm.test
+./mill --ticker false -i morphir.model.compat.v3.mck.mckRun
 ```
 
 ### Windows ARM64 build JVM
@@ -322,7 +307,7 @@ Two-platform directory names are sorted and shared by both targets. See
   - Use named tuples, especially where they make public signatures easier to read
 - In Kyo-based modules — those whose Mill config extends a `MorphirKyo*MvnDeps` trait (currently `langkit`, `kit`,
   `connector`, `knowledge`, `buildkit`, `prelude`, `model`, and `intelligence`):
-  - Prefer `kyo.Maybe` over `Option` in public APIs. ZIO-side modules do not carry `Maybe` and are out of scope.
+  - Prefer `kyo.Maybe` over `Option` in public APIs.
   - Prefer `kyo.Result` over `Either` in public APIs. `Result[E, A]` is unboxed, carries panics as a third arm
     alongside success and typed failure, and integrates with `Abort`; `Either` remains for boundaries that demand
     interop.
@@ -414,7 +399,9 @@ reason — do not open standalone sweeps.
 ### Dependencies
 
 - Use `mvn""` interpolator (not `ivy""` which is deprecated in Mill 1.x)
-- Prefer ZIO or Kyo ecosystem libraries where possible
+- Prefer Kyo ecosystem libraries where possible
+- Do not add ZIO to a published module. See
+  [decision 0005](./kb/bundles/morphir/morphir-scala/decisions/0005-bridge-nothing-between-zio-and-kyo.md)
 
 ### Plugin API Conventions
 
@@ -425,17 +412,17 @@ reason — do not open standalone sweeps.
 
 ## Testing
 
-- Two frameworks are in use. Match whichever the module you are working in already uses:
-  - **kyo-test** for the `langkit` and `kit` modules — extend `kyo.test.Test[Any]`, and mix the per-platform trait
-    into the test module (`millbuild.KyoTest` on the JVM, `KyoTestJS`, `KyoTestNative`, `KyoTestWasm`). These traits
-    only set the framework class, so each test block must also declare the kyo-test dependencies itself.
-  - **ZIO Test** elsewhere — use `ZIOSpecDefault` with `TestModule.ZioTest`.
+- **kyo-test** is the framework for the library modules under `morphir/`. Extend `kyo.test.Test[Any]`, and mix the
+  per-platform trait into the test module (`millbuild.KyoTest` on the JVM, `KyoTestJS`, `KyoTestNative`,
+  `KyoTestWasm`). These traits only set the framework class, so each test block must also declare the kyo-test
+  dependencies itself.
+- **uTest** is the framework for the Mill plugins under `mill-plugins/morphir/` and for `millbuildHelpers`.
 - Test files go in `test/src/` directories
 - Test classes use the `Tests` suffix (`StageTests`, `PipelineTests`), not `Spec`. Existing `*Spec` classes in
   other modules convert only when the file is already being touched for another reason — do not open standalone
   renaming sweeps.
 - Run tests with `mise run test:jvm` / `test:js` / `test:native`, or a specific module such as
-  `./mill morphir.tests.jvm.test`
+  `./mill morphir.model.jvm.test`
 - `morphir.langkit.itest` is a Cucumber/JUnit5 suite rather than a `<module>.jvm` one; its task is
   `morphir.langkit.itest.testCached`
 
@@ -453,7 +440,7 @@ reason — do not open standalone sweeps.
 5. For JS and Native dependencies that are not a managed suite, use the double-colon form
    (`group::artifact::version`); a single colon cross-builds only by Scala version and silently resolves the JVM
    jar. Extra artifacts from a suite whose version lives in `Versions` omit the version (`io.getkyo::kyo-config`,
-   `dev.zio::zio-json`): `MorphirSuiteBom` supplies the pin through Mill `depManagement`, and the JS/Native
+   `com.lihaoyi::ujson`): `MorphirSuiteBom` supplies the pin through Mill `depManagement`, and the JS/Native
    modules bind those coords as platformed. When a suite gains a member, add it to that object's `managed` in
    `mill-build/src/millbuild/deps.scala`.
 6. A bare `mvnDeps:` in YAML *replaces* inherited deps. Use `mvnDeps: !append` to keep the suite trait's jars
@@ -483,9 +470,7 @@ The project uses GitHub Actions for CI:
 - `knowledge-base` - KB tests, validation, intent checks and mirror checks
 - `mill-morphir-unit` - Fast Scala tests for the Mill Morphir plugin family
 - `mill-morphir-integration` - Fresh-consumer tests using locally published SNAPSHOT plugins
-- `morphir-elm-projects` - Generate the Morphir IR for each Elm project
-- `runtime-generated-fixtures` - Build typed runtime fixture sources from generated IR
-- `runtime-tests` - Verify classic runtime test discovery and run those tests
+- `mck-ir` - Morphir Compatibility Kit IR suite against the v3 reader, gated by `morphir mck report check`
 - `test-jvm` - JVM tests, including `langkit.itest`
 - `test-js` - ScalaJS tests, including the wasm link variants
 - `test-native` - Scala Native tests
@@ -518,13 +503,13 @@ the merge through the API.
 
 ## Contributing
 
-Before making changes, consult [CONTRIBUTING.md](./CONTRIBUTING.md) at the repo root, as well as any `CONTRIBUTING.md` at the level of the module you're working in (e.g. [morphir/CONTRIBUTING.md](./morphir/CONTRIBUTING.md)), for process notes, governance, and module-specific dev notes/known issues.
+Before making changes, consult [CONTRIBUTING.md](./CONTRIBUTING.md) at the repo root, as well as any `CONTRIBUTING.md` at the level of the module you're working in (e.g. [morphir/model/CONTRIBUTING.md](./morphir/model/CONTRIBUTING.md)), for process notes, governance, and module-specific dev notes/known issues.
 
 ## Resources
 
 - [Morphir Documentation](https://morphir.finos.org/)
 - [Mill Build Tool](https://mill-build.org/)
-- [ZIO Documentation](https://zio.dev/)
+- [Kyo](https://github.com/getkyo/kyo)
 - [FINOS Community](https://www.finos.org/)
 - [Slack: #morphir](https://finos-lf.slack.com/messages/morphir/)
 

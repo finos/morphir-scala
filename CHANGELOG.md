@@ -6,7 +6,26 @@ the shape of the next release, and it is what CI stamps on every build. Dated he
 `## [Unreleased]` is optional and carries no build meaning; use it for entries not yet assigned to
 a release.
 
-## [0.5.0-M12]
+## [0.5.0-M13]
+
+### Removed
+- The classic ZIO-based library family, deprecated in 0.5.0-M12, is no longer published. Released versions stay on
+  Maven Central. These artifacts stop at 0.5.0-M12 on the JVM and Scala.js:
+  - `morphir`: use `morphir-model`, `morphir-naming` and `morphir-model-compat-v3`.
+  - `morphir-interop-zio-json`: use `morphir-model` for v4 JSON and `morphir-model-compat-v3` for v3
+    `morphir-ir.json`.
+  - `morphir-interop-borer`: use the datamodel and Kyo Schema codecs in `morphir-model`.
+  - `morphir-model-lowering`: use `V3Reader` in `morphir-model-compat-v3`.
+  - `morphir-runtime-classic`: no replacement. Scala evaluation of Morphir IR ends with this release.
+  - `morphir-tools`: use `kyo-system`, the `mill-morphir-elm` plugin or the Morphir CLI.
+  - `morphir-tests`: no replacement.
+- No published morphir library depends on ZIO now.
+
+### Changed
+- The `mck-ir` job runs the Morphir Compatibility Kit of Morphir CLI `0.4.0-beta.11`, which holds the shared
+  `@version:3` reading cases from finos/morphir#1116.
+
+## [0.5.0-M12] - 2026-10-31
 
 ### Added
 - `morphir-model-compat-v3` reads v3 `morphir-ir.json`, the format morphir-elm writes, straight into the code model

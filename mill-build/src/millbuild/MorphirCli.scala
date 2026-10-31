@@ -39,19 +39,19 @@ object MorphirCliDistribution {
     readwriter[String].bimap(_.toString, ArchiveFormat.valueOf)
   given ReadWriter[MorphirCliDistribution] = macroRW
 
-  val Version = "0.4.0-beta.10"
+  val Version = "0.4.0-beta.11"
 
   /** The largest executable accepted from an archive; the published binaries are under 100 MiB. */
   private val MaxExecutableBytes = 512L * 1024L * 1024L
 
   /** Rust target triple to the SHA-256 of `morphir-<Version>-<target>.(tgz|zip)`. */
   private val Checksums = Map(
-    "aarch64-apple-darwin"      -> "98635ec74fbdc3c2cef1d4ae184bb1c5ed9e2960575f3d8abb4b97e0e4da363f",
-    "x86_64-apple-darwin"       -> "4080dcfb04f6e1c902bce2780756c6af44320ac0dd6ff6bd953ca74a0da8e128",
-    "aarch64-unknown-linux-gnu" -> "76a92a11030cd254d2283e98363cf203f86aaecd583fa480bdf6f508c86710f6",
-    "x86_64-unknown-linux-gnu"  -> "3f6dc0559e7570d9cdb9c95761333552593da6bc8c788b9da3bb4a1d93101923",
-    "aarch64-pc-windows-msvc"   -> "f3634261a8ccf55d5a8b862cc7d7ecf683b5237bf4f3a47119b46d1e5b93210f",
-    "x86_64-pc-windows-msvc"    -> "c178002d570f4cb8c9ceed4bf7b51f04d4ebec2458765935839c90ac1cc01176"
+    "aarch64-apple-darwin"      -> "1a1895c0b189b79c0cbb590c2b43d05c5ea9688bbc4b5cf8be6262cf57c19380",
+    "x86_64-apple-darwin"       -> "e93f826039bbaf95226c7e3cc7698920ae3968ab5c3263633fe0188d334dfcf1",
+    "aarch64-unknown-linux-gnu" -> "141c7d75a5539e24f344a55c78b00a7cf22397b155f60f7c00787402660fc28f",
+    "x86_64-unknown-linux-gnu"  -> "01d0f96bbe73dadf06188d725b823d407c0bf79ef78869d57669744eed9fd437",
+    "aarch64-pc-windows-msvc"   -> "4ca0af7b9e2bc9f632ae49baca6baf615eb0171008d1a6e924a981e3a4a347c6",
+    "x86_64-pc-windows-msvc"    -> "da1a24c53802fcbb2750813b2fd865334b47b3410bdae9afdc64e5a59abb1cba"
   )
 
   def resolve(osName: String, osArch: String): Either[String, MorphirCliDistribution] =

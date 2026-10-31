@@ -8,14 +8,16 @@ status: stable
 
 # v3 IR Reading
 
-`V3Reader`, in `morphir-model-compat-v3`, reads Morphir IR in the v3 format family — the `morphir-ir.json` that
-morphir-elm writes, and the v3.1 `Specs` documents — into the code model (`org.finos.morphir.codemodel`). It needs only
-`morphir-model` and Kyo: no classic `org.finos.morphir.ir` types and no ZIO, on the JVM or Scala.js. The same module
-writes v3 back with `V3WireProjection`, so v3 is handled in one place, at the edge of the code model.
+`V3Reader`, in `morphir-model-compat-v3`, reads Morphir IR in the v3 format family into the code model
+(`org.finos.morphir.codemodel`). The v3 family is the `morphir-ir.json` that morphir-elm writes, plus the v3.1 `Specs`
+documents. The reader needs only `morphir-model` and Kyo, on the JVM and on Scala.js. The same module writes v3 back
+with `V3WireProjection`, so v3 is handled in one place, at the edge of the code model.
 
-It replaces the classic path — the zio-json decoders in `morphir-interop-zio-json` followed by `V3Lowering` in
-`morphir-model-lowering` — which is deprecated with the rest of the classic family
-([intent 0042](../../intent/0042-deprecate-the-classic-zio-based-morphir-library.md)).
+It replaces the classic path: the zio-json decoders in `morphir-interop-zio-json`, followed by `V3Lowering` in
+`morphir-model-lowering`. The classic family was deprecated in 0.5.0-M12
+([intent 0042](../../intent/0042-deprecate-the-classic-zio-based-morphir-library.md)) and removed in 0.5.0-M13
+([intent 0043](../../intent/0043-remove-the-classic-zio-based-morphir-library.md)). `V3Reader` is now the only way
+this repository reads v3.
 
 ## What it reads
 
@@ -44,7 +46,8 @@ for `3.0.0`, the exact string otherwise.
 
 ## How v3 maps to the code model
 
-The rules match what the classic decoder and `V3Lowering` produced, so existing consumers see the same code model:
+The rules match what the classic decoder and `V3Lowering` produced, so a consumer that moves from the classic path
+gets the same code model:
 
 - **Attributes are erased**, except that a typed value's or pattern's type becomes its `inferredType`. Inside a
   `Library` every value, pattern and value-definition input must be typed; a node read on its own may be untyped.
@@ -84,8 +87,10 @@ IR written in format versions 1 or 2 must be regenerated with current morphir-el
   against a kit checkout with `--kit`.
 - **Unit tests** run on the JVM and Scala.js in `morphir.model.compat.v3.{jvm,js}.test`, ported from the classic
   decoder's tests and the format-version conformance corpus.
-- Before the classic path is removed, every IR file morphir-elm generates from `examples/morphir-elm-projects` and
-  `morphir-elm/sdks` (15 files) decoded to exactly what the classic decoder plus `V3Lowering` produced.
+- Before the classic path was removed, every IR file that morphir-elm generated from `examples/morphir-elm-projects`
+  and `morphir-elm/sdks` (15 files) decoded to exactly what the classic decoder plus `V3Lowering` produced. Those
+  projects were removed with the classic path, so this check no longer runs. Real morphir-elm output now reaches the
+  reader only through the kit's `@version:3` cases.
 
 ## Known limits
 

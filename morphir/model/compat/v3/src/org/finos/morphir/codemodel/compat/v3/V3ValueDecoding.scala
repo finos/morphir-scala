@@ -18,10 +18,10 @@ private[v3] enum V3AttributeRule derives CanEqual:
 /**
  * Decoders for v3 patterns, values, value definitions and value specifications.
  *
- * A value's or pattern's attribute (argument zero of each tagged node) follows the v3 lowering: a typed value carries a
- * v3 type there, which becomes the code-model node's `inferredType`; any other attribute - morphir-elm writes `{}` for
- * an untyped value - is erased to `ValueAttributes.empty`, unless the [[V3AttributeRule]] requires a type. An attribute
- * is taken to be a type when it is a non-empty array that starts with a tag string, and is then decoded as one, so a
+ * A value's or pattern's attribute (argument zero of each tagged node) is read this way: a typed value carries a v3
+ * type there, which becomes the code-model node's `inferredType`; any other attribute - morphir-elm writes `{}` for an
+ * untyped value - is erased to `ValueAttributes.empty`, unless the [[V3AttributeRule]] requires a type. An attribute is
+ * taken to be a type when it is a non-empty array that starts with a tag string, and is then decoded as one, so a
  * malformed type is a fault rather than silently dropped.
  */
 private[v3] object V3ValueDecoding:
@@ -190,7 +190,8 @@ private[v3] object V3ValueDecoding:
 
   /**
    * v3 holds `LetRecursion` definitions and `UpdateRecord` fields in maps keyed by name, so input order carries no
-   * meaning and a repeated name keeps its last entry. They are ordered by name, word by word, as the v3 lowering does.
+   * meaning and a repeated name keeps its last entry. They are ordered by name, word by word, so that equal documents
+   * decode alike.
    */
   private def byName[A](entries: Chunk[(Name, A)]): Chunk[(Name, A)] =
     Chunk.from(entries.toMap.toSeq.sortBy(_._1.toList))
@@ -207,10 +208,9 @@ private[v3] object V3ValueDecoding:
    * always expressions.
    *
    * The code model holds one type per input, so an input's attribute has no slot of its own: the declared type is kept
-   * and the attribute is checked (it must be a type inside a `Library`) but not kept, as in the v3 lowering. In typed
-   * IR the attribute is usually the declared type again, which a writer of typed IR writes back. It is not always:
-   * where the declared type is an alias, morphir-elm writes the alias's expansion as the attribute, and that expansion
-   * is lost.
+   * and the attribute is checked (it must be a type inside a `Library`) but not kept. In typed IR the attribute is
+   * usually the declared type again, which a writer of typed IR writes back. It is not always: where the declared type
+   * is an alias, morphir-elm writes the alias's expansion as the attribute, and that expansion is lost.
    */
   def valueDefinitionBody(value: Value, path: String)(using V3AttributeRule): Read[cm.ValueDefinitionBody] =
     obj(value, path, "an object with inputTypes, outputType and body") { members =>
@@ -232,7 +232,7 @@ private[v3] object V3ValueDecoding:
 
   /**
    * A value definition under the given access. v3 records access once, on the module's entry for the value; the code
-   * model also wraps the body in its own access, which takes the same level, as in the v3 lowering.
+   * model also wraps the body in its own access, which takes the same level.
    */
   def valueDefinition(access: cm.Access)(value: Value, path: String)(using V3AttributeRule): Read[cm.ValueDefinition] =
     valueDefinitionBody(value, path).map(body => cm.ValueDefinition(cm.AccessControlled(access, body)))

@@ -6,14 +6,14 @@ import org.finos.morphir.naming.*
 
 /**
  * Reads Morphir IR written in format version 3 - the `morphir-ir.json` that morphir-elm produces - straight into the
- * code model, without the classic ZIO-based IR library.
+ * code model. It needs only `morphir-model` and Kyo.
  *
  * A document's `formatVersion` is read first, by finos/morphir `docs/spec/ir/format-version.md`. The reader supports
  * [[SupportTable]], `[3.0.0,3.2.0)`: the integer `3` and the release strings from `"3.0.0"` up to, not including,
  * `"3.2.0"`. 3.1.0 added the `Specs` distribution, which a document must declare 3.1.0 or later to hold.
  *
- * The result is the one the classic v3 decoder and `V3Lowering` together produce, with the module documentation,
- * `Specs` distributions and derived type specifications that those never read:
+ * Each v3 node decodes to its code-model counterpart, module documentation, `Specs` distributions and derived type
+ * specifications included. The mapping follows these rules:
  *
  *   - Attributes are erased, except that a typed value's or pattern's type becomes its `inferredType`. An attribute
  *     counts as a type when it is a non-empty array that starts with a tag string; anything else, such as the `{}`
@@ -30,9 +30,8 @@ import org.finos.morphir.naming.*
  *
  * Every method returns a [[V3ReadError]] rather than throwing, with the JSON path of the fault and the Morphir
  * Compatibility Kit's diagnostic code: `invalid_json` when the text is not JSON, `invalid_type` when a node is not the
- * classic JSON of its kind, and the format-version codes for an unrecognised or unsupported `formatVersion`. Each
- * `decode*` method reads one node kind from its JSON text, which is also what a Morphir Compatibility Kit adapter
- * needs.
+ * v3 JSON of its kind, and the format-version codes for an unrecognised or unsupported `formatVersion`. Each `decode*`
+ * method reads one node kind from its JSON text, which is also what a Morphir Compatibility Kit adapter needs.
  */
 object V3Reader:
 

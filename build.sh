@@ -6,7 +6,7 @@
 # This script is deprecated. Please use mise or Mill directly:
 #   mise run setup       - Install dependencies
 #   mise run lint        - Lint code
-#   ./mill format        - Format code (Scala + Elm)
+#   ./mill format        - Format Scala and .mill code
 #   mise run clean       - Clean build artifacts
 #   mise run test:jvm    - Run JVM tests
 #   mise run setup:idea  - Setup IntelliJ IDEA
@@ -16,9 +16,8 @@ echo ""
 echo "Available tasks:"
 echo "  mise run setup          - Install dependencies"
 echo "  mise run lint           - Lint code"
-echo "  ./mill format           - Format code (Scala + Elm)"
+echo "  ./mill format           - Format Scala and .mill code"
 echo "  mise run clean          - Clean build artifacts"
-echo "  mise run build:elm      - Build Elm projects"
 echo "  mise run test:jvm       - Run JVM tests"
 echo "  mise run setup:idea     - Setup IntelliJ IDEA"
 echo ""
@@ -39,9 +38,6 @@ case "$COMMAND" in
   "clean")
     mise run clean
     ;;
-  "elm-build")
-    mise run build:elm
-    ;;
   "test-jvm")
     # Extract scala version if provided
     shift
@@ -50,9 +46,6 @@ case "$COMMAND" in
     else
       mise run test:jvm
     fi
-    ;;
-  "test-runtime-jvm")
-    mise run test:runtime-jvm
     ;;
   "setup-idea")
     mise run setup:idea

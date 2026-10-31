@@ -2,12 +2,14 @@
 type: Intent
 title: Deprecate the classic ZIO-based morphir library
 description: "Announce in one released milestone that the classic ZIO-based library family will stop being published, and name what replaces each artifact."
-state: InProgress
+state: Released
 kind: deprecation
 breaking: false
 created: 2026-10-31
 state_since: 2026-10-31
 tags: [classic, zio, kyo, publishing]
+capability: morphir/morphir-scala:/v3-ir-reading.md
+artifacts: [pkg:maven/org.finos.morphir/morphir-model-compat-v3_3@0.5.0-M12, pkg:maven/org.finos.morphir/morphir-model-compat-v3_sjs1_3@0.5.0-M12]
 ---
 
 # 0042 — Deprecate the classic ZIO-based morphir library

@@ -4,134 +4,21 @@ import mill.*, scalalib.*
 
 object Deps {
 
-  object ch {
-    object epfl {
-      object scala {
-        val `tasty-query` = mvn"ch.epfl.scala::tasty-query::${Versions.`tasty-query`}"
-      }
-    }
-  }
-
-  object co {
-    object fs2 {
-      val `fs2-core`        = mvn"co.fs2::fs2-core::${Versions.fs2}"
-      val `fs2-io`          = mvn"co.fs2::fs2-io::${Versions.fs2}"
-      def managed: Seq[Dep] = Seq(`fs2-core`, `fs2-io`)
-    }
-  }
-
   object com {
-    object beachape {
-      val enumeratum = mvn"com.beachape::enumeratum::${Versions.enumeratum}"
-        .exclude("org.scala-lang" -> "scala3-library_3")
-    }
-
-    object eed3si9n {
-      object expecty {
-        val expecty = mvn"com.eed3si9n.expecty::expecty::${Versions.expecty}"
-      }
-    }
-
-    object geirsson {
-      object metaconfig {
-        val core              = mvn"com.geirsson::metaconfig-core::${Versions.metaconfig}"
-        val docs              = mvn"com.geirsson::metaconfig-docs::${Versions.metaconfig}"
-        val json              = mvn"com.geirsson::metaconfig-json::${Versions.metaconfig}"
-        val pprint            = mvn"com.geirsson::metaconfig-pprint::${Versions.metaconfig}"
-        val sconfig           = mvn"com.geirsson::metaconfig-sconfig::${Versions.metaconfig}"
-        def managed: Seq[Dep] = Seq(core, docs, json, pprint, sconfig)
-      }
-    }
-
     object github {
-      object arturopala {
-        val `buffer-and-slice` = mvn"com.github.arturopala::buffer-and-slice:${Versions.`buffer-and-slice`}"
-      }
-
-      object lolgab {
-        val `scala-native-crypto` = mvn"com.github.lolgab::scala-native-crypto::${Versions.`scala-native-crypto`}"
-      }
-
       object ghostdogpr {
         val `caliban-client` = mvn"com.github.ghostdogpr::caliban-client::${Versions.caliban}"
       }
     }
     object lihaoyi {
-      val castor                   = mvn"com.lihaoyi::castor::${Versions.castor}"
-      val fansi                    = mvn"com.lihaoyi::fansi::${Versions.fansi}"
-      val geny                     = mvn"com.lihaoyi::geny::${Versions.geny}"
-      val mainargs                 = mvn"com.lihaoyi::mainargs::${Versions.`mainargs`}"
       val `os-lib`                 = mvn"com.lihaoyi::os-lib::${Versions.`os-lib`}"
       val osLibJvm                 = mvn"com.lihaoyi:os-lib_3:${Versions.`os-lib`}"
-      val sourcecode               = mvn"com.lihaoyi::sourcecode::${Versions.sourcecode}"
       val sourcecodeJvm            = mvn"com.lihaoyi::sourcecode:${Versions.sourcecode}"
-      val pprint                   = mvn"com.lihaoyi::pprint::0.9.6"
       val ujson                    = mvn"com.lihaoyi::ujson::${Versions.upickle}"
       val upickle                  = mvn"com.lihaoyi::upickle::${Versions.upickle}"
       val upickleJvm               = mvn"com.lihaoyi::upickle:${Versions.upickle}"
       val `upickle-core`           = mvn"com.lihaoyi::upickle-core::${Versions.upickle}"
       def upickleManaged: Seq[Dep] = Seq(ujson, upickle, `upickle-core`)
-    }
-
-    object outr {
-      val scribe = mvn"com.outr::scribe::${Versions.scribe}"
-    }
-    object softwaremill {
-      object common {
-        val tagging = mvn"com.softwaremill.common::tagging::2.3.5"
-      }
-
-      object magnolia_3 {
-        val magnolia = mvn"com.softwaremill.magnolia1_3::magnolia::1.3.23"
-      }
-    }
-  }
-  object dev {
-    object zio {
-      val `izumi-reflect`      = mvn"dev.zio::izumi-reflect::${Versions.`izumi-reflect`}"
-      val zio: Dep             = mvn"dev.zio::zio::${Versions.zio}"
-      val `zio-config`         = config()
-      val `zio-interop-cats`   = mvn"dev.zio::zio-interop-cats::${Versions.`zio-interop-cats`}"
-      val `zio-json`: Dep      = mvn"dev.zio::zio-json::${Versions.`zio-json`}"
-      val `zio-json-golden`    = mvn"dev.zio::zio-json-golden::${Versions.`zio-json`}"
-      val `zio-parser`         = mvn"dev.zio::zio-parser::${Versions.`zio-parser`}"
-      val `zio-nio`            = mvn"dev.zio::zio-nio::${Versions.`zio-nio`}"
-      val `zio-prelude`        = prelude()
-      val `zio-prelude-macros` = prelude.macros
-      val `zio-process`        = mvn"dev.zio::zio-process::${Versions.`zio-process`}"
-      val `zio-streams`        = mvn"dev.zio::zio-streams::${Versions.zio}"
-      val `zio-test`           = mvn"dev.zio::zio-test::${Versions.zio}"
-      val `zio-test-magnolia`  = mvn"dev.zio::zio-test-magnolia::${Versions.zio}"
-      val `zio-test-sbt`       = mvn"dev.zio::zio-test-sbt::${Versions.zio}"
-
-      object config {
-        def apply(): Dep      = mvn"dev.zio::zio-config::${Versions.`zio-config`}"
-        val magnolia          = mvn"dev.zio::zio-config-magnolia::${Versions.`zio-config`}"
-        val refined           = mvn"dev.zio::zio-config-refined::${Versions.`zio-config`}"
-        val typesafe          = mvn"dev.zio::zio-config-typesafe::${Versions.`zio-config`}"
-        def managed: Seq[Dep] = Seq(apply(), magnolia, refined, typesafe)
-      }
-
-      object prelude {
-        def apply(): Dep      = mvn"dev.zio::zio-prelude::${Versions.`zio-prelude`}"
-        val macros            = mvn"dev.zio::zio-prelude-macros::${Versions.`zio-prelude`}"
-        def managed: Seq[Dep] = Seq(apply(), macros)
-      }
-
-      object schema {
-        val `avro`            = mvn"dev.zio::zio-schema-avro::${Versions.`zio-schema`}"
-        val `bson`            = mvn"dev.zio::zio-schema-bson::${Versions.`zio-schema`}"
-        val `core`            = mvn"dev.zio::zio-schema-core::${Versions.`zio-schema`}"
-        val `derivation`      = mvn"dev.zio::zio-schema-derivation::${Versions.`zio-schema`}"
-        val `json`            = mvn"dev.zio::zio-schema-json::${Versions.`zio-schema`}"
-        val `msg-pack`        = mvn"dev.zio::zio-schema-msg-pack::${Versions.`zio-schema`}"
-        def managed: Seq[Dep] = Seq(`avro`, `bson`, `core`, `derivation`, `json`, `msg-pack`)
-      }
-
-      /** zio, zio-json, zio-prelude, zio-config and zio-schema are separate version pins. Each is a suite. */
-      def managed: Seq[Dep] =
-        Seq(zio, `zio-streams`, `zio-test`, `zio-test-magnolia`, `zio-test-sbt`, `zio-json`, `zio-json-golden`) ++
-          config.managed ++ prelude.managed ++ schema.managed
     }
   }
   object io {
@@ -173,33 +60,6 @@ object Deps {
         `kyo-test-snapshot`
       )
     }
-    object bullet {
-      def `borer-core`(scalaVersion: String): Dep = mvn"io.bullet::borer-core::${Versions.borer(scalaVersion)}"
-      def `borer-core`(scalaVersionParts: Seq[String]): Dep =
-        mvn"io.bullet::borer-core::${Versions.borer(scalaVersionParts)}"
-
-      def `borer-derivation`(scalaVersion: String): Dep =
-        mvn"io.bullet::borer-derivation::${Versions.borer(scalaVersion)}"
-
-      def `borer-derivation`(scalaVersionParts: Seq[String]): Dep =
-        mvn"io.bullet::borer-derivation::${Versions.borer(scalaVersionParts)}"
-
-      def managed: Seq[Dep] =
-        Seq(`borer-core`(ScalaVersions.scala3), `borer-derivation`(ScalaVersions.scala3))
-    }
-    object `get-coursier` {
-      val coursier = mvn"io.get-coursier::coursier::${Versions.coursier}"
-    }
-    object github {
-      object cquiroz {
-        val `scala-java-time`      = mvn"io.github.cquiroz::scala-java-time::${Versions.`scala-java-time`}"
-        val `scala-java-time-tzdb` = mvn"io.github.cquiroz::scala-java-time-tzdb::${Versions.`scala-java-time`}"
-        def managed: Seq[Dep]      = Seq(`scala-java-time`, `scala-java-time-tzdb`)
-      }
-    }
-    object lemonlabs {
-      val `scala-uri` = mvn"io.lemonlabs::scala-uri::4.0.3"
-    }
   }
   object org {
     object apache {
@@ -209,11 +69,6 @@ object Deps {
     }
 
     object `scala-lang` {
-
-      object modules {
-        val `scala-collection-contrib` = mvn"org.scala-lang.modules::scala-collection-contrib::0.4.0"
-      }
-
       def `scala-compiler`(scalaVersion: String): Dep =
         if (scalaVersion.startsWith("3")) mvn"org.scala-lang::scala3-compiler:$scalaVersion"
         else mvn"org.scala-lang:scala-compiler:$scalaVersion"
@@ -223,20 +78,6 @@ object Deps {
       def `scala3-tasty-inspector`(scalaVersion: String): Dep =
         mvn"org.scala-lang::scala3-tasty-inspector::$scalaVersion"
     }
-
-    object scalameta {}
-
-    object typelevel {
-      val `cats-core`                = cats.core
-      val `paiges-core`              = mvn"org.typelevel::paiges-core::${Versions.paiges}"
-      val `scalac-compat-annotation` =
-        mvn"org.typelevel::scalac-compat-annotation:${Versions.`scalac-compat-annotation`}"
-      val spire = mvn"org.typelevel::spire::${Versions.spire}"
-
-      object cats {
-        val core = mvn"org.typelevel::cats-core::${Versions.cats}"
-      }
-    }
   }
 
   /**
@@ -244,64 +85,21 @@ object Deps {
    * omit those versions. When a suite gains a member, add it to that object's `managed`.
    */
   def managedSuites: Seq[Dep] =
-    co.fs2.managed ++
-      com.geirsson.metaconfig.managed ++
-      com.lihaoyi.upickleManaged ++
-      dev.zio.managed ++
-      io.getkyo.managed ++
-      io.bullet.managed ++
-      io.github.cquiroz.managed
+    com.lihaoyi.upickleManaged ++
+      io.getkyo.managed
 }
 
 object Versions {
-  val castor = "0.3.2"
-  val cats   = "2.13.0"
-
+  val caliban            = "3.1.5"
   val `commons-compress` = "1.28.0"
-
-  val enumeratum = "1.9.8"
-
-  def borer(scalaVersion: String): String           = "1.17.0"
-  def borer(scalaVersionParts: Seq[String]): String = "1.17.0"
-
-  val `buffer-and-slice` = "1.64.0"
-
-  val semanticDb = "4.8.11"
-
-  val coursier                   = "2.1.24"
-  val expecty                    = "0.17.1"
-  val fansi                      = "0.5.1"
-  val fs2                        = "3.13.0"
-  val geny                       = "1.1.1"
-  val `izumi-reflect`            = "3.0.9"
-  val jmh                        = "1.37"
-  val kyo                        = "1.0.0-RC7"
-  val caliban                    = "3.1.5"
-  val metaconfig                 = "0.12.0"
-  val mainargs                   = "0.7.8"
-  val `os-lib`                   = "0.11.8"
-  val paiges                     = "0.4.4"
-  val `scala-java-time`          = "2.7.0"
-  val `scala-native-crypto`      = "0.0.4"
-  val `scalac-compat-annotation` = "0.1.4"
-  val scoverage                  = "2.5.2"
-  val scribe                     = "3.19.0"
-  val sourcecode                 = "0.4.4"
-  val silencer                   = "1.4.2"
-  val spire                      = "0.18.0"
-  val `tasty-query`              = "0.5.6"
-  val upickle                    = "4.4.3"
-  val utest                      = "0.9.5"
-  val zio                        = "2.1.26"
-
-  val `zio-config`       = "4.0.8"
-  val `zio-interop-cats` = "23.1.0.13"
-  val `zio-json`         = "0.10.0"
-  val `zio-nio`          = "2.0.2"
-  val `zio-parser`       = "0.1.11"
-  val `zio-prelude`      = "1.0.0-RC48"
-  val `zio-process`      = "0.8.0"
-  val `zio-schema`       = "0.4.12"
+  val jmh                = "1.37"
+  val kyo                = "1.0.0-RC7"
+  val `os-lib`           = "0.11.8"
+  val scoverage          = "2.5.2"
+  val semanticDb         = "4.8.11"
+  val sourcecode         = "0.4.4"
+  val upickle            = "4.4.3"
+  val utest              = "0.9.5"
 }
 
 object ScalaVersions {

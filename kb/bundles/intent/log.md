@@ -2,6 +2,9 @@
 
 ## 2026-10-31
 
+* **Update**: Released [0042](/0042-deprecate-the-classic-zio-based-morphir-library.md) in 0.5.0-M12 and
+  [0043](/0043-remove-the-classic-zio-based-morphir-library.md) in 0.5.0-M13, both linking the
+  [v3 IR Reading](../morphir/morphir-scala/v3-ir-reading.md) Capability. 0043 records its three start conditions.
 * **Creation**: [0042](/0042-deprecate-the-classic-zio-based-morphir-library.md) deprecates the classic ZIO-based library
   family (InProgress, shipping in 0.5.0-M12) and [0043](/0043-remove-the-classic-zio-based-morphir-library.md)
   removes it later; 0043 supersedes [0028](/0028-remove-or-absorb-morphir-toolkit.md).

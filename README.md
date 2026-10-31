@@ -14,7 +14,7 @@
     <img src="https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod" />
 </a>
 
-[![Scaladoc](https://img.shields.io/badge/Scaladoc-latest-blue)](https://javadoc.io/doc/org.finos.morphir/morphir-runtime_3/latest/index.html) [![Scaladex](https://img.shields.io/maven-central/v/org.finos.morphir/morphir-runtime_3?style=flat-square&label=Scaladex)]("https://index.scala-lang.org/finos/morphir-scala") [![Sonatype Releases](https://img.shields.io/nexus/r/https/oss.sonatype.org/org.finos.morphir/morphir_3.svg?label=Sonatype%20Release)](https://oss.sonatype.org/content/repositories/releases/org/finos/morphir/morphir_3/) [![Sonatype Snapshots](https://img.shields.io/nexus/s/https/oss.sonatype.org/org.finos.morphir/morphir_3.svg?label=Sonatype%20Snapshot)](https://oss.sonatype.org/content/repositories/snapshots/org/finos/morphir/morphir_3/)
+[![Scaladoc](https://img.shields.io/badge/Scaladoc-latest-blue)](https://javadoc.io/doc/org.finos.morphir/morphir-model_3/latest/index.html) [![Scaladex](https://img.shields.io/maven-central/v/org.finos.morphir/morphir-model_3?style=flat-square&label=Scaladex)]("https://index.scala-lang.org/finos/morphir-scala") [![Sonatype Releases](https://img.shields.io/nexus/r/https/oss.sonatype.org/org.finos.morphir/morphir-model_3.svg?label=Sonatype%20Release)](https://oss.sonatype.org/content/repositories/releases/org/finos/morphir/morphir-model_3/) [![Sonatype Snapshots](https://img.shields.io/nexus/s/https/oss.sonatype.org/org.finos.morphir/morphir-model_3.svg?label=Sonatype%20Snapshot)](https://oss.sonatype.org/content/repositories/snapshots/org/finos/morphir/morphir-model_3/)
 
 
 Morphir is a library of tools that works to capture business logic as data.
@@ -24,6 +24,10 @@ For the first time, business logic can be shared, stored, translated and visuali
 ## morphir-scala
 
 Provides Scala language bindings and JVM based tooling for Morphir.
+
+The libraries are built on [Kyo](https://github.com/getkyo/kyo). The classic ZIO-based library (`morphir_3` and its
+`morphir-interop-*`, `morphir-model-lowering`, `morphir-runtime-classic`, `morphir-tools` and `morphir-tests`
+siblings) was removed in 0.5.0-M13. [morphir/README.md](morphir/README.md) lists what replaces each artifact.
 
 ## Desktop and web UI
 
@@ -95,15 +99,6 @@ or in watch mode:
 ./mill -w __.test
 ```
 
-> NOTE: When running tests you will want to ensure you have generated the MorphirIR for elm sources if you are running tests for the runtime. A simple way to do this is to use the `build.sh` helper script an invoke the `elm-build` option. `./build.sh elm-build`
-
-For your convience, you can run the morphir-runtime tests using the following command:
-
-
-```bash
-./build.sh test-runtime-jvm
-```
-
 #### Test Coverage
 
 Before checking test coverage, ensure that all tests have been run using the following command:
@@ -156,20 +151,15 @@ See [CONTRIBUTING.md — Formatting](./CONTRIBUTING.md#formatting) for the full 
 
 #### Formatting Elm Code
 
-Elm sources under `examples/morphir-elm-projects` and `morphir-elm` are formatted with the repo-pinned elm-format binary via Mill (no global `npm install -g elm-format`):
+Mill formats Elm files with the repo-pinned elm-format binary (no global `npm install -g elm-format`). Give it the
+paths to format:
 
 ```bash
-./mill format --kind elm
+./mill format --kind elm --paths path/to/File.elm
 ```
 
-or a single project / path:
-
-```bash
-./mill format --kind elm --paths examples/morphir-elm-projects/evaluator-tests/src
-```
-
-More detail for the evaluator-tests Elm tree:
-[examples/morphir-elm-projects/evaluator-tests/ReadMe.md](./examples/morphir-elm-projects/evaluator-tests/ReadMe.md)
+A full `./mill format` does not format Elm. The tracked `.elm` files are test fixtures, and elm-format must not
+rewrite them.
 
 #### IntelliJ Setup for Windows
 
@@ -222,13 +212,9 @@ or in watch mode:
 .\mill -i -w __.test
 ```
 
-#### Elm Tests
-
-Documentation for the elm tests are located at [examples/morphir-elm-projects/evaluator-tests/ReadMe.md](https://github.com/finos/morphir-scala/blob/main/examples/morphir-elm-projects/evaluator-tests/ReadMe.md)
-
 #### Formatting Code
 
-Code needs to be formatted according to `scalafmt` / elm-format rules. Prefer the Mill entrypoint:
+Code needs to be formatted according to `scalafmt` rules. Prefer the Mill entrypoint:
 
 ```
 .\mill -i format
@@ -269,12 +255,12 @@ Distributed under the [Apache License, Version 2.0](http://www.apache.org/licens
 SPDX-License-Identifier: [Apache-2.0](https://spdx.org/licenses/Apache-2.0)
 
 [Link-Slack]: https://finos-lf.slack.com/messages/morphir/
-[Link-SonatypeReleases]: https://oss.sonatype.org/content/repositories/releases/org/finos/morphir/morphir-runtime_3/ "Sonatype Releases"
-[Link-SonatypeSnapshots]: https://oss.sonatype.org/content/repositories/snapshots/org/finos/morphir/morphir-runtime_3/ "Sonatype Snapshots"
+[Link-SonatypeReleases]: https://oss.sonatype.org/content/repositories/releases/org/finos/morphir/morphir-model_3/ "Sonatype Releases"
+[Link-SonatypeSnapshots]: https://oss.sonatype.org/content/repositories/snapshots/org/finos/morphir/morphir-model_3/ "Sonatype Snapshots"
 
 [Badge-CI]: https://github.com/finos/morphir-scala/workflows/CI/badge.svg
 [Badge-Slack]: https://img.shields.io/badge/slack-@finos/morphir-green.svg?logo=slack
-[Badge-SonatypeReleases]: https://img.shields.io/nexus/r/https/oss.sonatype.org/org.finos.morphir/morphir-runtime_3.svg "Sonatype Releases"
-[Badge-SonatypeSnapshots]: https://img.shields.io/nexus/s/https/oss.sonatype.org/org.finos.morphir/morphir-runtime_3.svg "Sonatype Snapshots"
+[Badge-SonatypeReleases]: https://img.shields.io/nexus/r/https/oss.sonatype.org/org.finos.morphir/morphir-model_3.svg "Sonatype Releases"
+[Badge-SonatypeSnapshots]: https://img.shields.io/nexus/s/https/oss.sonatype.org/org.finos.morphir/morphir-model_3.svg "Sonatype Snapshots"
 [Badge-Stage]: https://cdn.jsdelivr.net/gh/finos/contrib-toolbox@master/images/badge-incubating.svg
 [Badge-Stage-Page]: https://finosfoundation.atlassian.net/wiki/display/FINOS/Incubating

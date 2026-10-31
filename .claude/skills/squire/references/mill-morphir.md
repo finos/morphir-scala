@@ -10,13 +10,8 @@ Use the fast route while editing. Use the dogfood route before integration or pu
 ./mill --ticker false 'mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test'
 ```
 
-- Generate IR for one configured project:
-
-```bash
-./mill --ticker false examples.morphir-elm-projects.evaluator-tests.morphirIR
-```
-
-The second command exercises Mill-owned tool acquisition, project inputs, and cached generation.
+The repository has no Morphir Elm projects of its own. The dogfood route below generates IR in a fresh consumer,
+which exercises Mill-owned tool acquisition, project inputs, and cached generation.
 
 ## Dogfood route
 

@@ -234,143 +234,6 @@ jobs:
       - name: Run capability
         run: ./mill --ticker false -i mill-plugins.morphir.integration.test
 
-  morphir-elm-projects:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    needs: [mill-morphir-unit]
-    steps:
-      - name: Checkout current branch
-        uses: actions/checkout@v7.0.1
-        with:
-          fetch-depth: 0
-      - name: Setup Scala and Java
-        uses: actions/setup-java@v6
-        with:
-          distribution: "temurin"
-          java-version: "26.0.2+10"
-      - name: Cache scala dependencies
-        uses: coursier/cache-action@v8
-        with:
-          # One cache for the jobs that resolve the same Mill and library dependencies. Keyed
-          # per job, each wrote its own ~550 MB copy, and the copies filled the 10 GB cache limit.
-          job: base
-      - name: Cache verified Morphir tool downloads
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/morphir-scala
-          key: ${{ runner.os }}-morphir-tools-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}
-      - name: Restore Mill plugin outputs
-        uses: actions/cache/restore@v6
-        with:
-          path: out/mill-plugins/morphir/
-          key: ${{ runner.os }}-mill-morphir-unit-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}-${{ github.sha }}
-      - name: Cache Mill capability outputs
-        uses: actions/cache@v6
-        with:
-          path: |
-            out/examples/morphir-elm-projects/
-            out/morphir-elm/
-          key: ${{ runner.os }}-mill-morphir-projects-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}-${{ github.sha }}
-      - name: Run capability
-        # morphir-elm's CLI intermittently dies with a fatal EBADF fd-close-on-GC crash
-        # under Node 24 after generation succeeds (bead morphir-qki, finos/morphir-elm#1282).
-        # The preload shim swallows exactly that error shape; the trigger is run-scoped
-        # (a bad runner host fails all in-job retries), so retries alone do not cover it.
-        # Mill caches successful tasks, so each retry re-runs only the crashed ones.
-        env:
-          NODE_OPTIONS: --require ${{ github.workspace }}/.github/scripts/ebadf-close-shim.cjs
-        run: |
-          for attempt in 1 2 3; do
-            if ./mill --ticker false -i -k "examples.morphir-elm-projects.__.morphirIR" \
-              + "morphir-elm.sdks.__.morphirIR"; then
-              exit 0
-            fi
-            echo "morphirIR attempt ${attempt} failed; retrying crashed tasks"
-          done
-          exit 1
-
-  runtime-generated-fixtures:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    needs: [morphir-elm-projects]
-    steps:
-      - name: Checkout current branch
-        uses: actions/checkout@v7.0.1
-        with:
-          fetch-depth: 0
-      - name: Setup Scala and Java
-        uses: actions/setup-java@v6
-        with:
-          distribution: "temurin"
-          java-version: "26.0.2+10"
-      - name: Cache scala dependencies
-        uses: coursier/cache-action@v8
-        with:
-          # One cache for the jobs that resolve the same Mill and library dependencies. Keyed
-          # per job, each wrote its own ~550 MB copy, and the copies filled the 10 GB cache limit.
-          job: base
-      - name: Cache verified Morphir tool downloads
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/morphir-scala
-          key: ${{ runner.os }}-morphir-tools-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}
-      - name: Restore generated Morphir IR outputs
-        uses: actions/cache/restore@v6
-        with:
-          path: |
-            out/examples/morphir-elm-projects/
-            out/morphir-elm/
-          key: ${{ runner.os }}-mill-morphir-projects-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}-${{ github.sha }}
-      - name: Cache Mill capability outputs
-        uses: actions/cache@v6
-        with:
-          path: out/morphir/runtime/classic/jvm/test/
-          key: ${{ runner.os }}-mill-runtime-generated-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}-${{ github.sha }}
-      - name: Run capability
-        run: ./mill --ticker false -i morphir.runtime.classic.jvm.test.generatedRuntimeFixtures
-
-  runtime-tests:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    needs: [runtime-generated-fixtures]
-    steps:
-      - name: Checkout current branch
-        uses: actions/checkout@v7.0.1
-        with:
-          fetch-depth: 0
-      - name: Setup Scala and Java
-        uses: actions/setup-java@v6
-        with:
-          distribution: "temurin"
-          java-version: "26.0.2+10"
-      - name: Cache scala dependencies
-        uses: coursier/cache-action@v8
-        with:
-          # One cache for the jobs that resolve the same Mill and library dependencies. Keyed
-          # per job, each wrote its own ~550 MB copy, and the copies filled the 10 GB cache limit.
-          job: base
-      - name: Cache verified Morphir tool downloads
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/morphir-scala
-          key: ${{ runner.os }}-morphir-tools-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}
-      - name: Restore generated Morphir IR outputs
-        uses: actions/cache/restore@v6
-        with:
-          path: |
-            out/examples/morphir-elm-projects/
-            out/morphir-elm/
-          key: ${{ runner.os }}-mill-morphir-projects-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}-${{ github.sha }}
-      - name: Cache Mill capability outputs
-        uses: actions/cache@v6
-        with:
-          path: out/morphir/runtime/classic/jvm/test/
-          key: ${{ runner.os }}-mill-runtime-generated-${{ hashFiles('.mill-version', 'mill-plugins/morphir/toolchain/src/**', 'mill-plugins/morphir/javascript/src/**', 'mill-plugins/morphir/elm-tooling/src/**', 'mill-plugins/morphir/elm/test-tools/morphir-elm/package-lock.json') }}-${{ github.sha }}
-      - name: Run capability
-        run: |
-          ./mill --ticker false -i morphir.runtime.classic.jvm.test.verifyRuntimeTestDiscovery
-          ./mill --ticker false -i morphir.runtime.classic.jvm.test
-
   # Split from test-js-desktop (morphir-oyn): linking morphir.ui alongside the rest of the JS/Wasm
   # tree in one Mill daemon pushed the Scala.js linker past the 8 GB heap in .mill-jvm-opts, OOM-ing
   # inside the source-map printer. (Originally morphir.ui shared this split with morphir.desktop and
@@ -958,7 +821,7 @@ jobs:
     if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [commit-authorship, lint, squire-policy, knowledge-base, test-js, test-js-desktop, test-jvm, test-native, mill-morphir-unit, mill-morphir-integration, morphir-elm-projects, runtime-generated-fixtures, runtime-tests, mck-ir]
+    needs: [commit-authorship, lint, squire-policy, knowledge-base, test-js, test-js-desktop, test-jvm, test-native, mill-morphir-unit, mill-morphir-integration, mck-ir]
     steps:
       - name: Verify required CI jobs succeeded
         run: |
@@ -972,9 +835,6 @@ jobs:
           test "${{ needs.test-native.result }}" = "success"
           test "${{ needs.mill-morphir-unit.result }}" = "success"
           test "${{ needs.mill-morphir-integration.result }}" = "success"
-          test "${{ needs.morphir-elm-projects.result }}" = "success"
-          test "${{ needs.runtime-generated-fixtures.result }}" = "success"
-          test "${{ needs.runtime-tests.result }}" = "success"
           test "${{ needs.mck-ir.result }}" = "success"
       - name: Aggregate of lint, and all tests
         run: echo "ci passed"

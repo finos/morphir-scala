@@ -116,7 +116,7 @@ private[v3] object V3JsonShape:
 
   /**
    * v3's `Documented`: `{"doc": "…", "value": …}`. An empty doc string decodes to no documentation; any other is split
-   * into lines, as the v3 lowering does.
+   * into lines.
    */
   def documented[A](value: Value, path: String)(decode: (Value, String) => Read[A]): Read[cm.Documented[A]] =
     obj(value, path, "an object with doc and value") { members =>

@@ -24,7 +24,7 @@ private[v3] object V3Decoding:
   import V3JsonShape.*
   import V3Reader.Read
 
-  /** The package version a decoded library gets: v3 records none, and the v3 lowering leaves it empty too. */
+  /** The package version a decoded library gets: v3 records none, so it is left empty. */
   val unknownPackageVersion: String = ""
 
   /**
@@ -138,7 +138,7 @@ private[v3] object V3Decoding:
 
   /**
    * `{"types": [[name, {"access": …, "value": {"doc": …, "value": typeDefinition}}], …], "values": […], "doc": …}`. A
-   * value's entry access is also the access of its definition body, as in the v3 lowering. Other members are ignored.
+   * value's entry access is also the access of its definition body. Other members are ignored.
    */
   def moduleDefinition(value: Value, path: String, rule: V3AttributeRule): Read[cm.ModuleDefinition] =
     given V3AttributeRule = rule

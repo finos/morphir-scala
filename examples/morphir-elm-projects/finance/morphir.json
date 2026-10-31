@@ -1,8 +1,0 @@
-{
-  "name": "Morphir.Examples",
-  "sourceDirectory": "src/elm",
-  "exposedModules": [
-    "Accounting.TAccount",
-    "Accounting.Journal"
-  ]
-}

@@ -40,6 +40,6 @@ a confusing build failure rather than a version conflict.
 
 ## Testing across platforms
 
-Two frameworks are in use, and a module follows whichever it already uses: **kyo-test** for `langkit` and `kit`
-(extending `kyo.test.Test[Any]`, with the per-platform trait mixed into the test module), and **ZIO Test** elsewhere
-(`ZIOSpecDefault` with `TestModule.ZioTest`).
+The library modules under `morphir/` test with **kyo-test**. A test class extends `kyo.test.Test[Any]`, and the test
+module mixes in the per-platform trait (`millbuild.KyoTest`, `KyoTestJS`, `KyoTestNative` or `KyoTestWasm`). The Mill
+plugins and `millbuildHelpers` run on the JVM only and use uTest.

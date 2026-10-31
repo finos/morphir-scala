@@ -13,8 +13,6 @@
 package build
 
 import millbuild.{Deps, MillVersions, Versions => Vers, ScalaVersions => ScalaVers}
-import millbuild.docs.{Docusaurus2Module, MDocModule}
-import millbuild.runtime.RuntimeTestDiscovery
 import mill.contrib.jmh.JmhModule
 import mill.scalalib.publish.PublishInfo
 import mill.local.plugins.ci.release.ReleaseSetupModule
@@ -42,14 +40,11 @@ import scala.concurrent.duration.DurationInt
  */
 val morphirScalaVersion: String = ScalaVers.scala3
 
-val docsScalaVersion: String = ScalaVers.scala3
-
 // Get workspace dir from the build context
 val workspaceDir = mill.api.BuildCtx.workspaceRoot
 
 def showBuildSettings() = Task.Command {
   println(s"morphirScalaVersion: ${morphirScalaVersion}")
-  println(s"docsScalaVersion: ${docsScalaVersion}")
   println(s"scalaJSVersion: ${ScalaVers.scalaJSVersion}")
   println(s"scalaNativeVersion: ${ScalaVers.scalaNativeVersion}")
   ()
@@ -485,72 +480,6 @@ trait MorphirNativeImage extends mill.javalib.NativeImageModule { this: JavaModu
   }
 }
 
-/** Generates typed JVM-only paths to the seven Morphir IR fixtures used by the classic runtime tests. */
-trait ClassicRuntimeTestFixtures extends ScalaModule {
-  def generatedRuntimeFixtures: T[PathRef] = Task {
-    val evaluator         = build.examples.`morphir-elm-projects`.`evaluator-tests`.morphirIR()
-    val defaults          = build.examples.`morphir-elm-projects`.`defaults-tests`.morphirIR()
-    val unitTestFramework = build.`morphir-elm`.sdks.`morphir-unit-test`.morphirIR()
-    val unitTestExample   =
-      build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project`.morphirIR()
-    val unitTestFailing =
-      build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project-tests`.morphirIR()
-    val unitTestPassing =
-      build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project-tests-passing`.morphirIR()
-    val unitTestIncomplete =
-      build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project-tests-incomplete`.morphirIR()
-
-    val fixtures = ClassicRuntimeFixtureSet(
-      evaluator = evaluator,
-      defaults = defaults,
-      unitTestFramework = unitTestFramework,
-      unitTestExample = unitTestExample,
-      unitTestFailing = unitTestFailing,
-      unitTestPassing = unitTestPassing,
-      unitTestIncomplete = unitTestIncomplete
-    )
-    val packageDirectory = Task.dest / "org" / "finos" / "morphir" / "runtime" / "fixtures"
-    os.makeDir.all(packageDirectory)
-    os.write.over(
-      packageDirectory / "GeneratedRuntimeFixtures.scala",
-      ClassicRuntimeFixtureSource.render(fixtures)
-    )
-    PathRef(Task.dest)
-  }
-
-  override def generatedSources: T[Seq[PathRef]] = Task {
-    super.generatedSources() :+ generatedRuntimeFixtures()
-  }
-}
-
-/** Fails fast when any generated-fixture-backed classic runtime suite drops out of Mill test discovery. */
-trait ClassicRuntimeTestDiscovery extends mill.javalib.TestModule {
-  def verifyRuntimeTestDiscovery: T[Unit] = Task {
-    RuntimeTestDiscovery.requireAllDiscovered(discoveredTestClasses())
-  }
-}
-
-/**
- * `model.lowering`'s differential test (`RealIrCodecRoundTripSpec`) reads its real-IR fixture from the tracked
- * `evaluator-tests` example output (`examples/morphir-elm-projects/evaluator-tests/morphir-ir2.json`) rather than
- * keeping a byte-identical duplicate under `test/resources` - two copies would silently drift the next time the example
- * is regenerated. The fixture is copied (not symlinked, for portability across OSes and IDEs) into a synthesized
- * resource directory on every build, so the tracked file stays the single source of truth and the rest of the
- * `evaluator-tests` Elm project isn't exposed as a resource root.
- */
-trait LoweringRealIrFixture extends JavaModule {
-  def realIrFixtureSource: T[PathRef] = Task.Source(
-    build.examples.`morphir-elm-projects`.`evaluator-tests`.moduleDir / "morphir-ir2.json"
-  )
-
-  override def resources: T[Seq[PathRef]] = Task {
-    val fixtureDir = Task.dest / "resources"
-    os.makeDir.all(fixtureDir)
-    os.copy.over(realIrFixtureSource().path, fixtureDir / "morphir-ir2.json")
-    super.resources() :+ PathRef(fixtureDir)
-  }
-}
-
 /** Links the browser renderer and exposes only its canonical web assets as JVM classpath resources. */
 trait MorphirWebServerResources extends JavaModule {
   def webIndexSource = Task.Source(mill.api.BuildCtx.workspaceRoot / "morphir" / "web" / "index.html")
@@ -578,14 +507,6 @@ trait MorphirWebRendererModule extends ScalaJSModule {
   override def scalaJSSourceMap: T[Boolean] = Task { false }
 }
 
-/** `tools.js`'s doc-source filtering: scaladoc's JS output ships `.tasty` files needing this narrowing. */
-trait ToolsJSDocSources extends ScalaJSModule {
-  override def docSources = Task {
-    Lib.findSourceFiles(super.docSources(), Seq("tasty"))
-      .map(PathRef(_))
-  }
-}
-
 /**
  * Bind a Scala binary/full-cross dep as platformed. YAML `group::artifact` (empty version) parses as
  * `CrossVersion.Binary(platformed = false)`; without this, JS and Native silently resolve the JVM jar. Java coords
@@ -611,9 +532,9 @@ def isCompilerOrPluginDep(dep: Dep): Boolean =
   (org == "org.scala-native" && (name == "nscplugin" || name.contains("compiler")))
 
 /**
- * Pins every known library suite (kyo, zio, fs2, upickle, borer, metaconfig, scala-java-time) through Mill
- * `depManagement`. Each suite's version lives once in [[millbuild.Versions]]. Extra suite jars belong in YAML
- * `mvnDeps: !append` without a version. Do not add a new trait per artifact.
+ * Pins every known library suite (kyo, upickle) through Mill `depManagement`. Each suite's version lives once in
+ * [[millbuild.Versions]]. Extra suite jars belong in YAML `mvnDeps: !append` without a version. Do not add a new trait
+ * per artifact.
  */
 trait MorphirSuiteBom extends ScalaModule {
   override def depManagement = super.depManagement() ++ Deps.managedSuites
@@ -726,95 +647,6 @@ trait MorphirCalibanClientMvnDeps extends ScalaModule {
 }
 
 /**
- * `morphir.jvm`/`morphir.js`'s own mvnDeps — bundled here (rather than copied as YAML literals) so the version pins
- * stay sourced from the single [[millbuild.Deps]] object.
- */
-trait MorphirRootMvnDeps extends ScalaModule {
-  override def mvnDeps = super.mvnDeps() ++ Seq(
-    Deps.org.`scala-lang`.modules.`scala-collection-contrib`,
-    Deps.com.beachape.enumeratum,
-    Deps.com.lihaoyi.fansi,
-    Deps.com.lihaoyi.geny,
-    Deps.com.lihaoyi.sourcecode,
-    Deps.com.lihaoyi.pprint,
-    Deps.dev.zio.`izumi-reflect`,
-    Deps.dev.zio.zio,
-    Deps.dev.zio.`zio-json`,
-    Deps.dev.zio.`zio-prelude`,
-    Deps.org.typelevel.spire,
-    Deps.com.softwaremill.magnolia_3.magnolia
-  )
-}
-
-/** `tests`'s own mvnDeps. */
-trait MorphirTestsMvnDeps extends ScalaModule {
-  override def mvnDeps = super.mvnDeps() ++ Seq(
-    Deps.com.lihaoyi.sourcecode,
-    Deps.io.github.cquiroz.`scala-java-time`,
-    Deps.io.github.cquiroz.`scala-java-time-tzdb`
-  )
-}
-
-/**
- * `tests.jvm.test`/`runtime.jvm.test`'s mvnDeps — `os-lib`/`sourcecode` are JVM-only (not published for Scala.js), so
- * this is deliberately jvm-specific; see [[MorphirTestsTestMvnDepsJS]] for the js-side list.
- */
-trait MorphirTestsTestMvnDepsJVM extends ScalaModule {
-  override def mvnDeps = super.mvnDeps() ++ Seq(
-    Deps.com.lihaoyi.`os-lib`,
-    Deps.com.lihaoyi.sourcecode,
-    Deps.dev.zio.`zio-test`,
-    Deps.dev.zio.`zio-test-sbt`
-  )
-}
-
-/** `tests.js.test`/`runtime.js.test`'s mvnDeps. */
-trait MorphirTestsTestMvnDepsJS extends ScalaModule {
-  override def mvnDeps = super.mvnDeps() ++ Seq(
-    Deps.dev.zio.`zio-test`,
-    Deps.dev.zio.`zio-test-sbt`
-  )
-}
-
-/** `tools`'s own mvnDeps. */
-trait MorphirToolsMvnDeps extends ScalaModule {
-  override def mvnDeps = super.mvnDeps() ++ Seq(
-    Deps.co.fs2.`fs2-io`,
-    Deps.com.lihaoyi.sourcecode,
-    Deps.dev.zio.zio,
-    Deps.dev.zio.`zio-prelude`,
-    Deps.dev.zio.`zio-streams`,
-    Deps.com.lihaoyi.pprint,
-    Deps.org.typelevel.cats.core,
-    Deps.org.typelevel.spire,
-    Deps.org.typelevel.`paiges-core`,
-    Deps.dev.zio.`zio-interop-cats`
-  )
-}
-
-/** `tools.jvm`'s extra mvnDeps on top of [[MorphirToolsMvnDeps]]. */
-trait MorphirToolsJVMMvnDeps extends ScalaModule {
-  override def mvnDeps = super.mvnDeps() ++ Seq(
-    Deps.dev.zio.`zio-nio`,
-    Deps.dev.zio.`zio-process`
-  )
-}
-
-/**
- * `tests.jvm.test`'s source override: in addition to the shared `test/src` (+ `test/src-3`) that Mill's own TestModule
- * default already finds, also pick up `test/jvm-native/src` — files shared only between the jvm and native targets
- * (native itself is disabled repo-wide, so in practice this is jvm-only test code kept apart from the plain shared
- * `test/src`).
- */
-trait MorphirTestsJVMTestSources extends JavaModule {
-  override def sources: T[Seq[PathRef]] = Task.Sources(
-    moduleDir / "src",
-    moduleDir / "src-3",
-    moduleDir / "jvm-native" / "src"
-  )
-}
-
-/**
  * Scoverage wiring for `knowledge.logic.jvm`.
  *
  * `scoverageVersion` lives here rather than as a `package.mill.yaml` key: a YAML override only binds against tasks Mill
@@ -833,15 +665,6 @@ trait MorphirScoverage extends mill.contrib.scoverage.ScoverageModule {
   override lazy val scoverage: ScoverageData = new ScoverageData {
     override def depManagement = Task { MorphirScoverage.this.depManagement() }
   }
-}
-
-/** `tests.js.test`'s source override: shared `test/src` (+ `test/src-3`) plus `test/js/src` — js-only test code. */
-trait MorphirTestsJSTestSources extends JavaModule {
-  override def sources: T[Seq[PathRef]] = Task.Sources(
-    moduleDir / "src",
-    moduleDir / "src-3",
-    moduleDir / "js" / "src"
-  )
 }
 
 /** Host-only sources shared by Scala.js and JVM, but excluded from WebAssembly. */
@@ -911,31 +734,6 @@ object toolchains extends Module {
   object elmFormat extends RepositoryElmFormatToolModule {
     def nodeToolchain = toolchains.node
   }
-}
-
-/**
- * Repository tool-module references that declarative Morphir Elm projects cannot express in Mill RC1 YAML.
- *
- * Satisfies [[org.finos.morphir.mill.elm.morphir.MorphirElmModule.morphirElmTool]] and
- * [[org.finos.morphir.mill.elm.morphir.MorphirElmModule.elmFormatTool]] from the shared toolchains.
- */
-trait RepositoryMorphirElmToolReference extends Module {
-  def morphirElmTool = toolchains.morphirElm
-  def elmFormatTool  = toolchains.elmFormat
-}
-
-/**
- * Exact local IR inputs shared by the three unit-test example consumers.
- *
- * Mill 1.2.0-RC1 cannot override the non-task `morphirModuleDeps` member from YAML, so this deliberately narrow
- * reference trait carries only those two module references. Project declarations and identity stay colocated in each
- * project's `package.mill.yaml`.
- */
-trait ExampleProjectTestMorphirDependencies extends MorphirModule {
-  override def morphirModuleDeps = Seq(
-    build.`morphir-elm`.sdks.`morphir-unit-test`,
-    build.examples.`morphir-elm-projects`.`unit-test-framework`.`example-project`
-  )
 }
 
 /**
@@ -1018,18 +816,16 @@ object MyAliases extends Aliases {
   /**
    * Every non-classic JVM target, named rather than globbed; `squire ci policy` checks it against what Mill resolves.
    *
-   * A curated list, not `morphir.__.jvm.__`, because the classic runtime is gated separately behind its generated
-   * fixtures. The cost of curating is drift: a module the list forgets is a module CI silently never builds, which is
-   * how the CommonMark conformance suite in `langkit.markdown.scalatags` went unrun on a runner. `benchmarks` compiles
-   * only — it has no test or publish target — and `langkit.markdown.trees` compiles and tests but does not publish, so
-   * parsley and neotype stay out of the published artifacts.
+   * A curated list, not `morphir.__.jvm.__`, so that adding a module is a decision CI sees. The cost of curating is
+   * drift: a module the list forgets is a module CI silently never builds, which is how the CommonMark conformance
+   * suite in `langkit.markdown.scalatags` went unrun on a runner. `benchmarks` compiles only — it has no test or
+   * publish target — and `langkit.markdown.trees` compiles and tests but does not publish, so parsley and neotype stay
+   * out of the published artifacts.
    */
   def testJVMPlatform = alias(
-    "morphir.jvm.__.compile",
-    "morphir.{appkit,benchmarks,buildkit.core,connector.github,extensibility,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.logic,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.compiler.ir,langkit.elm.compiler.mep,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,lib.interop,model,model.compat.v3,model.lowering,naming,prelude,testing.generators,testing.zio,tests,tools,ui,web.server}.jvm.__.compile",
-    "morphir.jvm.publishArtifacts",
-    "morphir.{appkit,buildkit.core,connector.github,extensibility,interop.borer,interop.zio.json,knowledge.logic,knowledge.okf,langkit.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,lib.interop,model,model.compat.v3,model.lowering,naming,prelude,tests,tools,ui}.jvm.publishArtifacts",
-    "morphir.{appkit,buildkit.core,connector.github,intelligence.sdk,interop.borer,interop.zio.json,kit.kyo,knowledge.logic,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.compiler.ir,langkit.elm.compiler.mep,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,model,model.compat.v3,model.lowering,prelude,tests,ui,web.server}.jvm.test",
+    "morphir.{appkit,benchmarks,buildkit.core,connector.github,extensibility,intelligence.sdk,kit.kyo,knowledge.logic,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.compiler.ir,langkit.elm.compiler.mep,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,lib.interop,model,model.compat.v3,naming,prelude,ui,web.server}.jvm.__.compile",
+    "morphir.{appkit,buildkit.core,connector.github,extensibility,knowledge.logic,knowledge.okf,langkit.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,lib.interop,model,model.compat.v3,naming,prelude,ui}.jvm.publishArtifacts",
+    "morphir.{appkit,buildkit.core,connector.github,intelligence.sdk,kit.kyo,knowledge.logic,knowledge.okf,langkit.core,langkit.elm.compiler.api,langkit.elm.compiler.ir,langkit.elm.compiler.mep,langkit.elm.core,langkit.markdown,langkit.markdown.kyo.ui,langkit.markdown.scalatags,langkit.markdown.trees,langkit.trees,model,model.compat.v3,naming,prelude,ui,web.server}.jvm.test",
     "morphir.langkit.itest.testCached",
     "morphir.model.compat.v3.mck.test",
     "millbuildHelpers.elmExtensionArchitectureCheck",

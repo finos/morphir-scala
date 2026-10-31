@@ -124,7 +124,7 @@ private[v3] object V3TypeDecoding:
   /**
    * A custom type's constructors: `[[name, [[argName, type], …]], …]`. v3 holds them in a map keyed by name, so the
    * input order carries no meaning (and a repeated name keeps its last entry); they are ordered by name - compared word
-   * by word, as the v3 lowering does - so that equal documents decode to equal constructor sequences.
+   * by word - so that equal documents decode to equal constructor sequences.
    */
   def constructors(value: Value, path: String): Read[Chunk[cm.Constructor]] =
     list(value, path)((entry, entryPath) => pair(entry, entryPath)(name, constructorArguments)).map { entries =>
