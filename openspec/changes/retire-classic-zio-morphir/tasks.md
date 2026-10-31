@@ -24,16 +24,16 @@ cases. Design references (`V3-1`, `MCK-2`, …) point to [design.html](design.ht
 
 ## 3. Decode v3 into the code model (V3-2)
 
-- [ ] 3.1 Decode names, paths, fully qualified names, literals and documentation; verify per-tag unit tests ported
+- [x] 3.1 Decode names, paths, fully qualified names, literals and documentation; verify per-tag unit tests ported
   from the classic v3 decoder tests in `morphir/interop/zio/json`.
-- [ ] 3.2 Decode types, type definitions, type specifications and constructors (sorted by name); verify per-tag unit
+- [x] 3.2 Decode types, type definitions, type specifications and constructors (sorted by name); verify per-tag unit
   tests, including the constructor-order scenario from the `ir-v3-ingestion` spec.
-- [ ] 3.3 Decode patterns and values, keeping a typed value's type as its inferred type and erasing other
+- [x] 3.3 Decode patterns and values, keeping a typed value's type as its inferred type and erasing other
   attributes; verify per-tag unit tests and the two attribute scenarios from the spec.
-- [ ] 3.4 Decode modules, packages, `Library` and `Bundle` distributions (one library per package, sorted by package
+- [x] 3.4 Decode modules, packages, `Library` and `Bundle` distributions (one library per package, sorted by package
   name); verify the bundle scenario and a decode-then-project round trip through `V3WireProjection` on the IR of each
   `examples/morphir-elm-projects` project.
-- [ ] 3.5 Add scaladoc to the public reader API naming what it accepts and rejects; verify `docJar` builds for both
+- [x] 3.5 Add scaladoc to the public reader API naming what it accepts and rejects; verify `docJar` builds for both
   platforms.
 
 ## 4. Hold the reader to the Morphir Compatibility Kit (MCK-1, MCK-2, MCK-3)
