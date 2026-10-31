@@ -140,7 +140,7 @@ The project check may report:
 
 - **Missing plugin module:** verify the plugin tree with `./mill resolve 'mill-plugins.morphir.__'`.
 - **Broken local repository wiring:** run `./mill mill-plugins.morphir.integration.test`.
-- **Corrupt cache entry:** rerun `./mill examples.morphir-elm-projects.evaluator-tests.morphirIR` online. Verified acquisition replaces bad bytes.
+- **Corrupt cache entry:** rerun `./mill toolchains.node.runtimeHome` online. Verified acquisition replaces bad bytes.
 - **Disabled machine cache:** generation remains correct but downloads stay task-local. Set `MORPHIR_NODE_DISABLE_MACHINE_CACHE=false` when reuse is wanted.
 - **Stale metabuild:** run `./mill resolve 'mill-plugins.morphir.__'` to recompile it.
 
