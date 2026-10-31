@@ -10,8 +10,18 @@ a release.
 
 ### Added
 - `morphir-model-compat-v3` reads v3 `morphir-ir.json`, the format morphir-elm writes, straight into the code model
-  with `V3Reader`, without the classic library or ZIO. Only `formatVersion` 3 is read; errors are typed values with a
-  JSON path and a Morphir Compatibility Kit diagnostic code. The module now also publishes for Scala.js.
+  with `V3Reader`, without the classic library or ZIO. It reads `formatVersion` 3 and release strings in
+  `[3.0.0,3.2.0)`, including v3.1 `Specs` documents; errors are typed values with a JSON path and the diagnostic code
+  finos/morphir's format-version specification or Compatibility Kit assigns. `V3WireProjection` also writes `Specs`,
+  `DerivedTypeSpecification` and module documentation, and has a per-node API (`V3WireProjection.Nodes`). The module
+  now also publishes for Scala.js.
+- The v3 reader is checked against finos/morphir's Morphir Compatibility Kit in a new `mck-ir` CI job, through an
+  unpublished adapter module; `mise run mck:run` runs it locally.
+
+### Changed
+- `ModuleDefinition` and `ModuleSpecification` in `morphir-model` have an optional `doc`. Code that constructs them
+  compiles unchanged, but the change is binary-incompatible. Their v4 JSON gains an optional `doc` member; documents
+  written before still decode.
 
 ### Deprecated
 - The classic ZIO-based library family is deprecated and will stop being published in a later milestone. Each

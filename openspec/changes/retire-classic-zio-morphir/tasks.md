@@ -42,7 +42,7 @@ cases. Design references (`V3-1`, `MCK-2`, …) point to [design.html](design.ht
   finos/morphir `spec/mck/cli-contract.md` answering `capabilities` (version 3, `json`, `single`, supported node
   kinds), `decode` (canonical v3 JSON through `V3WireProjection`) and `exit`; verify its protocol unit tests in
   `test-jvm` and a manual `capabilities` round trip through `./mill show morphir.model.compat.v3.mck.launcher`.
-- [ ] 4.2 Pin the `morphir` CLI version and SHA-256 and acquire it through the repository's verified toolchain
+- [x] 4.2 Pin the `morphir` CLI version and SHA-256 and acquire it through the repository's verified toolchain
   acquisition; add a `mck:run` mise task that builds the launcher, runs `morphir mck run --suite ir` (not `--strict`, which fails on the v4 cases a v3-only adapter skips), writes
   the JSON and HTML reports under `.dev/` and runs `morphir mck report check`; verify the task passes locally.
 - [ ] 4.3 Add an `mck-ir` CI job running the same steps, uploading both reports as artifacts, and add it to the `ci`
@@ -55,7 +55,7 @@ cases. Design references (`V3-1`, `MCK-2`, …) point to [design.html](design.ht
   morphir artifact.
 - [x] 4.6 Document how to run MCK locally in `morphir/model/CONTRIBUTING.md`; verify the documented commands run as
   written.
-- [ ] 4.7 Make every `@version:3` case in the pinned kit pass (V3-3, MOD-1): v3 format-version recognition and codes
+- [x] 4.7 Make every `@version:3` case in the pinned kit pass (V3-3, MOD-1): v3 format-version recognition and codes
   per finos/morphir `format-version.md` with the support table `[3.0.0,3.2.0)`, `version_mismatch` for another major,
   `Specs` distributions, `DerivedTypeSpecification`, and module documentation in the code model; verify
   `mise run mck:run` reports no failure with an empty `allowed-failing.json`, and `morphir.model.__.test` passes.
@@ -69,7 +69,7 @@ cases. Design references (`V3-1`, `MCK-2`, …) point to [design.html](design.ht
   module's entry-point scaladoc and README text; verify `docJar` builds and each notice names the right artifact.
 - [x] 5.3 Add a `### Deprecated` CHANGELOG entry under the open milestone naming each classic artifact and its
   replacement; verify `mise run lint`.
-- [ ] 5.4 Write a Capability page for v3 reading and its MCK conformance, and create the `kind: deprecation` and
+- [x] 5.4 Write a Capability page for v3 reading and its MCK conformance, and create the `kind: deprecation` and
   `kind: removal` intents (the removal intent superseding 0028) with `kb intent new`; verify `mise run kb:check` and
   `kb intent check` report no errors.
 
