@@ -6,7 +6,9 @@ the shape of the next release, and it is what CI stamps on every build. Dated he
 `## [Unreleased]` is optional and carries no build meaning; use it for entries not yet assigned to
 a release.
 
-## [0.5.0-M13]
+## [0.5.0-M14]
+
+## [0.5.0-M13] - 2026-10-31
 
 ### Removed
 - The classic ZIO-based library family, deprecated in 0.5.0-M12, is no longer published. Released versions stay on
