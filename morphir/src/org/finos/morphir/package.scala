@@ -6,6 +6,11 @@ import zio.prelude._
 import org.finos.morphir.naming._
 import org.finos.morphir.universe.ir._
 
+/**
+ * **Deprecated.** This classic ZIO-based Morphir library is deprecated and will stop being published. Use
+ * `morphir-model` (the code model and datamodel), `morphir-naming` and `morphir-model-compat-v3` (v3 `morphir-ir.json`)
+ * instead.
+ */
 package object morphir {
 
   /// Morphir's canonical repreresentation of an integer.

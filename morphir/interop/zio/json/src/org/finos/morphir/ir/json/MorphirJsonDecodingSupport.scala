@@ -27,6 +27,10 @@ import org.finos.morphir.ir.module.{Definition => ModuleDefinition, Specificatio
 
 import scala.annotation.{nowarn, unused}
 
+/**
+ * **Deprecated.** These zio-json codecs for the classic IR are deprecated. To read v3 `morphir-ir.json`, use `V3Reader`
+ * in `morphir-model-compat-v3`; for v4 JSON use `morphir-model`.
+ */
 trait MorphirJsonDecodingSupport {
   implicit val unitDecoder: JsonDecoder[Unit]               = Json.decoder.map(_ => ())
   implicit val nameDecoder: JsonDecoder[Name]               = JsonDecoder.list[String].map(Name.fromList)

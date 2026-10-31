@@ -2,12 +2,13 @@
 type: Intent
 title: Remove or absorb morphir/toolkit
 description: "Delete or absorb the unwired morphir/toolkit directory so it is not revived as a published-library namespace."
-state: Backlog
+state: Superseded
 kind: removal
 breaking: false
 created: 2026-08-14
-state_since: 2026-08-14
+state_since: 2026-10-31
 tags: [toolkit, modules]
+superseded_by: 0043
 ---
 
 # 0028 — Remove or absorb morphir/toolkit

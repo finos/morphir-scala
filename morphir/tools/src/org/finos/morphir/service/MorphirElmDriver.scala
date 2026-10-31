@@ -3,6 +3,9 @@ import org.finos.morphir.util.vfile._
 import zio._
 
 /**
+ * **Deprecated.** This classic tooling module is deprecated. Use `kyo-system` for files and processes, and the
+ * `mill-morphir-elm` plugin or the Morphir CLI to run morphir-elm.
+ *
  * A service that provides a driver for invoking the `morphir-elm` CLI as well as performing Elm specific tasks which
  * may not be directily backed by the `morphir-elm` CLI.
  */

@@ -1,5 +1,11 @@
 # Log
 
+## 2026-10-31
+
+* **Creation**: [0042](/0042-deprecate-the-classic-zio-based-morphir-library.md) deprecates the classic ZIO-based library
+  family (InProgress, shipping in 0.5.0-M12) and [0043](/0043-remove-the-classic-zio-based-morphir-library.md)
+  removes it later; 0043 supersedes [0028](/0028-remove-or-absorb-morphir-toolkit.md).
+
 ## 2026-10-30
 
 * **Update**: Released [0020](/0020-github-graphql-connector.md) in 0.5.0-M11, linking the

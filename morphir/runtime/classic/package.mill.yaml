@@ -2,6 +2,7 @@ extends: Module
 
 object jvm:
   extends: [build.MorphirJVMModule, build.MorphirPublishModule, build.MorphirScoverage]
+  packageDescription: "Deprecated: the classic Morphir IR evaluator. It has no replacement yet."
   moduleDeps:
   - build.morphir.jvm
   - build.morphir.interop.zio.json.jvm
@@ -11,6 +12,7 @@ object jvm:
 
 object js:
   extends: [build.MorphirJSModule, build.MorphirPublishModule]
+  packageDescription: "Deprecated: the classic Morphir IR evaluator. It has no replacement yet."
   moduleDeps:
   - build.morphir.js
   - build.morphir.interop.zio.json.js

@@ -9,6 +9,10 @@ import org.finos.morphir.datamodel.classic.codecs.BaseCodecs._
 import org.finos.morphir.datamodel.classic.codecs.NamingCodecs._
 import scala.collection.mutable
 
+/**
+ * **Deprecated.** These borer codecs for the classic datamodel are deprecated. Use the datamodel and Kyo Schema codecs
+ * in `morphir-model` instead.
+ */
 object MdmCodecs {
   implicit val labelCodec: Codec[Label]                = deriveCodec[Label]
   implicit val enumLabelCodec: Codec[EnumLabel]        = deriveAllCodecs[EnumLabel]

@@ -58,12 +58,12 @@ cases. Design references (`V3-1`, `MCK-2`, …) point to [design.html](design.ht
 
 ## 5. Deprecate the classic family and record the retirement (DEP-1, DOC-1)
 
-- [ ] 5.1 Prefix the POM description of `morphir`, `interop.zio.json`, `interop.borer`, `model.lowering`,
+- [x] 5.1 Prefix the POM description of `morphir`, `interop.zio.json`, `interop.borer`, `model.lowering`,
   `runtime.classic`, `tools` and `tests` with "Deprecated:" and the replacement; verify the generated POMs on both
   platforms.
-- [ ] 5.2 Add a deprecation notice naming the replacement (or "no replacement yet" for `runtime.classic`) to each
+- [x] 5.2 Add a deprecation notice naming the replacement (or "no replacement yet" for `runtime.classic`) to each
   module's entry-point scaladoc and README text; verify `docJar` builds and each notice names the right artifact.
-- [ ] 5.3 Add a `### Deprecated` CHANGELOG entry under the open milestone naming each classic artifact and its
+- [x] 5.3 Add a `### Deprecated` CHANGELOG entry under the open milestone naming each classic artifact and its
   replacement; verify `mise run lint`.
 - [ ] 5.4 Write a Capability page for v3 reading and its MCK conformance, and create the `kind: deprecation` and
   `kind: removal` intents (the removal intent superseding 0028) with `kb intent new`; verify `mise run kb:check` and

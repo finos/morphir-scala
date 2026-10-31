@@ -8,10 +8,30 @@ a release.
 
 ## [0.5.0-M12]
 
+### Added
+- `morphir-model-compat-v3` reads v3 `morphir-ir.json`, the format morphir-elm writes, straight into the code model
+  with `V3Reader`, without the classic library or ZIO. Only `formatVersion` 3 is read; errors are typed values with a
+  JSON path and a Morphir Compatibility Kit diagnostic code. The module now also publishes for Scala.js.
+
+### Deprecated
+- The classic ZIO-based library family is deprecated and will stop being published in a later milestone. Each
+  artifact, on the JVM and Scala.js, and what replaces it:
+  - `morphir`: `morphir-model` (code model and datamodel), `morphir-naming` and `morphir-model-compat-v3`.
+  - `morphir-interop-zio-json`: `morphir-model` for v4 JSON; `morphir-model-compat-v3` for v3 `morphir-ir.json`.
+  - `morphir-interop-borer`: the datamodel and Kyo Schema codecs in `morphir-model`.
+  - `morphir-model-lowering`: `V3Reader` in `morphir-model-compat-v3`.
+  - `morphir-runtime-classic`: no replacement yet. Scala evaluation of Morphir IR ends with the classic family.
+  - `morphir-tools`: `kyo-system` for files and processes; the `mill-morphir-elm` plugin or the Morphir CLI to run
+    morphir-elm.
+  - `morphir-tests`: no replacement.
+
 ### Fixed
 - The release upload checks every publishable POM before it sends one to Maven Central. In 0.5.0-M11 the check ran
   on pull requests and in `ci.publish`, but not in `ci.sonatype.libraries` and `ci.sonatype.plugins`, which the
   release workflow uses.
+- Published POMs describe each artifact by name ("The morphir-naming package"). Until now every description read
+  "The <module>.artifactName package", because the description interpolated the task rather than its value.
+- `morphir-knowledge-logic` no longer depends on the classic `morphir` library, which put ZIO on its classpath.
 
 ## [0.5.0-M11] - 2026-10-30
 
