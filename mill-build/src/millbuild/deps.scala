@@ -90,7 +90,7 @@ object Deps {
 }
 
 object Versions {
-  val caliban            = "3.1.5"
+  val caliban            = "3.2.0"
   val `commons-compress` = "1.28.0"
   val jmh                = "1.37"
   val kyo                = "1.0.0-RC7"
