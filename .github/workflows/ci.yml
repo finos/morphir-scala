@@ -548,17 +548,18 @@ jobs:
         id: matrix
         shell: bash
         # Only a v* tag — a release, however it is triggered — packages all five platforms. Branch
-        # pushes and pull requests get the three-OS smoke matrix: each leg covers toolchain
-        # machinery the others do not, and what a merge to main defers is only the second
-        # architecture of an already-covered operating system. Five GraalVM native-image builds per
-        # ordinary merge would be paid on every merge for assets nothing publishes.
+        # pushes and pull requests get the Linux and Windows smoke matrix: each leg covers toolchain
+        # machinery the other does not. macOS is packaged only on a tag: the macOS 14 runner leg was
+        # dropped (its image is browned out and retires on 2026-11-02), and a release builds Apple
+        # Silicon on macos-15. Five GraalVM native-image builds per ordinary merge would be paid on
+        # every merge for assets nothing publishes.
         run: |
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            MATRIX='{"include":[{"token":"mac-aarch64","runner":"macos-14"},{"token":"mac-amd64","runner":"macos-15-intel"},{"token":"linux-amd64","runner":"ubuntu-24.04"},{"token":"linux-aarch64","runner":"ubuntu-24.04-arm"},{"token":"win-amd64","runner":"windows-latest"}]}'
+            MATRIX='{"include":[{"token":"mac-aarch64","runner":"macos-15"},{"token":"mac-amd64","runner":"macos-15-intel"},{"token":"linux-amd64","runner":"ubuntu-24.04"},{"token":"linux-aarch64","runner":"ubuntu-24.04-arm"},{"token":"win-amd64","runner":"windows-latest"}]}'
             PLATFORMS="mac-aarch64,mac-amd64,linux-amd64,linux-aarch64,win-amd64"
           else
-            MATRIX='{"include":[{"token":"linux-amd64","runner":"ubuntu-24.04"},{"token":"win-amd64","runner":"windows-latest"},{"token":"mac-aarch64","runner":"macos-14"}]}'
-            PLATFORMS="linux-amd64,win-amd64,mac-aarch64"
+            MATRIX='{"include":[{"token":"linux-amd64","runner":"ubuntu-24.04"},{"token":"win-amd64","runner":"windows-latest"}]}'
+            PLATFORMS="linux-amd64,win-amd64"
           fi
           echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
           echo "platforms=$PLATFORMS" >> "$GITHUB_OUTPUT"

@@ -1,5 +1,12 @@
 # Log
 
+## 2026-10-31
+
+* **Update**: Extension packaging dropped its macOS 14 runner leg. The image is browned out and retires on
+  2026-11-02. Pull requests and branch pushes now run a Linux and Windows smoke matrix, and a release builds
+  `mac-aarch64` on `macos-15` ([Continuous integration](/continuous-integration.md),
+  [Packaging and release](/packaging-and-release.md)).
+
 ## 2026-10-30
 
 * **Update**: 0.5.0-M11 put the Scala.js and Scala Native artifacts of `morphir-connector-github`, `morphir-ui`,
