@@ -105,7 +105,7 @@ jobs:
           java-version: "26.0.2+10"
 
       - name: Cache scala dependencies
-        uses: coursier/cache-action@v8
+        uses: coursier/cache-action@v9
 
       - name: Generate artifact name
         id: artifact-name
