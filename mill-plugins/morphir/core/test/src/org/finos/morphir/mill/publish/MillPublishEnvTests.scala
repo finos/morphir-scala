@@ -217,6 +217,41 @@ object MillPublishEnvTests extends TestSuite {
             )
           assert(imported.exitCode == 0)
 
+          // TEMPORARY diagnostics for the ubuntu-26 runner failure; removed before review.
+          def diag(cmd: String*): Unit = {
+            val r = os.proc(cmd).call(env = env, stdout = os.Pipe, stderr = os.Pipe, check = false, timeout = 15_000L)
+            println(s"DIAG $$ ${cmd.mkString(" ")} -> ${r.exitCode}\n${r.out.text()}${r.err.text()}")
+          }
+          println(s"DIAG import stderr:\n${imported.err.text()}")
+          diag(
+            "sh",
+            "-c",
+            "command -v gpg gpg-agent gpgconf; id; echo XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR; ls -la /run/user || true"
+          )
+          diag("gpg", "--version")
+          diag("gpgconf", "--homedir", tempHome.toString, "--list-dirs")
+          diag("gpgconf", "--list-components")
+          diag(
+            "sh",
+            "-c",
+            "ls -la /etc/gnupg; cat /etc/gnupg/* 2>/dev/null; env | grep -i -E 'gpg|gnupg|pinentry' || true"
+          )
+          diag("gpg", "--homedir", tempHome.toString, "--batch", "--list-secret-keys", "--with-keygrip")
+          diag(
+            "sh",
+            "-c",
+            s"ls -la ${tempHome}/private-keys-v1.d; head -c 400 ${tempHome}/private-keys-v1.d/*.key | cat -v"
+          )
+          diag(
+            "gpg-connect-agent",
+            "--homedir",
+            tempHome.toString,
+            "getinfo version",
+            "getinfo pid",
+            "keyinfo --list",
+            "/bye"
+          )
+
           val exported = os
             .proc(
               "gpg",
