@@ -243,6 +243,26 @@ object MillPublishEnvTests extends TestSuite {
             s"ls -la ${tempHome}/private-keys-v1.d; head -c 400 ${tempHome}/private-keys-v1.d/*.key | cat -v"
           )
           diag(
+            "sh",
+            "-c",
+            "grep -m1 'model name' /proc/cpuinfo; grep -m1 '^flags' /proc/cpuinfo; gpgconf --show-versions"
+          )
+          os.write.over(tempHome / "key.asc", armored)
+          diag(
+            "sh",
+            "-c",
+            s"""set -x
+               |H=$$(mktemp -d /tmp/mbd-XXXX)
+               |gpg --homedir $$H --batch --pinentry-mode loopback --import --no-tty < ${tempHome}/key.asc 2>/dev/null
+               |gpg --homedir $$H --batch --pinentry-mode loopback --export-secret-keys > /dev/null; echo export-default=$$?
+               |for f in intel-avx512 intel-vaes-vpclmul intel-gfni intel-avx2 intel-bmi2 intel-fast-shld; do
+               |  gpgconf --homedir $$H --kill gpg-agent
+               |  sudo -n mkdir -p /etc/gcrypt; echo $$f | sudo -n tee -a /etc/gcrypt/hwf.deny >/dev/null
+               |  gpg --homedir $$H --batch --pinentry-mode loopback --export-secret-keys > /dev/null 2>&1; echo deny-upto-$$f=$$?
+               |done
+               |sudo -n rm -f /etc/gcrypt/hwf.deny; gpgconf --homedir $$H --kill gpg-agent; rm -rf $$H""".stripMargin
+          )
+          diag(
             "gpg-connect-agent",
             "--homedir",
             tempHome.toString,
