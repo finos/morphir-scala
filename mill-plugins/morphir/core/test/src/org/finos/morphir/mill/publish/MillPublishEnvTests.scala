@@ -276,6 +276,18 @@ object MillPublishEnvTests extends TestSuite {
           run(gpgIn(h5, "--import", "--no-tty"), armored)
           report("E5 no-conf jvm-import jvm-export", h5, run(gpgIn(h5, "--export-secret-keys")))
           List(h1, h2, h3, h4, h5).foreach(os.remove.all(_))
+          def trial(withConf: Boolean): Int = {
+            val h = PgpSecret.shortGpgHome("mxr-")
+            if withConf then os.write.over(h / "gpg-agent.conf", s"log-file ${h}/agent.log\ndebug-level guru\n")
+            run(gpgIn(h, "--import", "--no-tty"), armored)
+            val code = run(gpgIn(h, "--export-secret-keys")).exitCode
+            os.proc("gpgconf", "--homedir", h.toString, "--kill", "gpg-agent").call(env = env, check = false)
+            os.remove.all(h)
+            code
+          }
+          println(s"DIAG RATE no-conf: ${(1 to 10).map(_ => trial(false)).mkString(",")}")
+          println(s"DIAG RATE with-conf: ${(1 to 10).map(_ => trial(true)).mkString(",")}")
+          println(s"DIAG RATE no-conf again: ${(1 to 10).map(_ => trial(false)).mkString(",")}")
 
           val exported = os
             .proc(
