@@ -195,6 +195,7 @@ object MillPublishEnvTests extends TestSuite {
         val armored  = new String(Base64.getDecoder.decode(millTestKeyBase64), StandardCharsets.UTF_8)
         val tempHome = PgpSecret.shortGpgHome("mbt-")
         val env      = sys.env.toMap.updated("GNUPGHOME", tempHome.toString) - "GPG_AGENT_INFO" - "GPG_TTY"
+        os.write.over(tempHome / "gpg-agent.conf", s"log-file ${tempHome}/agent.log\ndebug-level guru\n")
         try {
           val imported = os
             .proc(
@@ -271,7 +272,10 @@ object MillPublishEnvTests extends TestSuite {
           val h4 = fresh("4")
           run(gpgIn(h4, "--import", "--no-tty"), tempHome / "key.asc")
           report("E4 jvm-file-import jvm-export", h4, run(gpgIn(h4, "--export-secret-keys")))
-          List(h1, h2, h3, h4).foreach(os.remove.all(_))
+          val h5 = PgpSecret.shortGpgHome("mx5-")
+          run(gpgIn(h5, "--import", "--no-tty"), armored)
+          report("E5 no-conf jvm-import jvm-export", h5, run(gpgIn(h5, "--export-secret-keys")))
+          List(h1, h2, h3, h4, h5).foreach(os.remove.all(_))
 
           val exported = os
             .proc(
@@ -284,6 +288,12 @@ object MillPublishEnvTests extends TestSuite {
               "--export-secret-keys"
             )
             .call(env = env, stdout = os.Pipe, stderr = os.Pipe, check = false, timeout = 15_000L)
+          if exported.exitCode != 0 then {
+            os.proc("gpgconf", "--homedir", tempHome.toString, "--kill", "gpg-agent").call(env = env, check = false)
+            Thread.sleep(500)
+            println("DIAG MAIN agent.log:\n" + os.read(tempHome / "agent.log"))
+            println("DIAG MAIN ls:\n" + os.proc("ls", "-laR", tempHome.toString).call(check = false).out.text())
+          }
           assert(exported.exitCode == 0)
           val binaryBytes = exported.out.bytes
           assert(binaryBytes.nonEmpty)
