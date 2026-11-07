@@ -9,7 +9,7 @@ a release.
 ## [0.5.0-M14]
 
 ### Changed
-- The OpenSpec tasks use the pinned `mission-control-tools` 0.1.0 binary instead of the copied MoonBit script.
+- The OpenSpec tasks use the pinned `mission-control-tools` 0.1.1 binary instead of the copied MoonBit script.
   The repository no longer installs MoonBit, and `mise run openspec:test` is removed; use `mise run openspec:verify`.
 
 ## [0.5.0-M13] - 2026-10-31

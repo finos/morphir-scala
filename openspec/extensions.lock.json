@@ -2,7 +2,7 @@
   "format": 2,
   "extension": "html-design",
   "tool": "moonrockz/mission-control-tools",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "files": {
     "openspec/schemas/html-design/schema.yaml": "fc6b5efe9c43f7dbb3ca37aa1056f2a884b0906677ba425a08f7e408253fe2a9",
     "openspec/schemas/html-design/templates/proposal.md": "4c06280738dad6e95c756698e9d65f1e9074efba429b31451478c0b5ce50e24f",
