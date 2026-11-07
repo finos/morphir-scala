@@ -3,7 +3,7 @@ package build
 import mill.*
 import mill.api.BuildCtx
 
-/** Mill entry points for the versioned upstream OpenSpec extension. */
+/** Mill entry points for the versioned upstream OpenSpec extension, served by the pinned mission-control-tools. */
 trait MorphirOpenSpecModule extends Module {
   private def run(args: Seq[String], environment: Map[String, String]): Unit = {
     os.proc(Seq("mise", "exec", "--") ++ args).call(
@@ -15,14 +15,17 @@ trait MorphirOpenSpecModule extends Module {
     ()
   }
 
-  /** Re-read the ownership lock and files on every invocation so edits cannot use stale evidence. */
+  /**
+   * Re-read the ownership lock and files on every invocation so edits cannot use stale evidence. `--bundle` also fails
+   * when the lock records another tool version than the pinned one, so a version bump without `install` fails.
+   */
   def check() = Task.Command {
-    run(Seq("moon", "run", "-q", "--target", "wasm", "scripts/openspec-ext.mbtx", "--", "check"), Task.env)
+    run(Seq("mission-control-tools", "openspec", "check", "--bundle"), Task.env)
   }
 
   /** Keep personal OpenSpec profiles and delivery preferences out of project setup. */
   def setup() = Task.Command {
-    run(Seq("moon", "run", "-q", "--target", "wasm", "scripts/openspec-ext.mbtx", "--", "setup"), Task.env)
+    run(Seq("mission-control-tools", "openspec", "setup"), Task.env)
   }
 
   def validate() = Task.Command {
@@ -30,7 +33,9 @@ trait MorphirOpenSpecModule extends Module {
     run(Seq("openspec", "validate", "--all", "--strict"), Task.env)
   }
 
-  def test() = Task.Command {
-    run(Seq("moon", "test", "--deny-warn", "--target", "wasm", "scripts/openspec-ext.mbtx"), Task.env)
+  /** The snapshot check, then schema and artifact validation. */
+  def verify() = Task.Command {
+    check()()
+    validate()()
   }
 }

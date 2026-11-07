@@ -207,49 +207,30 @@ schema, templates and SHA-256 ownership lock work without a sibling checkout or 
 unpublished registry dependency. The six core skills are available for
 Codex/universal agents, Claude, Copilot, Cursor, Grok, Gemini and OpenCode.
 
-Run `mise install` for pinned development tools. The shared checker is an upstream
-MoonBit tool; Mill remains the entry point for repository automation. The MoonBit
-archive has no core library and no `moonx`, so the mise postinstall hook completes
-the SDK inside mise's tool directory. On Linux and macOS (Apple Silicon only; no
-0.10.18 Intel macOS archive is published) the hook runs the upstream `unix.sh`
-installer. On Windows it runs `tools/bootstrap-moonbit-windows.ps1` with `pwsh`,
-which checks the core archive against `tools/moonbit-core-pin.json`. Windows on Arm
-uses the x64 build under emulation. Both files are copies from finos/morphir-moonbit.
-Then fetch the registry index once:
-
-```sh
-mise exec -- moon update
-```
-
-If the hook failed and the tool directory has no `lib/core`, complete it by hand on
-Linux/macOS:
-
-```sh
-curl -fsSL https://cli.moonbitlang.com/install/unix.sh | \
-  MOON_HOME="$(mise where http:moonbit)" bash -s -- "$(mise current http:moonbit)"
-```
-
-On Windows, run the same helper that the hook runs:
-
-```powershell
-pwsh -NoProfile -File tools/bootstrap-moonbit-windows.ps1 -ToolchainHome (mise where http:moonbit)
-```
+Run `mise install` for pinned development tools. The shared checker is the
+`mission-control-tools` binary, pinned to an exact release in
+`.config/mise/config.toml`; mise checks each download against its GitHub asset digest
+and artifact attestation. Mill remains the entry point for repository automation.
+Windows on Arm uses the x64 build under emulation.
 
 | Mise command | Mill command | Purpose |
 |---|---|---|
-| `mise run openspec:check` | `./mill openspec.check` | Detect missing or edited managed files |
+| `mise run openspec:check` | `./mill openspec.check` | Detect missing or edited managed files, and files that differ from the pinned release |
 | `mise run openspec:validate` | `./mill openspec.validate` | Validate the schema and change/spec artifacts |
-| `mise run openspec:test` | `./mill openspec.test` | Run shared workflow and setup-isolation tests |
+| `mise run openspec:verify` | `./mill openspec.verify` | Run the check, then the validation |
 | `mise run openspec:setup` | `./mill openspec.setup` | Regenerate core agent skills with isolated preferences |
 
 Start with `openspec-propose`. New designs are standalone HTML with inline CSS/SVG.
 Keep project context and governance in `openspec/config.yaml` and AGENTS.md; keep
 scratch plans in `.dev/` and durable architectural rationale in `kb/`.
 
-To update the bundle, run the selected Mission Control installer from its checkout
-and commit the resulting managed files and lock. The `openspec-ext` module awaits
-publication; do not add an unpublished registry dependency. The `squire-policy` CI
-category checks the snapshot, schema and shared workflow alongside repository policy.
+To update the bundle, change the `github:moonrockz/mission-control` version in
+`.config/mise/config.toml`, run `mise install` and
+`mission-control-tools openspec install`, and commit the managed files and the lock.
+`openspec:check` fails when the lock records another tool version than the pinned one.
+The managed files are compared byte for byte, so `.gitattributes` keeps LF line endings
+for them. The `squire-policy` CI category checks the snapshot and schema alongside
+repository policy.
 
 ## Formatting
 

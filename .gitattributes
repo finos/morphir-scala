@@ -14,3 +14,7 @@ morphir-ir.json binary
 # different lines conflict textually while being semantically compatible, so take
 # both sides rather than making a human resolve it. See docs/task-tracking.md.
 .beads/interactions.jsonl merge=union
+
+# mission-control-tools compares the managed OpenSpec files byte for byte with its lock, so a CRLF checkout on
+# Windows would fail `openspec:check`.
+openspec/schemas/html-design/** text eol=lf

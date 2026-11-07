@@ -197,16 +197,15 @@ packages and handoffs still stay under `.dev/`. Durable architectural rationale
 belongs in the existing knowledge-base registers. Track implementation work using
 this repository's optional tracking mode, not an assumed external tracker policy.
 
-The extension lock, schema, templates, checker and Gherkin feature are exact
-snapshots from `moonrockz/mission-control`'s `apps/openspec-ext`. Update them through
-that installer. The upstream checker uses a pinned MoonBit SDK as a development
-tool dependency; it is not a new language for repository-authored automation.
+The extension lock, schema and templates are exact snapshots from
+`moonrockz/mission-control`. The pinned `mission-control-tools` binary (a mise tool)
+installs and checks them; update them only with `mission-control-tools openspec install`.
 Local orchestration remains Scala in `openspec.mill`, exposed by Mill and thin mise
-launchers. See CONTRIBUTING.md for the SDK setup and commands.
+launchers. See CONTRIBUTING.md for the commands.
 
-Run `mise run openspec:check`, `mise run openspec:validate`, and
-`mise run openspec:test` after changing OpenSpec artifacts. Regenerate core skills
-with `mise run openspec:setup`, which isolates personal OpenSpec preferences.
+Run `mise run openspec:verify` (the snapshot check, then `openspec:validate`) after
+changing OpenSpec artifacts. Regenerate core skills with `mise run openspec:setup`,
+which isolates personal OpenSpec preferences.
 
 ## Build System
 

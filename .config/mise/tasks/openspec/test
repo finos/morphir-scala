@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-#MISE description="Test the shared OpenSpec workflow and setup isolation"
-set -euo pipefail
-
-exec ./mill --ticker false -i openspec.test "$@"
