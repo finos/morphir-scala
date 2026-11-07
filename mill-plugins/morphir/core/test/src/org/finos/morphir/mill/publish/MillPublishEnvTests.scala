@@ -276,18 +276,27 @@ object MillPublishEnvTests extends TestSuite {
           run(gpgIn(h5, "--import", "--no-tty"), armored)
           report("E5 no-conf jvm-import jvm-export", h5, run(gpgIn(h5, "--export-secret-keys")))
           List(h1, h2, h3, h4, h5).foreach(os.remove.all(_))
-          def trial(withConf: Boolean): Int = {
+          def trial(conf: String, gnupgHomeEnv: Boolean = true): Int = {
             val h = PgpSecret.shortGpgHome("mxr-")
-            if withConf then os.write.over(h / "gpg-agent.conf", s"log-file ${h}/agent.log\ndebug-level guru\n")
-            run(gpgIn(h, "--import", "--no-tty"), armored)
-            val code = run(gpgIn(h, "--export-secret-keys")).exitCode
-            os.proc("gpgconf", "--homedir", h.toString, "--kill", "gpg-agent").call(env = env, check = false)
+            if conf.nonEmpty then os.write.over(h / "gpg-agent.conf", conf.replace("@H", h.toString))
+            val e = if gnupgHomeEnv then env.updated("GNUPGHOME", h.toString) else env
+            def r(args: String*)(in: os.ProcessInput) =
+              os.proc(gpgIn(h, args*)).call(env = e, stdin = in, stdout = os.Pipe, stderr = os.Pipe, check = false)
+            r("--import", "--no-tty")(armored)
+            val code = r("--export-secret-keys")(os.Pipe).exitCode
+            os.proc("gpgconf", "--homedir", h.toString, "--kill", "gpg-agent").call(env = e, check = false)
             os.remove.all(h)
             code
           }
-          println(s"DIAG RATE no-conf: ${(1 to 10).map(_ => trial(false)).mkString(",")}")
-          println(s"DIAG RATE with-conf: ${(1 to 10).map(_ => trial(true)).mkString(",")}")
-          println(s"DIAG RATE no-conf again: ${(1 to 10).map(_ => trial(false)).mkString(",")}")
+          def rate(label: String, conf: String, gnupgHomeEnv: Boolean = true): Unit =
+            println(s"DIAG RATE $label: ${(1 to 5).map(_ => trial(conf, gnupgHomeEnv)).mkString(",")}")
+          rate("none", "")
+          rate("log-file only", "log-file @H/agent.log\n")
+          rate("debug-level guru only", "debug-level guru\n")
+          rate("debug-level basic", "debug-level basic\n")
+          rate("debug crypto", "debug crypto\n")
+          rate("debug-all", "debug-all\n")
+          rate("none, GNUPGHOME=other home", "", gnupgHomeEnv = false)
 
           val exported = os
             .proc(
