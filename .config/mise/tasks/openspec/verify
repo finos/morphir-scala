@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Check the OpenSpec snapshot, then validate the schema and change artifacts"
+set -euo pipefail
+
+exec ./mill --ticker false -i openspec.verify "$@"

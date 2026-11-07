@@ -804,8 +804,8 @@ object SquireCiPolicy:
 
   def assertMorphirCapabilityPolicy(workflow: String): Unit =
     val commands = List(
-      "mill-morphir-unit:"          -> "'mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test'",
-      "mill-morphir-integration:"   -> "mill-plugins.morphir.integration.test"
+      "mill-morphir-unit:"        -> "'mill-plugins.morphir.{toolchain,javascript,elm-tooling,core,elm}.__.test'",
+      "mill-morphir-integration:" -> "mill-plugins.morphir.integration.test"
     )
     commands.foreach { case (job, command) =>
       val block = indentedBlock(workflow, job, 2)
@@ -923,37 +923,29 @@ object SquireCiPolicy:
     val headers    = policy.linesIterator.collect {
       case line if line.startsWith("      - name: ") => line.stripPrefix("      - name: ")
     }.toList
-    expect(stepStarts.size == 8, s"unexpected squire-policy step count: ${stepStarts.size}")
+    expect(stepStarts.size == 7, s"unexpected squire-policy step count: ${stepStarts.size}")
     expect(
       headers == List(
         "Checkout current branch",
         "Setup Scala and Java",
         "Cache scala dependencies",
         "Setup mise",
-        "Complete the pinned MoonBit SDK for the shared OpenSpec tool",
         "Check the shared OpenSpec workflow",
         stepName,
         changelogStepName
       ),
       s"unexpected squire-policy steps: $headers"
     )
-    val sdkStep = indentedBlock(policy, "- name: Complete the pinned MoonBit SDK for the shared OpenSpec tool", 6)
-    expect(
-      sdkStep.contains("https://cli.moonbitlang.com/install/unix.sh") &&
-        sdkStep.contains("$(mise where http:moonbit)") && sdkStep.contains("$(mise current http:moonbit)"),
-      "OpenSpec must complete the SDK selected by the repository pin"
-    )
-    expect(sdkStep.contains("mise exec -- moon update"), "a fresh OpenSpec tool home needs its registry index")
     val extensionStep     = indentedBlock(policy, "- name: Check the shared OpenSpec workflow", 6)
-    val extensionCommands = extensionStep.linesIterator.map(_.trim).filter(_.startsWith("mise run ")).toList
+    val extensionCommands = extensionStep.linesIterator.map(_.trim).filter(line =>
+      line.startsWith("mise run ") || line.startsWith("mission-control-tools ")
+    ).toList
     expect(
-      extensionCommands == List("mise run openspec:check", "mise run openspec:validate", "mise run openspec:test"),
-      "OpenSpec must run snapshot, schema and workflow checks in order"
+      extensionCommands == List("mission-control-tools openspec check --bundle", "mise run openspec:validate"),
+      "OpenSpec must run the bundle snapshot check, then schema and artifact validation, in order"
     )
-    List(sdkStep, extensionStep).foreach { step =>
-      expect(!hasYamlKey(step, "if"), "OpenSpec assurance must not be conditionally skipped")
-      expect(!hasYamlKey(step, "continue-on-error"), "OpenSpec assurance failures must block CI")
-    }
+    expect(!hasYamlKey(extensionStep, "if"), "OpenSpec assurance must not be conditionally skipped")
+    expect(!hasYamlKey(extensionStep, "continue-on-error"), "OpenSpec assurance failures must block CI")
 
     expect(!hasYamlKey(policy, "needs"), "squire-policy must run in parallel")
     expect(!hasYamlKey(policy, "fetch-depth"), "squire-policy must use the default shallow checkout")
@@ -2624,7 +2616,8 @@ class SquireCiPolicySpec extends Test[Any]:
           "      - name: Lint code\n        run: ./mill --ticker false -i ci.lint",
           "      - name: Lint code\n        run: ./mill --ticker false -i ci.lint\n" + changelogStep
         ),
-        "registry bootstrap removed"  -> replaceOnce(workflow, "          mise exec -- moon update\n", ""),
+        "OpenSpec bundle check removed" ->
+          replaceOnce(workflow, "          mission-control-tools openspec check --bundle\n", ""),
         "OpenSpec validation removed" -> replaceOnce(workflow, "          mise run openspec:validate\n", ""),
         "OpenSpec check skipped"      -> replaceOnce(
           workflow,
@@ -2819,8 +2812,8 @@ class SquireMisePolicySpec extends Test[Any]:
   private val skillDirectory = Path(java.lang.System.getProperty("user.dir"))
   private val repositoryRoot = skillDirectory / ".." / ".." / ".."
   private val miseExecutable = Option(java.lang.System.getenv("SQUIRE_MISE_BIN")).filter(_.nonEmpty).getOrElse("mise")
-  private val setupScript          = repositoryRoot / ".config" / "mise" / "tasks" / "setup"
-  private val localCiScript        = repositoryRoot / ".config" / "mise" / "tasks" / "ci" / "local"
+  private val setupScript    = repositoryRoot / ".config" / "mise" / "tasks" / "setup"
+  private val localCiScript  = repositoryRoot / ".config" / "mise" / "tasks" / "ci" / "local"
   private val expectedDependencies = List(
     "lint",
     "test:squire",
@@ -3041,10 +3034,9 @@ esac
       )
     }
 
-    "runs the setup script through only its approved tool" in {
+    "runs the setup script through only its approved tool" in
       runTaskScript(setupScript, Files.readString(setupScript.toJava, StandardCharsets.UTF_8), Set("bun"))
         .map(setup => assert(setup == expectedSetup))
-    }
 
     "runs every local-CI Morphir capability through its dedicated Mill invocation" in
       runTaskScript(

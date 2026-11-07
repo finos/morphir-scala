@@ -9,8 +9,8 @@ a release.
 ## [0.5.0-M14]
 
 ### Changed
-- The OpenSpec checker uses MoonBit `0.10.18+6c83a7f62`. `mise install` now completes the SDK (core and `moonx`)
-  on Linux, Apple Silicon macOS and Windows; Intel macOS is no longer supported because no archive is published.
+- The OpenSpec tasks use the pinned `mission-control-tools` 0.1.1 binary instead of the copied MoonBit script.
+  The repository no longer installs MoonBit, and `mise run openspec:test` is removed; use `mise run openspec:verify`.
 
 ## [0.5.0-M13] - 2026-10-31
 
