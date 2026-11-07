@@ -18,7 +18,10 @@ object MillPublishEnvTests extends TestSuite {
   private val armoredBase64 =
     Base64.getEncoder.encodeToString(armoredKey.getBytes(StandardCharsets.UTF_8))
 
-  /** Unprotected RSA fixture Mill's own publish tests use. Avoids `gpg --generate-key`, which can hang on GHA. */
+  /**
+   * Unprotected Ed25519 key with a Curve25519 encryption subkey, from Mill's own publish tests. Avoids
+   * `gpg --generate-key`, which can hang on GHA.
+   */
   private val millTestKeyBase64 =
     "LS0tLS1CRUdJTiBQR1AgUFJJVkFURSBLRVkgQkxPQ0stLS0tLQoKeFZnRWFHekhpeFlKS3dZQkJBSGFSdzhCQVFkQWxQamhsaGo5MUtZUnhDQXFtaUZNMjR1UEVDL0kxemR0CnlWS2dRR1lENHZZQUFQOW9jK0ZFQzQ2dkt6b0tNWVE3M1Jvemh4UDE3WWhUZnZwRFBwYk1CZHNZQ2c2RQp6VEpwYnk1bmFYUm9kV0l1WVhKMGRYSmhlaTUwWlhOMFVISnZhbVZqZENCaWIzUWdQR0Z6UUdGeWRIVnkKWVhvdWJtVjBQc0tNQkJBV0NnQWRCUUpvYk1lTEJBc0pCd2dERlFnS0JCWUFBZ0VDR1FFQ0d3TUNIZ0VBCklRa1FBMkRDK3lxemF1RVdJUVRnUmJWQ05LcVpxRTFkdDB3RFlNTDdLck5xNFR1L0FQNHRDYzZpYWNUdQpZVEJBa2Q3UDZOM1E1VTZjbGdnSElVQ2lRL3lIbmFvVHZ3RUExbU92M2MydEVORGtrdnF5Ujl2YVhWNHEKZlBEckNDRmRTUTR0anpMY3hnVEhYUVJvYk1lTEVnb3JCZ0VFQVpkVkFRVUJBUWRBUHpzMjV5RERLSC80Cm1KNmtMU1dLSExITXJEWUZMWGVHOTNWRTluSVY0Q0FEQVFnSEFBRC9aQ1hVMDhqMkZTU2VYQWdZaFZzNwp2akVDQjQweTA2TjdaM0pqaitCSko3Z08xc0o0QkJnV0NBQUpCUUpvYk1lTEFoc01BQ0VKRUFOZ3d2c3EKczJyaEZpRUU0RVcxUWpTcW1haE5YYmRNQTJEQyt5cXphdUgrY2dEL1QxRUVkVDl1WnR6L255bGk1OHR0CjYxaWNLcndyU3kzSTBBRDNYWWErcm40QS9qWEZlZXNsNVBZZWtpU0ZzNVZGNUczRVNpWmY0amJxZXlOWQpLd09ENVIwSwo9WDhSdQotLS0tLUVORCBQR1AgUFJJVkFURSBLRVkgQkxPQ0stLS0tLQo="
 
@@ -192,143 +195,29 @@ object MillPublishEnvTests extends TestSuite {
       if !EphemeralPgp.gpgAvailable then {
         println("skipping PgpSecret.validate binary export: gpg not on PATH")
       } else {
-        val armored  = new String(Base64.getDecoder.decode(millTestKeyBase64), StandardCharsets.UTF_8)
-        val tempHome = PgpSecret.shortGpgHome("mbt-")
-        val env      = sys.env.toMap.updated("GNUPGHOME", tempHome.toString) - "GPG_AGENT_INFO" - "GPG_TTY"
-        os.write.over(tempHome / "gpg-agent.conf", s"log-file ${tempHome}/agent.log\ndebug-level guru\n")
-        try {
-          val imported = os
-            .proc(
-              "gpg",
-              "--homedir",
-              tempHome.toString,
-              "--batch",
-              "--pinentry-mode",
-              "loopback",
-              "--import",
-              "--no-tty"
-            )
-            .call(
-              env = env,
-              stdin = armored,
-              stdout = os.Pipe,
-              stderr = os.Pipe,
-              check = false,
-              timeout = 15_000L
-            )
-          assert(imported.exitCode == 0)
+        // `gpg --dearmor` gives the binary OpenPGP packets that `gpg --export-secret-keys` writes for an unprotected
+        // key, without a gpg-agent. On the ubuntu-26 runner image (GnuPG 2.4.8, libgcrypt 1.12.0) the agent's
+        // EXPORT_KEY rejects this fixture's valid Curve25519 subkey with "Bad secret key" unless the agent is slowed
+        // down (for example by a log-file), so an export round trip tests the runner's agent, not PgpSecret.
+        val armored = new String(Base64.getDecoder.decode(millTestKeyBase64), StandardCharsets.UTF_8)
+        // A throwaway home keeps gpg from creating ~/.gnupg on a fresh machine.
+        val tempHome  = PgpSecret.shortGpgHome("mbt-")
+        val dearmored =
+          try
+            os.proc("gpg", "--homedir", tempHome.toString, "--batch", "--no-tty", "--dearmor")
+              .call(stdin = armored, stdout = os.Pipe, stderr = os.Pipe, check = false, timeout = 15_000L)
+          finally os.remove.all(tempHome)
+        assert(dearmored.exitCode == 0)
+        val binaryBytes = dearmored.out.bytes
+        assert(binaryBytes.nonEmpty)
+        // A Secret-Key packet (tag 5) comes first, as in an export: 0x94-0x97 in the old format, 0xC5 in the new.
+        assert(Set(0x94, 0x95, 0x96, 0x97, 0xc5).contains(binaryBytes.head & 0xff))
+        assert(!(new String(binaryBytes, StandardCharsets.ISO_8859_1).contains("BEGIN PGP")))
 
-          // TEMPORARY diagnostics for the ubuntu-26 runner failure; removed before review.
-          def run(cmd: Seq[String], in: os.ProcessInput = os.Pipe): os.CommandResult =
-            os.proc(cmd).call(
-              env = env,
-              stdin = in,
-              stdout = os.Pipe,
-              stderr = os.Pipe,
-              check = false,
-              timeout = 15_000L
-            )
-          def gpgIn(h: os.Path, args: String*) =
-            Seq("gpg", "--homedir", h.toString, "--batch", "--pinentry-mode", "loopback") ++ args
-          def fresh(tag: String): os.Path = {
-            val h = PgpSecret.shortGpgHome(s"mx$tag-")
-            os.write.over(h / "gpg-agent.conf", s"log-file ${h}/agent.log\ndebug-level guru\n")
-            h
-          }
-          os.write.over(tempHome / "key.asc", armored)
-          def report(tag: String, h: os.Path, r: os.CommandResult): Unit = {
-            println(s"DIAG $tag export=${r.exitCode} bytes=${r.out.bytes.length}\n${r.err.text()}")
-            os.proc("gpgconf", "--homedir", h.toString, "--kill", "gpg-agent").call(env = env, check = false)
-            Thread.sleep(500)
-            if os.exists(h / "agent.log") then
-              println(
-                s"DIAG $tag agent.log (${os.read.lines(h / os.RelPath("agent.log")).size} lines):\n" +
-                  os.read.lines(h / "agent.log").filter(l =>
-                    l.contains("rror") || l.contains("onvert") || l.contains("EXPORT") || l.contains("Bad") ||
-                      l.contains("INQUIRE") || l.contains("testkey") || l.contains("check")
-                  ).take(60).mkString("\n") +
-                  (if r.exitCode != 0 || r.err.text().nonEmpty then
-                     "\nTAIL:\n" + os.read.lines(h / os.RelPath("agent.log")).takeRight(90).mkString("\n")
-                   else "")
-              )
-          }
-          // E1: both steps from the JVM, exactly like the test.
-          val h1 = fresh("1")
-          run(gpgIn(h1, "--import", "--no-tty"), armored)
-          report("E1 jvm-import jvm-export", h1, run(gpgIn(h1, "--export-secret-keys")))
-          // E2: import from sh, export from the JVM.
-          val h2 = fresh("2")
-          run(Seq("sh", "-c", (gpgIn(h2, "--import", "--no-tty") :+ "<" :+ s"${tempHome}/key.asc").mkString(" ")))
-          report("E2 sh-import jvm-export", h2, run(gpgIn(h2, "--export-secret-keys")))
-          // E3: import from the JVM, export from sh.
-          val h3 = fresh("3")
-          run(gpgIn(h3, "--import", "--no-tty"), armored)
-          report(
-            "E3 jvm-import sh-export",
-            h3,
-            run(Seq("sh", "-c", (gpgIn(h3, "--export-secret-keys") :+ "|" :+ "cat").mkString(" ")))
-          )
-          // E4: import from the JVM with the key file as stdin.
-          val h4 = fresh("4")
-          run(gpgIn(h4, "--import", "--no-tty"), tempHome / "key.asc")
-          report("E4 jvm-file-import jvm-export", h4, run(gpgIn(h4, "--export-secret-keys")))
-          val h5 = PgpSecret.shortGpgHome("mx5-")
-          run(gpgIn(h5, "--import", "--no-tty"), armored)
-          report("E5 no-conf jvm-import jvm-export", h5, run(gpgIn(h5, "--export-secret-keys")))
-          List(h1, h2, h3, h4, h5).foreach(os.remove.all(_))
-          def trial(conf: String, gnupgHomeEnv: Boolean = true): Int = {
-            val h = PgpSecret.shortGpgHome("mxr-")
-            if conf.nonEmpty then os.write.over(h / "gpg-agent.conf", conf.replace("@H", h.toString))
-            val e = if gnupgHomeEnv then env.updated("GNUPGHOME", h.toString) else env
-            def r(args: String*)(in: os.ProcessInput) =
-              os.proc(gpgIn(h, args*)).call(env = e, stdin = in, stdout = os.Pipe, stderr = os.Pipe, check = false)
-            r("--import", "--no-tty")(armored)
-            val code = r("--export-secret-keys")(os.Pipe).exitCode
-            os.proc("gpgconf", "--homedir", h.toString, "--kill", "gpg-agent").call(env = e, check = false)
-            os.remove.all(h)
-            code
-          }
-          def rate(label: String, conf: String, gnupgHomeEnv: Boolean = true): Unit =
-            println(s"DIAG RATE $label: ${(1 to 5).map(_ => trial(conf, gnupgHomeEnv)).mkString(",")}")
-          rate("none", "")
-          rate("log-file only", "log-file @H/agent.log\n")
-          rate("debug-level guru only", "debug-level guru\n")
-          rate("debug-level basic", "debug-level basic\n")
-          rate("debug crypto", "debug crypto\n")
-          rate("debug-all", "debug-all\n")
-          rate("none, GNUPGHOME=other home", "", gnupgHomeEnv = false)
-
-          val exported = os
-            .proc(
-              "gpg",
-              "--homedir",
-              tempHome.toString,
-              "--batch",
-              "--pinentry-mode",
-              "loopback",
-              "--export-secret-keys"
-            )
-            .call(env = env, stdout = os.Pipe, stderr = os.Pipe, check = false, timeout = 15_000L)
-          if exported.exitCode != 0 then {
-            os.proc("gpgconf", "--homedir", tempHome.toString, "--kill", "gpg-agent").call(env = env, check = false)
-            Thread.sleep(500)
-            println("DIAG MAIN agent.log:\n" + os.read(tempHome / "agent.log"))
-            println("DIAG MAIN ls:\n" + os.proc("ls", "-laR", tempHome.toString).call(check = false).out.text())
-          }
-          assert(exported.exitCode == 0)
-          val binaryBytes = exported.out.bytes
-          assert(binaryBytes.nonEmpty)
-          assert(!(new String(binaryBytes, StandardCharsets.UTF_8).contains("BEGIN PGP")))
-
-          val binaryBase64 = Base64.getEncoder.encodeToString(binaryBytes)
-          val millForm     = PgpSecret.toMillBase64(binaryBase64)
-          assert(millForm == binaryBase64.filterNot(_.isWhitespace))
-          PgpSecret.validate(millForm)
-        } finally {
-          os.proc("gpgconf", "--homedir", tempHome.toString, "--kill", "gpg-agent")
-            .call(env = env, check = false, stdout = os.Pipe, stderr = os.Pipe, timeout = 15_000L)
-          os.remove.all(tempHome)
-        }
+        val binaryBase64 = Base64.getEncoder.encodeToString(binaryBytes)
+        val millForm     = PgpSecret.toMillBase64(binaryBase64)
+        assert(millForm == binaryBase64.filterNot(_.isWhitespace))
+        PgpSecret.validate(millForm)
       }
     }
   }
