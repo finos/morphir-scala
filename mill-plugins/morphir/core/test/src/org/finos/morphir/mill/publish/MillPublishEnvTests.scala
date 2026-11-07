@@ -218,59 +218,60 @@ object MillPublishEnvTests extends TestSuite {
           assert(imported.exitCode == 0)
 
           // TEMPORARY diagnostics for the ubuntu-26 runner failure; removed before review.
-          def diag(cmd: String*): Unit = {
-            val r = os.proc(cmd).call(env = env, stdout = os.Pipe, stderr = os.Pipe, check = false, timeout = 15_000L)
-            println(s"DIAG $$ ${cmd.mkString(" ")} -> ${r.exitCode}\n${r.out.text()}${r.err.text()}")
+          def run(cmd: Seq[String], in: os.ProcessInput = os.Pipe): os.CommandResult =
+            os.proc(cmd).call(
+              env = env,
+              stdin = in,
+              stdout = os.Pipe,
+              stderr = os.Pipe,
+              check = false,
+              timeout = 15_000L
+            )
+          def gpgIn(h: os.Path, args: String*) =
+            Seq("gpg", "--homedir", h.toString, "--batch", "--pinentry-mode", "loopback") ++ args
+          def fresh(tag: String): os.Path = {
+            val h = PgpSecret.shortGpgHome(s"mx$tag-")
+            os.write.over(h / "gpg-agent.conf", s"log-file ${h}/agent.log\ndebug-level guru\n")
+            h
           }
-          println(s"DIAG import stderr:\n${imported.err.text()}")
-          diag(
-            "sh",
-            "-c",
-            "command -v gpg gpg-agent gpgconf; id; echo XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR; ls -la /run/user || true"
-          )
-          diag("gpg", "--version")
-          diag("gpgconf", "--homedir", tempHome.toString, "--list-dirs")
-          diag("gpgconf", "--list-components")
-          diag(
-            "sh",
-            "-c",
-            "ls -la /etc/gnupg; cat /etc/gnupg/* 2>/dev/null; env | grep -i -E 'gpg|gnupg|pinentry' || true"
-          )
-          diag("gpg", "--homedir", tempHome.toString, "--batch", "--list-secret-keys", "--with-keygrip")
-          diag(
-            "sh",
-            "-c",
-            s"ls -la ${tempHome}/private-keys-v1.d; head -c 400 ${tempHome}/private-keys-v1.d/*.key | cat -v"
-          )
-          diag(
-            "sh",
-            "-c",
-            "grep -m1 'model name' /proc/cpuinfo; grep -m1 '^flags' /proc/cpuinfo; gpgconf --show-versions"
-          )
           os.write.over(tempHome / "key.asc", armored)
-          diag(
-            "sh",
-            "-c",
-            s"""set -x
-               |H=$$(mktemp -d /tmp/mbd-XXXX)
-               |gpg --homedir $$H --batch --pinentry-mode loopback --import --no-tty < ${tempHome}/key.asc 2>/dev/null
-               |gpg --homedir $$H --batch --pinentry-mode loopback --export-secret-keys > /dev/null; echo export-default=$$?
-               |for f in intel-avx512 intel-vaes-vpclmul intel-gfni intel-avx2 intel-bmi2 intel-fast-shld; do
-               |  gpgconf --homedir $$H --kill gpg-agent
-               |  sudo -n mkdir -p /etc/gcrypt; echo $$f | sudo -n tee -a /etc/gcrypt/hwf.deny >/dev/null
-               |  gpg --homedir $$H --batch --pinentry-mode loopback --export-secret-keys > /dev/null 2>&1; echo deny-upto-$$f=$$?
-               |done
-               |sudo -n rm -f /etc/gcrypt/hwf.deny; gpgconf --homedir $$H --kill gpg-agent; rm -rf $$H""".stripMargin
+          def report(tag: String, h: os.Path, r: os.CommandResult): Unit = {
+            println(s"DIAG $tag export=${r.exitCode} bytes=${r.out.bytes.length}\n${r.err.text()}")
+            os.proc("gpgconf", "--homedir", h.toString, "--kill", "gpg-agent").call(env = env, check = false)
+            Thread.sleep(500)
+            if os.exists(h / "agent.log") then
+              println(
+                s"DIAG $tag agent.log (${os.read.lines(h / os.RelPath("agent.log")).size} lines):\n" +
+                  os.read.lines(h / "agent.log").filter(l =>
+                    l.contains("rror") || l.contains("onvert") || l.contains("EXPORT") || l.contains("Bad") ||
+                      l.contains("INQUIRE") || l.contains("testkey") || l.contains("check")
+                  ).take(60).mkString("\n") +
+                  (if r.exitCode != 0 || r.err.text().nonEmpty then
+                     "\nTAIL:\n" + os.read.lines(h / os.RelPath("agent.log")).takeRight(90).mkString("\n")
+                   else "")
+              )
+          }
+          // E1: both steps from the JVM, exactly like the test.
+          val h1 = fresh("1")
+          run(gpgIn(h1, "--import", "--no-tty"), armored)
+          report("E1 jvm-import jvm-export", h1, run(gpgIn(h1, "--export-secret-keys")))
+          // E2: import from sh, export from the JVM.
+          val h2 = fresh("2")
+          run(Seq("sh", "-c", (gpgIn(h2, "--import", "--no-tty") :+ "<" :+ s"${tempHome}/key.asc").mkString(" ")))
+          report("E2 sh-import jvm-export", h2, run(gpgIn(h2, "--export-secret-keys")))
+          // E3: import from the JVM, export from sh.
+          val h3 = fresh("3")
+          run(gpgIn(h3, "--import", "--no-tty"), armored)
+          report(
+            "E3 jvm-import sh-export",
+            h3,
+            run(Seq("sh", "-c", (gpgIn(h3, "--export-secret-keys") :+ "|" :+ "cat").mkString(" ")))
           )
-          diag(
-            "gpg-connect-agent",
-            "--homedir",
-            tempHome.toString,
-            "getinfo version",
-            "getinfo pid",
-            "keyinfo --list",
-            "/bye"
-          )
+          // E4: import from the JVM with the key file as stdin.
+          val h4 = fresh("4")
+          run(gpgIn(h4, "--import", "--no-tty"), tempHome / "key.asc")
+          report("E4 jvm-file-import jvm-export", h4, run(gpgIn(h4, "--export-secret-keys")))
+          List(h1, h2, h3, h4).foreach(os.remove.all(_))
 
           val exported = os
             .proc(
