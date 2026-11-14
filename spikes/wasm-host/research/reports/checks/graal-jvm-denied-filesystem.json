@@ -1,0 +1,79 @@
+{
+  "configuration": "graal-jvm",
+  "scope": "synthetic byte callbacks",
+  "name": "graal-jvm-denied-filesystem",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/host",
+    "probe",
+    "--guest",
+    "WORKSPACE/out/spikes/wasm-host/tools/fixtures.dest/denied-filesystem.wasm"
+  ],
+  "exit": 1,
+  "elapsedNanos": 340640000,
+  "startNanos": 670379147050666,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [
+    {
+      "phase": "parent-ready",
+      "cycle": 0,
+      "pid": "6184",
+      "nanoTime": "670379457723000",
+      "heapUsedBytes": 22123320,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "load-start",
+      "cycle": 1,
+      "pid": "6184",
+      "nanoTime": "670379460363375",
+      "heapUsedBytes": 22570104,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    }
+  ],
+  "stdout": "graal-jvm-denied-filesystem.stdout.json",
+  "stderr": "graal-jvm-denied-filesystem.stderr.jsonl",
+  "guestSha256": "71c5dfa17b29b5c26ce3ff0ab334f680c082cb1f99955e370e1599dc112b0229",
+  "startupToFirstResultNanos": null
+}

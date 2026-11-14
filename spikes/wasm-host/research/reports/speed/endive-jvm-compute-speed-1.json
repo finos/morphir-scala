@@ -1,0 +1,253 @@
+{
+  "configuration": "endive-jvm",
+  "scope": "synthetic byte callbacks",
+  "name": "endive-jvm-compute-speed-1",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/endive-jvm/host",
+    "probe",
+    "--guest",
+    "WORKSPACE/out/spikes/wasm-host/tools/fixtures.dest/benchmark-compute.wasm",
+    "--requests",
+    "100",
+    "--warmup",
+    "20",
+    "--idle-ms",
+    "0"
+  ],
+  "exit": 0,
+  "elapsedNanos": 1096698291,
+  "startNanos": 673031420915250,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [
+    {
+      "phase": "parent-ready",
+      "cycle": 0,
+      "pid": "80479",
+      "nanoTime": "673031720284208",
+      "heapUsedBytes": 7566176,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "load-start",
+      "cycle": 1,
+      "pid": "80479",
+      "nanoTime": "673031722871208",
+      "heapUsedBytes": 9279320,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "first-result",
+      "cycle": 1,
+      "pid": "80479",
+      "nanoTime": "673031802388000",
+      "heapUsedBytes": 22917000,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "loaded-idle",
+      "cycle": 1,
+      "pid": "80479",
+      "nanoTime": "673031802649916",
+      "heapUsedBytes": 22917000,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "warmup",
+      "cycle": 1,
+      "pid": "80479",
+      "nanoTime": "673031802813625",
+      "heapUsedBytes": 22917000,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "calls",
+      "cycle": 1,
+      "pid": "80479",
+      "nanoTime": "673031948189083",
+      "heapUsedBytes": 94471784,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "calls-complete",
+      "cycle": 1,
+      "pid": "80479",
+      "nanoTime": "673032499602083",
+      "heapUsedBytes": 178589640,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 2,
+          "elapsedMillis": 3
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "closed",
+      "cycle": 1,
+      "pid": "80479",
+      "nanoTime": "673032499923208",
+      "heapUsedBytes": 178589640,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 2,
+          "elapsedMillis": 3
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    }
+  ],
+  "stdout": "endive-jvm-compute-speed-1.stdout.json",
+  "stderr": "endive-jvm-compute-speed-1.stderr.jsonl",
+  "guestSha256": "24c4886ccf2e48b03d9dc18f8b3a6584a27f1ff3081222518da19ce83c5eef69",
+  "startupToFirstResultNanos": 381472750
+}

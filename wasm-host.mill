@@ -1,0 +1,277 @@
+package build
+
+import mill.*, mill.scalalib.*
+
+/** Unpublished Wasm spike executables retain dependency JARs for Polyglot and FFM metadata. */
+trait WasmHostExecutable extends build.WasmHostModule with mill.javalib.NativeImageModule {
+  override def nativeImageOptions = Task {
+    Seq("--no-fallback", "-march=compatibility", "--enable-native-access=ALL-UNNAMED")
+  }
+
+  override def forkArgs = Task { super.forkArgs() ++ Seq("--enable-native-access=ALL-UNNAMED") }
+}
+
+trait WasmPolyglotExecutable extends build.WasmHostExecutable {
+  override def javaHome    = Task { Some(build.spikes.`wasm-host`.tools.polyglotRuntime()) }
+  def polyglotProofSources = Task.Sources(
+    mill.api.BuildCtx.workspaceRoot / "spikes" / "wasm-host" / "polyglot" / "fixtures"
+  )
+  def polyglotConfiguration = Task {
+    val classpath  = runClasspath()
+    val executable = nativeImage()
+    val compiler   = build.spikes.`wasm-host`.tools.polyglotCompiler()
+    val sources    = polyglotProofSources().head.path
+    val configs    = Seq("jvm", "native").map { target =>
+      ujson.Obj(
+        "id"         -> s"polyglot-$target",
+        "backend"    -> "graal-polyglot-compiler",
+        "target"     -> target,
+        "classpath"  -> ujson.Arr.from(classpath.map(_.path.toString)),
+        "executable" -> executable.path.toString,
+        "mainClass"  -> mainClass().get
+      )
+    }
+    os.write(
+      Task.dest / "inputs.json",
+      ujson.Obj(
+        "javaHome"       -> javaHome().get.path.toString,
+        "nativeRuntime"  -> compiler.path.toString,
+        "fixtures"       -> sources.toString,
+        "guests"         -> compiler.path.toString,
+        "compilerBundle" -> (compiler.path / "bundle").toString,
+        "proofSources"   -> sources.toString,
+        "configurations" -> ujson.Arr.from(configs)
+      ).render(indent = 2)
+    )
+    PathRef(Task.dest / "inputs.json")
+  }
+  def polyglotEvidence = Task {
+    os.proc(build.spikes.`wasm-host`.tools.toolCommand()._1 ++ Seq(
+      "morphir.spikes.wasmhost.tools.PolyglotEvidence",
+      polyglotConfiguration().path.toString,
+      Task.dest.toString
+    )).call()
+    PathRef(Task.dest)
+  }
+}
+
+trait WasmHostTools extends build.WasmHostModule {
+  def polyglotCompiler = Task {
+    os.write(Task.dest / "inputs.json", ujson.Obj("configurations" -> ujson.Arr()).render())
+    os.proc(toolCommand()._1 ++ Seq(
+      "morphir.spikes.wasmhost.tools.MoonbitCompiler",
+      (Task.dest / "inputs.json").toString,
+      Task.dest.toString
+    )).call()
+    PathRef(Task.dest)
+  }
+  def polyglotRuntime = Task {
+    os.proc(toolCommand()._1 ++ Seq("morphir.spikes.wasmhost.tools.PolyglotAssets", Task.dest.toString)).call()
+    PathRef(os.Path(os.read(Task.dest / "java-home.txt").trim))
+  }
+  def configuration = Task {
+    val configurations = Seq(
+      (
+        "endive",
+        "endive",
+        build.spikes.`wasm-host`.endive.runClasspath(),
+        build.spikes.`wasm-host`.endive.nativeImage(),
+        build.spikes.`wasm-host`.endive.mainClass()
+      ),
+      (
+        "graal",
+        "graalwasm",
+        build.spikes.`wasm-host`.graal.runClasspath(),
+        build.spikes.`wasm-host`.graal.nativeImage(),
+        build.spikes.`wasm-host`.graal.mainClass()
+      ),
+      (
+        "ffi",
+        "extism-ffm",
+        build.spikes.`wasm-host`.ffi.runClasspath(),
+        build.spikes.`wasm-host`.ffi.nativeImage(),
+        build.spikes.`wasm-host`.ffi.mainClass()
+      )
+    ).flatMap { (slug, backend, classpath, executable, mainClass) =>
+      Seq("jvm", "native").map { target =>
+        ujson.Obj(
+          "id"                   -> s"$slug-$target",
+          "backend"              -> backend,
+          "target"               -> target,
+          "classpath"            -> ujson.Arr.from(classpath.map(_.path.toString)),
+          "executable"           -> executable.path.toString,
+          "classpathInputHashes" -> ujson.Arr.from(classpath.map(_.hashCode())),
+          "executableInputHash"  -> executable.hashCode(),
+          "nativeBuildLog"       -> (executable.path / os.up / os.up / "nativeImage.log").toString,
+          "mainClass"            -> mainClass.getOrElse(throw new IllegalStateException("missing main class"))
+        )
+      }
+    }
+    os.write(
+      Task.dest / "inputs.json",
+      ujson.Obj(
+        "javaHome"               -> javaHome().get.path.toString,
+        "nativeRuntime"          -> nativeRuntime().path.toString,
+        "nativeRuntimeInputHash" -> nativeRuntime().hashCode(),
+        "fixtureInputHash"       -> fixtures().hashCode(),
+        "guestInputHash"         -> guests().hashCode(),
+        "fixtures"               -> fixtures().path.toString,
+        "guests"                 -> guests().path.toString,
+        "configurations"         -> ujson.Arr.from(configurations)
+      ).render(indent = 2)
+    )
+    PathRef(Task.dest / "inputs.json")
+  }
+
+  def distribution = Task {
+    os.proc(toolCommand()._1 ++ Seq(
+      "morphir.spikes.wasmhost.tools.Distribution",
+      configuration().path.toString,
+      Task.dest.toString
+    )).call()
+    PathRef(Task.dest)
+  }
+
+  def checkpoint = Task {
+    os.proc(toolCommand()._1 ++ Seq(
+      "morphir.spikes.wasmhost.tools.Profile",
+      (distribution().path / "configurations.json").toString,
+      Task.dest.toString
+    )).call()
+    PathRef(Task.dest)
+  }
+
+  def profiles = Task {
+    os.proc(toolCommand()._1 ++ Seq(
+      "morphir.spikes.wasmhost.tools.Profile",
+      (distribution().path / "configurations.json").toString,
+      Task.dest.toString,
+      "full"
+    )).call()
+    PathRef(Task.dest)
+  }
+
+  def checks = Task {
+    os.proc(toolCommand()._1 ++ Seq(
+      "morphir.spikes.wasmhost.tools.Checks",
+      (distribution().path / "configurations.json").toString,
+      Task.dest.toString
+    )).call()
+    PathRef(Task.dest)
+  }
+
+  def moonbitCompiler = Task {
+    os.proc(toolCommand()._1 ++ Seq(
+      "morphir.spikes.wasmhost.tools.MoonbitCompiler",
+      (distribution().path / "configurations.json").toString,
+      Task.dest.toString
+    )).call()
+    PathRef(Task.dest)
+  }
+
+  def benchmarks = Task {
+    os.proc(toolCommand()._1 ++ Seq(
+      "morphir.spikes.wasmhost.tools.Benchmarks",
+      (distribution().path / "configurations.json").toString,
+      fixtures().path.toString,
+      Task.dest.toString
+    )).call()
+    PathRef(Task.dest)
+  }
+
+  def report = Task {
+    os.proc(toolCommand()._1 ++ Seq(
+      "morphir.spikes.wasmhost.tools.Report",
+      distribution().path.toString,
+      profiles().path.toString,
+      Task.dest.toString,
+      qualify().path.toString,
+      mck().path.toString,
+      checks().path.toString,
+      moonbitGuest().path.toString,
+      nativeAbi().path.toString,
+      inspectGuests().path.toString,
+      ffiGeneration().path.toString,
+      nativeRuntime().path.toString,
+      benchmarks().path.toString,
+      moonbitCompiler().path.toString
+    )).call()
+    PathRef(Task.dest)
+  }
+
+  def qualify = Task {
+    os.proc(toolCommand()._1 ++ Seq(
+      "morphir.spikes.wasmhost.tools.Qualification",
+      (distribution().path / "configurations.json").toString,
+      Task.dest.toString
+    )).call()
+    PathRef(Task.dest)
+  }
+
+  def mck = Task {
+    os.proc(toolCommand()._1 ++ Seq(
+      "morphir.spikes.wasmhost.tools.Mck",
+      (distribution().path / "configurations.json").toString,
+      Task.dest.toString
+    )).call()
+    PathRef(Task.dest)
+  }
+
+  def inspectGuests = Task {
+    os.proc(toolCommand()._1 ++ Seq(
+      "morphir.spikes.wasmhost.tools.Inspect",
+      guests().path.toString,
+      Task.dest.toString
+    )).call()
+    PathRef(Task.dest)
+  }
+  def toolCommand = Task {
+    val javaCommand = javaHome().fold("java")(home => (home.path / "bin" / "java").toString)
+    val classpath   = runClasspath()
+    (Seq(javaCommand, "-cp", classpath.map(_.path).mkString(java.io.File.pathSeparator)), classpath)
+  }
+
+  def fixtureSources = Task.Sources(mill.api.BuildCtx.workspaceRoot / "spikes" / "wasm-host" / "fixtures")
+
+  def fixtures = Task {
+    val source = fixtureSources().head.path
+    os.proc(toolCommand()._1 ++
+      Seq("morphir.spikes.wasmhost.tools.Fixtures", source.toString, Task.dest.toString)).call()
+    PathRef(Task.dest)
+  }
+
+  def nativeAbi = Task {
+    val runtime = nativeRuntime().path
+    val source  = fixtureSources().head.path / "layout.c"
+    val binary  = Task.dest / "layout"
+    os.proc("cc", "-std=c11", "-Wall", "-Werror", "-I", runtime, source, "-o", binary).call()
+    val result = os.proc(binary).call().out.text()
+    os.write(Task.dest / "layout.json", result)
+    PathRef(Task.dest)
+  }
+
+  def nativeRuntime = Task {
+    os.proc(toolCommand()._1 ++ Seq("morphir.spikes.wasmhost.tools.Assets", Task.dest.toString)).call()
+    PathRef(Task.dest)
+  }
+
+  def guests = Task {
+    os.proc(toolCommand()._1 ++ Seq("morphir.spikes.wasmhost.tools.Guests", Task.dest.toString)).call()
+    PathRef(Task.dest)
+  }
+
+  def moonbitGuest = Task {
+    os.proc(toolCommand()._1 ++ Seq("morphir.spikes.wasmhost.tools.Moonbit", Task.dest.toString)).call()
+    PathRef(Task.dest)
+  }
+
+  def ffiGeneration = Task {
+    os.proc(toolCommand()._1 ++ Seq(
+      "morphir.spikes.wasmhost.tools.Generate",
+      build.spikes.`wasm-host`.`ffi-api`.compile().classes.path.toString,
+      build.spikes.`wasm-host`.`ffi-api`.runClasspath().map(_.path).mkString(java.io.File.pathSeparator),
+      Task.dest.toString
+    )).call()
+    PathRef(Task.dest)
+  }
+}

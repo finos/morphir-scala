@@ -1,0 +1,5 @@
+{"phase":"context-ready","pid":"10037","nanoTime":"679514857328166","elapsedNanos":"350542","heapUsedBytes":"2408448"}
+{"phase":"runtime-ready","pid":"10037","nanoTime":"679514859524291","elapsedNanos":"2546417","heapUsedBytes":"3457024"}
+{"phase":"compiler-returned","pid":"10037","nanoTime":"679515168714833","elapsedNanos":"311737042","heapUsedBytes":"78938112"}
+{"phase":"first-result","pid":"10037","nanoTime":"679515426938708","elapsedNanos":"569960875","heapUsedBytes":"126812160"}
+{"phase":"closed","pid":"10037","nanoTime":"679515427008416","elapsedNanos":"570030542","heapUsedBytes":"126812160"}

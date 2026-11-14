@@ -1,0 +1,35 @@
+{"phase":"context-ready","pid":"9867","nanoTime":"679506859476750","elapsedNanos":"312958","heapUsedBytes":"2408448"}
+{"phase":"runtime-ready","pid":"9867","nanoTime":"679506861623625","elapsedNanos":"2459875","heapUsedBytes":"3457024"}
+{"phase":"compiler-returned","pid":"9867","nanoTime":"679507165248041","elapsedNanos":"306084375","heapUsedBytes":"71073792"}
+{"phase":"closed","pid":"9867","nanoTime":"679507165648291","elapsedNanos":"306484541","heapUsedBytes":"71073792"}
+Panic(java.lang.IllegalStateException: java.lang.IllegalArgumentException: requirement failed: compiler exited 2)
+Exception in thread "main" java.lang.IllegalStateException: java.lang.IllegalArgumentException: requirement failed: compiler exited 2
+	at kyo.Scope.handle(Unknown Source)
+	at run @ morphir.spikes.wasmhost.polyglot.Main$.Run$.?(Main.scala:29)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at run @ morphir.spikes.wasmhost.polyglot.Main$.Run$.?(Main.scala:29)
+	at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+	at run @ morphir.spikes.wasmhost.polyglot.Main$.Run$.?(Main.scala:29)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at run @ morphir.spikes.wasmhost.polyglot.Main$.Run$.?(Main.scala:29)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at run @ morphir.spikes.wasmhost.polyglot.Main$.Run$.?(Main.scala:29)
+	at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+	at morphir.spikes.wasmhost.polyglot.CompilerProof$.run(Main.scala:265)
+	at morphir.spikes.wasmhost.polyglot.Main$Run$$anon$1.apply(Main.scala:29)
+	at morphir.spikes.wasmhost.polyglot.Main$Run$$anon$1.apply(Main.scala:29)
+	at java.base@25.0.5.0.3/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base@25.0.5.0.3/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base@25.0.5.0.3/java.lang.Thread.run(Thread.java:1474)
+	Suppressed: kyo.kernel.internal.EffectTrace: effect trace:
+at kyo.Scope.handle(Unknown Source)
+at run @ morphir.spikes.wasmhost.polyglot.Main$.Run$.?(Main.scala:29)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at run @ morphir.spikes.wasmhost.polyglot.Main$.Run$.?(Main.scala:29)
+at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+at run @ morphir.spikes.wasmhost.polyglot.Main$.Run$.?(Main.scala:29)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at run @ morphir.spikes.wasmhost.polyglot.Main$.Run$.?(Main.scala:29)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at run @ morphir.spikes.wasmhost.polyglot.Main$.Run$.?(Main.scala:29)
+at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)

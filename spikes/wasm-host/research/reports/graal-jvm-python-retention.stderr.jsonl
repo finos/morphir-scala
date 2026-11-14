@@ -1,0 +1,925 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+{"phase":"parent-ready","cycle":0,"pid":"81884","nanoTime":"669871483479416","heapUsedBytes":12255064,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"workers-started","cycle":1,"pid":"81884","nanoTime":"669871504485125","heapUsedBytes":19231128,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+{"phase":"parent-ready","cycle":0,"pid":"81895","nanoTime":"669871834883875","heapUsedBytes":22916456,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"load-start","cycle":1,"pid":"81895","nanoTime":"669871839709166","heapUsedBytes":23570856,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+Panic(java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound)
+Exception in thread "main" java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound
+	at kyo.Scope.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+	at scala.Predef$.require(Predef.scala:389)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.open(Main.scala:17)
+	at morphir.spikes.wasmhost.Backend.openWithFuel(Guest.scala:22)
+	at morphir.spikes.wasmhost.Backend.openWithFuel$(Guest.scala:16)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.openWithFuel(Main.scala:12)
+	at morphir.spikes.wasmhost.ProbeRun$.sessions$1(HostCli.scala:99)
+	at morphir.spikes.wasmhost.ProbeRun$.execute(HostCli.scala:130)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+	Suppressed: kyo.kernel.internal.EffectTrace: effect trace:
+at kyo.Scope.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+{"phase":"workers-reaped","cycle":1,"pid":"81884","nanoTime":"669871880128458","heapUsedBytes":22370616,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"parent-cleanup-idle","cycle":1,"pid":"81884","nanoTime":"669873881432041","heapUsedBytes":22790064,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"workers-started","cycle":2,"pid":"81884","nanoTime":"669873884935541","heapUsedBytes":22790064,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+{"phase":"parent-ready","cycle":0,"pid":"81937","nanoTime":"669874212823583","heapUsedBytes":20679632,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"load-start","cycle":1,"pid":"81937","nanoTime":"669874216153083","heapUsedBytes":21115848,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+Panic(java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound)
+Exception in thread "main" java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound
+	at kyo.Scope.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+	at scala.Predef$.require(Predef.scala:389)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.open(Main.scala:17)
+	at morphir.spikes.wasmhost.Backend.openWithFuel(Guest.scala:22)
+	at morphir.spikes.wasmhost.Backend.openWithFuel$(Guest.scala:16)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.openWithFuel(Main.scala:12)
+	at morphir.spikes.wasmhost.ProbeRun$.sessions$1(HostCli.scala:99)
+	at morphir.spikes.wasmhost.ProbeRun$.execute(HostCli.scala:130)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+	Suppressed: kyo.kernel.internal.EffectTrace: effect trace:
+at kyo.Scope.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+{"phase":"workers-reaped","cycle":2,"pid":"81884","nanoTime":"669874249452083","heapUsedBytes":22790064,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"parent-cleanup-idle","cycle":2,"pid":"81884","nanoTime":"669876250258000","heapUsedBytes":22790064,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"workers-started","cycle":3,"pid":"81884","nanoTime":"669876252601375","heapUsedBytes":22790064,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+{"phase":"parent-ready","cycle":0,"pid":"81978","nanoTime":"669876535446375","heapUsedBytes":20339792,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"load-start","cycle":1,"pid":"81978","nanoTime":"669876538169583","heapUsedBytes":20786568,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+Panic(java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound)
+Exception in thread "main" java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound
+	at kyo.Scope.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+	at scala.Predef$.require(Predef.scala:389)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.open(Main.scala:17)
+	at morphir.spikes.wasmhost.Backend.openWithFuel(Guest.scala:22)
+	at morphir.spikes.wasmhost.Backend.openWithFuel$(Guest.scala:16)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.openWithFuel(Main.scala:12)
+	at morphir.spikes.wasmhost.ProbeRun$.sessions$1(HostCli.scala:99)
+	at morphir.spikes.wasmhost.ProbeRun$.execute(HostCli.scala:130)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+	Suppressed: kyo.kernel.internal.EffectTrace: effect trace:
+at kyo.Scope.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+{"phase":"workers-reaped","cycle":3,"pid":"81884","nanoTime":"669876565508750","heapUsedBytes":22918696,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"parent-cleanup-idle","cycle":3,"pid":"81884","nanoTime":"669878566417416","heapUsedBytes":22918696,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"workers-started","cycle":4,"pid":"81884","nanoTime":"669878568968750","heapUsedBytes":22918696,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+{"phase":"parent-ready","cycle":0,"pid":"82019","nanoTime":"669878998331166","heapUsedBytes":20978512,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"load-start","cycle":1,"pid":"82019","nanoTime":"669879002750541","heapUsedBytes":21425216,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+Panic(java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound)
+Exception in thread "main" java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound
+	at kyo.Scope.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+	at scala.Predef$.require(Predef.scala:389)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.open(Main.scala:17)
+	at morphir.spikes.wasmhost.Backend.openWithFuel(Guest.scala:22)
+	at morphir.spikes.wasmhost.Backend.openWithFuel$(Guest.scala:16)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.openWithFuel(Main.scala:12)
+	at morphir.spikes.wasmhost.ProbeRun$.sessions$1(HostCli.scala:99)
+	at morphir.spikes.wasmhost.ProbeRun$.execute(HostCli.scala:130)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+	Suppressed: kyo.kernel.internal.EffectTrace: effect trace:
+at kyo.Scope.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+{"phase":"workers-reaped","cycle":4,"pid":"81884","nanoTime":"669879034798250","heapUsedBytes":22918696,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"parent-cleanup-idle","cycle":4,"pid":"81884","nanoTime":"669881035750625","heapUsedBytes":22918696,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"workers-started","cycle":5,"pid":"81884","nanoTime":"669881039118000","heapUsedBytes":22918696,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+{"phase":"parent-ready","cycle":0,"pid":"82062","nanoTime":"669881351627500","heapUsedBytes":20845824,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"load-start","cycle":1,"pid":"82062","nanoTime":"669881354770125","heapUsedBytes":21279312,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+Panic(java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound)
+Exception in thread "main" java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound
+	at kyo.Scope.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+	at scala.Predef$.require(Predef.scala:389)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.open(Main.scala:17)
+	at morphir.spikes.wasmhost.Backend.openWithFuel(Guest.scala:22)
+	at morphir.spikes.wasmhost.Backend.openWithFuel$(Guest.scala:16)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.openWithFuel(Main.scala:12)
+	at morphir.spikes.wasmhost.ProbeRun$.sessions$1(HostCli.scala:99)
+	at morphir.spikes.wasmhost.ProbeRun$.execute(HostCli.scala:130)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+	Suppressed: kyo.kernel.internal.EffectTrace: effect trace:
+at kyo.Scope.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+{"phase":"workers-reaped","cycle":5,"pid":"81884","nanoTime":"669881401973708","heapUsedBytes":22918696,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"parent-cleanup-idle","cycle":5,"pid":"81884","nanoTime":"669883402739333","heapUsedBytes":22918696,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"workers-started","cycle":6,"pid":"81884","nanoTime":"669883407751916","heapUsedBytes":22918696,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+{"phase":"parent-ready","cycle":0,"pid":"82120","nanoTime":"669883693859500","heapUsedBytes":19623888,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"load-start","cycle":1,"pid":"82120","nanoTime":"669883696460125","heapUsedBytes":20147160,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+Panic(java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound)
+Exception in thread "main" java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound
+	at kyo.Scope.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+	at scala.Predef$.require(Predef.scala:389)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.open(Main.scala:17)
+	at morphir.spikes.wasmhost.Backend.openWithFuel(Guest.scala:22)
+	at morphir.spikes.wasmhost.Backend.openWithFuel$(Guest.scala:16)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.openWithFuel(Main.scala:12)
+	at morphir.spikes.wasmhost.ProbeRun$.sessions$1(HostCli.scala:99)
+	at morphir.spikes.wasmhost.ProbeRun$.execute(HostCli.scala:130)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+	Suppressed: kyo.kernel.internal.EffectTrace: effect trace:
+at kyo.Scope.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+{"phase":"workers-reaped","cycle":6,"pid":"81884","nanoTime":"669883720273708","heapUsedBytes":22918696,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"parent-cleanup-idle","cycle":6,"pid":"81884","nanoTime":"669885720995791","heapUsedBytes":22918696,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"workers-started","cycle":7,"pid":"81884","nanoTime":"669885724582083","heapUsedBytes":22918696,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+{"phase":"parent-ready","cycle":0,"pid":"82161","nanoTime":"669886033878750","heapUsedBytes":19578424,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"load-start","cycle":1,"pid":"82161","nanoTime":"669886039377000","heapUsedBytes":20101640,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+Panic(java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound)
+Exception in thread "main" java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound
+	at kyo.Scope.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+	at scala.Predef$.require(Predef.scala:389)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.open(Main.scala:17)
+	at morphir.spikes.wasmhost.Backend.openWithFuel(Guest.scala:22)
+	at morphir.spikes.wasmhost.Backend.openWithFuel$(Guest.scala:16)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.openWithFuel(Main.scala:12)
+	at morphir.spikes.wasmhost.ProbeRun$.sessions$1(HostCli.scala:99)
+	at morphir.spikes.wasmhost.ProbeRun$.execute(HostCli.scala:130)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+	Suppressed: kyo.kernel.internal.EffectTrace: effect trace:
+at kyo.Scope.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+{"phase":"workers-reaped","cycle":7,"pid":"81884","nanoTime":"669886088709250","heapUsedBytes":22918696,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"parent-cleanup-idle","cycle":7,"pid":"81884","nanoTime":"669888090065583","heapUsedBytes":22918696,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"workers-started","cycle":8,"pid":"81884","nanoTime":"669888095829041","heapUsedBytes":22918696,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+{"phase":"parent-ready","cycle":0,"pid":"82216","nanoTime":"669888389722000","heapUsedBytes":22965728,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"load-start","cycle":1,"pid":"82216","nanoTime":"669888393017666","heapUsedBytes":23414912,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+Panic(java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound)
+Exception in thread "main" java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound
+	at kyo.Scope.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+	at scala.Predef$.require(Predef.scala:389)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.open(Main.scala:17)
+	at morphir.spikes.wasmhost.Backend.openWithFuel(Guest.scala:22)
+	at morphir.spikes.wasmhost.Backend.openWithFuel$(Guest.scala:16)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.openWithFuel(Main.scala:12)
+	at morphir.spikes.wasmhost.ProbeRun$.sessions$1(HostCli.scala:99)
+	at morphir.spikes.wasmhost.ProbeRun$.execute(HostCli.scala:130)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+	Suppressed: kyo.kernel.internal.EffectTrace: effect trace:
+at kyo.Scope.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+{"phase":"workers-reaped","cycle":8,"pid":"81884","nanoTime":"669888433480291","heapUsedBytes":22918696,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"parent-cleanup-idle","cycle":8,"pid":"81884","nanoTime":"669890434604583","heapUsedBytes":22918696,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"workers-started","cycle":9,"pid":"81884","nanoTime":"669890437699166","heapUsedBytes":22918696,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+{"phase":"parent-ready","cycle":0,"pid":"82903","nanoTime":"669890750041875","heapUsedBytes":21702264,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"load-start","cycle":1,"pid":"82903","nanoTime":"669890753433416","heapUsedBytes":22130096,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+Panic(java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound)
+Exception in thread "main" java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound
+	at kyo.Scope.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+	at scala.Predef$.require(Predef.scala:389)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.open(Main.scala:17)
+	at morphir.spikes.wasmhost.Backend.openWithFuel(Guest.scala:22)
+	at morphir.spikes.wasmhost.Backend.openWithFuel$(Guest.scala:16)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.openWithFuel(Main.scala:12)
+	at morphir.spikes.wasmhost.ProbeRun$.sessions$1(HostCli.scala:99)
+	at morphir.spikes.wasmhost.ProbeRun$.execute(HostCli.scala:130)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+	Suppressed: kyo.kernel.internal.EffectTrace: effect trace:
+at kyo.Scope.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+{"phase":"workers-reaped","cycle":9,"pid":"81884","nanoTime":"669890800846458","heapUsedBytes":22918696,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"parent-cleanup-idle","cycle":9,"pid":"81884","nanoTime":"669892802142041","heapUsedBytes":22918696,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"workers-started","cycle":10,"pid":"81884","nanoTime":"669892804437708","heapUsedBytes":22918696,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+{"phase":"parent-ready","cycle":0,"pid":"82945","nanoTime":"669893121799416","heapUsedBytes":22956176,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"load-start","cycle":1,"pid":"82945","nanoTime":"669893125200916","heapUsedBytes":23678280,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+Panic(java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound)
+Exception in thread "main" java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound
+	at kyo.Scope.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+	at scala.Predef$.require(Predef.scala:389)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.open(Main.scala:17)
+	at morphir.spikes.wasmhost.Backend.openWithFuel(Guest.scala:22)
+	at morphir.spikes.wasmhost.Backend.openWithFuel$(Guest.scala:16)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.openWithFuel(Main.scala:12)
+	at morphir.spikes.wasmhost.ProbeRun$.sessions$1(HostCli.scala:99)
+	at morphir.spikes.wasmhost.ProbeRun$.execute(HostCli.scala:130)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+	Suppressed: kyo.kernel.internal.EffectTrace: effect trace:
+at kyo.Scope.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+{"phase":"workers-reaped","cycle":10,"pid":"81884","nanoTime":"669893165416083","heapUsedBytes":23637728,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"parent-cleanup-idle","cycle":10,"pid":"81884","nanoTime":"669895166560458","heapUsedBytes":23637728,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"workers-started","cycle":11,"pid":"81884","nanoTime":"669895171657208","heapUsedBytes":23637728,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+{"phase":"parent-ready","cycle":0,"pid":"82986","nanoTime":"669895476514500","heapUsedBytes":22947968,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"load-start","cycle":1,"pid":"82986","nanoTime":"669895479784083","heapUsedBytes":23417896,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+Panic(java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound)
+Exception in thread "main" java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound
+	at kyo.Scope.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+	at scala.Predef$.require(Predef.scala:389)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.open(Main.scala:17)
+	at morphir.spikes.wasmhost.Backend.openWithFuel(Guest.scala:22)
+	at morphir.spikes.wasmhost.Backend.openWithFuel$(Guest.scala:16)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.openWithFuel(Main.scala:12)
+	at morphir.spikes.wasmhost.ProbeRun$.sessions$1(HostCli.scala:99)
+	at morphir.spikes.wasmhost.ProbeRun$.execute(HostCli.scala:130)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+	Suppressed: kyo.kernel.internal.EffectTrace: effect trace:
+at kyo.Scope.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+{"phase":"workers-reaped","cycle":11,"pid":"81884","nanoTime":"669895511134958","heapUsedBytes":23637728,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"parent-cleanup-idle","cycle":11,"pid":"81884","nanoTime":"669897512462375","heapUsedBytes":23637728,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"workers-started","cycle":12,"pid":"81884","nanoTime":"669897515123500","heapUsedBytes":23637728,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+{"phase":"parent-ready","cycle":0,"pid":"83453","nanoTime":"669897830794250","heapUsedBytes":23787240,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"load-start","cycle":1,"pid":"83453","nanoTime":"669897833815166","heapUsedBytes":23787240,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+Panic(java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound)
+Exception in thread "main" java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound
+	at kyo.Scope.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+	at scala.Predef$.require(Predef.scala:389)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.open(Main.scala:17)
+	at morphir.spikes.wasmhost.Backend.openWithFuel(Guest.scala:22)
+	at morphir.spikes.wasmhost.Backend.openWithFuel$(Guest.scala:16)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.openWithFuel(Main.scala:12)
+	at morphir.spikes.wasmhost.ProbeRun$.sessions$1(HostCli.scala:99)
+	at morphir.spikes.wasmhost.ProbeRun$.execute(HostCli.scala:130)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+	Suppressed: kyo.kernel.internal.EffectTrace: effect trace:
+at kyo.Scope.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+{"phase":"workers-reaped","cycle":12,"pid":"81884","nanoTime":"669897877347750","heapUsedBytes":23637728,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"parent-cleanup-idle","cycle":12,"pid":"81884","nanoTime":"669899877906625","heapUsedBytes":23637728,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"workers-started","cycle":13,"pid":"81884","nanoTime":"669899883180000","heapUsedBytes":23637728,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+{"phase":"parent-ready","cycle":0,"pid":"83529","nanoTime":"669900233198833","heapUsedBytes":22634936,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"load-start","cycle":1,"pid":"83529","nanoTime":"669900236488208","heapUsedBytes":22976288,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+Panic(java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound)
+Exception in thread "main" java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound
+	at kyo.Scope.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+	at scala.Predef$.require(Predef.scala:389)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.open(Main.scala:17)
+	at morphir.spikes.wasmhost.Backend.openWithFuel(Guest.scala:22)
+	at morphir.spikes.wasmhost.Backend.openWithFuel$(Guest.scala:16)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.openWithFuel(Main.scala:12)
+	at morphir.spikes.wasmhost.ProbeRun$.sessions$1(HostCli.scala:99)
+	at morphir.spikes.wasmhost.ProbeRun$.execute(HostCli.scala:130)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+	Suppressed: kyo.kernel.internal.EffectTrace: effect trace:
+at kyo.Scope.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+{"phase":"workers-reaped","cycle":13,"pid":"81884","nanoTime":"669900270577791","heapUsedBytes":23637728,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"parent-cleanup-idle","cycle":13,"pid":"81884","nanoTime":"669902271394166","heapUsedBytes":23637728,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"workers-started","cycle":14,"pid":"81884","nanoTime":"669902274143541","heapUsedBytes":23637728,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+{"phase":"parent-ready","cycle":0,"pid":"83574","nanoTime":"669902584083500","heapUsedBytes":22666336,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"load-start","cycle":1,"pid":"83574","nanoTime":"669902587700000","heapUsedBytes":23007720,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+Panic(java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound)
+Exception in thread "main" java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound
+	at kyo.Scope.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+	at scala.Predef$.require(Predef.scala:389)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.open(Main.scala:17)
+	at morphir.spikes.wasmhost.Backend.openWithFuel(Guest.scala:22)
+	at morphir.spikes.wasmhost.Backend.openWithFuel$(Guest.scala:16)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.openWithFuel(Main.scala:12)
+	at morphir.spikes.wasmhost.ProbeRun$.sessions$1(HostCli.scala:99)
+	at morphir.spikes.wasmhost.ProbeRun$.execute(HostCli.scala:130)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+	Suppressed: kyo.kernel.internal.EffectTrace: effect trace:
+at kyo.Scope.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+{"phase":"workers-reaped","cycle":14,"pid":"81884","nanoTime":"669902636388958","heapUsedBytes":23637728,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"parent-cleanup-idle","cycle":14,"pid":"81884","nanoTime":"669904636811416","heapUsedBytes":23637728,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"workers-started","cycle":15,"pid":"81884","nanoTime":"669904640372375","heapUsedBytes":24360856,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+{"phase":"parent-ready","cycle":0,"pid":"83618","nanoTime":"669904992664500","heapUsedBytes":9198496,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"load-start","cycle":1,"pid":"83618","nanoTime":"669904996543875","heapUsedBytes":9683896,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+Panic(java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound)
+Exception in thread "main" java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound
+	at kyo.Scope.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+	at scala.Predef$.require(Predef.scala:389)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.open(Main.scala:17)
+	at morphir.spikes.wasmhost.Backend.openWithFuel(Guest.scala:22)
+	at morphir.spikes.wasmhost.Backend.openWithFuel$(Guest.scala:16)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.openWithFuel(Main.scala:12)
+	at morphir.spikes.wasmhost.ProbeRun$.sessions$1(HostCli.scala:99)
+	at morphir.spikes.wasmhost.ProbeRun$.execute(HostCli.scala:130)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+	Suppressed: kyo.kernel.internal.EffectTrace: effect trace:
+at kyo.Scope.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+{"phase":"workers-reaped","cycle":15,"pid":"81884","nanoTime":"669905029101625","heapUsedBytes":24360856,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"parent-cleanup-idle","cycle":15,"pid":"81884","nanoTime":"669907029757333","heapUsedBytes":24780304,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"workers-started","cycle":16,"pid":"81884","nanoTime":"669907032875166","heapUsedBytes":24780304,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+{"phase":"parent-ready","cycle":0,"pid":"83659","nanoTime":"669907333845750","heapUsedBytes":22647216,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"load-start","cycle":1,"pid":"83659","nanoTime":"669907337271916","heapUsedBytes":22981000,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+Panic(java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound)
+Exception in thread "main" java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound
+	at kyo.Scope.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+	at scala.Predef$.require(Predef.scala:389)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.open(Main.scala:17)
+	at morphir.spikes.wasmhost.Backend.openWithFuel(Guest.scala:22)
+	at morphir.spikes.wasmhost.Backend.openWithFuel$(Guest.scala:16)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.openWithFuel(Main.scala:12)
+	at morphir.spikes.wasmhost.ProbeRun$.sessions$1(HostCli.scala:99)
+	at morphir.spikes.wasmhost.ProbeRun$.execute(HostCli.scala:130)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+	Suppressed: kyo.kernel.internal.EffectTrace: effect trace:
+at kyo.Scope.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+{"phase":"workers-reaped","cycle":16,"pid":"81884","nanoTime":"669907370990791","heapUsedBytes":24780304,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"parent-cleanup-idle","cycle":16,"pid":"81884","nanoTime":"669909371609750","heapUsedBytes":24780304,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"workers-started","cycle":17,"pid":"81884","nanoTime":"669909374629875","heapUsedBytes":24780304,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+{"phase":"parent-ready","cycle":0,"pid":"83700","nanoTime":"669909697758500","heapUsedBytes":22948016,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"load-start","cycle":1,"pid":"83700","nanoTime":"669909701207416","heapUsedBytes":23670840,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+Panic(java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound)
+Exception in thread "main" java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound
+	at kyo.Scope.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+	at scala.Predef$.require(Predef.scala:389)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.open(Main.scala:17)
+	at morphir.spikes.wasmhost.Backend.openWithFuel(Guest.scala:22)
+	at morphir.spikes.wasmhost.Backend.openWithFuel$(Guest.scala:16)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.openWithFuel(Main.scala:12)
+	at morphir.spikes.wasmhost.ProbeRun$.sessions$1(HostCli.scala:99)
+	at morphir.spikes.wasmhost.ProbeRun$.execute(HostCli.scala:130)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+	Suppressed: kyo.kernel.internal.EffectTrace: effect trace:
+at kyo.Scope.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+{"phase":"workers-reaped","cycle":17,"pid":"81884","nanoTime":"669909737339666","heapUsedBytes":25499344,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"parent-cleanup-idle","cycle":17,"pid":"81884","nanoTime":"669911737625708","heapUsedBytes":25499344,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"workers-started","cycle":18,"pid":"81884","nanoTime":"669911742955541","heapUsedBytes":25499344,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+{"phase":"parent-ready","cycle":0,"pid":"83741","nanoTime":"669912065239083","heapUsedBytes":22504784,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"load-start","cycle":1,"pid":"83741","nanoTime":"669912068665208","heapUsedBytes":22951560,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+Panic(java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound)
+Exception in thread "main" java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound
+	at kyo.Scope.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+	at scala.Predef$.require(Predef.scala:389)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.open(Main.scala:17)
+	at morphir.spikes.wasmhost.Backend.openWithFuel(Guest.scala:22)
+	at morphir.spikes.wasmhost.Backend.openWithFuel$(Guest.scala:16)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.openWithFuel(Main.scala:12)
+	at morphir.spikes.wasmhost.ProbeRun$.sessions$1(HostCli.scala:99)
+	at morphir.spikes.wasmhost.ProbeRun$.execute(HostCli.scala:130)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+	Suppressed: kyo.kernel.internal.EffectTrace: effect trace:
+at kyo.Scope.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+{"phase":"workers-reaped","cycle":18,"pid":"81884","nanoTime":"669912104023625","heapUsedBytes":25499344,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"parent-cleanup-idle","cycle":18,"pid":"81884","nanoTime":"669914105297791","heapUsedBytes":25499344,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"workers-started","cycle":19,"pid":"81884","nanoTime":"669914107848291","heapUsedBytes":25499344,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+{"phase":"parent-ready","cycle":0,"pid":"83782","nanoTime":"669914433189541","heapUsedBytes":22706448,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"load-start","cycle":1,"pid":"83782","nanoTime":"669914436682000","heapUsedBytes":23040240,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+Panic(java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound)
+Exception in thread "main" java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound
+	at kyo.Scope.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+	at scala.Predef$.require(Predef.scala:389)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.open(Main.scala:17)
+	at morphir.spikes.wasmhost.Backend.openWithFuel(Guest.scala:22)
+	at morphir.spikes.wasmhost.Backend.openWithFuel$(Guest.scala:16)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.openWithFuel(Main.scala:12)
+	at morphir.spikes.wasmhost.ProbeRun$.sessions$1(HostCli.scala:99)
+	at morphir.spikes.wasmhost.ProbeRun$.execute(HostCli.scala:130)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+	Suppressed: kyo.kernel.internal.EffectTrace: effect trace:
+at kyo.Scope.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+{"phase":"workers-reaped","cycle":19,"pid":"81884","nanoTime":"669914470208333","heapUsedBytes":25499344,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"parent-cleanup-idle","cycle":19,"pid":"81884","nanoTime":"669916471472625","heapUsedBytes":25499344,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"workers-started","cycle":20,"pid":"81884","nanoTime":"669916474141791","heapUsedBytes":25499344,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+{"phase":"parent-ready","cycle":0,"pid":"83824","nanoTime":"669916834133625","heapUsedBytes":22825136,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"load-start","cycle":1,"pid":"83824","nanoTime":"669916837512791","heapUsedBytes":23091488,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+Panic(java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound)
+Exception in thread "main" java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound
+	at kyo.Scope.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+	at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+	at scala.Predef$.require(Predef.scala:389)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.open(Main.scala:17)
+	at morphir.spikes.wasmhost.Backend.openWithFuel(Guest.scala:22)
+	at morphir.spikes.wasmhost.Backend.openWithFuel$(Guest.scala:16)
+	at morphir.spikes.wasmhost.graal.GraalBackend$.openWithFuel(Main.scala:12)
+	at morphir.spikes.wasmhost.ProbeRun$.sessions$1(HostCli.scala:99)
+	at morphir.spikes.wasmhost.ProbeRun$.execute(HostCli.scala:130)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at morphir.spikes.wasmhost.HostCli$$anon$1.apply(HostCli.scala:30)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+	Suppressed: kyo.kernel.internal.EffectTrace: effect trace:
+at kyo.Scope.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Probe$.?(HostCli.scala:30)
+at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+{"phase":"workers-reaped","cycle":20,"pid":"81884","nanoTime":"669916887008708","heapUsedBytes":25499344,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}
+{"phase":"parent-cleanup-idle","cycle":20,"pid":"81884","nanoTime":"669918888323083","heapUsedBytes":25499344,"heapCommittedBytes":612368384,"heapMaxBytes":9663676416,"gc":[{"name":"G1 Young Generation","collections":1,"elapsedMillis":1},{"name":"G1 Concurrent GC","collections":0,"elapsedMillis":0},{"name":"G1 Old Generation","collections":0,"elapsedMillis":0}],"guestLinearMemoryBytes":null,"heapCoverage":"runtime heap only, excludes libextism allocations"}

@@ -1,0 +1,21 @@
+{
+  "configuration": "graal-native",
+  "scope": "synthetic byte callbacks",
+  "name": "graal-native-invalid-parent",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-native/host",
+    "supervise",
+    "--guest",
+    "/missing/guest.wasm"
+  ],
+  "exit": 1,
+  "elapsedNanos": 11023042,
+  "startNanos": 670390110857333,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [],
+  "stdout": "graal-native-invalid-parent.stdout.json",
+  "stderr": "graal-native-invalid-parent.stderr.jsonl",
+  "startupToFirstResultNanos": null
+}

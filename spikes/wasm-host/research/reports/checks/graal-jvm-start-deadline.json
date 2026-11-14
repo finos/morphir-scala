@@ -1,0 +1,197 @@
+{
+  "configuration": "graal-jvm",
+  "scope": "synthetic byte callbacks",
+  "name": "graal-jvm-start-deadline",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/host",
+    "supervise",
+    "--guest",
+    "WORKSPACE/out/spikes/wasm-host/tools/fixtures.dest/runaway-start.wasm",
+    "--timeout-ms",
+    "2000",
+    "--idle-ms",
+    "0",
+    "--quiet-ms",
+    "0"
+  ],
+  "exit": 4,
+  "elapsedNanos": 2575532459,
+  "startNanos": 670384774689166,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [
+    {
+      "phase": "parent-ready",
+      "cycle": 0,
+      "pid": "6233",
+      "nanoTime": "670385090388791",
+      "heapUsedBytes": 13387528,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "workers-started",
+      "cycle": 1,
+      "pid": "6233",
+      "nanoTime": "670385112389083",
+      "heapUsedBytes": 19376496,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "parent-ready",
+      "cycle": 0,
+      "pid": "6237",
+      "nanoTime": "670385429901958",
+      "heapUsedBytes": 13967600,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "load-start",
+      "cycle": 1,
+      "pid": "6237",
+      "nanoTime": "670385432684125",
+      "heapUsedBytes": 14678520,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "workers-reaped",
+      "cycle": 1,
+      "pid": "6233",
+      "nanoTime": "670387343914916",
+      "heapUsedBytes": 22837768,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "parent-cleanup-idle",
+      "cycle": 1,
+      "pid": "6233",
+      "nanoTime": "670387344233250",
+      "heapUsedBytes": 22837768,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    }
+  ],
+  "stdout": "graal-jvm-start-deadline.stdout.json",
+  "stderr": "graal-jvm-start-deadline.stderr.jsonl",
+  "guestSha256": "5f6b8ae67dad3f46028d55bdf7e5caac4f097889a0382e776d124510e7fd193d",
+  "startupToFirstResultNanos": null
+}

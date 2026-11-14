@@ -1,0 +1,24 @@
+{
+  "configuration": "endive-jvm",
+  "scope": "synthetic byte callbacks",
+  "name": "endive-jvm-exit",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/endive-jvm/host",
+    "mep",
+    "--guest",
+    "WORKSPACE/out/spikes/wasm-host/tools/fixtures.dest/exit.wasm",
+    "--input",
+    "WORKSPACE/.dev/.sdlc/scala-wasm-host/out/checks-verified/exit.input.jsonl"
+  ],
+  "exit": 0,
+  "elapsedNanos": 320350625,
+  "startNanos": 671305593584166,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [],
+  "stdout": "endive-jvm-exit.stdout.json",
+  "stderr": "endive-jvm-exit.stderr.jsonl",
+  "guestSha256": "5c58a0d573461f21e8ded0a810f4a3fd7dae1d4bc6f20a88e4836f9cf7300fe5",
+  "startupToFirstResultNanos": null
+}

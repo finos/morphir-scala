@@ -1,0 +1,79 @@
+{
+  "configuration": "endive-jvm",
+  "scope": "synthetic byte callbacks",
+  "name": "endive-jvm-unknown-kernel",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/endive-jvm/host",
+    "probe",
+    "--guest",
+    "WORKSPACE/out/spikes/wasm-host/tools/fixtures.dest/unknown-kernel.wasm"
+  ],
+  "exit": 1,
+  "elapsedNanos": 438936708,
+  "startNanos": 670357310296208,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [
+    {
+      "phase": "parent-ready",
+      "cycle": 0,
+      "pid": "6052",
+      "nanoTime": "670357719802166",
+      "heapUsedBytes": 12578208,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "load-start",
+      "cycle": 1,
+      "pid": "6052",
+      "nanoTime": "670357722760791",
+      "heapUsedBytes": 13008896,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    }
+  ],
+  "stdout": "endive-jvm-unknown-kernel.stdout.json",
+  "stderr": "endive-jvm-unknown-kernel.stderr.jsonl",
+  "guestSha256": "c1f9758271b4d67d932bc285c4e2bac254266b71b5721e49e5694f06e56d5356",
+  "startupToFirstResultNanos": null
+}

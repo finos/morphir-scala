@@ -238,6 +238,17 @@ trait MorphirCommonCrossModule extends CrossPlatformScalaModule with ScalafmtMod
     Seq(Deps.org.`scala-lang`.`scala3-compiler`(selectedScalaVersion))
 }
 
+/** Unpublished JVM experiments use their own directory rather than a cross-platform variant's parent. */
+trait WasmHostModule extends MorphirCommonModule with ScalafmtModule {
+  override def javaHome = Task.Input {
+    val selected = Task.env.get("MORPHIR_WASM_JAVA_HOME").orElse(Task.env.get("JAVA_HOME"))
+      .getOrElse(throw new IllegalArgumentException("Set MORPHIR_WASM_JAVA_HOME to GraalVM 25.0.1"))
+    val home = os.Path(selected)
+    require(os.read(home / "release").contains("JAVA_VERSION=\"25.0.1\""), "Wasm spike requires GraalVM 25.0.1")
+    Some(PathRef(home))
+  }
+}
+
 trait MorphirJVMModule extends MorphirCommonCrossModule {
   def platform = Platform.JVM
 }

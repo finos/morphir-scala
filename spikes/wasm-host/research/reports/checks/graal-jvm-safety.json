@@ -1,0 +1,24 @@
+{
+  "configuration": "graal-jvm",
+  "scope": "synthetic byte callbacks",
+  "name": "graal-jvm-safety",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/host",
+    "safety",
+    "--guest",
+    "WORKSPACE/out/spikes/wasm-host/tools/fixtures.dest/echo.wasm",
+    "--runaway",
+    "WORKSPACE/out/spikes/wasm-host/tools/fixtures.dest/runaway.wasm"
+  ],
+  "exit": 0,
+  "elapsedNanos": 732393333,
+  "startNanos": 670381437683458,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [],
+  "stdout": "graal-jvm-safety.stdout.json",
+  "stderr": "graal-jvm-safety.stderr.jsonl",
+  "guestSha256": "1a952c7c310781962ef3ba7eba3a04b563d78684f5e2cf5aa0b8f8f4236ae4ec",
+  "startupToFirstResultNanos": null
+}

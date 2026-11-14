@@ -1,0 +1,52 @@
+{
+  "release": "v1.41.0",
+  "url": "https://github.com/extism/extism/releases/download/v1.41.0/libextism-aarch64-apple-darwin-v1.41.0.tar.gz",
+  "archiveSha256": "a6b1bcdecea3fcb0bcb20908a992d32e4c1f714683d15771735eaa7ef47d6aae",
+  "files": [
+    {
+      "path": "libextism.tar.gz",
+      "bytes": "32699254",
+      "sha256": "a6b1bcdecea3fcb0bcb20908a992d32e4c1f714683d15771735eaa7ef47d6aae"
+    },
+    {
+      "path": "LICENSE",
+      "bytes": "1457",
+      "sha256": "d01e60805075b591cbecc63b8582788e54e190f699037f1af19fb5294b7a47ab"
+    },
+    {
+      "path": "extism-static.pc.in",
+      "bytes": "275",
+      "sha256": "71b6a214c992feb1f0167a8cf5e53b6eb0351997ef702a3538894237b3eda91a"
+    },
+    {
+      "path": "libextism.a",
+      "bytes": "103609872",
+      "sha256": "9b0bb0c8b8086f23a539b61509d31ddecfe5c31041b15580547da3c6d97c00e0"
+    },
+    {
+      "path": "target.txt",
+      "bytes": "230",
+      "sha256": "492cfbb368e9061f289459ba2cc80cac08496803006eee9151b71ca0fdffc509"
+    },
+    {
+      "path": "extism.h",
+      "bytes": "11013",
+      "sha256": "69a790998bc21a3bbdcbb02dc7d1c4862b62edab60b98139831eacea21e5ca1e"
+    },
+    {
+      "path": "extism.pc.in",
+      "bytes": "274",
+      "sha256": "f87fe65f4cdb4d8c8499e2939670b1f33eefba899b7d05c0275edd7ac18f42ee"
+    },
+    {
+      "path": "libextism.dylib",
+      "bytes": "23826656",
+      "sha256": "6ea6a864e95b3e550675c98f6eb17b43cefe7d815ab6010a24b213762e0c646d"
+    },
+    {
+      "path": "dependencies.txt",
+      "bytes": "484",
+      "sha256": "63eae11371be8f136025d203b567e53429f2c0be097429746a278cff225e05a9"
+    }
+  ]
+}

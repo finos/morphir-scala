@@ -1,0 +1,3 @@
+extends: [build.WasmHostModule]
+mvnDeps: !append
+- io.getkyo::kyo-ffi:1.0.0-RC7

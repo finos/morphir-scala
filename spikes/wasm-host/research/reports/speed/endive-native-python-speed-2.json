@@ -1,0 +1,218 @@
+{
+  "configuration": "endive-native",
+  "scope": "Python legacy MEP compile",
+  "name": "endive-native-python-speed-2",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/endive-native/host",
+    "probe",
+    "--guest",
+    "WORKSPACE/out/spikes/wasm-host/tools/guests.dest/python.wasm",
+    "--requests",
+    "100",
+    "--warmup",
+    "20",
+    "--idle-ms",
+    "0",
+    "--mep",
+    "--guest-kind",
+    "python",
+    "--output-limit",
+    "1048576"
+  ],
+  "exit": 0,
+  "elapsedNanos": 1354014083,
+  "startNanos": 673082118755375,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [
+    {
+      "phase": "parent-ready",
+      "cycle": 0,
+      "pid": "83128",
+      "nanoTime": "673082205890166",
+      "heapUsedBytes": 7156768,
+      "heapCommittedBytes": 30923554816,
+      "heapMaxBytes": 30923554816,
+      "gc": [
+        {
+          "name": "young generation scavenger",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "complete scavenger",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "load-start",
+      "cycle": 1,
+      "pid": "83128",
+      "nanoTime": "673082206169083",
+      "heapUsedBytes": 7156768,
+      "heapCommittedBytes": 30923554816,
+      "heapMaxBytes": 30923554816,
+      "gc": [
+        {
+          "name": "young generation scavenger",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "complete scavenger",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "first-result",
+      "cycle": 1,
+      "pid": "83128",
+      "nanoTime": "673082527066666",
+      "heapUsedBytes": 167029800,
+      "heapCommittedBytes": 30923554816,
+      "heapMaxBytes": 30923554816,
+      "gc": [
+        {
+          "name": "young generation scavenger",
+          "collections": 3,
+          "elapsedMillis": 41
+        },
+        {
+          "name": "complete scavenger",
+          "collections": 4,
+          "elapsedMillis": 131
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "loaded-idle",
+      "cycle": 1,
+      "pid": "83128",
+      "nanoTime": "673082527113125",
+      "heapUsedBytes": 167029800,
+      "heapCommittedBytes": 30923554816,
+      "heapMaxBytes": 30923554816,
+      "gc": [
+        {
+          "name": "young generation scavenger",
+          "collections": 3,
+          "elapsedMillis": 41
+        },
+        {
+          "name": "complete scavenger",
+          "collections": 4,
+          "elapsedMillis": 131
+        }
+      ],
+      "guestLinearMemoryBytes": 2424832,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "warmup",
+      "cycle": 1,
+      "pid": "83128",
+      "nanoTime": "673082527121708",
+      "heapUsedBytes": 167029800,
+      "heapCommittedBytes": 30923554816,
+      "heapMaxBytes": 30923554816,
+      "gc": [
+        {
+          "name": "young generation scavenger",
+          "collections": 3,
+          "elapsedMillis": 41
+        },
+        {
+          "name": "complete scavenger",
+          "collections": 4,
+          "elapsedMillis": 131
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "calls",
+      "cycle": 1,
+      "pid": "83128",
+      "nanoTime": "673082685446708",
+      "heapUsedBytes": 179400504,
+      "heapCommittedBytes": 30923554816,
+      "heapMaxBytes": 30923554816,
+      "gc": [
+        {
+          "name": "young generation scavenger",
+          "collections": 6,
+          "elapsedMillis": 45
+        },
+        {
+          "name": "complete scavenger",
+          "collections": 4,
+          "elapsedMillis": 131
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "calls-complete",
+      "cycle": 1,
+      "pid": "83128",
+      "nanoTime": "673083468135000",
+      "heapUsedBytes": 153710392,
+      "heapCommittedBytes": 30923554816,
+      "heapMaxBytes": 30923554816,
+      "gc": [
+        {
+          "name": "young generation scavenger",
+          "collections": 25,
+          "elapsedMillis": 57
+        },
+        {
+          "name": "complete scavenger",
+          "collections": 4,
+          "elapsedMillis": 131
+        }
+      ],
+      "guestLinearMemoryBytes": 2424832,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "closed",
+      "cycle": 1,
+      "pid": "83128",
+      "nanoTime": "673083468347333",
+      "heapUsedBytes": 153710392,
+      "heapCommittedBytes": 30923554816,
+      "heapMaxBytes": 30923554816,
+      "gc": [
+        {
+          "name": "young generation scavenger",
+          "collections": 25,
+          "elapsedMillis": 57
+        },
+        {
+          "name": "complete scavenger",
+          "collections": 4,
+          "elapsedMillis": 131
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    }
+  ],
+  "stdout": "endive-native-python-speed-2.stdout.json",
+  "stderr": "endive-native-python-speed-2.stderr.jsonl",
+  "guestSha256": "ce0cba07f0395ff8179b42eb021ade05c68197f69b8e9c0c8bc369d2a035727c",
+  "startupToFirstResultNanos": 408311291
+}

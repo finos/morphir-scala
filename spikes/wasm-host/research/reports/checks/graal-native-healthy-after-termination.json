@@ -1,0 +1,207 @@
+{
+  "configuration": "graal-native",
+  "scope": "synthetic byte callbacks",
+  "name": "graal-native-healthy-after-termination",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-native/host",
+    "probe",
+    "--guest",
+    "WORKSPACE/out/spikes/wasm-host/tools/fixtures.dest/echo.wasm"
+  ],
+  "exit": 0,
+  "elapsedNanos": 58864042,
+  "startNanos": 671344827280833,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [
+    {
+      "phase": "parent-ready",
+      "cycle": 0,
+      "pid": "14164",
+      "nanoTime": "671344884371250",
+      "heapUsedBytes": 2359344,
+      "heapCommittedBytes": 30923554816,
+      "heapMaxBytes": 30923554816,
+      "gc": [
+        {
+          "name": "young generation scavenger",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "complete scavenger",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "load-start",
+      "cycle": 1,
+      "pid": "14164",
+      "nanoTime": "671344884440708",
+      "heapUsedBytes": 2359344,
+      "heapCommittedBytes": 30923554816,
+      "heapMaxBytes": 30923554816,
+      "gc": [
+        {
+          "name": "young generation scavenger",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "complete scavenger",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "first-result",
+      "cycle": 1,
+      "pid": "14164",
+      "nanoTime": "671344885026791",
+      "heapUsedBytes": 2359344,
+      "heapCommittedBytes": 30923554816,
+      "heapMaxBytes": 30923554816,
+      "gc": [
+        {
+          "name": "young generation scavenger",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "complete scavenger",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "loaded-idle",
+      "cycle": 1,
+      "pid": "14164",
+      "nanoTime": "671344885036708",
+      "heapUsedBytes": 2359344,
+      "heapCommittedBytes": 30923554816,
+      "heapMaxBytes": 30923554816,
+      "gc": [
+        {
+          "name": "young generation scavenger",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "complete scavenger",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "warmup",
+      "cycle": 1,
+      "pid": "14164",
+      "nanoTime": "671344885041291",
+      "heapUsedBytes": 2359344,
+      "heapCommittedBytes": 30923554816,
+      "heapMaxBytes": 30923554816,
+      "gc": [
+        {
+          "name": "young generation scavenger",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "complete scavenger",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "calls",
+      "cycle": 1,
+      "pid": "14164",
+      "nanoTime": "671344885045791",
+      "heapUsedBytes": 2359344,
+      "heapCommittedBytes": 30923554816,
+      "heapMaxBytes": 30923554816,
+      "gc": [
+        {
+          "name": "young generation scavenger",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "complete scavenger",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "calls-complete",
+      "cycle": 1,
+      "pid": "14164",
+      "nanoTime": "671344885058833",
+      "heapUsedBytes": 2359344,
+      "heapCommittedBytes": 30923554816,
+      "heapMaxBytes": 30923554816,
+      "gc": [
+        {
+          "name": "young generation scavenger",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "complete scavenger",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "closed",
+      "cycle": 1,
+      "pid": "14164",
+      "nanoTime": "671344885080416",
+      "heapUsedBytes": 2359344,
+      "heapCommittedBytes": 30923554816,
+      "heapMaxBytes": 30923554816,
+      "gc": [
+        {
+          "name": "young generation scavenger",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "complete scavenger",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    }
+  ],
+  "stdout": "graal-native-healthy-after-termination.stdout.json",
+  "stderr": "graal-native-healthy-after-termination.stderr.jsonl",
+  "guestSha256": "1a952c7c310781962ef3ba7eba3a04b563d78684f5e2cf5aa0b8f8f4236ae4ec",
+  "startupToFirstResultNanos": 57745958
+}

@@ -1,0 +1,19 @@
+{
+  "configuration": "graal-native",
+  "scope": "synthetic byte callbacks",
+  "name": "graal-native-help",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-native/host",
+    "--help"
+  ],
+  "exit": 0,
+  "elapsedNanos": 13377250,
+  "startNanos": 670390082705583,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [],
+  "stdout": "graal-native-help.stdout.json",
+  "stderr": "graal-native-help.stderr.jsonl",
+  "startupToFirstResultNanos": null
+}

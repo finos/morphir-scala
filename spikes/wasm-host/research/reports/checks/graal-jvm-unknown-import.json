@@ -1,0 +1,79 @@
+{
+  "configuration": "graal-jvm",
+  "scope": "synthetic byte callbacks",
+  "name": "graal-jvm-unknown-import",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/host",
+    "probe",
+    "--guest",
+    "WORKSPACE/out/spikes/wasm-host/tools/fixtures.dest/unknown-import.wasm"
+  ],
+  "exit": 1,
+  "elapsedNanos": 297594000,
+  "startNanos": 670380590709416,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [
+    {
+      "phase": "parent-ready",
+      "cycle": 0,
+      "pid": "6211",
+      "nanoTime": "670380867693458",
+      "heapUsedBytes": 11175280,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "load-start",
+      "cycle": 1,
+      "pid": "6211",
+      "nanoTime": "670380870291166",
+      "heapUsedBytes": 11630336,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    }
+  ],
+  "stdout": "graal-jvm-unknown-import.stdout.json",
+  "stderr": "graal-jvm-unknown-import.stderr.jsonl",
+  "guestSha256": "9f73cda7f352228953e854cd44b11d69d1bf60fc149cbbbf9557f4925372e760",
+  "startupToFirstResultNanos": null
+}

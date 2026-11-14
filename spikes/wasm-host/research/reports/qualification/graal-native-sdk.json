@@ -1,0 +1,10 @@
+{
+  "status": "fail",
+  "error": "java.lang.IllegalArgumentException: requirement failed: guest transport closed before response",
+  "modelTier": "not run",
+  "stderr": "graal-native-sdk.stderr.txt",
+  "configuration": "graal-native",
+  "guest": "sdk",
+  "guestSha256": "f5e1c9cd7a3472b6261c2c3ebfe2c39aeae14da5287dac6cd6ca87ce854901f1",
+  "exchanges": []
+}

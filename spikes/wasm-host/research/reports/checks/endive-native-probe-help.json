@@ -1,0 +1,20 @@
+{
+  "configuration": "endive-native",
+  "scope": "synthetic byte callbacks",
+  "name": "endive-native-probe-help",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/endive-native/host",
+    "probe",
+    "--help"
+  ],
+  "exit": 0,
+  "elapsedNanos": 6845584,
+  "startNanos": 670368118029166,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [],
+  "stdout": "endive-native-probe-help.stdout.json",
+  "stderr": "endive-native-probe-help.stderr.jsonl",
+  "startupToFirstResultNanos": null
+}

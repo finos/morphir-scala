@@ -1,0 +1,20 @@
+{
+  "configuration": "endive-native",
+  "scope": "synthetic byte callbacks",
+  "name": "endive-native-invalid-option",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/endive-native/host",
+    "probe",
+    "--unknown-option"
+  ],
+  "exit": 1,
+  "elapsedNanos": 5755042,
+  "startNanos": 670368125315791,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [],
+  "stdout": "endive-native-invalid-option.stdout.json",
+  "stderr": "endive-native-invalid-option.stderr.jsonl",
+  "startupToFirstResultNanos": null
+}

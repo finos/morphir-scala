@@ -1,5 +1,7 @@
 # Morphir 
 
+> **Exploration branch: Scala as a Morphir Wasm host.** This branch preserves experiments and measured reports and is not intended for direct merge. Start with the [research summary and findings](spikes/wasm-host/research/README.md).
+
 <a href="https://finosfoundation.atlassian.net/wiki/display/FINOS/Active">
     <img src="https://cdn.jsdelivr.net/gh/finos/contrib-toolbox@master/images/badge-active.svg" />
 </a>

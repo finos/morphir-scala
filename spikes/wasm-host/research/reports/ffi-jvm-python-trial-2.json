@@ -1,0 +1,1442 @@
+{
+  "configuration": "ffi-jvm",
+  "scope": "Python legacy MEP compile",
+  "name": "ffi-jvm-python-trial-2",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/ffi-jvm/host",
+    "supervise",
+    "--guest",
+    "WORKSPACE/out/spikes/wasm-host/tools/guests.dest/python.wasm",
+    "--mep",
+    "--guest-kind",
+    "python",
+    "--requests",
+    "100",
+    "--warmup",
+    "10",
+    "--idle-ms",
+    "250",
+    "--quiet-ms",
+    "2000"
+  ],
+  "exit": 0,
+  "elapsedNanos": 3826920250,
+  "startNanos": 670117596687833,
+  "sampleMemory": true,
+  "intervalMs": 50,
+  "samples": [
+    {
+      "elapsedNanos": 2572917,
+      "sampleCostNanos": 3120583,
+      "parentBytes": 2113536,
+      "workerBytes": 0,
+      "aggregateBytes": 2113536,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 2113536
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 60087792,
+      "sampleCostNanos": 4210041,
+      "parentBytes": 152436736,
+      "workerBytes": 0,
+      "aggregateBytes": 152436736,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 152436736
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 119354167,
+      "sampleCostNanos": 4580333,
+      "parentBytes": 208093184,
+      "workerBytes": 0,
+      "aggregateBytes": 208093184,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 208093184
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 178151917,
+      "sampleCostNanos": 4041958,
+      "parentBytes": 233553920,
+      "workerBytes": 0,
+      "aggregateBytes": 233553920,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 233553920
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 235596417,
+      "sampleCostNanos": 4702875,
+      "parentBytes": 255016960,
+      "workerBytes": 0,
+      "aggregateBytes": 255016960,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 255016960
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 295789542,
+      "sampleCostNanos": 4402625,
+      "parentBytes": 271253504,
+      "workerBytes": 0,
+      "aggregateBytes": 271253504,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 271253504
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 354035333,
+      "sampleCostNanos": 17270584,
+      "parentBytes": 272924672,
+      "workerBytes": 151011328,
+      "aggregateBytes": 423936000,
+      "processes": [
+        {
+          "pid": "87548",
+          "role": "worker",
+          "started": "2026-11-10T23:53:53.759Z",
+          "rssBytes": 151011328
+        },
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 272924672
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 425254667,
+      "sampleCostNanos": 17542875,
+      "parentBytes": 273072128,
+      "workerBytes": 206733312,
+      "aggregateBytes": 479805440,
+      "processes": [
+        {
+          "pid": "87548",
+          "role": "worker",
+          "started": "2026-11-10T23:53:53.759Z",
+          "rssBytes": 206733312
+        },
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 273072128
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 496358667,
+      "sampleCostNanos": 17105291,
+      "parentBytes": 273137664,
+      "workerBytes": 231702528,
+      "aggregateBytes": 504840192,
+      "processes": [
+        {
+          "pid": "87548",
+          "role": "worker",
+          "started": "2026-11-10T23:53:53.759Z",
+          "rssBytes": 231702528
+        },
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 273137664
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 566313125,
+      "sampleCostNanos": 19442583,
+      "parentBytes": 198311936,
+      "workerBytes": 260374528,
+      "aggregateBytes": 458686464,
+      "processes": [
+        {
+          "pid": "87548",
+          "role": "worker",
+          "started": "2026-11-10T23:53:53.759Z",
+          "rssBytes": 260374528
+        },
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 198311936
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 636444667,
+      "sampleCostNanos": 16014250,
+      "parentBytes": 198426624,
+      "workerBytes": 274546688,
+      "aggregateBytes": 472973312,
+      "processes": [
+        {
+          "pid": "87548",
+          "role": "worker",
+          "started": "2026-11-10T23:53:53.759Z",
+          "rssBytes": 274546688
+        },
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 198426624
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 707491833,
+      "sampleCostNanos": 15757625,
+      "parentBytes": 198443008,
+      "workerBytes": 274825216,
+      "aggregateBytes": 473268224,
+      "processes": [
+        {
+          "pid": "87548",
+          "role": "worker",
+          "started": "2026-11-10T23:53:53.759Z",
+          "rssBytes": 274825216
+        },
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 198443008
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 774695542,
+      "sampleCostNanos": 14985916,
+      "parentBytes": 198459392,
+      "workerBytes": 274825216,
+      "aggregateBytes": 473284608,
+      "processes": [
+        {
+          "pid": "87548",
+          "role": "worker",
+          "started": "2026-11-10T23:53:53.759Z",
+          "rssBytes": 274825216
+        },
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 198459392
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 844319667,
+      "sampleCostNanos": 16456000,
+      "parentBytes": 198475776,
+      "workerBytes": 203096064,
+      "aggregateBytes": 401571840,
+      "processes": [
+        {
+          "pid": "87548",
+          "role": "worker",
+          "started": "2026-11-10T23:53:53.759Z",
+          "rssBytes": 203096064
+        },
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 198475776
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 915483833,
+      "sampleCostNanos": 17287000,
+      "parentBytes": 198492160,
+      "workerBytes": 261963776,
+      "aggregateBytes": 460455936,
+      "processes": [
+        {
+          "pid": "87548",
+          "role": "worker",
+          "started": "2026-11-10T23:53:53.759Z",
+          "rssBytes": 261963776
+        },
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 198492160
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 988162917,
+      "sampleCostNanos": 16082916,
+      "parentBytes": 198606848,
+      "workerBytes": 370049024,
+      "aggregateBytes": 568655872,
+      "processes": [
+        {
+          "pid": "87548",
+          "role": "worker",
+          "started": "2026-11-10T23:53:53.759Z",
+          "rssBytes": 370049024
+        },
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 198606848
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1059013333,
+      "sampleCostNanos": 15493584,
+      "parentBytes": 198672384,
+      "workerBytes": 370081792,
+      "aggregateBytes": 568754176,
+      "processes": [
+        {
+          "pid": "87548",
+          "role": "worker",
+          "started": "2026-11-10T23:53:53.759Z",
+          "rssBytes": 370081792
+        },
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 198672384
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1126363500,
+      "sampleCostNanos": 15130042,
+      "parentBytes": 198672384,
+      "workerBytes": 334413824,
+      "aggregateBytes": 533086208,
+      "processes": [
+        {
+          "pid": "87548",
+          "role": "worker",
+          "started": "2026-11-10T23:53:53.759Z",
+          "rssBytes": 334413824
+        },
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 198672384
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1195582208,
+      "sampleCostNanos": 15020084,
+      "parentBytes": 198737920,
+      "workerBytes": 334413824,
+      "aggregateBytes": 533151744,
+      "processes": [
+        {
+          "pid": "87548",
+          "role": "worker",
+          "started": "2026-11-10T23:53:53.759Z",
+          "rssBytes": 334413824
+        },
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 198737920
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1266091958,
+      "sampleCostNanos": 16145292,
+      "parentBytes": 198754304,
+      "workerBytes": 373997568,
+      "aggregateBytes": 572751872,
+      "processes": [
+        {
+          "pid": "87548",
+          "role": "worker",
+          "started": "2026-11-10T23:53:53.759Z",
+          "rssBytes": 373997568
+        },
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 198754304
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1336846708,
+      "sampleCostNanos": 15765959,
+      "parentBytes": 198787072,
+      "workerBytes": 373997568,
+      "aggregateBytes": 572784640,
+      "processes": [
+        {
+          "pid": "87548",
+          "role": "worker",
+          "started": "2026-11-10T23:53:53.759Z",
+          "rssBytes": 373997568
+        },
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 198787072
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1407678333,
+      "sampleCostNanos": 15671292,
+      "parentBytes": 198787072,
+      "workerBytes": 338001920,
+      "aggregateBytes": 536788992,
+      "processes": [
+        {
+          "pid": "87548",
+          "role": "worker",
+          "started": "2026-11-10T23:53:53.759Z",
+          "rssBytes": 338001920
+        },
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 198787072
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1477547292,
+      "sampleCostNanos": 15329208,
+      "parentBytes": 198819840,
+      "workerBytes": 338067456,
+      "aggregateBytes": 536887296,
+      "processes": [
+        {
+          "pid": "87548",
+          "role": "worker",
+          "started": "2026-11-10T23:53:53.759Z",
+          "rssBytes": 338067456
+        },
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 198819840
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1547063333,
+      "sampleCostNanos": 15949334,
+      "parentBytes": 198852608,
+      "workerBytes": 325009408,
+      "aggregateBytes": 523862016,
+      "processes": [
+        {
+          "pid": "87548",
+          "role": "worker",
+          "started": "2026-11-10T23:53:53.759Z",
+          "rssBytes": 325009408
+        },
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 198852608
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1618399167,
+      "sampleCostNanos": 15535708,
+      "parentBytes": 198901760,
+      "workerBytes": 325009408,
+      "aggregateBytes": 523911168,
+      "processes": [
+        {
+          "pid": "87548",
+          "role": "worker",
+          "started": "2026-11-10T23:53:53.759Z",
+          "rssBytes": 325009408
+        },
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 198901760
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1686790208,
+      "sampleCostNanos": 15226209,
+      "parentBytes": 198918144,
+      "workerBytes": 325042176,
+      "aggregateBytes": 523960320,
+      "processes": [
+        {
+          "pid": "87548",
+          "role": "worker",
+          "started": "2026-11-10T23:53:53.759Z",
+          "rssBytes": 325042176
+        },
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 198918144
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1753584042,
+      "sampleCostNanos": 15589500,
+      "parentBytes": 199000064,
+      "workerBytes": 325042176,
+      "aggregateBytes": 524042240,
+      "processes": [
+        {
+          "pid": "87548",
+          "role": "worker",
+          "started": "2026-11-10T23:53:53.759Z",
+          "rssBytes": 325042176
+        },
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 199000064
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1824217417,
+      "sampleCostNanos": 3844583,
+      "parentBytes": 199639040,
+      "workerBytes": 0,
+      "aggregateBytes": 199639040,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 199639040
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1883284625,
+      "sampleCostNanos": 3629708,
+      "parentBytes": 199639040,
+      "workerBytes": 0,
+      "aggregateBytes": 199639040,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 199639040
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1941544250,
+      "sampleCostNanos": 3326167,
+      "parentBytes": 200081408,
+      "workerBytes": 0,
+      "aggregateBytes": 200081408,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200081408
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1998326750,
+      "sampleCostNanos": 3014333,
+      "parentBytes": 200097792,
+      "workerBytes": 0,
+      "aggregateBytes": 200097792,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200097792
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2054919958,
+      "sampleCostNanos": 2883500,
+      "parentBytes": 200114176,
+      "workerBytes": 0,
+      "aggregateBytes": 200114176,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200114176
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2113053083,
+      "sampleCostNanos": 3153042,
+      "parentBytes": 200114176,
+      "workerBytes": 0,
+      "aggregateBytes": 200114176,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200114176
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2171265875,
+      "sampleCostNanos": 2968042,
+      "parentBytes": 200114176,
+      "workerBytes": 0,
+      "aggregateBytes": 200114176,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200114176
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2229382708,
+      "sampleCostNanos": 2884209,
+      "parentBytes": 200114176,
+      "workerBytes": 0,
+      "aggregateBytes": 200114176,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200114176
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2287465000,
+      "sampleCostNanos": 2824792,
+      "parentBytes": 200245248,
+      "workerBytes": 0,
+      "aggregateBytes": 200245248,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200245248
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2345306417,
+      "sampleCostNanos": 2755875,
+      "parentBytes": 200261632,
+      "workerBytes": 0,
+      "aggregateBytes": 200261632,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200261632
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2398404375,
+      "sampleCostNanos": 2789625,
+      "parentBytes": 200294400,
+      "workerBytes": 0,
+      "aggregateBytes": 200294400,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200294400
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2456399375,
+      "sampleCostNanos": 2712917,
+      "parentBytes": 200294400,
+      "workerBytes": 0,
+      "aggregateBytes": 200294400,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200294400
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2511147958,
+      "sampleCostNanos": 2637709,
+      "parentBytes": 200294400,
+      "workerBytes": 0,
+      "aggregateBytes": 200294400,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200294400
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2568683542,
+      "sampleCostNanos": 2719166,
+      "parentBytes": 200310784,
+      "workerBytes": 0,
+      "aggregateBytes": 200310784,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200310784
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2626033792,
+      "sampleCostNanos": 2600250,
+      "parentBytes": 200310784,
+      "workerBytes": 0,
+      "aggregateBytes": 200310784,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200310784
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2683485792,
+      "sampleCostNanos": 2646000,
+      "parentBytes": 200327168,
+      "workerBytes": 0,
+      "aggregateBytes": 200327168,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200327168
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2741271292,
+      "sampleCostNanos": 2776166,
+      "parentBytes": 200343552,
+      "workerBytes": 0,
+      "aggregateBytes": 200343552,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200343552
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2798650958,
+      "sampleCostNanos": 2619625,
+      "parentBytes": 200359936,
+      "workerBytes": 0,
+      "aggregateBytes": 200359936,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200359936
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2856368917,
+      "sampleCostNanos": 2704333,
+      "parentBytes": 200359936,
+      "workerBytes": 0,
+      "aggregateBytes": 200359936,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200359936
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2913753125,
+      "sampleCostNanos": 2720750,
+      "parentBytes": 200376320,
+      "workerBytes": 0,
+      "aggregateBytes": 200376320,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200376320
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2967027042,
+      "sampleCostNanos": 2651250,
+      "parentBytes": 200425472,
+      "workerBytes": 0,
+      "aggregateBytes": 200425472,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200425472
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 3024679542,
+      "sampleCostNanos": 2610125,
+      "parentBytes": 200425472,
+      "workerBytes": 0,
+      "aggregateBytes": 200425472,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200425472
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 3082078667,
+      "sampleCostNanos": 2633666,
+      "parentBytes": 200441856,
+      "workerBytes": 0,
+      "aggregateBytes": 200441856,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200441856
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 3139704833,
+      "sampleCostNanos": 2718584,
+      "parentBytes": 200441856,
+      "workerBytes": 0,
+      "aggregateBytes": 200441856,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200441856
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 3193819917,
+      "sampleCostNanos": 2885416,
+      "parentBytes": 200441856,
+      "workerBytes": 0,
+      "aggregateBytes": 200441856,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200441856
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 3251290708,
+      "sampleCostNanos": 3006209,
+      "parentBytes": 200458240,
+      "workerBytes": 0,
+      "aggregateBytes": 200458240,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200458240
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 3305634500,
+      "sampleCostNanos": 2976875,
+      "parentBytes": 200474624,
+      "workerBytes": 0,
+      "aggregateBytes": 200474624,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200474624
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 3359112333,
+      "sampleCostNanos": 4019042,
+      "parentBytes": 200474624,
+      "workerBytes": 0,
+      "aggregateBytes": 200474624,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200474624
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 3413750750,
+      "sampleCostNanos": 3796792,
+      "parentBytes": 200474624,
+      "workerBytes": 0,
+      "aggregateBytes": 200474624,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200474624
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 3472733833,
+      "sampleCostNanos": 3487417,
+      "parentBytes": 200474624,
+      "workerBytes": 0,
+      "aggregateBytes": 200474624,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200474624
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 3531545833,
+      "sampleCostNanos": 3134667,
+      "parentBytes": 200474624,
+      "workerBytes": 0,
+      "aggregateBytes": 200474624,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200474624
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 3589819375,
+      "sampleCostNanos": 3618542,
+      "parentBytes": 200507392,
+      "workerBytes": 0,
+      "aggregateBytes": 200507392,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200507392
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 3648181625,
+      "sampleCostNanos": 2963458,
+      "parentBytes": 200540160,
+      "workerBytes": 0,
+      "aggregateBytes": 200540160,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200540160
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 3706313375,
+      "sampleCostNanos": 2897167,
+      "parentBytes": 200540160,
+      "workerBytes": 0,
+      "aggregateBytes": 200540160,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200540160
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 3762965083,
+      "sampleCostNanos": 2664375,
+      "parentBytes": 200540160,
+      "workerBytes": 0,
+      "aggregateBytes": 200540160,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 200540160
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 3820837875,
+      "sampleCostNanos": 3393583,
+      "parentBytes": 0,
+      "workerBytes": 0,
+      "aggregateBytes": 0,
+      "processes": [
+        {
+          "pid": "87536",
+          "role": "parent",
+          "started": "2026-11-10T23:53:53.458Z",
+          "rssBytes": 0
+        }
+      ]
+    }
+  ],
+  "phases": [
+    {
+      "phase": "parent-ready",
+      "cycle": 0,
+      "pid": "87536",
+      "nanoTime": "670117878416958",
+      "heapUsedBytes": 12572784,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "workers-started",
+      "cycle": 1,
+      "pid": "87536",
+      "nanoTime": "670117902347500",
+      "heapUsedBytes": 17830536,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "parent-ready",
+      "cycle": 0,
+      "pid": "87548",
+      "nanoTime": "670118193657000",
+      "heapUsedBytes": 20780824,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "load-start",
+      "cycle": 1,
+      "pid": "87548",
+      "nanoTime": "670118447714750",
+      "heapUsedBytes": 22066448,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "first-result",
+      "cycle": 1,
+      "pid": "87548",
+      "nanoTime": "670118566409458",
+      "heapUsedBytes": 131344568,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "loaded-idle",
+      "cycle": 1,
+      "pid": "87548",
+      "nanoTime": "670118566616333",
+      "heapUsedBytes": 131344568,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "warmup",
+      "cycle": 1,
+      "pid": "87548",
+      "nanoTime": "670118817395000",
+      "heapUsedBytes": 131344568,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "calls",
+      "cycle": 1,
+      "pid": "87548",
+      "nanoTime": "670118826844458",
+      "heapUsedBytes": 132313384,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "calls-complete",
+      "cycle": 1,
+      "pid": "87548",
+      "nanoTime": "670118862151000",
+      "heapUsedBytes": 136606624,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "closed",
+      "cycle": 1,
+      "pid": "87548",
+      "nanoTime": "670119118591500",
+      "heapUsedBytes": 137037032,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "workers-reaped",
+      "cycle": 1,
+      "pid": "87536",
+      "nanoTime": "670119408935416",
+      "heapUsedBytes": 21566344,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "parent-cleanup-idle",
+      "cycle": 1,
+      "pid": "87536",
+      "nanoTime": "670121410512500",
+      "heapUsedBytes": 21985792,
+      "heapCommittedBytes": 612368384,
+      "heapMaxBytes": 9663676416,
+      "gc": [
+        {
+          "name": "G1 Young Generation",
+          "collections": 1,
+          "elapsedMillis": 1
+        },
+        {
+          "name": "G1 Concurrent GC",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "G1 Old Generation",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    }
+  ],
+  "stdout": "ffi-jvm-python-trial-2.stdout.json",
+  "stderr": "ffi-jvm-python-trial-2.stderr.jsonl",
+  "guestSha256": "ce0cba07f0395ff8179b42eb021ade05c68197f69b8e9c0c8bc369d2a035727c",
+  "startupToFirstResultNanos": 969721625
+}

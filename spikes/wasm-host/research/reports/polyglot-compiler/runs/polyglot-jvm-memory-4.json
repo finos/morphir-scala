@@ -1,0 +1,1394 @@
+{
+  "configuration": "polyglot-jvm",
+  "scope": "isolated polyglot MoonBit compiler proof; one process, no worker",
+  "name": "polyglot-jvm-memory-4",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/polyglot/polyglotEvidence.dest/distribution/polyglot-jvm/host",
+    "run",
+    "--bundle",
+    "WORKSPACE/out/spikes/wasm-host/polyglot/mill-workspace/out/spikes/wasm-host/polyglot/polyglotEvidence.dest/compiler-payload/bundle",
+    "--workspace",
+    "WORKSPACE/out/spikes/wasm-host/polyglot/mill-workspace/out/spikes/wasm-host/polyglot/polyglotEvidence.dest/runs/polyglot-jvm-memory-4-workspace",
+    "--output",
+    "WORKSPACE/out/spikes/wasm-host/polyglot/mill-workspace/out/spikes/wasm-host/polyglot/polyglotEvidence.dest/runs/polyglot-jvm-memory-4-evidence",
+    "--mode",
+    "compiler",
+    "--unique-imports",
+    "--arguments",
+    "WORKSPACE/spikes/wasm-host/polyglot/fixtures/compile.json",
+    "--verify-wasm",
+    "answer.wasm",
+    "--expected-result",
+    "42",
+    "--hold-ms",
+    "200"
+  ],
+  "exit": 0,
+  "elapsedNanos": 2964096667,
+  "startNanos": 679498377244708,
+  "sampleMemory": true,
+  "intervalMs": 50,
+  "samples": [
+    {
+      "elapsedNanos": 2471667,
+      "sampleCostNanos": 3128875,
+      "parentBytes": 2113536,
+      "workerBytes": 0,
+      "aggregateBytes": 2113536,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 2113536
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 57999542,
+      "sampleCostNanos": 4191583,
+      "parentBytes": 153108480,
+      "workerBytes": 0,
+      "aggregateBytes": 153108480,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 153108480
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 118327292,
+      "sampleCostNanos": 4277458,
+      "parentBytes": 200392704,
+      "workerBytes": 0,
+      "aggregateBytes": 200392704,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 200392704
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 174075542,
+      "sampleCostNanos": 4598083,
+      "parentBytes": 218775552,
+      "workerBytes": 0,
+      "aggregateBytes": 218775552,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 218775552
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 229988083,
+      "sampleCostNanos": 3842959,
+      "parentBytes": 246005760,
+      "workerBytes": 0,
+      "aggregateBytes": 246005760,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 246005760
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 285114167,
+      "sampleCostNanos": 4356208,
+      "parentBytes": 265240576,
+      "workerBytes": 0,
+      "aggregateBytes": 265240576,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 265240576
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 340192708,
+      "sampleCostNanos": 4047292,
+      "parentBytes": 276103168,
+      "workerBytes": 0,
+      "aggregateBytes": 276103168,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 276103168
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 396307167,
+      "sampleCostNanos": 4489666,
+      "parentBytes": 288473088,
+      "workerBytes": 0,
+      "aggregateBytes": 288473088,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 288473088
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 461269250,
+      "sampleCostNanos": 3448542,
+      "parentBytes": 268075008,
+      "workerBytes": 0,
+      "aggregateBytes": 268075008,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 268075008
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 524519375,
+      "sampleCostNanos": 3414500,
+      "parentBytes": 268107776,
+      "workerBytes": 0,
+      "aggregateBytes": 268107776,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 268107776
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 587112708,
+      "sampleCostNanos": 3444042,
+      "parentBytes": 268107776,
+      "workerBytes": 0,
+      "aggregateBytes": 268107776,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 268107776
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 645552833,
+      "sampleCostNanos": 4221584,
+      "parentBytes": 286703616,
+      "workerBytes": 0,
+      "aggregateBytes": 286703616,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 286703616
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 703242833,
+      "sampleCostNanos": 4664417,
+      "parentBytes": 310755328,
+      "workerBytes": 0,
+      "aggregateBytes": 310755328,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 310755328
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 766942583,
+      "sampleCostNanos": 4639417,
+      "parentBytes": 329547776,
+      "workerBytes": 0,
+      "aggregateBytes": 329547776,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 329547776
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 824697833,
+      "sampleCostNanos": 4462292,
+      "parentBytes": 338247680,
+      "workerBytes": 0,
+      "aggregateBytes": 338247680,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 338247680
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 880298250,
+      "sampleCostNanos": 3768083,
+      "parentBytes": 339623936,
+      "workerBytes": 0,
+      "aggregateBytes": 339623936,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 339623936
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 942325167,
+      "sampleCostNanos": 3811583,
+      "parentBytes": 339623936,
+      "workerBytes": 0,
+      "aggregateBytes": 339623936,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 339623936
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1001555708,
+      "sampleCostNanos": 3424667,
+      "parentBytes": 306872320,
+      "workerBytes": 0,
+      "aggregateBytes": 306872320,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 306872320
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1064428083,
+      "sampleCostNanos": 4959250,
+      "parentBytes": 278446080,
+      "workerBytes": 0,
+      "aggregateBytes": 278446080,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 278446080
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1130055375,
+      "sampleCostNanos": 4091417,
+      "parentBytes": 409337856,
+      "workerBytes": 0,
+      "aggregateBytes": 409337856,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 409337856
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1194816958,
+      "sampleCostNanos": 4751834,
+      "parentBytes": 425312256,
+      "workerBytes": 0,
+      "aggregateBytes": 425312256,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 425312256
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1255822667,
+      "sampleCostNanos": 6856500,
+      "parentBytes": 552222720,
+      "workerBytes": 0,
+      "aggregateBytes": 552222720,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 552222720
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1318648917,
+      "sampleCostNanos": 7129166,
+      "parentBytes": 641351680,
+      "workerBytes": 0,
+      "aggregateBytes": 641351680,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 641351680
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1386286083,
+      "sampleCostNanos": 4904917,
+      "parentBytes": 667664384,
+      "workerBytes": 0,
+      "aggregateBytes": 667664384,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 667664384
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1447015250,
+      "sampleCostNanos": 5018250,
+      "parentBytes": 716029952,
+      "workerBytes": 0,
+      "aggregateBytes": 716029952,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 716029952
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1512137458,
+      "sampleCostNanos": 4952542,
+      "parentBytes": 750108672,
+      "workerBytes": 0,
+      "aggregateBytes": 750108672,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 750108672
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1576880750,
+      "sampleCostNanos": 4915042,
+      "parentBytes": 780959744,
+      "workerBytes": 0,
+      "aggregateBytes": 780959744,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 780959744
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1634929750,
+      "sampleCostNanos": 6347833,
+      "parentBytes": 813629440,
+      "workerBytes": 0,
+      "aggregateBytes": 813629440,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 813629440
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1701999917,
+      "sampleCostNanos": 5381208,
+      "parentBytes": 843759616,
+      "workerBytes": 0,
+      "aggregateBytes": 843759616,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 843759616
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1763924500,
+      "sampleCostNanos": 5299333,
+      "parentBytes": 875036672,
+      "workerBytes": 0,
+      "aggregateBytes": 875036672,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 875036672
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1825020667,
+      "sampleCostNanos": 4466583,
+      "parentBytes": 902660096,
+      "workerBytes": 0,
+      "aggregateBytes": 902660096,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 902660096
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1883418000,
+      "sampleCostNanos": 7054083,
+      "parentBytes": 907984896,
+      "workerBytes": 0,
+      "aggregateBytes": 907984896,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 907984896
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 1951484875,
+      "sampleCostNanos": 18074208,
+      "parentBytes": 930283520,
+      "workerBytes": 0,
+      "aggregateBytes": 930283520,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 930283520
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2025521958,
+      "sampleCostNanos": 5352042,
+      "parentBytes": 986398720,
+      "workerBytes": 0,
+      "aggregateBytes": 986398720,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 986398720
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2089049833,
+      "sampleCostNanos": 5515167,
+      "parentBytes": 980008960,
+      "workerBytes": 0,
+      "aggregateBytes": 980008960,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 980008960
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2151042542,
+      "sampleCostNanos": 4903583,
+      "parentBytes": 992690176,
+      "workerBytes": 0,
+      "aggregateBytes": 992690176,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 992690176
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2215433458,
+      "sampleCostNanos": 4269375,
+      "parentBytes": 996818944,
+      "workerBytes": 0,
+      "aggregateBytes": 996818944,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 996818944
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2280288792,
+      "sampleCostNanos": 4138041,
+      "parentBytes": 997064704,
+      "workerBytes": 0,
+      "aggregateBytes": 997064704,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 997064704
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2342078792,
+      "sampleCostNanos": 4084166,
+      "parentBytes": 897335296,
+      "workerBytes": 0,
+      "aggregateBytes": 897335296,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 897335296
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2397339250,
+      "sampleCostNanos": 5143625,
+      "parentBytes": 920649728,
+      "workerBytes": 0,
+      "aggregateBytes": 920649728,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 920649728
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2463125250,
+      "sampleCostNanos": 4269625,
+      "parentBytes": 978124800,
+      "workerBytes": 0,
+      "aggregateBytes": 978124800,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 978124800
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2527570292,
+      "sampleCostNanos": 4882166,
+      "parentBytes": 985759744,
+      "workerBytes": 0,
+      "aggregateBytes": 985759744,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 985759744
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2592739292,
+      "sampleCostNanos": 3713416,
+      "parentBytes": 987971584,
+      "workerBytes": 0,
+      "aggregateBytes": 987971584,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 987971584
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2653525500,
+      "sampleCostNanos": 3620667,
+      "parentBytes": 987987968,
+      "workerBytes": 0,
+      "aggregateBytes": 987987968,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 987987968
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2709231167,
+      "sampleCostNanos": 3461583,
+      "parentBytes": 987987968,
+      "workerBytes": 0,
+      "aggregateBytes": 987987968,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 987987968
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2770849542,
+      "sampleCostNanos": 3468458,
+      "parentBytes": 928006144,
+      "workerBytes": 0,
+      "aggregateBytes": 928006144,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 928006144
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2833725292,
+      "sampleCostNanos": 3295666,
+      "parentBytes": 928006144,
+      "workerBytes": 0,
+      "aggregateBytes": 928006144,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 928006144
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2895913292,
+      "sampleCostNanos": 3325750,
+      "parentBytes": 928006144,
+      "workerBytes": 0,
+      "aggregateBytes": 928006144,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 928006144
+        }
+      ]
+    },
+    {
+      "elapsedNanos": 2950716917,
+      "sampleCostNanos": 3706041,
+      "parentBytes": 0,
+      "workerBytes": 0,
+      "aggregateBytes": 0,
+      "processes": [
+        {
+          "pid": "9666",
+          "role": "parent",
+          "started": "2026-11-11T02:30:14.309Z",
+          "rssBytes": 0
+        }
+      ]
+    }
+  ],
+  "phases": [
+    {
+      "phase": "context-ready",
+      "pid": "9666",
+      "nanoTime": "679498779036291",
+      "elapsedNanos": "115499667",
+      "heapUsedBytes": "26771528"
+    },
+    {
+      "phase": "runtime-ready",
+      "pid": "9666",
+      "nanoTime": "679499226587500",
+      "elapsedNanos": "563061875",
+      "heapUsedBytes": "23865536"
+    },
+    {
+      "phase": "compiler-returned",
+      "pid": "9666",
+      "nanoTime": "679500554765125",
+      "elapsedNanos": "1891231584",
+      "heapUsedBytes": "126900656"
+    },
+    {
+      "phase": "first-result",
+      "pid": "9666",
+      "nanoTime": "679500908580833",
+      "elapsedNanos": "2245043042",
+      "heapUsedBytes": "149340656"
+    },
+    {
+      "phase": "closed",
+      "pid": "9666",
+      "nanoTime": "679501113404083",
+      "elapsedNanos": "2449866334",
+      "heapUsedBytes": "149486216"
+    }
+  ],
+  "stdout": "polyglot-jvm-memory-4.stdout.json",
+  "stderr": "polyglot-jvm-memory-4.stderr.jsonl",
+  "startupToFirstResultNanos": 2531336125,
+  "receipt": "runs/polyglot-jvm-memory-4-evidence/receipt.json",
+  "expectedPass": true,
+  "compiler": {
+    "status": "pass",
+    "error": "",
+    "mode": "compiler",
+    "uniqueImports": true,
+    "holdMs": 200,
+    "arguments": [
+      "compile",
+      "/workspace/answer.mbt",
+      "-target",
+      "wasm",
+      "-exported_functions",
+      "answer",
+      "-no-intermediate-file",
+      "-o",
+      "/workspace/answer.wasm"
+    ],
+    "graalRelease": "25.5.5.0.3",
+    "javaVersion": "25.0.5.0.3",
+    "target": "jvm",
+    "features": "{\"webassembly\":\"object\",\"tag\":\"function\",\"jsTag\":\"object\",\"textEncoder\":\"function\",\"textDecoder\":\"function\",\"weakRef\":\"function\"}",
+    "provenance": {
+      "runtimeSha256": "2d0f97d09efd39e6afa98405f53260c0d0ce89a6df89250a83bdecbc0f4cf64d",
+      "loaderSha256": "3fcd7b44506ee8b60264a4e4972adafae8f31dedc7e91879d419dd006ef83ec4",
+      "originalModuleSha256": "8e345f26b77901f4cbc7f7c1ee9aff3f68821e38682dd32da39e17e545a2fac2",
+      "adaptedModuleSha256": "f4d99e53466ae53bf52986ed39cc04160816c486e0117d843330b5e6d9f1f147",
+      "nonImportSectionsUnchanged": true,
+      "importAliases": [
+        {
+          "module": "bindings",
+          "name": "ta_get_i32",
+          "alias": "ta_get_i32__polyglot_0",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "ta_get_ui16",
+          "alias": "ta_get_ui16__polyglot_1",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "ta_get_i8",
+          "alias": "ta_get_i8__polyglot_2",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "ta_get_ui8",
+          "alias": "ta_get_ui8__polyglot_3",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "ta_get_i16",
+          "alias": "ta_get_i16__polyglot_4",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "ta_get_f32",
+          "alias": "ta_get_f32__polyglot_5",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "ta_get_f64",
+          "alias": "ta_get_f64__polyglot_6",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "ta_set_i32",
+          "alias": "ta_set_i32__polyglot_7",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "ta_length",
+          "alias": "ta_length__polyglot_8",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "map_set",
+          "alias": "map_set__polyglot_9",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "ta_set_ui16",
+          "alias": "ta_set_ui16__polyglot_10",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "ta_set_f32",
+          "alias": "ta_set_f32__polyglot_11",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "ta_set_f64",
+          "alias": "ta_set_f64__polyglot_12",
+          "kind": 0
+        },
+        {
+          "module": "wasm:text-decoder",
+          "name": "decodeStringFromUTF8Array",
+          "alias": "decodeStringFromUTF8Array__polyglot_13",
+          "kind": 0
+        },
+        {
+          "module": "wasm:js-string",
+          "name": "fromCharCodeArray",
+          "alias": "fromCharCodeArray__polyglot_14",
+          "kind": 0
+        },
+        {
+          "module": "wasm:js-string",
+          "name": "compare",
+          "alias": "compare__polyglot_15",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "new_array",
+          "alias": "new_array__polyglot_16",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "ta_blit_to_string",
+          "alias": "ta_blit_to_string__polyglot_17",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "exit",
+          "alias": "exit__polyglot_18",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "array_set",
+          "alias": "array_set__polyglot_19",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "array_get",
+          "alias": "array_get__polyglot_20",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "array_length",
+          "alias": "array_length__polyglot_21",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "meth_call",
+          "alias": "meth_call__polyglot_22",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "ta_new",
+          "alias": "ta_new__polyglot_23",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "file_size",
+          "alias": "file_size__polyglot_24",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "ta_set_ui8",
+          "alias": "ta_set_ui8__polyglot_25",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "ta_set_i8",
+          "alias": "ta_set_i8__polyglot_26",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "ta_set_i16",
+          "alias": "ta_set_i16__polyglot_27",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "on_windows",
+          "alias": "on_windows__polyglot_28",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "argv",
+          "alias": "argv__polyglot_29",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "read_string_stream",
+          "alias": "read_string_stream__polyglot_30",
+          "kind": 0
+        },
+        {
+          "module": "wasm:js-string",
+          "name": "hash",
+          "alias": "hash__polyglot_31",
+          "kind": 0
+        },
+        {
+          "module": "wasm:js-string",
+          "name": "test",
+          "alias": "test__polyglot_32",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "strict_equals",
+          "alias": "strict_equals__polyglot_33",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "map_delete",
+          "alias": "map_delete__polyglot_34",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "map_get",
+          "alias": "map_get__polyglot_35",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "map_new",
+          "alias": "map_new__polyglot_36",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "ta_set_ui8",
+          "alias": "ta_set_ui8__polyglot_37",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "ta_copy",
+          "alias": "ta_copy__polyglot_38",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "channel_list",
+          "alias": "channel_list__polyglot_39",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "unregister_channel",
+          "alias": "unregister_channel__polyglot_40",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "register_channel",
+          "alias": "register_channel__polyglot_41",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "read",
+          "alias": "read__polyglot_42",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "read",
+          "alias": "read__polyglot_43",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "write",
+          "alias": "write__polyglot_44",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "write",
+          "alias": "write__polyglot_45",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "close",
+          "alias": "close__polyglot_46",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "open",
+          "alias": "open__polyglot_47",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "is_directory",
+          "alias": "is_directory__polyglot_48",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "file_exists",
+          "alias": "file_exists__polyglot_49",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "readdir",
+          "alias": "readdir__polyglot_50",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "mkdir",
+          "alias": "mkdir__polyglot_51",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "getcwd",
+          "alias": "getcwd__polyglot_52",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "identity",
+          "alias": "identity__polyglot_53",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "format_float",
+          "alias": "format_float__polyglot_54",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "equals",
+          "alias": "equals__polyglot_55",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "ta_blit_from_string",
+          "alias": "ta_blit_from_string__polyglot_56",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "ta_subarray",
+          "alias": "ta_subarray__polyglot_57",
+          "kind": 0
+        },
+        {
+          "module": "Math",
+          "name": "fmod",
+          "alias": "fmod__polyglot_58",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "getenv",
+          "alias": "getenv__polyglot_59",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "random_seed",
+          "alias": "random_seed__polyglot_60",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "throw",
+          "alias": "throw__polyglot_61",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "ta_get32_ui8",
+          "alias": "ta_get32_ui8__polyglot_62",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "write",
+          "alias": "write__polyglot_63",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "map_set",
+          "alias": "map_set__polyglot_64",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "map_get",
+          "alias": "map_get__polyglot_65",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "map_new",
+          "alias": "map_new__polyglot_66",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "append_string",
+          "alias": "append_string__polyglot_67",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "write_string",
+          "alias": "write_string__polyglot_68",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "read_string",
+          "alias": "read_string__polyglot_69",
+          "kind": 0
+        },
+        {
+          "module": "wasm:text-encoder",
+          "name": "encodeStringToUTF8Array",
+          "alias": "encodeStringToUTF8Array__polyglot_70",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "ta_create",
+          "alias": "ta_create__polyglot_71",
+          "kind": 0
+        },
+        {
+          "module": "bindings",
+          "name": "jstag",
+          "alias": "jstag__polyglot_72",
+          "kind": 4
+        }
+      ]
+    },
+    "generated": {
+      "answer": 42,
+      "bytes": 173,
+      "sha256": "f9c9acab7a7f78eb5793e69dbb9fc0a7ae60bc034c661079110bcc4dc26c7d55"
+    },
+    "phases": [
+      {
+        "phase": "context-ready",
+        "pid": "9666",
+        "nanoTime": "679498779036291",
+        "elapsedNanos": "115499667",
+        "heapUsedBytes": "26771528"
+      },
+      {
+        "phase": "runtime-ready",
+        "pid": "9666",
+        "nanoTime": "679499226587500",
+        "elapsedNanos": "563061875",
+        "heapUsedBytes": "23865536"
+      },
+      {
+        "phase": "compiler-returned",
+        "pid": "9666",
+        "nanoTime": "679500554765125",
+        "elapsedNanos": "1891231584",
+        "heapUsedBytes": "126900656"
+      },
+      {
+        "phase": "first-result",
+        "pid": "9666",
+        "nanoTime": "679500908580833",
+        "elapsedNanos": "2245043042",
+        "heapUsedBytes": "149340656"
+      },
+      {
+        "phase": "closed",
+        "pid": "9666",
+        "nanoTime": "679501113404083",
+        "elapsedNanos": "2449866334",
+        "heapUsedBytes": "149486216"
+      }
+    ],
+    "fileOperations": [
+      {
+        "operation": "readAll",
+        "arguments": [
+          "/toolchain/moonc.assets/code-172607e03e4760bd9001.wasm"
+        ]
+      },
+      {
+        "operation": "open",
+        "arguments": [
+          "/workspace/answer.mbt",
+          "0"
+        ]
+      },
+      {
+        "operation": "size",
+        "arguments": [
+          "3"
+        ]
+      },
+      {
+        "operation": "read",
+        "arguments": [
+          "3",
+          "Uint8Array(65536)[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ...]",
+          "0",
+          "65536",
+          "null"
+        ]
+      },
+      {
+        "operation": "read",
+        "arguments": [
+          "3",
+          "Uint8Array(65536)[112, 117, 98, 32, 102, 110, 32, 97, 110, 115, 119, 101, 114, 40, 41, 32, 45, 62, 32, 73, ...]",
+          "0",
+          "65536",
+          "null"
+        ]
+      },
+      {
+        "operation": "close",
+        "arguments": [
+          "3"
+        ]
+      },
+      {
+        "operation": "open",
+        "arguments": [
+          "/workspace/answer.wasm",
+          "577"
+        ]
+      },
+      {
+        "operation": "write",
+        "arguments": [
+          "4",
+          "Uint8Array(65536)[0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 127, 2, 1, 0, 3, 2, ...]",
+          "0",
+          "173",
+          "null"
+        ]
+      },
+      {
+        "operation": "close",
+        "arguments": [
+          "4"
+        ]
+      }
+    ],
+    "openFilesAfterClose": 0,
+    "loader": "WORKSPACE/out/spikes/wasm-host/polyglot/polyglotEvidence.dest/compiler-payload/bundle/moonc.js",
+    "authority": "read-only /toolchain and /core, private writable /workspace; no ambient IO, network or subprocesses"
+  }
+}

@@ -1,0 +1,193 @@
+{
+  "contractVersion": "0.1.0-draft.1",
+  "suite": "mep-guest",
+  "profile": "generic-json-library-v1",
+  "corpusSha256": "f16f2a4c577b507527a77a19a383c2c0083b4db1db131cd06d170e65a88598ae",
+  "identity": {
+    "runner": {
+      "name": "morphir",
+      "version": "0.4.0-beta.12",
+      "commit": "d3154e9b9a54162a1409593972ac31c4a369f0ec",
+      "dirty": false
+    },
+    "runnerBinary": {
+      "path": "WORKSPACE/out/spikes/wasm-host/tools/mck.dest/morphir",
+      "sha256": "563b8388fd940488d2c5c6c92e3444574384848460e1149efca289af8e5356f3"
+    },
+    "host": {
+      "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-native/host",
+      "sha256": "49e5868175427be17385d33ddc5ebcbbec41dd57c9d811601c1039cc5b59083b"
+    },
+    "arguments": [
+      {
+        "Unix": [
+          109,
+          101,
+          112
+        ]
+      },
+      {
+        "Unix": [
+          45,
+          45,
+          102,
+          114,
+          97,
+          109,
+          101,
+          100
+        ]
+      },
+      {
+        "Unix": [
+          45,
+          45,
+          103,
+          117,
+          101,
+          115,
+          116
+        ]
+      },
+      {
+        "Unix": [
+          47,
+          85,
+          115,
+          101,
+          114,
+          115,
+          47,
+          100,
+          97,
+          109,
+          105,
+          97,
+          110,
+          47,
+          46,
+          116,
+          51,
+          47,
+          119,
+          111,
+          114,
+          107,
+          116,
+          114,
+          101,
+          101,
+          115,
+          47,
+          109,
+          111,
+          114,
+          112,
+          104,
+          105,
+          114,
+          45,
+          115,
+          99,
+          97,
+          108,
+          97,
+          47,
+          116,
+          51,
+          45,
+          49,
+          51,
+          51,
+          102,
+          52,
+          100,
+          102,
+          100,
+          45,
+          48,
+          48,
+          50,
+          100,
+          50,
+          51,
+          48,
+          54,
+          102,
+          54,
+          101,
+          56,
+          99,
+          55,
+          98,
+          55,
+          47,
+          111,
+          117,
+          116,
+          47,
+          115,
+          112,
+          105,
+          107,
+          101,
+          115,
+          47,
+          119,
+          97,
+          115,
+          109,
+          45,
+          104,
+          111,
+          115,
+          116,
+          47,
+          116,
+          111,
+          111,
+          108,
+          115,
+          47,
+          103,
+          117,
+          101,
+          115,
+          116,
+          115,
+          46,
+          100,
+          101,
+          115,
+          116,
+          47,
+          115,
+          100,
+          107,
+          46,
+          119,
+          97,
+          115,
+          109
+        ]
+      }
+    ],
+    "files": [
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-native/host",
+        "sha256": "49e5868175427be17385d33ddc5ebcbbec41dd57c9d811601c1039cc5b59083b"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/guests.dest/sdk.wasm",
+        "sha256": "f5e1c9cd7a3472b6261c2c3ebfe2c39aeae14da5287dac6cd6ca87ce854901f1"
+      },
+      {
+        "path": "HOME/.local/share/mise/installs/java/oracle-graalvm-25.0.1/bin/java",
+        "sha256": "51d915cedae9922047c0020e1726dc0b5e0995f57bac8ea35ab8c01686b65baf"
+      }
+    ]
+  },
+  "records": [],
+  "error": "adapter exited with code 1; stderr: Panic(java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound)\nException in thread \"main\" java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound\n\tat kyo.Scope.handle(Unknown Source)\n\tat ? @ morphir.spikes.wasmhost.MepWorker$.run(MepWorker.scala:104)\n\tat kyo.Abort[-scala.Any].handle(Unknown Source)\n\tat ? @ morphir.spikes.wasmhost.MepWorker$.run(MepWorker.scala:104)\n\tat kyo.kernel.Bracket$.Finalize.handle(Unknown Source)\n\tat ? @ morphir.spikes.wasmhost.MepWorker$.run(MepWorker.scala:104)\n\tat kyo.Abort[-scala.Any].handle(Unknown Source)\n\tat ? @ morphir.spikes.wasmhost.MepWorker$.run(MepWorker.scala:104)\n\tat kyo.Scope.handle(Unknown Source)\n\tat ? @ morphir.spikes.wasmhost.HostCli.Mep$.?(HostCli.scala:40)\n\tat kyo.Abort[-scala.Any].handle(Unknown Source)\n\tat ? @ morphir.spikes.wasmhost.HostCli.Mep$.?(HostCli.scala:40)\n\tat kyo.kernel.Bracket$.Finalize.handle(Unknown Source)\n\tat ? @ morphir.spikes.wasmhost.HostCli.Mep$.?(HostCli.scala:40)\n\tat kyo.Abort[-scala.Any].handle(Unknown Source)\n\tat ? @ morphir.spikes.wasmhost.HostCli.Mep$.?(HostCli.scala:40)\n\tat kyo.Abort[-scala.Any].handle(Unknown Source)\n\tat ? @ morphir.spikes.wasmhost.HostCli.Mep$.?(HostCli.scala:40)\n\tat (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)\n\tat scala.Predef$.require(Predef.scala:389)\n\tat morphir.spikes.wasmhost.graal.GraalBackend$.open(Main.scala:17)\n\tat morphir.spikes.wasmhost.MepWorker$$anon$3.apply(MepWorker.scala:56)\n\tat morphir.spikes.wasmhost.MepWorker$$anon$3.apply(MepWorker.scala:56)\n\tat java.base@25.0.1/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)\n\tat java.base@25.0.1/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)\n\tat java.base@25.0.1/java.lang.Thread.runWith(Thread.java:1487)\n\tat java.base@25.0.1/java.lang.Thread.run(Thread.java:1474)\n\tat org.graalvm.nativeimage.builder/com.oracle.svm.core.thread.PlatformThreads.threadStartRoutine(PlatformThreads.java:832)\n\tat org.graalvm.nativeimage.builder/com.oracle.svm.core.thread.PlatformThreads.threadStartRoutine(PlatformThreads.java:808)\n\tSuppressed: kyo.kernel.internal.EffectTrace: effect trace:\nat kyo.Scope.handle(Unknown Source)\nat ? @ morphir.spikes.wasmhost.MepWorker$.run(MepWorker.scala:104)\nat kyo.Abort[-scala.Any].handle(Unknown Source)\nat ? @ morphir.spikes.wasmhost.MepWorker$.run(MepWorker.scala:104)\nat kyo.kernel.Bracket$.Finalize.handle(Unknown Source)\nat ? @ morphir.spikes.wasmhost.MepWorker$.run(MepWorker.scala:104)\nat kyo.Abort[-scala.Any].handle(Unknown Source)\nat ? @ morphir.spikes.wasmhost.MepWorker$.run(MepWorker.scala:104)\nat kyo.Scope.handle(Unknown Source)\nat ? @ morphir.spikes.wasmhost.HostCli.Mep$.?(HostCli.scala:40)\nat kyo.Abort[-scala.Any].handle(Unknown Source)\nat ? @ morphir.spikes.wasmhost.HostCli.Mep$.?(HostCli.scala:40)\nat kyo.kernel.Bracket$.Finalize.handle(Unknown Source)\nat ? @ morphir.spikes.wasmhost.HostCli.Mep$.?(HostCli.scala:40)\nat kyo.Abort[-scala.Any].handle(Unknown Source)\nat ? @ morphir.spikes.wasmhost.HostCli.Mep$.?(HostCli.scala:40)\nat kyo.Abort[-scala.Any].handle(Unknown Source)\nat ? @ morphir.spikes.wasmhost.HostCli.Mep$.?(HostCli.scala:40)\nat (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)\n",
+  "qualified": false
+}

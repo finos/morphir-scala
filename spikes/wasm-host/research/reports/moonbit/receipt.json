@@ -1,0 +1,7 @@
+{
+  "sourceRevision": "661e770e7af0d40b0f7cb44909e3d18e6c11b7cf",
+  "toolchain": "moon 0.1.20261023 (3778465 2026-10-23) ~/.moon/bin/moon\nmoonc v0.10.17+d971670cd (2026-10-23) ~/.moon/bin/moonc\nmoonrun 0.1.20261023 (3778465 2026-10-23) ~/.moon/bin/moonrun\n\nFeature flags enabled: rr_moon_mod,rr_moon_pkg\n",
+  "exit": 255,
+  "status": "blocked",
+  "artifacts": []
+}

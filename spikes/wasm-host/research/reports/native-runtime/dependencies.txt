@@ -1,0 +1,4 @@
+WORKSPACE/out/spikes/wasm-host/tools/mill-workspace/out/spikes/wasm-host/tools/nativeRuntime.dest/libextism.dylib:
+	HOME/work/extism/extism/target/aarch64-apple-darwin/release/deps/libextism.dylib (compatibility version 0.0.0, current version 0.0.0)
+	/usr/lib/libiconv.2.dylib (compatibility version 7.0.0, current version 7.0.0)
+	/usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)

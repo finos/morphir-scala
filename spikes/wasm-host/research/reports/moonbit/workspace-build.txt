@@ -1,0 +1,11 @@
+members = [
+  "./pkgs/morphir-execution",
+  "./apps/morphir-extension",
+  "./pkgs/morphir-ir",
+  "./pkgs/morphir-metadata",
+  "./pkgs/morphir-moonbit",
+  "./pkgs/morphir-moonbit-frontend",
+  "./pkgs/morphir-scheme",
+  "./pkgs/morphir-sdk",
+  "./pkgs/morphir-sdk-spec",
+]

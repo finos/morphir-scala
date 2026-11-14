@@ -1,0 +1,21 @@
+{
+  "configuration": "endive-jvm",
+  "scope": "synthetic byte callbacks",
+  "name": "endive-jvm-invalid-parent",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/endive-jvm/host",
+    "supervise",
+    "--guest",
+    "/missing/guest.wasm"
+  ],
+  "exit": 1,
+  "elapsedNanos": 220291166,
+  "startNanos": 670355626770250,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [],
+  "stdout": "endive-jvm-invalid-parent.stdout.json",
+  "stderr": "endive-jvm-invalid-parent.stderr.jsonl",
+  "startupToFirstResultNanos": null
+}

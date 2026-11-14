@@ -1,0 +1,3 @@
+hw.model: Mac17,6
+machdep.cpu.brand_string: Apple M5 Max
+hw.memsize: 38654705664

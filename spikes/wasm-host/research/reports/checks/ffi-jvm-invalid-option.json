@@ -1,0 +1,20 @@
+{
+  "configuration": "ffi-jvm",
+  "scope": "synthetic byte callbacks",
+  "name": "ffi-jvm-invalid-option",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/ffi-jvm/host",
+    "probe",
+    "--unknown-option"
+  ],
+  "exit": 1,
+  "elapsedNanos": 214344250,
+  "startNanos": 670398697730583,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [],
+  "stdout": "ffi-jvm-invalid-option.stdout.json",
+  "stderr": "ffi-jvm-invalid-option.stderr.jsonl",
+  "startupToFirstResultNanos": null
+}

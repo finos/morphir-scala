@@ -1,0 +1,117 @@
+{
+  "status": "fail",
+  "error": "java.lang.IllegalArgumentException: requirement failed: compiler exited 2",
+  "mode": "compiler",
+  "uniqueImports": true,
+  "holdMs": 0,
+  "arguments": [
+    "compile",
+    "/workspace/answer.mbt",
+    "-target",
+    "wasm",
+    "-exported_functions",
+    "answer",
+    "-no-intermediate-file",
+    "-o",
+    "/workspace/answer.wasm"
+  ],
+  "graalRelease": "25.5.5.0.3",
+  "javaVersion": "25.0.5.0.3",
+  "target": "jvm",
+  "features": "{\"webassembly\":\"object\",\"tag\":\"function\",\"jsTag\":\"object\",\"textEncoder\":\"function\",\"textDecoder\":\"function\",\"weakRef\":\"function\"}",
+  "provenance": {
+    "runtimeSha256": "2d0f97d09efd39e6afa98405f53260c0d0ce89a6df89250a83bdecbc0f4cf64d",
+    "loaderSha256": "3fcd7b44506ee8b60264a4e4972adafae8f31dedc7e91879d419dd006ef83ec4"
+  },
+  "generated": null,
+  "phases": [
+    {
+      "phase": "context-ready",
+      "pid": "9181",
+      "nanoTime": "679478747622583",
+      "elapsedNanos": "118031250",
+      "heapUsedBytes": "26823424"
+    },
+    {
+      "phase": "runtime-ready",
+      "pid": "9181",
+      "nanoTime": "679478996312625",
+      "elapsedNanos": "366720833",
+      "heapUsedBytes": "24440840"
+    },
+    {
+      "phase": "compiler-returned",
+      "pid": "9181",
+      "nanoTime": "679479963360000",
+      "elapsedNanos": "1333770500",
+      "heapUsedBytes": "105877120"
+    },
+    {
+      "phase": "closed",
+      "pid": "9181",
+      "nanoTime": "679479968955125",
+      "elapsedNanos": "1339362500",
+      "heapUsedBytes": "105877120"
+    }
+  ],
+  "fileOperations": [
+    {
+      "operation": "readAll",
+      "arguments": [
+        "/toolchain/moonc.assets/code-172607e03e4760bd9001.wasm"
+      ]
+    },
+    {
+      "operation": "open",
+      "arguments": [
+        "/workspace/answer.mbt",
+        "0"
+      ]
+    },
+    {
+      "operation": "size",
+      "arguments": [
+        "3"
+      ]
+    },
+    {
+      "operation": "read",
+      "arguments": [
+        "3",
+        "Uint8Array(65536)[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ...]",
+        "0",
+        "65536",
+        "null"
+      ]
+    },
+    {
+      "operation": "read",
+      "arguments": [
+        "3",
+        "Uint8Array(65536)[112, 117, 98, 32, 102, 110, 32, 97, 110, 115, 119, 101, 114, 40, 32, 45, 62, 32, 73, 110, ...]",
+        "0",
+        "65536",
+        "null"
+      ]
+    },
+    {
+      "operation": "close",
+      "arguments": [
+        "3"
+      ]
+    },
+    {
+      "operation": "write",
+      "arguments": [
+        "2",
+        "Uint8Array(65536)[58, 48, 58, 48, 45, 48, 58, 48, 32, 91, 69, 52, 48, 55, 52, 93, 32, 77, 105, 115, ...]",
+        "0",
+        "240",
+        "null"
+      ]
+    }
+  ],
+  "openFilesAfterClose": 0,
+  "loader": "WORKSPACE/out/spikes/wasm-host/polyglot/polyglotEvidence.dest/compiler-payload/bundle/moonc.js",
+  "authority": "read-only /toolchain and /core, private writable /workspace; no ambient IO, network or subprocesses"
+}

@@ -1,0 +1,5 @@
+moon 0.1.20261023 (3778465 2026-10-23) ~/.moon/bin/moon
+moonc v0.10.17+d971670cd (2026-10-23) ~/.moon/bin/moonc
+moonrun 0.1.20261023 (3778465 2026-10-23) ~/.moon/bin/moonrun
+
+Feature flags enabled: rr_moon_mod,rr_moon_pkg

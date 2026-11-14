@@ -1,0 +1,19 @@
+Usage: [1mwasm-host-graalwasm probe[0m [options]
+
+Help options:
+  [33m--usage[39m            Print usage and exit
+  [33m-h[39m, [33m-help[39m, [33m--help[39m  Print help message and exit
+
+Other options:
+  [33m--guest[39m string         Wasm guest on disk, never bundled in the host
+  [33m--expected-answer[39m int  Expected answer export
+  [33m--requests[39m int         Measured repeated calls per session
+  [33m--warmup[39m int           Warm-up calls, retained in the phase log
+  [33m--cycles[39m int           Open/work/close session cycles
+  [33m--idle-ms[39m int          Quiet interval at observable lifecycle phases
+  [33m--output-limit[39m int     Bound on emitted response bytes
+  [33m--result[39m string        Optional JSON result file
+  [33m--runtime[39m string       Assert this executable's runtime name
+  [33m--mep[39m                  Run the pinned legacy Morphir compile workload
+  [33m--guest-kind[39m string    Morphir fixture kind: sdk or python
+  [33m--fuel[39m long            FFM instruction budget per call; other backends do not meter instructions

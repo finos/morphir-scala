@@ -1,0 +1,7 @@
+Usage: [1mwasm-host-endive[0m <COMMAND>
+
+Commands:
+  [1mprobe[0m
+  [1msupervise[0m
+  [1mmep[0m
+  [1msafety[0m

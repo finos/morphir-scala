@@ -1,0 +1,1234 @@
+[
+  {
+    "guest": "sdk",
+    "sha256": "f5e1c9cd7a3472b6261c2c3ebfe2c39aeae14da5287dac6cd6ca87ce854901f1",
+    "bytes": "752806",
+    "unboundedMemoryDeclaration": true,
+    "imports": [
+      {
+        "module": "extism:host/user",
+        "name": "morphir_get_workspace_info",
+        "kind": 0,
+        "typeIndex": "7"
+      },
+      {
+        "module": "extism:host/env",
+        "name": "length",
+        "kind": 0,
+        "typeIndex": "8"
+      },
+      {
+        "module": "extism:host/env",
+        "name": "free",
+        "kind": 0,
+        "typeIndex": "9"
+      },
+      {
+        "module": "extism:host/user",
+        "name": "morphir_cache_ir",
+        "kind": 0,
+        "typeIndex": "10"
+      },
+      {
+        "module": "extism:host/user",
+        "name": "morphir_get_cached_ir",
+        "kind": 0,
+        "typeIndex": "8"
+      },
+      {
+        "module": "extism:host/env",
+        "name": "get_log_level",
+        "kind": 0,
+        "typeIndex": "11"
+      },
+      {
+        "module": "extism:host/env",
+        "name": "log_info",
+        "kind": 0,
+        "typeIndex": "9"
+      },
+      {
+        "module": "extism:host/user",
+        "name": "morphir_log",
+        "kind": 0,
+        "typeIndex": "10"
+      },
+      {
+        "module": "wasi_snapshot_preview1",
+        "name": "args_sizes_get",
+        "kind": 0,
+        "typeIndex": "3"
+      },
+      {
+        "module": "wasi_snapshot_preview1",
+        "name": "args_get",
+        "kind": 0,
+        "typeIndex": "3"
+      },
+      {
+        "module": "extism:host/env",
+        "name": "input_length",
+        "kind": 0,
+        "typeIndex": "7"
+      },
+      {
+        "module": "extism:host/env",
+        "name": "input_load_u64",
+        "kind": 0,
+        "typeIndex": "8"
+      },
+      {
+        "module": "extism:host/env",
+        "name": "input_load_u8",
+        "kind": 0,
+        "typeIndex": "12"
+      },
+      {
+        "module": "extism:host/env",
+        "name": "error_set",
+        "kind": 0,
+        "typeIndex": "9"
+      },
+      {
+        "module": "extism:host/env",
+        "name": "output_set",
+        "kind": 0,
+        "typeIndex": "10"
+      },
+      {
+        "module": "extism:host/env",
+        "name": "alloc",
+        "kind": 0,
+        "typeIndex": "8"
+      },
+      {
+        "module": "extism:host/env",
+        "name": "store_u64",
+        "kind": 0,
+        "typeIndex": "10"
+      },
+      {
+        "module": "extism:host/env",
+        "name": "store_u8",
+        "kind": 0,
+        "typeIndex": "13"
+      },
+      {
+        "module": "extism:host/env",
+        "name": "load_u64",
+        "kind": 0,
+        "typeIndex": "8"
+      },
+      {
+        "module": "extism:host/env",
+        "name": "load_u8",
+        "kind": 0,
+        "typeIndex": "12"
+      },
+      {
+        "module": "wasi_snapshot_preview1",
+        "name": "random_get",
+        "kind": 0,
+        "typeIndex": "3"
+      },
+      {
+        "module": "wasi_snapshot_preview1",
+        "name": "environ_get",
+        "kind": 0,
+        "typeIndex": "3"
+      },
+      {
+        "module": "wasi_snapshot_preview1",
+        "name": "environ_sizes_get",
+        "kind": 0,
+        "typeIndex": "3"
+      },
+      {
+        "module": "wasi_snapshot_preview1",
+        "name": "clock_time_get",
+        "kind": 0,
+        "typeIndex": "14"
+      },
+      {
+        "module": "wasi_snapshot_preview1",
+        "name": "fd_write",
+        "kind": 0,
+        "typeIndex": "15"
+      },
+      {
+        "module": "wasi_snapshot_preview1",
+        "name": "proc_exit",
+        "kind": 0,
+        "typeIndex": "0"
+      }
+    ],
+    "functionTypes": [
+      {
+        "params": [
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          127,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          127,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [],
+        "results": [
+          126
+        ]
+      },
+      {
+        "params": [
+          126
+        ],
+        "results": [
+          126
+        ]
+      },
+      {
+        "params": [
+          126
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          126,
+          126
+        ],
+        "results": []
+      },
+      {
+        "params": [],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          126
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          126,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          126,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          126,
+          126
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          126,
+          126,
+          127,
+          127
+        ],
+        "results": [
+          126
+        ]
+      },
+      {
+        "params": [],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          126,
+          126
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          126,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          126
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          126,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          127,
+          126
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          124,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          126,
+          126,
+          127
+        ],
+        "results": [
+          126
+        ]
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          126
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          126,
+          126,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          126,
+          126,
+          126,
+          126
+        ],
+        "results": []
+      }
+    ],
+    "exports": [
+      "memory",
+      "handle",
+      "morphir_extension_capabilities",
+      "morphir_extension_info"
+    ]
+  },
+  {
+    "guest": "python",
+    "sha256": "ce0cba07f0395ff8179b42eb021ade05c68197f69b8e9c0c8bc369d2a035727c",
+    "bytes": "4797409",
+    "unboundedMemoryDeclaration": true,
+    "imports": [
+      {
+        "module": "extism:host/env",
+        "name": "alloc",
+        "kind": 0,
+        "typeIndex": "9"
+      },
+      {
+        "module": "extism:host/env",
+        "name": "error_set",
+        "kind": 0,
+        "typeIndex": "10"
+      },
+      {
+        "module": "extism:host/env",
+        "name": "output_set",
+        "kind": 0,
+        "typeIndex": "11"
+      },
+      {
+        "module": "extism:host/env",
+        "name": "input_length",
+        "kind": 0,
+        "typeIndex": "12"
+      },
+      {
+        "module": "extism:host/env",
+        "name": "input_load_u64",
+        "kind": 0,
+        "typeIndex": "9"
+      },
+      {
+        "module": "extism:host/env",
+        "name": "input_load_u8",
+        "kind": 0,
+        "typeIndex": "13"
+      },
+      {
+        "module": "extism:host/env",
+        "name": "store_u64",
+        "kind": 0,
+        "typeIndex": "11"
+      },
+      {
+        "module": "extism:host/env",
+        "name": "store_u8",
+        "kind": 0,
+        "typeIndex": "14"
+      }
+    ],
+    "functionTypes": [
+      {
+        "params": [
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          127,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          127,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          127,
+          127
+        ],
+        "results": [
+          126
+        ]
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          126
+        ],
+        "results": [
+          126
+        ]
+      },
+      {
+        "params": [
+          126
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          126,
+          126
+        ],
+        "results": []
+      },
+      {
+        "params": [],
+        "results": [
+          126
+        ]
+      },
+      {
+        "params": [
+          126
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          126,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          126,
+          126,
+          127,
+          127
+        ],
+        "results": [
+          126
+        ]
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          126,
+          126,
+          127
+        ],
+        "results": [
+          126
+        ]
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          124
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          126,
+          126
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [],
+        "results": []
+      },
+      {
+        "params": [
+          127
+        ],
+        "results": [
+          124
+        ]
+      },
+      {
+        "params": [
+          127,
+          127,
+          126
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          126
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          126,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          126
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          126,
+          126,
+          127,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          127,
+          126,
+          126
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127,
+          126,
+          126,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127,
+          127,
+          126,
+          126,
+          127,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          126,
+          127,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          126,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          126
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          126,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          124,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          126
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          124,
+          127,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          124,
+          127,
+          127,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          126,
+          126,
+          127,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          126,
+          126,
+          127,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127
+        ],
+        "results": [
+          126
+        ]
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          127
+        ],
+        "results": [
+          127
+        ]
+      },
+      {
+        "params": [
+          127,
+          126,
+          127,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          127,
+          127,
+          127,
+          127,
+          127,
+          126,
+          126,
+          126
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          124
+        ],
+        "results": [
+          124
+        ]
+      },
+      {
+        "params": [
+          127,
+          126,
+          126,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          126,
+          126,
+          126,
+          126,
+          127
+        ],
+        "results": []
+      },
+      {
+        "params": [
+          127,
+          126,
+          126,
+          126,
+          126
+        ],
+        "results": []
+      }
+    ],
+    "exports": [
+      "memory",
+      "handle",
+      "morphir_extension_capabilities",
+      "morphir_extension_info"
+    ]
+  }
+]

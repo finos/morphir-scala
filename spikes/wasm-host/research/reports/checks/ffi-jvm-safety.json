@@ -1,0 +1,24 @@
+{
+  "configuration": "ffi-jvm",
+  "scope": "synthetic byte callbacks",
+  "name": "ffi-jvm-safety",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/ffi-jvm/host",
+    "safety",
+    "--guest",
+    "WORKSPACE/out/spikes/wasm-host/tools/fixtures.dest/echo.wasm",
+    "--runaway",
+    "WORKSPACE/out/spikes/wasm-host/tools/fixtures.dest/runaway.wasm"
+  ],
+  "exit": 0,
+  "elapsedNanos": 548103709,
+  "startNanos": 670403174480291,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [],
+  "stdout": "ffi-jvm-safety.stdout.json",
+  "stderr": "ffi-jvm-safety.stderr.jsonl",
+  "guestSha256": "1a952c7c310781962ef3ba7eba3a04b563d78684f5e2cf5aa0b8f8f4236ae4ec",
+  "startupToFirstResultNanos": null
+}

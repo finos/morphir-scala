@@ -1,0 +1,9 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:WORKSPACE/out/spikes/wasm-host/polyglot/polyglotEvidence.dest/distribution/polyglot-jvm/lib/0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+{"phase":"context-ready","pid":"9666","nanoTime":"679498779036291","elapsedNanos":"115499667","heapUsedBytes":"26771528"}
+{"phase":"runtime-ready","pid":"9666","nanoTime":"679499226587500","elapsedNanos":"563061875","heapUsedBytes":"23865536"}
+{"phase":"compiler-returned","pid":"9666","nanoTime":"679500554765125","elapsedNanos":"1891231584","heapUsedBytes":"126900656"}
+{"phase":"first-result","pid":"9666","nanoTime":"679500908580833","elapsedNanos":"2245043042","heapUsedBytes":"149340656"}
+{"phase":"closed","pid":"9666","nanoTime":"679501113404083","elapsedNanos":"2449866334","heapUsedBytes":"149486216"}

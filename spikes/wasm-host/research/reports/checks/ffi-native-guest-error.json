@@ -1,0 +1,24 @@
+{
+  "configuration": "ffi-native",
+  "scope": "synthetic byte callbacks",
+  "name": "ffi-native-guest-error",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/ffi-native/host",
+    "mep",
+    "--guest",
+    "WORKSPACE/out/spikes/wasm-host/tools/fixtures.dest/guest-error.wasm",
+    "--input",
+    "WORKSPACE/.dev/.sdlc/scala-wasm-host/out/checks-verified/guest-error.input.jsonl"
+  ],
+  "exit": 1,
+  "elapsedNanos": 122680625,
+  "startNanos": 671368454133166,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [],
+  "stdout": "ffi-native-guest-error.stdout.json",
+  "stderr": "ffi-native-guest-error.stderr.jsonl",
+  "guestSha256": "48bbf8f4a0bb179345d10c59a504bfd59a4440da9a81d9a8e2bcbf4b524b79f5",
+  "startupToFirstResultNanos": null
+}

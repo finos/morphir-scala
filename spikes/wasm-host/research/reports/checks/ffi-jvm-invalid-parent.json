@@ -1,0 +1,21 @@
+{
+  "configuration": "ffi-jvm",
+  "scope": "synthetic byte callbacks",
+  "name": "ffi-jvm-invalid-parent",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/ffi-jvm/host",
+    "supervise",
+    "--guest",
+    "/missing/guest.wasm"
+  ],
+  "exit": 1,
+  "elapsedNanos": 290816583,
+  "startNanos": 670398922629958,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [],
+  "stdout": "ffi-jvm-invalid-parent.stdout.json",
+  "stderr": "ffi-jvm-invalid-parent.stderr.jsonl",
+  "startupToFirstResultNanos": null
+}

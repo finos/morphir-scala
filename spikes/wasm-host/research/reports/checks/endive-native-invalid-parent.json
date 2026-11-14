@@ -1,0 +1,21 @@
+{
+  "configuration": "endive-native",
+  "scope": "synthetic byte callbacks",
+  "name": "endive-native-invalid-parent",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/endive-native/host",
+    "supervise",
+    "--guest",
+    "/missing/guest.wasm"
+  ],
+  "exit": 1,
+  "elapsedNanos": 10314875,
+  "startNanos": 670368131515083,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [],
+  "stdout": "endive-native-invalid-parent.stdout.json",
+  "stderr": "endive-native-invalid-parent.stderr.jsonl",
+  "startupToFirstResultNanos": null
+}

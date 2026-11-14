@@ -1,0 +1,21 @@
+{
+  "configuration": "ffi-native",
+  "scope": "synthetic byte callbacks",
+  "name": "ffi-native-invalid-parent",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/ffi-native/host",
+    "supervise",
+    "--guest",
+    "/missing/guest.wasm"
+  ],
+  "exit": 1,
+  "elapsedNanos": 9959292,
+  "startNanos": 671361511062791,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [],
+  "stdout": "ffi-native-invalid-parent.stdout.json",
+  "stderr": "ffi-native-invalid-parent.stderr.jsonl",
+  "startupToFirstResultNanos": null
+}

@@ -1,0 +1,38 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:WORKSPACE/out/spikes/wasm-host/polyglot/polyglotEvidence.dest/distribution/polyglot-jvm/lib/0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+{"phase":"context-ready","pid":"9143","nanoTime":"679475849728458","elapsedNanos":"119987083","heapUsedBytes":"26046944"}
+{"phase":"runtime-ready","pid":"9143","nanoTime":"679476091183791","elapsedNanos":"361441625","heapUsedBytes":"22218744"}
+{"phase":"closed","pid":"9143","nanoTime":"679476130726250","elapsedNanos":"400983916","heapUsedBytes":"30758432"}
+Panic(java.lang.IllegalStateException: org.graalvm.polyglot.PolyglotException: java.lang.ArrayIndexOutOfBoundsException: Index 2 out of bounds for length 2)
+Exception in thread "main" java.lang.IllegalStateException: org.graalvm.polyglot.PolyglotException: java.lang.ArrayIndexOutOfBoundsException: Index 2 out of bounds for length 2
+	at kyo.Scope.handle(Unknown Source)
+	at run @ morphir.spikes.wasmhost.polyglot.Main$.Run$.?(Main.scala:29)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at run @ morphir.spikes.wasmhost.polyglot.Main$.Run$.?(Main.scala:29)
+	at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+	at run @ morphir.spikes.wasmhost.polyglot.Main$.Run$.?(Main.scala:29)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at run @ morphir.spikes.wasmhost.polyglot.Main$.Run$.?(Main.scala:29)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at run @ morphir.spikes.wasmhost.polyglot.Main$.Run$.?(Main.scala:29)
+	at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)
+	at morphir.spikes.wasmhost.polyglot.CompilerProof$.run(Main.scala:265)
+	at morphir.spikes.wasmhost.polyglot.Main$Run$$anon$1.apply(Main.scala:29)
+	at morphir.spikes.wasmhost.polyglot.Main$Run$$anon$1.apply(Main.scala:29)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+	Suppressed: kyo.kernel.internal.EffectTrace: effect trace:
+at kyo.Scope.handle(Unknown Source)
+at run @ morphir.spikes.wasmhost.polyglot.Main$.Run$.?(Main.scala:29)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at run @ morphir.spikes.wasmhost.polyglot.Main$.Run$.?(Main.scala:29)
+at kyo.kernel.Bracket$.Finalize.handle(Unknown Source)
+at run @ morphir.spikes.wasmhost.polyglot.Main$.Run$.?(Main.scala:29)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at run @ morphir.spikes.wasmhost.polyglot.Main$.Run$.?(Main.scala:29)
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at run @ morphir.spikes.wasmhost.polyglot.Main$.Run$.?(Main.scala:29)
+at (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)

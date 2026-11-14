@@ -1,0 +1,9 @@
+extends: [build.WasmHostExecutable]
+mainClass: morphir.spikes.wasmhost.graal.Main
+moduleDeps:
+- build.spikes.wasm-host.core
+mvnDeps: !append
+- org.graalvm.polyglot:polyglot:25.0.1
+- org.graalvm.polyglot:wasm-community:25.0.1
+object test:
+  extends: [ScalaTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps]

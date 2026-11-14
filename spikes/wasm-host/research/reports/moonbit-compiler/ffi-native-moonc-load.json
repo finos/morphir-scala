@@ -1,0 +1,69 @@
+{
+  "configuration": "ffi-native",
+  "scope": "synthetic byte callbacks",
+  "name": "ffi-native-moonc-load",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/ffi-native/host",
+    "probe",
+    "--guest",
+    "WORKSPACE/.dev/.sdlc/scala-wasm-host/out/moonbit-compiler-verified/bundle/moonc.assets/code-172607e03e4760bd9001.wasm"
+  ],
+  "exit": 1,
+  "elapsedNanos": 237363125,
+  "startNanos": 672892982109375,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [
+    {
+      "phase": "parent-ready",
+      "cycle": 0,
+      "pid": "76004",
+      "nanoTime": "672893118601083",
+      "heapUsedBytes": 7884496,
+      "heapCommittedBytes": 30923554816,
+      "heapMaxBytes": 30923554816,
+      "gc": [
+        {
+          "name": "young generation scavenger",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "complete scavenger",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    },
+    {
+      "phase": "load-start",
+      "cycle": 1,
+      "pid": "76004",
+      "nanoTime": "672893119147125",
+      "heapUsedBytes": 7884496,
+      "heapCommittedBytes": 30923554816,
+      "heapMaxBytes": 30923554816,
+      "gc": [
+        {
+          "name": "young generation scavenger",
+          "collections": 0,
+          "elapsedMillis": 0
+        },
+        {
+          "name": "complete scavenger",
+          "collections": 0,
+          "elapsedMillis": 0
+        }
+      ],
+      "guestLinearMemoryBytes": null,
+      "heapCoverage": "runtime heap only, excludes libextism allocations"
+    }
+  ],
+  "stdout": "ffi-native-moonc-load.stdout.json",
+  "stderr": "ffi-native-moonc-load.stderr.jsonl",
+  "guestSha256": "8e345f26b77901f4cbc7f7c1ee9aff3f68821e38682dd32da39e17e545a2fac2",
+  "startupToFirstResultNanos": null
+}

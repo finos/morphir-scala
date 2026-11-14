@@ -1,0 +1,1135 @@
+{
+  "javaHome": "HOME/.local/share/mise/installs/java/oracle-graalvm-25.0.1",
+  "nativeRuntime": "WORKSPACE/out/spikes/wasm-host/tools/nativeRuntime.dest",
+  "nativeRuntimeInputHash": 1727425864,
+  "fixtureInputHash": -1527430776,
+  "guestInputHash": 384954925,
+  "fixtures": "WORKSPACE/out/spikes/wasm-host/tools/fixtures.dest",
+  "guests": "WORKSPACE/out/spikes/wasm-host/tools/guests.dest",
+  "configurations": [
+    {
+      "id": "endive-jvm",
+      "backend": "endive",
+      "target": "jvm",
+      "classpath": [
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala-library/3.9.0/scala-library-3.9.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/run/endive/runtime/1.2.0/runtime-1.2.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-core_3/1.0.0-RC7/kyo-core_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-prelude_3/1.0.0-RC7/kyo-prelude_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-case-app_3/1.0.0-RC7/kyo-case-app_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/ujson_3/4.4.3/ujson_3-4.4.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/run/endive/wasm/1.2.0/wasm-1.2.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-scheduler_3/1.0.0-RC7/kyo-scheduler_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala3-library_3/3.8.3/scala3-library_3-3.8.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-kernel_3/1.0.0-RC7/kyo-kernel_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/github/alexarchambault/case-app_3/2.1.0/case-app_3-2.1.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/upickle-core_3/4.4.3/upickle-core_3-4.4.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-stats-registry_3/1.0.0-RC7/kyo-stats-registry_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-data_3/1.0.0-RC7/kyo-data_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-core/1.37/jmh-core-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-bytecode/1.37/jmh-generator-bytecode-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-reflection/1.37/jmh-generator-reflection-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/sourcecode_3/0.4.3-M5/sourcecode_3-0.4.3-M5.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/github/alexarchambault/case-app-annotations_3/2.1.0/case-app-annotations_3-2.1.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/github/alexarchambault/case-app-util_3/2.1.0/case-app-util_3-2.1.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/geny_3/1.1.1/geny_3-1.1.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-config_3/1.0.0-RC7/kyo-config_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/pprint_3/0.9.6/pprint_3-0.9.6.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/net/sf/jopt-simple/jopt-simple/5.0.4/jopt-simple-5.0.4.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/apache/commons/commons-math3/3.6.1/commons-math3-3.6.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-asm/1.37/jmh-generator-asm-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/fansi_3/0.5.1/fansi_3-0.5.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/ow2/asm/asm/9.0/asm-9.0.jar",
+        "../mill-workspace/spikes/wasm-host/core/compile-resources",
+        "../mill-workspace/spikes/wasm-host/core/resources",
+        "../mill-workspace/out/spikes/wasm-host/core/compile.dest/classes",
+        "../mill-workspace/spikes/wasm-host/endive/compile-resources",
+        "../mill-workspace/spikes/wasm-host/endive/resources",
+        "../mill-workspace/out/spikes/wasm-host/endive/compile.dest/classes"
+      ],
+      "executable": "../mill-workspace/out/spikes/wasm-host/endive/nativeImage.dest/native-executable",
+      "classpathInputHashes": [
+        1727997546,
+        386870646,
+        -420689085,
+        1449187216,
+        476573054,
+        -1165565890,
+        -1158096441,
+        1606496203,
+        1261675881,
+        -1330219489,
+        214400044,
+        1422565378,
+        -1803124699,
+        1260473126,
+        -728694436,
+        -1694769980,
+        -1630651824,
+        524192644,
+        -1580072454,
+        1926014744,
+        -1450220599,
+        745202526,
+        2110493878,
+        1439624952,
+        1816482192,
+        -1980604684,
+        -1169002354,
+        -430462059,
+        2069132611,
+        -1377655719,
+        -1857420938,
+        -386832532,
+        -1262285773,
+        1257778608
+      ],
+      "executableInputHash": -1621778906,
+      "nativeBuildLog": "../mill-workspace/out/spikes/wasm-host/endive/nativeImage.log",
+      "mainClass": "morphir.spikes.wasmhost.endive.Main",
+      "command": [
+        "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/endive-jvm/host"
+      ],
+      "files": [
+        {
+          "path": "host",
+          "bytes": 196,
+          "sha256": "703b0214664ebadcebcf770328b58a7705517029d8991390a7a6adb6320638ac"
+        },
+        {
+          "path": "lib/0.jar",
+          "bytes": 9823422,
+          "sha256": "b844bf6fb3080c73df6b9c523b7a69b9ef4a980bb15e5c37c35443d1d0b0e0cd"
+        },
+        {
+          "path": "lib/1.jar",
+          "bytes": 195781,
+          "sha256": "360c2eb16dc43d5e057ddfe7d162cced7010d25efbd32c6f851502330d4efe67"
+        },
+        {
+          "path": "lib/10.jar",
+          "bytes": 870573,
+          "sha256": "c12f70446ef038776ddcad234588f79dfc840fef54e6cb728107bc0879bca9bd"
+        },
+        {
+          "path": "lib/11.jar",
+          "bytes": 358070,
+          "sha256": "9b9be4b677ab6fbc6b82fe5486908a39664f51e9344d1903ada1c6766d251ce2"
+        },
+        {
+          "path": "lib/12.jar",
+          "bytes": 132120,
+          "sha256": "a5bbd2624334922b14e35fc561efffd60841383449bfba2d7e973460c6f96a6e"
+        },
+        {
+          "path": "lib/13.jar",
+          "bytes": 1315373,
+          "sha256": "696cb8b8395b295d9e221c3a4e359fbb671c456cf65d0bb81a7874eed4afc8c3"
+        },
+        {
+          "path": "lib/14.jar",
+          "bytes": 552986,
+          "sha256": "dc0eaf2bbf0036a70b60798c785d6e03a9daf06b68b8edb0f1ba9eb3421baeb3"
+        },
+        {
+          "path": "lib/15.jar",
+          "bytes": 18517,
+          "sha256": "619b3d15a5e8bfc4ec49d3b7a64dbed053a0ca8625820a49a4f869d1b8c71d09"
+        },
+        {
+          "path": "lib/16.jar",
+          "bytes": 24518,
+          "sha256": "a0421dbbe5e77690df2dfdef98618b62852d816bbb814c5cbd0b4d464bff32b0"
+        },
+        {
+          "path": "lib/17.jar",
+          "bytes": 115785,
+          "sha256": "b251dead9c89faea26111eff87f406890611ea5ad0f3329f6b1feb812c7318db"
+        },
+        {
+          "path": "lib/18.jar",
+          "bytes": 48182,
+          "sha256": "7f5d4fc78703429c9ba2fa70cce4e769ffc40eb3a11c916576c3b945f0f3cbab"
+        },
+        {
+          "path": "lib/19.jar",
+          "bytes": 1828,
+          "sha256": "bf67a6df1388ac9aa8a95b765ae603238fd05321fe5e14c93dde93813486048f"
+        },
+        {
+          "path": "lib/2.jar",
+          "bytes": 3253592,
+          "sha256": "152357b4bc2c6dc0158a555f8e4c6e9fc2c528c87bce8e6bb09354a18fbe822c"
+        },
+        {
+          "path": "lib/20.jar",
+          "bytes": 102389,
+          "sha256": "39658649f90b631a4fd63187724f16ba8a045e1b10a513528f34517fb2edf98b"
+        },
+        {
+          "path": "lib/21.jar",
+          "bytes": 198045,
+          "sha256": "9e29b1f2e6d892bdda430ca36769523cf25b75380e3e8543077aff4b93e6663d"
+        },
+        {
+          "path": "lib/22.jar",
+          "bytes": 163408,
+          "sha256": "9bd6524b34da59c85859f2aa0663c5282477af107e48160b30a53da91e6f9016"
+        },
+        {
+          "path": "lib/23.jar",
+          "bytes": 78146,
+          "sha256": "df26cc58f235f477db07f753ba5a3ab243ebe5789d9f89ecf68dd62ea9a66c28"
+        },
+        {
+          "path": "lib/24.jar",
+          "bytes": 2213560,
+          "sha256": "1e56d7b058d28b65abd256b8458e3885b674c1d588fa43cd7d1cbb9c7ef2b308"
+        },
+        {
+          "path": "lib/25.jar",
+          "bytes": 31641,
+          "sha256": "de29bacc5c3a413215800f57de9017fdda1b3cb6e5359ea0c84ebe13c9610222"
+        },
+        {
+          "path": "lib/26.jar",
+          "bytes": 105124,
+          "sha256": "df4b447704664563cb0fba9cf52d3fc7509654ab592824d5c2eb4647e6701ac4"
+        },
+        {
+          "path": "lib/27.jar",
+          "bytes": 121783,
+          "sha256": "0df97574914aee92fd349d0cb4e00f3345d45b2c239e0bb50f0a90ead47888e0"
+        },
+        {
+          "path": "lib/28.jar",
+          "bytes": 251622,
+          "sha256": "f5e3733ea6a894f5d03beef0cbcc8d53b5c52f5e9c9b85938ebbc9139e45f50c"
+        },
+        {
+          "path": "lib/29.jar",
+          "bytes": 21847,
+          "sha256": "9e9ae9d5484cc2723f500cbb0b2282f1a89f7b1886d7c52a85b44c4cab65ccd1"
+        },
+        {
+          "path": "lib/3.jar",
+          "bytes": 1787137,
+          "sha256": "5c64243ed1932febc86aa41c5f4c1b7435c119564f5617b5bede48e020daa0a1"
+        },
+        {
+          "path": "lib/4.jar",
+          "bytes": 15473,
+          "sha256": "55ce4b63a9f22f98f1b718224d5abc67027de7d102d7c554ce16b53574c74681"
+        },
+        {
+          "path": "lib/5.jar",
+          "bytes": 267471,
+          "sha256": "2fd8083aabc7fb4252c299909b19b2881326a03502eba8859d39d4b2ceb7a8b2"
+        },
+        {
+          "path": "lib/6.jar",
+          "bytes": 215076,
+          "sha256": "3ec07534781714da4ae1e3703b04c552a3f943a31de15fcb58222929a800bfe6"
+        },
+        {
+          "path": "lib/7.jar",
+          "bytes": 371752,
+          "sha256": "b74c94b642359da015f66974e30d75f569898d89470b5c1d3172e4c2858871b9"
+        },
+        {
+          "path": "lib/8.jar",
+          "bytes": 318,
+          "sha256": "740c79f7fc3dae2c5eef48e85f777d679a1f0f53fdbb780bf84dea0370220a61"
+        },
+        {
+          "path": "lib/9.jar",
+          "bytes": 976907,
+          "sha256": "edaee040707eb773bbf36f4e7ccc9cddfac3070035dd4874e549dd711e7d6eb8"
+        }
+      ],
+      "executableOrLauncherBytes": 196,
+      "installedBytes": 23632642,
+      "packageBytes": 21888677,
+      "packageSha256": "1f74965c7a74e67812c6f2e838081bbddeb9564dd75e8a374ac1c09bf956bbbd",
+      "package": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/endive-jvm.tar.gz",
+      "executableSha256": "703b0214664ebadcebcf770328b58a7705517029d8991390a7a6adb6320638ac",
+      "debugSymbols": "not produced separately",
+      "stripping": "Native Image defaults, no explicit post-link strip"
+    },
+    {
+      "id": "endive-native",
+      "backend": "endive",
+      "target": "native",
+      "classpath": [
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala-library/3.9.0/scala-library-3.9.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/run/endive/runtime/1.2.0/runtime-1.2.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-core_3/1.0.0-RC7/kyo-core_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-prelude_3/1.0.0-RC7/kyo-prelude_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-case-app_3/1.0.0-RC7/kyo-case-app_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/ujson_3/4.4.3/ujson_3-4.4.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/run/endive/wasm/1.2.0/wasm-1.2.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-scheduler_3/1.0.0-RC7/kyo-scheduler_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala3-library_3/3.8.3/scala3-library_3-3.8.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-kernel_3/1.0.0-RC7/kyo-kernel_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/github/alexarchambault/case-app_3/2.1.0/case-app_3-2.1.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/upickle-core_3/4.4.3/upickle-core_3-4.4.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-stats-registry_3/1.0.0-RC7/kyo-stats-registry_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-data_3/1.0.0-RC7/kyo-data_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-core/1.37/jmh-core-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-bytecode/1.37/jmh-generator-bytecode-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-reflection/1.37/jmh-generator-reflection-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/sourcecode_3/0.4.3-M5/sourcecode_3-0.4.3-M5.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/github/alexarchambault/case-app-annotations_3/2.1.0/case-app-annotations_3-2.1.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/github/alexarchambault/case-app-util_3/2.1.0/case-app-util_3-2.1.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/geny_3/1.1.1/geny_3-1.1.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-config_3/1.0.0-RC7/kyo-config_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/pprint_3/0.9.6/pprint_3-0.9.6.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/net/sf/jopt-simple/jopt-simple/5.0.4/jopt-simple-5.0.4.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/apache/commons/commons-math3/3.6.1/commons-math3-3.6.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-asm/1.37/jmh-generator-asm-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/fansi_3/0.5.1/fansi_3-0.5.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/ow2/asm/asm/9.0/asm-9.0.jar",
+        "../mill-workspace/spikes/wasm-host/core/compile-resources",
+        "../mill-workspace/spikes/wasm-host/core/resources",
+        "../mill-workspace/out/spikes/wasm-host/core/compile.dest/classes",
+        "../mill-workspace/spikes/wasm-host/endive/compile-resources",
+        "../mill-workspace/spikes/wasm-host/endive/resources",
+        "../mill-workspace/out/spikes/wasm-host/endive/compile.dest/classes"
+      ],
+      "executable": "../mill-workspace/out/spikes/wasm-host/endive/nativeImage.dest/native-executable",
+      "classpathInputHashes": [
+        1727997546,
+        386870646,
+        -420689085,
+        1449187216,
+        476573054,
+        -1165565890,
+        -1158096441,
+        1606496203,
+        1261675881,
+        -1330219489,
+        214400044,
+        1422565378,
+        -1803124699,
+        1260473126,
+        -728694436,
+        -1694769980,
+        -1630651824,
+        524192644,
+        -1580072454,
+        1926014744,
+        -1450220599,
+        745202526,
+        2110493878,
+        1439624952,
+        1816482192,
+        -1980604684,
+        -1169002354,
+        -430462059,
+        2069132611,
+        -1377655719,
+        -1857420938,
+        -386832532,
+        -1262285773,
+        1257778608
+      ],
+      "executableInputHash": -1621778906,
+      "nativeBuildLog": "endive-native-build.log",
+      "mainClass": "morphir.spikes.wasmhost.endive.Main",
+      "command": [
+        "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/endive-native/host"
+      ],
+      "files": [
+        {
+          "path": "host",
+          "bytes": 29909664,
+          "sha256": "3ed96d17ad3c33ee4e8640538b090d5d7b120a27674b639ebcaa73fe0ed40ab6"
+        }
+      ],
+      "executableOrLauncherBytes": 29909664,
+      "installedBytes": 29909664,
+      "packageBytes": 12147029,
+      "packageSha256": "c1f73f49fe9341b765d104f117a1da624b0971a91e8d7912bf93d7013e2f4b79",
+      "package": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/endive-native.tar.gz",
+      "executableSha256": "3ed96d17ad3c33ee4e8640538b090d5d7b120a27674b639ebcaa73fe0ed40ab6",
+      "debugSymbols": "not produced separately",
+      "stripping": "Native Image defaults, no explicit post-link strip",
+      "nativeImageBuildTime": "26.9s.",
+      "nativeImageBuildPeakRss": "3.82GB"
+    },
+    {
+      "id": "graal-jvm",
+      "backend": "graalwasm",
+      "target": "jvm",
+      "classpath": [
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala-library/3.9.0/scala-library-3.9.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/polyglot/polyglot/25.0.1/polyglot-25.0.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-core_3/1.0.0-RC7/kyo-core_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-prelude_3/1.0.0-RC7/kyo-prelude_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-case-app_3/1.0.0-RC7/kyo-case-app_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/ujson_3/4.4.3/ujson_3-4.4.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/sdk/collections/25.0.1/collections-25.0.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/sdk/nativeimage/25.0.1/nativeimage-25.0.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-scheduler_3/1.0.0-RC7/kyo-scheduler_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala3-library_3/3.8.3/scala3-library_3-3.8.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-kernel_3/1.0.0-RC7/kyo-kernel_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/github/alexarchambault/case-app_3/2.1.0/case-app_3-2.1.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/upickle-core_3/4.4.3/upickle-core_3-4.4.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/sdk/word/25.0.1/word-25.0.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-stats-registry_3/1.0.0-RC7/kyo-stats-registry_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-data_3/1.0.0-RC7/kyo-data_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-core/1.37/jmh-core-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-bytecode/1.37/jmh-generator-bytecode-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-reflection/1.37/jmh-generator-reflection-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/sourcecode_3/0.4.3-M5/sourcecode_3-0.4.3-M5.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/github/alexarchambault/case-app-annotations_3/2.1.0/case-app-annotations_3-2.1.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/github/alexarchambault/case-app-util_3/2.1.0/case-app-util_3-2.1.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/geny_3/1.1.1/geny_3-1.1.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/wasm/wasm-language/25.0.1/wasm-language-25.0.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/truffle/truffle-runtime/25.0.1/truffle-runtime-25.0.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-config_3/1.0.0-RC7/kyo-config_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/pprint_3/0.9.6/pprint_3-0.9.6.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/net/sf/jopt-simple/jopt-simple/5.0.4/jopt-simple-5.0.4.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/apache/commons/commons-math3/3.6.1/commons-math3-3.6.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-asm/1.37/jmh-generator-asm-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/truffle/truffle-api/25.0.1/truffle-api-25.0.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/sdk/jniutils/25.0.1/jniutils-25.0.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/truffle/truffle-compiler/25.0.1/truffle-compiler-25.0.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/fansi_3/0.5.1/fansi_3-0.5.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/ow2/asm/asm/9.0/asm-9.0.jar",
+        "../mill-workspace/spikes/wasm-host/core/compile-resources",
+        "../mill-workspace/spikes/wasm-host/core/resources",
+        "../mill-workspace/out/spikes/wasm-host/core/compile.dest/classes",
+        "../mill-workspace/spikes/wasm-host/graal/compile-resources",
+        "../mill-workspace/spikes/wasm-host/graal/resources",
+        "../mill-workspace/out/spikes/wasm-host/graal/compile.dest/classes"
+      ],
+      "executable": "../mill-workspace/out/spikes/wasm-host/graal/nativeImage.dest/native-executable",
+      "classpathInputHashes": [
+        1727997546,
+        -1563366502,
+        -420689085,
+        1449187216,
+        476573054,
+        -1165565890,
+        -947936986,
+        -2099036851,
+        1606496203,
+        1261675881,
+        -1330219489,
+        214400044,
+        1422565378,
+        611291935,
+        -1803124699,
+        1260473126,
+        -728694436,
+        -1694769980,
+        -1630651824,
+        524192644,
+        -1580072454,
+        1926014744,
+        -1450220599,
+        -107887683,
+        -1160935393,
+        745202526,
+        2110493878,
+        1439624952,
+        1816482192,
+        -1980604684,
+        -291589990,
+        178961647,
+        100873997,
+        -1169002354,
+        -430462059,
+        2069132611,
+        -1377655719,
+        -1857420938,
+        395479970,
+        -351018026,
+        -1559753102
+      ],
+      "executableInputHash": -577422723,
+      "nativeBuildLog": "../mill-workspace/out/spikes/wasm-host/graal/nativeImage.log",
+      "mainClass": "morphir.spikes.wasmhost.graal.Main",
+      "command": [
+        "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/host"
+      ],
+      "files": [
+        {
+          "path": "host",
+          "bytes": 195,
+          "sha256": "b5711c87c4ab31dd9f089bbc5e162bcf2b9c572f28d7efb81cb6611e827ad1b2"
+        },
+        {
+          "path": "lib/0.jar",
+          "bytes": 9823422,
+          "sha256": "b844bf6fb3080c73df6b9c523b7a69b9ef4a980bb15e5c37c35443d1d0b0e0cd"
+        },
+        {
+          "path": "lib/1.jar",
+          "bytes": 515471,
+          "sha256": "992099d38ab64e1a8ebb9753c1959d431c4889905ff9e8ec946911692f0879c5"
+        },
+        {
+          "path": "lib/10.jar",
+          "bytes": 976907,
+          "sha256": "edaee040707eb773bbf36f4e7ccc9cddfac3070035dd4874e549dd711e7d6eb8"
+        },
+        {
+          "path": "lib/11.jar",
+          "bytes": 870573,
+          "sha256": "c12f70446ef038776ddcad234588f79dfc840fef54e6cb728107bc0879bca9bd"
+        },
+        {
+          "path": "lib/12.jar",
+          "bytes": 358070,
+          "sha256": "9b9be4b677ab6fbc6b82fe5486908a39664f51e9344d1903ada1c6766d251ce2"
+        },
+        {
+          "path": "lib/13.jar",
+          "bytes": 40286,
+          "sha256": "071f4a4a969977f63dc36f446e0b90b19c631f5466a715ba7d5e8f0ab9f5fc87"
+        },
+        {
+          "path": "lib/14.jar",
+          "bytes": 132120,
+          "sha256": "a5bbd2624334922b14e35fc561efffd60841383449bfba2d7e973460c6f96a6e"
+        },
+        {
+          "path": "lib/15.jar",
+          "bytes": 1315373,
+          "sha256": "696cb8b8395b295d9e221c3a4e359fbb671c456cf65d0bb81a7874eed4afc8c3"
+        },
+        {
+          "path": "lib/16.jar",
+          "bytes": 552986,
+          "sha256": "dc0eaf2bbf0036a70b60798c785d6e03a9daf06b68b8edb0f1ba9eb3421baeb3"
+        },
+        {
+          "path": "lib/17.jar",
+          "bytes": 18517,
+          "sha256": "619b3d15a5e8bfc4ec49d3b7a64dbed053a0ca8625820a49a4f869d1b8c71d09"
+        },
+        {
+          "path": "lib/18.jar",
+          "bytes": 24518,
+          "sha256": "a0421dbbe5e77690df2dfdef98618b62852d816bbb814c5cbd0b4d464bff32b0"
+        },
+        {
+          "path": "lib/19.jar",
+          "bytes": 115785,
+          "sha256": "b251dead9c89faea26111eff87f406890611ea5ad0f3329f6b1feb812c7318db"
+        },
+        {
+          "path": "lib/2.jar",
+          "bytes": 3253592,
+          "sha256": "152357b4bc2c6dc0158a555f8e4c6e9fc2c528c87bce8e6bb09354a18fbe822c"
+        },
+        {
+          "path": "lib/20.jar",
+          "bytes": 48182,
+          "sha256": "7f5d4fc78703429c9ba2fa70cce4e769ffc40eb3a11c916576c3b945f0f3cbab"
+        },
+        {
+          "path": "lib/21.jar",
+          "bytes": 1828,
+          "sha256": "bf67a6df1388ac9aa8a95b765ae603238fd05321fe5e14c93dde93813486048f"
+        },
+        {
+          "path": "lib/22.jar",
+          "bytes": 102389,
+          "sha256": "39658649f90b631a4fd63187724f16ba8a045e1b10a513528f34517fb2edf98b"
+        },
+        {
+          "path": "lib/23.jar",
+          "bytes": 2608156,
+          "sha256": "2cec95b474f153aa5145879d261036bd663d28646832874f8f274a15db7e9926"
+        },
+        {
+          "path": "lib/24.jar",
+          "bytes": 861402,
+          "sha256": "0fea733ecbac7a1096f70163698fafd663224203a4f37b4ea479fec7b6ae0721"
+        },
+        {
+          "path": "lib/25.jar",
+          "bytes": 198045,
+          "sha256": "9e29b1f2e6d892bdda430ca36769523cf25b75380e3e8543077aff4b93e6663d"
+        },
+        {
+          "path": "lib/26.jar",
+          "bytes": 163408,
+          "sha256": "9bd6524b34da59c85859f2aa0663c5282477af107e48160b30a53da91e6f9016"
+        },
+        {
+          "path": "lib/27.jar",
+          "bytes": 78146,
+          "sha256": "df26cc58f235f477db07f753ba5a3ab243ebe5789d9f89ecf68dd62ea9a66c28"
+        },
+        {
+          "path": "lib/28.jar",
+          "bytes": 2213560,
+          "sha256": "1e56d7b058d28b65abd256b8458e3885b674c1d588fa43cd7d1cbb9c7ef2b308"
+        },
+        {
+          "path": "lib/29.jar",
+          "bytes": 31641,
+          "sha256": "de29bacc5c3a413215800f57de9017fdda1b3cb6e5359ea0c84ebe13c9610222"
+        },
+        {
+          "path": "lib/3.jar",
+          "bytes": 1787137,
+          "sha256": "5c64243ed1932febc86aa41c5f4c1b7435c119564f5617b5bede48e020daa0a1"
+        },
+        {
+          "path": "lib/30.jar",
+          "bytes": 14073831,
+          "sha256": "9ac4298675e7ab0690ca1338999a8936ab5a11a0891ee6864b7674fda5db94e5"
+        },
+        {
+          "path": "lib/31.jar",
+          "bytes": 276667,
+          "sha256": "a6c418de8267629243787dbbd8543e23ce8f5cba1744a3a9fff3655e63c45183"
+        },
+        {
+          "path": "lib/32.jar",
+          "bytes": 63510,
+          "sha256": "5d8eeae2647841ce5e6f1a0bfa27ef91343b9e5c0178d5153be409f792507d2c"
+        },
+        {
+          "path": "lib/33.jar",
+          "bytes": 105124,
+          "sha256": "df4b447704664563cb0fba9cf52d3fc7509654ab592824d5c2eb4647e6701ac4"
+        },
+        {
+          "path": "lib/34.jar",
+          "bytes": 121783,
+          "sha256": "0df97574914aee92fd349d0cb4e00f3345d45b2c239e0bb50f0a90ead47888e0"
+        },
+        {
+          "path": "lib/35.jar",
+          "bytes": 251622,
+          "sha256": "f5e3733ea6a894f5d03beef0cbcc8d53b5c52f5e9c9b85938ebbc9139e45f50c"
+        },
+        {
+          "path": "lib/36.jar",
+          "bytes": 24100,
+          "sha256": "c24664e72a3dafb13d71b5b52e2786a178ad520a77cf29d9585d77d85d882842"
+        },
+        {
+          "path": "lib/4.jar",
+          "bytes": 15473,
+          "sha256": "55ce4b63a9f22f98f1b718224d5abc67027de7d102d7c554ce16b53574c74681"
+        },
+        {
+          "path": "lib/5.jar",
+          "bytes": 267471,
+          "sha256": "2fd8083aabc7fb4252c299909b19b2881326a03502eba8859d39d4b2ceb7a8b2"
+        },
+        {
+          "path": "lib/6.jar",
+          "bytes": 124522,
+          "sha256": "ff061048f20a93b0af51d8a948556d536fb369aef6b851e698ff8743a3bc4e7f"
+        },
+        {
+          "path": "lib/7.jar",
+          "bytes": 231183,
+          "sha256": "458bcbaaf46624c9eda49c0e499fd32af1c3774c6f8e412a509a1c422cc06cf8"
+        },
+        {
+          "path": "lib/8.jar",
+          "bytes": 371752,
+          "sha256": "b74c94b642359da015f66974e30d75f569898d89470b5c1d3172e4c2858871b9"
+        },
+        {
+          "path": "lib/9.jar",
+          "bytes": 318,
+          "sha256": "740c79f7fc3dae2c5eef48e85f777d679a1f0f53fdbb780bf84dea0370220a61"
+        }
+      ],
+      "executableOrLauncherBytes": 195,
+      "installedBytes": 42019065,
+      "packageBytes": 25963027,
+      "packageSha256": "086794076474a828ec278d3e88a809e0520ce767a9c1288b8503f6ce23e71c47",
+      "package": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm.tar.gz",
+      "executableSha256": "b5711c87c4ab31dd9f089bbc5e162bcf2b9c572f28d7efb81cb6611e827ad1b2",
+      "debugSymbols": "not produced separately",
+      "stripping": "Native Image defaults, no explicit post-link strip"
+    },
+    {
+      "id": "graal-native",
+      "backend": "graalwasm",
+      "target": "native",
+      "classpath": [
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala-library/3.9.0/scala-library-3.9.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/polyglot/polyglot/25.0.1/polyglot-25.0.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-core_3/1.0.0-RC7/kyo-core_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-prelude_3/1.0.0-RC7/kyo-prelude_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-case-app_3/1.0.0-RC7/kyo-case-app_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/ujson_3/4.4.3/ujson_3-4.4.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/sdk/collections/25.0.1/collections-25.0.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/sdk/nativeimage/25.0.1/nativeimage-25.0.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-scheduler_3/1.0.0-RC7/kyo-scheduler_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala3-library_3/3.8.3/scala3-library_3-3.8.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-kernel_3/1.0.0-RC7/kyo-kernel_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/github/alexarchambault/case-app_3/2.1.0/case-app_3-2.1.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/upickle-core_3/4.4.3/upickle-core_3-4.4.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/sdk/word/25.0.1/word-25.0.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-stats-registry_3/1.0.0-RC7/kyo-stats-registry_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-data_3/1.0.0-RC7/kyo-data_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-core/1.37/jmh-core-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-bytecode/1.37/jmh-generator-bytecode-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-reflection/1.37/jmh-generator-reflection-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/sourcecode_3/0.4.3-M5/sourcecode_3-0.4.3-M5.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/github/alexarchambault/case-app-annotations_3/2.1.0/case-app-annotations_3-2.1.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/github/alexarchambault/case-app-util_3/2.1.0/case-app-util_3-2.1.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/geny_3/1.1.1/geny_3-1.1.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/wasm/wasm-language/25.0.1/wasm-language-25.0.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/truffle/truffle-runtime/25.0.1/truffle-runtime-25.0.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-config_3/1.0.0-RC7/kyo-config_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/pprint_3/0.9.6/pprint_3-0.9.6.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/net/sf/jopt-simple/jopt-simple/5.0.4/jopt-simple-5.0.4.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/apache/commons/commons-math3/3.6.1/commons-math3-3.6.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-asm/1.37/jmh-generator-asm-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/truffle/truffle-api/25.0.1/truffle-api-25.0.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/sdk/jniutils/25.0.1/jniutils-25.0.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/truffle/truffle-compiler/25.0.1/truffle-compiler-25.0.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/fansi_3/0.5.1/fansi_3-0.5.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/ow2/asm/asm/9.0/asm-9.0.jar",
+        "../mill-workspace/spikes/wasm-host/core/compile-resources",
+        "../mill-workspace/spikes/wasm-host/core/resources",
+        "../mill-workspace/out/spikes/wasm-host/core/compile.dest/classes",
+        "../mill-workspace/spikes/wasm-host/graal/compile-resources",
+        "../mill-workspace/spikes/wasm-host/graal/resources",
+        "../mill-workspace/out/spikes/wasm-host/graal/compile.dest/classes"
+      ],
+      "executable": "../mill-workspace/out/spikes/wasm-host/graal/nativeImage.dest/native-executable",
+      "classpathInputHashes": [
+        1727997546,
+        -1563366502,
+        -420689085,
+        1449187216,
+        476573054,
+        -1165565890,
+        -947936986,
+        -2099036851,
+        1606496203,
+        1261675881,
+        -1330219489,
+        214400044,
+        1422565378,
+        611291935,
+        -1803124699,
+        1260473126,
+        -728694436,
+        -1694769980,
+        -1630651824,
+        524192644,
+        -1580072454,
+        1926014744,
+        -1450220599,
+        -107887683,
+        -1160935393,
+        745202526,
+        2110493878,
+        1439624952,
+        1816482192,
+        -1980604684,
+        -291589990,
+        178961647,
+        100873997,
+        -1169002354,
+        -430462059,
+        2069132611,
+        -1377655719,
+        -1857420938,
+        395479970,
+        -351018026,
+        -1559753102
+      ],
+      "executableInputHash": -577422723,
+      "nativeBuildLog": "graal-native-build.log",
+      "mainClass": "morphir.spikes.wasmhost.graal.Main",
+      "command": [
+        "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-native/host"
+      ],
+      "files": [
+        {
+          "path": "host",
+          "bytes": 75212896,
+          "sha256": "49e5868175427be17385d33ddc5ebcbbec41dd57c9d811601c1039cc5b59083b"
+        }
+      ],
+      "executableOrLauncherBytes": 75212896,
+      "installedBytes": 75212896,
+      "packageBytes": 29704613,
+      "packageSha256": "291e7fceac42bd71abb850341f035c03f344e8b221808791626782917f5b08e4",
+      "package": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-native.tar.gz",
+      "executableSha256": "49e5868175427be17385d33ddc5ebcbbec41dd57c9d811601c1039cc5b59083b",
+      "debugSymbols": "not produced separately",
+      "stripping": "Native Image defaults, no explicit post-link strip",
+      "nativeImageBuildTime": "42.4s.",
+      "nativeImageBuildPeakRss": "5.51GB"
+    },
+    {
+      "id": "ffi-jvm",
+      "backend": "extism-ffm",
+      "target": "jvm",
+      "classpath": [
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala-library/3.9.0/scala-library-3.9.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-core_3/1.0.0-RC7/kyo-core_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-prelude_3/1.0.0-RC7/kyo-prelude_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-case-app_3/1.0.0-RC7/kyo-case-app_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/ujson_3/4.4.3/ujson_3-4.4.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-scheduler_3/1.0.0-RC7/kyo-scheduler_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala3-library_3/3.8.3/scala3-library_3-3.8.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-kernel_3/1.0.0-RC7/kyo-kernel_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/github/alexarchambault/case-app_3/2.1.0/case-app_3-2.1.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/upickle-core_3/4.4.3/upickle-core_3-4.4.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-stats-registry_3/1.0.0-RC7/kyo-stats-registry_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-data_3/1.0.0-RC7/kyo-data_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-core/1.37/jmh-core-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-bytecode/1.37/jmh-generator-bytecode-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-reflection/1.37/jmh-generator-reflection-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/sourcecode_3/0.4.3-M5/sourcecode_3-0.4.3-M5.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/github/alexarchambault/case-app-annotations_3/2.1.0/case-app-annotations_3-2.1.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/github/alexarchambault/case-app-util_3/2.1.0/case-app-util_3-2.1.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/geny_3/1.1.1/geny_3-1.1.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-config_3/1.0.0-RC7/kyo-config_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/pprint_3/0.9.6/pprint_3-0.9.6.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/net/sf/jopt-simple/jopt-simple/5.0.4/jopt-simple-5.0.4.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/apache/commons/commons-math3/3.6.1/commons-math3-3.6.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-asm/1.37/jmh-generator-asm-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/fansi_3/0.5.1/fansi_3-0.5.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/ow2/asm/asm/9.0/asm-9.0.jar",
+        "../mill-workspace/spikes/wasm-host/core/compile-resources",
+        "../mill-workspace/spikes/wasm-host/core/resources",
+        "../mill-workspace/out/spikes/wasm-host/core/compile.dest/classes",
+        "../mill-workspace/spikes/wasm-host/ffi/compile-resources",
+        "../mill-workspace/spikes/wasm-host/ffi/resources",
+        "../mill-workspace/out/spikes/wasm-host/ffi/compile.dest/classes"
+      ],
+      "executable": "../mill-workspace/out/spikes/wasm-host/ffi/nativeImage.dest/native-executable",
+      "classpathInputHashes": [
+        1727997546,
+        -420689085,
+        1449187216,
+        476573054,
+        -1165565890,
+        1606496203,
+        1261675881,
+        -1330219489,
+        214400044,
+        1422565378,
+        -1803124699,
+        1260473126,
+        -728694436,
+        -1694769980,
+        -1630651824,
+        524192644,
+        -1580072454,
+        1926014744,
+        -1450220599,
+        745202526,
+        2110493878,
+        1439624952,
+        1816482192,
+        -1980604684,
+        -1169002354,
+        -430462059,
+        2069132611,
+        -1377655719,
+        -1857420938,
+        1748225807,
+        -1864107368,
+        992344269
+      ],
+      "executableInputHash": -1564852061,
+      "nativeBuildLog": "../mill-workspace/out/spikes/wasm-host/ffi/nativeImage.log",
+      "mainClass": "morphir.spikes.wasmhost.ffi.Main",
+      "command": [
+        "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/ffi-jvm/host"
+      ],
+      "nativeLibrary": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/ffi-jvm/libextism.dylib",
+      "files": [
+        {
+          "path": "LICENSE",
+          "bytes": 1457,
+          "sha256": "d01e60805075b591cbecc63b8582788e54e190f699037f1af19fb5294b7a47ab"
+        },
+        {
+          "path": "host",
+          "bytes": 193,
+          "sha256": "fddf1d324cdf0f6a40f23fcb023ef8154a53afa03a7ecc0ce1d9ef38e1599c6a"
+        },
+        {
+          "path": "libextism.dylib",
+          "bytes": 23826656,
+          "sha256": "6ea6a864e95b3e550675c98f6eb17b43cefe7d815ab6010a24b213762e0c646d"
+        },
+        {
+          "path": "lib/0.jar",
+          "bytes": 9823422,
+          "sha256": "b844bf6fb3080c73df6b9c523b7a69b9ef4a980bb15e5c37c35443d1d0b0e0cd"
+        },
+        {
+          "path": "lib/1.jar",
+          "bytes": 3253592,
+          "sha256": "152357b4bc2c6dc0158a555f8e4c6e9fc2c528c87bce8e6bb09354a18fbe822c"
+        },
+        {
+          "path": "lib/10.jar",
+          "bytes": 132120,
+          "sha256": "a5bbd2624334922b14e35fc561efffd60841383449bfba2d7e973460c6f96a6e"
+        },
+        {
+          "path": "lib/11.jar",
+          "bytes": 1315373,
+          "sha256": "696cb8b8395b295d9e221c3a4e359fbb671c456cf65d0bb81a7874eed4afc8c3"
+        },
+        {
+          "path": "lib/12.jar",
+          "bytes": 552986,
+          "sha256": "dc0eaf2bbf0036a70b60798c785d6e03a9daf06b68b8edb0f1ba9eb3421baeb3"
+        },
+        {
+          "path": "lib/13.jar",
+          "bytes": 18517,
+          "sha256": "619b3d15a5e8bfc4ec49d3b7a64dbed053a0ca8625820a49a4f869d1b8c71d09"
+        },
+        {
+          "path": "lib/14.jar",
+          "bytes": 24518,
+          "sha256": "a0421dbbe5e77690df2dfdef98618b62852d816bbb814c5cbd0b4d464bff32b0"
+        },
+        {
+          "path": "lib/15.jar",
+          "bytes": 115785,
+          "sha256": "b251dead9c89faea26111eff87f406890611ea5ad0f3329f6b1feb812c7318db"
+        },
+        {
+          "path": "lib/16.jar",
+          "bytes": 48182,
+          "sha256": "7f5d4fc78703429c9ba2fa70cce4e769ffc40eb3a11c916576c3b945f0f3cbab"
+        },
+        {
+          "path": "lib/17.jar",
+          "bytes": 1828,
+          "sha256": "bf67a6df1388ac9aa8a95b765ae603238fd05321fe5e14c93dde93813486048f"
+        },
+        {
+          "path": "lib/18.jar",
+          "bytes": 102389,
+          "sha256": "39658649f90b631a4fd63187724f16ba8a045e1b10a513528f34517fb2edf98b"
+        },
+        {
+          "path": "lib/19.jar",
+          "bytes": 198045,
+          "sha256": "9e29b1f2e6d892bdda430ca36769523cf25b75380e3e8543077aff4b93e6663d"
+        },
+        {
+          "path": "lib/2.jar",
+          "bytes": 1787137,
+          "sha256": "5c64243ed1932febc86aa41c5f4c1b7435c119564f5617b5bede48e020daa0a1"
+        },
+        {
+          "path": "lib/20.jar",
+          "bytes": 163408,
+          "sha256": "9bd6524b34da59c85859f2aa0663c5282477af107e48160b30a53da91e6f9016"
+        },
+        {
+          "path": "lib/21.jar",
+          "bytes": 78146,
+          "sha256": "df26cc58f235f477db07f753ba5a3ab243ebe5789d9f89ecf68dd62ea9a66c28"
+        },
+        {
+          "path": "lib/22.jar",
+          "bytes": 2213560,
+          "sha256": "1e56d7b058d28b65abd256b8458e3885b674c1d588fa43cd7d1cbb9c7ef2b308"
+        },
+        {
+          "path": "lib/23.jar",
+          "bytes": 31641,
+          "sha256": "de29bacc5c3a413215800f57de9017fdda1b3cb6e5359ea0c84ebe13c9610222"
+        },
+        {
+          "path": "lib/24.jar",
+          "bytes": 105124,
+          "sha256": "df4b447704664563cb0fba9cf52d3fc7509654ab592824d5c2eb4647e6701ac4"
+        },
+        {
+          "path": "lib/25.jar",
+          "bytes": 121783,
+          "sha256": "0df97574914aee92fd349d0cb4e00f3345d45b2c239e0bb50f0a90ead47888e0"
+        },
+        {
+          "path": "lib/26.jar",
+          "bytes": 251622,
+          "sha256": "f5e3733ea6a894f5d03beef0cbcc8d53b5c52f5e9c9b85938ebbc9139e45f50c"
+        },
+        {
+          "path": "lib/27.jar",
+          "bytes": 442,
+          "sha256": "071f2d263d2201c701e2777b442aea3ff4427572fd5a5b72b8ba85768d58b530"
+        },
+        {
+          "path": "lib/28.jar",
+          "bytes": 37506,
+          "sha256": "0fd31f93ccad9eb7ac490b39dcaedf051c591a0df2e1394960b661555998f1ce"
+        },
+        {
+          "path": "lib/3.jar",
+          "bytes": 15473,
+          "sha256": "55ce4b63a9f22f98f1b718224d5abc67027de7d102d7c554ce16b53574c74681"
+        },
+        {
+          "path": "lib/4.jar",
+          "bytes": 267471,
+          "sha256": "2fd8083aabc7fb4252c299909b19b2881326a03502eba8859d39d4b2ceb7a8b2"
+        },
+        {
+          "path": "lib/5.jar",
+          "bytes": 371752,
+          "sha256": "b74c94b642359da015f66974e30d75f569898d89470b5c1d3172e4c2858871b9"
+        },
+        {
+          "path": "lib/6.jar",
+          "bytes": 318,
+          "sha256": "740c79f7fc3dae2c5eef48e85f777d679a1f0f53fdbb780bf84dea0370220a61"
+        },
+        {
+          "path": "lib/7.jar",
+          "bytes": 976907,
+          "sha256": "edaee040707eb773bbf36f4e7ccc9cddfac3070035dd4874e549dd711e7d6eb8"
+        },
+        {
+          "path": "lib/8.jar",
+          "bytes": 870573,
+          "sha256": "c12f70446ef038776ddcad234588f79dfc840fef54e6cb728107bc0879bca9bd"
+        },
+        {
+          "path": "lib/9.jar",
+          "bytes": 358070,
+          "sha256": "9b9be4b677ab6fbc6b82fe5486908a39664f51e9344d1903ada1c6766d251ce2"
+        }
+      ],
+      "executableOrLauncherBytes": 193,
+      "installedBytes": 47065996,
+      "packageBytes": 29082106,
+      "packageSha256": "ef2d0d08d94eb09716442005b095598452011a5c896b032dbfdf9a41027bcb13",
+      "package": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/ffi-jvm.tar.gz",
+      "executableSha256": "fddf1d324cdf0f6a40f23fcb023ef8154a53afa03a7ecc0ce1d9ef38e1599c6a",
+      "debugSymbols": "not produced separately",
+      "stripping": "Native Image defaults, no explicit post-link strip"
+    },
+    {
+      "id": "ffi-native",
+      "backend": "extism-ffm",
+      "target": "native",
+      "classpath": [
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala-library/3.9.0/scala-library-3.9.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-core_3/1.0.0-RC7/kyo-core_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-prelude_3/1.0.0-RC7/kyo-prelude_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-case-app_3/1.0.0-RC7/kyo-case-app_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/ujson_3/4.4.3/ujson_3-4.4.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-scheduler_3/1.0.0-RC7/kyo-scheduler_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala3-library_3/3.8.3/scala3-library_3-3.8.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-kernel_3/1.0.0-RC7/kyo-kernel_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/github/alexarchambault/case-app_3/2.1.0/case-app_3-2.1.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/upickle-core_3/4.4.3/upickle-core_3-4.4.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-stats-registry_3/1.0.0-RC7/kyo-stats-registry_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-data_3/1.0.0-RC7/kyo-data_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-core/1.37/jmh-core-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-bytecode/1.37/jmh-generator-bytecode-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-reflection/1.37/jmh-generator-reflection-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/sourcecode_3/0.4.3-M5/sourcecode_3-0.4.3-M5.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/github/alexarchambault/case-app-annotations_3/2.1.0/case-app-annotations_3-2.1.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/github/alexarchambault/case-app-util_3/2.1.0/case-app-util_3-2.1.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/geny_3/1.1.1/geny_3-1.1.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-config_3/1.0.0-RC7/kyo-config_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/pprint_3/0.9.6/pprint_3-0.9.6.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/net/sf/jopt-simple/jopt-simple/5.0.4/jopt-simple-5.0.4.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/apache/commons/commons-math3/3.6.1/commons-math3-3.6.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-asm/1.37/jmh-generator-asm-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/fansi_3/0.5.1/fansi_3-0.5.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/ow2/asm/asm/9.0/asm-9.0.jar",
+        "../mill-workspace/spikes/wasm-host/core/compile-resources",
+        "../mill-workspace/spikes/wasm-host/core/resources",
+        "../mill-workspace/out/spikes/wasm-host/core/compile.dest/classes",
+        "../mill-workspace/spikes/wasm-host/ffi/compile-resources",
+        "../mill-workspace/spikes/wasm-host/ffi/resources",
+        "../mill-workspace/out/spikes/wasm-host/ffi/compile.dest/classes"
+      ],
+      "executable": "../mill-workspace/out/spikes/wasm-host/ffi/nativeImage.dest/native-executable",
+      "classpathInputHashes": [
+        1727997546,
+        -420689085,
+        1449187216,
+        476573054,
+        -1165565890,
+        1606496203,
+        1261675881,
+        -1330219489,
+        214400044,
+        1422565378,
+        -1803124699,
+        1260473126,
+        -728694436,
+        -1694769980,
+        -1630651824,
+        524192644,
+        -1580072454,
+        1926014744,
+        -1450220599,
+        745202526,
+        2110493878,
+        1439624952,
+        1816482192,
+        -1980604684,
+        -1169002354,
+        -430462059,
+        2069132611,
+        -1377655719,
+        -1857420938,
+        1748225807,
+        -1864107368,
+        992344269
+      ],
+      "executableInputHash": -1564852061,
+      "nativeBuildLog": "ffi-native-build.log",
+      "mainClass": "morphir.spikes.wasmhost.ffi.Main",
+      "command": [
+        "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/ffi-native/host"
+      ],
+      "nativeLibrary": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/ffi-native/libextism.dylib",
+      "files": [
+        {
+          "path": "LICENSE",
+          "bytes": 1457,
+          "sha256": "d01e60805075b591cbecc63b8582788e54e190f699037f1af19fb5294b7a47ab"
+        },
+        {
+          "path": "host",
+          "bytes": 29910592,
+          "sha256": "aea1d7a3fab43518dad9e1af6e51daa3857f9ee88524881332989f93d3ba9a4e"
+        },
+        {
+          "path": "libextism.dylib",
+          "bytes": 23826656,
+          "sha256": "6ea6a864e95b3e550675c98f6eb17b43cefe7d815ab6010a24b213762e0c646d"
+        }
+      ],
+      "executableOrLauncherBytes": 29910592,
+      "installedBytes": 53738705,
+      "packageBytes": 19683507,
+      "packageSha256": "c73bfe4d67273d4eaf3df54a942924031bd23e44af7ccd8c655ef497ce3d8478",
+      "package": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/ffi-native.tar.gz",
+      "executableSha256": "aea1d7a3fab43518dad9e1af6e51daa3857f9ee88524881332989f93d3ba9a4e",
+      "debugSymbols": "not produced separately",
+      "stripping": "Native Image defaults, no explicit post-link strip",
+      "nativeImageBuildTime": "23.0s.",
+      "nativeImageBuildPeakRss": "3.55GB"
+    }
+  ],
+  "externalJavaRuntimeBytes": 739942780,
+  "compression": "ustar + JDK GZIP default deflate level 6; normalized file timestamps and root ownership; executable modes retained; application files only"
+}

@@ -1,0 +1,908 @@
+{
+  "status": "pass",
+  "protocol": "0.1",
+  "description": {
+    "claimsVersion": "0.1.0-draft.2",
+    "protocolVersions": [
+      "0.2.0-draft.1",
+      "0.1"
+    ],
+    "extension": {
+      "id": "morphir-python",
+      "name": "Morphir Python",
+      "version": "0.6.0",
+      "description": "Python algebraic data types, tuples, functions and lambdas",
+      "types": [
+        "frontend",
+        "backend"
+      ],
+      "license": "Apache-2.0"
+    },
+    "capabilities": {
+      "frontend": {
+        "languages": [
+          {
+            "id": "python",
+            "fileExtensions": [
+              ".py"
+            ]
+          }
+        ],
+        "irVersions": [
+          "3",
+          "4"
+        ],
+        "compile": true,
+        "incremental": false,
+        "fragments": false,
+        "multiDocument": true
+      },
+      "backend": {
+        "targets": [
+          "python"
+        ],
+        "irVersions": [
+          "3",
+          "4"
+        ],
+        "generate": true
+      },
+      "modelTransport": {
+        "tuples": [
+          {
+            "operation": "morphir.frontend.compileModel",
+            "profile": "morphir-ir",
+            "codec": "morphir-json",
+            "envelopeVersion": "0.1.0-draft.1",
+            "irVersion": "3.0.0"
+          },
+          {
+            "operation": "morphir.frontend.compileModel",
+            "profile": "morphir-ir",
+            "codec": "morphir-json",
+            "envelopeVersion": "0.1.0-draft.1",
+            "irVersion": "4.0.0"
+          },
+          {
+            "operation": "morphir.backend.generateModel",
+            "profile": "morphir-ir",
+            "codec": "morphir-json",
+            "envelopeVersion": "0.1.0-draft.1",
+            "irVersion": "3.0.0"
+          },
+          {
+            "operation": "morphir.backend.generateModel",
+            "profile": "morphir-ir",
+            "codec": "morphir-json",
+            "envelopeVersion": "0.1.0-draft.1",
+            "irVersion": "4.0.0"
+          }
+        ],
+        "limits": {
+          "maxEncodedBytes": 12582912,
+          "maxDecodedBytes": 8388608,
+          "maxDepth": 128,
+          "maxNodes": 100000
+        },
+        "guarantees": []
+      },
+      "streaming": false,
+      "incremental": false,
+      "cancellation": false,
+      "progress": false
+    }
+  },
+  "compileGenerate": true,
+  "repeatedCalls": 3,
+  "modelTier": "not run",
+  "configuration": "endive-jvm",
+  "guest": "python",
+  "guestSha256": "ce0cba07f0395ff8179b42eb021ade05c68197f69b8e9c0c8bc369d2a035727c",
+  "exchanges": [
+    {
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "morphir.extension.describe",
+        "params": {
+          "protocolVersions": [
+            "0.1"
+          ]
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {
+          "claimsVersion": "0.1.0-draft.2",
+          "protocolVersions": [
+            "0.2.0-draft.1",
+            "0.1"
+          ],
+          "extension": {
+            "id": "morphir-python",
+            "name": "Morphir Python",
+            "version": "0.6.0",
+            "description": "Python algebraic data types, tuples, functions and lambdas",
+            "types": [
+              "frontend",
+              "backend"
+            ],
+            "license": "Apache-2.0"
+          },
+          "capabilities": {
+            "frontend": {
+              "languages": [
+                {
+                  "id": "python",
+                  "fileExtensions": [
+                    ".py"
+                  ]
+                }
+              ],
+              "irVersions": [
+                "3",
+                "4"
+              ],
+              "compile": true,
+              "incremental": false,
+              "fragments": false,
+              "multiDocument": true
+            },
+            "backend": {
+              "targets": [
+                "python"
+              ],
+              "irVersions": [
+                "3",
+                "4"
+              ],
+              "generate": true
+            },
+            "modelTransport": {
+              "tuples": [
+                {
+                  "operation": "morphir.frontend.compileModel",
+                  "profile": "morphir-ir",
+                  "codec": "morphir-json",
+                  "envelopeVersion": "0.1.0-draft.1",
+                  "irVersion": "3.0.0"
+                },
+                {
+                  "operation": "morphir.frontend.compileModel",
+                  "profile": "morphir-ir",
+                  "codec": "morphir-json",
+                  "envelopeVersion": "0.1.0-draft.1",
+                  "irVersion": "4.0.0"
+                },
+                {
+                  "operation": "morphir.backend.generateModel",
+                  "profile": "morphir-ir",
+                  "codec": "morphir-json",
+                  "envelopeVersion": "0.1.0-draft.1",
+                  "irVersion": "3.0.0"
+                },
+                {
+                  "operation": "morphir.backend.generateModel",
+                  "profile": "morphir-ir",
+                  "codec": "morphir-json",
+                  "envelopeVersion": "0.1.0-draft.1",
+                  "irVersion": "4.0.0"
+                }
+              ],
+              "limits": {
+                "maxEncodedBytes": 12582912,
+                "maxDecodedBytes": 8388608,
+                "maxDepth": 128,
+                "maxNodes": 100000
+              },
+              "guarantees": []
+            },
+            "streaming": false,
+            "incremental": false,
+            "cancellation": false,
+            "progress": false
+          }
+        },
+        "id": 1
+      }
+    },
+    {
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "morphir.initialize",
+        "params": {
+          "protocolVersions": [
+            "0.1"
+          ],
+          "host": {
+            "name": "morphir-scala-spike",
+            "version": "0.1.0"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {
+          "protocolVersion": "0.1",
+          "extension": {
+            "id": "morphir-python",
+            "name": "Morphir Python",
+            "version": "0.6.0",
+            "description": "Python algebraic data types, tuples, functions and lambdas",
+            "types": [
+              "frontend",
+              "backend"
+            ],
+            "license": "Apache-2.0"
+          },
+          "capabilities": {
+            "frontend": {
+              "languages": [
+                {
+                  "id": "python",
+                  "fileExtensions": [
+                    ".py"
+                  ]
+                }
+              ],
+              "irVersions": [
+                "3",
+                "4"
+              ],
+              "compile": true,
+              "incremental": false,
+              "fragments": false,
+              "multiDocument": true
+            },
+            "backend": {
+              "targets": [
+                "python"
+              ],
+              "irVersions": [
+                "3",
+                "4"
+              ],
+              "generate": true
+            },
+            "streaming": false,
+            "incremental": false,
+            "cancellation": false,
+            "progress": false
+          }
+        },
+        "id": 2
+      }
+    },
+    {
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 3,
+        "method": "morphir.frontend.compile",
+        "params": {
+          "languageId": "python",
+          "sources": {
+            "root": "file:///workspace",
+            "documents": [
+              {
+                "uri": "main.py",
+                "languageId": "python",
+                "version": 1,
+                "text": "from dataclasses import dataclass\n\n@dataclass(frozen=True)\nclass Item:\n    value: int\n"
+              }
+            ]
+          },
+          "package": {
+            "name": "acme",
+            "exposedModules": [
+              "main"
+            ]
+          },
+          "dependencies": [],
+          "options": {
+            "irVersion": "3",
+            "typesOnly": false
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {
+          "success": true,
+          "irVersion": "3",
+          "ir": {
+            "formatVersion": 3,
+            "distribution": [
+              "Library",
+              [
+                [
+                  "acme"
+                ]
+              ],
+              [],
+              {
+                "modules": [
+                  [
+                    [
+                      [
+                        "main"
+                      ]
+                    ],
+                    {
+                      "access": "Public",
+                      "value": {
+                        "types": [
+                          [
+                            [
+                              "item"
+                            ],
+                            {
+                              "access": "Public",
+                              "value": {
+                                "doc": "",
+                                "value": [
+                                  "TypeAliasDefinition",
+                                  [],
+                                  [
+                                    "Record",
+                                    {},
+                                    [
+                                      {
+                                        "name": [
+                                          "value"
+                                        ],
+                                        "tpe": [
+                                          "Reference",
+                                          {},
+                                          [
+                                            [
+                                              [
+                                                "morphir"
+                                              ],
+                                              [
+                                                "s",
+                                                "d",
+                                                "k"
+                                              ]
+                                            ],
+                                            [
+                                              [
+                                                "basics"
+                                              ]
+                                            ],
+                                            [
+                                              "int"
+                                            ]
+                                          ],
+                                          []
+                                        ]
+                                      }
+                                    ]
+                                  ]
+                                ]
+                              }
+                            }
+                          ]
+                        ],
+                        "values": [],
+                        "doc": null
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          },
+          "diagnostics": [],
+          "modules": [
+            "main"
+          ]
+        },
+        "id": 3
+      }
+    },
+    {
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 4,
+        "method": "morphir.frontend.compile",
+        "params": {
+          "languageId": "python",
+          "sources": {
+            "root": "file:///workspace",
+            "documents": [
+              {
+                "uri": "main.py",
+                "languageId": "python",
+                "version": 1,
+                "text": "from dataclasses import dataclass\n\n@dataclass(frozen=True)\nclass Item:\n    value: int\n"
+              }
+            ]
+          },
+          "package": {
+            "name": "acme",
+            "exposedModules": [
+              "main"
+            ]
+          },
+          "dependencies": [],
+          "options": {
+            "irVersion": "3",
+            "typesOnly": false
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {
+          "success": true,
+          "irVersion": "3",
+          "ir": {
+            "formatVersion": 3,
+            "distribution": [
+              "Library",
+              [
+                [
+                  "acme"
+                ]
+              ],
+              [],
+              {
+                "modules": [
+                  [
+                    [
+                      [
+                        "main"
+                      ]
+                    ],
+                    {
+                      "access": "Public",
+                      "value": {
+                        "types": [
+                          [
+                            [
+                              "item"
+                            ],
+                            {
+                              "access": "Public",
+                              "value": {
+                                "doc": "",
+                                "value": [
+                                  "TypeAliasDefinition",
+                                  [],
+                                  [
+                                    "Record",
+                                    {},
+                                    [
+                                      {
+                                        "name": [
+                                          "value"
+                                        ],
+                                        "tpe": [
+                                          "Reference",
+                                          {},
+                                          [
+                                            [
+                                              [
+                                                "morphir"
+                                              ],
+                                              [
+                                                "s",
+                                                "d",
+                                                "k"
+                                              ]
+                                            ],
+                                            [
+                                              [
+                                                "basics"
+                                              ]
+                                            ],
+                                            [
+                                              "int"
+                                            ]
+                                          ],
+                                          []
+                                        ]
+                                      }
+                                    ]
+                                  ]
+                                ]
+                              }
+                            }
+                          ]
+                        ],
+                        "values": [],
+                        "doc": null
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          },
+          "diagnostics": [],
+          "modules": [
+            "main"
+          ]
+        },
+        "id": 4
+      }
+    },
+    {
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 5,
+        "method": "morphir.frontend.compile",
+        "params": {
+          "languageId": "python",
+          "sources": {
+            "root": "file:///workspace",
+            "documents": [
+              {
+                "uri": "main.py",
+                "languageId": "python",
+                "version": 1,
+                "text": "from dataclasses import dataclass\n\n@dataclass(frozen=True)\nclass Item:\n    value: int\n"
+              }
+            ]
+          },
+          "package": {
+            "name": "acme",
+            "exposedModules": [
+              "main"
+            ]
+          },
+          "dependencies": [],
+          "options": {
+            "irVersion": "3",
+            "typesOnly": false
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {
+          "success": true,
+          "irVersion": "3",
+          "ir": {
+            "formatVersion": 3,
+            "distribution": [
+              "Library",
+              [
+                [
+                  "acme"
+                ]
+              ],
+              [],
+              {
+                "modules": [
+                  [
+                    [
+                      [
+                        "main"
+                      ]
+                    ],
+                    {
+                      "access": "Public",
+                      "value": {
+                        "types": [
+                          [
+                            [
+                              "item"
+                            ],
+                            {
+                              "access": "Public",
+                              "value": {
+                                "doc": "",
+                                "value": [
+                                  "TypeAliasDefinition",
+                                  [],
+                                  [
+                                    "Record",
+                                    {},
+                                    [
+                                      {
+                                        "name": [
+                                          "value"
+                                        ],
+                                        "tpe": [
+                                          "Reference",
+                                          {},
+                                          [
+                                            [
+                                              [
+                                                "morphir"
+                                              ],
+                                              [
+                                                "s",
+                                                "d",
+                                                "k"
+                                              ]
+                                            ],
+                                            [
+                                              [
+                                                "basics"
+                                              ]
+                                            ],
+                                            [
+                                              "int"
+                                            ]
+                                          ],
+                                          []
+                                        ]
+                                      }
+                                    ]
+                                  ]
+                                ]
+                              }
+                            }
+                          ]
+                        ],
+                        "values": [],
+                        "doc": null
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          },
+          "diagnostics": [],
+          "modules": [
+            "main"
+          ]
+        },
+        "id": 5
+      }
+    },
+    {
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 6,
+        "method": "morphir.frontend.compile",
+        "params": {
+          "languageId": "python",
+          "sources": {
+            "root": "file:///workspace",
+            "documents": [
+              {
+                "uri": "main.py",
+                "languageId": "python",
+                "version": 1,
+                "text": "from dataclasses import dataclass\n\n@dataclass(frozen=True)\nclass Item:\n    value: int\n"
+              }
+            ]
+          },
+          "package": {
+            "name": "acme",
+            "exposedModules": [
+              "main"
+            ]
+          },
+          "dependencies": [],
+          "options": {
+            "irVersion": "3",
+            "typesOnly": false
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {
+          "success": true,
+          "irVersion": "3",
+          "ir": {
+            "formatVersion": 3,
+            "distribution": [
+              "Library",
+              [
+                [
+                  "acme"
+                ]
+              ],
+              [],
+              {
+                "modules": [
+                  [
+                    [
+                      [
+                        "main"
+                      ]
+                    ],
+                    {
+                      "access": "Public",
+                      "value": {
+                        "types": [
+                          [
+                            [
+                              "item"
+                            ],
+                            {
+                              "access": "Public",
+                              "value": {
+                                "doc": "",
+                                "value": [
+                                  "TypeAliasDefinition",
+                                  [],
+                                  [
+                                    "Record",
+                                    {},
+                                    [
+                                      {
+                                        "name": [
+                                          "value"
+                                        ],
+                                        "tpe": [
+                                          "Reference",
+                                          {},
+                                          [
+                                            [
+                                              [
+                                                "morphir"
+                                              ],
+                                              [
+                                                "s",
+                                                "d",
+                                                "k"
+                                              ]
+                                            ],
+                                            [
+                                              [
+                                                "basics"
+                                              ]
+                                            ],
+                                            [
+                                              "int"
+                                            ]
+                                          ],
+                                          []
+                                        ]
+                                      }
+                                    ]
+                                  ]
+                                ]
+                              }
+                            }
+                          ]
+                        ],
+                        "values": [],
+                        "doc": null
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          },
+          "diagnostics": [],
+          "modules": [
+            "main"
+          ]
+        },
+        "id": 6
+      }
+    },
+    {
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 7,
+        "method": "morphir.backend.generate",
+        "params": {
+          "ir": {
+            "formatVersion": 3,
+            "distribution": [
+              "Library",
+              [
+                [
+                  "acme"
+                ]
+              ],
+              [],
+              {
+                "modules": [
+                  [
+                    [
+                      [
+                        "main"
+                      ]
+                    ],
+                    {
+                      "access": "Public",
+                      "value": {
+                        "types": [
+                          [
+                            [
+                              "item"
+                            ],
+                            {
+                              "access": "Public",
+                              "value": {
+                                "doc": "",
+                                "value": [
+                                  "TypeAliasDefinition",
+                                  [],
+                                  [
+                                    "Record",
+                                    {},
+                                    [
+                                      {
+                                        "name": [
+                                          "value"
+                                        ],
+                                        "tpe": [
+                                          "Reference",
+                                          {},
+                                          [
+                                            [
+                                              [
+                                                "morphir"
+                                              ],
+                                              [
+                                                "s",
+                                                "d",
+                                                "k"
+                                              ]
+                                            ],
+                                            [
+                                              [
+                                                "basics"
+                                              ]
+                                            ],
+                                            [
+                                              "int"
+                                            ]
+                                          ],
+                                          []
+                                        ]
+                                      }
+                                    ]
+                                  ]
+                                ]
+                              }
+                            }
+                          ]
+                        ],
+                        "values": [],
+                        "doc": null
+                      }
+                    }
+                  ]
+                ]
+              }
+            ]
+          },
+          "target": "python",
+          "options": {}
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {
+          "success": true,
+          "artifacts": [
+            {
+              "path": "main.py",
+              "content": "from __future__ import annotations\nfrom dataclasses import dataclass\nfrom collections.abc import Callable\n\n\n@dataclass(frozen=True)\nclass Item:\n    value: int\n",
+              "binary": false
+            }
+          ],
+          "diagnostics": []
+        },
+        "id": 7
+      }
+    },
+    {
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 8,
+        "method": "morphir.shutdown",
+        "params": {}
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {},
+        "id": 8
+      }
+    }
+  ]
+}

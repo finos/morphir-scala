@@ -1,0 +1,369 @@
+{
+  "javaHome": "WORKSPACE/out/spikes/wasm-host/tools/polyglotRuntime.dest/jdk/graalvm-community-25.5.5.0.3+1.1/Contents/Home",
+  "nativeRuntime": "WORKSPACE/out/spikes/wasm-host/tools/polyglotCompiler.dest",
+  "fixtures": "WORKSPACE/spikes/wasm-host/polyglot/fixtures",
+  "guests": "WORKSPACE/out/spikes/wasm-host/tools/polyglotCompiler.dest",
+  "compilerBundle": "../mill-workspace/out/spikes/wasm-host/tools/polyglotCompiler.dest/bundle",
+  "proofSources": "../mill-workspace/spikes/wasm-host/polyglot/fixtures",
+  "configurations": [
+    {
+      "id": "polyglot-jvm",
+      "backend": "graal-polyglot-compiler",
+      "target": "jvm",
+      "classpath": [
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala-library/3.9.0/scala-library-3.9.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/polyglot/polyglot/25.5.5.0.3/polyglot-25.5.5.0.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-core_3/1.0.0-RC7/kyo-core_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-prelude_3/1.0.0-RC7/kyo-prelude_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-case-app_3/1.0.0-RC7/kyo-case-app_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/ujson_3/4.4.3/ujson_3-4.4.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/sdk/collections/25.5.5.0.3/collections-25.5.5.0.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/sdk/nativeimage/25.5.5.0.3/nativeimage-25.5.5.0.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-scheduler_3/1.0.0-RC7/kyo-scheduler_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala3-library_3/3.8.3/scala3-library_3-3.8.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-kernel_3/1.0.0-RC7/kyo-kernel_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/github/alexarchambault/case-app_3/2.1.0/case-app_3-2.1.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/upickle-core_3/4.4.3/upickle-core_3-4.4.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/sdk/word/25.5.5.0.3/word-25.5.5.0.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-stats-registry_3/1.0.0-RC7/kyo-stats-registry_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-data_3/1.0.0-RC7/kyo-data_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-core/1.37/jmh-core-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-bytecode/1.37/jmh-generator-bytecode-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-reflection/1.37/jmh-generator-reflection-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/sourcecode_3/0.4.3-M5/sourcecode_3-0.4.3-M5.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/github/alexarchambault/case-app-annotations_3/2.1.0/case-app-annotations_3-2.1.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/github/alexarchambault/case-app-util_3/2.1.0/case-app-util_3-2.1.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/geny_3/1.1.1/geny_3-1.1.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/js/js-language/25.5.5.0.3/js-language-25.5.5.0.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/truffle/truffle-runtime/25.5.5.0.3/truffle-runtime-25.5.5.0.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/wasm/wasm-language/25.5.5.0.3/wasm-language-25.5.5.0.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-config_3/1.0.0-RC7/kyo-config_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/pprint_3/0.9.6/pprint_3-0.9.6.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/net/sf/jopt-simple/jopt-simple/5.0.4/jopt-simple-5.0.4.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/apache/commons/commons-math3/3.6.1/commons-math3-3.6.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-asm/1.37/jmh-generator-asm-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/regex/regex/25.5.5.0.3/regex-25.5.5.0.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/truffle/truffle-api/25.5.5.0.3/truffle-api-25.5.5.0.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/shadowed/icu4j/25.5.5.0.3/icu4j-25.5.5.0.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/truffle/truffle-compiler/25.5.5.0.3/truffle-compiler-25.5.5.0.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/fansi_3/0.5.1/fansi_3-0.5.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/ow2/asm/asm/9.0/asm-9.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/sdk/jniutils/25.5.5.0.3/jniutils-25.5.5.0.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/shadowed/xz/25.5.5.0.3/xz-25.5.5.0.3.jar",
+        "../mill-workspace/spikes/wasm-host/core/compile-resources",
+        "../mill-workspace/spikes/wasm-host/core/resources",
+        "../mill-workspace/out/spikes/wasm-host/core/compile.dest/classes",
+        "../mill-workspace/spikes/wasm-host/polyglot/compile-resources",
+        "../mill-workspace/spikes/wasm-host/polyglot/resources",
+        "../mill-workspace/out/spikes/wasm-host/polyglot/compile.dest/classes"
+      ],
+      "executable": "../mill-workspace/out/spikes/wasm-host/polyglot/nativeImage.dest/native-executable",
+      "mainClass": "morphir.spikes.wasmhost.polyglot.Main",
+      "command": [
+        "WORKSPACE/out/spikes/wasm-host/polyglot/polyglotEvidence.dest/distribution/polyglot-jvm/host"
+      ],
+      "files": [
+        {
+          "path": "host",
+          "bytes": 198,
+          "sha256": "92bbca2e901cc8578df630e7533a408713a38b55a0eca09c688720bdda7b9392"
+        },
+        {
+          "path": "lib/0.jar",
+          "bytes": 9823422,
+          "sha256": "b844bf6fb3080c73df6b9c523b7a69b9ef4a980bb15e5c37c35443d1d0b0e0cd"
+        },
+        {
+          "path": "lib/1.jar",
+          "bytes": 543439,
+          "sha256": "51096bb48c663a82a720358d9f5f9145b9809ea3d155459211a6a05759f4f43c"
+        },
+        {
+          "path": "lib/10.jar",
+          "bytes": 976907,
+          "sha256": "edaee040707eb773bbf36f4e7ccc9cddfac3070035dd4874e549dd711e7d6eb8"
+        },
+        {
+          "path": "lib/11.jar",
+          "bytes": 870573,
+          "sha256": "c12f70446ef038776ddcad234588f79dfc840fef54e6cb728107bc0879bca9bd"
+        },
+        {
+          "path": "lib/12.jar",
+          "bytes": 358070,
+          "sha256": "9b9be4b677ab6fbc6b82fe5486908a39664f51e9344d1903ada1c6766d251ce2"
+        },
+        {
+          "path": "lib/13.jar",
+          "bytes": 73166,
+          "sha256": "11a21c7f6a132bd21c566ec4b8b397fb06656db5d293ff52966ee8582b79ddd1"
+        },
+        {
+          "path": "lib/14.jar",
+          "bytes": 132120,
+          "sha256": "a5bbd2624334922b14e35fc561efffd60841383449bfba2d7e973460c6f96a6e"
+        },
+        {
+          "path": "lib/15.jar",
+          "bytes": 1315373,
+          "sha256": "696cb8b8395b295d9e221c3a4e359fbb671c456cf65d0bb81a7874eed4afc8c3"
+        },
+        {
+          "path": "lib/16.jar",
+          "bytes": 552986,
+          "sha256": "dc0eaf2bbf0036a70b60798c785d6e03a9daf06b68b8edb0f1ba9eb3421baeb3"
+        },
+        {
+          "path": "lib/17.jar",
+          "bytes": 18517,
+          "sha256": "619b3d15a5e8bfc4ec49d3b7a64dbed053a0ca8625820a49a4f869d1b8c71d09"
+        },
+        {
+          "path": "lib/18.jar",
+          "bytes": 24518,
+          "sha256": "a0421dbbe5e77690df2dfdef98618b62852d816bbb814c5cbd0b4d464bff32b0"
+        },
+        {
+          "path": "lib/19.jar",
+          "bytes": 115785,
+          "sha256": "b251dead9c89faea26111eff87f406890611ea5ad0f3329f6b1feb812c7318db"
+        },
+        {
+          "path": "lib/2.jar",
+          "bytes": 3253592,
+          "sha256": "152357b4bc2c6dc0158a555f8e4c6e9fc2c528c87bce8e6bb09354a18fbe822c"
+        },
+        {
+          "path": "lib/20.jar",
+          "bytes": 48182,
+          "sha256": "7f5d4fc78703429c9ba2fa70cce4e769ffc40eb3a11c916576c3b945f0f3cbab"
+        },
+        {
+          "path": "lib/21.jar",
+          "bytes": 1828,
+          "sha256": "bf67a6df1388ac9aa8a95b765ae603238fd05321fe5e14c93dde93813486048f"
+        },
+        {
+          "path": "lib/22.jar",
+          "bytes": 102389,
+          "sha256": "39658649f90b631a4fd63187724f16ba8a045e1b10a513528f34517fb2edf98b"
+        },
+        {
+          "path": "lib/23.jar",
+          "bytes": 28114803,
+          "sha256": "8de5a84f9028c3835ad79f97657dcf3ef213e6e0f7413637a28138349bd8d04b"
+        },
+        {
+          "path": "lib/24.jar",
+          "bytes": 936926,
+          "sha256": "a4b8df5041e6001d00019d92617cad6b7f5628a4f84d4d94b53b9e56c6b80a0e"
+        },
+        {
+          "path": "lib/25.jar",
+          "bytes": 3058675,
+          "sha256": "e47430165f484c4c3f264b323d429e6a419b9cd8249558b6d580ea2f29d46cf1"
+        },
+        {
+          "path": "lib/26.jar",
+          "bytes": 198045,
+          "sha256": "9e29b1f2e6d892bdda430ca36769523cf25b75380e3e8543077aff4b93e6663d"
+        },
+        {
+          "path": "lib/27.jar",
+          "bytes": 163408,
+          "sha256": "9bd6524b34da59c85859f2aa0663c5282477af107e48160b30a53da91e6f9016"
+        },
+        {
+          "path": "lib/28.jar",
+          "bytes": 78146,
+          "sha256": "df26cc58f235f477db07f753ba5a3ab243ebe5789d9f89ecf68dd62ea9a66c28"
+        },
+        {
+          "path": "lib/29.jar",
+          "bytes": 2213560,
+          "sha256": "1e56d7b058d28b65abd256b8458e3885b674c1d588fa43cd7d1cbb9c7ef2b308"
+        },
+        {
+          "path": "lib/3.jar",
+          "bytes": 1787137,
+          "sha256": "5c64243ed1932febc86aa41c5f4c1b7435c119564f5617b5bede48e020daa0a1"
+        },
+        {
+          "path": "lib/30.jar",
+          "bytes": 31641,
+          "sha256": "de29bacc5c3a413215800f57de9017fdda1b3cb6e5359ea0c84ebe13c9610222"
+        },
+        {
+          "path": "lib/31.jar",
+          "bytes": 3889982,
+          "sha256": "646db57872bff76d4794a20f4be2a7e6d37cf4ea698d5c6c3b529532699d744b"
+        },
+        {
+          "path": "lib/32.jar",
+          "bytes": 17041599,
+          "sha256": "ce6662ca5f319c329eb8867f4aa809ea3e892e07b2975bf9d364d94bdad166d0"
+        },
+        {
+          "path": "lib/33.jar",
+          "bytes": 18564125,
+          "sha256": "5474c939fcd8c054d60f43978f3dd6331d762cafa71d06d9f6b292c4496432eb"
+        },
+        {
+          "path": "lib/34.jar",
+          "bytes": 54767,
+          "sha256": "f12a579e489daea109d7e19d231b48fe33b2a8a34033251618ef7a54579a236d"
+        },
+        {
+          "path": "lib/35.jar",
+          "bytes": 105124,
+          "sha256": "df4b447704664563cb0fba9cf52d3fc7509654ab592824d5c2eb4647e6701ac4"
+        },
+        {
+          "path": "lib/36.jar",
+          "bytes": 121783,
+          "sha256": "0df97574914aee92fd349d0cb4e00f3345d45b2c239e0bb50f0a90ead47888e0"
+        },
+        {
+          "path": "lib/37.jar",
+          "bytes": 281941,
+          "sha256": "1c46ac4d58434d9118026ab2f4a585102460ec07a4cfcf31973b0fb13f84268e"
+        },
+        {
+          "path": "lib/38.jar",
+          "bytes": 328726,
+          "sha256": "2f3a1fc185b269c852c5098e533a45be480bd45953bdc9f239d45ac36001f3c0"
+        },
+        {
+          "path": "lib/39.jar",
+          "bytes": 251627,
+          "sha256": "4fe4287d8991dc3043d8685d8a2389a7fc2b00b9464ac2e71161608f87722b9e"
+        },
+        {
+          "path": "lib/4.jar",
+          "bytes": 15473,
+          "sha256": "55ce4b63a9f22f98f1b718224d5abc67027de7d102d7c554ce16b53574c74681"
+        },
+        {
+          "path": "lib/40.jar",
+          "bytes": 2502,
+          "sha256": "ebeff4f2cf44de7ebc31b6481a1b4f0b79d1696ee4ca6058d270fe882936e231"
+        },
+        {
+          "path": "lib/41.jar",
+          "bytes": 76542,
+          "sha256": "bb010fc27696111e7eb939f268d7fc48c0d777076ad094d98c0a3730419dab98"
+        },
+        {
+          "path": "lib/5.jar",
+          "bytes": 267471,
+          "sha256": "2fd8083aabc7fb4252c299909b19b2881326a03502eba8859d39d4b2ceb7a8b2"
+        },
+        {
+          "path": "lib/6.jar",
+          "bytes": 129481,
+          "sha256": "694c52b4536e744fd091257d190af6ba95c78f37a2eb1cb7b5d1cfc8e7c1efca"
+        },
+        {
+          "path": "lib/7.jar",
+          "bytes": 263400,
+          "sha256": "b8d337a9d413169953285b600bb1bd243f1b294a10654a324751f56b2a88d749"
+        },
+        {
+          "path": "lib/8.jar",
+          "bytes": 371752,
+          "sha256": "b74c94b642359da015f66974e30d75f569898d89470b5c1d3172e4c2858871b9"
+        },
+        {
+          "path": "lib/9.jar",
+          "bytes": 318,
+          "sha256": "740c79f7fc3dae2c5eef48e85f777d679a1f0f53fdbb780bf84dea0370220a61"
+        }
+      ],
+      "executableOrLauncherBytes": 198,
+      "installedBytes": 96560019,
+      "packageBytes": 51587345,
+      "packageSha256": "61255580b555934e02c19bea3a747a29c2eef3047f3807a781f0c4e4e46abe56",
+      "package": "WORKSPACE/out/spikes/wasm-host/polyglot/polyglotEvidence.dest/distribution/polyglot-jvm.tar.gz",
+      "executableSha256": "92bbca2e901cc8578df630e7533a408713a38b55a0eca09c688720bdda7b9392",
+      "debugSymbols": "not produced separately",
+      "stripping": "Native Image defaults, no explicit post-link strip"
+    },
+    {
+      "id": "polyglot-native",
+      "backend": "graal-polyglot-compiler",
+      "target": "native",
+      "classpath": [
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala-library/3.9.0/scala-library-3.9.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/polyglot/polyglot/25.5.5.0.3/polyglot-25.5.5.0.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-core_3/1.0.0-RC7/kyo-core_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-prelude_3/1.0.0-RC7/kyo-prelude_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-case-app_3/1.0.0-RC7/kyo-case-app_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/ujson_3/4.4.3/ujson_3-4.4.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/sdk/collections/25.5.5.0.3/collections-25.5.5.0.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/sdk/nativeimage/25.5.5.0.3/nativeimage-25.5.5.0.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-scheduler_3/1.0.0-RC7/kyo-scheduler_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/scala-lang/scala3-library_3/3.8.3/scala3-library_3-3.8.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-kernel_3/1.0.0-RC7/kyo-kernel_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/github/alexarchambault/case-app_3/2.1.0/case-app_3-2.1.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/upickle-core_3/4.4.3/upickle-core_3-4.4.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/sdk/word/25.5.5.0.3/word-25.5.5.0.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-stats-registry_3/1.0.0-RC7/kyo-stats-registry_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-data_3/1.0.0-RC7/kyo-data_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-core/1.37/jmh-core-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-bytecode/1.37/jmh-generator-bytecode-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-reflection/1.37/jmh-generator-reflection-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/sourcecode_3/0.4.3-M5/sourcecode_3-0.4.3-M5.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/github/alexarchambault/case-app-annotations_3/2.1.0/case-app-annotations_3-2.1.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/github/alexarchambault/case-app-util_3/2.1.0/case-app-util_3-2.1.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/geny_3/1.1.1/geny_3-1.1.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/js/js-language/25.5.5.0.3/js-language-25.5.5.0.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/truffle/truffle-runtime/25.5.5.0.3/truffle-runtime-25.5.5.0.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/wasm/wasm-language/25.5.5.0.3/wasm-language-25.5.5.0.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/io/getkyo/kyo-config_3/1.0.0-RC7/kyo-config_3-1.0.0-RC7.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/pprint_3/0.9.6/pprint_3-0.9.6.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/net/sf/jopt-simple/jopt-simple/5.0.4/jopt-simple-5.0.4.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/apache/commons/commons-math3/3.6.1/commons-math3-3.6.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-asm/1.37/jmh-generator-asm-1.37.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/regex/regex/25.5.5.0.3/regex-25.5.5.0.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/truffle/truffle-api/25.5.5.0.3/truffle-api-25.5.5.0.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/shadowed/icu4j/25.5.5.0.3/icu4j-25.5.5.0.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/truffle/truffle-compiler/25.5.5.0.3/truffle-compiler-25.5.5.0.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/com/lihaoyi/fansi_3/0.5.1/fansi_3-0.5.1.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/ow2/asm/asm/9.0/asm-9.0.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/sdk/jniutils/25.5.5.0.3/jniutils-25.5.5.0.3.jar",
+        "../mill-home/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/org/graalvm/shadowed/xz/25.5.5.0.3/xz-25.5.5.0.3.jar",
+        "../mill-workspace/spikes/wasm-host/core/compile-resources",
+        "../mill-workspace/spikes/wasm-host/core/resources",
+        "../mill-workspace/out/spikes/wasm-host/core/compile.dest/classes",
+        "../mill-workspace/spikes/wasm-host/polyglot/compile-resources",
+        "../mill-workspace/spikes/wasm-host/polyglot/resources",
+        "../mill-workspace/out/spikes/wasm-host/polyglot/compile.dest/classes"
+      ],
+      "executable": "../mill-workspace/out/spikes/wasm-host/polyglot/nativeImage.dest/native-executable",
+      "mainClass": "morphir.spikes.wasmhost.polyglot.Main",
+      "command": [
+        "WORKSPACE/out/spikes/wasm-host/polyglot/polyglotEvidence.dest/distribution/polyglot-native/host"
+      ],
+      "files": [
+        {
+          "path": "host",
+          "bytes": 135880000,
+          "sha256": "7198cd6e0bd71b1c032d968f72bbb233932fc2f1ce7565989b0c05e7a7981267"
+        }
+      ],
+      "executableOrLauncherBytes": 135880000,
+      "installedBytes": 135880000,
+      "packageBytes": 60143589,
+      "packageSha256": "b8c1b8443fb4a5298b294777847be2d593b4c9a67ad990c5a566512fa43b4bfe",
+      "package": "WORKSPACE/out/spikes/wasm-host/polyglot/polyglotEvidence.dest/distribution/polyglot-native.tar.gz",
+      "executableSha256": "7198cd6e0bd71b1c032d968f72bbb233932fc2f1ce7565989b0c05e7a7981267",
+      "debugSymbols": "not produced separately",
+      "stripping": "Native Image defaults, no explicit post-link strip",
+      "nativeBuildLog": "polyglot-native-build.log",
+      "nativeImageBuildTime": "1m 0s.",
+      "nativeImageBuildPeakRss": "6.26GiB"
+    }
+  ],
+  "externalJavaRuntimeBytes": 664400983,
+  "compression": "ustar + JDK GZIP default deflate level 6; normalized file timestamps and root ownership; executable modes retained; application files only"
+}

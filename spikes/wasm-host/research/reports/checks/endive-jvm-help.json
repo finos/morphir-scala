@@ -1,0 +1,19 @@
+{
+  "configuration": "endive-jvm",
+  "scope": "synthetic byte callbacks",
+  "name": "endive-jvm-help",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/endive-jvm/host",
+    "--help"
+  ],
+  "exit": 0,
+  "elapsedNanos": 222446917,
+  "startNanos": 670354988755458,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [],
+  "stdout": "endive-jvm-help.stdout.json",
+  "stderr": "endive-jvm-help.stderr.jsonl",
+  "startupToFirstResultNanos": null
+}

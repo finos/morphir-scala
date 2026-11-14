@@ -1,0 +1,21 @@
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/0.jar)
+WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+Failure(java.lang.IllegalArgumentException: requirement failed: --guest must name a file)
+Exception in thread "main" java.lang.IllegalArgumentException: requirement failed: --guest must name a file
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at ? @ morphir.spikes.wasmhost.HostCli.Supervise$.?(HostCli.scala:36)
+	at kyo.Abort[-scala.Any].handle(Unknown Source)
+	at scala.Predef$.require(Predef.scala:389)
+	at morphir.spikes.wasmhost.Supervisor$.run(Supervisor.scala:127)
+	at morphir.spikes.wasmhost.HostCli.morphir$spikes$wasmhost$HostCli$Supervise$$$_$$lessinit$greater$$anonfun$2(HostCli.scala:35)
+	at scala.runtime.function.JProcedure1.apply(JProcedure1.java:15)
+	at scala.runtime.function.JProcedure1.apply(JProcedure1.java:10)
+	at caseapp.core.app.CaseApp.main(CaseApp.scala:178)
+	at caseapp.core.app.CommandsEntryPoint.main(CommandsEntryPoint.scala:365)
+	at morphir.spikes.wasmhost.graal.Main.main(Main.scala)
+	Suppressed: kyo.kernel.internal.EffectTrace: effect trace:
+at kyo.Abort[-scala.Any].handle(Unknown Source)
+at ? @ morphir.spikes.wasmhost.HostCli.Supervise$.?(HostCli.scala:36)
+at kyo.Abort[-scala.Any].handle(Unknown Source)

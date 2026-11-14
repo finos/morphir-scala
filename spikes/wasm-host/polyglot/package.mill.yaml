@@ -1,0 +1,8 @@
+extends: [build.WasmPolyglotExecutable]
+mainClass: morphir.spikes.wasmhost.polyglot.Main
+moduleDeps:
+- build.spikes.wasm-host.core
+mvnDeps: !append
+- org.graalvm.polyglot:polyglot:25.5.5.0.3
+- org.graalvm.polyglot:js-community:25.5.5.0.3
+- org.graalvm.polyglot:wasm-community:25.5.5.0.3

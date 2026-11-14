@@ -1,0 +1,6 @@
+{
+  "status": "blocked",
+  "kyoVersion": "1.0.0-RC7",
+  "error": "callbackValueLayout: unsupported callback position type HandleT(morphir.spikes.wasmhost.ffi.CurrentPlugin)",
+  "decision": "Use direct JDK FFM for the Extism candidate; preserve this declaration/generation experiment"
+}

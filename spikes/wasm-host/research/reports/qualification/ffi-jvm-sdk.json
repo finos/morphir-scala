@@ -1,0 +1,1293 @@
+{
+  "status": "pass",
+  "protocol": "0.1",
+  "description": {
+    "capabilities": {
+      "backend": {
+        "generate": true,
+        "irVersions": [
+          "3"
+        ],
+        "targets": [
+          "morphir-fixture-flags"
+        ]
+      },
+      "cancellation": false,
+      "frontend": {
+        "compile": true,
+        "fragments": false,
+        "incremental": false,
+        "irVersions": [
+          "3"
+        ],
+        "languages": [
+          {
+            "fileExtensions": [
+              ".flags"
+            ],
+            "id": "morphir-fixture-flags"
+          }
+        ],
+        "multiDocument": true
+      },
+      "incremental": false,
+      "progress": false,
+      "streaming": false
+    },
+    "claimsVersion": "0.1.0-draft.2",
+    "extension": {
+      "description": "Worker host conformance fixture built with morphir-extension-sdk",
+      "id": "morphir-sdk-fixture",
+      "license": "Apache-2.0",
+      "name": "Morphir SDK conformance fixture",
+      "types": [
+        "frontend",
+        "backend"
+      ],
+      "version": "0.1.0"
+    },
+    "protocolVersions": [
+      "0.1"
+    ]
+  },
+  "compileGenerate": true,
+  "repeatedCalls": 3,
+  "modelTier": "not run",
+  "configuration": "ffi-jvm",
+  "guest": "sdk",
+  "guestSha256": "f5e1c9cd7a3472b6261c2c3ebfe2c39aeae14da5287dac6cd6ca87ce854901f1",
+  "exchanges": [
+    {
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "morphir.extension.describe",
+        "params": {
+          "protocolVersions": [
+            "0.1"
+          ]
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {
+          "capabilities": {
+            "backend": {
+              "generate": true,
+              "irVersions": [
+                "3"
+              ],
+              "targets": [
+                "morphir-fixture-flags"
+              ]
+            },
+            "cancellation": false,
+            "frontend": {
+              "compile": true,
+              "fragments": false,
+              "incremental": false,
+              "irVersions": [
+                "3"
+              ],
+              "languages": [
+                {
+                  "fileExtensions": [
+                    ".flags"
+                  ],
+                  "id": "morphir-fixture-flags"
+                }
+              ],
+              "multiDocument": true
+            },
+            "incremental": false,
+            "progress": false,
+            "streaming": false
+          },
+          "claimsVersion": "0.1.0-draft.2",
+          "extension": {
+            "description": "Worker host conformance fixture built with morphir-extension-sdk",
+            "id": "morphir-sdk-fixture",
+            "license": "Apache-2.0",
+            "name": "Morphir SDK conformance fixture",
+            "types": [
+              "frontend",
+              "backend"
+            ],
+            "version": "0.1.0"
+          },
+          "protocolVersions": [
+            "0.1"
+          ]
+        },
+        "id": 1
+      }
+    },
+    {
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "morphir.initialize",
+        "params": {
+          "protocolVersions": [
+            "0.1"
+          ],
+          "host": {
+            "name": "morphir-scala-spike",
+            "version": "0.1.0"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {
+          "capabilities": {
+            "backend": {
+              "generate": true,
+              "irVersions": [
+                "3"
+              ],
+              "targets": [
+                "morphir-fixture-flags"
+              ]
+            },
+            "cancellation": false,
+            "frontend": {
+              "compile": true,
+              "fragments": false,
+              "incremental": false,
+              "irVersions": [
+                "3"
+              ],
+              "languages": [
+                {
+                  "fileExtensions": [
+                    ".flags"
+                  ],
+                  "id": "morphir-fixture-flags"
+                }
+              ],
+              "multiDocument": true
+            },
+            "incremental": false,
+            "progress": false,
+            "streaming": false
+          },
+          "extension": {
+            "description": "Worker host conformance fixture built with morphir-extension-sdk",
+            "id": "morphir-sdk-fixture",
+            "license": "Apache-2.0",
+            "name": "Morphir SDK conformance fixture",
+            "types": [
+              "frontend",
+              "backend"
+            ],
+            "version": "0.1.0"
+          },
+          "protocolVersion": "0.1"
+        },
+        "id": 2
+      }
+    },
+    {
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 3,
+        "method": "morphir.frontend.compile",
+        "params": {
+          "languageId": "morphir-fixture-flags",
+          "sources": {
+            "root": "file:///workspace",
+            "documents": [
+              {
+                "uri": "main.flags",
+                "languageId": "morphir-fixture-flags",
+                "version": 1,
+                "text": "ready = true\nblocked = false\n"
+              }
+            ]
+          },
+          "package": {
+            "name": "acme",
+            "exposedModules": [
+              "main"
+            ]
+          },
+          "dependencies": [],
+          "options": {
+            "irVersion": "3",
+            "typesOnly": false
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {
+          "diagnostics": [
+            {
+              "code": "fixture.host",
+              "message": "{\"cacheRoundTrip\":true,\"morphirLog\":true,\"wasiArguments\":0,\"wasiClock\":true,\"wasiEnvironment\":0,\"wasiRandomSeed\":true,\"workspaceRoot\":true}",
+              "severity": "info"
+            }
+          ],
+          "ir": {
+            "distribution": [
+              "Library",
+              [
+                [
+                  "acme"
+                ]
+              ],
+              [],
+              {
+                "modules": [
+                  [
+                    [
+                      [
+                        "main"
+                      ]
+                    ],
+                    {
+                      "access": "Public",
+                      "value": {
+                        "doc": null,
+                        "types": [],
+                        "values": [
+                          [
+                            [
+                              "ready"
+                            ],
+                            {
+                              "access": "Public",
+                              "value": {
+                                "doc": "",
+                                "value": {
+                                  "body": [
+                                    "Literal",
+                                    [
+                                      "Reference",
+                                      {},
+                                      [
+                                        [
+                                          [
+                                            "morphir"
+                                          ],
+                                          [
+                                            "s",
+                                            "d",
+                                            "k"
+                                          ]
+                                        ],
+                                        [
+                                          [
+                                            "basics"
+                                          ]
+                                        ],
+                                        [
+                                          "bool"
+                                        ]
+                                      ],
+                                      []
+                                    ],
+                                    [
+                                      "BoolLiteral",
+                                      true
+                                    ]
+                                  ],
+                                  "inputTypes": [],
+                                  "outputType": [
+                                    "Reference",
+                                    {},
+                                    [
+                                      [
+                                        [
+                                          "morphir"
+                                        ],
+                                        [
+                                          "s",
+                                          "d",
+                                          "k"
+                                        ]
+                                      ],
+                                      [
+                                        [
+                                          "basics"
+                                        ]
+                                      ],
+                                      [
+                                        "bool"
+                                      ]
+                                    ],
+                                    []
+                                  ]
+                                }
+                              }
+                            }
+                          ],
+                          [
+                            [
+                              "blocked"
+                            ],
+                            {
+                              "access": "Public",
+                              "value": {
+                                "doc": "",
+                                "value": {
+                                  "body": [
+                                    "Literal",
+                                    [
+                                      "Reference",
+                                      {},
+                                      [
+                                        [
+                                          [
+                                            "morphir"
+                                          ],
+                                          [
+                                            "s",
+                                            "d",
+                                            "k"
+                                          ]
+                                        ],
+                                        [
+                                          [
+                                            "basics"
+                                          ]
+                                        ],
+                                        [
+                                          "bool"
+                                        ]
+                                      ],
+                                      []
+                                    ],
+                                    [
+                                      "BoolLiteral",
+                                      false
+                                    ]
+                                  ],
+                                  "inputTypes": [],
+                                  "outputType": [
+                                    "Reference",
+                                    {},
+                                    [
+                                      [
+                                        [
+                                          "morphir"
+                                        ],
+                                        [
+                                          "s",
+                                          "d",
+                                          "k"
+                                        ]
+                                      ],
+                                      [
+                                        [
+                                          "basics"
+                                        ]
+                                      ],
+                                      [
+                                        "bool"
+                                      ]
+                                    ],
+                                    []
+                                  ]
+                                }
+                              }
+                            }
+                          ]
+                        ]
+                      }
+                    }
+                  ]
+                ]
+              }
+            ],
+            "formatVersion": 3
+          },
+          "irVersion": "3",
+          "modules": [],
+          "success": true
+        },
+        "id": 3
+      }
+    },
+    {
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 4,
+        "method": "morphir.frontend.compile",
+        "params": {
+          "languageId": "morphir-fixture-flags",
+          "sources": {
+            "root": "file:///workspace",
+            "documents": [
+              {
+                "uri": "main.flags",
+                "languageId": "morphir-fixture-flags",
+                "version": 1,
+                "text": "ready = true\nblocked = false\n"
+              }
+            ]
+          },
+          "package": {
+            "name": "acme",
+            "exposedModules": [
+              "main"
+            ]
+          },
+          "dependencies": [],
+          "options": {
+            "irVersion": "3",
+            "typesOnly": false
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {
+          "diagnostics": [
+            {
+              "code": "fixture.host",
+              "message": "{\"cacheRoundTrip\":true,\"morphirLog\":true,\"wasiArguments\":0,\"wasiClock\":true,\"wasiEnvironment\":0,\"wasiRandomSeed\":true,\"workspaceRoot\":true}",
+              "severity": "info"
+            }
+          ],
+          "ir": {
+            "distribution": [
+              "Library",
+              [
+                [
+                  "acme"
+                ]
+              ],
+              [],
+              {
+                "modules": [
+                  [
+                    [
+                      [
+                        "main"
+                      ]
+                    ],
+                    {
+                      "access": "Public",
+                      "value": {
+                        "doc": null,
+                        "types": [],
+                        "values": [
+                          [
+                            [
+                              "ready"
+                            ],
+                            {
+                              "access": "Public",
+                              "value": {
+                                "doc": "",
+                                "value": {
+                                  "body": [
+                                    "Literal",
+                                    [
+                                      "Reference",
+                                      {},
+                                      [
+                                        [
+                                          [
+                                            "morphir"
+                                          ],
+                                          [
+                                            "s",
+                                            "d",
+                                            "k"
+                                          ]
+                                        ],
+                                        [
+                                          [
+                                            "basics"
+                                          ]
+                                        ],
+                                        [
+                                          "bool"
+                                        ]
+                                      ],
+                                      []
+                                    ],
+                                    [
+                                      "BoolLiteral",
+                                      true
+                                    ]
+                                  ],
+                                  "inputTypes": [],
+                                  "outputType": [
+                                    "Reference",
+                                    {},
+                                    [
+                                      [
+                                        [
+                                          "morphir"
+                                        ],
+                                        [
+                                          "s",
+                                          "d",
+                                          "k"
+                                        ]
+                                      ],
+                                      [
+                                        [
+                                          "basics"
+                                        ]
+                                      ],
+                                      [
+                                        "bool"
+                                      ]
+                                    ],
+                                    []
+                                  ]
+                                }
+                              }
+                            }
+                          ],
+                          [
+                            [
+                              "blocked"
+                            ],
+                            {
+                              "access": "Public",
+                              "value": {
+                                "doc": "",
+                                "value": {
+                                  "body": [
+                                    "Literal",
+                                    [
+                                      "Reference",
+                                      {},
+                                      [
+                                        [
+                                          [
+                                            "morphir"
+                                          ],
+                                          [
+                                            "s",
+                                            "d",
+                                            "k"
+                                          ]
+                                        ],
+                                        [
+                                          [
+                                            "basics"
+                                          ]
+                                        ],
+                                        [
+                                          "bool"
+                                        ]
+                                      ],
+                                      []
+                                    ],
+                                    [
+                                      "BoolLiteral",
+                                      false
+                                    ]
+                                  ],
+                                  "inputTypes": [],
+                                  "outputType": [
+                                    "Reference",
+                                    {},
+                                    [
+                                      [
+                                        [
+                                          "morphir"
+                                        ],
+                                        [
+                                          "s",
+                                          "d",
+                                          "k"
+                                        ]
+                                      ],
+                                      [
+                                        [
+                                          "basics"
+                                        ]
+                                      ],
+                                      [
+                                        "bool"
+                                      ]
+                                    ],
+                                    []
+                                  ]
+                                }
+                              }
+                            }
+                          ]
+                        ]
+                      }
+                    }
+                  ]
+                ]
+              }
+            ],
+            "formatVersion": 3
+          },
+          "irVersion": "3",
+          "modules": [],
+          "success": true
+        },
+        "id": 4
+      }
+    },
+    {
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 5,
+        "method": "morphir.frontend.compile",
+        "params": {
+          "languageId": "morphir-fixture-flags",
+          "sources": {
+            "root": "file:///workspace",
+            "documents": [
+              {
+                "uri": "main.flags",
+                "languageId": "morphir-fixture-flags",
+                "version": 1,
+                "text": "ready = true\nblocked = false\n"
+              }
+            ]
+          },
+          "package": {
+            "name": "acme",
+            "exposedModules": [
+              "main"
+            ]
+          },
+          "dependencies": [],
+          "options": {
+            "irVersion": "3",
+            "typesOnly": false
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {
+          "diagnostics": [
+            {
+              "code": "fixture.host",
+              "message": "{\"cacheRoundTrip\":true,\"morphirLog\":true,\"wasiArguments\":0,\"wasiClock\":true,\"wasiEnvironment\":0,\"wasiRandomSeed\":true,\"workspaceRoot\":true}",
+              "severity": "info"
+            }
+          ],
+          "ir": {
+            "distribution": [
+              "Library",
+              [
+                [
+                  "acme"
+                ]
+              ],
+              [],
+              {
+                "modules": [
+                  [
+                    [
+                      [
+                        "main"
+                      ]
+                    ],
+                    {
+                      "access": "Public",
+                      "value": {
+                        "doc": null,
+                        "types": [],
+                        "values": [
+                          [
+                            [
+                              "ready"
+                            ],
+                            {
+                              "access": "Public",
+                              "value": {
+                                "doc": "",
+                                "value": {
+                                  "body": [
+                                    "Literal",
+                                    [
+                                      "Reference",
+                                      {},
+                                      [
+                                        [
+                                          [
+                                            "morphir"
+                                          ],
+                                          [
+                                            "s",
+                                            "d",
+                                            "k"
+                                          ]
+                                        ],
+                                        [
+                                          [
+                                            "basics"
+                                          ]
+                                        ],
+                                        [
+                                          "bool"
+                                        ]
+                                      ],
+                                      []
+                                    ],
+                                    [
+                                      "BoolLiteral",
+                                      true
+                                    ]
+                                  ],
+                                  "inputTypes": [],
+                                  "outputType": [
+                                    "Reference",
+                                    {},
+                                    [
+                                      [
+                                        [
+                                          "morphir"
+                                        ],
+                                        [
+                                          "s",
+                                          "d",
+                                          "k"
+                                        ]
+                                      ],
+                                      [
+                                        [
+                                          "basics"
+                                        ]
+                                      ],
+                                      [
+                                        "bool"
+                                      ]
+                                    ],
+                                    []
+                                  ]
+                                }
+                              }
+                            }
+                          ],
+                          [
+                            [
+                              "blocked"
+                            ],
+                            {
+                              "access": "Public",
+                              "value": {
+                                "doc": "",
+                                "value": {
+                                  "body": [
+                                    "Literal",
+                                    [
+                                      "Reference",
+                                      {},
+                                      [
+                                        [
+                                          [
+                                            "morphir"
+                                          ],
+                                          [
+                                            "s",
+                                            "d",
+                                            "k"
+                                          ]
+                                        ],
+                                        [
+                                          [
+                                            "basics"
+                                          ]
+                                        ],
+                                        [
+                                          "bool"
+                                        ]
+                                      ],
+                                      []
+                                    ],
+                                    [
+                                      "BoolLiteral",
+                                      false
+                                    ]
+                                  ],
+                                  "inputTypes": [],
+                                  "outputType": [
+                                    "Reference",
+                                    {},
+                                    [
+                                      [
+                                        [
+                                          "morphir"
+                                        ],
+                                        [
+                                          "s",
+                                          "d",
+                                          "k"
+                                        ]
+                                      ],
+                                      [
+                                        [
+                                          "basics"
+                                        ]
+                                      ],
+                                      [
+                                        "bool"
+                                      ]
+                                    ],
+                                    []
+                                  ]
+                                }
+                              }
+                            }
+                          ]
+                        ]
+                      }
+                    }
+                  ]
+                ]
+              }
+            ],
+            "formatVersion": 3
+          },
+          "irVersion": "3",
+          "modules": [],
+          "success": true
+        },
+        "id": 5
+      }
+    },
+    {
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 6,
+        "method": "morphir.frontend.compile",
+        "params": {
+          "languageId": "morphir-fixture-flags",
+          "sources": {
+            "root": "file:///workspace",
+            "documents": [
+              {
+                "uri": "main.flags",
+                "languageId": "morphir-fixture-flags",
+                "version": 1,
+                "text": "ready = true\nblocked = false\n"
+              }
+            ]
+          },
+          "package": {
+            "name": "acme",
+            "exposedModules": [
+              "main"
+            ]
+          },
+          "dependencies": [],
+          "options": {
+            "irVersion": "3",
+            "typesOnly": false
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {
+          "diagnostics": [
+            {
+              "code": "fixture.host",
+              "message": "{\"cacheRoundTrip\":true,\"morphirLog\":true,\"wasiArguments\":0,\"wasiClock\":true,\"wasiEnvironment\":0,\"wasiRandomSeed\":true,\"workspaceRoot\":true}",
+              "severity": "info"
+            }
+          ],
+          "ir": {
+            "distribution": [
+              "Library",
+              [
+                [
+                  "acme"
+                ]
+              ],
+              [],
+              {
+                "modules": [
+                  [
+                    [
+                      [
+                        "main"
+                      ]
+                    ],
+                    {
+                      "access": "Public",
+                      "value": {
+                        "doc": null,
+                        "types": [],
+                        "values": [
+                          [
+                            [
+                              "ready"
+                            ],
+                            {
+                              "access": "Public",
+                              "value": {
+                                "doc": "",
+                                "value": {
+                                  "body": [
+                                    "Literal",
+                                    [
+                                      "Reference",
+                                      {},
+                                      [
+                                        [
+                                          [
+                                            "morphir"
+                                          ],
+                                          [
+                                            "s",
+                                            "d",
+                                            "k"
+                                          ]
+                                        ],
+                                        [
+                                          [
+                                            "basics"
+                                          ]
+                                        ],
+                                        [
+                                          "bool"
+                                        ]
+                                      ],
+                                      []
+                                    ],
+                                    [
+                                      "BoolLiteral",
+                                      true
+                                    ]
+                                  ],
+                                  "inputTypes": [],
+                                  "outputType": [
+                                    "Reference",
+                                    {},
+                                    [
+                                      [
+                                        [
+                                          "morphir"
+                                        ],
+                                        [
+                                          "s",
+                                          "d",
+                                          "k"
+                                        ]
+                                      ],
+                                      [
+                                        [
+                                          "basics"
+                                        ]
+                                      ],
+                                      [
+                                        "bool"
+                                      ]
+                                    ],
+                                    []
+                                  ]
+                                }
+                              }
+                            }
+                          ],
+                          [
+                            [
+                              "blocked"
+                            ],
+                            {
+                              "access": "Public",
+                              "value": {
+                                "doc": "",
+                                "value": {
+                                  "body": [
+                                    "Literal",
+                                    [
+                                      "Reference",
+                                      {},
+                                      [
+                                        [
+                                          [
+                                            "morphir"
+                                          ],
+                                          [
+                                            "s",
+                                            "d",
+                                            "k"
+                                          ]
+                                        ],
+                                        [
+                                          [
+                                            "basics"
+                                          ]
+                                        ],
+                                        [
+                                          "bool"
+                                        ]
+                                      ],
+                                      []
+                                    ],
+                                    [
+                                      "BoolLiteral",
+                                      false
+                                    ]
+                                  ],
+                                  "inputTypes": [],
+                                  "outputType": [
+                                    "Reference",
+                                    {},
+                                    [
+                                      [
+                                        [
+                                          "morphir"
+                                        ],
+                                        [
+                                          "s",
+                                          "d",
+                                          "k"
+                                        ]
+                                      ],
+                                      [
+                                        [
+                                          "basics"
+                                        ]
+                                      ],
+                                      [
+                                        "bool"
+                                      ]
+                                    ],
+                                    []
+                                  ]
+                                }
+                              }
+                            }
+                          ]
+                        ]
+                      }
+                    }
+                  ]
+                ]
+              }
+            ],
+            "formatVersion": 3
+          },
+          "irVersion": "3",
+          "modules": [],
+          "success": true
+        },
+        "id": 6
+      }
+    },
+    {
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 7,
+        "method": "morphir.backend.generate",
+        "params": {
+          "ir": {
+            "distribution": [
+              "Library",
+              [
+                [
+                  "acme"
+                ]
+              ],
+              [],
+              {
+                "modules": [
+                  [
+                    [
+                      [
+                        "main"
+                      ]
+                    ],
+                    {
+                      "access": "Public",
+                      "value": {
+                        "doc": null,
+                        "types": [],
+                        "values": [
+                          [
+                            [
+                              "ready"
+                            ],
+                            {
+                              "access": "Public",
+                              "value": {
+                                "doc": "",
+                                "value": {
+                                  "body": [
+                                    "Literal",
+                                    [
+                                      "Reference",
+                                      {},
+                                      [
+                                        [
+                                          [
+                                            "morphir"
+                                          ],
+                                          [
+                                            "s",
+                                            "d",
+                                            "k"
+                                          ]
+                                        ],
+                                        [
+                                          [
+                                            "basics"
+                                          ]
+                                        ],
+                                        [
+                                          "bool"
+                                        ]
+                                      ],
+                                      []
+                                    ],
+                                    [
+                                      "BoolLiteral",
+                                      true
+                                    ]
+                                  ],
+                                  "inputTypes": [],
+                                  "outputType": [
+                                    "Reference",
+                                    {},
+                                    [
+                                      [
+                                        [
+                                          "morphir"
+                                        ],
+                                        [
+                                          "s",
+                                          "d",
+                                          "k"
+                                        ]
+                                      ],
+                                      [
+                                        [
+                                          "basics"
+                                        ]
+                                      ],
+                                      [
+                                        "bool"
+                                      ]
+                                    ],
+                                    []
+                                  ]
+                                }
+                              }
+                            }
+                          ],
+                          [
+                            [
+                              "blocked"
+                            ],
+                            {
+                              "access": "Public",
+                              "value": {
+                                "doc": "",
+                                "value": {
+                                  "body": [
+                                    "Literal",
+                                    [
+                                      "Reference",
+                                      {},
+                                      [
+                                        [
+                                          [
+                                            "morphir"
+                                          ],
+                                          [
+                                            "s",
+                                            "d",
+                                            "k"
+                                          ]
+                                        ],
+                                        [
+                                          [
+                                            "basics"
+                                          ]
+                                        ],
+                                        [
+                                          "bool"
+                                        ]
+                                      ],
+                                      []
+                                    ],
+                                    [
+                                      "BoolLiteral",
+                                      false
+                                    ]
+                                  ],
+                                  "inputTypes": [],
+                                  "outputType": [
+                                    "Reference",
+                                    {},
+                                    [
+                                      [
+                                        [
+                                          "morphir"
+                                        ],
+                                        [
+                                          "s",
+                                          "d",
+                                          "k"
+                                        ]
+                                      ],
+                                      [
+                                        [
+                                          "basics"
+                                        ]
+                                      ],
+                                      [
+                                        "bool"
+                                      ]
+                                    ],
+                                    []
+                                  ]
+                                }
+                              }
+                            }
+                          ]
+                        ]
+                      }
+                    }
+                  ]
+                ]
+              }
+            ],
+            "formatVersion": 3
+          },
+          "target": "morphir-fixture-flags",
+          "options": {}
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {
+          "artifacts": [
+            {
+              "binary": false,
+              "content": "ready = true\nblocked = false\n",
+              "path": "main.flags"
+            }
+          ],
+          "diagnostics": [],
+          "success": true
+        },
+        "id": 7
+      }
+    },
+    {
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 8,
+        "method": "morphir.shutdown",
+        "params": {}
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "result": {},
+        "id": 8
+      }
+    }
+  ]
+}

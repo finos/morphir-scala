@@ -1,0 +1,10 @@
+{
+  "status": "fail",
+  "error": "java.lang.IllegalArgumentException: requirement failed: guest transport closed before response",
+  "modelTier": "not run",
+  "stderr": "graal-jvm-python.stderr.txt",
+  "configuration": "graal-jvm",
+  "guest": "python",
+  "guestSha256": "ce0cba07f0395ff8179b42eb021ade05c68197f69b8e9c0c8bc369d2a035727c",
+  "exchanges": []
+}

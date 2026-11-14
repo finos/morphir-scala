@@ -1,0 +1,24 @@
+{
+  "configuration": "endive-jvm",
+  "scope": "synthetic byte callbacks",
+  "name": "endive-jvm-notification",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/endive-jvm/host",
+    "mep",
+    "--guest",
+    "WORKSPACE/out/spikes/wasm-host/tools/fixtures.dest/notification.wasm",
+    "--input",
+    "WORKSPACE/.dev/.sdlc/scala-wasm-host/out/checks-verified/notification.input.jsonl"
+  ],
+  "exit": 0,
+  "elapsedNanos": 381895875,
+  "startNanos": 671305210861583,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [],
+  "stdout": "endive-jvm-notification.stdout.json",
+  "stderr": "endive-jvm-notification.stderr.jsonl",
+  "guestSha256": "b20ca3b85dbe2e4b9834b3f098aa8e2a6f479c28849907f192d5b3c86accd53c",
+  "startupToFirstResultNanos": null
+}

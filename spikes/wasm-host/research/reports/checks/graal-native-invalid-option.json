@@ -1,0 +1,20 @@
+{
+  "configuration": "graal-native",
+  "scope": "synthetic byte callbacks",
+  "name": "graal-native-invalid-option",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-native/host",
+    "probe",
+    "--unknown-option"
+  ],
+  "exit": 1,
+  "elapsedNanos": 6288625,
+  "startNanos": 670390104183708,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [],
+  "stdout": "graal-native-invalid-option.stdout.json",
+  "stderr": "graal-native-invalid-option.stderr.jsonl",
+  "startupToFirstResultNanos": null
+}

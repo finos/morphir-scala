@@ -1,0 +1,19 @@
+{
+  "configuration": "ffi-native",
+  "scope": "synthetic byte callbacks",
+  "name": "ffi-native-help",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/ffi-native/host",
+    "--help"
+  ],
+  "exit": 0,
+  "elapsedNanos": 11466334,
+  "startNanos": 671361460061791,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [],
+  "stdout": "ffi-native-help.stdout.json",
+  "stderr": "ffi-native-help.stderr.jsonl",
+  "startupToFirstResultNanos": null
+}

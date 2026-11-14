@@ -1,0 +1,19 @@
+{
+  "configuration": "ffi-jvm",
+  "scope": "synthetic byte callbacks",
+  "name": "ffi-jvm-help",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/ffi-jvm/host",
+    "--help"
+  ],
+  "exit": 0,
+  "elapsedNanos": 248318250,
+  "startNanos": 670398197855625,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [],
+  "stdout": "ffi-jvm-help.stdout.json",
+  "stderr": "ffi-jvm-help.stderr.jsonl",
+  "startupToFirstResultNanos": null
+}

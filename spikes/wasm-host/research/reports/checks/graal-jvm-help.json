@@ -1,0 +1,19 @@
+{
+  "configuration": "graal-jvm",
+  "scope": "synthetic byte callbacks",
+  "name": "graal-jvm-help",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/host",
+    "--help"
+  ],
+  "exit": 0,
+  "elapsedNanos": 245331167,
+  "startNanos": 670376147790791,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [],
+  "stdout": "graal-jvm-help.stdout.json",
+  "stderr": "graal-jvm-help.stderr.jsonl",
+  "startupToFirstResultNanos": null
+}

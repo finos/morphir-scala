@@ -1,0 +1,341 @@
+{
+  "contractVersion": "0.1.0-draft.1",
+  "suite": "mep-guest",
+  "profile": "generic-json-library-v1",
+  "corpusSha256": "f16f2a4c577b507527a77a19a383c2c0083b4db1db131cd06d170e65a88598ae",
+  "identity": {
+    "runner": {
+      "name": "morphir",
+      "version": "0.4.0-beta.12",
+      "commit": "d3154e9b9a54162a1409593972ac31c4a369f0ec",
+      "dirty": false
+    },
+    "runnerBinary": {
+      "path": "WORKSPACE/out/spikes/wasm-host/tools/mck.dest/morphir",
+      "sha256": "563b8388fd940488d2c5c6c92e3444574384848460e1149efca289af8e5356f3"
+    },
+    "host": {
+      "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/host",
+      "sha256": "b5711c87c4ab31dd9f089bbc5e162bcf2b9c572f28d7efb81cb6611e827ad1b2"
+    },
+    "arguments": [
+      {
+        "Unix": [
+          109,
+          101,
+          112
+        ]
+      },
+      {
+        "Unix": [
+          45,
+          45,
+          102,
+          114,
+          97,
+          109,
+          101,
+          100
+        ]
+      },
+      {
+        "Unix": [
+          45,
+          45,
+          103,
+          117,
+          101,
+          115,
+          116
+        ]
+      },
+      {
+        "Unix": [
+          47,
+          85,
+          115,
+          101,
+          114,
+          115,
+          47,
+          100,
+          97,
+          109,
+          105,
+          97,
+          110,
+          47,
+          46,
+          116,
+          51,
+          47,
+          119,
+          111,
+          114,
+          107,
+          116,
+          114,
+          101,
+          101,
+          115,
+          47,
+          109,
+          111,
+          114,
+          112,
+          104,
+          105,
+          114,
+          45,
+          115,
+          99,
+          97,
+          108,
+          97,
+          47,
+          116,
+          51,
+          45,
+          49,
+          51,
+          51,
+          102,
+          52,
+          100,
+          102,
+          100,
+          45,
+          48,
+          48,
+          50,
+          100,
+          50,
+          51,
+          48,
+          54,
+          102,
+          54,
+          101,
+          56,
+          99,
+          55,
+          98,
+          55,
+          47,
+          111,
+          117,
+          116,
+          47,
+          115,
+          112,
+          105,
+          107,
+          101,
+          115,
+          47,
+          119,
+          97,
+          115,
+          109,
+          45,
+          104,
+          111,
+          115,
+          116,
+          47,
+          116,
+          111,
+          111,
+          108,
+          115,
+          47,
+          103,
+          117,
+          101,
+          115,
+          116,
+          115,
+          46,
+          100,
+          101,
+          115,
+          116,
+          47,
+          115,
+          100,
+          107,
+          46,
+          119,
+          97,
+          115,
+          109
+        ]
+      }
+    ],
+    "files": [
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/host",
+        "sha256": "b5711c87c4ab31dd9f089bbc5e162bcf2b9c572f28d7efb81cb6611e827ad1b2"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/0.jar",
+        "sha256": "b844bf6fb3080c73df6b9c523b7a69b9ef4a980bb15e5c37c35443d1d0b0e0cd"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/1.jar",
+        "sha256": "992099d38ab64e1a8ebb9753c1959d431c4889905ff9e8ec946911692f0879c5"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/10.jar",
+        "sha256": "edaee040707eb773bbf36f4e7ccc9cddfac3070035dd4874e549dd711e7d6eb8"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/11.jar",
+        "sha256": "c12f70446ef038776ddcad234588f79dfc840fef54e6cb728107bc0879bca9bd"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/12.jar",
+        "sha256": "9b9be4b677ab6fbc6b82fe5486908a39664f51e9344d1903ada1c6766d251ce2"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/13.jar",
+        "sha256": "071f4a4a969977f63dc36f446e0b90b19c631f5466a715ba7d5e8f0ab9f5fc87"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/14.jar",
+        "sha256": "a5bbd2624334922b14e35fc561efffd60841383449bfba2d7e973460c6f96a6e"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/15.jar",
+        "sha256": "696cb8b8395b295d9e221c3a4e359fbb671c456cf65d0bb81a7874eed4afc8c3"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/16.jar",
+        "sha256": "dc0eaf2bbf0036a70b60798c785d6e03a9daf06b68b8edb0f1ba9eb3421baeb3"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/17.jar",
+        "sha256": "619b3d15a5e8bfc4ec49d3b7a64dbed053a0ca8625820a49a4f869d1b8c71d09"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/18.jar",
+        "sha256": "a0421dbbe5e77690df2dfdef98618b62852d816bbb814c5cbd0b4d464bff32b0"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/19.jar",
+        "sha256": "b251dead9c89faea26111eff87f406890611ea5ad0f3329f6b1feb812c7318db"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/2.jar",
+        "sha256": "152357b4bc2c6dc0158a555f8e4c6e9fc2c528c87bce8e6bb09354a18fbe822c"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/20.jar",
+        "sha256": "7f5d4fc78703429c9ba2fa70cce4e769ffc40eb3a11c916576c3b945f0f3cbab"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/21.jar",
+        "sha256": "bf67a6df1388ac9aa8a95b765ae603238fd05321fe5e14c93dde93813486048f"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/22.jar",
+        "sha256": "39658649f90b631a4fd63187724f16ba8a045e1b10a513528f34517fb2edf98b"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/23.jar",
+        "sha256": "2cec95b474f153aa5145879d261036bd663d28646832874f8f274a15db7e9926"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/24.jar",
+        "sha256": "0fea733ecbac7a1096f70163698fafd663224203a4f37b4ea479fec7b6ae0721"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/25.jar",
+        "sha256": "9e29b1f2e6d892bdda430ca36769523cf25b75380e3e8543077aff4b93e6663d"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/26.jar",
+        "sha256": "9bd6524b34da59c85859f2aa0663c5282477af107e48160b30a53da91e6f9016"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/27.jar",
+        "sha256": "df26cc58f235f477db07f753ba5a3ab243ebe5789d9f89ecf68dd62ea9a66c28"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/28.jar",
+        "sha256": "1e56d7b058d28b65abd256b8458e3885b674c1d588fa43cd7d1cbb9c7ef2b308"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/29.jar",
+        "sha256": "de29bacc5c3a413215800f57de9017fdda1b3cb6e5359ea0c84ebe13c9610222"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/3.jar",
+        "sha256": "5c64243ed1932febc86aa41c5f4c1b7435c119564f5617b5bede48e020daa0a1"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/30.jar",
+        "sha256": "9ac4298675e7ab0690ca1338999a8936ab5a11a0891ee6864b7674fda5db94e5"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/31.jar",
+        "sha256": "a6c418de8267629243787dbbd8543e23ce8f5cba1744a3a9fff3655e63c45183"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/32.jar",
+        "sha256": "5d8eeae2647841ce5e6f1a0bfa27ef91343b9e5c0178d5153be409f792507d2c"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/33.jar",
+        "sha256": "df4b447704664563cb0fba9cf52d3fc7509654ab592824d5c2eb4647e6701ac4"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/34.jar",
+        "sha256": "0df97574914aee92fd349d0cb4e00f3345d45b2c239e0bb50f0a90ead47888e0"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/35.jar",
+        "sha256": "f5e3733ea6a894f5d03beef0cbcc8d53b5c52f5e9c9b85938ebbc9139e45f50c"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/36.jar",
+        "sha256": "c24664e72a3dafb13d71b5b52e2786a178ad520a77cf29d9585d77d85d882842"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/4.jar",
+        "sha256": "55ce4b63a9f22f98f1b718224d5abc67027de7d102d7c554ce16b53574c74681"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/5.jar",
+        "sha256": "2fd8083aabc7fb4252c299909b19b2881326a03502eba8859d39d4b2ceb7a8b2"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/6.jar",
+        "sha256": "ff061048f20a93b0af51d8a948556d536fb369aef6b851e698ff8743a3bc4e7f"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/7.jar",
+        "sha256": "458bcbaaf46624c9eda49c0e499fd32af1c3774c6f8e412a509a1c422cc06cf8"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/8.jar",
+        "sha256": "b74c94b642359da015f66974e30d75f569898d89470b5c1d3172e4c2858871b9"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/9.jar",
+        "sha256": "740c79f7fc3dae2c5eef48e85f777d679a1f0f53fdbb780bf84dea0370220a61"
+      },
+      {
+        "path": "WORKSPACE/out/spikes/wasm-host/tools/guests.dest/sdk.wasm",
+        "sha256": "f5e1c9cd7a3472b6261c2c3ebfe2c39aeae14da5287dac6cd6ca87ce854901f1"
+      },
+      {
+        "path": "HOME/.local/share/mise/installs/java/oracle-graalvm-25.0.1/bin/java",
+        "sha256": "51d915cedae9922047c0020e1726dc0b5e0995f57bac8ea35ab8c01686b65baf"
+      }
+    ]
+  },
+  "records": [],
+  "error": "adapter exited with code 1; stderr: WARNING: A terminally deprecated method in sun.misc.Unsafe has been called\nWARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/lib/0.jar)\nWARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$\nWARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release\nPanic(java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound)\nException in thread \"main\" java.lang.IllegalArgumentException: requirement failed: GraalWasm 25.0.1 requires a declared maximum for the 256 MiB bound\n\tat kyo.Scope.handle(Unknown Source)\n\tat ? @ morphir.spikes.wasmhost.MepWorker$.run(MepWorker.scala:104)\n\tat kyo.Abort[-scala.Any].handle(Unknown Source)\n\tat ? @ morphir.spikes.wasmhost.MepWorker$.run(MepWorker.scala:104)\n\tat kyo.kernel.Bracket$.Finalize.handle(Unknown Source)\n\tat ? @ morphir.spikes.wasmhost.MepWorker$.run(MepWorker.scala:104)\n\tat kyo.Abort[-scala.Any].handle(Unknown Source)\n\tat ? @ morphir.spikes.wasmhost.MepWorker$.run(MepWorker.scala:104)\n\tat kyo.Scope.handle(Unknown Source)\n\tat ? @ morphir.spikes.wasmhost.HostCli.Mep$.?(HostCli.scala:40)\n\tat kyo.Abort[-scala.Any].handle(Unknown Source)\n\tat ? @ morphir.spikes.wasmhost.HostCli.Mep$.?(HostCli.scala:40)\n\tat kyo.kernel.Bracket$.Finalize.handle(Unknown Source)\n\tat ? @ morphir.spikes.wasmhost.HostCli.Mep$.?(HostCli.scala:40)\n\tat kyo.Abort[-scala.Any].handle(Unknown Source)\n\tat ? @ morphir.spikes.wasmhost.HostCli.Mep$.?(HostCli.scala:40)\n\tat kyo.Abort[-scala.Any].handle(Unknown Source)\n\tat ? @ morphir.spikes.wasmhost.HostCli.Mep$.?(HostCli.scala:40)\n\tat (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)\n\tat scala.Predef$.require(Predef.scala:389)\n\tat morphir.spikes.wasmhost.graal.GraalBackend$.open(Main.scala:17)\n\tat morphir.spikes.wasmhost.MepWorker$$anon$3.apply(MepWorker.scala:56)\n\tat morphir.spikes.wasmhost.MepWorker$$anon$3.apply(MepWorker.scala:56)\n\tat java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)\n\tat java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)\n\tat java.base/java.lang.Thread.run(Thread.java:1474)\n\tSuppressed: kyo.kernel.internal.EffectTrace: effect trace:\nat kyo.Scope.handle(Unknown Source)\nat ? @ morphir.spikes.wasmhost.MepWorker$.run(MepWorker.scala:104)\nat kyo.Abort[-scala.Any].handle(Unknown Source)\nat ? @ morphir.spikes.wasmhost.MepWorker$.run(MepWorker.scala:104)\nat kyo.kernel.Bracket$.Finalize.handle(Unknown Source)\nat ? @ morphir.spikes.wasmhost.MepWorker$.run(MepWorker.scala:104)\nat kyo.Abort[-scala.Any].handle(Unknown Source)\nat ? @ morphir.spikes.wasmhost.MepWorker$.run(MepWorker.scala:104)\nat kyo.Scope.handle(Unknown Source)\nat ? @ morphir.spikes.wasmhost.HostCli.Mep$.?(HostCli.scala:40)\nat kyo.Abort[-scala.Any].handle(Unknown Source)\nat ? @ morphir.spikes.wasmhost.HostCli.Mep$.?(HostCli.scala:40)\nat kyo.kernel.Bracket$.Finalize.handle(Unknown Source)\nat ? @ morphir.spikes.wasmhost.HostCli.Mep$.?(HostCli.scala:40)\nat kyo.Abort[-scala.Any].handle(Unknown Source)\nat ? @ morphir.spikes.wasmhost.HostCli.Mep$.?(HostCli.scala:40)\nat kyo.Abort[-scala.Any].handle(Unknown Source)\nat ? @ morphir.spikes.wasmhost.HostCli.Mep$.?(HostCli.scala:40)\nat (kyo.Abort[-scala.Any] & kyo.Async$package$.Async$.Join).handle(Unknown Source)\n",
+  "qualified": false
+}

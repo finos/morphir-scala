@@ -1,0 +1,20 @@
+{
+  "configuration": "ffi-native",
+  "scope": "synthetic byte callbacks",
+  "name": "ffi-native-invalid-option",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/ffi-native/host",
+    "probe",
+    "--unknown-option"
+  ],
+  "exit": 1,
+  "elapsedNanos": 5738125,
+  "startNanos": 671361496282416,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [],
+  "stdout": "ffi-native-invalid-option.stdout.json",
+  "stderr": "ffi-native-invalid-option.stderr.jsonl",
+  "startupToFirstResultNanos": null
+}

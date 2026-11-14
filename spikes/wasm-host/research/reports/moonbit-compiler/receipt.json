@@ -1,0 +1,545 @@
+{
+  "release": "v0.10.19+97801ee1b",
+  "candidateCompilerPayloadBytes": "16544945",
+  "payloadScope": "moonc Wasm + JS loader + expanded core + licenses; excludes an unimplemented compiler adapter, moonfmt and mooninfo",
+  "releaseRepositoryRevision": "d4ada10d212b5376f7f8bf49cd2fbaa275a395df",
+  "compilerBuildIdentity": "97801ee1b from release name; not verified as the release repository commit",
+  "url": "https://github.com/moonbitlang/moonbit-compiler/releases/download/v0.10.19%2B97801ee1b/moonbit-wasm.tar.gz",
+  "archiveSha256": "ab55f4d92206916308922c768033d8a1b0eef5a2a3ea4c3ba8569c52cd40e2a9",
+  "archiveBytes": "4176888",
+  "bundleLogicalBytesIncludingCompressedCore": 11078782,
+  "extractedCoreLogicalBytes": "10967128",
+  "coreArchiveSha256": "b2426aa085b3c7bf31af07e2c652701461cd9fe5c7b79dd7a8578f124e87e5c1",
+  "coreSourceRevision": "not supplied as a separate marker in this bundle; content bound by archive digest",
+  "moonRevision": "519f6458a336807654b85cc27da1fad8f8a1f029",
+  "licenseSha256": "c4ed4d95e9fcbd1334ca52054177520833bd0453a87d7cf535a1b2762d515be5",
+  "coreLicenseSha256": "86460c45017ffacb9aa9e18850fa9fdb036339dc8851125465f4a3f3442fc894",
+  "loader": "moonc.js, retained as data; not executed by Node or another JS runtime",
+  "runtimeRequirements": [
+    "wasm_of_ocaml host ABI",
+    "GC/reference types",
+    "JavaScript bindings and string builtins",
+    "exception tags",
+    "bounded virtual filesystem required"
+  ],
+  "status": "blocked",
+  "files": [
+    {
+      "path": "mooninfo.assets/code-4efebf5ea19e18b438f3.wasm",
+      "bytes": "1764389",
+      "sha256": "aeb4148200f74cfa2d573ee5e18308f18bd34459797387535163305ef185bb1f"
+    },
+    {
+      "path": "moonc.js",
+      "bytes": "10250",
+      "sha256": "3fcd7b44506ee8b60264a4e4972adafae8f31dedc7e91879d419dd006ef83ec4"
+    },
+    {
+      "path": "moonfmt.js",
+      "bytes": "10252",
+      "sha256": "126d36d4664473283a1387b02e822663cfc2d6a2bad823a141c4f8d818a1f387"
+    },
+    {
+      "path": "mooninfo.js",
+      "bytes": "10253",
+      "sha256": "d2fedd6e5b2e52a8b9ff1dc5d79d1c6202f685e8c11b7b2d7563f90be0ef8691"
+    },
+    {
+      "path": "moonfmt.assets/code-4f04537de9d453ed6edc.wasm",
+      "bytes": "1469564",
+      "sha256": "40d74534ab256e4125f8e02bc625c4551edd1d9485790e91a9032784f5a2b534"
+    },
+    {
+      "path": "moon_version",
+      "bytes": "41",
+      "sha256": "01737fe3ca231bc5399e7084666e75d6ae7aded62632966336cd958a86160f87"
+    },
+    {
+      "path": "core.tar.gz",
+      "bytes": "2253163",
+      "sha256": "b2426aa085b3c7bf31af07e2c652701461cd9fe5c7b79dd7a8578f124e87e5c1"
+    },
+    {
+      "path": "lib/prelude_proof/moonbit_builtin_prelude.mlw",
+      "bytes": "16242",
+      "sha256": "2c17e3da5a0cb51e94246d646c610a5ae92ec2ccf8eaa16f3930c5c718dd7620"
+    },
+    {
+      "path": "lib/prelude_proof_machine_int/moonbit_builtin_prelude.mlw",
+      "bytes": "19488",
+      "sha256": "98d786c01f87a8eb14333f6a08128520a25a7c0b877d74490ee923e616177bea"
+    },
+    {
+      "path": "moonc.assets/code-172607e03e4760bd9001.wasm",
+      "bytes": "5525140",
+      "sha256": "8e345f26b77901f4cbc7f7c1ee9aff3f68821e38682dd32da39e17e545a2fac2"
+    }
+  ],
+  "loading": [
+    {
+      "configuration": "endive-jvm",
+      "scope": "Wasm MoonBit compiler admission, not Morphir guest qualification",
+      "name": "endive-jvm-moonc-load",
+      "command": [
+        "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/endive-jvm/host",
+        "probe",
+        "--guest",
+        "WORKSPACE/.dev/.sdlc/scala-wasm-host/out/moonbit-compiler-verified/bundle/moonc.assets/code-172607e03e4760bd9001.wasm"
+      ],
+      "exit": 1,
+      "elapsedNanos": 392387291,
+      "startNanos": 672891455328250,
+      "sampleMemory": false,
+      "intervalMs": 50,
+      "samples": [],
+      "phases": [
+        {
+          "phase": "parent-ready",
+          "cycle": 0,
+          "pid": "75967",
+          "nanoTime": "672891823307166",
+          "heapUsedBytes": 9624680,
+          "heapCommittedBytes": 612368384,
+          "heapMaxBytes": 9663676416,
+          "gc": [
+            {
+              "name": "G1 Young Generation",
+              "collections": 1,
+              "elapsedMillis": 1
+            },
+            {
+              "name": "G1 Concurrent GC",
+              "collections": 0,
+              "elapsedMillis": 0
+            },
+            {
+              "name": "G1 Old Generation",
+              "collections": 0,
+              "elapsedMillis": 0
+            }
+          ],
+          "guestLinearMemoryBytes": null,
+          "heapCoverage": "runtime heap only, excludes libextism allocations"
+        },
+        {
+          "phase": "load-start",
+          "cycle": 1,
+          "pid": "75967",
+          "nanoTime": "672891826557291",
+          "heapUsedBytes": 10125480,
+          "heapCommittedBytes": 612368384,
+          "heapMaxBytes": 9663676416,
+          "gc": [
+            {
+              "name": "G1 Young Generation",
+              "collections": 1,
+              "elapsedMillis": 1
+            },
+            {
+              "name": "G1 Concurrent GC",
+              "collections": 0,
+              "elapsedMillis": 0
+            },
+            {
+              "name": "G1 Old Generation",
+              "collections": 0,
+              "elapsedMillis": 0
+            }
+          ],
+          "guestLinearMemoryBytes": null,
+          "heapCoverage": "runtime heap only, excludes libextism allocations"
+        }
+      ],
+      "stdout": "endive-jvm-moonc-load.stdout.json",
+      "stderr": "endive-jvm-moonc-load.stderr.jsonl",
+      "guestSha256": "8e345f26b77901f4cbc7f7c1ee9aff3f68821e38682dd32da39e17e545a2fac2",
+      "startupToFirstResultNanos": null,
+      "status": "adapter-refused",
+      "engineCapability": "not established by Morphir adapter admission",
+      "compilation": "blocked; compiler-specific runtime/entrypoint adapter absent"
+    },
+    {
+      "configuration": "endive-native",
+      "scope": "Wasm MoonBit compiler admission, not Morphir guest qualification",
+      "name": "endive-native-moonc-load",
+      "command": [
+        "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/endive-native/host",
+        "probe",
+        "--guest",
+        "WORKSPACE/.dev/.sdlc/scala-wasm-host/out/moonbit-compiler-verified/bundle/moonc.assets/code-172607e03e4760bd9001.wasm"
+      ],
+      "exit": 1,
+      "elapsedNanos": 124108500,
+      "startNanos": 672891855250166,
+      "sampleMemory": false,
+      "intervalMs": 50,
+      "samples": [],
+      "phases": [
+        {
+          "phase": "parent-ready",
+          "cycle": 0,
+          "pid": "75994",
+          "nanoTime": "672891973184916",
+          "heapUsedBytes": 7884496,
+          "heapCommittedBytes": 30923554816,
+          "heapMaxBytes": 30923554816,
+          "gc": [
+            {
+              "name": "young generation scavenger",
+              "collections": 0,
+              "elapsedMillis": 0
+            },
+            {
+              "name": "complete scavenger",
+              "collections": 0,
+              "elapsedMillis": 0
+            }
+          ],
+          "guestLinearMemoryBytes": null,
+          "heapCoverage": "runtime heap only, excludes libextism allocations"
+        },
+        {
+          "phase": "load-start",
+          "cycle": 1,
+          "pid": "75994",
+          "nanoTime": "672891973749083",
+          "heapUsedBytes": 7884496,
+          "heapCommittedBytes": 30923554816,
+          "heapMaxBytes": 30923554816,
+          "gc": [
+            {
+              "name": "young generation scavenger",
+              "collections": 0,
+              "elapsedMillis": 0
+            },
+            {
+              "name": "complete scavenger",
+              "collections": 0,
+              "elapsedMillis": 0
+            }
+          ],
+          "guestLinearMemoryBytes": null,
+          "heapCoverage": "runtime heap only, excludes libextism allocations"
+        }
+      ],
+      "stdout": "endive-native-moonc-load.stdout.json",
+      "stderr": "endive-native-moonc-load.stderr.jsonl",
+      "guestSha256": "8e345f26b77901f4cbc7f7c1ee9aff3f68821e38682dd32da39e17e545a2fac2",
+      "startupToFirstResultNanos": null,
+      "status": "adapter-refused",
+      "engineCapability": "not established by Morphir adapter admission",
+      "compilation": "blocked; compiler-specific runtime/entrypoint adapter absent"
+    },
+    {
+      "configuration": "graal-jvm",
+      "scope": "Wasm MoonBit compiler admission, not Morphir guest qualification",
+      "name": "graal-jvm-moonc-load",
+      "command": [
+        "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-jvm/host",
+        "probe",
+        "--guest",
+        "WORKSPACE/.dev/.sdlc/scala-wasm-host/out/moonbit-compiler-verified/bundle/moonc.assets/code-172607e03e4760bd9001.wasm"
+      ],
+      "exit": 1,
+      "elapsedNanos": 395969625,
+      "startNanos": 672891983751208,
+      "sampleMemory": false,
+      "intervalMs": 50,
+      "samples": [],
+      "phases": [
+        {
+          "phase": "parent-ready",
+          "cycle": 0,
+          "pid": "75995",
+          "nanoTime": "672892354574708",
+          "heapUsedBytes": 19777840,
+          "heapCommittedBytes": 612368384,
+          "heapMaxBytes": 9663676416,
+          "gc": [
+            {
+              "name": "G1 Young Generation",
+              "collections": 1,
+              "elapsedMillis": 2
+            },
+            {
+              "name": "G1 Concurrent GC",
+              "collections": 0,
+              "elapsedMillis": 0
+            },
+            {
+              "name": "G1 Old Generation",
+              "collections": 0,
+              "elapsedMillis": 0
+            }
+          ],
+          "guestLinearMemoryBytes": null,
+          "heapCoverage": "runtime heap only, excludes libextism allocations"
+        },
+        {
+          "phase": "load-start",
+          "cycle": 1,
+          "pid": "75995",
+          "nanoTime": "672892357769875",
+          "heapUsedBytes": 20265320,
+          "heapCommittedBytes": 612368384,
+          "heapMaxBytes": 9663676416,
+          "gc": [
+            {
+              "name": "G1 Young Generation",
+              "collections": 1,
+              "elapsedMillis": 2
+            },
+            {
+              "name": "G1 Concurrent GC",
+              "collections": 0,
+              "elapsedMillis": 0
+            },
+            {
+              "name": "G1 Old Generation",
+              "collections": 0,
+              "elapsedMillis": 0
+            }
+          ],
+          "guestLinearMemoryBytes": null,
+          "heapCoverage": "runtime heap only, excludes libextism allocations"
+        }
+      ],
+      "stdout": "graal-jvm-moonc-load.stdout.json",
+      "stderr": "graal-jvm-moonc-load.stderr.jsonl",
+      "guestSha256": "8e345f26b77901f4cbc7f7c1ee9aff3f68821e38682dd32da39e17e545a2fac2",
+      "startupToFirstResultNanos": null,
+      "status": "adapter-refused",
+      "engineCapability": "not established by Morphir adapter admission",
+      "compilation": "blocked; compiler-specific runtime/entrypoint adapter absent"
+    },
+    {
+      "configuration": "graal-native",
+      "scope": "Wasm MoonBit compiler admission, not Morphir guest qualification",
+      "name": "graal-native-moonc-load",
+      "command": [
+        "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/graal-native/host",
+        "probe",
+        "--guest",
+        "WORKSPACE/.dev/.sdlc/scala-wasm-host/out/moonbit-compiler-verified/bundle/moonc.assets/code-172607e03e4760bd9001.wasm"
+      ],
+      "exit": 1,
+      "elapsedNanos": 158067125,
+      "startNanos": 672892384078625,
+      "sampleMemory": false,
+      "intervalMs": 50,
+      "samples": [],
+      "phases": [
+        {
+          "phase": "parent-ready",
+          "cycle": 0,
+          "pid": "75999",
+          "nanoTime": "672892529004000",
+          "heapUsedBytes": 7884496,
+          "heapCommittedBytes": 30923554816,
+          "heapMaxBytes": 30923554816,
+          "gc": [
+            {
+              "name": "young generation scavenger",
+              "collections": 0,
+              "elapsedMillis": 0
+            },
+            {
+              "name": "complete scavenger",
+              "collections": 0,
+              "elapsedMillis": 0
+            }
+          ],
+          "guestLinearMemoryBytes": null,
+          "heapCoverage": "runtime heap only, excludes libextism allocations"
+        },
+        {
+          "phase": "load-start",
+          "cycle": 1,
+          "pid": "75999",
+          "nanoTime": "672892530282583",
+          "heapUsedBytes": 7884496,
+          "heapCommittedBytes": 30923554816,
+          "heapMaxBytes": 30923554816,
+          "gc": [
+            {
+              "name": "young generation scavenger",
+              "collections": 0,
+              "elapsedMillis": 0
+            },
+            {
+              "name": "complete scavenger",
+              "collections": 0,
+              "elapsedMillis": 0
+            }
+          ],
+          "guestLinearMemoryBytes": null,
+          "heapCoverage": "runtime heap only, excludes libextism allocations"
+        }
+      ],
+      "stdout": "graal-native-moonc-load.stdout.json",
+      "stderr": "graal-native-moonc-load.stderr.jsonl",
+      "guestSha256": "8e345f26b77901f4cbc7f7c1ee9aff3f68821e38682dd32da39e17e545a2fac2",
+      "startupToFirstResultNanos": null,
+      "status": "adapter-refused",
+      "engineCapability": "not established by Morphir adapter admission",
+      "compilation": "blocked; compiler-specific runtime/entrypoint adapter absent"
+    },
+    {
+      "configuration": "ffi-jvm",
+      "scope": "Wasm MoonBit compiler admission, not Morphir guest qualification",
+      "name": "ffi-jvm-moonc-load",
+      "command": [
+        "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/ffi-jvm/host",
+        "probe",
+        "--guest",
+        "WORKSPACE/.dev/.sdlc/scala-wasm-host/out/moonbit-compiler-verified/bundle/moonc.assets/code-172607e03e4760bd9001.wasm"
+      ],
+      "exit": 1,
+      "elapsedNanos": 406956583,
+      "startNanos": 672892558635083,
+      "sampleMemory": false,
+      "intervalMs": 50,
+      "samples": [],
+      "phases": [
+        {
+          "phase": "parent-ready",
+          "cycle": 0,
+          "pid": "76000",
+          "nanoTime": "672892912319583",
+          "heapUsedBytes": 8689968,
+          "heapCommittedBytes": 612368384,
+          "heapMaxBytes": 9663676416,
+          "gc": [
+            {
+              "name": "G1 Young Generation",
+              "collections": 0,
+              "elapsedMillis": 0
+            },
+            {
+              "name": "G1 Concurrent GC",
+              "collections": 0,
+              "elapsedMillis": 0
+            },
+            {
+              "name": "G1 Old Generation",
+              "collections": 0,
+              "elapsedMillis": 0
+            }
+          ],
+          "guestLinearMemoryBytes": null,
+          "heapCoverage": "runtime heap only, excludes libextism allocations"
+        },
+        {
+          "phase": "load-start",
+          "cycle": 1,
+          "pid": "76000",
+          "nanoTime": "672892916035541",
+          "heapUsedBytes": 8689968,
+          "heapCommittedBytes": 612368384,
+          "heapMaxBytes": 9663676416,
+          "gc": [
+            {
+              "name": "G1 Young Generation",
+              "collections": 1,
+              "elapsedMillis": 1
+            },
+            {
+              "name": "G1 Concurrent GC",
+              "collections": 0,
+              "elapsedMillis": 0
+            },
+            {
+              "name": "G1 Old Generation",
+              "collections": 0,
+              "elapsedMillis": 0
+            }
+          ],
+          "guestLinearMemoryBytes": null,
+          "heapCoverage": "runtime heap only, excludes libextism allocations"
+        }
+      ],
+      "stdout": "ffi-jvm-moonc-load.stdout.json",
+      "stderr": "ffi-jvm-moonc-load.stderr.jsonl",
+      "guestSha256": "8e345f26b77901f4cbc7f7c1ee9aff3f68821e38682dd32da39e17e545a2fac2",
+      "startupToFirstResultNanos": null,
+      "status": "adapter-refused",
+      "engineCapability": "not established by Morphir adapter admission",
+      "compilation": "blocked; compiler-specific runtime/entrypoint adapter absent"
+    },
+    {
+      "configuration": "ffi-native",
+      "scope": "Wasm MoonBit compiler admission, not Morphir guest qualification",
+      "name": "ffi-native-moonc-load",
+      "command": [
+        "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/ffi-native/host",
+        "probe",
+        "--guest",
+        "WORKSPACE/.dev/.sdlc/scala-wasm-host/out/moonbit-compiler-verified/bundle/moonc.assets/code-172607e03e4760bd9001.wasm"
+      ],
+      "exit": 1,
+      "elapsedNanos": 237363125,
+      "startNanos": 672892982109375,
+      "sampleMemory": false,
+      "intervalMs": 50,
+      "samples": [],
+      "phases": [
+        {
+          "phase": "parent-ready",
+          "cycle": 0,
+          "pid": "76004",
+          "nanoTime": "672893118601083",
+          "heapUsedBytes": 7884496,
+          "heapCommittedBytes": 30923554816,
+          "heapMaxBytes": 30923554816,
+          "gc": [
+            {
+              "name": "young generation scavenger",
+              "collections": 0,
+              "elapsedMillis": 0
+            },
+            {
+              "name": "complete scavenger",
+              "collections": 0,
+              "elapsedMillis": 0
+            }
+          ],
+          "guestLinearMemoryBytes": null,
+          "heapCoverage": "runtime heap only, excludes libextism allocations"
+        },
+        {
+          "phase": "load-start",
+          "cycle": 1,
+          "pid": "76004",
+          "nanoTime": "672893119147125",
+          "heapUsedBytes": 7884496,
+          "heapCommittedBytes": 30923554816,
+          "heapMaxBytes": 30923554816,
+          "gc": [
+            {
+              "name": "young generation scavenger",
+              "collections": 0,
+              "elapsedMillis": 0
+            },
+            {
+              "name": "complete scavenger",
+              "collections": 0,
+              "elapsedMillis": 0
+            }
+          ],
+          "guestLinearMemoryBytes": null,
+          "heapCoverage": "runtime heap only, excludes libextism allocations"
+        }
+      ],
+      "stdout": "ffi-native-moonc-load.stdout.json",
+      "stderr": "ffi-native-moonc-load.stderr.jsonl",
+      "guestSha256": "8e345f26b77901f4cbc7f7c1ee9aff3f68821e38682dd32da39e17e545a2fac2",
+      "startupToFirstResultNanos": null,
+      "status": "adapter-refused",
+      "engineCapability": "not established by Morphir adapter admission",
+      "compilation": "blocked; compiler-specific runtime/entrypoint adapter absent"
+    }
+  ],
+  "compileLatency": null,
+  "compilerRuntimeMemory": null,
+  "nextExperiment": "Implement and qualify a bounded wasm_of_ocaml compiler adapter and test engine features independently; do not relax Morphir guest admission"
+}

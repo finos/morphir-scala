@@ -1,0 +1,6 @@
+extends: [build.WasmHostModule, build.MorphirKyoCoreMvnDeps]
+mvnDeps: !append
+- io.getkyo::kyo-case-app
+- com.lihaoyi::ujson
+object test:
+  extends: [ScalaTests, millbuild.KyoTest, build.MorphirKyoTestMvnDeps]

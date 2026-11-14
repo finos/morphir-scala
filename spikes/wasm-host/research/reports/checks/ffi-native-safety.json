@@ -1,0 +1,24 @@
+{
+  "configuration": "ffi-native",
+  "scope": "synthetic byte callbacks",
+  "name": "ffi-native-safety",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/ffi-native/host",
+    "safety",
+    "--guest",
+    "WORKSPACE/out/spikes/wasm-host/tools/fixtures.dest/echo.wasm",
+    "--runaway",
+    "WORKSPACE/out/spikes/wasm-host/tools/fixtures.dest/runaway.wasm"
+  ],
+  "exit": 0,
+  "elapsedNanos": 444373083,
+  "startNanos": 671365246786750,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [],
+  "stdout": "ffi-native-safety.stdout.json",
+  "stderr": "ffi-native-safety.stderr.jsonl",
+  "guestSha256": "1a952c7c310781962ef3ba7eba3a04b563d78684f5e2cf5aa0b8f8f4236ae4ec",
+  "startupToFirstResultNanos": null
+}

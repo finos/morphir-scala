@@ -1,0 +1,7 @@
+extends: [build.WasmHostExecutable]
+mainClass: morphir.spikes.wasmhost.ffi.Main
+moduleDeps:
+- build.spikes.wasm-host.core
+nativeImageOptions: !append
+- -H:+UnlockExperimentalVMOptions
+- -H:+SharedArenaSupport

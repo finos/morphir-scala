@@ -23,6 +23,7 @@ object Deps {
   }
   object io {
     object getkyo {
+      val `kyo-case-app`      = mvn"io.getkyo::kyo-case-app::${Versions.kyo}"
       val `kyo-config`        = mvn"io.getkyo::kyo-config::${Versions.kyo}"
       val `kyo-core`          = mvn"io.getkyo::kyo-core::${Versions.kyo}"
       val `kyo-data`          = mvn"io.getkyo::kyo-data::${Versions.kyo}"
@@ -42,6 +43,7 @@ object Deps {
 
       /** Every kyo artifact this build may resolve, all at [[Versions.kyo]]. */
       def managed: Seq[Dep] = Seq(
+        `kyo-case-app`,
         `kyo-config`,
         `kyo-core`,
         `kyo-data`,

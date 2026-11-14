@@ -1,0 +1,1 @@
+["compile", "/workspace/answer.mbt", "-target", "wasm", "-exported_functions", "answer", "-no-intermediate-file", "-o", "/workspace/answer.wasm"]

@@ -1,0 +1,20 @@
+{
+  "configuration": "endive-jvm",
+  "scope": "synthetic byte callbacks",
+  "name": "endive-jvm-invalid-option",
+  "command": [
+    "WORKSPACE/out/spikes/wasm-host/tools/distribution.dest/endive-jvm/host",
+    "probe",
+    "--unknown-option"
+  ],
+  "exit": 1,
+  "elapsedNanos": 190527250,
+  "startNanos": 670355435412666,
+  "sampleMemory": false,
+  "intervalMs": 50,
+  "samples": [],
+  "phases": [],
+  "stdout": "endive-jvm-invalid-option.stdout.json",
+  "stderr": "endive-jvm-invalid-option.stderr.jsonl",
+  "startupToFirstResultNanos": null
+}
