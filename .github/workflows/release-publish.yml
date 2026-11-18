@@ -94,7 +94,7 @@ jobs:
           distribution: temurin
 
       - name: Cache scala dependencies
-        uses: coursier/cache-action@v8
+        uses: coursier/cache-action@v9
 
       - name: Install native dependencies
         # Bounded for the same reason as ci.yml's publish job: a wedged apt mirror must not hold
@@ -174,7 +174,7 @@ jobs:
           distribution: temurin
 
       - name: Cache scala dependencies
-        uses: coursier/cache-action@v8
+        uses: coursier/cache-action@v9
 
       - name: Publish the Mill plugin family to Maven Central
         env:
