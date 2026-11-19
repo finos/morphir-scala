@@ -94,7 +94,7 @@ object Versions {
   val `commons-compress` = "1.28.0"
   val jmh                = "1.37"
   val kyo                = "1.0.0-RC7"
-  val `os-lib`           = "0.11.8"
+  val `os-lib`           = "0.11.10"
   val scoverage          = "2.5.2"
   val semanticDb         = "4.8.11"
   val sourcecode         = "0.4.4"
