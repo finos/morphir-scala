@@ -5,7 +5,7 @@
 # Run `mise tasks` to see available tasks
 
 [tools]
-bun = "1.4.4"
+bun = "1.4.5"
 node = "26.13.1"
 "scala-cli" = "1.19.0"
 
