@@ -22,7 +22,7 @@ jsonschema = "latest"
 # toolchain change elsewhere cannot break the openspec tasks. See
 # https://github.com/moonrockz/mission-control/blob/tools-v0.1.1/apps/tools/README.md
 [tools."github:moonrockz/mission-control"]
-version = "0.1.1"
+version = "0.1.2"
 version_prefix = "tools-v"
 
 [tools."github:moonrockz/mission-control".platforms]
