@@ -97,7 +97,7 @@ object Versions {
   val `os-lib`           = "0.11.8"
   val scoverage          = "2.5.2"
   val semanticDb         = "4.8.11"
-  val sourcecode         = "0.4.4"
+  val sourcecode         = "0.4.5"
   val upickle            = "4.4.3"
   val utest              = "0.9.5"
 }
