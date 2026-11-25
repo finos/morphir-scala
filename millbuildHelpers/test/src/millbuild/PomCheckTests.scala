@@ -50,7 +50,7 @@ object PomCheckTests extends TestSuite {
     }
 
     test("a Scala.js POM may name the Scala.js library, which publishes under a 2.13 suffix") {
-      assert(PomCheck.problems(pom(dep("scalajs-library_2.13", Some("1.22.0"))), Platform.Js).isEmpty)
+      assert(PomCheck.problems(pom(dep("scalajs-library_2.13", Some("1.23.0"))), Platform.Js).isEmpty)
     }
 
     test("a dependencyManagement entry without a version is not a pin") {
