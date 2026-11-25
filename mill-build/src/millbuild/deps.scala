@@ -106,7 +106,7 @@ object ScalaVersions {
   val scala3 = "3.9.0"
 
   def scalaJSVersion     = "1.22.0"
-  def scalaNativeVersion = "0.5.12"
+  def scalaNativeVersion = "0.5.13"
 
   /**
    * The Scala version Mill itself is built with. Mill plugins compile with this, not [[scala3]]: a plugin compiled with
