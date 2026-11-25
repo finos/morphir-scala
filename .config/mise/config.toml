@@ -4,6 +4,13 @@
 # Tasks are defined as bash scripts in .config/mise/tasks/
 # Run `mise tasks` to see available tasks
 
+[settings]
+# Resolve tool releases through the GitHub API, not mise's version index
+# (mise-versions.jdx.dev). The index did not list mission-control-tools 0.1.3
+# after its release, so `mise install` failed with a 404. CI sets
+# MISE_GITHUB_TOKEN for the API calls.
+use_versions_host = false
+
 [tools]
 bun = "1.4.5"
 node = "26.13.1"
@@ -20,9 +27,9 @@ jsonschema = "latest"
 
 # Shared OpenSpec snapshot checker and skill setup. A released binary, so a
 # toolchain change elsewhere cannot break the openspec tasks. See
-# https://github.com/moonrockz/mission-control/blob/tools-v0.1.1/apps/tools/README.md
+# https://github.com/moonrockz/mission-control/blob/tools-v0.1.3/apps/tools/README.md
 [tools."github:moonrockz/mission-control"]
-version = "0.1.1"
+version = "0.1.3"
 version_prefix = "tools-v"
 
 [tools."github:moonrockz/mission-control".platforms]

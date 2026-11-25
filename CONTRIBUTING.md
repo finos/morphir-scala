@@ -204,8 +204,12 @@ uses or recommends unconditional force.
 
 This repository uses Mission Control's shared `html-design` extension. Its committed
 schema, templates and SHA-256 ownership lock work without a sibling checkout or an
-unpublished registry dependency. The six core skills are available for
-Codex/universal agents, Claude, Copilot, Cursor, Grok, Gemini and OpenCode.
+unpublished registry dependency. The six core skills and the `openspec` skill, which
+answers questions about OpenSpec and sends a request to the skill that does the work,
+are checked in once, in `.agents/skills/`. Codex, Copilot, Cursor, Gemini and OpenCode
+read that directory. `.claude/skills/` and `.grok/skills/` hold links to it. On
+Windows, run `git config --global core.symlinks true` before you clone, or each link
+checks out as a small text file.
 
 Run `mise install` for pinned development tools. The shared checker is the
 `mission-control-tools` binary, pinned to an exact release in

@@ -11,6 +11,12 @@ a release.
 ### Changed
 - The OpenSpec tasks use the pinned `mission-control-tools` 0.1.1 binary instead of the copied MoonBit script.
   The repository no longer installs MoonBit, and `mise run openspec:test` is removed; use `mise run openspec:verify`.
+- `mission-control-tools` moves from 0.1.1 to 0.1.3, which accepts OpenSpec 2.2 in `openspec:setup`. OpenSpec stays
+  at 2.2.0. The html-design bundle gets the 0.1.2 narrative guidance for proposals, specs and designs. The agent skills
+  now use the OpenSpec 2 layout: one copy in `.agents/skills/`, links in `.claude/skills/` and `.grok/skills/`, and
+  the new `openspec` skill, which answers OpenSpec questions and routes requests. The copies in `.cursor/`, `.gemini/`,
+  `.github/` and `.opencode/` are removed; those agents read `.agents/skills/`. On Windows, clone with
+  `core.symlinks` set to `true` to get the links. The commands do not change.
 
 ## [0.5.0-M13] - 2026-10-31
 
